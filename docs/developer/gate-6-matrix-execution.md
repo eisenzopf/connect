@@ -26,6 +26,23 @@ installed browsers and earlier narrow browser results do not fill those rows.
 
 ## Latest decoded-media measurements
 
+Attempt v162 at `47ccc658` reran only the affected local ARM Chrome WT EdDSA
+quality case with passive encoder-input diagnostics. All four moves, owned UDP
+capture, source/SDK/executable guards and original cleanup pass; all six decoded
+quality routes still fail. Audio totals 58.18–59.46 seconds; AV median absolute
+skew 98.2–116.7 ms and p95 141.3–159.1 ms. Two routes fall to 21/22 changing
+frames in their weakest second. The new encoder-input envelope observer rejects
+same-resolution callback times on all six sources, so the numeric input/receive
+latencies are provisional and do not establish a causal timing boundary. The
+original report is retained unchanged. Subsequent diagnostic reports explicitly
+label invalid input or receive envelopes `observer-invalid`; one new focused
+regression passes. No additional live run or unrelated suite was launched.
+
+The matrix remains 25 not-run, five failed, two incomplete and zero qualified.
+Too much complete-workload integration followed narrow component work. Finish
+that integration alongside the actual media fix; failed media cells must not
+prevent other executable cells from being attempted.
+
 The new `--stage quality` producer runs the original browser programme with
 independent WebCodecs PCM/pixel observers over the declared 1–61 second window
 and an owned exact-port UDP capture. At `342e943f`, both local ARM Chrome WT

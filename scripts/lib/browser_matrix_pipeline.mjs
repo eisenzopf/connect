@@ -12,6 +12,12 @@ export function pipelineLatency(sent,received){
         signed_median_ms:(values[Math.floor((values.length-1)/2)]+values[Math.floor(values.length/2)])/2,
         p95_ms:values[Math.ceil(values.length*.95)-1],minimum_ms:values[0],maximum_ms:values.at(-1)};
 }
+// Numeric marker matches remain diagnostic when either envelope is invalid.
+export function pipelineEnvelopeLatency(sent,received,...envelopes){
+    const result=pipelineLatency(sent,received);
+    return envelopes.every(envelope=>envelope?.status==='observer-valid')?result:
+        {...result,status:'observer-invalid',reason:'Audio envelope validity is required for delay attribution'};
+}
 /** Passive fixture diagnostics at the real SDK encoder input. No clock/PCM/
  * pixel alteration, retries or new media. These counters cannot qualify quality. */
 export function browserMatrixPipeline(Peer,lookup){
@@ -52,9 +58,9 @@ export function browserMatrixPipeline(Peer,lookup){
                     audio_encoder_refusals:route.audioRefused,video_encoder_refusals:route.videoRefused,
                     maximum_peer_dropped_packets:route.maxPeerDroppedPackets,errors:route.errors,
                     audio_envelope:route.audio.report(1),video_edges:edges(route.videoEdges),
-                    capture_audio_minus_video:pipelineLatency(edges(route.videoEdges),edges(route.audio.edges))})),
-                receive_paths:receivers.map(({index,source,audio,video})=>({index,source,
-                    audio_input_to_decode:pipelineLatency(edges(routes[source].audio.edges),edges(audio)),
+                    capture_audio_minus_video:pipelineEnvelopeLatency(edges(route.videoEdges),edges(route.audio.edges),route.audio.report(1))})),
+                receive_paths:receivers.map(({index,source,audio,video,audioEnvelope})=>({index,source,
+                    audio_input_to_decode:pipelineEnvelopeLatency(edges(routes[source].audio.edges),edges(audio),routes[source].audio.report(1),audioEnvelope),
                     video_input_to_decode:pipelineLatency(edges(routes[source].videoEdges),edges(video))}))};},
         close(){if(closed)return;closed=true;Peer.prototype.encodeAudio=audio;Peer.prototype.encodeVideo=video;}};
 }

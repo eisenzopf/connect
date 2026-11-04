@@ -112,7 +112,7 @@ export function browserMatrixObservation(Renderer,plan,Peer) {
             method:'Independent content measurements on actual WebCodecs decoded PCM/pixels at local receive callback times; no physical playback claim',
             window_ms:60000,source_counters_used:false,
             pipeline:pipeline?.report(routes.map((route,index)=>({index,source:route.selected.index,
-                audio:route.measure.envelope.edges,video:route.measure.videoEdges}))),passed:measured.every(route=>route.passed),routes:measured};},
+                audio:route.measure.envelope.edges,audioEnvelope:route.measure.envelope.report(1),video:route.measure.videoEdges}))),passed:measured.every(route=>route.passed),routes:measured};},
         async close(){if(closed)return;closed=true;pipeline?.close();Renderer.prototype.audio=originalAudio;Renderer.prototype.video=originalVideo;
             for(const owner of owners)owner.close();const outcomes=await Promise.allSettled(owners.map(owner=>owner.finished));
             bindings.clear();return {owners:owners.length,joined:outcomes.every(value=>value.status==='fulfilled')};},

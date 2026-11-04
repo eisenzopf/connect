@@ -1770,8 +1770,7 @@
               "maximum_sample_gap_seconds": 0.13909999999962785,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -108.10000000055808
+            }
           }
         },
         {
@@ -1886,8 +1885,7 @@
               "maximum_sample_gap_seconds": 0.1144999999999996,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -96.0499999998099
+            }
           }
         },
         {
@@ -2002,8 +2000,7 @@
               "maximum_sample_gap_seconds": 0.17009999999962666,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -97.74999999999734
+            }
           }
         },
         {
@@ -2118,8 +2115,7 @@
               "maximum_sample_gap_seconds": 0.12099999999999511,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -93.94999999972065
+            }
           }
         },
         {
@@ -2234,8 +2230,7 @@
               "maximum_sample_gap_seconds": 0.16599999999999682,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -102.3999999994416
+            }
           }
         },
         {
@@ -2350,8 +2345,7 @@
               "maximum_sample_gap_seconds": 0.08050000000000068,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -80.69999999972133
+            }
           }
         }
       ],
@@ -2570,8 +2564,7 @@
               "maximum_sample_gap_seconds": 0.21649999999999991,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -117.00000000000088
+            }
           }
         },
         {
@@ -2686,8 +2679,7 @@
               "maximum_sample_gap_seconds": 0.11759999999962645,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -98.34999999962513
+            }
           }
         },
         {
@@ -2802,8 +2794,7 @@
               "maximum_sample_gap_seconds": 0.13609999999962774,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -82.74999999953536
+            }
           }
         },
         {
@@ -2918,8 +2909,7 @@
               "maximum_sample_gap_seconds": 0.11840000000037243,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -99.99999999999964
+            }
           }
         },
         {
@@ -3034,8 +3024,7 @@
               "maximum_sample_gap_seconds": 0.22380000000074496,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -99.79999999934685
+            }
           }
         },
         {
@@ -3150,8 +3139,7 @@
               "maximum_sample_gap_seconds": 0.12909999999962807,
               "invalid_input": false,
               "overflow": false
-            },
-            "signed_median_video_minus_audio_ms": -99.39999999990734
+            }
           }
         }
       ],
@@ -3193,6 +3181,1270 @@
           "maximum_draw_gap_ms": 55.10000000055879
         }
       ]
+    },
+    {
+      "attempt": "v162",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "source_revision": "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7",
+      "report_sha256": "bb13d3ca3b17b0ce69def8277b52a09a5ee30d79a39b307c4aebba078844bb12",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "passed": false,
+      "failure": {
+        "phase": "actual-browser-quality",
+        "browser": {
+          "stage": "decoded-media-quality",
+          "name": "ProfileBudgetsFailed"
+        }
+      },
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "browser_owner_joined": true,
+      "servers_original_joined": true,
+      "programme_passed": true,
+      "moves_completed": 4,
+      "terminal_ms": 62006.799999999814,
+      "retirement": {
+        "passed": true,
+        "elapsedMs": 278.40000000037253,
+        "originalEndsCompleted": 6,
+        "originalClientsClosed": 7,
+        "scope": "Admission component terminal only; no ten-second idle resource restoration or full media programme claim"
+      },
+      "packet_capture": {
+        "format": "connect/native-private-packet-capture/1",
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+        "exit_code": 0,
+        "packet_limit": 200000,
+        "media_workload": true,
+        "version": "tcpdump version 4.99.4",
+        "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+        "pcap_sha256": "dcd8f9fe7a4c0fec674b364262f96fdbcbab838ec6c83c8ead3e856c45435d7d",
+        "pcap_bytes": 57093775,
+        "captured_seconds": 69.9937741169997,
+        "kernel_dropped_packets": 0,
+        "interface": "lo",
+        "link_type": "Ethernet/IPv4/UDP",
+        "filter": "udp and exact owned fixture server/peer addresses and native server port",
+        "counts": {
+          "packets": 111124,
+          "to_server_packets": 66995,
+          "from_server_packets": 44129,
+          "captured_bytes": 55315767,
+          "udp_payload_bytes": 50648559,
+          "to_server_udp_bytes": 24919177,
+          "from_server_udp_bytes": 25729382
+        },
+        "raw_capture_private": true,
+        "decoded_media_verified": false,
+        "transport": "chrome-webtransport"
+      },
+      "routes": [
+        {
+          "route": 0,
+          "expected_source_id": 3,
+          "window_start_ms": 1000,
+          "window_end_ms": 61000,
+          "audio": {
+            "decoded_seconds": 59.32,
+            "identified_seconds": 59.32,
+            "maximum_gap_ms": 159.20000000018632,
+            "bad_identity_frames": 0,
+            "duplicate_frames": 0,
+            "passed": false
+          },
+          "video": {
+            "decoded_frames": 1732,
+            "changing_frames_per_second": [
+              25,
+              25,
+              27,
+              25,
+              26,
+              26,
+              29,
+              25,
+              25,
+              27,
+              27,
+              25,
+              24,
+              27,
+              26,
+              26,
+              25,
+              27,
+              27,
+              25,
+              25,
+              27,
+              27,
+              27,
+              26,
+              27,
+              25,
+              28,
+              25,
+              27,
+              26,
+              28,
+              25,
+              28,
+              27,
+              27,
+              26,
+              26,
+              27,
+              28,
+              21,
+              26,
+              25,
+              28,
+              27,
+              25,
+              25,
+              28,
+              27,
+              29,
+              25,
+              25,
+              30,
+              26,
+              25,
+              25,
+              29,
+              26,
+              29,
+              25
+            ],
+            "minimum_fps": 21,
+            "identity": {
+              "status": "passed",
+              "expected_source_id": 3,
+              "recognized_expected_frames": 1492,
+              "recognized_wrong_source_frames": 0,
+              "unclassified_frames": 0,
+              "full_white_pulse_frames": 240,
+              "black_frames": 0,
+              "muted_black_permitted": false,
+              "recognized_source_counts": {
+                "0": 0,
+                "1": 0,
+                "2": 0,
+                "3": 1492
+              },
+              "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+            },
+            "dimension_refusals": 0,
+            "duplicate_frames": 0,
+            "passed": false
+          },
+          "invalid": [],
+          "passed": false,
+          "sync": {
+            "status": "failed",
+            "paired": 84,
+            "median_abs_skew_ms": 100.80000000028022,
+            "p95_abs_skew_ms": 142.29999999981402,
+            "observer_failure": null,
+            "envelope": {
+              "status": "observer-valid",
+              "maximum_sample_gap_seconds": 0.17920000000018632,
+              "invalid_input": false,
+              "overflow": false
+            }
+          }
+        },
+        {
+          "route": 1,
+          "expected_source_id": 0,
+          "window_start_ms": 1000,
+          "window_end_ms": 61000,
+          "audio": {
+            "decoded_seconds": 58.660000000000004,
+            "identified_seconds": 58.58,
+            "maximum_gap_ms": 157.799999999813,
+            "bad_identity_frames": 4,
+            "duplicate_frames": 0,
+            "passed": false
+          },
+          "video": {
+            "decoded_frames": 1736,
+            "changing_frames_per_second": [
+              25,
+              25,
+              27,
+              25,
+              25,
+              25,
+              29,
+              25,
+              25,
+              26,
+              27,
+              24,
+              28,
+              26,
+              25,
+              25,
+              24,
+              27,
+              27,
+              25,
+              25,
+              27,
+              27,
+              27,
+              26,
+              28,
+              25,
+              27,
+              24,
+              28,
+              26,
+              27,
+              25,
+              27,
+              27,
+              27,
+              24,
+              27,
+              27,
+              28,
+              24,
+              26,
+              26,
+              28,
+              27,
+              25,
+              25,
+              28,
+              27,
+              29,
+              25,
+              25,
+              29,
+              25,
+              26,
+              25,
+              28,
+              27,
+              29,
+              25
+            ],
+            "minimum_fps": 24,
+            "identity": {
+              "status": "passed",
+              "expected_source_id": 0,
+              "recognized_expected_frames": 1488,
+              "recognized_wrong_source_frames": 0,
+              "unclassified_frames": 0,
+              "full_white_pulse_frames": 248,
+              "black_frames": 0,
+              "muted_black_permitted": false,
+              "recognized_source_counts": {
+                "0": 1488,
+                "1": 0,
+                "2": 0,
+                "3": 0
+              },
+              "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+            },
+            "dimension_refusals": 0,
+            "duplicate_frames": 0,
+            "passed": true
+          },
+          "invalid": [],
+          "passed": false,
+          "sync": {
+            "status": "failed",
+            "paired": 84,
+            "median_abs_skew_ms": 101.25000000046569,
+            "p95_abs_skew_ms": 141.29999999981635,
+            "observer_failure": null,
+            "envelope": {
+              "status": "observer-valid",
+              "maximum_sample_gap_seconds": 0.177799999999813,
+              "invalid_input": false,
+              "overflow": false
+            }
+          }
+        },
+        {
+          "route": 2,
+          "expected_source_id": 1,
+          "window_start_ms": 1000,
+          "window_end_ms": 61000,
+          "audio": {
+            "decoded_seconds": 59.36,
+            "identified_seconds": 58.24,
+            "maximum_gap_ms": 114.90000000037128,
+            "bad_identity_frames": 56,
+            "duplicate_frames": 0,
+            "passed": false
+          },
+          "video": {
+            "decoded_frames": 1741,
+            "changing_frames_per_second": [
+              25,
+              25,
+              27,
+              25,
+              25,
+              26,
+              29,
+              25,
+              25,
+              26,
+              28,
+              26,
+              24,
+              27,
+              28,
+              26,
+              25,
+              27,
+              27,
+              25,
+              25,
+              27,
+              26,
+              28,
+              26,
+              27,
+              26,
+              27,
+              25,
+              27,
+              26,
+              27,
+              25,
+              28,
+              27,
+              27,
+              25,
+              26,
+              27,
+              28,
+              26,
+              26,
+              26,
+              28,
+              27,
+              25,
+              25,
+              28,
+              27,
+              29,
+              24,
+              26,
+              30,
+              25,
+              25,
+              25,
+              29,
+              26,
+              28,
+              26
+            ],
+            "minimum_fps": 24,
+            "identity": {
+              "status": "passed",
+              "expected_source_id": 1,
+              "recognized_expected_frames": 1497,
+              "recognized_wrong_source_frames": 0,
+              "unclassified_frames": 0,
+              "full_white_pulse_frames": 244,
+              "black_frames": 0,
+              "muted_black_permitted": false,
+              "recognized_source_counts": {
+                "0": 0,
+                "1": 1497,
+                "2": 0,
+                "3": 0
+              },
+              "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+            },
+            "dimension_refusals": 0,
+            "duplicate_frames": 0,
+            "passed": true
+          },
+          "invalid": [],
+          "passed": false,
+          "sync": {
+            "status": "failed",
+            "paired": 84,
+            "median_abs_skew_ms": 116.69999999972092,
+            "p95_abs_skew_ms": 158.50000000000364,
+            "observer_failure": null,
+            "envelope": {
+              "status": "observer-valid",
+              "maximum_sample_gap_seconds": 0.13490000000037128,
+              "invalid_input": false,
+              "overflow": false
+            }
+          }
+        },
+        {
+          "route": 3,
+          "expected_source_id": 2,
+          "window_start_ms": 1000,
+          "window_end_ms": 61000,
+          "audio": {
+            "decoded_seconds": 59.46,
+            "identified_seconds": 59.46,
+            "maximum_gap_ms": 106.79999999981462,
+            "bad_identity_frames": 0,
+            "duplicate_frames": 0,
+            "passed": false
+          },
+          "video": {
+            "decoded_frames": 1740,
+            "changing_frames_per_second": [
+              25,
+              25,
+              27,
+              25,
+              25,
+              26,
+              28,
+              26,
+              25,
+              27,
+              26,
+              26,
+              24,
+              27,
+              29,
+              26,
+              25,
+              26,
+              28,
+              25,
+              25,
+              27,
+              28,
+              27,
+              26,
+              25,
+              26,
+              27,
+              26,
+              27,
+              25,
+              26,
+              26,
+              27,
+              27,
+              26,
+              25,
+              26,
+              27,
+              28,
+              27,
+              25,
+              25,
+              28,
+              26,
+              26,
+              24,
+              28,
+              28,
+              29,
+              25,
+              25,
+              30,
+              26,
+              25,
+              25,
+              29,
+              25,
+              30,
+              25
+            ],
+            "minimum_fps": 24,
+            "identity": {
+              "status": "passed",
+              "expected_source_id": 2,
+              "recognized_expected_frames": 1494,
+              "recognized_wrong_source_frames": 0,
+              "unclassified_frames": 0,
+              "full_white_pulse_frames": 246,
+              "black_frames": 0,
+              "muted_black_permitted": false,
+              "recognized_source_counts": {
+                "0": 0,
+                "1": 0,
+                "2": 1494,
+                "3": 0
+              },
+              "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+            },
+            "dimension_refusals": 0,
+            "duplicate_frames": 0,
+            "passed": true
+          },
+          "invalid": [],
+          "passed": false,
+          "sync": {
+            "status": "failed",
+            "paired": 84,
+            "median_abs_skew_ms": 98.20000000018325,
+            "p95_abs_skew_ms": 141.79999999981518,
+            "observer_failure": null,
+            "envelope": {
+              "status": "observer-valid",
+              "maximum_sample_gap_seconds": 0.12679999999981462,
+              "invalid_input": false,
+              "overflow": false
+            }
+          }
+        },
+        {
+          "route": 4,
+          "expected_source_id": 1,
+          "window_start_ms": 1000,
+          "window_end_ms": 61000,
+          "audio": {
+            "decoded_seconds": 58.58,
+            "identified_seconds": 57.78,
+            "maximum_gap_ms": 189.6000000005631,
+            "bad_identity_frames": 40,
+            "duplicate_frames": 0,
+            "passed": false
+          },
+          "video": {
+            "decoded_frames": 1730,
+            "changing_frames_per_second": [
+              25,
+              25,
+              27,
+              24,
+              27,
+              26,
+              28,
+              26,
+              25,
+              27,
+              27,
+              25,
+              24,
+              27,
+              25,
+              26,
+              24,
+              28,
+              27,
+              25,
+              25,
+              27,
+              27,
+              28,
+              26,
+              27,
+              25,
+              27,
+              26,
+              28,
+              26,
+              27,
+              25,
+              28,
+              27,
+              27,
+              25,
+              24,
+              28,
+              22,
+              27,
+              25,
+              26,
+              28,
+              27,
+              25,
+              25,
+              28,
+              27,
+              29,
+              25,
+              25,
+              30,
+              26,
+              25,
+              25,
+              29,
+              26,
+              29,
+              25
+            ],
+            "minimum_fps": 22,
+            "identity": {
+              "status": "passed",
+              "expected_source_id": 1,
+              "recognized_expected_frames": 1490,
+              "recognized_wrong_source_frames": 0,
+              "unclassified_frames": 0,
+              "full_white_pulse_frames": 240,
+              "black_frames": 0,
+              "muted_black_permitted": false,
+              "recognized_source_counts": {
+                "0": 0,
+                "1": 1490,
+                "2": 0,
+                "3": 0
+              },
+              "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+            },
+            "dimension_refusals": 0,
+            "duplicate_frames": 0,
+            "passed": false
+          },
+          "invalid": [],
+          "passed": false,
+          "sync": {
+            "status": "failed",
+            "paired": 82,
+            "median_abs_skew_ms": 98.5999999996281,
+            "p95_abs_skew_ms": 143.90000000037162,
+            "observer_failure": null,
+            "envelope": {
+              "status": "observer-valid",
+              "maximum_sample_gap_seconds": 0.2096000000005631,
+              "invalid_input": false,
+              "overflow": false
+            }
+          }
+        },
+        {
+          "route": 5,
+          "expected_source_id": 0,
+          "window_start_ms": 1000,
+          "window_end_ms": 61000,
+          "audio": {
+            "decoded_seconds": 58.18,
+            "identified_seconds": 57.7,
+            "maximum_gap_ms": 91.20000000018848,
+            "bad_identity_frames": 24,
+            "duplicate_frames": 0,
+            "passed": false
+          },
+          "video": {
+            "decoded_frames": 1734,
+            "changing_frames_per_second": [
+              25,
+              25,
+              27,
+              25,
+              26,
+              26,
+              29,
+              25,
+              25,
+              27,
+              27,
+              25,
+              24,
+              27,
+              26,
+              25,
+              24,
+              27,
+              27,
+              25,
+              25,
+              27,
+              27,
+              28,
+              26,
+              27,
+              25,
+              27,
+              26,
+              28,
+              26,
+              27,
+              25,
+              27,
+              27,
+              27,
+              25,
+              25,
+              27,
+              24,
+              27,
+              25,
+              26,
+              28,
+              27,
+              25,
+              25,
+              28,
+              27,
+              29,
+              25,
+              25,
+              30,
+              26,
+              25,
+              25,
+              29,
+              26,
+              29,
+              25
+            ],
+            "minimum_fps": 24,
+            "identity": {
+              "status": "passed",
+              "expected_source_id": 0,
+              "recognized_expected_frames": 1490,
+              "recognized_wrong_source_frames": 0,
+              "unclassified_frames": 0,
+              "full_white_pulse_frames": 244,
+              "black_frames": 0,
+              "muted_black_permitted": false,
+              "recognized_source_counts": {
+                "0": 1490,
+                "1": 0,
+                "2": 0,
+                "3": 0
+              },
+              "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+            },
+            "dimension_refusals": 0,
+            "duplicate_frames": 0,
+            "passed": true
+          },
+          "invalid": [],
+          "passed": false,
+          "sync": {
+            "status": "failed",
+            "paired": 84,
+            "median_abs_skew_ms": 100.0000000004686,
+            "p95_abs_skew_ms": 159.10000000056002,
+            "observer_failure": "Decoded audio envelope is invalid or ambiguous; calibration cannot qualify timing",
+            "envelope": {
+              "status": "observer-invalid",
+              "maximum_sample_gap_seconds": 0.11120000000018848,
+              "invalid_input": false,
+              "overflow": false
+            }
+          }
+        }
+      ],
+      "source_observations": [
+        {
+          "index": 0,
+          "programme_draws": 1860,
+          "skipped_programme_frames": 0,
+          "maximum_draw_gap_ms": 50.200000000186265
+        },
+        {
+          "index": 1,
+          "programme_draws": 1860,
+          "skipped_programme_frames": 0,
+          "maximum_draw_gap_ms": 50.10000000055879
+        },
+        {
+          "index": 2,
+          "programme_draws": 1860,
+          "skipped_programme_frames": 0,
+          "maximum_draw_gap_ms": 50.19999999925494
+        },
+        {
+          "index": 3,
+          "programme_draws": 1860,
+          "skipped_programme_frames": 0,
+          "maximum_draw_gap_ms": 50.5
+        },
+        {
+          "index": 4,
+          "programme_draws": 1860,
+          "skipped_programme_frames": 0,
+          "maximum_draw_gap_ms": 50.5
+        },
+        {
+          "index": 5,
+          "programme_draws": 1860,
+          "skipped_programme_frames": 0,
+          "maximum_draw_gap_ms": 50.5
+        }
+      ],
+      "pipeline_diagnostics": {
+        "status": "provisional-invalid-input-observer",
+        "limitation": "All six encoder-input AudioEnvelope observers rejected equal-resolution callback times. Retain ordinal timing diagnostics, but do not treat their measured labels as qualified delay attribution or transport evidence.",
+        "sources": [
+          {
+            "index": 0,
+            "audio_frames": 3096,
+            "video_frames": 1853,
+            "audio_encoder_refusals": 0,
+            "video_encoder_refusals": 62,
+            "maximum_peer_dropped_packets": 0,
+            "errors": [],
+            "capture_audio_minus_video": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 44.400000000372586,
+              "p95_ms": 70.00000000000028,
+              "minimum_ms": 4.5999999996269025,
+              "maximum_ms": 73.20000000018645
+            },
+            "input_envelope": {
+              "status": "observer-invalid",
+              "maximum_sample_gap_seconds": 0.1037000000001882,
+              "invalid_input": true,
+              "overflow": false,
+              "invalid": [
+                {
+                  "at": 3.8764000000003724,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 4.458400000000372,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 14.888200000000186,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 23.4885,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 28.48410000000056,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 30.336900000000373,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 30.91840000000037,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 31.196799999999815,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 31.917200000000186,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 33.42220000000019,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 34.06610000000056,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 37.6445,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 39.50310000000056,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 42.10560000000056,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 44.82310000000056,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 48.817200000000184,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 49.67690000000037,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 53.395299999999814,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 56.974299999999815,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 57.973400000000375,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 61.69190000000037,
+                  "reason": "invalid or unordered decoded RMS sample"
+                }
+              ]
+            }
+          },
+          {
+            "index": 1,
+            "audio_frames": 3101,
+            "video_frames": 1856,
+            "audio_encoder_refusals": 0,
+            "video_encoder_refusals": 60,
+            "maximum_peer_dropped_packets": 0,
+            "errors": [],
+            "capture_audio_minus_video": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 33.89999999944138,
+              "p95_ms": 54.70000000018871,
+              "minimum_ms": 4.100000000558879,
+              "maximum_ms": 56.70000000018405
+            },
+            "input_envelope": {
+              "status": "observer-invalid",
+              "maximum_sample_gap_seconds": 0.03820000000018453,
+              "invalid_input": true,
+              "overflow": false,
+              "invalid": [
+                {
+                  "at": 8.402400000000373,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 24.993200000000186,
+                  "reason": "invalid or unordered decoded RMS sample"
+                }
+              ]
+            }
+          },
+          {
+            "index": 2,
+            "audio_frames": 3102,
+            "video_frames": 1854,
+            "audio_encoder_refusals": 0,
+            "video_encoder_refusals": 59,
+            "maximum_peer_dropped_packets": 0,
+            "errors": [],
+            "capture_audio_minus_video": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 28.900000000376735,
+              "p95_ms": 46.80000000074358,
+              "minimum_ms": 2.9000000003733817,
+              "maximum_ms": 56.799999999817885
+            },
+            "input_envelope": {
+              "status": "observer-invalid",
+              "maximum_sample_gap_seconds": 0.0379999999999967,
+              "invalid_input": true,
+              "overflow": false,
+              "invalid": [
+                {
+                  "at": 2.6372999999998137,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 5.355299999999814,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 10.071200000000186,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 12.068799999999813,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 14.926299999999813,
+                  "reason": "invalid or unordered decoded RMS sample"
+                }
+              ]
+            }
+          },
+          {
+            "index": 3,
+            "audio_frames": 3101,
+            "video_frames": 1852,
+            "audio_encoder_refusals": 0,
+            "video_encoder_refusals": 57,
+            "maximum_peer_dropped_packets": 0,
+            "errors": [],
+            "capture_audio_minus_video": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 23.899999999443367,
+              "p95_ms": 38.90000000036764,
+              "minimum_ms": 2.0000000000024443,
+              "maximum_ms": 48.900000000372756
+            },
+            "input_envelope": {
+              "status": "observer-invalid",
+              "maximum_sample_gap_seconds": 0.0381000000005578,
+              "invalid_input": true,
+              "overflow": false,
+              "invalid": [
+                {
+                  "at": 16.753200000000188,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 21.2,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 22.199299999999813,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 27.636,
+                  "reason": "invalid or unordered decoded RMS sample"
+                }
+              ]
+            }
+          },
+          {
+            "index": 4,
+            "audio_frames": 3095,
+            "video_frames": 1847,
+            "audio_encoder_refusals": 0,
+            "video_encoder_refusals": 55,
+            "maximum_peer_dropped_packets": 0,
+            "errors": [],
+            "capture_audio_minus_video": {
+              "status": "measured",
+              "paired": 84,
+              "signed_median_ms": 33.10000000009161,
+              "p95_ms": 55.29999999981072,
+              "minimum_ms": 12.599999999626021,
+              "maximum_ms": 65.7000000001915
+            },
+            "input_envelope": {
+              "status": "observer-invalid",
+              "maximum_sample_gap_seconds": 0.09989999999944388,
+              "invalid_input": true,
+              "overflow": false,
+              "invalid": [
+                {
+                  "at": 0.8422000000001862,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 11.99310000000056,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 17.182799999999812,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 17.321700000000185,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 30.04610000000056,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 31.18390000000037,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 35.05129999999981,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 38.492,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 41.169900000000375,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 43.306,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 44.16560000000056,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 49.74,
+                  "reason": "invalid or unordered decoded RMS sample"
+                }
+              ]
+            }
+          },
+          {
+            "index": 5,
+            "audio_frames": 3102,
+            "video_frames": 1848,
+            "audio_encoder_refusals": 0,
+            "video_encoder_refusals": 53,
+            "maximum_peer_dropped_packets": 0,
+            "errors": [],
+            "capture_audio_minus_video": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 28.199999999252157,
+              "p95_ms": 53.89999999944095,
+              "minimum_ms": 7.500000000000284,
+              "maximum_ms": 55.600000000559646
+            },
+            "input_envelope": {
+              "status": "observer-invalid",
+              "maximum_sample_gap_seconds": 0.038699999999252555,
+              "invalid_input": true,
+              "overflow": false,
+              "invalid": [
+                {
+                  "at": 1.512,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 4.2304000000003725,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 16.652299999999812,
+                  "reason": "invalid or unordered decoded RMS sample"
+                },
+                {
+                  "at": 29.524200000000185,
+                  "reason": "invalid or unordered decoded RMS sample"
+                }
+              ]
+            }
+          }
+        ],
+        "receive_paths": [
+          {
+            "index": 0,
+            "source": 3,
+            "audio_input_to_decode": {
+              "status": "measured",
+              "paired": 84,
+              "signed_median_ms": 103.80000000027856,
+              "p95_ms": 125.299999999811,
+              "minimum_ms": 42.40000000037236,
+              "maximum_ms": 132.10000000056255
+            },
+            "video_input_to_decode": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 17.29999999981402,
+              "p95_ms": 43.29999999981382,
+              "minimum_ms": 6.499999999999062,
+              "maximum_ms": 72.09999999962236
+            }
+          },
+          {
+            "index": 1,
+            "source": 0,
+            "audio_input_to_decode": {
+              "status": "measured",
+              "paired": 84,
+              "signed_median_ms": 78.79999999981457,
+              "p95_ms": 120.6999999992533,
+              "minimum_ms": 39.19999999925494,
+              "maximum_ms": 133.59999999962469
+            },
+            "video_input_to_decode": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 18.799999999814077,
+              "p95_ms": 40.29999999981371,
+              "minimum_ms": 4.2999999998158955,
+              "maximum_ms": 56.200000000188766
+            }
+          },
+          {
+            "index": 2,
+            "source": 1,
+            "audio_input_to_decode": {
+              "status": "measured",
+              "paired": 84,
+              "signed_median_ms": 111.2000000001876,
+              "p95_ms": 121.5000000000046,
+              "minimum_ms": 47.5999999996275,
+              "maximum_ms": 140.79999999981396
+            },
+            "video_input_to_decode": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 19.29999999981291,
+              "p95_ms": 60.20000000018655,
+              "minimum_ms": 5.70000000018922,
+              "maximum_ms": 99.09999999963048
+            }
+          },
+          {
+            "index": 3,
+            "source": 2,
+            "audio_input_to_decode": {
+              "status": "measured",
+              "paired": 84,
+              "signed_median_ms": 92.04999999981922,
+              "p95_ms": 134.2999999998131,
+              "minimum_ms": 41.29999999981404,
+              "maximum_ms": 136.59999999962656
+            },
+            "video_input_to_decode": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 21.499999999996078,
+              "p95_ms": 54.79999999981544,
+              "minimum_ms": 2.599999999628011,
+              "maximum_ms": 58.90000000037077
+            }
+          },
+          {
+            "index": 4,
+            "source": 5,
+            "audio_input_to_decode": {
+              "status": "measured",
+              "paired": 82,
+              "signed_median_ms": 92.99999999999997,
+              "p95_ms": 136.00000000000279,
+              "minimum_ms": 30.299999999815697,
+              "maximum_ms": 139.69999999925875
+            },
+            "video_input_to_decode": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 20.100000000558893,
+              "p95_ms": 39.900000000372415,
+              "minimum_ms": 3.199999999260683,
+              "maximum_ms": 78.20000000018635
+            }
+          },
+          {
+            "index": 5,
+            "source": 4,
+            "audio_input_to_decode": {
+              "status": "measured",
+              "paired": 83,
+              "signed_median_ms": 84.60000000056311,
+              "p95_ms": 130.89999999943913,
+              "minimum_ms": 35.599999999632814,
+              "maximum_ms": 139.0000000000029
+            },
+            "video_input_to_decode": {
+              "status": "measured",
+              "paired": 85,
+              "signed_median_ms": 21.000000000000796,
+              "p95_ms": 41.00000000000037,
+              "minimum_ms": 3.100000000564762,
+              "maximum_ms": 59.00000000000016
+            }
+          }
+        ]
+      }
     }
   ],
   "contract_inputs_by_source_revision": {
@@ -3215,6 +4467,16 @@
       "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
       "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
       "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
     }
   },
   "preflight_not_run": [
@@ -3226,21 +4488,5 @@
       ],
       "scratch_free_bytes": 5312589824
     }
-  ],
-  "findings": [
-    "v159: all four moves and exact owned UDP capture passed both signing variants; initial observer audio was wired to a nonexistent subscription port. Those quality failures remain retained, with this limitation explicit.",
-    "v160: no media tests ran; preflight refused scratch below five GiB. Older terminal fixtures v150-v154 were losslessly archived with every regular file SHA256 checked before expanded trees were removed.",
-    "342e943f/v161: corrected own-duplex-audio observation and faster polling of the original unchanged 30fps source coordinate. Zero source-coordinate skips in both actual runs. No catch-up frames, padding or timestamp offsets.",
-    "v161: both cohorts complete four moves and original teardown and validate actual duplex UDP capture, but all six quality routes fail. Audio duration and decoded AV skew remain outside profile; three ES256 routes also fail the stricter changing-frame-per-second check.",
-    "Matched marker medians are negative video-minus-audio: audio is observed roughly 81-117ms after Video. Do not assume Video is the delayed path or infer a WebRTC defect from this WT result. Trace source/capture, encoded submission and decoded reception separately before changing production buffering."
-  ],
-  "observer_profile": {
-    "window_ms": [
-      1000,
-      61000
-    ],
-    "audio": "actual mono960sample WebCodecs buffers; per20ms spectral identity and maximum uncovered gap after decoded20ms buffer; no synthesized/PLC coverage",
-    "video": "actual640x360 decoded pixels, source identity and unique changing frames in every second (stricter than merely counting all decoded frames)",
-    "av": "actual decoder-callback times, uniquely calibrated equal nonperiodic marker ordinals; envelope validity retained; no physical rendering claim"
-  }
+  ]
 }

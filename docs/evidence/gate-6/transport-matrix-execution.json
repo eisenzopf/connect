@@ -1603,7 +1603,7 @@
           "full-cell-current-expiry-and-conflict-observer-not-connected",
           "full-cell-ten-second-idle-resource-observer-not-connected",
           "full-cell-requirement-verifier-not-connected",
-          "browser-independent-decoded-quality-and-packet-capture-not-connected",
+          "browser-independent-decoded-quality-not-qualified",
           "browser-fallback-and-neither-path-refusal-not-executed"
         ],
         "attempted": true,
@@ -1611,14 +1611,14 @@
           "kind": "browser-quality",
           "passed": false,
           "exit_code": 1,
-          "report_sha256": "25539128fef8592770873bad52dc5ad5cb8a44a745bc3320476eedb6a50560ae",
+          "report_sha256": "bb13d3ca3b17b0ce69def8277b52a09a5ee30d79a39b307c4aebba078844bb12",
           "integrity": {
             "source_inputs_unchanged": true,
             "executable_unchanged": true,
             "sdk_dist_inputs_unchanged": true,
             "browser_owner_joined": true
           },
-          "source_revision": "342e943f8398c6bffe893d07a2b36e6fe5ecb5fc",
+          "source_revision": "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7",
           "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
           "browser": "Google Chrome for Testing 156.0.8078.4",
           "authenticated_owners": 7,
@@ -1690,7 +1690,7 @@
           "evidence": null
         }
       },
-      "source_revision": "342e943f8398c6bffe893d07a2b36e6fe5ecb5fc"
+      "source_revision": "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7"
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
@@ -2984,7 +2984,8 @@
     "d7019125ace0b3fa2dd2b37e1293e2602ad0211d",
     "e9809912aed859db5393cbe7aae2f5f5258344ce",
     "eb8736270c621ac9f4482e645ab1d7983652ba66",
-    "ec2b19a72f8f485cf498401b7a962736a2663d50"
+    "ec2b19a72f8f485cf498401b7a962736a2663d50",
+    "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7"
   ],
   "browser_admission_evidence": {
     "path": "docs/evidence/gate-6/matrix-browser-admission.json",
@@ -3138,6 +3139,16 @@
       "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
     },
     "342e943f8398c6bffe893d07a2b36e6fe5ecb5fc": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7": {
       "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
       "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
       "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
