@@ -168,3 +168,94 @@ fn captured_projection_drains_brief_primary_sql_exclusion_within_original_admiss
         "brief SQL exclusion discarded an otherwise live original admission budget"
     );
 }
+
+#[test]
+fn initial_projection_sql_wait_keeps_refusals_effect_free_and_current_installation_required() {
+    let m = fixture(true);
+    let capture = super::activation_barrier::captured(&m);
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let effects = m.f.count("operation_effects");
+    let sql = m.f.store.connection().unwrap();
+    let began = std::time::Instant::now();
+    let error =
+        m.f.store
+            .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+            .unwrap_err();
+    let elapsed = began.elapsed();
+    assert_eq!(error.code, "authority-busy");
+    assert!(
+        elapsed < std::time::Duration::from_millis(20),
+        "initial SQL exclusion must not borrow the ordinary two-second SQL timeout"
+    );
+    drop(sql);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    assert!(m
+        .f
+        .store
+        .try_native_media_read(&m.sources[1], None)
+        .unwrap()
+        .current());
+
+    let held =
+        m.f.store
+            .try_native_media_read(&m.sources[1], None)
+            .unwrap();
+    let began = std::time::Instant::now();
+    let error =
+        m.f.store
+            .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+            .unwrap_err();
+    assert_eq!(error.code, "authority-busy");
+    assert!(began.elapsed() < std::time::Duration::from_millis(20));
+    assert!(held.current());
+    drop(held);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+
+    let foreign = rusqlite::Connection::open(m.f.store.path()).unwrap();
+    foreign.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let began = std::time::Instant::now();
+    let error =
+        m.f.store
+            .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+            .unwrap_err();
+    assert_eq!(error.code, "storage-unavailable");
+    assert!(began.elapsed() < std::time::Duration::from_millis(20));
+    foreign.execute_batch("ROLLBACK").unwrap();
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+
+    struct MissingInstallation;
+    impl crate::NativeReplacementInstallationObservation for MissingInstallation {
+        fn hold_installed(
+            &self,
+            _: &crate::NativeReplacementActivation,
+        ) -> crate::Result<Option<Box<dyn crate::NativeReplacementInstallationGuard + '_>>>
+        {
+            Ok(None)
+        }
+    }
+    assert_eq!(
+        m.f.store
+            .project_native_replacement_committed(&capture, &MissingInstallation,)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    assert!(m
+        .f
+        .store
+        .try_native_media_read(capture.activation().origin(), None)
+        .is_err());
+    let origin =
+        m.f.store
+            .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+            .unwrap();
+    assert!(m
+        .f
+        .store
+        .try_native_media_read(&origin, None)
+        .unwrap()
+        .current());
+    assert_eq!(m.f.count("operation_effects"), effects);
+    eprintln!("original projection SQL budget: sustained SQL/authority and foreign writer refused; no partial metadata, fresh packet authority restored, missing installation refused, exact capture activated once");
+}

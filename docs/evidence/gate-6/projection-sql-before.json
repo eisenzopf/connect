@@ -1,0 +1,55 @@
+{
+  "format": "connect/projection-sql-before/1",
+  "run": "v142",
+  "source_revision": "583c55306aa15a5b06827a6b9c9c75554c36bf64",
+  "platform": "Owner Mac Studio local Ubuntu 24.04 ARM64 VM",
+  "passed": false,
+  "expected_counterexample_observed": true,
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 184461,
+    "source_revision": "583c55306aa15a5b06827a6b9c9c75554c36bf64",
+    "passed": false,
+    "steps": [
+      {
+        "group": "projection-sql",
+        "case": "connection_control::tests::replacement_sources::commit::diagnostics::captured_projection_drains_brief_primary_sql_exclusion_within_original_admission_budget",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1349 filtered out; finished in 0.24s"
+        ],
+        "log_sha256": "5490f19b83edb22588fc86b8ecd28ca1576311dc4a80faeef27e58798a2019c8"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "projection_sql_counterexample": true,
+    "previous_passed_cases_rerun": false,
+    "builds": [
+      {
+        "group": "projection-sql",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "38462ef8cb5829fb85c201cb372baa4b1fae9387ad6339c41d7fada846569dc5",
+        "test_executable_sha256": "84bfa91d9eba8ee8265c17db72d63cfb226162d909a6bf5dc3bd2bff614568e3",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "expected_counterexample_observed": true,
+    "failure_class": "AssertionError",
+    "message": "Original captured metadata must use its bounded initial SQL admission",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 61.29036497499328
+  },
+  "state_sha256": "1879376b13ca6339c8750efe3f474fa7ce6ad6ba64162a6a93982c3ed5969b8b",
+  "scope": "Actual Store captured replacement activation and real primary SQL mutex held for2ms by an independent joined owner. Initial attempt returns authority-busy. Original exact metadata subsequently settles and replays without another physical effect or effect row; failure assertion follows cleanup.",
+  "finding": "Initial projection SQL acquisition is immediate, discarding the existing bounded admission opportunity and forcing the outer20ms retry cadence even for a short mutex clash. This case confirms that mechanism, not the unlogged actual v141 SQL holder.",
+  "candidate": "Use one original5ms admission deadline for the initial SQL wait and subsequent authority acquisition. Hold no authority during the initial SQL wait. Final SQL reacquisition remains immediate, SQLite busy_timeout remains zero, current scope derivation and installation validation remain mandatory.",
+  "verification_status": "Correction implemented; retry only the failed case and one new bounded-refusal/current-installation case next. No full workload pass is claimed.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "matrix_qualified": false,
+  "whole_gate_qualified": false
+}

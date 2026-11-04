@@ -1,4 +1,4 @@
-//! Brief fair admission for captured facts; no long writer parking or SQL wait.
+//! Brief admission for captured facts; no authority writer parked behind SQL.
 use super::*;
 use crate::installation_ownership::ConnectionGuard;
 
@@ -195,11 +195,15 @@ impl Store {
             refusal: 0,
             admitted: false,
         };
+        // Use the same five-millisecond admission deadline for initial SQL
+        // exclusion and authority acquisition. No authority is held during this
+        // short SQL wait. An immediate miss here otherwise forces the owner
+        // through its twenty-millisecond retry cadence, even for a tiny clash.
+        let wait = replacement_capture_wait();
         let scopes = timing.step(0, || {
-            let c = self.try_connection()?;
+            let c = self.try_connection_with_wait(&wait)?;
             derive(&c)
         })?;
-        let wait = replacement_capture_wait();
         let held = timing.step(1, || self.acquire_authority(&scopes, &wait))?;
         let c = timing.step(2, || self.try_connection())?;
         let current = timing.step(3, || derive(&c))?;
