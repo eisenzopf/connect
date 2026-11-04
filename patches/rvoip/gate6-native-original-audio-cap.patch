@@ -1,0 +1,126 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_media.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_media.rs
+@@ -65,11 +65,12 @@
+ type PendingIngress = Box<dyn crate::substrate::peer_media_router::PendingNativeIngress>;
+ enum RoutedIngress {
+     Complete(bool),
+-    Original(u16, PendingIngress),
++    Original(u16, usize, PendingIngress),
+ }
+ // The sole physical reader owns all retries; no detached task or unbounded
+ // receive buffer. Each original still expires at its original 200ms deadline.
+-const MAX_PENDING_PER_STREAM: usize = 32;
++const MAX_PENDING_AUDIO: usize = 10;
++const MAX_PENDING_VIDEO: usize = 32;
+ const MAX_PENDING_PER_PEER: usize = 256;
+ struct ReaderOwner(Arc<NativePeerMedia>);
+ impl Drop for ReaderOwner {
+@@ -178,7 +179,7 @@
+                 let clock = crate::staged_media::rtcp::is_rtcp(&bytes);
+                 let accepted = match owner.0.route(&bytes, received_at) {
+                     RoutedIngress::Complete(accepted) => accepted,
+-                    RoutedIngress::Original(local, mut original) => {
++                    RoutedIngress::Original(local, maximum, mut original) => {
+                         if pending.get(&local).is_none_or(|q| q.is_empty()) {
+                             if let Some(accepted) = original.try_publish() {
+                                 let counter = if accepted { &owner.0.counters.accepted } else { &owner.0.counters.rejected };
+@@ -187,7 +188,7 @@
+                             }
+                         }
+                         if pending_count < MAX_PENDING_PER_PEER
+-                            && pending.get(&local).map_or(0, |q| q.len()) < MAX_PENDING_PER_STREAM {
++                            && pending.get(&local).map_or(0, |q| q.len()) < maximum {
+                             pending.entry(local).or_default().push_back(original);
+                             pending_count += 1;
+                             continue;
+@@ -281,6 +282,11 @@
+         if binding.stream().codec().payload_type != Some(payload.payload_type) {
+             return RoutedIngress::Complete(false);
+         }
++        let maximum = if kind == StreamKind::Audio {
++            MAX_PENDING_AUDIO
++        } else {
++            MAX_PENDING_VIDEO
++        };
+         let frame = MediaFrame {
+             source_clock: None,
+             stream_id: binding.route().stream_id.clone(),
+@@ -300,7 +306,7 @@
+                 datagram.seq,
+                 received_at,
+             ) {
+-                Ok(Some(original)) => RoutedIngress::Original(local.get(), original),
++                Ok(Some(original)) => RoutedIngress::Original(local.get(), maximum, original),
+                 Ok(None) => RoutedIngress::Complete(true),
+                 Err(()) => RoutedIngress::Complete(false),
+             },
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
+@@ -245,3 +245,67 @@
+         );
+     }
+ }
++
++#[tokio::test]
++async fn original_native_audio_contention_queue_never_exceeds_ten_original_frames() {
++    let mut network = Network::new("quic").await;
++    let policy = Arc::new(TemporaryMetadata {
++        policy: network.grants.clone(),
++        gate: std::sync::Mutex::new(()),
++        only: std::sync::Mutex::new(None),
++        entered: Notify::new(),
++        refused: std::sync::atomic::AtomicUsize::new(0),
++    });
++    let source = network.configure_policy(0, policy.clone()).await;
++    let target = network.configure_policy(1, policy.clone()).await;
++    network.start(&source, &[Medium::Audio]).await;
++    network.start(&target, &[Medium::Audio]).await;
++    *policy.only.lock().unwrap() = Some(source.id.clone());
++    let mut input = source
++        .controller
++        .take_ingress(&StreamId::from_string("audio"))
++        .unwrap();
++    let stream = binding(&source, Medium::Audio).stream_local_id;
++    let held = policy.gate.lock().unwrap();
++    send(&network.wire, ordered_audio(stream, 1));
++    tokio::time::timeout(Duration::from_secs(1), policy.entered.notified())
++        .await
++        .unwrap();
++    for sequence in 2..=20 {
++        send(&network.wire, ordered_audio(stream, sequence));
++    }
++    // All twenty datagrams have reached the sole reader once ten are refused.
++    // Nothing is accepted while the first original remains metadata-blocked.
++    let saturated = tokio::time::timeout(Duration::from_millis(100), async {
++        while source.media.snapshot().ingress_rejected < 10 {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .is_ok();
++    let before = source.media.snapshot();
++    drop(held);
++    let mut originals = true;
++    for sequence in 1..=10 {
++        let packet = tokio::time::timeout(Duration::from_millis(100), input.recv())
++            .await
++            .ok()
++            .flatten();
++        originals &= observed_original(&network, &target, packet, sequence * 160).await;
++    }
++    let no_extra = input.try_recv().is_err();
++    send(&network.wire, ordered_audio(stream, 21));
++    let fresh = tokio::time::timeout(Duration::from_millis(100), input.recv())
++        .await
++        .ok()
++        .flatten();
++    let fresh = observed_original(&network, &target, fresh, 21 * 160).await;
++    let after = source.media.snapshot();
++    network.stop().await;
++    println!("saturated={saturated} accepted_before={} rejected_before={} accepted_after={} rejected_after={} originals={originals} no_extra={no_extra} fresh={fresh}", before.ingress_accepted,before.ingress_rejected,after.ingress_accepted,after.ingress_rejected);
++    assert!(!source.media.snapshot().reader_running && source.media.router().is_shutdown());
++    assert!(saturated && before.ingress_accepted == 0 && before.ingress_rejected == 10);
++    assert!(originals && no_extra && fresh);
++    assert_eq!(after.ingress_accepted, 11);
++    assert_eq!(after.ingress_rejected, 10);
++}

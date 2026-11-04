@@ -113,5 +113,11 @@
   ],
   "task_complete": false,
   "cell_qualified": false,
-  "whole_gate_qualified": false
+  "whole_gate_qualified": false,
+  "follow_up_contract_audit": {
+    "source_revision": "78eceaa8c9a6f3ccf62b4a33602d00dad92ce71b",
+    "finding": "The new pending native queue used a shared32-packet cap, exceeding the frozen audio ten20-ms frame bound. The six focused passes did not exercise saturation and do not prove that bound.",
+    "action": "v129 interrupted during compilation before media runtime. Separate audio10/video32 limits and an exact saturation case prepared for v130.",
+    "qualification": "No complete cell or task qualification."
+  }
 }
