@@ -136,3 +136,33 @@ its audio graph with one fixed common playout lead. An initial decoder backlog
 keeps its original age; its callback cannot establish a fresh origin for all
 later media. Pass the borrowed decoded frames synchronously, retaining the
 current negotiated binding.
+
+
+## Native video feedback implementation checkpoint
+
+The `rtcp-pli-epoch/1` codec is a candidate for the Gate 6 bootstrap work. It is
+not yet advertised or admitted by a native transport. Existing media and
+sender-clock parsers continue to reject it; codec success grants no permission.
+
+The proposed datagram is exactly 48 bytes, in network byte order:
+
+| Bytes | Field |
+| --- | --- |
+| 0–7 | Native version 1, zero flags, nonzero stream handle, datagram sequence |
+| 8–19 | RTCP PLI: version 2, FMT 1, PT 206, length 2, nonzero sender and media SSRCs |
+| 20–31 | RTCP APP: version 2, subtype 0, PT 204, length 6, same sender SSRC, name `CNEP` |
+| 32–47 | Nonzero opaque 128-bit activation epoch |
+
+This fixed reduced-size profile requires separate explicit negotiation. Padding,
+additional members, truncated identities, unmatched APP senders and bare PLIs
+are refused. Datagram sequence wrap is valid syntax; duplicate/coalescing policy
+belongs to current-authorized admission, not this parser.
+
+Before enabling it, the adapter must bind the physical receiver handle and epoch
+to the actual current direct selection, source, original operation and generation.
+It must reacquire current receiver and source authority and bound/coalesce
+requests before dispatch to the source encoder. An echoed number, transport
+authentication or a sender-clock report alone supplies none of these checks.
+Authenticated epoch delivery, source-worker dispatch and fresh-frame timing still
+require implementation and focused proofs. No integrated media qualification is
+claimed by this codec checkpoint.

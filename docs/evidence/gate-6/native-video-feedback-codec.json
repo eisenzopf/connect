@@ -1,0 +1,23 @@
+{
+  "format": "connect/gate6-native-video-feedback-codec/1",
+  "task": "G6-058",
+  "status": "candidate-unverified",
+  "patch": {
+    "path": "patches/rvoip/gate6-native-epoch-video-feedback-codec.patch",
+    "sha256": "e1e0e75f525236bc14f2c9c4b7e987c98e181630a29c89de705b2cf49aa3bd64",
+    "source": "Gate6 bounded explicitly negotiated epoch-bound native PLI syntax; no admission or advertised capability until current route/authority integration"
+  },
+  "profile": "rtcp-pli-epoch/1",
+  "wire_bytes": 48,
+  "capability_advertised": false,
+  "transport_admission_enabled": false,
+  "tests_run": false,
+  "required_case": "substrate::video_feedback::tests::epoch_feedback_exact_wire_refuses_unnegotiated_clock_and_malformed_members",
+  "limits": [
+    "Syntax only; no claim of feedback authorization, delivery, decoder recovery or epochs.",
+    "Current route/source/receiver authority, explicit negotiation, request coalescing, source encoder integration and authenticated epoch association remain open.",
+    "No full workload, prior passing suite or GitHub tests."
+  ],
+  "task_complete": false,
+  "cell_qualified": false
+}

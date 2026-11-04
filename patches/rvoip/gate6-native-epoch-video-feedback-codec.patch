@@ -1,0 +1,185 @@
+--- a/crates/uctp/rvoip-uctp/src/substrate/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/mod.rs
+@@ -11,6 +11,7 @@
+ pub mod quinn;
+ pub mod source_clock;
+ pub mod tls;
++pub mod video_feedback;
+ 
+ pub use correlation::{send_and_wait, Pending};
+ pub use datagram::{
+@@ -42,3 +43,8 @@
+ 
+ #[cfg(feature = "dev-dangerous")]
+ pub use tls::dangerous_no_verify;
++
++pub use video_feedback::{
++    observe_video_feedback_datagram, pack_video_feedback_datagram, VideoFeedbackDatagram,
++    VIDEO_FEEDBACK_BYTES, VIDEO_FEEDBACK_PROFILE,
++};
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/substrate/video_feedback.rs
+@@ -0,0 +1,163 @@
++//! Wire syntax for the explicitly negotiated `rtcp-pli-epoch/1` native profile.
++//! This module grants no feedback permission. The adapter must bind the physical
++//! handle and epoch to the current receiver selection, source, original operation
++//! and generation, and reacquire both endpoints' current authority at dispatch.
++use crate::errors::SubstrateError;
++use bytes::Bytes;
++
++/// One PLI followed by one epoch APP member, under the native eight-byte header.
++/// This reduced-size profile must be negotiated separately from sender clocks.
++pub const VIDEO_FEEDBACK_PROFILE: &str = "rtcp-pli-epoch/1";
++pub const VIDEO_FEEDBACK_BYTES: usize = 48;
++
++/// The epoch is an opaque identifier, never an authorization grant or a clock.
++/// A matching numeric epoch alone does not authenticate the sender or selection.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct VideoFeedbackDatagram {
++    pub stream_local_id: u16,
++    pub seq: u32,
++    pub sender_ssrc: u32,
++    pub media_ssrc: u32,
++    pub activation_epoch: u128,
++}
++impl VideoFeedbackDatagram {
++    fn valid(&self) -> bool {
++        self.stream_local_id != 0
++            && self.sender_ssrc != 0
++            && self.media_ssrc != 0
++            && self.activation_epoch != 0
++    }
++}
++fn invalid() -> SubstrateError {
++    SubstrateError::InvalidDatagram("invalid epoch-bound video feedback")
++}
++
++/// Parse exactly 48 bytes without allocating payload buffers or accepting extra
++/// compound members. No RTCP padding, extension, foreign APP sender, truncated
++/// epoch or bare PLI may be treated as this negotiated profile.
++pub fn observe_video_feedback_datagram(
++    input: &[u8],
++) -> Result<VideoFeedbackDatagram, SubstrateError> {
++    if input.len() != VIDEO_FEEDBACK_BYTES
++        || input[..2] != [1, 0]
++        || input[8..12] != [0x81, 206, 0, 2]
++        || input[20..24] != [0x80, 204, 0, 6]
++        || input[24..28] != input[12..16]
++        || input[28..32] != *b"CNEP"
++    {
++        return Err(invalid());
++    }
++    let value = VideoFeedbackDatagram {
++        stream_local_id: u16::from_be_bytes(input[2..4].try_into().expect("fixed header")),
++        seq: u32::from_be_bytes(input[4..8].try_into().expect("fixed header")),
++        sender_ssrc: u32::from_be_bytes(input[12..16].try_into().expect("fixed PLI")),
++        media_ssrc: u32::from_be_bytes(input[16..20].try_into().expect("fixed PLI")),
++        activation_epoch: u128::from_be_bytes(input[32..48].try_into().expect("fixed epoch")),
++    };
++    if !value.valid() {
++        return Err(invalid());
++    }
++    Ok(value)
++}
++
++/// Serialize syntax only. Callers must not infer feedback admission from success.
++pub fn pack_video_feedback_datagram(
++    value: &VideoFeedbackDatagram,
++) -> Result<Bytes, SubstrateError> {
++    if !value.valid() {
++        return Err(invalid());
++    }
++    let mut wire = [0; VIDEO_FEEDBACK_BYTES];
++    wire[0] = 1;
++    wire[2..4].copy_from_slice(&value.stream_local_id.to_be_bytes());
++    wire[4..8].copy_from_slice(&value.seq.to_be_bytes());
++    wire[8..12].copy_from_slice(&[0x81, 206, 0, 2]);
++    wire[12..16].copy_from_slice(&value.sender_ssrc.to_be_bytes());
++    wire[16..20].copy_from_slice(&value.media_ssrc.to_be_bytes());
++    wire[20..24].copy_from_slice(&[0x80, 204, 0, 6]);
++    wire[24..28].copy_from_slice(&value.sender_ssrc.to_be_bytes());
++    wire[28..32].copy_from_slice(b"CNEP");
++    wire[32..48].copy_from_slice(&value.activation_epoch.to_be_bytes());
++    Ok(Bytes::copy_from_slice(&wire))
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::substrate::{observe_native_media_datagram, observe_sender_clock_datagram};
++
++    #[test]
++    fn epoch_feedback_exact_wire_refuses_unnegotiated_clock_and_malformed_members() {
++        let value = VideoFeedbackDatagram {
++            stream_local_id: 0x1234,
++            seq: u32::MAX,
++            sender_ssrc: 0x10203040,
++            media_ssrc: 0x50607080,
++            activation_epoch: 0x0102030405060708090a0b0c0d0e0f10,
++        };
++        let wire = pack_video_feedback_datagram(&value).unwrap();
++        // Independent literal checks network byte order, RTCP lengths and APP
++        // identity; roundtrip alone would hide a symmetric encoder/parser bug.
++        assert_eq!(
++            wire.as_ref(),
++            &[
++                1, 0, 0x12, 0x34, 255, 255, 255, 255, 0x81, 206, 0, 2, 0x10, 0x20, 0x30, 0x40,
++                0x50, 0x60, 0x70, 0x80, 0x80, 204, 0, 6, 0x10, 0x20, 0x30, 0x40, b'C', b'N', b'E',
++                b'P', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
++            ]
++        );
++        assert_eq!(observe_video_feedback_datagram(&wire).unwrap(), value);
++        // Merely adding the codec must not make existing media/clock paths
++        // accept unnegotiated feedback or retry rejected RTCP as ordinary RTP.
++        assert!(observe_native_media_datagram(&wire).is_err());
++        assert!(observe_sender_clock_datagram(&wire).is_err());
++        for end in 0..wire.len() {
++            assert!(
++                observe_video_feedback_datagram(&wire[..end]).is_err(),
++                "truncated {end}"
++            );
++        }
++        let mut trailing = wire.to_vec();
++        trailing.push(0);
++        assert!(observe_video_feedback_datagram(&trailing).is_err());
++        for at in [0, 1, 8, 9, 10, 11, 20, 21, 22, 23, 24, 28, 29, 30, 31] {
++            let mut changed = wire.to_vec();
++            changed[at] ^= 1;
++            assert!(
++                observe_video_feedback_datagram(&changed).is_err(),
++                "fixed byte {at}"
++            );
++        }
++        for range in [2..4, 12..16, 16..20, 32..48] {
++            let mut zero = wire.to_vec();
++            zero[range].fill(0);
++            assert!(observe_video_feedback_datagram(&zero).is_err());
++        }
++        let mut padded = wire.to_vec();
++        padded[8] |= 0x20;
++        assert!(observe_video_feedback_datagram(&padded).is_err());
++        let mut duplicate = wire.to_vec();
++        duplicate.extend_from_slice(&wire[20..]);
++        assert!(observe_video_feedback_datagram(&duplicate).is_err());
++        for seq in [0, u32::MAX] {
++            let mut next = value.clone();
++            next.seq = seq;
++            next.activation_epoch = u128::MAX;
++            assert_eq!(
++                observe_video_feedback_datagram(&pack_video_feedback_datagram(&next).unwrap())
++                    .unwrap(),
++                next
++            );
++        }
++        for field in 0..4 {
++            let mut zero = value.clone();
++            match field {
++                0 => zero.stream_local_id = 0,
++                1 => zero.sender_ssrc = 0,
++                2 => zero.media_ssrc = 0,
++                _ => zero.activation_epoch = 0,
++            }
++            assert!(pack_video_feedback_datagram(&zero).is_err());
++        }
++    }
++}

@@ -1569,6 +1569,11 @@
       "path": "patches/rvoip/gate6-replacement-video-fixture-retain-audio.patch",
       "sha256": "af8233d7ddf940299cfe54283fd77bd9d0b76188930bd4fccab4dab60e5dad0c",
       "source": "G6-058 P3 fixture correction: desired stream list is a complete next set. Retain original audio when adding video, assert unchanged audio resources, and require a valid prepared plan before negative mapping/authority cases. Original NotReady failures preserved; no production relaxation."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-epoch-video-feedback-codec.patch",
+      "sha256": "e1e0e75f525236bc14f2c9c4b7e987c98e181630a29c89de705b2cf49aa3bd64",
+      "source": "Gate6 bounded explicitly negotiated epoch-bound native PLI syntax; no admission or advertised capability until current route/authority integration"
     }
   ]
 }
