@@ -153,6 +153,7 @@ pub struct CanonicalClient {
     server_key_expires_at: chrono::DateTime<chrono::Utc>,
     owned_signaling: Option<owned_signaling::OwnedSignaling>,
     native_datagram_reader: Arc<AtomicBool>,
+    native_video: Arc<native_video::Shared>,
 }
 struct Pending {
     connection: quinn::Connection,
@@ -286,6 +287,7 @@ impl CanonicalClient {
             server_key_expires_at: config.server_key_expires_at,
             owned_signaling: None,
             native_datagram_reader: Arc::new(AtomicBool::new(false)),
+            native_video: Arc::new(native_video::Shared::default()),
         };
         let hello = envelope(
             "auth.hello",
@@ -389,6 +391,7 @@ impl CanonicalClient {
         let checked = Envelope::from_value(value).map_err(|_| ClientError::Protocol)?;
         let raw = serde_json::to_vec(checked.original()).map_err(|_| ClientError::Protocol)?;
         let mut pending = self.pending()?;
+        self.native_video.outgoing(checked.original())?;
         tokio::time::timeout(self.deadline, async {
             self.writer
                 .write_all(&(raw.len() as u32).to_be_bytes())
@@ -632,6 +635,7 @@ impl CanonicalClient {
             self.connection
                 .close(0u32.into(), b"canonical authority retired");
         }
+        self.native_video.verified(&result)?;
         pending.complete = true;
         Ok(result)
     }
@@ -1005,6 +1009,7 @@ mod dtmf;
 pub mod http;
 mod native;
 mod native_io;
+mod native_video;
 mod quality;
 mod step_up;
 pub use calls::CanonicalHistoryPage;

@@ -3,7 +3,7 @@ use super::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(super) struct StreamKey {
+pub(crate) struct StreamKey {
     pub conversation_id: ConversationId,
     pub session_id: SessionId,
     pub connection_id: ConnectionId,

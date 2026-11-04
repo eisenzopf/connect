@@ -97,6 +97,7 @@ pub(super) enum Fault {
     StepUp(step_up::Reply),
     NativeDatagrams(native_media::Traffic),
     NativeDuplexDuringControl,
+    NativeVideoOwner(bool),
 }
 pub(super) async fn controlled(
     fault: Fault,
@@ -145,6 +146,12 @@ pub(super) async fn controlled(
         let mut bytes = vec![0; u32::from_be_bytes(prefix) as usize];
         reader.read_exact(&mut bytes).await.unwrap();
         let request = Envelope::parse(&bytes).unwrap();
+        if let Fault::NativeVideoOwner(invalid) = fault {
+            super::native_video::tests::emit(request, &mut writer, &mut reader, &signer, invalid)
+                .await;
+            connection.closed().await;
+            return;
+        }
         if matches!(fault, Fault::NativeDuplexDuringControl) {
             native_media::emit(native_media::Traffic::ClockThenPcm, &connection, &signal).await;
             let echo = connection.read_datagram().await.unwrap();
@@ -371,6 +378,7 @@ pub(super) async fn controlled(
         server_key_expires_at: chrono::Utc::now() + chrono::Duration::minutes(1),
         owned_signaling: None,
         native_datagram_reader: Arc::new(AtomicBool::new(false)),
+        native_video: Arc::new(native_video::Shared::default()),
     };
     (client, task, ready)
 }

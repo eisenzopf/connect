@@ -3,7 +3,7 @@ use super::*;
 use crate::canonical::{CommandScope, Envelope, Scope};
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet};
-pub(super) struct Pending {
+pub(crate) struct Pending {
     pub scope: CommandScope,
     payload: Value,
     answer: Option<Value>,

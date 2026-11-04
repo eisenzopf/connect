@@ -147,9 +147,16 @@ impl CanonicalClient {
     ) -> Result<(String, CommandScope)> {
         let (payload, scope) =
             replacement_offer(command, root, offer, "connect-replacement-media-v1")?;
-        let id = self
-            .send_value("connection.offer", payload, scope.clone())
-            .await?;
+        let value = command_value("connection.offer", payload.clone(), scope.clone())?;
+        let id = value["id"]
+            .as_str()
+            .ok_or(ClientError::Protocol)?
+            .to_owned();
+        // Register before the write: an already-running owned reader can see
+        // the first signed answer as soon as the server receives this command.
+        self.native_video
+            .begin(id.clone(), scope.clone(), payload)?;
+        self.write(value, true).await?;
         Ok((id, scope))
     }
     /// Answer a server native parameter request received through `receive`.
@@ -162,12 +169,18 @@ impl CanonicalClient {
         payload: payloads::ConnectionAnswer,
         root: &CommandScope,
     ) -> Result<String> {
+        let seal_video = self
+            .native_video
+            .check_confirmation(request, &payload, root)?;
         let value = answer_frame(request, payload, root)?;
         let id = value["id"]
             .as_str()
             .ok_or(ClientError::Protocol)?
             .to_owned();
         self.write(value, true).await?;
+        if seal_video {
+            self.native_video.confirmed()?;
+        }
         Ok(id)
     }
     /// Submit one framed RTP or clock-only SR/SDES datagram. Clock metadata does

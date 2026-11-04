@@ -173,6 +173,7 @@ impl OwnedSignaling {
         until: chrono::DateTime<chrono::Utc>,
         pin_until: chrono::DateTime<chrono::Utc>,
         deadline: Duration,
+        native_video: Arc<native_video::Shared>,
     ) -> Self {
         let inbox = Arc::new(Mutex::new(Inbox::default()));
         let changed = Arc::new(Notify::new());
@@ -241,6 +242,9 @@ impl OwnedSignaling {
                     .map_err(|_| ClientError::Timeout)??;
                     if chrono::Utc::now() >= *current_authority.borrow() {
                         return Err(ClientError::Authentication);
+                    }
+                    if native_video.verified(&frame)? {
+                        continue;
                     }
                     let terminal = frame.kind() == "auth.bye"
                         || (frame.kind() == "identity.assurance-changed"
@@ -392,6 +396,7 @@ impl CanonicalClient {
             self.authenticated_until.min(self.server_key_expires_at),
             self.server_key_expires_at,
             self.deadline,
+            self.native_video.clone(),
         ));
         current.complete = true;
         Ok(())
