@@ -1,5 +1,5 @@
 use super::*;
-fn scope() -> CommandScope {
+pub(super) fn scope() -> CommandScope {
     CommandScope {
         conversation_id: Some("room".into()),
         session_id: Some("session".into()),
@@ -8,10 +8,10 @@ fn scope() -> CommandScope {
         expected_revision: Some(0),
     }
 }
-fn original() -> Value {
+pub(super) fn original() -> Value {
     json!({"substrate":"quic","capabilities":{"video_codecs":[{"name":"vp8","params":{"sample_rate":90000,"channels":0}}],"video_feedback":"rtcp-pli-epoch/1"},"streams_offered":[{"id":"camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}]})
 }
-fn pair(request: &str) -> (Value, Value) {
+pub(super) fn pair(request: &str) -> (Value, Value) {
     let resource = json!({"strm_id":"camera","kind":"video","direction":"sendrecv","stream_local_id":7,"codec":{"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":96}},"video_feedback":{"profile":"rtcp-pli-epoch/1","original_operation":"operation","original_offer":request,"stream_generation":1,"connection_generation":1}});
     let p = json!({"by_participant":"participant","substrate":"quic","capabilities":original()["capabilities"],"substrate_setup":{"kind":"native-prepared/1","revision":1,"offer_id":request,"streams":[resource.clone()]}});
     let mut answer = p.clone();
@@ -22,18 +22,24 @@ fn pair(request: &str) -> (Value, Value) {
         json!([{"id":"camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}]);
     (answer, callback)
 }
-fn scoped(kind: &str, payload: Value, reply: Option<&str>) -> Envelope {
+pub(super) fn scoped(kind: &str, payload: Value, reply: Option<&str>) -> Envelope {
     let mut v = envelope(kind, payload);
     v["cid"] = json!("room");
     v["sid"] = json!("session");
     v["connid"] = json!("connection");
     v["operation_id"] = json!("operation");
+    if matches!(
+        kind,
+        "stream.subscribe" | "stream.unsubscribe" | "connection.update"
+    ) {
+        v["expected_revision"] = json!(1);
+    }
     if let Some(reply) = reply {
         v["in_reply_to"] = json!(reply);
     }
     Envelope::from_value(v).unwrap()
 }
-fn epoch(request: &str, revision: u64, publisher: bool) -> Envelope {
+pub(super) fn epoch(request: &str, revision: u64, publisher: bool) -> Envelope {
     let mut v =
         crate::sdk::video_feedback::epochs::tests::notice_value(revision.into(), revision, 0, 0);
     v["ts"] = envelope("ack", json!({}))["ts"].clone();
@@ -41,7 +47,7 @@ fn epoch(request: &str, revision: u64, publisher: bool) -> Envelope {
     v["payload"]["direction"] = json!(if publisher { "publisher" } else { "receiver" });
     Envelope::from_value(v).unwrap()
 }
-fn stage(shared: &Shared, request: &str) -> (Envelope, payloads::ConnectionAnswer) {
+pub(super) fn stage(shared: &Shared, request: &str) -> (Envelope, payloads::ConnectionAnswer) {
     shared.begin(request.into(), scope(), original()).unwrap();
     let (answer, callback) = pair(request);
     shared

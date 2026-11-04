@@ -244,3 +244,6 @@ fn self_scope(scope: &CommandScope) -> [Option<&str>; 4] {
 
 #[cfg(test)]
 pub(crate) mod tests;
+
+pub(super) mod io;
+pub use io::{NativeVideoDatagram, NativeVideoDatagrams};

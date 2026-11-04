@@ -3,6 +3,7 @@
 pub use crate::NativeNetworkProfile;
 use crate::{ClientError, Result};
 pub use native_io::NativeDatagrams;
+pub use native_video::{NativeVideoDatagram, NativeVideoDatagrams};
 use rvoip_auth_core::sig9421::{
     ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier, SignatureVerificationContext,
     StaticKeyResolver,

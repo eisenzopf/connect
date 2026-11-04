@@ -33,7 +33,7 @@ pub struct NativeDatagrams {
     _reader: ReaderClaim,
 }
 impl NativeDatagrams {
-    fn current(&self) -> Result<()> {
+    pub(super) fn current(&self) -> Result<()> {
         if self.closed.load(Ordering::Acquire) || self.connection.close_reason().is_some() {
             return Err(ClientError::Transport);
         }
@@ -46,6 +46,9 @@ impl NativeDatagrams {
     /// delivery. No operation ID, RTP timestamp or packet body is rewritten.
     pub fn send(&self, bytes: &[u8]) -> Result<()> {
         super::native::datagram(bytes)?;
+        self.submit(bytes)
+    }
+    pub(super) fn submit(&self, bytes: &[u8]) -> Result<()> {
         self.current()?;
         if self
             .connection
@@ -59,6 +62,11 @@ impl NativeDatagrams {
             .map_err(|_| ClientError::Transport)
     }
     pub async fn receive(&mut self) -> Result<Vec<u8>> {
+        let bytes = self.read_raw().await?;
+        super::native::datagram(&bytes)?;
+        Ok(bytes)
+    }
+    pub(super) async fn read_raw(&mut self) -> Result<Vec<u8>> {
         self.current()?;
         let remaining = (self.expires_at - chrono::Utc::now())
             .to_std()
@@ -69,7 +77,9 @@ impl NativeDatagrams {
                 .map_err(|_| ClientError::Timeout)?
                 .map_err(|_| ClientError::Transport)?;
         self.current()?;
-        super::native::datagram(&bytes)?;
+        if bytes.len() > 16 * 1024 + 36 {
+            return Err(ClientError::Protocol);
+        }
         Ok(bytes.to_vec())
     }
 }
