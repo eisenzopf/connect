@@ -969,6 +969,87 @@
       },
       "all_observed_helpers_joined": true,
       "full_media_quality_comparison_available": false
+    },
+    {
+      "run": "v114",
+      "state": {
+        "original_sdk_feedback_required": true,
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 142446,
+        "source_revision": "d257bed9f796b18c9a7a5fe784c41f0479a2c7a5",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": true,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T09:07:11.554410+00:00",
+        "fixture_exit_code": 1,
+        "report_sha256": "c557f344a42f224c9247129fce8e3198a2f2195eb229cb5fbb121d8e5c2721ad",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "7999640a488070cc24c25f1bc1b3a6b781e1f2c3b9f97831ad9406a19e5bb64b",
+        "peer_binary_sha256": "bc102bb9c1fe0b7cd8209ff10c497237afa3fc62e3f595d9d05d846b026c5c94",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 1305.1236711289966
+      },
+      "state_sha256": "5e1f0cf6598339cee88d0eb65355257d10a420568b753b6e84b5108c8f209555",
+      "scope": "Local ARM failed full-workload rerun with failure-only held authority and Core private-audience diagnostics. No passing components rerun.",
+      "completed_workload_moves": 1,
+      "first_logged_failure": {
+        "operation": "move_35430ef7-0145-49ce-b67d-e8dce47f3fa1",
+        "connection": "cre_454ac886-7cf1-45dc-9958-faff2228ef08",
+        "phase": "commit",
+        "stage": "candidate-owner",
+        "error": "Authority",
+        "timestamp": "2026-11-04T09:07:04.132661Z"
+      },
+      "ledger": {
+        "failed_operation_state": "unknown",
+        "revision": 15,
+        "activation": "confirmed",
+        "readiness": "confirmed",
+        "commit": "unknown",
+        "commit_attempts": 1,
+        "sibling": "completed revision16"
+      },
+      "media_observation": {
+        "original_tasks_joined": true,
+        "encoder_processes_joined": 6,
+        "original_tasks_started": 30,
+        "elapsed_ms": 23796.884806,
+        "failure": {
+          "route_index": null,
+          "medium": null,
+          "direction": "control",
+          "stage": "during-workload"
+        }
+      },
+      "capture": {
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "kernel_dropped_packets": 0,
+        "pcap_sha256": "4b196036721146c7b05cdbc4252f496265061bb3f06dabfba3d547be8e69596f"
+      },
+      "server_cleanup": {
+        "server_exit_code": 0,
+        "forced": false,
+        "original_group_retired": true
+      },
+      "all_observed_helpers_joined": true,
+      "full_media_quality_comparison_available": false,
+      "v113_activation_failure_reproduced": false,
+      "cause_proven": false
     }
   ],
   "diagnosis": {
@@ -994,15 +1075,9 @@
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
   "next_investigation": {
-    "observed": "Replacement private activation refused: Media(NotReady). Later sibling replacement planning refuses Media(NotReady); exact underlying cause is not yet proved.",
-    "action": "Trace the first private activation failure at its original Core/policy boundary. Preserve the later sibling planning refusal separately; no generic NotReady retry or extension of original deadlines.",
-    "cause_proven": false,
-    "feedback_wiring_verified": {
-      "all_configs_enabled": true,
-      "negotiated_both_video_directions_required": true,
-      "original_media_tasks_started": 30,
-      "feedback_workers_started": 6
-    }
+    "observed": "v114 first-move commit candidate-owner returns Authority; original commit remains unknown, one attempt. Both activation/readiness phases confirmed. v113 return activation NotReady not reached.",
+    "action": "Trace candidate-owner construction through source/retained registry reads, binding checks and current replacement activation. Evaluate exact owned scene entries for held commands; do not infer a lost grant from registry contention, replay unknown mutation or relax deadlines.",
+    "cause_proven": false
   },
   "activation_investigation": {
     "run": "v113",
