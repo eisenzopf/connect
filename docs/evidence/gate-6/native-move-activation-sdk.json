@@ -66,11 +66,12 @@
     "TypeScript compiles; two new Node/browser activation component cases and one new Python component case pass.",
     "Exact ready/stopped state, original binding/topology, separate telephone contract and malformed/partial/contradictory outcomes are checked.",
     "Generated TypeScript outputs copied from local ARM build and byte hashes verified.",
-    "New Rust case passes ready/stopped result parsing and original context validation, with 272 other tests filtered out and all final guards true. Mixed run remains failed due to native fixture compile error."
+    "New Rust case passes ready/stopped result parsing and original context validation, with 272 other tests filtered out and all final guards true. Mixed run remains failed due to native fixture compile error.",
+    "Signed native SDK completion and original-operation recovery pass at 1140b7ce in the prepared video routing case; see prepared-video-native-transfer.json."
   ],
   "pending": [
-    "Only corrected failed signed native case; v60 running at 1140b7ce. Passing SDK components will not be rerun.",
-    "Native routing, feedback/encoder/epoch integration, decoded quality and full Gate 6 matrix."
+    "Native feedback/current authority integration, request-driven source workers and authenticated activation epochs.",
+    "Decoded quality and complete Gate6 matrix."
   ],
   "general_suites_rerun": false,
   "full_media_rehearsal_run": false,
@@ -133,7 +134,7 @@
     }
   ],
   "rust_retry_source": "2c63f906de05b9673faa8dcf0b466a11701a75b5",
-  "rust_retry_status": "Rust activation component PASS with final source/prepared/executable guards. Native build failed because new activation assertion was placed in HandoffResult helper; moved to replacement helper at 1140b7ce.",
+  "rust_retry_status": "Rust activation component and signed native replacement retry both PASS with final guards; preceding compile/runtime failures retained.",
   "rust_component_run": {
     "stage": "complete",
     "source_guard_active": false,
@@ -174,5 +175,39 @@
     "source_inputs_unchanged": true,
     "prepared_sources_unchanged": true,
     "elapsed_seconds": 312.30029366699455
+  },
+  "native_retry_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 116517,
+    "source_revision": "1140b7ce9a239687c163471ac302763ec32dbbfe",
+    "passed": true,
+    "steps": [
+      {
+        "group": "native",
+        "case": "canonical_native_connections::consultation::groups::replacement::av::transfer::production_native_video_transfer_activates_both_directions_without_post_commit_controls",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 439 filtered out; finished in 29.22s"
+        ],
+        "log_sha256": "f4e49bc2c7af15eb343e33758837c1d90e8ed74abfad52d06c787b2c3708e4e9"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_routing_candidate": true,
+    "builds": [
+      {
+        "group": "native",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "30aaec3d68c3784df11aa067d3d65bdee38797b8e185a805ca5bff5bc65dc236",
+        "test_executable_sha256": "7fdff437a37f269ebd695b0bed4aa33ffc42f173f5314a08edc615a957c6c9cf",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 269.9615737730055
   }
 }

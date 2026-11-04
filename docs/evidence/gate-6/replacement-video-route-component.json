@@ -71,11 +71,16 @@
   "native_failure": "Signed native case fails before replacement at groups.rs:626: strict audio-only reader expected handle1 and received known video handle3. Positive VP8 setup sends29 frames but consumes only first complete frame. Subsequent packets remained queued.",
   "correction": "Preserve the exact previous video receiver handle and use the existing bounded known-audio/known-video drain before strict audio-only probes. No product or media threshold change; corrected failed native case not yet retried.",
   "limits": [
-    "Native replacement routing remains unverified.",
+    "Signed native packet routing now passes in separate guarded follow-up; this original mixed run remains failed.",
     "No decoded-quality, epoch, feedback or full-cell qualification."
   ],
   "general_suites_rerun": false,
   "full_media_rehearsal_run": false,
   "task_complete": false,
-  "cell_qualified": false
+  "cell_qualified": false,
+  "native_followup": {
+    "source": "1140b7ce9a239687c163471ac302763ec32dbbfe",
+    "passed": true,
+    "evidence": "prepared-video-native-transfer.json"
+  }
 }

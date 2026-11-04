@@ -1,0 +1,54 @@
+{
+  "format": "connect/gate6-prepared-video-native-transfer/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 116517,
+    "source_revision": "1140b7ce9a239687c163471ac302763ec32dbbfe",
+    "passed": true,
+    "steps": [
+      {
+        "group": "native",
+        "case": "canonical_native_connections::consultation::groups::replacement::av::transfer::production_native_video_transfer_activates_both_directions_without_post_commit_controls",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 439 filtered out; finished in 29.22s"
+        ],
+        "log_sha256": "f4e49bc2c7af15eb343e33758837c1d90e8ed74abfad52d06c787b2c3708e4e9"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_routing_candidate": true,
+    "builds": [
+      {
+        "group": "native",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "30aaec3d68c3784df11aa067d3d65bdee38797b8e185a805ca5bff5bc65dc236",
+        "test_executable_sha256": "7fdff437a37f269ebd695b0bed4aa33ffc42f173f5314a08edc615a957c6c9cf",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 269.9615737730055
+  },
+  "proof": [
+    "Actual signed native operation transfers both VP8 directions on already negotiated receiver handles before any post-commit video subscribe or unmute; resource revisions remain unchanged.",
+    "Original SDK completion and fresh-operation recovery preserve the captured target, generation, topology and native activation state; observation handles acquire no native custody.",
+    "Shared fixture verifies audio before/after preparation and cutover, exact current controls, survival of old source/controller revocation, target authority loss and owned shutdown.",
+    "Source, prepared-dependency and executable hashes remain unchanged through the final run."
+  ],
+  "limits": [
+    "Packet routing proof, not independent decoded picture quality or source-marker continuity.",
+    "Fresh keyframe feedback/source integration and authenticated activation epochs remain open.",
+    "No integrated 32-cell media qualification, separate twenty-transition workload, five-second teardown/ten-second idle qualification or Gate6 task completion."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false
+}
