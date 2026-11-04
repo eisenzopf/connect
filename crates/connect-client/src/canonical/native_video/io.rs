@@ -167,6 +167,9 @@ impl NativeVideoDatagrams {
         for _ in 0..self.pending.len() {
             let item = self.pending.pop_front().ok_or(ClientError::Protocol)?;
             if item.arrived.elapsed() >= AGE {
+                tracing::debug!(target: "connect_client::canonical::native_video", handle=item.packet.stream_local_id,
+                    notice_present=s.active.contains_key(&(item.packet.stream_local_id,false)),
+                    "Video packet expired waiting for matching signed history");
                 continue;
             }
             let Some(n) = s.active.get(&(item.packet.stream_local_id, false)) else {
@@ -309,6 +312,8 @@ impl NativeVideoDatagrams {
                                 && s.video_feedback.contains_key(&v.id)
                         })
                     });
+                tracing::debug!(target: "connect_client::canonical::native_video", handle=packet.stream_local_id,
+                    selected, sequence=packet.seq, "Received tagged video packet");
                 if selected
                     && self.pending.len() < 128
                     && self

@@ -85,8 +85,17 @@ impl Shared {
                 None => protocol(s.negotiating.selected())?,
             };
             if !n.matches(selected) {
+                tracing::debug!(target: "connect_client::canonical::native_video",
+                    handle=n.handle, stream_generation=n.allocation.stream_generation,
+                    connection_generation=n.allocation.connection_generation,
+                    allocation_matches=selected.video_feedback.get(&n.key.stream_id)==Some(&n.allocation),
+                    stream_matches=selected.streams.iter().any(|stream|n.matches_stream(stream)),
+                    "Verified video notice does not match sealed allocation");
                 return Ok(true);
             }
+            tracing::debug!(target: "connect_client::canonical::native_video",
+                handle=n.handle, publisher=n.role==Role::Publisher, revision=n.history.revision,
+                "Verified video notice matches sealed allocation");
             let key = (n.handle, n.role == Role::Publisher);
             if s.notices
                 .get(&key)

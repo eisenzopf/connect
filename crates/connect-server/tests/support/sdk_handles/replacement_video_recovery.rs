@@ -339,6 +339,10 @@ async fn signed_production_replacement_transfers_video_and_recovers_fresh_frames
         .unwrap();
 }
 async fn exercise() {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter("connect_client::canonical::native_video=debug")
+        .with_test_writer()
+        .try_init();
     let f = Fixture::with_native_end_scope("EdDSA", 12).await;
     super::super::canonical_native_connections::ready_endpoint_with_capabilities(
         &f,
