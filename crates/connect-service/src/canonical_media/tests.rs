@@ -561,3 +561,68 @@ async fn queued_source_registry_contention_returns_to_the_original_packet_owner(
         Err(StreamControlError::Authority)
     ));
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn original_ingress_distinguishes_actual_registry_exclusion_from_absent_authority() {
+    use rvoip_core::ids::ConversationId;
+    let dir = tempfile::tempdir().unwrap();
+    let store =
+        Arc::new(Store::initialize(&dir.path().join("state.sqlite3"), Default::default()).unwrap());
+    let policy = Policy::new(store, 8);
+    let conversation = ConversationId::from_string("conversation".to_owned());
+    let session = SessionId::from_string("session".to_owned());
+    let source = ConnectionId::from_string("source".to_owned());
+    let principal = actor();
+    let scope = MediaScope {
+        conversation: &conversation,
+        session: &session,
+        connection: &source,
+        principal: &principal,
+        purpose: MediaPurpose::Publish,
+    };
+    let busy = || {
+        let began = std::time::Instant::now();
+        for _ in 0..16 {
+            assert!(matches!(
+                policy.current_original_ingress(&scope),
+                Err(StreamControlError::MetadataBusy)
+            ));
+        }
+        assert!(
+            began.elapsed() < Duration::from_millis(50),
+            "original ingress occupied the executor"
+        );
+    };
+    {
+        let _held = policy.entries.lock().unwrap();
+        busy();
+    }
+    {
+        let _held = policy.initial_targets.lock().unwrap();
+        busy();
+    }
+    {
+        let _held = policy.telephone_targets.lock().unwrap();
+        busy();
+    }
+    {
+        let _held = policy.replacement_targets.lock().unwrap();
+        busy();
+    }
+    tokio::task::yield_now().await;
+    assert!(matches!(
+        policy.current_original_ingress(&scope),
+        Err(StreamControlError::Authority)
+    ));
+    let control = MediaScope {
+        conversation: &conversation,
+        session: &session,
+        connection: &source,
+        principal: &principal,
+        purpose: MediaPurpose::Control,
+    };
+    assert!(matches!(
+        policy.current_original_ingress(&control),
+        Err(StreamControlError::Authority)
+    ));
+}

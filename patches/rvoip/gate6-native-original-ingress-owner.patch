@@ -1,0 +1,530 @@
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -294,7 +294,103 @@
+         }
+     }
+ }
++struct OriginalNativeIngress {
++    ingress: Arc<PortIngress>,
++    original: original_ingress::OriginalIngress,
++    ssrc: u32,
++    bytes: usize,
++    sequence: u32,
++    timestamp: u32,
++    finished: bool,
++}
++impl crate::substrate::peer_media_router::PendingNativeIngress for OriginalNativeIngress {
++    fn try_publish(&mut self) -> Option<bool> {
++        let mut clock = None;
++        let result = self.original.try_publish_clocked(|current| {
++            clock = self.ingress.clock.snapshot(self.ssrc, current);
++            clock.clone()
++        });
++        if matches!(result, Err(StreamControlError::MetadataBusy)) {
++            return None;
++        }
++        self.finished = true;
++        match result {
++            Ok(()) => {
++                self.ingress
++                    .counters
++                    .accepted
++                    .fetch_add(1, Ordering::AcqRel);
++                if let (Some(feedback), Some(clock)) = (&self.ingress.feedback, clock) {
++                    let _ = feedback.published(self.ssrc, clock, self.sequence, self.timestamp);
++                }
++                if let (Some(flow), Some(port)) = (&self.ingress.flow, self.ingress.port.upgrade())
++                {
++                    flow.received(&port);
++                    flow.record_rtp(&port, true, self.bytes);
++                }
++                Some(true)
++            }
++            Err(_) => {
++                self.ingress
++                    .counters
++                    .rejected
++                    .fetch_add(1, Ordering::AcqRel);
++                Some(false)
++            }
++        }
++    }
++}
++impl Drop for OriginalNativeIngress {
++    fn drop(&mut self) {
++        if !self.finished {
++            self.ingress
++                .counters
++                .rejected
++                .fetch_add(1, Ordering::AcqRel);
++        }
++    }
++}
+ impl CheckedMediaIngress for PortIngress {
++    fn retain_rtp_observed(
++        self: Arc<Self>,
++        frame: MediaFrame,
++        ssrc: u32,
++        datagram_bytes: usize,
++        sequence: u32,
++        received_at: std::time::Instant,
++    ) -> Result<Option<Box<dyn crate::substrate::peer_media_router::PendingNativeIngress>>, ()>
++    {
++        let timestamp = frame.timestamp_rtp;
++        let result = self
++            .port
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)
++            .and_then(|port| port.retain_original_ingress(frame, received_at));
++        match result {
++            Ok(Some(original)) => Ok(Some(Box::new(OriginalNativeIngress {
++                ingress: self,
++                original,
++                ssrc,
++                bytes: datagram_bytes,
++                sequence,
++                timestamp,
++                finished: false,
++            }))),
++            Ok(None) => {
++                self.counters.accepted.fetch_add(1, Ordering::AcqRel);
++                if let (Some(flow), Some(port)) = (&self.flow, self.port.upgrade()) {
++                    flow.received(&port);
++                    flow.record_rtp(&port, true, datagram_bytes);
++                }
++                Ok(None)
++            }
++            Err(_) => {
++                self.counters.rejected.fetch_add(1, Ordering::AcqRel);
++                Err(())
++            }
++        }
++    }
++
+     fn try_send(&self, frame: MediaFrame) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
+         let result = self
+             .port
+--- a/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
+@@ -19,6 +19,13 @@
+ use rvoip_core::stream::{MediaFrame, MediaStream, StreamKind};
+ use tokio::sync::mpsc;
+ use tokio_util::sync::CancellationToken;
++
++/// An original receive prepared under exact engine generations. The physical
++/// reader owns this object, its bounded queue and every retry. None means only
++/// definite temporary metadata exclusion; Some is terminal. Drop cancels it.
++pub trait PendingNativeIngress: Send {
++    fn try_publish(&mut self) -> Option<bool>;
++}
+ 
+ /// Runs at physical ingress before any channel buffering. Staged routes use
+ /// this to reject packets while their engine generation is still inactive.
+@@ -49,6 +56,20 @@
+         _sequence: u32,
+     ) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
+         self.try_send_rtp_source(frame, ssrc, datagram_bytes)
++    }
++    /// Preserve the original receive observation before buffering. Implementors
++    /// that do not support retained custody keep their immediate behavior.
++    fn retain_rtp_observed(
++        self: Arc<Self>,
++        frame: MediaFrame,
++        ssrc: u32,
++        datagram_bytes: usize,
++        sequence: u32,
++        _received_at: std::time::Instant,
++    ) -> Result<Option<Box<dyn PendingNativeIngress>>, ()> {
++        self.try_send_rtp_observed(frame, ssrc, datagram_bytes, sequence)
++            .map(|()| None)
++            .map_err(|_| ())
+     }
+     /// Clock-only RTCP cannot imply readiness or enqueue a media packet.
+     fn try_clock(&self, _bytes: &[u8]) -> bool {
+--- a/crates/uctp/rvoip-uctp/src/v2/native_media.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_media.rs
+@@ -13,11 +13,13 @@
+     stream::{MediaFrame, StreamKind},
+ };
+ use std::{
++    collections::{BTreeMap, VecDeque},
+     num::NonZeroU16,
+     sync::{
+         atomic::{AtomicBool, AtomicU64, Ordering},
+         Arc,
+     },
++    time::{Duration, Instant},
+ };
+ use tokio_util::sync::CancellationToken;
+ 
+@@ -60,6 +62,15 @@
+     running: AtomicBool,
+     counters: Counters,
+ }
++type PendingIngress = Box<dyn crate::substrate::peer_media_router::PendingNativeIngress>;
++enum RoutedIngress {
++    Complete(bool),
++    Original(u16, PendingIngress),
++}
++// The sole physical reader owns all retries; no detached task or unbounded
++// receive buffer. Each original still expires at its original 200ms deadline.
++const MAX_PENDING_PER_STREAM: usize = 32;
++const MAX_PENDING_PER_PEER: usize = 256;
+ struct ReaderOwner(Arc<NativePeerMedia>);
+ impl Drop for ReaderOwner {
+     fn drop(&mut self) {
+@@ -138,15 +149,52 @@
+         let owner = ReaderOwner(self.clone());
+         Ok(async move {
+             let owner = owner;
++            let mut pending: BTreeMap<u16, VecDeque<PendingIngress>> = BTreeMap::new();
++            let mut pending_count = 0usize;
++            let mut retry = tokio::time::interval(Duration::from_millis(1));
++            retry.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+             loop {
+                 let bytes = tokio::select! {
+-                    biased;
+                     _=owner.0.lifetime.cancelled()=>return Err(DispatchError::Closed),
++                    _=retry.tick(), if pending_count > 0 => {
++                        // Preserve per-stream order while allowing other streams
++                        // and signaling to advance during metadata contention.
++                        for queue in pending.values_mut() {
++                            while let Some(original) = queue.front_mut() {
++                                let Some(accepted) = original.try_publish() else { break; };
++                                let counter = if accepted { &owner.0.counters.accepted } else { &owner.0.counters.rejected };
++                                counter.fetch_add(1, Ordering::AcqRel);
++                                queue.pop_front(); pending_count -= 1;
++                            }
++                        }
++                        pending.retain(|_, queue| !queue.is_empty());
++                        tokio::task::consume_budget().await;
++                        continue;
++                    },
+                     result=owner.0.io.read_datagram()=>result?,
+                 };
++                let received_at = Instant::now();
+                 tokio::task::consume_budget().await;
+                 let clock = crate::staged_media::rtcp::is_rtcp(&bytes);
+-                let accepted = owner.0.route(&bytes);
++                let accepted = match owner.0.route(&bytes, received_at) {
++                    RoutedIngress::Complete(accepted) => accepted,
++                    RoutedIngress::Original(local, mut original) => {
++                        if pending.get(&local).is_none_or(|q| q.is_empty()) {
++                            if let Some(accepted) = original.try_publish() {
++                                let counter = if accepted { &owner.0.counters.accepted } else { &owner.0.counters.rejected };
++                                counter.fetch_add(1, Ordering::AcqRel);
++                                continue;
++                            }
++                        }
++                        if pending_count < MAX_PENDING_PER_PEER
++                            && pending.get(&local).map_or(0, |q| q.len()) < MAX_PENDING_PER_STREAM {
++                            pending.entry(local).or_default().push_back(original);
++                            pending_count += 1;
++                            continue;
++                        }
++                        false
++                    }
++                };
+                 let feedback = crate::substrate::observe_video_feedback_datagram(&bytes).is_ok();
+                 let counter = if feedback {
+                     if accepted {
+@@ -167,71 +215,71 @@
+         }
+         .boxed())
+     }
+-    fn route(&self, bytes: &[u8]) -> bool {
++    fn route(&self, bytes: &[u8], received_at: Instant) -> RoutedIngress {
+         // Bound parsing before RTP extension/CSRC processing. Audio payloads
+         // are bounded again by the staged engine; video has its tighter cap.
+         if bytes.len() > 16 * 1024 + 20 || self.lifetime.is_cancelled() {
+-            return false;
++            return RoutedIngress::Complete(false);
+         }
+         if let Ok(request) = crate::substrate::observe_video_feedback_datagram(bytes) {
+             let Some(local) = NonZeroU16::new(request.stream_local_id) else {
+-                return false;
++                return RoutedIngress::Complete(false);
+             };
+             let Some(binding) = self.router.lookup(local) else {
+-                return false;
++                return RoutedIngress::Complete(false);
+             };
+             if binding.is_cancelled() || binding.stream().kind() != StreamKind::Video {
+-                return false;
+-            }
+-            return match binding.ingress() {
++                return RoutedIngress::Complete(false);
++            }
++            return RoutedIngress::Complete(match binding.ingress() {
+                 PeerMediaIngress::Checked(ingress) => ingress.try_video_feedback(&request),
+                 PeerMediaIngress::Channel(_) => false,
+-            };
++            });
+         }
+         if crate::staged_media::rtcp::is_rtcp(bytes) {
+             let Some(local) = NonZeroU16::new(u16::from_be_bytes([bytes[2], bytes[3]])) else {
+-                return false;
++                return RoutedIngress::Complete(false);
+             };
+             let Some(binding) = self.router.lookup(local) else {
+-                return false;
++                return RoutedIngress::Complete(false);
+             };
+             if binding.is_cancelled() || binding.stream().direction() != Direction::Inbound {
+-                return false;
+-            }
+-            return match binding.ingress() {
++                return RoutedIngress::Complete(false);
++            }
++            return RoutedIngress::Complete(match binding.ingress() {
+                 PeerMediaIngress::Checked(ingress) => ingress.try_clock(bytes),
+                 PeerMediaIngress::Channel(_) => false,
+-            };
++            });
+         }
+         let Ok(datagram) = observe_rtp_datagram(bytes) else {
+-            return false;
++            return RoutedIngress::Complete(false);
+         };
+         let Some(local) = NonZeroU16::new(datagram.stream_local_id) else {
+-            return false;
++            return RoutedIngress::Complete(false);
+         };
+         let Some(binding) = self.router.lookup(local) else {
+-            return false;
++            return RoutedIngress::Complete(false);
+         };
+         if binding.is_cancelled() || binding.stream().direction() != Direction::Inbound {
+-            return false;
++            return RoutedIngress::Complete(false);
+         }
+         let kind = binding.stream().kind();
+         let video = if kind == StreamKind::Video {
+             if bytes.len() > rvoip_core::video_bridge::MAX_VIDEO_RTP_BYTES + 8 {
+-                return false;
++                return RoutedIngress::Complete(false);
+             }
+             match datagram.rtp.packet().serialize() {
+                 Ok(bytes) => Some(bytes),
+-                Err(_) => return false,
++                Err(_) => return RoutedIngress::Complete(false),
+             }
+         } else if kind == StreamKind::Audio {
+             None
+         } else {
+-            return false;
++            return RoutedIngress::Complete(false);
+         };
+         let payload = datagram.rtp.into_media_payload();
+         if binding.stream().codec().payload_type != Some(payload.payload_type) {
+-            return false;
++            return RoutedIngress::Complete(false);
+         }
+         let frame = MediaFrame {
+             source_clock: None,
+@@ -245,10 +293,18 @@
+         // Checked staged ingress rejects prepared/paused/revoked generations
+         // before any queue buffering. There is no unguarded fanout fallback.
+         match binding.ingress() {
+-            PeerMediaIngress::Checked(ingress) => ingress
+-                .try_send_rtp_observed(frame, payload.ssrc, bytes.len(), datagram.seq)
+-                .is_ok(),
+-            PeerMediaIngress::Channel(_) => false,
++            PeerMediaIngress::Checked(ingress) => match ingress.clone().retain_rtp_observed(
++                frame,
++                payload.ssrc,
++                bytes.len(),
++                datagram.seq,
++                received_at,
++            ) {
++                Ok(Some(original)) => RoutedIngress::Original(local.get(), original),
++                Ok(None) => RoutedIngress::Complete(true),
++                Err(()) => RoutedIngress::Complete(false),
++            },
++            PeerMediaIngress::Channel(_) => RoutedIngress::Complete(false),
+         }
+     }
+ }
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -65,7 +65,8 @@
+             StreamControlError::Cancelled => Self::Cancelled,
+             StreamControlError::Deadline
+             | StreamControlError::Model(MediaTransitionError::Expired) => Self::Deadline,
+-            StreamControlError::NotReady
++            StreamControlError::MetadataBusy
++            | StreamControlError::NotReady
+             | StreamControlError::Model(MediaTransitionError::NotReady) => Self::NotReady,
+             StreamControlError::CleanupUnconfirmed => Self::CleanupUnconfirmed,
+             StreamControlError::Model(MediaTransitionError::Invalid) => Self::Invalid,
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
+@@ -4,18 +4,34 @@
+ struct TemporaryMetadata {
+     policy: Arc<MediaGrants>,
+     gate: std::sync::Mutex<()>,
++    only: std::sync::Mutex<Option<ConnectionId>>,
+     entered: Notify,
+     refused: std::sync::atomic::AtomicUsize,
+ }
+-impl MediaPolicy for TemporaryMetadata {
+-    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+-        if matches!(scope.purpose, MediaPurpose::Publish) {
++impl TemporaryMetadata {
++    fn read(
++        &self,
++        scope: &MediaScope<'_>,
++        original: bool,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if matches!(scope.purpose, MediaPurpose::Publish)
++            && self
++                .only
++                .lock()
++                .unwrap()
++                .as_ref()
++                .is_none_or(|id| id == scope.connection)
++        {
+             match self.gate.try_lock() {
+                 Ok(_guard) => self.policy.current(scope),
+                 Err(std::sync::TryLockError::WouldBlock) => {
+                     self.refused.fetch_add(1, Ordering::SeqCst);
+                     self.entered.notify_one();
+-                    Err(StreamControlError::NotReady)
++                    Err(if original {
++                        StreamControlError::MetadataBusy
++                    } else {
++                        StreamControlError::NotReady
++                    })
+                 }
+                 Err(_) => Err(StreamControlError::Authority),
+             }
+@@ -24,6 +40,17 @@
+         }
+     }
+ }
++impl MediaPolicy for TemporaryMetadata {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.read(scope, false)
++    }
++    fn current_original_ingress(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.read(scope, true)
++    }
++}
+ 
+ #[tokio::test]
+ async fn original_native_frame_survives_temporary_metadata_unavailability_without_resend() {
+@@ -31,6 +58,7 @@
+     let policy = Arc::new(TemporaryMetadata {
+         policy: network.grants.clone(),
+         gate: std::sync::Mutex::new(()),
++        only: std::sync::Mutex::new(None),
+         entered: Notify::new(),
+         refused: std::sync::atomic::AtomicUsize::new(0),
+     });
+@@ -117,3 +145,103 @@
+     let frame = out.rtp.into_media_payload();
+     frame.timestamp == timestamp && frame.payload == tone()
+ }
++
++fn ordered_audio(stream: u16, sequence: u16) -> Bytes {
++    pack_rtp_datagram(&RtpDatagram {
++        flags: 0,
++        stream_local_id: stream,
++        seq: u32::from(sequence),
++        rtp: RtpMediaPayload {
++            payload: tone(),
++            payload_type: 0,
++            sequence_number: sequence,
++            timestamp: u32::from(sequence) * 160,
++            ssrc: 7,
++        },
++    })
++    .unwrap()
++}
++#[tokio::test]
++async fn original_native_queue_preserves_order_other_stream_progress_expiry_and_shutdown() {
++    for action in 0..3 {
++        let mut network = Network::new("quic").await;
++        let policy = Arc::new(TemporaryMetadata {
++            policy: network.grants.clone(),
++            gate: std::sync::Mutex::new(()),
++            only: std::sync::Mutex::new(None),
++            entered: Notify::new(),
++            refused: std::sync::atomic::AtomicUsize::new(0),
++        });
++        let source = network.configure_policy(0, policy.clone()).await;
++        let other = network.configure_policy(1, policy.clone()).await;
++        network.start(&source, &[Medium::Audio]).await;
++        network.start(&other, &[Medium::Audio]).await;
++        *policy.only.lock().unwrap() = Some(source.id.clone());
++        let mut input = source
++            .controller
++            .take_ingress(&StreamId::from_string("audio"))
++            .unwrap();
++        let mut healthy = other
++            .controller
++            .take_ingress(&StreamId::from_string("audio"))
++            .unwrap();
++        let stream = binding(&source, Medium::Audio).stream_local_id;
++        let held = policy.gate.lock().unwrap();
++        send(&network.wire, ordered_audio(stream, 1));
++        tokio::time::timeout(Duration::from_secs(1), policy.entered.notified())
++            .await
++            .unwrap();
++        send(&network.wire, ordered_audio(stream, 2));
++        send(
++            &network.wire,
++            ordered_audio(binding(&other, Medium::Audio).stream_local_id, 1),
++        );
++        let fresh = tokio::time::timeout(Duration::from_millis(100), healthy.recv())
++            .await
++            .ok()
++            .flatten();
++        let independent = observed_original(&network, &source, fresh, 160).await;
++        let outcome;
++        if action == 2 {
++            network.stop().await;
++            drop(held);
++            outcome = input.try_recv().is_err();
++        } else {
++            if action == 1 {
++                tokio::time::sleep(Duration::from_millis(210)).await;
++            }
++            drop(held);
++            if action == 0 {
++                let first = tokio::time::timeout(Duration::from_millis(100), input.recv())
++                    .await
++                    .ok()
++                    .flatten();
++                let second = tokio::time::timeout(Duration::from_millis(100), input.recv())
++                    .await
++                    .ok()
++                    .flatten();
++                let first = observed_original(&network, &other, first, 160).await;
++                let second = observed_original(&network, &other, second, 320).await;
++                outcome = first && second && input.try_recv().is_err();
++            } else {
++                let expired = input.try_recv().is_err();
++                send(&network.wire, ordered_audio(stream, 3));
++                let fresh = tokio::time::timeout(Duration::from_millis(100), input.recv())
++                    .await
++                    .ok()
++                    .flatten();
++                outcome = expired && observed_original(&network, &other, fresh, 480).await;
++            }
++            network.stop().await;
++        }
++        assert!(!source.media.snapshot().reader_running && source.media.router().is_shutdown());
++        assert!(
++            independent,
++            "contended stream blocked independent stream, action {action}"
++        );
++        assert!(
++            outcome,
++            "original queue order/expiry/shutdown failed, action {action}"
++        );
++    }
++}

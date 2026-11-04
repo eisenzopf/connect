@@ -33,12 +33,36 @@ fn packet_read_until<T>(
         }
     }
 }
+// Only the leaf registry lookups passed here define NotReady as mutex
+// exclusion. Never reclassify a target's readiness or activation result.
+fn packet_lookup<T>(
+    until: std::time::Instant,
+    original: bool,
+    read: impl FnMut() -> ControlResult<T>,
+) -> ControlResult<T> {
+    super::packet_metadata::read_until(until, read).map_err(|error| {
+        if original && matches!(error, StreamControlError::NotReady) {
+            StreamControlError::MetadataBusy
+        } else {
+            error
+        }
+    })
+}
 impl Policy {
     pub(super) fn packet_current(
         &self,
         scope: &MediaScope<'_>,
         held: Option<Arc<NativeMediaRead>>,
         queued: bool,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        self.packet_current_inner(scope, held, queued, false)
+    }
+    pub(super) fn packet_current_inner(
+        &self,
+        scope: &MediaScope<'_>,
+        held: Option<Arc<NativeMediaRead>>,
+        queued: bool,
+        original: bool,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         // Queued realtime owners already retry NotReady asynchronously under
         // their original frame age and earlier lease expiry. Return contention
@@ -54,29 +78,29 @@ impl Policy {
             };
         let until = std::time::Instant::now() + budget;
         if let Some(target) =
-            super::packet_metadata::read_until(until, || self.initial_target(scope.connection))?
+            packet_lookup(until, original, || self.initial_target(scope.connection))?
         {
             return target.current(scope);
         }
         if let Some(target) =
-            super::packet_metadata::read_until(until, || self.telephone_target(scope.connection))?
+            packet_lookup(until, original, || self.telephone_target(scope.connection))?
         {
             return target.current(scope);
         }
-        if let Some(target) =
-            super::packet_metadata::read_until(until, || self.replacement_target(scope.connection))?
-        {
+        if let Some(target) = packet_lookup(until, original, || {
+            self.replacement_target(scope.connection)
+        })? {
             return target.current(scope);
         }
-        let entry = super::packet_metadata::read_until(until, || self.entry(scope.connection))?;
+        let entry = packet_lookup(until, original, || self.entry(scope.connection))?;
         self.scope(scope, &entry).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet scope refused");error})?;
         if let MediaPurpose::Receive { source } = scope.purpose {
-            if let Some(initial) = super::packet_metadata::read_until(until, || {
-                self.initial_target(&source.connection)
-            })? {
+            if let Some(initial) =
+                packet_lookup(until, original, || self.initial_target(&source.connection))?
+            {
                 return initial.native_receive(scope, source, &entry);
             }
-            if let Some(telephone) = super::packet_metadata::read_until(until, || {
+            if let Some(telephone) = packet_lookup(until, original, || {
                 self.telephone_target(&source.connection)
             })? {
                 return telephone.native_receive(scope, source, &entry);
@@ -85,7 +109,7 @@ impl Policy {
         let source = match scope.purpose {
             MediaPurpose::Receive { source } => Some((
                 source,
-                super::packet_metadata::read_until(until, || self.entry(&source.connection))?,
+                packet_lookup(until, original, || self.entry(&source.connection))?,
             )),
             _ => None,
         };
@@ -120,7 +144,13 @@ impl Policy {
             private = entry.origin.connection_id().starts_with("pvc_"),
             problem = result.as_ref().err().map(|e| e.code.as_str()),
             "Current native packet authority");
-        let read = result.map_err(packet_authority_error)?;
+        let read = result.map_err(|error| {
+            if original && error.code == "authority-busy" {
+                StreamControlError::MetadataBusy
+            } else {
+                packet_authority_error(error)
+            }
+        })?;
         if !read.current() {
             return Err(StreamControlError::Authority);
         }

@@ -1,0 +1,31 @@
+{
+  "format": "connect/original-ingress-core-build/1",
+  "run": "v127",
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 164550,
+    "source_revision": "5a9910823f4dfdb6e46dd11c85920af9bacbf98c",
+    "passed": false,
+    "steps": [],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "owned_original_ingress_core": true,
+    "builds": [
+      {
+        "group": "owned-original-ingress",
+        "compile_exit_code": 101,
+        "compile_log_sha256": "2ee0e6c167cb2172066173d2e90b7f338837ecdf3575919d629eba9270de0593"
+      }
+    ],
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 224.70183237199672
+  },
+  "finding": "Compile stopped at the exhaustive NativeOfferError conversion because the new MetadataBusy arm was missing. No runtime case executed. Mapping corrected in the subsequent native owner patch; focused verification pending.",
+  "task_complete": false,
+  "cell_qualified": false
+}

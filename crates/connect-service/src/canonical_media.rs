@@ -1058,6 +1058,15 @@ impl MediaPolicy for Policy {
     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         self.packet_current(scope, None, false)
     }
+    fn current_original_ingress(
+        &self,
+        scope: &MediaScope<'_>,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        if !matches!(scope.purpose, MediaPurpose::Publish) {
+            return Err(StreamControlError::Authority);
+        }
+        self.packet_current_inner(scope, None, true, true)
+    }
     fn current_queued(
         &self,
         scope: &MediaScope<'_>,
