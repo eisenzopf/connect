@@ -73,7 +73,7 @@ class MatrixIdleTests(unittest.TestCase):
             observation=report["browser_observation"];observation["passed"]=False
             observation.update(idle_resources=dict(passed=True, localOwnersJoined=True, media_peers=5,
                 renderer=dict(joined=True, owners=10), active_bindings=0, queued_packets=0, queued_bytes=0),
-                retirement=dict(passed=True, allLocalOwnersElapsedMs=300, originalEndsCompleted=6, originalClientsClosed=7),
+                retirement=dict(passed=True, allLocalOwnersElapsedMs=300, originalEndsCompleted=6, originalSessionsEnded=2, originalClientsClosed=7),
                 trusted_browser=dict(original_process_joined=True, forced_kill=False))
             if missing=="browser": observation["trusted_browser"]["original_process_joined"]=False
             if missing=="server": report["servers"]=[dict(original_joined=False)] * 2

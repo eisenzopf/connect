@@ -42,6 +42,27 @@ test("missed browser terminal deadline still joins original cleanup and cannot t
     const plan=browserMatrixPlan(),actors={owner:{client:{close:async()=>{closeCalls++;if(closeCalls===1)throw Error("deadline");}}}};
     const connection={id:plan.routes[0].connection,refresh:async()=>({streamRevision:1}),end:async()=>({
         referenceJson:()=>({operation_id:plan.routes[0].end}),wait:async()=>{clock=6000;return {snapshot:{state:"completed"}};}})};
-    const result=await retireBrowserMatrixAdmission({state:{connections:[connection]},actors,plan,journal:async()=>{},now:()=>clock});
+    const result=await retireBrowserMatrixAdmission({state:{connections:[connection],sessions:[]},actors,plan,journal:async()=>{},now:()=>clock});
     assert.equal(closeCalls,2);assert.equal(result.passed,false);assert.equal(result.originalClientsClosed,1);assert.equal(result.elapsedMs,6000);
+});
+
+test("browser terminal ends both original Sessions before client closure without resubmitting uncertainty",async()=>{
+    for(const uncertain of [false,true]){
+        const plan=browserMatrixPlan(),events=[],submitted=[];let clock=100,closed=false;
+        const sessions=plan.sessions.map((s,index)=>({id:s.id,refresh:async()=>({topologyRevision:10+index}),
+            end:async(input,options)=>{
+                assert.equal(input.expectedTopologyRevision,10+index);assert.equal(options.operationId,s.end);
+                assert.ok(options.timeoutMs<=4900);assert.equal(closed,false);submitted.push(s.end);
+                return {referenceJson:()=>({operation_id:s.end}),wait:async()=>{
+                    if(index===0&&uncertain)throw Object.assign(Error('uncertain'),{certainty:'uncertain'});
+                    return {snapshot:{state:'completed'}};
+                }};
+            }}));
+        const actors={owner:{client:{close:async()=>{assert.equal(submitted.length,2);closed=true;clock=400;}}}};
+        const result=await retireBrowserMatrixAdmission({state:{connections:[],sessions},actors,plan,
+            journal:async event=>events.push(event),now:()=>clock,terminalMs:0});
+        assert.deepEqual(submitted,plan.sessions.map(s=>s.end));assert.ok(closed);
+        assert.equal(result.originalSessionsEnded,uncertain?1:2);assert.equal(result.passed,!uncertain);
+        assert.equal(events.filter(e=>e.kind==='session-end-accepted').length,2);
+    }
 });

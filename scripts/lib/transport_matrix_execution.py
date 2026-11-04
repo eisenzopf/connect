@@ -172,6 +172,7 @@ def record_browser_result(matrix, cell, report, report_sha256, exit_code):
             and local.get("active_bindings") == 0 and local.get("queued_packets") == 0 and local.get("queued_bytes") == 0
             and retirement.get("passed") is True and 0 <= retirement.get("allLocalOwnersElapsedMs", -1) <= 5000
             and retirement.get("originalEndsCompleted") == 6 and retirement.get("originalClientsClosed") == 7
+            and retirement.get("originalSessionsEnded") == 2
             and browser.get("original_process_joined") is True and browser.get("forced_kill") is False
             and audio.get("original_process_joined") is True and audio.get("forced_kill", False) is False
             and len(report.get("servers", [])) == 2 and all(s.get("original_joined") is True for s in report["servers"]))

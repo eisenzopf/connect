@@ -165,9 +165,12 @@ try{
         }
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
         const actors={};window.matrixActors=actors;let state,sources,keepalive,observer;
-        const programmeReport={};
+        const programmeReport={};let resourceClock;
         try{
-            if(spec.stage==='quality')await window.matrixResources('baseline');
+            if(spec.stage==='quality'){
+                const baseline=await window.matrixResources('baseline');
+                resourceClock={host:baseline.monotonic_seconds,browser:performance.now()};
+            }
             for(const [name,configuration] of Object.entries(spec.actors)){
                 window.matrixPhase='authenticate-'+name;
                 const key=await crypto.subtle.importKey('jwk',configuration.signing.jwk,parameters(configuration.signing.algorithm),false,['sign']);
@@ -200,7 +203,8 @@ try{
                 await keepalive.close();
             }
             window.matrixPhase='original-retirement';
-            if(spec.stage==='quality')await window.matrixResources('terminal');
+            if(spec.stage==='quality')await window.matrixResources('terminal',
+                resourceClock.host+(programmeReport.terminal_ms-resourceClock.browser)/1000);
             const retirement=await retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event),
                 ...(spec.stage!=='admission'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
             let idleResources;

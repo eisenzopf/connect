@@ -188,6 +188,16 @@ export async function retireBrowserMatrixAdmission({state,actors,plan,journal,no
         await journal({kind:"end-accepted",operationId:original,reference:operation.referenceJson()});
         const result=await operation.wait(left());check(result.snapshot.state==="completed","original browser end must complete");
     }));
+    const sessionEnds=await Promise.allSettled(state.sessions.map(async(session,index)=>{
+        const original=plan.sessions[index].end;
+        const snapshot=await session.refresh(left());
+        await journal({kind:"session-end-intent",operationId:original,sessionId:session.id,
+            expectedTopologyRevision:snapshot.topologyRevision});
+        const operation=await session.end({reasonCode:0,reason,expectedTopologyRevision:snapshot.topologyRevision},
+            {...left(),operationId:original});
+        await journal({kind:"session-end-accepted",operationId:original,reference:operation.referenceJson()});
+        const result=await operation.wait(left());check(result.snapshot.state==="completed","original Session end must complete");
+    }));
     const closes=await Promise.allSettled(Object.values(actors).map(async actor=>{
         try {await actor.client.close({timeoutMs:Math.max(1,Math.floor(cutoff-now()))});return {deadlineMet:true};}
         catch(error){
@@ -197,8 +207,10 @@ export async function retireBrowserMatrixAdmission({state,actors,plan,journal,no
         }
     }));
     const elapsedMs=now()-terminal;
-    const passed=elapsedMs<=5000&&ends.every(value=>value.status==="fulfilled")&&closes.every(value=>value.status==="fulfilled"&&value.value.deadlineMet);
+    const passed=elapsedMs<=5000&&ends.every(value=>value.status==="fulfilled")&&sessionEnds.every(value=>value.status==="fulfilled")
+        &&closes.every(value=>value.status==="fulfilled"&&value.value.deadlineMet);
     return {passed,elapsedMs,originalEndsCompleted:ends.filter(value=>value.status==="fulfilled").length,
+        originalSessionsEnded:sessionEnds.filter(value=>value.status==="fulfilled").length,
         originalClientsClosed:closes.filter(value=>value.status==="fulfilled").length,
         scope:"Admission component terminal only; no ten-second idle resource restoration or full media programme claim"};
 }
