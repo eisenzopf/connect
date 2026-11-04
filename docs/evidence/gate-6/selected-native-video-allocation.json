@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-selected-native-video-allocation/1",
   "task": "G6-058",
-  "status": "partial-pass-native-correction-pending",
+  "status": "component-pass",
   "patch": 298,
   "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM; no GitHub/cloud execution",
   "implementation": [
@@ -118,8 +118,62 @@
     "guest_restored": true
   },
   "correction_patch": 299,
-  "retry_checks": [
-    "peer_native::canonical_media::native_offers::video_epochs::signed_video_selection_binds_original_allocation_across_reoffers_and_refuses_forged_confirmation",
-    "sdk::video_feedback::tests::selected_video_history_requires_bilateral_profile_and_exact_allocation_provenance"
+  "retry_checks": [],
+  "verified_source_revision": "60fe3162c654bd7280bb878bc1a4f25cfcbfaea0",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 119784,
+    "source_revision": "60fe3162c654bd7280bb878bc1a4f25cfcbfaea0",
+    "passed": true,
+    "steps": [
+      {
+        "group": "native",
+        "case": "peer_native::canonical_media::native_offers::video_epochs::signed_video_selection_binds_original_allocation_across_reoffers_and_refuses_forged_confirmation",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 188 filtered out; finished in 0.01s"
+        ],
+        "log_sha256": "bc98dec1c83b9405289c04fad66c41a91990ee9b4a4f4f51643faac4835b43a1"
+      },
+      {
+        "group": "sdk",
+        "case": "sdk::video_feedback::tests::selected_video_history_requires_bilateral_profile_and_exact_allocation_provenance",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 273 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "a815115c76cac3aa479f4187229f35154e62e5ea2970c8c052d49a48a1996135"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_allocation_commit_correction": true,
+    "builds": [
+      {
+        "group": "native",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "bfc6cbb422b5033c7d7682718821d124761a38a2d18c4f6d398532790e5c7603",
+        "test_executable_sha256": "b29ec9452ccff0adb747da27d23609bd2b4dc9488eda75b3716c6d9379596f6c",
+        "executable_unchanged": true
+      },
+      {
+        "group": "sdk",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "8edb8f205a6e8ed366300f05ca187fc3005e940309839b22691d0947193588f6",
+        "test_executable_sha256": "91db58f876ac057ee730907a33b491bc584f084fffdeaf5fbb48501d25f2a941",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 372.8151246810012
+  },
+  "proof": [
+    "Signed native QUIC case proves per-allocation selected metadata matches actual signed epoch notices, retains the original operation/offer and handle across an unchanged-resource reoffer, uses a new origin/handle for replacement, and refuses a forged generation in confirmation.0.01s,188 other cases filtered.",
+    "Rust SDK case verifies bilateral capability selection, strict descriptor fields, safe positive generations, exact original operation/offer on new resources, preserved identity on reused resources, and refusal on unrelated media.0.00s,273 other cases filtered.",
+    "The first source4a0beb63 passed TypeScript compilation plus one new Node and one new Python case. Generated tracked dist outputs were the only input mismatch; their artifacts were captured/audited and committed in60fe3162. Those passing cases were not rerun.",
+    "The original120s native timeout and false whole-input guard remain recorded. Patch299 fixes the temporary mutex guard self-deadlock. Corrected native/Rust execution has all source, prepared dependency and executable integrity guards true. No old passed test or full workload was rerun."
   ]
 }
