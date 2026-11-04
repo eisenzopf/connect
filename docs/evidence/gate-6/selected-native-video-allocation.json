@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-selected-native-video-allocation/1",
   "task": "G6-058",
-  "status": "verification-pending",
+  "status": "partial-pass-native-correction-pending",
   "patch": 298,
   "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM; no GitHub/cloud execution",
   "implementation": [
@@ -9,13 +9,9 @@
     "Rust SDK validates bilateral profile selection, strict bounded provenance and exact generation/origin through initial offer, codec renegotiation and stream selection. NativeNegotiation exposes only the validated allocation metadata.",
     "The owned helper preserves validated selection in typed Node and Python media descriptions; strict decoders reject malformed or unrelated-medium descriptors. Existing unselected streams carry no new optional descriptor."
   ],
-  "planned_checks": [
-    "peer_native::canonical_media::native_offers::video_epochs::signed_video_selection_binds_original_allocation_across_reoffers_and_refuses_forged_confirmation",
-    "sdk::video_feedback::tests::selected_video_history_requires_bilateral_profile_and_exact_allocation_provenance",
-    "sdk/tests/native_video_feedback.test.mjs",
-    "sdk/tests/native_video_feedback_python.py"
-  ],
+  "planned_checks": [],
   "remaining": [
+    "A reliable epoch notice can arrive after new media that reuses SSRC/handle. Add an explicitly negotiated in-band route epoch to native receiver RTP before decoder integration, and preserve original RTP timestamp and packet-age bounds.",
     "Default-disabled production profile and SDK offers remain unchanged until runtime feedback handling is installed. Browser selection/runtime epoch handling is not integrated yet.",
     "Authenticate and order stream.epoch notices against current physical-client roots and original allocation descriptor; bound media-before-notice by original200ms age and refuse stale histories.",
     "Add distinct bounded publisher/receiver feedback APIs, integrate existing Node/Rust live encoders and prove original-clock decoder bootstrap and fragment-loss recovery.",
@@ -23,5 +19,107 @@
   ],
   "old_passed_cases_rerun": false,
   "full_media_rehearsal_run": false,
-  "task_complete": false
+  "task_complete": false,
+  "source_revision": "4a0beb634bc372e5de3be573298e4e47cea26c34",
+  "first_attempt": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 119212,
+    "source_revision": "4a0beb634bc372e5de3be573298e4e47cea26c34",
+    "passed": false,
+    "steps": [
+      {
+        "group": "native",
+        "case": "peer_native::canonical_media::native_offers::video_epochs::signed_video_selection_binds_original_allocation_across_reoffers_and_refuses_forged_confirmation",
+        "exit_code": "timeout",
+        "test_results": [],
+        "log_sha256": "a4b1a1862fff7520cc698767aefb105c3968ced0ea84ebcc18b07e62e6e22197"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "selected_video_allocation_candidate": true,
+    "component_checks": [
+      {
+        "case": "typescript-build",
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "summary": []
+      },
+      {
+        "case": "node-selection",
+        "exit_code": 0,
+        "log_sha256": "37dca44a0fc30dd2915385ce5f87a34ff4f30cb3809f1528e87f62933314ec26",
+        "summary": [
+          "  duration_ms: 0.550003",
+          "  type: 'test'",
+          "  ...",
+          "1..1",
+          "# tests 1",
+          "# suites 0",
+          "# pass 1",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# todo 0",
+          "# duration_ms 27.084551"
+        ]
+      },
+      {
+        "case": "python-selection",
+        "exit_code": 0,
+        "log_sha256": "fb184ea57734512b1f088f9181209901b9cd46df3eb7eaa2500ea9e48dde20b5",
+        "summary": [
+          ".",
+          "----------------------------------------------------------------------",
+          "Ran 1 test in 0.000s",
+          "",
+          "OK"
+        ]
+      }
+    ],
+    "sdk_outputs_unchanged": true,
+    "builds": [
+      {
+        "group": "native",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "94e4b9569b5c3eea3e03bbe3fa48e235cb8131646ad1cdc64f5cf1909d81e8f6",
+        "test_executable_sha256": "22a8c431418c98d8c467b38578b1c6d72f43d40bfcdb07d3ffd7272b6d32658a",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "Exact prepared peer case must pass",
+    "source_inputs_unchanged": false,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 379.14851385500515,
+    "classification": "Node/Python new cases passed. Native compiled but timed out at120s. First RetainedPeer struct initializer held a temporary progress mutex guard while another field relocked it; patch299 snapshots metadata once before construction. Rust SDK case did not execute."
+  },
+  "generated_output_audit": {
+    "classification": "Only TypeScript compiler outputs under tracked sdk/typescript/dist changed; native/Rust sources unchanged. All generated content captured before restoring the completed guest. Final tracked-source snapshot matches original pre-build content, modes and mtimes after owned-output restoration.",
+    "changed_paths": 196,
+    "content_changes": [
+      "sdk/typescript/dist/browser_canonical_schema.js",
+      "sdk/typescript/dist/index.d.ts",
+      "sdk/typescript/dist/node_connections.d.ts",
+      "sdk/typescript/dist/node_media.js",
+      "sdk/typescript/dist/node_media_types.d.ts"
+    ],
+    "artifact_sha256": {
+      "node_media_types.d.ts": "157ea11c3537341fdcf3299d5aa150e155a0e0f3ea7683d8e03e03d06f3a6a59",
+      "native_video_feedback.js": "daa27f90c86f199ac16c60664081251649ee63753c38933932b5219e8fa29d4e",
+      "node_connections.d.ts": "bead3a4a773d0d679dc7a7fc4ba99a273122528488239f3f477e22670a7ba881",
+      "node_media.js": "e2d2b64b28626ba74ce22d0b1afbef83e0bc8ba983939258e8b6fb340378e207",
+      "browser_canonical_schema.js": "49751a49ace219b1d03f34be81cb1eeab590373e2745f0afb23600a0b049d9f0",
+      "native_video_feedback.d.ts": "02c15515f9e5d4b986402ed7b089231841d81b87d06ad58c3da06976127610bc",
+      "index.d.ts": "90a1bbf00ef3d17ece0ad42882c843201d8e3c5a4c65f84b2d3bec78e33f4b89"
+    },
+    "guest_restored": true
+  },
+  "correction_patch": 299,
+  "retry_checks": [
+    "peer_native::canonical_media::native_offers::video_epochs::signed_video_selection_binds_original_allocation_across_reoffers_and_refuses_forged_confirmation",
+    "sdk::video_feedback::tests::selected_video_history_requires_bilateral_profile_and_exact_allocation_provenance"
+  ]
 }

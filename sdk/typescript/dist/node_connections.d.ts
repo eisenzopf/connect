@@ -1,6 +1,6 @@
 import type { SdkMediaConnection, SdkMediaStream } from "./node_media.js";
 import type { SdkMoveInput, SdkMoveResult } from "./node_movements.js";
-import type { ConversationId, ParticipantId, SdkId, SdkRevision, SdkMutationOptions, SdkOperation, SdkOperationKind } from "./node_sdk.js";
+import type { ConversationId, ParticipantId, OperationId, SdkId, SdkRevision, SdkMutationOptions, SdkOperation, SdkOperationKind } from "./node_sdk.js";
 import type { SessionId, SdkMedium, SdkNonEmpty } from "./node_sessions.js";
 import type { Json, JsonObject } from "./uctp_json.js";
 import type { CanonicalRequestOptions } from "./canonical_validation.js";
@@ -21,7 +21,15 @@ export interface SdkConnectionSnapshot {
     readonly streamRevision?: SdkRevision<"stream">;
     readonly state: string;
 }
+export interface SdkNativeVideoFeedback {
+    readonly profile: "rtcp-pli-epoch/1";
+    readonly originalOperation: OperationId;
+    readonly originalOffer: string;
+    readonly streamGeneration: number;
+    readonly connectionGeneration: number;
+}
 export interface SdkNegotiatedStream {
+    readonly videoFeedback?: SdkNativeVideoFeedback;
     readonly id: StreamId;
     readonly medium: SdkMedium;
     readonly direction: SdkDirection;

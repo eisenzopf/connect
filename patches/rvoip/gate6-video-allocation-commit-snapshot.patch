@@ -1,0 +1,62 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -248,25 +248,24 @@
+         self.operation.envelope.id()
+     }
+     pub(crate) fn committed(&self) {
++        // Snapshot once: mutex guard temporaries inside different fields of
++        // one struct expression otherwise overlap and relock this same mutex.
++        let (video_feedback, video_allocations) = {
++            let progress = self
++                .operation
++                .progress
++                .lock()
++                .unwrap_or_else(|p| p.into_inner());
++            (progress.video_feedback, progress.video_allocations.clone())
++        };
+         let mut retained = self
+             .broker
+             .retained
+             .lock()
+             .unwrap_or_else(|p| p.into_inner());
+         if let Some(retained) = retained.as_mut() {
+-            retained.video_allocations = self
+-                .operation
+-                .progress
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
+-                .video_allocations
+-                .clone();
+-            retained.video_feedback = self
+-                .operation
+-                .progress
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
+-                .video_feedback;
++            retained.video_allocations = video_allocations;
++            retained.video_feedback = video_feedback;
+             retained.negotiated = self.operation.plan.remote.clone();
+             retained.substrate = self.operation.substrate.clone();
+             if self
+@@ -281,19 +280,8 @@
+             }
+         } else {
+             *retained = Some(RetainedPeer {
+-                video_allocations: self
+-                    .operation
+-                    .progress
+-                    .lock()
+-                    .unwrap_or_else(|p| p.into_inner())
+-                    .video_allocations
+-                    .clone(),
+-                video_feedback: self
+-                    .operation
+-                    .progress
+-                    .lock()
+-                    .unwrap_or_else(|p| p.into_inner())
+-                    .video_feedback,
++                video_allocations: video_allocations,
++                video_feedback: video_feedback,
+                 negotiated: self.operation.plan.remote.clone(),
+                 declared: None,
+                 substrate: self.operation.substrate.clone(),

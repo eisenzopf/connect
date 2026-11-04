@@ -2,7 +2,7 @@
 import { inspect } from "node:util";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import type { ConversationId, ParticipantId, MessageId, OperationId, SdkRevision } from "./node_sdk.js";
-import type { ConnectionId, StreamId, SdkDirection } from "./node_connections.js";
+import type { ConnectionId, StreamId, SdkDirection, SdkNativeVideoFeedback } from "./node_connections.js";
 import type { SessionId, SdkMedium } from "./node_sessions.js";
 export declare function mediaInvalid(): never;
 export declare function mediaFrozen<T>(value: T): T;
@@ -22,6 +22,7 @@ export interface SdkMediaNegotiation {
     readonly sourceClock: boolean;
     readonly streamRevision: SdkRevision<"stream">;
     readonly streams: readonly {
+        readonly videoFeedback?: SdkNativeVideoFeedback;
         readonly id: StreamId;
         readonly medium: SdkMedium;
         readonly direction: SdkDirection;

@@ -3,6 +3,7 @@ import { NodeSdkError } from "./sdk_helper.js";
 import { duration } from "./canonical_validation.js";
 import { canonicalJson, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
+import { captureNativeVideoFeedback } from "./native_video_feedback.js";
 import { openMediaChannel, mediaError, mediaDuration, encodeFrame, exact, localWait, owned, MEDIA_PROFILE, MEDIA_METADATA, } from "./node_media_channel.js";
 import { SdkRtpPacket, capturedRtp, clockWire, bindingWire, captureBinding, decimal, uint, capturedData, receivedData, mediaFrozen, mediaJson, } from "./node_media_types.js";
 function sameBinding(a, b) {
@@ -37,6 +38,12 @@ function negotiation(binding, frame) {
             "direction",
             "codec",
             "stream_local_id",
+            ...(s !== null &&
+                typeof s === "object" &&
+                !Array.isArray(s) &&
+                Object.hasOwn(s, "video_feedback")
+                ? ["video_feedback"]
+                : []),
         ]) ||
             !identifier(s.id) ||
             !["audio", "video", "screen", "data"].includes(s.medium) ||
@@ -46,7 +53,13 @@ function negotiation(binding, frame) {
                     Number(s.stream_local_id) < 1 ||
                     Number(s.stream_local_id) > 65535)))
             throw new Error();
+        const feedback = Object.hasOwn(s, "video_feedback")
+            ? captureNativeVideoFeedback(s.video_feedback)
+            : undefined;
+        if (feedback && (s.medium !== "video" || s.stream_local_id === null))
+            throw new Error();
         return mediaFrozen({
+            ...(feedback ? { videoFeedback: feedback } : {}),
             id: s.id,
             medium: s.medium,
             direction: s.direction,
