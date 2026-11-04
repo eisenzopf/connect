@@ -1,0 +1,23 @@
+{
+  "format": "connect/gate6-helper-video-feedback/1",
+  "task": "G6-058",
+  "status": "verification-pending",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
+  "implementation": [
+    "Per-channel opaque original-hint references; one perStream and128total. Recheck original Client/allocation/history/200ms deadline at one-shot consumption, return floored remaining milliseconds without a renewed deadline.",
+    "Wrong scope/token, expired/superseded/replayed hint or changed local gates cannot consume current permission. Channel teardown drops retained references.",
+    "Helper request_keyframe and receive_video_feedback call typed Rust APIs; RTP metadata exports matched signed video epoch only when present."
+  ],
+  "planned_checks": [
+    "sdk::helper::media::feedback::tests::helper_feedback_lease_retains_original_age_and_consumes_once_on_current_binding",
+    "sdk::helper::media::feedback::tests::helper_feedback_lease_capacity_expires_without_extending_original_hints"
+  ],
+  "limits": [
+    "These focused checks use actual Rust feedback inbox hints and controlled per-channel lease state, not end-to-end Node/Python IPC or live decoder recovery.",
+    "Node/Python consumers must subtract consumption RPC round-trip elapsed time from returned remaining milliseconds; they are not implemented in this candidate.",
+    "Production feedback profile remains disabled. Browser/direct-peer integration, decoder recovery and full32cell matrix remain open; G6-054 deferred."
+  ],
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false
+}

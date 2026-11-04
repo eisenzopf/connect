@@ -6,7 +6,7 @@ use crate::canonical::{Envelope, Scope};
 /// Authenticated receive history attached only after a packet's in-band epoch,
 /// SSRC and original native sequence agree with the signed allocation notice.
 /// This describes decoder history, and grants no media or feedback permission.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct VideoReceiveEpoch {
     pub epoch: String,
     pub incarnation: String,

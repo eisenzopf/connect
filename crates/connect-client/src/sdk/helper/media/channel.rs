@@ -54,8 +54,9 @@ impl Channel {
         }
         let stop = CancellationToken::new();
         let owned = stop.clone();
+        let feedback = Arc::new(feedback::Leases::default());
         let task = tokio::spawn(run(reader, output, owned, move |frame, token| {
-            execute(client.clone(), frame, token)
+            execute(client.clone(), frame, token, feedback.clone())
         }));
         Ok(Self {
             stop,

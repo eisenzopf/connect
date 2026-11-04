@@ -4,6 +4,7 @@ use super::*;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 mod channel;
+mod feedback;
 pub(super) use channel::Channel;
 pub const PROFILE: &str = "connect-sdk-media/2";
 pub const CAPABILITY: &str = "managed-media-ipc-v2";
@@ -77,6 +78,19 @@ pub enum Command {
     Receive {
         binding: Binding,
         stream_id: StreamId,
+    },
+    RequestKeyframe {
+        binding: Binding,
+        stream_id: StreamId,
+    },
+    ReceiveVideoFeedback {
+        binding: Binding,
+        stream_id: StreamId,
+    },
+    ConsumeVideoFeedback {
+        binding: Binding,
+        stream_id: StreamId,
+        token: String,
     },
     SendData {
         binding: Binding,
@@ -193,6 +207,7 @@ pub(super) async fn execute(
     client: Client,
     frame: media_ipc::Frame,
     stop: CancellationToken,
+    feedback: Arc<feedback::Leases>,
 ) -> media_ipc::Frame {
     let id = frame.request_id;
     let result = async {
@@ -227,6 +242,27 @@ pub(super) async fn execute(
                 json!({"type":"submitted","binding":binding,"stream_id":stream_id,
                     "boundary":"local-media-queue","datagram_sequence":accepted.datagram_sequence})
             }
+            Command::RequestKeyframe { binding, stream_id } => {
+                binding.negotiation(&client)?;
+                let accepted=binding.connection(&client).stream_by_id(stream_id.clone()).request_keyframe(options).await?;
+                json!({"type":"submitted","binding":binding,"stream_id":stream_id,
+                    "boundary":"local-media-queue","datagram_sequence":accepted.datagram_sequence})
+            }
+            Command::ReceiveVideoFeedback { binding, stream_id } => {
+                binding.negotiation(&client)?;
+                let request=binding.connection(&client).stream_by_id(stream_id.clone()).receive_video_feedback(options).await?;
+                let token=feedback.insert(request.clone())?;
+                json!({"type":"video_feedback","binding":binding,"stream_id":stream_id,"token":token,
+                    "datagram_sequence":request.datagram_sequence(),"ssrc":request.ssrc(),"epoch":request.epoch(),
+                    "epoch_revision":request.epoch_revision()})
+            }
+            Command::ConsumeVideoFeedback { binding, stream_id, token } => {
+                if options.signal.is_cancelled() {return Err(Error::local(ErrorKind::Cancelled));}
+                let stream=binding.connection(&client).stream_by_id(stream_id.clone());
+                let remaining=feedback.consume(&binding,&stream_id,&token,|r|stream.video_feedback_is_current(r))?;
+                json!({"type":"video_feedback_consumed","binding":binding,"stream_id":stream_id,
+                    "token":token,"remaining_ms":remaining})
+            }
             Command::Receive { binding, stream_id } => {
                 binding.negotiation(&client)?;
                 let packet = binding.connection(&client).stream_by_id(stream_id.clone()).receive_packet(options).await?;
@@ -234,9 +270,11 @@ pub(super) async fn execute(
                 let packet = match packet {
                     MediaPacket::Rtp(packet) => {
                         payload = packet.bytes().to_vec();let h = packet.header();
-                        json!({"type":"rtp","datagram_sequence":packet.datagram_sequence,
+                        let mut wire=json!({"type":"rtp","datagram_sequence":packet.datagram_sequence,
                             "header":{"payload_type":h.payload_type,"sequence_number":h.sequence_number,
-                                "timestamp":h.timestamp,"ssrc":h.ssrc,"marker":h.marker}})
+                                "timestamp":h.timestamp,"ssrc":h.ssrc,"marker":h.marker}});
+                        if let Some(epoch)=packet.video_epoch() {wire["video_epoch"]=json!(epoch);}
+                        wire
                     }
                     MediaPacket::Clock { datagram_sequence, report:r } => json!({"type":"clock","datagram_sequence":datagram_sequence,
                         "report":{"ssrc":r.ssrc,"ntp":r.ntp.to_string(),"rtp":r.rtp,"packets":r.packets,"octets":r.octets,"cname":r.cname}}),

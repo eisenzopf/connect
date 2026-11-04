@@ -324,3 +324,28 @@ rechecks current source/receiver authority and retains its shared publisher
 `docs/evidence/gate-6/sdk-video-keyframe-feedback.json`. Production profile
 opt-in remains disabled until runtime integration and decoder recovery are
 demonstrated.
+
+
+### Helper feedback references
+
+The managed media IPC channel adds `request_keyframe`, `receive_video_feedback`
+and `consume_video_feedback`. Receiving a publisher hint returns its typed
+metadata and an opaque per-channel reference to the original Rust request.
+The channel retains at most one reference per Stream and 128 references total;
+expired entries are removed on insertion/consumption and channel teardown drops
+them all. Receiving a reference is not permission to force an encoder.
+
+Consumption binds the original Conversation/Session/Connection/Stream and
+reference, removes it once, and rechecks the original request against the same
+Client. It returns the floored remaining milliseconds, or zero on expiry,
+supersession, replay, wrong scope/reference or changed local authority. No wall
+clock is transported, and creating the reference never restarts its lifetime.
+Consumers must measure consumption RPC elapsed time on their own monotonic clock
+and subtract the entire round trip from the returned remaining lifetime. This
+conservatively ends the local permit no later than the original Rust deadline.
+A lost consumption response is not retry permission.
+
+RTP helper packets carry optional `video_epoch` only when the Rust SDK has
+matched the signed notice and packet; fields are epoch, incarnation, revision,
+SSRC, first native sequence and first RTP timestamp. Ordinary packets omit it.
+Helper bridge verification and Node/Python consumers are still pending.
