@@ -42,6 +42,7 @@ const avIntent = () => {
 test("physical Data originals bind both streams and stay distinct from replacement and terminal mutation keys", () => {
     const value = avIntent();
     value.source.seconds = 62; value.source.programStartUnixUs = 1793600000000000;
+    value.source.programClock = { kind: "linux-monotonic-v1", domain: "fixture", origin_ns: "1" };
     value.source.audioPackets = Array.from({ length: 3100 }, () => [1, 2, 3]);
     value.source.video.program.frame_count = 1860;
     value.source.video.receiveDataStreamId = "incoming-data"; value.dataStreamId = "outgoing-data";
@@ -158,6 +159,7 @@ test("accepted-root reads share the original deadline and a changed preparation 
 
 test("replacement inputs carry one immutable AV program origin without shifting source packets", () => {
     const value = avIntent(); value.source.programStartUnixUs = 1793600000123456;
+    value.source.programClock = { kind: "linux-monotonic-v1", domain: "fixture", origin_ns: "1" };
     const captured = replacementInput(value);
     assert.equal(captured.media.program_start_unix_us, value.source.programStartUnixUs);
     assert.deepEqual(captured.media.audio_packets, value.source.audioPackets);
@@ -193,6 +195,7 @@ test("terminal owner input preserves its original62second programme and separate
     value.source.audioPackets = Array.from({ length: 3100 }, () => [1, 2, 3]);
     value.source.video.program.frame_count = 1860;
     value.source.programStartUnixUs = 1793600000000000;
+    value.source.programClock = { kind: "linux-monotonic-v1", domain: "fixture", origin_ns: "1" };
     value.source.terminalEndOperationId = "original-final-end";
     const captured = replacementInput(value);
     assert.equal(captured.media.terminal_end_operation, "original-final-end");

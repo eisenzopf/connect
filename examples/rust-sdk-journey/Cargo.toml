@@ -9,6 +9,7 @@ publish = false
 [workspace]
 
 [dependencies]
+nix = { version = "=0.30.1", default-features = false, features = ["time"] }
 base64 = "=0.22.1"
 connect-client = { path = "../../crates/connect-client" }
 serde = { version = "1", features = ["derive"] }

@@ -21,7 +21,7 @@ async function save(path, value) {
 export async function deviceMovementWorkload({ workload, controllers, conversationId, sessions,
     connections, streamIds, participantIds, targets, sourcePrograms, privateRoot, directory,
     executable, executableSha256, currentEnds, dataClients, startTarget = startPhysicalReplacementTarget,
-    endRetained = endRetainedConnections, exchangeData = exchangeMovementData, now = () => performance.now(),
+    endRetained = endRetainedConnections, exchangeData = exchangeMovementData, now = workload.now ?? (() => performance.now()),
     wait = (ms, signal) => sleep(ms, undefined, { signal }) }) {
     assert.equal(workload.routes.length, 6);
     assert.equal(connections.length, 6);
@@ -86,6 +86,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     await save(join(directory, "current-end-plan.json"), {
         conversation_id: conversationId, session_ids: sessions.map(session => session.id), ends: currentEnds,
         original_program_start_unix_us: workload.programStartUnixUs,
+        original_program_clock: workload.programClock,
         programme_end_monotonic_ms: workload.startedAt + 62000,
         original_cutoff_monotonic_ms: workload.startedAt + 67000,
     });
@@ -125,6 +126,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         const inspected = await inspectReplacementCapture(observation, 80 * 1024 * 1024, 16000);
         const captured = inspected.observation;
         assert.equal(captured.program_start_unix_us, workload.programStartUnixUs);
+        assert.deepEqual(captured.program_clock, workload.programClock);
         assert.ok(captured.received.every(row => typeof row.original_root_completed_observed === "boolean"),
             "each physical packet must retain its actual original-root observation boundary");
         segments.push({ sourceIndex, observation, sha256: inspected.sha256 });
@@ -206,7 +208,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 target: targets[step.targetIndex], streamId: step.audioId,
                 ...(dataWorkload ? { dataStreamId: step.dataId } : {}),
                 source: { seconds: 62, ssrc: 0x47000001 + sourceIndex * 256 + step.ordinal * 2,
-                    audioPackets: source.audioPackets, programStartUnixUs: workload.programStartUnixUs,
+                    audioPackets: source.audioPackets, programStartUnixUs: workload.programStartUnixUs, programClock: workload.programClock,
                     ...(step.ordinal === MOVES_PER_SESSION - 1 ? { terminalEndOperationId: currentEnds.find(end => end.index === sourceIndex).operationId } : {}),
                     ...(dataWorkload ? { data: step.data } : {}),
                     video: { streamId: step.videoId, previousStreamId: currentCamera,
@@ -254,7 +256,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 const exchange = await exchangeData({ workload, owner, rootOperationId: step.operationId,
                     contract: step.data, directory: moveDirectory, conversationId, sessionId: sessions[sid].id,
                     upstream: connections[incoming].connection, upstreamClient: dataClients[incoming],
-                    downstream: receiver.connection, signal: stop.signal });
+                    downstream: receiver.connection, signal: stop.signal, now });
                 dataExchanges.push(exchange); observedMove.data_exchange_verified = true;
             }
             observedMove.elapsed_ms = now() - began;
@@ -269,7 +271,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     try {
         const retained = () => endRetained({ routes: workload.routes,
             ends: currentEnds.filter(end => !sources.includes(end.index)), conversationId, sessions,
-            startedAt: workload.startedAt, signal: stop.signal,
+            startedAt: workload.startedAt, signal: stop.signal, now,
             persist: (index, kind, value) => save(join(directory, "retained-" + index + "-" + kind + ".json"), value),
         });
         const tasks = [...sources.map(index => () => chain(index)), retained];
@@ -302,6 +304,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             moves_per_source: [MOVES_PER_SESSION, MOVES_PER_SESSION], active_av_routes: 6, maximum_pending_candidates: 2,
             planned_peak_connection_slots: 8, shared_sdk_closed_during_replacement: false,
             original_program_start_unix_us: workload.programStartUnixUs,
+        original_program_clock: workload.programClock,
             current_owner_end: { physical: physicalEnds, retained: results[2].value,
                 current_connections_ended: 6, original_cutoff_monotonic_ms: workload.startedAt + 67000 },
             moves: completed, physical_segments: segments,

@@ -11,9 +11,9 @@ export class PublisherVideoFeedback {
     expired = 0;
     constructor(stream, signal) { this.#stream = stream; this.#signal = signal; }
 
-    async run(until) {
+    async run(until, now = () => performance.now()) {
         try {
-            while (!this.#signal.aborted && performance.now() < until) {
+            while (!this.#signal.aborted && now() < until) {
                 try {
                     // One pending read and one retained original hint. Reading
                     // the next hint does not consume or renew the previous one.

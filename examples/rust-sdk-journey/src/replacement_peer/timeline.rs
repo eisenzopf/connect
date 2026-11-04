@@ -1,5 +1,7 @@
 //! Every physical destination joins the same immutable source program.
 use super::*;
+mod clock;
+pub(crate) use clock::ProgrammeClock;
 
 // Source sends and original status polls must not wait for an input queue to empty.
 // The public native datagram read is atomic and cancellation-safe at this boundary.
@@ -25,19 +27,27 @@ pub(super) struct Program {
 }
 
 impl Program {
+    #[cfg(test)]
     pub fn at(original: Option<u64>, now_us: u128, seconds: u16) -> Result<Self> {
         let unix = original.map(u128::from).unwrap_or(now_us);
         let elapsed = now_us
             .checked_sub(unix)
             .ok_or("original media program has not started")?;
-        if unix == 0 || seconds == 0 || elapsed >= u128::from(seconds) * 1_000_000 {
+        Self::from_elapsed(
+            unix,
+            Duration::from_micros(u64::try_from(elapsed)?),
+            seconds,
+        )
+    }
+    pub fn from_elapsed(unix: u128, elapsed: Duration, seconds: u16) -> Result<Self> {
+        if unix == 0 || seconds == 0 || elapsed >= Duration::from_secs(u64::from(seconds)) {
             return Err("original media program is expired or invalid".into());
         }
         Ok(Self {
             unix,
-            elapsed: Duration::from_micros(u64::try_from(elapsed)?),
-            audio_index: usize::try_from(elapsed / 20_000)?,
-            video_index: usize::try_from(elapsed * 30 / 1_000_000)?,
+            elapsed,
+            audio_index: usize::try_from(elapsed.as_micros() / 20_000)?,
+            video_index: usize::try_from(elapsed.as_micros() * 30 / 1_000_000)?,
         })
     }
 }

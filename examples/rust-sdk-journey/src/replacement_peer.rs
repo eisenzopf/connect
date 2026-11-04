@@ -29,12 +29,22 @@ pub(super) struct Source {
     #[serde(default)]
     program_start_unix_us: Option<u64>,
     #[serde(default)]
+    program_clock: Option<timeline::ProgrammeClock>,
+    #[serde(default)]
     terminal_end_operation: Option<String>,
     #[serde(default)]
     data: Option<data::io::Contract>,
 }
 impl Source {
     fn validate(&self) -> Result<()> {
+        if self.program_start_unix_us.is_some() != self.program_clock.is_some() {
+            return Err(
+                "original programme requires its monotonic anchor and wall label together".into(),
+            );
+        }
+        if let Some(clock) = &self.program_clock {
+            clock.validate()?;
+        }
         if let Some(data) = &self.data {
             data.validate()?;
             if !self.owner_control
@@ -315,11 +325,14 @@ pub(super) async fn run(
         return Err("physical Data reused the replacement root key".into());
     }
     // Refuse an expired original program before allocation or any network IO.
-    timeline::Program::at(
-        source.program_start_unix_us,
-        SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros(),
-        source.seconds,
-    )?;
+    if let Some(clock) = &source.program_clock {
+        clock.join(
+            source
+                .program_start_unix_us
+                .ok_or("original wall label missing")?,
+            source.seconds,
+        )?;
+    }
     let offer_json = serde_json::to_value(&offer)?;
     validate_offer(&offer_json, &source)?;
     if let Some(video) = &source.video {
@@ -522,7 +535,7 @@ pub(super) async fn run(
         "root_completed_observed_programme_us":root_observed_programme_us,
         "video_transfer_admitted":video_open,"sent_video_packets":sent_video,"skipped_original_video_frames":skipped_video,
         "owner_control":source.owner_control,"owner_ready":owner_ready,"stop_requested":stop_requested,
-        "program_start_unix_us":program_origin,"source_start_audio_index":source_start_audio_index,"source_start_video_index":source_start_video_index,
+        "program_clock":source.program_clock,"program_start_unix_us":program_origin,"source_start_audio_index":source_start_audio_index,"source_start_video_index":source_start_video_index,
         "terminal_end_requested":source.terminal_end_operation.is_some(),
         "terminal_end_receipt":terminal_end_receipt,
         "data_exchange_receipt":data_exchange.as_ref().and_then(|data| data.receipt()),
@@ -550,6 +563,12 @@ mod tests {
             audio_packets: vec![vec![1]; 3100],
             owner_control: true,
             program_start_unix_us: Some(1),
+            program_clock: Some(
+                serde_json::from_value(
+                    json!({"kind":"linux-monotonic-v1","domain":"fixture","origin_ns":"1"}),
+                )
+                .unwrap(),
+            ),
             terminal_end_operation: Some("original-final-end".into()),
             data: None,
             video: Some(video::Video {
@@ -584,6 +603,7 @@ mod tests {
             video: None,
             owner_control: false,
             program_start_unix_us: None,
+            program_clock: None,
             terminal_end_operation: None,
             data: None,
         };
@@ -645,6 +665,7 @@ mod tests {
                 video: None,
                 owner_control: false,
                 program_start_unix_us: None,
+                program_clock: None,
                 terminal_end_operation: None,
                 data: None,
             },
@@ -655,6 +676,7 @@ mod tests {
                 video: None,
                 owner_control: false,
                 program_start_unix_us: None,
+                program_clock: None,
                 terminal_end_operation: None,
                 data: None,
             },
@@ -665,6 +687,7 @@ mod tests {
                 video: None,
                 owner_control: false,
                 program_start_unix_us: None,
+                program_clock: None,
                 terminal_end_operation: None,
                 data: None,
             },
@@ -675,6 +698,7 @@ mod tests {
                 video: None,
                 owner_control: false,
                 program_start_unix_us: None,
+                program_clock: None,
                 terminal_end_operation: None,
                 data: None,
             },
@@ -685,6 +709,7 @@ mod tests {
                 video: None,
                 owner_control: false,
                 program_start_unix_us: None,
+                program_clock: None,
                 terminal_end_operation: None,
                 data: None,
             },

@@ -1,3 +1,4 @@
+import { validateProgrammeClock, programmeElapsed } from "./transport_programme_clock.mjs";
 // Public SDK metadata controller and an independently owned physical Rust peer.
 // Packet sources/receivers and independent decoding remain the caller's owners.
 import assert from "node:assert/strict";
@@ -46,8 +47,11 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
     assert.ok(Number.isSafeInteger(expectedTopologyRevision) && expectedTopologyRevision > 0);
     assert.ok([originalGeneration, retainedGeneration].every(value => Number.isSafeInteger(value) && value > 0));
     assert.ok(Number.isInteger(source?.seconds) && source.seconds >= 1 && source.seconds <= (source.video ? 62 : 30));
-    if (source.programStartUnixUs !== undefined)
+    assert.equal(source.programStartUnixUs !== undefined, source.programClock !== undefined);
+    if (source.programStartUnixUs !== undefined) {
         assert.ok(Number.isSafeInteger(source.programStartUnixUs) && source.programStartUnixUs > 0);
+        validateProgrammeClock(source.programClock);
+    }
     assert.ok(Number.isInteger(source.ssrc) && source.ssrc > 0 && source.ssrc <= 0xffffffff);
     assert.ok(Array.isArray(source.audioPackets) && source.audioPackets.length === source.seconds * 50);
     if (dataStreamId !== undefined) {
@@ -113,7 +117,7 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
             ...(dataStreamId === undefined ? [] : [{ id: dataStreamId, kind: "data", direction: "sendrecv", codec_preferences: ["binary"] }])] },
         media: { seconds: source.seconds, ssrc: source.ssrc, audio_packets: audio, ...(video ? { video } : {}),
             ...(source.data === undefined ? {} : { data: structuredClone(source.data) }),
-            ...(source.programStartUnixUs !== undefined ? { program_start_unix_us: source.programStartUnixUs } : {}),
+            ...(source.programStartUnixUs !== undefined ? { program_start_unix_us: source.programStartUnixUs, program_clock: structuredClone(source.programClock) } : {}),
             ...(source.terminalEndOperationId !== undefined ? { terminal_end_operation: source.terminalEndOperationId } : {}) }, output };
 }
 
@@ -176,8 +180,7 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
     const output = join(resolve(directory), "target-observation.json");
     const input = replacementInput({ ...intent, target: { ...intent.target, nativeConfig: config }, output });
     if (intent.source.programStartUnixUs !== undefined) {
-        const elapsed = Date.now() * 1000 - intent.source.programStartUnixUs;
-        assert.ok(elapsed >= 0 && elapsed < intent.source.seconds * 1_000_000, "original media program must be current before submission");
+        programmeElapsed(intent.source.programClock, intent.source.seconds);
     }
     if (live) input.media.owner_control = true;
     const configHash = hash(await readFile(config));
@@ -247,12 +250,14 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             assert.equal(observed.video_enabled, Boolean(intent.source.video));
             if (intent.source.programStartUnixUs !== undefined) {
                 assert.equal(observed.program_start_unix_us, intent.source.programStartUnixUs);
+                assert.deepEqual(observed.program_clock, intent.source.programClock);
                 assert.ok(Number.isInteger(observed.source_start_audio_index) && observed.source_start_audio_index >= 0 &&
                     observed.source_start_audio_index < intent.source.seconds * 50);
                 assert.ok(Number.isInteger(observed.source_start_video_index) && observed.source_start_video_index >= 0 &&
                     observed.source_start_video_index < intent.source.seconds * 30);
                 assert.ok(observed.sent_audio_packets <= intent.source.seconds * 50 - observed.source_start_audio_index);
                 report.original_program_start_unix_us = observed.program_start_unix_us;
+                report.original_program_clock = observed.program_clock;
                 report.target_start_audio_index = observed.source_start_audio_index;
                 report.target_start_video_index = observed.source_start_video_index;
             }

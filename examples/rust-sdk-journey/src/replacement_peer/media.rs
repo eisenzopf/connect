@@ -98,15 +98,21 @@ impl<'a> Pump<'a> {
         observation: &'a mut Observation,
         encoder: Option<&'a mut encoder::Encoder>,
     ) -> Result<Self> {
-        let anchor = tokio::time::Instant::now();
-        let program = timeline::Program::at(
-            source.program_start_unix_us,
-            SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros(),
-            source.seconds,
-        )?;
-        let start = anchor
-            .checked_sub(program.elapsed)
-            .ok_or("original program monotonic origin out of bounds")?;
+        let (program, start) = if let Some(clock) = &source.program_clock {
+            clock.join(
+                source
+                    .program_start_unix_us
+                    .ok_or("original wall label missing")?,
+                source.seconds,
+            )?
+        } else {
+            let start = tokio::time::Instant::now();
+            let unix = SystemTime::now().duration_since(UNIX_EPOCH)?.as_micros();
+            (
+                timeline::Program::from_elapsed(unix, Duration::ZERO, source.seconds)?,
+                start,
+            )
+        };
         observation.program_origin = Some(program.unix);
         observation.source_start_audio_index = program.audio_index;
         observation.source_start_video_index = program.video_index;
