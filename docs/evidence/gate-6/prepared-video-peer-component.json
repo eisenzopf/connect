@@ -1,0 +1,51 @@
+{
+  "format": "connect/gate6-prepared-video-peer-component/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM",
+  "source": "a2a18dd2d224ebbff46f9252ad655ea2cf047a07",
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 115104,
+    "source_revision": "a2a18dd2d224ebbff46f9252ad655ea2cf047a07",
+    "passed": true,
+    "steps": [
+      {
+        "group": "peer",
+        "case": "replacement_peer::selected::tests::prepared_directional_video_survives_separate_data_subscription_without_rebinding",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "24d0e0e4dddd780e53341d85323136b1ee03ef9fcc5382835b99079bcfe33f97"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_routing_candidate": true,
+    "builds": [
+      {
+        "group": "peer",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "7201d08423aacda7b4673ab2b3ec9ce9cfa39b578518156315d56e1c779537c2",
+        "test_executable_sha256": "f5d2721b3e6a634ee3b221c4988c27ec6f15c50b20eac818590a0f8582f5c2f2",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 90.52524621800694
+  },
+  "proof": [
+    "Changed standalone public Rust SDK peer compiles.",
+    "New exact case accepts pre-negotiated directional camera/receiver resources and separately added reliable Data while preserving all original handles; changed video direction or handle is refused."
+  ],
+  "limits": [
+    "Controlled negotiation fixture, not actual native transport or decoded quality.",
+    "Only the new case ran; 48 existing cases filtered out.",
+    "Signed native transfer retry remains pending; feedback/encoder integration and authenticated epochs remain open."
+  ],
+  "task_complete": false,
+  "cell_qualified": false
+}

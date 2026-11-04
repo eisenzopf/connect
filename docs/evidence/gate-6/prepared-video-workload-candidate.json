@@ -55,12 +55,13 @@
   ],
   "limits": [
     "Four new Node component cases pass; controlled peers and local fixture files, no native transport or decoded-quality proof.",
-    "Rust peer changes and its new directional/Data preservation case are formatted but not compiled or run yet.",
-    "Original 4fdbe275 signed native transfer compile still owns the frozen guest; no guest source mutation.",
-    "Fresh encoder is not wired into transport feedback yet; authenticated activation epochs remain open."
+    "Fresh encoder is not wired into transport feedback yet; authenticated activation epochs remain open.",
+    "Changed Rust peer compilation and its new exact directional/Data preservation case now PASS ata2a18dd2 with all final guards.",
+    "Final4fdbe275 native case failed before replacement on known queued video entering an audio-only probe; exact-handle drain correctionc59ed081 now being retried."
   ],
   "general_suites_rerun": false,
   "full_media_rehearsal_run": false,
   "task_complete": false,
-  "cell_qualified": false
+  "cell_qualified": false,
+  "rust_peer_component": "docs/evidence/gate-6/prepared-video-peer-component.json"
 }
