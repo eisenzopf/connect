@@ -241,8 +241,10 @@ def main():
             "--shm-size", "512m", "--tmpfs", "/tmp:rw,size=512m,mode=1777",
             "--mount", f"type=bind,source={ROOT},target={ROOT},readonly",
             "--mount", f"type=bind,source={browser_output},target={browser_output}",
+            "--mount", f"type=bind,source={browser_output},target=/workspace/.local/matrix-browser",
             "--workdir", str(ROOT), "--env", "HOME=/tmp", "--env", "CONNECT_GATE6_OWNED_BROWSER_CONTAINER=1",
-            args.image, "node", "scripts/video/browser_matrix_admission.mjs", str(browser_input)]
+            args.image, "python3", "scripts/video/owned_pulse_audio.py", "--output", "/workspace/.local/matrix-browser/audio",
+            "--", "node", "scripts/video/browser_matrix_admission.mjs", str(browser_input)]
         handle = (private / "browser.log").open("xb")
         log_handles.append(handle)
         browser_owner = subprocess.Popen(command_args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
@@ -252,7 +254,8 @@ def main():
         browser_owner = None
         report["browser_observation"] = json.loads((browser_output / "browser-observation.json").read_text())
         report["browser_observation_sha256"] = digest(browser_output / "browser-observation.json")
-        report["passed"] = report["browser_exit_code"] == 0 and report["browser_observation"]["passed"]
+        report["owned_audio"] = json.loads((browser_output / "audio/summary.json").read_text())
+        report["passed"] = report["browser_exit_code"] == 0 and report["browser_observation"]["passed"] and report["owned_audio"]["passed"]
         if not report["passed"] and report["browser_observation"].get("failure"):
             report["failure"] = dict(phase=phase, browser=report["browser_observation"]["failure"])
     except BaseException as error:

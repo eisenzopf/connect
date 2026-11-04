@@ -59,6 +59,7 @@ try{
             let file;
             if(url.pathname==='/'){response.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});response.end('<!doctype html><meta charset=utf-8><title>Owned matrix fixture</title>');return;}
             if(url.pathname==='/_matrix/admission.mjs')file=path.join(root,'scripts/lib/browser_matrix_admission.mjs');
+            else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
             else{
                 assert.ok(url.pathname.startsWith('/sdk/')&&url.pathname.endsWith('.js'));
                 file=await fs.realpath(path.resolve(assets,'.'+url.pathname.slice(4)));
@@ -105,8 +106,9 @@ try{
     const result=await page.evaluate(async({spec,selected})=>{
         const {BrowserSdkClient}=await import('/sdk/browser.js');
         const {browserMatrixPlan,browserMatrixAdmission,retireBrowserMatrixAdmission}=await import('/_matrix/admission.mjs');
+        const {browserMatrixSources}=await import('/_matrix/sources.mjs');
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
-        const actors={};window.matrixActors=actors;let state;
+        const actors={};window.matrixActors=actors;let state,sources;
         try{
             for(const [name,configuration] of Object.entries(spec.actors)){
                 window.matrixPhase='authenticate-'+name;
@@ -122,20 +124,23 @@ try{
                 actors[name]={identityId:configuration.identityId,deviceId:configuration.device.id,client};
             }
             window.matrixPhase='admission';const plan=browserMatrixPlan();
-            state=await browserMatrixAdmission({actors,plan,selectedTransport:selected,journal:event=>window.matrixJournal(event)});
+            sources=await browserMatrixSources();
+            state=await browserMatrixAdmission({actors,plan,selectedTransport:selected,journal:event=>window.matrixJournal(event),
+                startMedia:input=>sources.start(input)});
+            const sourceStartup=sources.observation();
             window.matrixPhase='original-retirement';
             const retirement=await retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event)});
             return {passed:retirement.passed,authenticated_owners:Object.keys(actors).length,admission:state.report,
-                actual_connections:state.connections.length,retirement};
+                actual_connections:state.connections.length,source_startup:sourceStartup,retirement};
         }catch(error){
             console.error('Matrix failure',String(error.stack??error),JSON.stringify({kind:error.kind,certainty:error.certainty,problem:error.problem}));
             const closes=await Promise.allSettled(Object.values(actors).map(actor=>actor.client.close({timeoutMs:5000})));
             return {passed:false,authenticated_owners:Object.keys(actors).length,failure:{stage:window.matrixPhase,
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
-                    ?{code:error.problem.code,reason:error.problem.reason}:null},
+                    ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
                 original_client_closes:closes.map(value=>value.status)};
-        }
+        } finally {await sources?.close();}
     },{spec,selected});
     Object.assign(report,result);report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
     stage='browser-retirement';

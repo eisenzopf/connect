@@ -20,7 +20,7 @@ export function browserMatrixPlan(uuid = () => crypto.randomUUID()) {
         programmeMs: 62000, operations, messages, sessions, routes, moves};
 }
 
-export async function browserMatrixAdmission({actors, plan, journal, selectedTransport}) {
+export async function browserMatrixAdmission({actors, plan, journal, selectedTransport, startMedia}) {
     check(["webtransport", "wss-webrtc"].includes(selectedTransport), "explicit matrix transport");
     check(typeof journal === "function", "durable original intent journal is required");
     check(plan?.format === "connect/browser-matrix-plan/1" && plan.routes.length === 6 && plan.sessions.length === 2
@@ -36,7 +36,7 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
     const options = {timeoutMs: 8000}, report = {checks: [], operations: [], fullProgrammeComplete: false};
     const client = role => actors[role].client;
     const mutation = operationId => ({...options, operationId});
-    async function complete(name, operationId, submit) {
+    async function complete(name, operationId, submit, onAccepted) {
         await journal({kind: "intent", name, operationId});
         let operation;
         try {
@@ -44,6 +44,7 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
             const reference = operation.referenceJson();
             references.set(name, reference);
             await journal({kind: "accepted", name, operationId, reference});
+            if (onAccepted) await onAccepted();
             const result = await operation.wait(options);
             check(result.snapshot.state === "completed", "original operation must complete");
             report.operations.push({name, operationId, state: result.snapshot.state});
@@ -150,11 +151,13 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
     }
     report.checks.push("two-concurrent-accepted-sessions-upgraded-to-audio-video-and-unoffered-screen-refused");
     const connections = [];
+    check(typeof startMedia === "function", "real owned media must start before awaiting offer readiness");
     for (const route of plan.routes) {
         const session = client(route.role).conversations.byId(cid).sessions.byId(plan.sessions[route.session].id);
         const connection = await complete("offer-" + route.index, route.offer, opts => session.connections.offer({connectionId: route.connection,
             streams: nonempty([{id: route.audio, kind: "audio", direction: "sendrecv", codecs: nonempty(["opus"])},
-                {id: route.video, kind: "video", direction: "sendrecv", codecs: nonempty(["vp8"])}])}, opts));
+                {id: route.video, kind: "video", direction: "sendrecv", codecs: nonempty(["vp8"])}])}, opts),
+            () => startMedia({route, connection: session.connections.byId(route.connection), options}));
         connections.push(connection);
     }
     for (const route of plan.routes) {
