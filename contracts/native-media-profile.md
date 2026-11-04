@@ -379,7 +379,7 @@ this worker proof. See `docs/evidence/gate-6/live-feedback-recovery.json` for
 scope. Actual signed SDK/server recovery, the replacement peer and browser
 integration remain unfinished; no full transport cell is qualified.
 
-### Explicit SDK profile configuration (candidate)
+### Explicit SDK profile configuration
 
 `ClientConfig.native_video_feedback` (TOML `native_video_feedback = true`) opts
 configured Rust clients and managed Node/Python helpers into `rtcp-pli-epoch/1`.
@@ -392,8 +392,13 @@ history and consume current typed feedback before requesting fresh source frames
 The canonical server now advertises support through its installed signed
 lifecycle writer. An original peer offer and its matching confirmation must
 both select the profile; server support alone cannot enable tagged packets.
-Actual public SDK/server verification is pending for this candidate. Browser
-and direct replacement consumers remain separate unfinished integrations.
+The focused signed public SDK/server integration passes on local ARM at
+`5e564947`: same-SSRC reselection creates a new authenticated epoch, current
+receiver feedback reaches the publisher, and fresh original frame 2 is decoded
+independently at RTP timestamp 6000. See
+`docs/evidence/gate-6/signed-sdk-video-feedback.json` for retained failures,
+integrity checks and limits. Browser and direct replacement consumers remain
+separate unfinished integrations.
 
 ### Browser native framing boundary (candidate)
 

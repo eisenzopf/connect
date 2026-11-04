@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-signed-sdk-video-feedback/1",
   "task": "G6-058",
-  "status": "focused-target-compile-correction",
+  "status": "signed-sdk-server-recovery-pass",
   "source_revision": "2c7b979837d09d78950e11236213ef701ee4324d",
   "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
   "implementation": [
@@ -9,8 +9,8 @@
     "Production canonical server advertises support via its installed signed lifecycle writer; both peer offer and confirmation must select the profile."
   ],
   "pending": [
-    "Correction and signed SDK/server recovery await a new local ARM run.",
-    "Direct replacement/browser integration and the full transport matrix remain open; G6-054 deferred."
+    "Direct replacement and browser authenticated lifecycle/feedback integration.",
+    "Full 32-cell transport qualification, original 20 moves, quality, teardown and idle evidence; G6-054 remains deferred."
   ],
   "old_passed_cases_rerun": false,
   "full_media_rehearsal_run": false,
@@ -100,5 +100,55 @@
     },
     "result_state_sha256": "94f04196fd1006708c33641df5f1a6270be9a0355f1cb1f0f933f8a8cd50b67e",
     "finding": "Focused target compile failed E0275 before test execution because extraction omitted the original gate6_canonical_runtime recursion_limit=256 attribute. Restored in eefc810d; actual runtime verification remains pending."
-  }
+  },
+  "successful_verification": {
+    "source_revision": "5e5649479e331bf3ee96f538b896fa15fae81c08",
+    "verification": {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 123180,
+      "source_revision": "5e5649479e331bf3ee96f538b896fa15fae81c08",
+      "passed": true,
+      "steps": [
+        {
+          "group": "signed-server",
+          "case": "sdk_handles::video_feedback::signed_sdk_video_feedback_encodes_fresh_frames_after_reselection_and_rechecks_hold",
+          "exit_code": 0,
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s"
+          ],
+          "log_sha256": "9a23f456fb7d8c8e66d9041fd934d014805f972175d0f4446b5308780cb67d42"
+        }
+      ],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "signed_sdk_feedback_candidate": true,
+      "builds": [
+        {
+          "group": "signed-server",
+          "compile_exit_code": 0,
+          "compile_log_sha256": "073524d54efd3ab49e2803a47b77388d13d571e88b72f1f6c56db976bda7d173",
+          "test_executable_sha256": "82495d4c4580760d45a0ddfd99fee7a266093bef2972d01ff0e159c560567344",
+          "executable_unchanged": true
+        }
+      ],
+      "executable_unchanged": true,
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 64.77981365400774
+    },
+    "result_state_sha256": "16596481cfbcb53cf66d37ea2567751a425c4959efc4dd687ba6f46734f1a876"
+  },
+  "verified_scope": [
+    "Configured public Rust SDK connects to actual production signed listener with explicit feedback profile selected on publisher and receiver.",
+    "Actual source camera is selected, unselected and reselected; same SSRC gets a distinct authenticated receiver epoch.",
+    "Current receiver keyframe request reaches the current publisher; actual libvpx encodes original source frame 2 on that hint without resetting RTP timestamp 6000.",
+    "Fresh receiver captures original frame bytes in the current epoch; independent FFmpeg decodes frame 2 alone and verifies its original luma marker.",
+    "After a held-source update, the retained hint is no longer current; encoder, clients and server shutdown all complete."
+  ],
+  "limitations": [
+    "This small EdDSA native integration is not the full frozen four-participant/six-Connection media workload or a qualified transport cell.",
+    "The final held-source check occurs after decode and does not separately prove hold invalidation before hint expiry. Current hold/refusal behavior has separate component evidence; do not infer a new timing guarantee here.",
+    "Controlled fragment-loss recovery is covered separately by the prior worker proof, not injected into this signed integration."
+  ]
 }
