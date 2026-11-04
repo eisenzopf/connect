@@ -1,0 +1,117 @@
+{
+  "format": "connect/current-reader-admission/1",
+  "source_revision": "455d6b32133af53815220241df5c61469793134f",
+  "stage": "complete",
+  "passed": true,
+  "cases": [
+    "authority_fences::tests::resource_preparation::same_scope_read_admission_coexists_and_keeps_reserved_writer_exclusive",
+    "authority_fences::tests::resource_preparation::concurrent_cold_readers_coalesce_only_the_current_owned_resource",
+    "authority_fences::tests::resource_preparation::blocked_shared_reader_keeps_original_deadline_and_releases_partial_scopes",
+    "authority_fences::tests::writer_intent_stops_new_readers_held_proof_reuses_without_reentry_and_other_identity_proceeds",
+    "authority_fences::tests::cancellation_deadline_and_partial_acquisition_release_every_scope",
+    "authority_fences::tests::actual_child_process_revocation_waits_for_parent_delivery_guard_and_admin_open_preserves_runtime",
+    "authority_fences::tests::actual_child_death_releases_kernel_reader_without_persistent_phantom_authority",
+    "authority_fences::tests::immediate_admission_refuses_queued_writer_and_releases_partial_scopes",
+    "authority_fences::tests::immediate_admission_refuses_reader_map_contention_without_waiting",
+    "authority_fences::tests::admissions::resource_description_returns_unlocked_only_after_the_final_owned_reader",
+    "authority_fences::tests::admissions::cached_admission_preserves_queued_writer_and_releases_partial_read_scopes",
+    "authority_fences::tests::resource_preparation::preparing_one_resource_keeps_unrelated_scope_admission_live_and_own_writer_excluded",
+    "authority_fences::tests::resource_preparation::busy_registry_after_resource_preparation_refuses_and_releases_its_original_file_lock"
+  ],
+  "results": [
+    {
+      "case": "authority_fences::tests::resource_preparation::same_scope_read_admission_coexists_and_keeps_reserved_writer_exclusive",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "0210e3cdfea1c9594155dc19b4d022a6ebcd85f9aa8aee5e318ab3659f8005ef"
+    },
+    {
+      "case": "authority_fences::tests::resource_preparation::concurrent_cold_readers_coalesce_only_the_current_owned_resource",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "68125841064e622517896f9d8b99ec624bc7233cbad3a06f186f8c68dc411518"
+    },
+    {
+      "case": "authority_fences::tests::resource_preparation::blocked_shared_reader_keeps_original_deadline_and_releases_partial_scopes",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "9d1090dc56938ff1564a2a199cec24632e3ca7d18cdc014e8707619e7cb9b8ef"
+    },
+    {
+      "case": "authority_fences::tests::writer_intent_stops_new_readers_held_proof_reuses_without_reentry_and_other_identity_proceeds",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "dbeeeb277bb7750246ecb4125200d84ade6ed80672f6ac56deeedc3ba55f0128"
+    },
+    {
+      "case": "authority_fences::tests::cancellation_deadline_and_partial_acquisition_release_every_scope",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "6520c45571f5006edfc55be447bd820a88c1a7cd17479f65e605f9a5fddd590d"
+    },
+    {
+      "case": "authority_fences::tests::actual_child_process_revocation_waits_for_parent_delivery_guard_and_admin_open_preserves_runtime",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "0b0a42085edb8a7cda628a21223e40c25d7edd6590a376b1fbd0a3fc8428db6e"
+    },
+    {
+      "case": "authority_fences::tests::actual_child_death_releases_kernel_reader_without_persistent_phantom_authority",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "1e0327b4a620a6a771c942e78d553876b65b03675cd919a3bba5fc49d850de02"
+    },
+    {
+      "case": "authority_fences::tests::immediate_admission_refuses_queued_writer_and_releases_partial_scopes",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "0b00c297a76cd79016294e2c48373e63bc40a57ed7f6051aa94c5b1bc092dbfe"
+    },
+    {
+      "case": "authority_fences::tests::immediate_admission_refuses_reader_map_contention_without_waiting",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "52a432bb6070a42e53b9ed3cf5157a38b8947e059c708d717bdf36f3755c83e3"
+    },
+    {
+      "case": "authority_fences::tests::admissions::resource_description_returns_unlocked_only_after_the_final_owned_reader",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "0b77697a4b46f160e156319a1b0a1e9669eda2d8a1b57694319caa982a6569a7"
+    },
+    {
+      "case": "authority_fences::tests::admissions::cached_admission_preserves_queued_writer_and_releases_partial_read_scopes",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "5099bcff53fe282f9f6704b8115e744de34a594230b6b66a36d7cdb8d640e3f9"
+    },
+    {
+      "case": "authority_fences::tests::resource_preparation::preparing_one_resource_keeps_unrelated_scope_admission_live_and_own_writer_excluded",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "fe15f8dc8149d3acebb4221dc48c282bb9eb48507e3eb11a619d99f9b9f7751e"
+    },
+    {
+      "case": "authority_fences::tests::resource_preparation::busy_registry_after_resource_preparation_refuses_and_releases_its_original_file_lock",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "1668c4edfa99762017c35ac1aca7c70d533ea71a187b52e39c7efd0979e9eaf8"
+    }
+  ],
+  "scope": "Current Store admission, resource ownership, writer exclusion and cross-process lifetime; no full media or idle-resource pass.",
+  "compile_exit_code": 0,
+  "compile_log_sha256": "e93b0d3927fe0f5f205db8ed2427031d59432ce72d17e91992f5ffd121acc87d",
+  "binary_sha256": "89adf762c25b35176439eb45f331e7a0f2f5a93c01006ad0c7f14f06f2d1d89a",
+  "test_list_exit_code": 0,
+  "test_list_sha256": "a0fddc6e27183aa6eaf97c95f45f7dbaaf439c22f2c4d062644c74dec225fae9",
+  "source_inputs_unchanged": true,
+  "executable_unchanged": true,
+  "elapsed_seconds": 63.38570178000009,
+  "date": "2026-11-04",
+  "attempt": "v177",
+  "state_sha256": "361493247b59d585daaea31d2e84c8aeb72cba5eb8c8a29c3f0098f88bce5973",
+  "cell_qualified": false,
+  "task_complete": false,
+  "full_media_qualification": false,
+  "remaining": "v178 full local Chrome WT EdDSA quality workload is building; SQL observer and registry contention also remain under investigation."
+}

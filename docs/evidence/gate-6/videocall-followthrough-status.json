@@ -1,0 +1,53 @@
+{
+  "format": "connect/videocall-followthrough/1",
+  "date": "2026-11-04",
+  "source_revision": "455d6b32133af53815220241df5c61469793134f",
+  "review": "docs/evidence/gate-6/videocall-reference-review.json",
+  "all_three_complete": false,
+  "items": [
+    {
+      "id": "replacement-continuity",
+      "status": "implemented-component-proof-integrated-audit-incomplete",
+      "implemented": "Core provisional activation requires the original active source. Precommit retry preserves the original route and audience on revoked or changed-role refusal. Four moves completed in v176.",
+      "evidence": [
+        "docs/evidence/gate-6/replacement-precommit-retry.json",
+        "docs/evidence/gate-6/matrix-authority-refusals-v176.json"
+      ],
+      "remaining": "Complete signed production preparation-failure/cancellation and late/duplicate retirement audit with independently observed old-route continuity."
+    },
+    {
+      "id": "video-order-and-bootstrap",
+      "status": "partially-implemented",
+      "implemented": "Bounded RTP fragment assembly, keyframe-first decoding, recovery at a fresh keyframe, and authenticated generation resets. Actual Chromium WebTransport generation-change recovery passed.",
+      "evidence": [
+        "docs/evidence/gate-6/actual-browser-video-feedback.json"
+      ],
+      "source": [
+        "sdk/typescript/src/browser_rtp.ts",
+        "sdk/typescript/src/browser_codecs.ts",
+        "sdk/typescript/src/browser_media.ts"
+      ],
+      "remaining": "Complete-frame reorder tolerance before declaring a missing reference; current decoder treats a noncontiguous completed frame as a gap immediately. Add deterministic reorder, true-loss, wrap, expiry and generation-change tests within existing budgets."
+    },
+    {
+      "id": "quic-ordering-lesson",
+      "status": "comparison-complete-integrated-reordering-verification-incomplete",
+      "implemented": "Connect uses WebTransport datagrams; feedback requests are rate-limited and bound to the current authenticated epoch. Existing diagnostics distinguish source reordering from sequence gaps.",
+      "source": [
+        "sdk/typescript/src/browser_video_epochs.ts",
+        "sdk/typescript/src/media_diagnostics.ts"
+      ],
+      "remaining": "Verify reordered datagrams do not cause unnecessary decoder resets/keyframe requests while actual loss still recovers; include bounded feedback under repeated gaps. Upstream #814 is not proof of the same transport bug."
+    }
+  ],
+  "current_av_work": {
+    "candidate": "455d6b32 shared-reader authority admission",
+    "focused_attempt": "v177",
+    "focused_passed": 13,
+    "focused_failed": 0,
+    "live_attempt": "v178",
+    "live_status": "building locally",
+    "scope": "A separate contention contributor; does not complete the three videocall comparison items."
+  },
+  "task_complete": false
+}
