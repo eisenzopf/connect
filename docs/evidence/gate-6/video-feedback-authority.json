@@ -1,0 +1,22 @@
+{
+  "format": "connect/gate6-video-feedback-authority/1",
+  "task": "G6-058",
+  "status": "candidate-unverified",
+  "patch": 293,
+  "implementation": [
+    "Successful guarded video submission can issue metadata-only feedback route with no packet bytes or policy readers.",
+    "Epoch cache is shared by each direct selection and exact physical source/receiver/scene generations; unrelated Data selections preserve video epoch.",
+    "Each bounded local dispatch reacquires current publication and receiver-source authority and all route/scene tickets, retains guards through nonblocking IO, then releases them.",
+    "Rate and serial-number state is shared across observations: maximum one dispatch per100ms; duplicates/backwards/ambiguous half-range refuse; wrapping forward sequence works; failed local IO consumes its sequence."
+  ],
+  "planned_checks": [
+    "Exact current receiver/publisher denial, packet expiry versus fresh feedback, rate/duplicate/wrap/failed-IO behavior and reader lifetime.",
+    "Epoch changes on video reselection, pause/resume and source physical replacement; unchanged by unrelated Data controls; old source/receiver cancellation refuses."
+  ],
+  "remaining": [
+    "Native output handle and actual packetizer SSRC binding/negotiation/dispatch are not implemented; this API is not yet advertised or called by an adapter.",
+    "Signed original-operation/incarnation/generation epoch association and delayed/reordered notice handling remain unimplemented.",
+    "No integrated media or full-cell qualification. G6-054 remains deferred."
+  ],
+  "task_complete": false
+}

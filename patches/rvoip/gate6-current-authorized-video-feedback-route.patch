@@ -1,0 +1,540 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -52,6 +52,7 @@
+     Clear,
+ }
+ struct Route {
++    feedback: Arc<super::video_feedback::FeedbackCache>,
+     selection: DirectSubscription,
+     ticket: PeerRouteTicket,
+     started: Instant,
+@@ -148,6 +149,7 @@
+             return Err(StreamControlError::Authority);
+         }
+         Ok(DirectStamp {
++            feedback: selection.feedback.clone(),
+             gate: Arc::downgrade(self),
+             ticket: selection.ticket.clone(),
+             selection: selection.selection.clone(),
+@@ -171,12 +173,17 @@
+ }
+ #[derive(Clone)]
+ pub(super) struct DirectStamp {
++    pub(super) feedback: Arc<super::video_feedback::FeedbackCache>,
+     gate: Weak<DirectGate>,
+     ticket: PeerRouteTicket,
+     selection: DirectSubscription,
+     pub(super) cancel: CancellationToken,
+ }
+ impl DirectStamp {
++    pub(super) fn is_current(&self) -> bool {
++        self.gate.strong_count() != 0 && !self.cancel.is_cancelled() && self.ticket.is_current()
++    }
++
+     pub(super) fn delivery_ticket(&self) -> PeerRouteTicket {
+         self.ticket.clone()
+     }
+@@ -515,6 +522,7 @@
+                     self.0.program.insert(
+                         id.clone(),
+                         Arc::new(Route {
++                            feedback: Arc::new(super::video_feedback::FeedbackCache::default()),
+                             selection: selection.clone(),
+                             ticket: next,
+                             started: Instant::now(),
+--- a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+@@ -83,6 +83,13 @@
+     scene: u128,
+     started: Instant,
+     pub(super) cancel: CancellationToken,
++}
++impl SceneStamp {
++    pub(super) fn same_generation(&self, other: &Self) -> bool {
++        Weak::ptr_eq(&self.owner, &other.owner)
++            && self.scene == other.scene
++            && self.ticket.same_generation(&other.ticket)
++    }
+ }
+ pub(super) struct SceneCheck<'a> {
+     retained: Option<Option<&'a SceneStamp>>,
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs
+@@ -674,3 +674,198 @@
+     release.notify_one();
+     sending.await.unwrap().unwrap();
+ }
++
++async fn feedback_record(
++    f: &Fixture,
++    input: &mut mpsc::Receiver<MediaPacket>,
++    output: &mut mpsc::Receiver<QueuedMedia>,
++    sequence: u32,
++) -> VideoFeedbackRoute {
++    publish(f, Medium::Video, input, sequence)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
++        .unwrap();
++    outgoing(output)
++        .await
++        .deliver_video_with_feedback(|_, _| async { Ok(()) })
++        .await
++        .unwrap()
++}
++
++#[tokio::test]
++async fn feedback_reacquires_both_current_authorities_without_retaining_or_retiming_media() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++    let feedback = feedback_record(&f, &mut input, &mut output, 1).await;
++    let epoch = feedback.epoch();
++    assert_ne!(epoch, 0);
++    publish(&f, Medium::Video, &mut input, 2)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
++        .unwrap();
++    let old_packet = outgoing(&mut output).await;
++    // A retained feedback record pins no policy reader. A new request after
++    // packet expiry is fresh admission, not renewed/replayed packet ownership.
++    assert!(f.policy.0.try_write().is_ok());
++    tokio::time::sleep(Duration::from_millis(210)).await;
++    assert!(matches!(
++        old_packet
++            .deliver(|_| async { panic!("expired media reached IO") })
++            .await,
++        Err(StreamControlError::Deadline)
++    ));
++    assert!(feedback
++        .dispatch(epoch ^ 1, u32::MAX, |_, _| panic!(
++            "foreign epoch reached IO"
++        ))
++        .is_err());
++    for subject in ["alice", "bob"] {
++        f.policy.0.write().await.revoked.insert(subject.into());
++        assert!(feedback
++            .dispatch(epoch, u32::MAX, |_, _| panic!(
++                "revoked authority reached IO"
++            ))
++            .is_err());
++        f.policy.0.write().await.revoked.clear();
++    }
++    f.policy.0.write().await.private = true;
++    assert!(feedback
++        .dispatch(epoch, u32::MAX, |_, _| panic!("denied receiver reached IO"))
++        .is_err());
++    f.policy.0.write().await.private = false;
++    feedback
++        .dispatch(epoch, u32::MAX, |port, source| {
++            assert_eq!(
++                port.binding().transport_id,
++                f.aa.port(Medium::Video).binding().transport_id
++            );
++            assert_eq!(source.connection, f.a.connection);
++            assert!(
++                f.policy.0.try_write().is_err(),
++                "both fresh readers must cover real local dispatch"
++            );
++            Ok(())
++        })
++        .unwrap();
++    assert!(f.policy.0.try_write().is_ok());
++    assert!(matches!(
++        feedback.dispatch(epoch, 0, |_, _| panic!("rate limit bypass")),
++        Err(StreamControlError::Backpressure)
++    ));
++    tokio::time::sleep(Duration::from_millis(110)).await;
++    // Wrap is valid; failed local IO consumes this original request too.
++    assert!(matches!(
++        feedback.dispatch(epoch, 0, |_, _| Err(StreamControlError::Unsupported)),
++        Err(StreamControlError::Unsupported)
++    ));
++    let second = feedback_record(&f, &mut input, &mut output, 3).await;
++    assert_eq!(second.epoch(), epoch);
++    assert!(second
++        .dispatch(epoch, 0, |_, _| panic!(
++            "new packet reset duplicate suppression"
++        ))
++        .is_err());
++    assert!(second
++        .dispatch(epoch, u32::MAX, |_, _| panic!(
++            "backwards sequence reached IO"
++        ))
++        .is_err());
++    f.a.retire();
++    assert!(feedback
++        .dispatch(epoch, 1, |_, _| panic!("retired publisher reached IO"))
++        .is_err());
++}
++
++#[tokio::test]
++async fn feedback_epochs_follow_exact_video_selection_and_physical_generations_not_data_controls() {
++    let f = Fixture::new(16);
++    f.start(&[Medium::Video, Medium::Data]).await;
++    let logical = desired(Medium::Video).logical_id;
++    let mut input = f.a.take_ingress(&logical).unwrap();
++    let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++    let first = feedback_record(&f, &mut input, &mut output, 10).await;
++    route(
++        &f,
++        DirectSubscriptionChange::Unsubscribe(vec![desired(Medium::Data).logical_id]),
++    )
++    .await
++    .unwrap();
++    let data_changed = feedback_record(&f, &mut input, &mut output, 11).await;
++    assert_eq!(data_changed.epoch(), first.epoch());
++    route(
++        &f,
++        DirectSubscriptionChange::Unsubscribe(vec![logical.clone()]),
++    )
++    .await
++    .unwrap();
++    assert!(first
++        .dispatch(first.epoch(), 1, |_, _| panic!(
++            "unselected route reached IO"
++        ))
++        .is_err());
++    route(
++        &f,
++        DirectSubscriptionChange::Subscribe(vec![selection(&f, Medium::Video)]),
++    )
++    .await
++    .unwrap();
++    let selected = feedback_record(&f, &mut input, &mut output, 12).await;
++    assert_ne!(selected.epoch(), first.epoch());
++    assert!(selected
++        .dispatch(first.epoch(), 1, |_, _| panic!(
++            "old epoch admitted to new selection"
++        ))
++        .is_err());
++    f.b.set_paused(&logical, f.b.revision(), true, deadline())
++        .await
++        .unwrap();
++    assert!(selected
++        .dispatch(selected.epoch(), 1, |_, _| panic!(
++            "paused receiver reached IO"
++        ))
++        .is_err());
++    f.b.set_paused(&logical, f.b.revision(), false, deadline())
++        .await
++        .unwrap();
++    let resumed = feedback_record(&f, &mut input, &mut output, 13).await;
++    assert_ne!(resumed.epoch(), selected.epoch());
++    assert!(selected
++        .dispatch(selected.epoch(), 1, |_, _| panic!(
++            "old port generation reached IO"
++        ))
++        .is_err());
++    let original_transport = f.aa.port(Medium::Video).binding().transport_id.clone();
++    f.a.change(
++        f.a.revision(),
++        &[desired(Medium::Video), desired(Medium::Data)],
++        &BTreeSet::from([logical.clone()]),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    input = f.a.take_ingress(&logical).unwrap();
++    let replaced = feedback_record(&f, &mut input, &mut output, 14).await;
++    assert_ne!(replaced.epoch(), resumed.epoch());
++    assert!(resumed
++        .dispatch(resumed.epoch(), 1, |_, _| panic!(
++            "old source incarnation reached IO"
++        ))
++        .is_err());
++    replaced
++        .dispatch(replaced.epoch(), 1, |port, _| {
++            assert_ne!(port.binding().transport_id, original_transport);
++            Ok(())
++        })
++        .unwrap();
++    f.b.retire();
++    assert!(replaced
++        .dispatch(replaced.epoch(), 2, |_, _| panic!(
++            "retired receiver reached IO"
++        ))
++        .is_err());
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
+@@ -0,0 +1,250 @@
++//! Feedback retains exact route metadata, never packet bytes or policy readers.
++//! Native handle/SSRC negotiation and signed operation association remain the
++//! adapter/Service's responsibility; an echoed epoch is not authorization.
++use super::*;
++
++#[derive(Clone)]
++struct Scope {
++    source: Weak<Port>,
++    target: Weak<Port>,
++    source_ticket: PeerRouteTicket,
++    target_ticket: PeerRouteTicket,
++    source_scene: Option<scene_consumer::SceneStamp>,
++    target_scene: Option<scene_consumer::SceneStamp>,
++}
++impl Scope {
++    fn same(&self, other: &Self) -> bool {
++        let scene = |a: &Option<scene_consumer::SceneStamp>,
++                     b: &Option<scene_consumer::SceneStamp>| match (a, b) {
++            (None, None) => true,
++            (Some(a), Some(b)) => a.same_generation(b),
++            _ => false,
++        };
++        Weak::ptr_eq(&self.source, &other.source)
++            && Weak::ptr_eq(&self.target, &other.target)
++            && self.source_ticket.same_generation(&other.source_ticket)
++            && self.target_ticket.same_generation(&other.target_ticket)
++            && scene(&self.source_scene, &other.source_scene)
++            && scene(&self.target_scene, &other.target_scene)
++    }
++    fn cancelled(&self) -> bool {
++        self.source_scene
++            .as_ref()
++            .is_some_and(|s| s.cancel.is_cancelled())
++            || self
++                .target_scene
++                .as_ref()
++                .is_some_and(|s| s.cancel.is_cancelled())
++    }
++}
++#[derive(Default)]
++struct Rate {
++    sequence: Option<u32>,
++    next: Option<Instant>,
++}
++struct Epoch {
++    id: u128,
++    scope: Scope,
++    rate: Mutex<Rate>,
++}
++// One current epoch per direct selection. New packets share its rate/sequence
++// state; neither recording more packets nor unrelated Data controls resets it.
++#[derive(Default)]
++pub(super) struct FeedbackCache(Mutex<Option<Arc<Epoch>>>);
++
++#[derive(Clone)]
++pub struct VideoFeedbackRoute {
++    epoch: Arc<Epoch>,
++    source: MediaSource,
++    direct: direct_subscriptions::DirectStamp,
++}
++impl VideoFeedbackRoute {
++    // Called only inside the successful original packet's delivery guards.
++    fn issued(
++        scope: Scope,
++        source: MediaSource,
++        direct: direct_subscriptions::DirectStamp,
++    ) -> ControlResult<Self> {
++        if !direct.is_current()
++            || !scope.source_ticket.is_current()
++            || !scope.target_ticket.is_current()
++            || scope.cancelled()
++        {
++            return Err(StreamControlError::Cancelled);
++        }
++        let epoch = {
++            let mut slot = direct
++                .feedback
++                .0
++                .try_lock()
++                .map_err(|_| StreamControlError::Backpressure)?;
++            if slot.as_ref().is_none_or(|epoch| !epoch.scope.same(&scope)) {
++                *slot = Some(Arc::new(Epoch {
++                    id: uuid::Uuid::new_v4().as_u128(),
++                    scope,
++                    rate: Mutex::new(Rate::default()),
++                }));
++            }
++            slot.as_ref().unwrap().clone()
++        };
++        Ok(Self {
++            epoch,
++            source,
++            direct,
++        })
++    }
++    /// Opaque route/physical-port/scene generation identity, not a permission.
++    pub fn epoch(&self) -> u128 {
++        self.epoch.id
++    }
++
++    /// Invoke one bounded nonblocking local source dispatch under fresh source
++    /// publication and exact receiver-selection authority. The callback must
++    /// not detach IO or retain these guards. A failed dispatch consumes its
++    /// sequence too: it cannot be silently replayed after uncertain local IO.
++    pub fn dispatch<F>(&self, epoch: u128, sequence: u32, send: F) -> ControlResult<()>
++    where
++        F: FnOnce(&AdapterMediaPort, &MediaSource) -> ControlResult<()>,
++    {
++        if epoch != self.epoch.id || !self.direct.is_current() || self.epoch.scope.cancelled() {
++            return Err(StreamControlError::Authority);
++        }
++        let scope = &self.epoch.scope;
++        let source_port = scope
++            .source
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let target_port = scope
++            .target
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let source = source_port
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let target = target_port
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if source.conversation != target.conversation
++            || source.session != target.session
++            || !Arc::ptr_eq(&source.policy, &target.policy)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut deadline = tokio::time::Instant::now() + Duration::from_millis(100);
++        // Fresh feedback has its own bounded admission, never a renewed media
++        // packet age. Retained metadata causes nonblocking queued policy reads.
++        let (source_lease, source_guard, source_bound) = source.admit_with_deadline(
++            &source_port,
++            &scope.source_ticket,
++            false,
++            None,
++            audio_consumer::ConsumerCheck::Retained(None),
++            None,
++            scene_consumer::SceneCheck::retained_publish(scope.source_scene.as_ref()),
++            None,
++            None,
++            None,
++            Some(&mut deadline),
++        )?;
++        deadline = deadline.min(source_bound);
++        let (target_lease, target_guard, target_bound) = target.admit_with_deadline(
++            &target_port,
++            &scope.target_ticket,
++            true,
++            Some(&self.source),
++            audio_consumer::ConsumerCheck::Retained(None),
++            Some(&self.direct),
++            scene_consumer::SceneCheck::retained_receive(
++                scope.target_scene.as_ref(),
++                scope.source_scene.as_ref(),
++                Instant::now(),
++            ),
++            None,
++            None,
++            None,
++            Some(&mut deadline),
++        )?;
++        deadline = deadline.min(target_bound);
++        if source.shutdown.is_cancelled()
++            || target.shutdown.is_cancelled()
++            || self.direct.cancel.is_cancelled()
++            || scope.cancelled()
++        {
++            return Err(StreamControlError::Cancelled);
++        }
++        if tokio::time::Instant::now() >= deadline {
++            return Err(StreamControlError::Deadline);
++        }
++        {
++            let mut rate = self
++                .epoch
++                .rate
++                .try_lock()
++                .map_err(|_| StreamControlError::Backpressure)?;
++            if rate.sequence.is_some_and(|previous| {
++                let distance = sequence.wrapping_sub(previous);
++                distance == 0 || distance >= (1u32 << 31)
++            }) {
++                return Err(StreamControlError::Authority);
++            }
++            let now = Instant::now();
++            if rate.next.is_some_and(|next| now < next) {
++                return Err(StreamControlError::Backpressure);
++            }
++            rate.sequence = Some(sequence);
++            rate.next = Some(now + Duration::from_millis(100));
++        }
++        let result = send(&AdapterMediaPort(source_port.clone()), &self.source);
++        // Keep both current permission readers and all route/scene fences
++        // through the real local dispatch. None are stored in the route record.
++        drop((source_guard, target_guard, source_lease, target_lease));
++        result
++    }
++}
++
++impl QueuedMedia {
++    /// Return exact feedback metadata only after successful guarded native
++    /// video submission. The returned record retains no media or permission.
++    pub async fn deliver_video_with_feedback<F, Fut>(
++        self,
++        send: F,
++    ) -> ControlResult<VideoFeedbackRoute>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        if self.frame.kind != StreamKind::Video
++            || self.data.is_some()
++            || self.local.is_some()
++            || self.sources.len() != 1
++            || self.target_consumer.is_some()
++            || self.target.binding.negotiated.requested.medium != Medium::Video
++            || self.sources[0].source.binding.negotiated.requested.medium != Medium::Video
++            || self.sources[0].consumer.is_some()
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        let source = &self.sources[0];
++        let scope = Scope {
++            source: Arc::downgrade(&source.source),
++            target: Arc::downgrade(&self.target),
++            source_ticket: source.ticket.clone(),
++            target_ticket: self.target_ticket.clone(),
++            source_scene: source.scene.clone(),
++            target_scene: self.target_scene.clone(),
++        };
++        let descriptor = source.descriptor.clone();
++        let direct = self.direct.clone().ok_or(StreamControlError::Authority)?;
++        let mut installed = None;
++        let output = &mut installed;
++        self.deliver_with_origin(move |frame, origin| async move {
++            send(frame, origin).await?;
++            *output = Some(VideoFeedbackRoute::issued(scope, descriptor, direct)?);
++            Ok(())
++        })
++        .await?;
++        installed.ok_or(StreamControlError::NotReady)
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -3552,6 +3552,9 @@
+ 
+ pub mod endpoint_preparation;
+ 
++mod video_feedback;
++pub use video_feedback::VideoFeedbackRoute;
++
+ mod video_repair;
+ pub use video_repair::{VideoRepair, MAX_VIDEO_REPAIRS};
+ 
+--- a/crates/foundation/rvoip-core-traits/src/peer_switch.rs
++++ b/crates/foundation/rvoip-core-traits/src/peer_switch.rs
+@@ -71,6 +71,11 @@
+ }
+ 
+ impl PeerRouteTicket {
++    /// Identity comparison only; this never admits delivery or pins a generation.
++    pub fn same_generation(&self, other: &Self) -> bool {
++        Arc::ptr_eq(&self.state, &other.state) && self.generation == other.generation
++    }
++
+     /// Create the initial active peer. Staged tickets do not forward media.
+     pub fn initial() -> Self {
+         Self {
