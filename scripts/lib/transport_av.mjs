@@ -126,7 +126,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             const timestamp = video ? index * 3000 : index * 960;
             let encoded;
             if (video) {
-                const remaining = Math.floor(200 - (performance.now() - start - elapsed));
+                const remaining = Math.min(200, Math.floor(200 - (performance.now() - start - elapsed)));
                 if (remaining <= 0) { route.lateSendFrames++; continue; }
                 route.stages.send[medium] = "encode-original-frame";
                 let frame;
@@ -144,7 +144,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             } else encoded = Buffer.from(entries[index], "base64");
             let frameCompleted = true;
             for (const packet of sender.packetize(encoded, timestamp)) {
-                const remaining = Math.floor(200 - (performance.now() - start - elapsed));
+                const remaining = Math.min(200, Math.floor(200 - (performance.now() - start - elapsed)));
                 if (remaining <= 0) { route.lateSendFrames++; frameCompleted = false; break; }
                 const sequence = new DataView(packet.buffer, packet.byteOffset).getUint32(4);
                 const submittedAt = performance.now() - start;
