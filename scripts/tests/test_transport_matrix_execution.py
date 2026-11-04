@@ -117,6 +117,24 @@ class MatrixExecution(unittest.TestCase):
             with self.assertRaises(ValueError):
                 select_cells(matrix, ids)
 
+    def test_interruption_persists_failure_and_does_not_start_another_original(self):
+        matrix = self.matrix()
+        cells = self.local_cells(matrix)
+        visited = []
+
+        def interrupted(cell):
+            visited.append(cell["id"])
+            raise KeyboardInterrupt()
+
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaises(KeyboardInterrupt):
+                driver.execute_selected(matrix, [c["id"] for c in cells], Path(temp), interrupted)
+            saved = json.loads((Path(temp) / "matrix.json").read_text())
+            self.assertFalse(any(c["status"] == "running" for c in saved["cells"]))
+        self.assertEqual(visited, [cells[0]["id"]])
+        self.assertEqual(cells[0]["reason"], "original-workload-interrupted")
+        self.assertEqual(cells[1]["status"], "not-run")
+
 
 if __name__ == "__main__":
     unittest.main()

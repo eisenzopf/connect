@@ -60,6 +60,15 @@ def probe(chrome=None, firefox=None):
     free = shutil.disk_usage(ROOT).free
     if free < 5 * 1024**3:
         blockers.append("less-than-five-GiB-workload-scratch-space")
+    capture_permissions = None
+    if system == "Darwin":
+        devices = list(Path("/dev").glob("bpf[0-9]*"))
+        accessible = sum(os.access(path, os.R_OK | os.W_OK) for path in devices)
+        capture_permissions = dict(method="os.access(read|write) over current /dev/bpf devices",
+                                   device_count=len(devices), accessible_device_count=accessible,
+                                   capture_started=False)
+        if not accessible:
+            blockers.append("macos-bpf-capture-permission-unavailable")
     expected = load_contract(ROOT)["expected_browsers_by_client_platform"][server]
     linux_chrome = Path("/ms-playwright/chromium-1248/chrome-linux-arm64/chrome")
     if not linux_chrome.is_file():
@@ -77,6 +86,7 @@ def probe(chrome=None, firefox=None):
     return dict(server=server, system=system, architecture=machine, kernel=platform.release(),
                 observed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), versions=versions,
                 browsers=browsers, scratch_free_bytes=free, execution_blockers=blockers,
+                capture_permission_observation=capture_permissions,
                 owned_systemd_vm=(system == "Linux" and os.getuid() != 0
                     and Path("/run/systemd/system").is_dir()
                     and os.environ.get("CONNECT_GATE6_OWNED_LINUX_VM") == "connect-gate6"),

@@ -1,0 +1,77 @@
+{
+  "format": "connect/matrix-native-es256/1",
+  "task": "G6-058",
+  "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+  "source_revision": "eb8736270c621ac9f4482e645ab1d7983652ba66",
+  "passed": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "reports": {
+    "rehearsal.json": "d188e4bd0513872594cabbbe69e01cce7da8d3d701effca621dd998b22fc517e",
+    "conversation.json": "ea0d0d6e855f8c77a226520703752392a73258d4c73fdca1103ff66b7484918c"
+  },
+  "failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "read-only",
+    "command": "stream.subscribe",
+    "source_stack": []
+  },
+  "original_media_owners": {
+    "original_tasks_joined": true,
+    "encoder_processes_joined": 6,
+    "original_tasks_started": 30,
+    "elapsed_ms": 54246.75361099839,
+    "failure": {
+      "route_index": null,
+      "medium": null,
+      "direction": "control",
+      "stage": "during-workload"
+    }
+  },
+  "helpers_joined": true,
+  "server_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "packet_limit": 200000,
+    "media_workload": true,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+    "pcap_sha256": "c7f5fd1cc573171698fd04c7422fe388095c585fe4699c0c8f07e7849c173a5d",
+    "pcap_bytes": 66220790,
+    "captured_seconds": 64.95277137399535,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 91142,
+      "to_server_packets": 48989,
+      "from_server_packets": 42153,
+      "captured_bytes": 64762494,
+      "udp_payload_bytes": 60934530,
+      "to_server_udp_bytes": 26536256,
+      "from_server_udp_bytes": 34398274
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "integrity": {
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "binary_sha256": "e103ad98e61fb2296f286b6f100fc67b6411ac4a1767223d73c2fae8f6ca0762",
+  "peer_binary_sha256": "839e9d87d135923f6a2752a66033754ca52fcc9469004e35c77798a29f71ef98",
+  "scope": "First native ES256 matrix attempt at this candidate. Original workload stopped after54.247seconds on a stream.subscribe read-only deadline during control work. No completed60second decode or whole-cell claim. All30 media tasks,6 encoders, SDK helpers and server/capture owners joined without forced cleanup. No inference that ES256 itself caused the timeout."
+}

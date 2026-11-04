@@ -4,6 +4,13 @@ The 32-cell matrix is the acceptance framework for G6-058. A failure in one
 cell must not postpone attempts in other executable cells. Workloads run on the
 owner's Mac Studio and local Ubuntu24.04 ARM64 guest. G6-054 remains deferred.
 
+The [current 32-cell table](g6-058-matrix-status.html) links the actual attempts
+and prerequisites. The first Linux ES256 attempt stopped on a read-only
+`stream.subscribe` deadline during the movement programme; original owners
+joined. This is distinct from the earlier EdDSA quality failure. The Mac has
+both frozen browser versions available, but its BPF capture devices currently
+require permission before the complete captured workload can run.
+
 `scripts/run-gate6-transport-matrix.py` connects the existing native media
 workload to exact matrix cell IDs. It retains all 32 rows, saves each original
 attempt before and after execution, continues after a failed cell, and merges

@@ -1,0 +1,2674 @@
+{
+  "format": "connect/gate6-matrix-execution-summary/1",
+  "task": "G6-058",
+  "source_revision": "eb8736270c621ac9f4482e645ab1d7983652ba66",
+  "contract_inputs": {
+    "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+    "docs/decisions/015-gate-6-operating-profile.md": "3d3520aa2c5ffe34b4bb41c4f97999173d5115350bf871d21165e898ef3d74b9",
+    "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+    "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+    "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+    "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+    "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+    "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+  },
+  "service_contract_sha256": "83f7c89ffdc86e7d3c82b17d0b40f8ae93ffe9dad3b60dc7f5d815aa06e5c4fd",
+  "required_cells": 32,
+  "qualified_cells": 0,
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "host_reports": [
+    {
+      "sha256": "b9a1ed5abf6c1623cc11b5b061b51d6fe045016e00c66fccbe48a82a557bf4a4",
+      "environment": {
+        "server": "macos-arm64",
+        "system": "Darwin",
+        "architecture": "arm64",
+        "kernel": "25.6.0",
+        "observed_at": "2026-11-04T18:12:12.155662+00:00",
+        "versions": {
+          "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+          "node": "v26.7.0",
+          "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+          "tcpdump": "tcpdump version 4.99.1 -- Apple version 158"
+        },
+        "browsers": {
+          "chrome": {
+            "version": "Google Chrome 156.0.8078.80",
+            "expected_version": "156.0.8078.80",
+            "matches_frozen_version": true
+          },
+          "firefox": {
+            "version": null,
+            "expected_version": "158.0.1",
+            "matches_frozen_version": false
+          }
+        },
+        "scratch_free_bytes": 14314967040,
+        "execution_blockers": [
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "owned_systemd_vm": false,
+        "capture_access": "not-proven-by-tool-version; actual capture required by workload",
+        "capture_permission_observation": {
+          "method": "os.access(read|write) over current /dev/bpf devices",
+          "device_count": 4,
+          "accessible_device_count": 0,
+          "capture_started": false
+        }
+      }
+    },
+    {
+      "sha256": "d24273303a8e0d75ad603a7c3e2f33aa7de2ed8127edc2f38da3617dc6b5bec5",
+      "environment": {
+        "server": "ubuntu24-arm64",
+        "system": "Linux",
+        "architecture": "aarch64",
+        "kernel": "6.8.0-117-generic",
+        "observed_at": "2026-11-04T18:10:10.654109+00:00",
+        "versions": {
+          "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+          "node": "v22.16.0",
+          "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+          "tcpdump": "tcpdump version 4.99.4"
+        },
+        "browsers": {
+          "chrome": {
+            "version": "Google Chrome for Testing 156.0.8078.4",
+            "expected_version": "156.0.8078.4",
+            "matches_frozen_version": true
+          },
+          "firefox": {
+            "version": null,
+            "expected_version": "158.0.1",
+            "matches_frozen_version": false
+          }
+        },
+        "scratch_free_bytes": 5684273152,
+        "execution_blockers": [],
+        "owned_systemd_vm": false,
+        "capture_access": "not-proven-by-tool-version; actual capture required by workload"
+      }
+    }
+  ],
+  "counts": {
+    "not-run": 31,
+    "failed": 1
+  },
+  "cells": [
+    {
+      "id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "server": "macos-arm64",
+      "network": "local",
+      "transport": "native-quic",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": "native-media",
+        "runnable": false,
+        "blockers": [
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "server": "macos-arm64",
+      "network": "local",
+      "transport": "native-quic",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": "native-media",
+        "runnable": false,
+        "blockers": [
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "server": "macos-arm64",
+      "network": "local",
+      "transport": "chrome-webtransport",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "server": "macos-arm64",
+      "network": "local",
+      "transport": "chrome-webtransport",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "server": "macos-arm64",
+      "network": "local",
+      "transport": "chrome-wss-webrtc",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "server": "macos-arm64",
+      "network": "local",
+      "transport": "chrome-wss-webrtc",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "server": "macos-arm64",
+      "network": "local",
+      "transport": "firefox-wss-webrtc",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "frozen-firefox-runtime-unavailable-in-this-environment",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "server": "macos-arm64",
+      "network": "local",
+      "transport": "firefox-wss-webrtc",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "frozen-firefox-runtime-unavailable-in-this-environment",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "server": "macos-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "native-quic",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": "native-media",
+        "runnable": false,
+        "blockers": [
+          "mac-server-linux-client-full-workload-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "server": "macos-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "native-quic",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": "native-media",
+        "runnable": false,
+        "blockers": [
+          "mac-server-linux-client-full-workload-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "server": "macos-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "chrome-webtransport",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "mac-server-linux-client-full-workload-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "server": "macos-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "chrome-webtransport",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "mac-server-linux-client-full-workload-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "server": "macos-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "chrome-wss-webrtc",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "mac-server-linux-client-full-workload-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "server": "macos-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "chrome-wss-webrtc",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "mac-server-linux-client-full-workload-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "server": "macos-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "firefox-wss-webrtc",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "mac-server-linux-client-full-workload-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "server": "macos-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "firefox-wss-webrtc",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "mac-server-linux-client-full-workload-producer-not-connected",
+          "macos-bpf-capture-permission-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "server": "ubuntu24-arm64",
+      "network": "local",
+      "transport": "native-quic",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "required-workload-ready-not-run",
+      "execution": {
+        "producer": "native-media",
+        "runnable": true,
+        "blockers": [],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "server": "ubuntu24-arm64",
+      "network": "local",
+      "transport": "native-quic",
+      "signing": "ES256",
+      "status": "failed",
+      "reason": "required-workload-failed",
+      "execution": {
+        "producer": "native-media",
+        "runnable": true,
+        "blockers": [],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": true,
+        "component": {
+          "kind": "native-media",
+          "report_sha256": "d188e4bd0513872594cabbbe69e01cce7da8d3d701effca621dd998b22fc517e",
+          "passed": false,
+          "exit_code": 1,
+          "integrity": {
+            "source_inputs_unchanged": true,
+            "executables_unchanged": true,
+            "sdk_dist_inputs_unchanged": true
+          },
+          "source_revision": "eb8736270c621ac9f4482e645ab1d7983652ba66",
+          "binary_sha256": "e103ad98e61fb2296f286b6f100fc67b6411ac4a1767223d73c2fae8f6ca0762",
+          "peer_binary_sha256": "839e9d87d135923f6a2752a66033754ca52fcc9469004e35c77798a29f71ef98",
+          "failure": {
+            "phase": "public-sdk-conversation-control",
+            "name": "AssertionError",
+            "line": 595
+          }
+        }
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "server": "ubuntu24-arm64",
+      "network": "local",
+      "transport": "chrome-webtransport",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "server": "ubuntu24-arm64",
+      "network": "local",
+      "transport": "chrome-webtransport",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "server": "ubuntu24-arm64",
+      "network": "local",
+      "transport": "chrome-wss-webrtc",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "server": "ubuntu24-arm64",
+      "network": "local",
+      "transport": "chrome-wss-webrtc",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "server": "ubuntu24-arm64",
+      "network": "local",
+      "transport": "firefox-wss-webrtc",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "frozen-firefox-runtime-unavailable-in-this-environment"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "server": "ubuntu24-arm64",
+      "network": "local",
+      "transport": "firefox-wss-webrtc",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "frozen-firefox-runtime-unavailable-in-this-environment"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "server": "ubuntu24-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "native-quic",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": "native-media",
+        "runnable": false,
+        "blockers": [
+          "owned-ubuntu-systemd-and-client-netns-environment-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "server": "ubuntu24-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "native-quic",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": "native-media",
+        "runnable": false,
+        "blockers": [
+          "owned-ubuntu-systemd-and-client-netns-environment-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "server": "ubuntu24-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "chrome-webtransport",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "owned-ubuntu-systemd-and-client-netns-environment-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "server": "ubuntu24-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "chrome-webtransport",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "owned-ubuntu-systemd-and-client-netns-environment-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "server": "ubuntu24-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "chrome-wss-webrtc",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "owned-ubuntu-systemd-and-client-netns-environment-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "server": "ubuntu24-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "chrome-wss-webrtc",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "owned-ubuntu-systemd-and-client-netns-environment-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "server": "ubuntu24-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "firefox-wss-webrtc",
+      "signing": "EdDSA",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "owned-ubuntu-systemd-and-client-netns-environment-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "server": "ubuntu24-arm64",
+      "network": "remote-profile-fixture",
+      "transport": "firefox-wss-webrtc",
+      "signing": "ES256",
+      "status": "not-run",
+      "reason": "execution-preflight-blocked",
+      "execution": {
+        "producer": null,
+        "runnable": false,
+        "blockers": [
+          "full-browser-movement-media-producer-not-connected",
+          "owned-ubuntu-systemd-and-client-netns-environment-unavailable"
+        ],
+        "completion_blockers": [
+          "full-cell-current-expiry-and-conflict-observer-not-connected",
+          "full-cell-ten-second-idle-resource-observer-not-connected",
+          "full-cell-requirement-verifier-not-connected"
+        ],
+        "attempted": false,
+        "component": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "declared-concurrent-workload": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "actual-private-packet-capture": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "not-run",
+          "evidence": null
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "not-run",
+          "evidence": null
+        }
+      }
+    }
+  ],
+  "scope": "Actual current local-host preflights and selected native media execution. No skipped/inherited pass. Browser full-workload, remote topology and full expiry/idle/verifier integration remain unfinished. G6-054 deferred. No GitHub/cloud tests."
+}
