@@ -1603,7 +1603,6 @@
           "full-cell-current-expiry-and-conflict-observer-not-connected",
           "full-cell-requirement-verifier-not-connected",
           "browser-independent-decoded-quality-not-qualified",
-          "browser-fallback-and-neither-path-refusal-not-executed",
           "owned-drain-and-ten-second-idle-not-qualified"
         ],
         "attempted": true,
@@ -1611,23 +1610,26 @@
           "kind": "browser-quality",
           "passed": false,
           "exit_code": 1,
-          "report_sha256": "aa85caf36c7656e5675df13714b6aabf75673d21421454d9af4e14972b840c36",
+          "report_sha256": "821bf83d5948a36be0f3b644cdb2505b124879a9eb44b1ef51e007398f08d401",
           "integrity": {
             "source_inputs_unchanged": true,
             "executable_unchanged": true,
             "sdk_dist_inputs_unchanged": true,
             "browser_owner_joined": true
           },
-          "source_revision": "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd",
-          "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+          "source_revision": "90038f24c52147c7a581a00ba53bfe5a175d50f0",
+          "binary_sha256": "7a51ae60c59614a1dbeabf081f06791e8fb9484e9b83ae13a2102452addc0e1e",
           "browser": "Google Chrome for Testing 156.0.8078.4",
           "authenticated_owners": 7,
-          "actual_connections": 6,
+          "actual_connections": null,
           "failure": {
             "phase": "actual-browser-quality",
             "browser": {
-              "stage": "decoded-media-quality",
-              "name": "ProfileBudgetsFailed"
+              "stage": "four-move-programme",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "problem": null
             }
           }
         }
@@ -1680,21 +1682,21 @@
         "owned-drain-and-resource-reclamation": {
           "status": "failed",
           "evidence": {
-            "report_sha256": "aa85caf36c7656e5675df13714b6aabf75673d21421454d9af4e14972b840c36",
-            "source_revision": "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd",
+            "report_sha256": "821bf83d5948a36be0f3b644cdb2505b124879a9eb44b1ef51e007398f08d401",
+            "source_revision": "90038f24c52147c7a581a00ba53bfe5a175d50f0",
             "section": "idle_resources"
           }
         },
         "wt-unavailable-selects-documented-wss-fallback-with-reason": {
-          "status": "not-run",
-          "evidence": null
+          "status": "passed",
+          "evidence": "821bf83d5948a36be0f3b644cdb2505b124879a9eb44b1ef51e007398f08d401"
         },
         "neither-path-usable-refuses-without-mutation-resubmission": {
-          "status": "not-run",
-          "evidence": null
+          "status": "passed",
+          "evidence": "821bf83d5948a36be0f3b644cdb2505b124879a9eb44b1ef51e007398f08d401"
         }
       },
-      "source_revision": "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd"
+      "source_revision": "90038f24c52147c7a581a00ba53bfe5a175d50f0"
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
@@ -2983,6 +2985,7 @@
     "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7",
     "64ac4963dd6ca2d77b81203a7cb226d966586f2e",
     "7bbe7700e88c8bcc40fb1565918be71db761cf02",
+    "90038f24c52147c7a581a00ba53bfe5a175d50f0",
     "a7b85a59ba5703ff7ca65355800586936556b5a8",
     "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd",
     "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
@@ -3172,9 +3175,20 @@
       "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
       "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
       "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "90038f24c52147c7a581a00ba53bfe5a175d50f0": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "f0b7d64bb6a0842e1b0073d9de4d1ef2b87ad56c70a002b88bab0fa23bd32c08",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
     }
   },
   "browser_programme_evidence": "docs/evidence/gate-6/matrix-browser-programme.json",
   "browser_quality_evidence": "docs/evidence/gate-6/matrix-browser-quality.json",
-  "browser_idle_evidence": "docs/evidence/gate-6/matrix-idle-resources.json"
+  "browser_idle_evidence": "docs/evidence/gate-6/matrix-idle-resources.json",
+  "browser_selection_evidence": "docs/evidence/gate-6/matrix-browser-selection.json"
 }

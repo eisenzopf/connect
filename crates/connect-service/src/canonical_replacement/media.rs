@@ -37,6 +37,7 @@ pub(super) struct StartInvocation {
     pub policy: Arc<TargetPolicy>,
     pub authorized: Arc<AuthorizedEnvelope>,
     pub read: Arc<NativeReplacementStartRead>,
+    pub entries: crate::canonical_media::replacement::ReplacementPreparationEntries,
     pub deadline: tokio::time::Instant,
 }
 fn deny<T>(_: T) -> StreamControlError {
@@ -199,7 +200,15 @@ impl TargetPolicy {
         {
             return Err(StreamControlError::Authority);
         }
-        self.owners(i.read.source(), i.read.target())
+        // These references are metadata, not grants. Derive both original
+        // owners under this same current Store read on every control check.
+        // Re-entering the packet registry here would turn unrelated metadata
+        // contention during negotiation/mute into a permanent Authority error.
+        let old = self
+            .base
+            .replacement_source_owner_with_entries(i.read.source(), &i.entries)
+            .map_err(deny)?;
+        self.owners_with_source(i.read.source(), i.read.target(), old)
     }
 }
 struct Held {
@@ -338,6 +347,40 @@ impl MediaPolicy for TargetPolicy {
             return Err(StreamControlError::Authority);
         }
         let (owner, _) = self.held_owners(i)?;
+        #[cfg(feature = "test-support")]
+        let owner = if matches!(intent, MediaControlIntent::Gate { .. }) {
+            let operation = self
+                .root
+                .upgrade()
+                .ok_or(StreamControlError::Authority)?
+                .origin
+                .request()
+                .operation_id
+                .clone();
+            match self
+                .base
+                .probe_held_registry_for_test(&format!("start:{operation}"), || {
+                    let legacy_refused = matches!(
+                        self.owners(i.read.source(), i.read.target()),
+                        Err(StreamControlError::Authority)
+                    );
+                    let mut expired = i.clone();
+                    expired.deadline = tokio::time::Instant::now() - Duration::from_secs(1);
+                    let expired_refused = matches!(
+                        self.held_owners(&expired),
+                        Err(StreamControlError::Authority)
+                    );
+                    (
+                        legacy_refused && expired_refused,
+                        self.held_owners(i).map(|(owner, _)| owner),
+                    )
+                }) {
+                Some(result) => result?,
+                None => owner,
+            }
+        } else {
+            owner
+        };
         MediaControl::new(
             Box::new(Held {
                 invocation: i.clone(),

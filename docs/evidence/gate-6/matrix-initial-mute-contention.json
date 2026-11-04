@@ -1,0 +1,36 @@
+{
+  "format": "connect/gate6-initial-mute-contention/1",
+  "task": "G6-058",
+  "task_complete": false,
+  "cell_qualified": false,
+  "observed_failure": {
+    "attempt": "v167",
+    "source_revision": "90038f24c52147c7a581a00ba53bfe5a175d50f0",
+    "component_sha256": "821bf83d5948a36be0f3b644cdb2505b124879a9eb44b1ef51e007398f08d401",
+    "stage": "replacement initial mute",
+    "reported_error": "Authority",
+    "completed_moves": 1,
+    "failed_move_source_index": 0,
+    "successful_move_source_index": 4,
+    "server_log_sha256": "47f2ec8cb9ed8b2b5f5f08dde00ac4be5c41f09e41fe69617526acb6bf5ca04f",
+    "browser_log_sha256": "a0ff6e88d5b0e6c2c7b7dee125eb52fe8a68057480ab9ac8b553b0aed2dd0a86",
+    "original_browser_joined": true,
+    "original_servers_joined": true,
+    "integrity": {
+      "source_inputs_unchanged": true,
+      "sdk_dist_inputs_unchanged": true,
+      "executable_unchanged": true
+    },
+    "scope": "One first move failed before a complete media window or terminal idle observation. Actual browser fallback/refusal independently passed. No new quality or idle pass."
+  },
+  "investigation": {
+    "known_mechanism": "StartInvocation.held_owners calls owners, which consults Policy.entry through replacement_source_owner. A contended packet registry returns NotReady, mapped to ParticipantControlError::Authority and then StreamControlError::Authority. Preparation and commit already use exact captured entries; start did not.",
+    "causation_limit": "The original initial-mute log reports Authority but not the failing subcheck. Controlled registry exclusion will verify this concrete mechanism; it cannot by itself prove that registry contention caused every observed initial-mute failure.",
+    "fix": "Capture exact source/retained Connection references before begin_native_replacement_start_with_read; retain them in StartInvocation and rederive owners under the original current Store read, cancellation and deadline at each check. No retries of negotiation/mute or mutation IDs, and no packet authority bypass."
+  },
+  "verification": {
+    "status": "new-controlled-regression-authored-not-run",
+    "case": "sdk_handles::replacement_video_recovery::signed_replacement_initial_mute_retains_current_owners_under_registry_contention",
+    "expected": "Actual initial mute under the real registry mutex rejects old lookup, accepts current captured owners and rejects expired invocation; the same original replacement then carries both video directions and joins original owners."
+  }
+}

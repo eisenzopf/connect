@@ -5299,6 +5299,69 @@
         "intervals": 61,
         "scope": "Original process-tree CPU deltas per sampled wall interval; does not rule out a hot thread, scheduling delay or clock issue. Not a capacity qualification."
       }
+    },
+    {
+      "attempt": "v167",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "source_revision": "90038f24c52147c7a581a00ba53bfe5a175d50f0",
+      "report_sha256": "821bf83d5948a36be0f3b644cdb2505b124879a9eb44b1ef51e007398f08d401",
+      "binary_sha256": "7a51ae60c59614a1dbeabf081f06791e8fb9484e9b83ae13a2102452addc0e1e",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "passed": false,
+      "failure": {
+        "phase": "actual-browser-quality",
+        "browser": {
+          "stage": "four-move-programme",
+          "name": "BrowserSdkError",
+          "kind": "application",
+          "certainty": "recorded",
+          "problem": null
+        }
+      },
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "browser_owner_joined": true,
+      "servers_original_joined": true,
+      "programme_passed": false,
+      "moves_completed": 1,
+      "terminal_ms": null,
+      "retirement": null,
+      "packet_capture": {
+        "format": "connect/native-private-packet-capture/1",
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+        "exit_code": 0,
+        "packet_limit": 200000,
+        "media_workload": true,
+        "version": "tcpdump version 4.99.4",
+        "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+        "pcap_sha256": "c5ff6616e845d451cae5c75d7f5da24443382386ce96be27552ec55d50968387",
+        "pcap_bytes": 19994436,
+        "captured_seconds": 30.396897348000493,
+        "kernel_dropped_packets": 0,
+        "interface": "lo",
+        "link_type": "Ethernet/IPv4/UDP",
+        "filter": "udp and exact owned fixture server/peer addresses and native server port",
+        "counts": {
+          "packets": 38657,
+          "to_server_packets": 23037,
+          "from_server_packets": 15620,
+          "captured_bytes": 19375900,
+          "udp_payload_bytes": 17752306,
+          "to_server_udp_bytes": 8633835,
+          "from_server_udp_bytes": 9118471
+        },
+        "raw_capture_private": true,
+        "decoded_media_verified": false,
+        "transport": "chrome-webtransport"
+      },
+      "routes": [],
+      "source_observations": []
     }
   ],
   "contract_inputs_by_source_revision": {
@@ -5333,6 +5396,16 @@
       "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
     },
     "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "f0b7d64bb6a0842e1b0073d9de4d1ef2b87ad56c70a002b88bab0fa23bd32c08",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "90038f24c52147c7a581a00ba53bfe5a175d50f0": {
       "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
       "docs/decisions/015-gate-6-operating-profile.md": "f0b7d64bb6a0842e1b0073d9de4d1ef2b87ad56c70a002b88bab0fa23bd32c08",
       "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",

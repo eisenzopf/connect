@@ -373,6 +373,13 @@ async fn signed_native_control_preserves_subscription_recovery_and_replacement_g
         .await
         .unwrap();
 }
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_replacement_initial_mute_retains_current_owners_under_registry_contention() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(6))
+        .await
+        .unwrap();
+}
 async fn codec_change(
     owner: &mut CanonicalClient,
     scope: &CommandScope,
@@ -746,6 +753,17 @@ async fn exercise(mode: u8) {
     } else {
         None
     };
+    #[cfg(feature = "test-support")]
+    let start_registry_probe = if mode == 6 {
+        Some(
+            f.server
+                .service
+                .arm_canonical_start_registry_probe_for_test(&command.operation_id)
+                .unwrap(),
+        )
+    } else {
+        None
+    };
     let root = controller.transition(command.clone()).await.unwrap();
     phase(&f, &mut controller, &command, 1).await;
     eprintln!("production replacement phase: replacement-allocate");
@@ -999,6 +1017,11 @@ async fn exercise(mode: u8) {
     publisher.close(options()).await.unwrap();
     subscriber.close(options()).await.unwrap();
     f.server.shutdown().await.unwrap();
+    #[cfg(feature = "test-support")]
+    if let Some(probe) = start_registry_probe {
+        assert_eq!(probe.load(std::sync::atomic::Ordering::Acquire), 2,
+            "initial mute: contended registry refuses the old lookup, exact held owners succeed, expired authority remains refused");
+    }
     #[cfg(feature = "test-support")]
     if let Some(probe) = preparation_registry_probe {
         let bits = probe.load(std::sync::atomic::Ordering::Acquire);

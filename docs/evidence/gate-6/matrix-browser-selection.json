@@ -3,7 +3,7 @@
   "task": "G6-058",
   "task_complete": false,
   "cell_qualified": false,
-  "scope": "Two new focused fixture/evidence checks; actual browser selection is running as part of v167 and has no terminal result yet.",
+  "scope": "Focused checks and exact source-bound actual browser selection observations; no full media or cell pass inferred.",
   "focused_checks": {
     "attempt": "v167-prechecks",
     "source_revision": "90038f24c52147c7a581a00ba53bfe5a175d50f0",
@@ -26,5 +26,72 @@
       "selection-evidence-boundary.log": "fb184ea57734512b1f088f9181209901b9cd46df3eb7eaa2500ea9e48dde20b5"
     }
   },
-  "actual_browser_attempts": []
+  "actual_browser_attempts": [
+    {
+      "attempt": "v167",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "source_revision": "90038f24c52147c7a581a00ba53bfe5a175d50f0",
+      "report_sha256": "821bf83d5948a36be0f3b644cdb2505b124879a9eb44b1ef51e007398f08d401",
+      "binary_sha256": "7a51ae60c59614a1dbeabf081f06791e8fb9484e9b83ae13a2102452addc0e1e",
+      "verified": true,
+      "passed": true,
+      "attempts": [
+        {
+          "phase": "fallback",
+          "transport": "webtransport"
+        },
+        {
+          "phase": "fallback",
+          "transport": "wss-webrtc"
+        },
+        {
+          "phase": "neither",
+          "transport": "webtransport"
+        },
+        {
+          "phase": "neither",
+          "transport": "wss-webrtc"
+        }
+      ],
+      "selected_transport": "wss-webrtc",
+      "fallback_reason": "preferred-transport-timeout",
+      "refusal": {
+        "kind": "transport-uncertain",
+        "certainty": "not-submitted"
+      },
+      "original_reference_recovered": 2,
+      "application_mutations_submitted": 0,
+      "original_physical_owners": 4,
+      "original_physical_owners_joined": true,
+      "cleanup_elapsed_ms": 0.7999999988824129,
+      "failure": null,
+      "cleanup_failure": null,
+      "commands": [
+        {
+          "phase": "fallback",
+          "type": "operation.get",
+          "uses_original_operation": true
+        },
+        {
+          "phase": "recovery-after-refusal",
+          "type": "operation.get",
+          "uses_original_operation": true
+        }
+      ],
+      "unavailable_transports": {
+        "udp_datagrams": 12,
+        "tcp_connections": 2,
+        "errors": 0,
+        "overflow": false,
+        "original_sockets_joined": true
+      },
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "browser_owner_joined": true,
+      "scope": "Control fallback/refusal and original-operation reads only; no fallback media qualification."
+    }
+  ]
 }

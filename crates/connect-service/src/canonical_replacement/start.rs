@@ -105,14 +105,20 @@ impl Runtime {
                 "Original native allocation capture is not yet recorded",
             ));
         }
-        let read = retry_metadata(&self.stop, || {
+        let (read, entries) = retry_metadata(&self.stop, || async {
             let store = self.media.store.clone();
             let a = a.clone();
             let receipt = allocated.receipt.clone();
             let key = credential.to_owned();
-            store_call(move || {
+            let read = store_call(move || {
                 store.native_replacement_start_read_with_peer(&receipt, &key, proof(&a)?)
             })
+            .await?;
+            // Capture exact metadata owners before the once-only start effect.
+            // A busy lookup drops this read and retries within the original
+            // metadata budget; negotiation and mute have not started yet.
+            let entries = self.media.replacement_preparation_entries(read.source())?;
+            Ok((read, entries))
         })
         .await?;
         if crate::canonical_runtime::core_transport(&read.target().endpoint_transport)?
@@ -175,6 +181,7 @@ impl Runtime {
             policy: policy.clone(),
             authorized: a.clone(),
             read,
+            entries,
             deadline,
         });
         let result=async {
