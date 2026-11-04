@@ -713,7 +713,7 @@ async fn exercise(gates: bool) {
         let revision: u64 = rusqlite::Connection::open(&f.config.database)
             .unwrap()
             .query_row(
-                "SELECT stream_revision FROM connections WHERE id=?1",
+                "SELECT json_extract(readiness_json,'$.stream_revision') FROM connections WHERE id=?1",
                 [scope.connection_id.as_ref().unwrap()],
                 |r| r.get(0),
             )
