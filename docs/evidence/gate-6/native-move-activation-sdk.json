@@ -65,10 +65,11 @@
   "proof": [
     "TypeScript compiles; two new Node/browser activation component cases and one new Python component case pass.",
     "Exact ready/stopped state, original binding/topology, separate telephone contract and malformed/partial/contradictory outcomes are checked.",
-    "Generated TypeScript outputs copied from local ARM build and byte hashes verified."
+    "Generated TypeScript outputs copied from local ARM build and byte hashes verified.",
+    "New Rust case passes ready/stopped result parsing and original context validation, with 272 other tests filtered out and all final guards true. Mixed run remains failed due to native fixture compile error."
   ],
   "pending": [
-    "New Rust activation component and corrected failed signed native case.",
+    "Only corrected failed signed native case; v60 running at 1140b7ce. Passing SDK components will not be rerun.",
     "Native routing, feedback/encoder/epoch integration, decoded quality and full Gate 6 matrix."
   ],
   "general_suites_rerun": false,
@@ -132,5 +133,46 @@
     }
   ],
   "rust_retry_source": "2c63f906de05b9673faa8dcf0b466a11701a75b5",
-  "rust_retry_status": "Running new exact Rust activation case, then failed signed native video case only"
+  "rust_retry_status": "Rust activation component PASS with final source/prepared/executable guards. Native build failed because new activation assertion was placed in HandoffResult helper; moved to replacement helper at 1140b7ce.",
+  "rust_component_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 116154,
+    "source_revision": "2c63f906de05b9673faa8dcf0b466a11701a75b5",
+    "passed": false,
+    "steps": [
+      {
+        "group": "sdk",
+        "case": "sdk::movements::activation_tests::native_activation_completion_preserves_ready_stopped_and_refuses_contradictions",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 272 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "18b68d6c88534ec5d7ea14bb77a7fe027ed3b5ef641b70f6cd2416fdc5128f44"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_routing_candidate": true,
+    "builds": [
+      {
+        "group": "sdk",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "c88fdf8222d36faa0876636d3b6c2aabef7874c35739f184f44a9597bcb56694",
+        "test_executable_sha256": "9f7ad55fb229989a20ed84db4a549175a0755be7a82da492c902758a8cfa0bfe",
+        "executable_unchanged": true
+      },
+      {
+        "group": "native",
+        "compile_exit_code": 101,
+        "compile_log_sha256": "1ec83a7261ced9fdc0abf5b49af76bc5d4dfa9c182ea6a436b3b2748e246665b"
+      }
+    ],
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 312.30029366699455
+  }
 }
