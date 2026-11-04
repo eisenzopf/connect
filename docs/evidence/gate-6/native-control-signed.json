@@ -1,0 +1,58 @@
+{
+  "format": "connect/native-control-signed/1",
+  "run": "v140",
+  "source_revision": "96e2b618c4f708bd24dee4291cdee390f10e7c18",
+  "platform": "Owner Mac Studio local Ubuntu 24.04 ARM64 VM",
+  "passed": true,
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 180501,
+    "source_revision": "96e2b618c4f708bd24dee4291cdee390f10e7c18",
+    "passed": true,
+    "steps": [
+      {
+        "group": "production-replacement",
+        "case": "sdk_handles::replacement_video_recovery::signed_native_control_preserves_subscription_recovery_and_replacement_gates",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 1.84s"
+        ],
+        "log_sha256": "9856ec557b4598ab346bef8b9d1cc7bf6377ff1913f8fbfb5df525a066d65c1b"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "signed_control_executor": true,
+    "previous_passed_cases_rerun": false,
+    "builds": [
+      {
+        "group": "production-replacement",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "e4cfcf5278881bc974fac35c5a1a4b5ed348931f2932bbaba86597ef8601666f",
+        "test_executable_sha256": "cc6b7e01433fa30e4ec51fb600915af5acd292ccf1a56a8ffeb4cc8811a9bd5c",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 751.4740286770102
+  },
+  "state_sha256": "761eff9f72116f0216328873d425466c8fcc75ee411aa905a6e614cde897c00b",
+  "observed_markers": [
+    "native executor signed controls: unsubscribe/resubscribe each advance once; same-operation recovery preserves the original revision",
+    "production replacement gate proof: signed generation2 hold/resume, fresh epoch and independent VP8 decode in both directions at original RTP18000 and24000",
+    "production replacement: signed generation2, transferred both original video selections, real receiver feedback and fresh libvpx keys independently decoded at original RTP6000 and12000; one-use raw publisher hint; owned peers and encoder joined; no full transport cell qualified"
+  ],
+  "scope": "One new combined actual signed production listener case: initial unsubscribe/resubscribe, same-operation recovery without another stream revision, original replacement video transfer and recovery, generation-two hold/resume and fresh independent VP8 decode in both directions; normal owned cleanup. Five existing cases filtered.",
+  "limits": [
+    "No full media workload or matrix cell qualification. Full audio continuity/identity, video minimum rate, A/V alignment, expiry and idle remain open.",
+    "The focused scheduling counterexample proves one defect; its contribution to the complete v137 media gaps must be measured by the failed workload.",
+    "G6-054 remains deferred. No GitHub/cloud/provider/model execution."
+  ],
+  "task_complete": false,
+  "cell_qualified": false,
+  "matrix_qualified": false,
+  "whole_gate_qualified": false
+}
