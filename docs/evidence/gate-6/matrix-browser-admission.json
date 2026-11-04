@@ -1,0 +1,3239 @@
+{
+  "format": "connect/gate6-browser-matrix-admission/1",
+  "task": "G6-058",
+  "required_cells": 32,
+  "qualified_cells": 0,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "scope": "Actual isolated production CLI and Chrome browser admission/startup only. Each attempt identifies its source and retains original failure/cleanup evidence. No full 62-second programme, four moves, independently decoded quality, capture, fallback, expiry or ten-second idle qualification.",
+  "attempts": [
+    {
+      "attempt": "v148",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "source_revision": "2fa7382caee8a47b8f315ac7931e6f664f00c743",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-webtransport",
+      "signing_algorithm": "EdDSA",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": "Google Chrome for Testing 156.0.8078.4",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "1e3bcfac2b9b72baba10eadd55ab3982ea203cc489ffc8c13f1f15ca1ec83629",
+      "passed": false,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 1,
+      "unconfigured_ca_refused": true,
+      "trust": {
+        "normal_profile_ca_import": true,
+        "root_sha256": "6ccee1da4e01d0e60c9f9dde2ed995f2ea09c1d77ed17bc9c3e070a8cb769dc9",
+        "browser_version": "Google Chrome for Testing 156.0.8078.4"
+      },
+      "authenticated_owners": 0,
+      "actual_connections": 0,
+      "last_original_stage": null,
+      "original_journal_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stage_events": [],
+      "admission": null,
+      "source_startup": null,
+      "retirement": null,
+      "failure": null,
+      "rtc_connected_observed": false,
+      "rtc_diagnostic_omitted_peers": null,
+      "untrusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "trusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "original_client_closes": [],
+      "owned_stun": null,
+      "owned_audio": null
+    },
+    {
+      "attempt": "v149",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "source_revision": "2ed53986b84277953e40de73cd8b9871c8f57549",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-wss-webrtc",
+      "signing_algorithm": "EdDSA",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": "Google Chrome for Testing 156.0.8078.4",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "7a78eb20f591917fa9a99614a977a9af5bb3331706bf7bd41505161cb9aecdf5",
+      "passed": false,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 1,
+      "unconfigured_ca_refused": true,
+      "trust": {
+        "normal_profile_ca_import": true,
+        "root_sha256": "4b81c270054e05a77dd20131e46c77b4675a2c17ba9592a87ba5c26a2b2c649a",
+        "browser_version": "Google Chrome for Testing 156.0.8078.4"
+      },
+      "authenticated_owners": 7,
+      "actual_connections": 0,
+      "last_original_stage": "unsupported-0",
+      "original_journal_sha256": "65e66273b462a2363e4a038dbb15be918752c5bc1cb87a67c1a293694abe8041",
+      "stage_events": [
+        {
+          "kind": "plan"
+        },
+        {
+          "kind": "intent",
+          "name": "create"
+        },
+        {
+          "kind": "accepted",
+          "name": "create"
+        },
+        {
+          "kind": "completed",
+          "name": "create"
+        },
+        {
+          "kind": "intent",
+          "name": "before"
+        },
+        {
+          "kind": "accepted",
+          "name": "before"
+        },
+        {
+          "kind": "completed",
+          "name": "before"
+        },
+        {
+          "kind": "intent",
+          "name": "add"
+        },
+        {
+          "kind": "accepted",
+          "name": "add"
+        },
+        {
+          "kind": "completed",
+          "name": "add"
+        },
+        {
+          "kind": "intent",
+          "name": "included"
+        },
+        {
+          "kind": "accepted",
+          "name": "included"
+        },
+        {
+          "kind": "completed",
+          "name": "included"
+        },
+        {
+          "kind": "intent",
+          "name": "update"
+        },
+        {
+          "kind": "accepted",
+          "name": "update"
+        },
+        {
+          "kind": "completed",
+          "name": "update"
+        },
+        {
+          "kind": "intent",
+          "name": "remove"
+        },
+        {
+          "kind": "accepted",
+          "name": "remove"
+        },
+        {
+          "kind": "completed",
+          "name": "remove"
+        },
+        {
+          "kind": "intent",
+          "name": "after"
+        },
+        {
+          "kind": "accepted",
+          "name": "after"
+        },
+        {
+          "kind": "completed",
+          "name": "after"
+        },
+        {
+          "kind": "intent",
+          "name": "readd"
+        },
+        {
+          "kind": "accepted",
+          "name": "readd"
+        },
+        {
+          "kind": "completed",
+          "name": "readd"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-0"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-0"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-0"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-0",
+          "certainty": "uncertain"
+        }
+      ],
+      "admission": null,
+      "source_startup": null,
+      "retirement": null,
+      "failure": {
+        "phase": "actual-browser-admission",
+        "browser": {
+          "stage": "admission",
+          "name": "Error",
+          "kind": null,
+          "certainty": null,
+          "problem": null
+        }
+      },
+      "rtc_connected_observed": false,
+      "rtc_diagnostic_omitted_peers": null,
+      "untrusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "trusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "original_client_closes": [
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled"
+      ],
+      "owned_stun": null,
+      "owned_audio": null
+    },
+    {
+      "attempt": "v149",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "source_revision": "2ed53986b84277953e40de73cd8b9871c8f57549",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-webtransport",
+      "signing_algorithm": "EdDSA",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": "Google Chrome for Testing 156.0.8078.4",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "ff01a2bb2819afe8642873d03252e878686360604ec09d6830f6b1dff8cc0b67",
+      "passed": false,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 1,
+      "unconfigured_ca_refused": true,
+      "trust": {
+        "normal_profile_ca_import": true,
+        "root_sha256": "b048bc5990c008a400453f9bf5e073f186e03a67a3b00864f419e0aab9f13057",
+        "browser_version": "Google Chrome for Testing 156.0.8078.4"
+      },
+      "authenticated_owners": 0,
+      "actual_connections": 0,
+      "last_original_stage": null,
+      "original_journal_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stage_events": [],
+      "admission": null,
+      "source_startup": null,
+      "retirement": null,
+      "failure": {
+        "phase": "actual-browser-admission",
+        "browser": {
+          "stage": "authenticate-controller-1",
+          "name": "BrowserSdkError",
+          "kind": "transport-uncertain",
+          "certainty": "not-submitted",
+          "problem": null
+        }
+      },
+      "rtc_connected_observed": false,
+      "rtc_diagnostic_omitted_peers": null,
+      "untrusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "trusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "original_client_closes": [],
+      "owned_stun": null,
+      "owned_audio": null
+    },
+    {
+      "attempt": "v150",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "source_revision": "e9809912aed859db5393cbe7aae2f5f5258344ce",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-wss-webrtc",
+      "signing_algorithm": "EdDSA",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": "Google Chrome for Testing 156.0.8078.4",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "bc6a66c69b509f4dd3fc00d8d5adb9c4f55e89f22c93752bf5e88a2dc8558d04",
+      "passed": false,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 1,
+      "unconfigured_ca_refused": true,
+      "trust": {
+        "normal_profile_ca_import": true,
+        "root_sha256": "cd5f230934dd5842a71e880f38a571b5a61cf3c7c76432998e1f64a482e94f76",
+        "browser_version": "Google Chrome for Testing 156.0.8078.4"
+      },
+      "authenticated_owners": 7,
+      "actual_connections": 0,
+      "last_original_stage": "offer-0",
+      "original_journal_sha256": "966d46cfdfe97f8c34e3465619f91b9d617099467ef0b2c987a2d6ed0983e214",
+      "stage_events": [
+        {
+          "kind": "plan"
+        },
+        {
+          "kind": "intent",
+          "name": "create"
+        },
+        {
+          "kind": "accepted",
+          "name": "create"
+        },
+        {
+          "kind": "completed",
+          "name": "create"
+        },
+        {
+          "kind": "intent",
+          "name": "before"
+        },
+        {
+          "kind": "accepted",
+          "name": "before"
+        },
+        {
+          "kind": "completed",
+          "name": "before"
+        },
+        {
+          "kind": "intent",
+          "name": "add"
+        },
+        {
+          "kind": "accepted",
+          "name": "add"
+        },
+        {
+          "kind": "completed",
+          "name": "add"
+        },
+        {
+          "kind": "intent",
+          "name": "included"
+        },
+        {
+          "kind": "accepted",
+          "name": "included"
+        },
+        {
+          "kind": "completed",
+          "name": "included"
+        },
+        {
+          "kind": "intent",
+          "name": "update"
+        },
+        {
+          "kind": "accepted",
+          "name": "update"
+        },
+        {
+          "kind": "completed",
+          "name": "update"
+        },
+        {
+          "kind": "intent",
+          "name": "remove"
+        },
+        {
+          "kind": "accepted",
+          "name": "remove"
+        },
+        {
+          "kind": "completed",
+          "name": "remove"
+        },
+        {
+          "kind": "intent",
+          "name": "after"
+        },
+        {
+          "kind": "accepted",
+          "name": "after"
+        },
+        {
+          "kind": "completed",
+          "name": "after"
+        },
+        {
+          "kind": "intent",
+          "name": "readd"
+        },
+        {
+          "kind": "accepted",
+          "name": "readd"
+        },
+        {
+          "kind": "completed",
+          "name": "readd"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-0"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-0"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-0"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-0",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-1"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-1"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-1"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-1",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-0"
+        },
+        {
+          "kind": "failure",
+          "name": "offer-0",
+          "certainty": "read-only"
+        }
+      ],
+      "admission": null,
+      "source_startup": null,
+      "retirement": null,
+      "failure": {
+        "phase": "actual-browser-admission",
+        "browser": {
+          "stage": "admission",
+          "name": "BrowserSdkError",
+          "kind": "deadline",
+          "certainty": "read-only",
+          "problem": null
+        }
+      },
+      "rtc_connected_observed": false,
+      "rtc_diagnostic_omitted_peers": null,
+      "untrusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "trusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "original_client_closes": [
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled"
+      ],
+      "owned_stun": null,
+      "owned_audio": null
+    },
+    {
+      "attempt": "v150",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "source_revision": "e9809912aed859db5393cbe7aae2f5f5258344ce",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-wss-webrtc",
+      "signing_algorithm": "ES256",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": "Google Chrome for Testing 156.0.8078.4",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "dac6c0ff7e7ed60be3ab8553d7b5b560abf63d3607cb4e76016b8af00cd9c1f2",
+      "passed": false,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 1,
+      "unconfigured_ca_refused": true,
+      "trust": {
+        "normal_profile_ca_import": true,
+        "root_sha256": "3772bd51751a6d8e4a34ffa44b8a85e4bb61547393cba836f0ef4cd3a0103bb3",
+        "browser_version": "Google Chrome for Testing 156.0.8078.4"
+      },
+      "authenticated_owners": 7,
+      "actual_connections": 0,
+      "last_original_stage": "offer-0",
+      "original_journal_sha256": "2bb9207ddcd2701c0c01775360b195063c8364b6d5d941791f8d4e43acc64d1a",
+      "stage_events": [
+        {
+          "kind": "plan"
+        },
+        {
+          "kind": "intent",
+          "name": "create"
+        },
+        {
+          "kind": "accepted",
+          "name": "create"
+        },
+        {
+          "kind": "completed",
+          "name": "create"
+        },
+        {
+          "kind": "intent",
+          "name": "before"
+        },
+        {
+          "kind": "accepted",
+          "name": "before"
+        },
+        {
+          "kind": "completed",
+          "name": "before"
+        },
+        {
+          "kind": "intent",
+          "name": "add"
+        },
+        {
+          "kind": "accepted",
+          "name": "add"
+        },
+        {
+          "kind": "completed",
+          "name": "add"
+        },
+        {
+          "kind": "intent",
+          "name": "included"
+        },
+        {
+          "kind": "accepted",
+          "name": "included"
+        },
+        {
+          "kind": "completed",
+          "name": "included"
+        },
+        {
+          "kind": "intent",
+          "name": "update"
+        },
+        {
+          "kind": "accepted",
+          "name": "update"
+        },
+        {
+          "kind": "completed",
+          "name": "update"
+        },
+        {
+          "kind": "intent",
+          "name": "remove"
+        },
+        {
+          "kind": "accepted",
+          "name": "remove"
+        },
+        {
+          "kind": "completed",
+          "name": "remove"
+        },
+        {
+          "kind": "intent",
+          "name": "after"
+        },
+        {
+          "kind": "accepted",
+          "name": "after"
+        },
+        {
+          "kind": "completed",
+          "name": "after"
+        },
+        {
+          "kind": "intent",
+          "name": "readd"
+        },
+        {
+          "kind": "accepted",
+          "name": "readd"
+        },
+        {
+          "kind": "completed",
+          "name": "readd"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-0"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-0"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-0"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-0",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-1"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-1"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-1"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-1",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-0"
+        },
+        {
+          "kind": "failure",
+          "name": "offer-0",
+          "certainty": "read-only"
+        }
+      ],
+      "admission": null,
+      "source_startup": null,
+      "retirement": null,
+      "failure": {
+        "phase": "actual-browser-admission",
+        "browser": {
+          "stage": "admission",
+          "name": "BrowserSdkError",
+          "kind": "deadline",
+          "certainty": "read-only",
+          "problem": null
+        }
+      },
+      "rtc_connected_observed": false,
+      "rtc_diagnostic_omitted_peers": null,
+      "untrusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "trusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "original_client_closes": [
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled"
+      ],
+      "owned_stun": null,
+      "owned_audio": null
+    },
+    {
+      "attempt": "v151",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "source_revision": "bb8c166c13440c10324d955827845e3ed7f69223",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-wss-webrtc",
+      "signing_algorithm": "ES256",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": "Google Chrome for Testing 156.0.8078.4",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "18faf2e3bc746273a4452a719eabe11e691c59c71cac0a5a9ead6812c5496e8f",
+      "passed": false,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 1,
+      "unconfigured_ca_refused": true,
+      "trust": {
+        "normal_profile_ca_import": true,
+        "root_sha256": "1e4d43998313b07b3c72f14886ca110bfe01539ee659eae82ba7e84d11926607",
+        "browser_version": "Google Chrome for Testing 156.0.8078.4"
+      },
+      "authenticated_owners": 7,
+      "actual_connections": 0,
+      "last_original_stage": "offer-0",
+      "original_journal_sha256": "ccf22061ceebc96b4f324ffc811542c03d3a6a663ca96ffd1c381bd420407fe1",
+      "stage_events": [
+        {
+          "kind": "plan"
+        },
+        {
+          "kind": "intent",
+          "name": "create"
+        },
+        {
+          "kind": "accepted",
+          "name": "create"
+        },
+        {
+          "kind": "completed",
+          "name": "create"
+        },
+        {
+          "kind": "intent",
+          "name": "before"
+        },
+        {
+          "kind": "accepted",
+          "name": "before"
+        },
+        {
+          "kind": "completed",
+          "name": "before"
+        },
+        {
+          "kind": "intent",
+          "name": "add"
+        },
+        {
+          "kind": "accepted",
+          "name": "add"
+        },
+        {
+          "kind": "completed",
+          "name": "add"
+        },
+        {
+          "kind": "intent",
+          "name": "included"
+        },
+        {
+          "kind": "accepted",
+          "name": "included"
+        },
+        {
+          "kind": "completed",
+          "name": "included"
+        },
+        {
+          "kind": "intent",
+          "name": "update"
+        },
+        {
+          "kind": "accepted",
+          "name": "update"
+        },
+        {
+          "kind": "completed",
+          "name": "update"
+        },
+        {
+          "kind": "intent",
+          "name": "remove"
+        },
+        {
+          "kind": "accepted",
+          "name": "remove"
+        },
+        {
+          "kind": "completed",
+          "name": "remove"
+        },
+        {
+          "kind": "intent",
+          "name": "after"
+        },
+        {
+          "kind": "accepted",
+          "name": "after"
+        },
+        {
+          "kind": "completed",
+          "name": "after"
+        },
+        {
+          "kind": "intent",
+          "name": "readd"
+        },
+        {
+          "kind": "accepted",
+          "name": "readd"
+        },
+        {
+          "kind": "completed",
+          "name": "readd"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-0"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-0"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-0"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-0",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-1"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-1"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-1"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-1",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-0"
+        },
+        {
+          "kind": "failure",
+          "name": "offer-0",
+          "certainty": "read-only"
+        }
+      ],
+      "admission": null,
+      "source_startup": null,
+      "retirement": null,
+      "failure": {
+        "phase": "actual-browser-admission",
+        "browser": {
+          "stage": "admission",
+          "name": "BrowserSdkError",
+          "kind": "deadline",
+          "certainty": "read-only",
+          "problem": null
+        }
+      },
+      "rtc_connected_observed": true,
+      "rtc_diagnostic_omitted_peers": 0,
+      "untrusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "trusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "original_client_closes": [
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled"
+      ],
+      "owned_stun": {
+        "received": 2,
+        "answered": 2,
+        "malformed": 0,
+        "send_errors": 0,
+        "original_socket_joined": true
+      },
+      "owned_audio": null
+    },
+    {
+      "attempt": "v151",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "source_revision": "bb8c166c13440c10324d955827845e3ed7f69223",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-wss-webrtc",
+      "signing_algorithm": "EdDSA",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": "Google Chrome for Testing 156.0.8078.4",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "27ff2058f5b92498a755b6673bc4d715b0c58905091c9ac905c2145299af4e95",
+      "passed": false,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 1,
+      "unconfigured_ca_refused": true,
+      "trust": {
+        "normal_profile_ca_import": true,
+        "root_sha256": "a40b05c5026fd894174a7d94db3a44c41e6884be2fc843626fe0308f4f28445f",
+        "browser_version": "Google Chrome for Testing 156.0.8078.4"
+      },
+      "authenticated_owners": 7,
+      "actual_connections": 0,
+      "last_original_stage": "offer-0",
+      "original_journal_sha256": "2d047f1808763912685e3d3d38022aa76528347c039c213a3355f1440ce4a9d8",
+      "stage_events": [
+        {
+          "kind": "plan"
+        },
+        {
+          "kind": "intent",
+          "name": "create"
+        },
+        {
+          "kind": "accepted",
+          "name": "create"
+        },
+        {
+          "kind": "completed",
+          "name": "create"
+        },
+        {
+          "kind": "intent",
+          "name": "before"
+        },
+        {
+          "kind": "accepted",
+          "name": "before"
+        },
+        {
+          "kind": "completed",
+          "name": "before"
+        },
+        {
+          "kind": "intent",
+          "name": "add"
+        },
+        {
+          "kind": "accepted",
+          "name": "add"
+        },
+        {
+          "kind": "completed",
+          "name": "add"
+        },
+        {
+          "kind": "intent",
+          "name": "included"
+        },
+        {
+          "kind": "accepted",
+          "name": "included"
+        },
+        {
+          "kind": "completed",
+          "name": "included"
+        },
+        {
+          "kind": "intent",
+          "name": "update"
+        },
+        {
+          "kind": "accepted",
+          "name": "update"
+        },
+        {
+          "kind": "completed",
+          "name": "update"
+        },
+        {
+          "kind": "intent",
+          "name": "remove"
+        },
+        {
+          "kind": "accepted",
+          "name": "remove"
+        },
+        {
+          "kind": "completed",
+          "name": "remove"
+        },
+        {
+          "kind": "intent",
+          "name": "after"
+        },
+        {
+          "kind": "accepted",
+          "name": "after"
+        },
+        {
+          "kind": "completed",
+          "name": "after"
+        },
+        {
+          "kind": "intent",
+          "name": "readd"
+        },
+        {
+          "kind": "accepted",
+          "name": "readd"
+        },
+        {
+          "kind": "completed",
+          "name": "readd"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-0"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-0"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-0"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-0",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-1"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-1"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-1"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-1",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-0"
+        },
+        {
+          "kind": "failure",
+          "name": "offer-0",
+          "certainty": "read-only"
+        }
+      ],
+      "admission": null,
+      "source_startup": null,
+      "retirement": null,
+      "failure": {
+        "phase": "actual-browser-admission",
+        "browser": {
+          "stage": "admission",
+          "name": "BrowserSdkError",
+          "kind": "deadline",
+          "certainty": "read-only",
+          "problem": null
+        }
+      },
+      "rtc_connected_observed": true,
+      "rtc_diagnostic_omitted_peers": 0,
+      "untrusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "trusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "original_client_closes": [
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled",
+        "fulfilled"
+      ],
+      "owned_stun": {
+        "received": 2,
+        "answered": 2,
+        "malformed": 0,
+        "send_errors": 0,
+        "original_socket_joined": true
+      },
+      "owned_audio": null
+    },
+    {
+      "attempt": "v152",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "source_revision": "d7019125ace0b3fa2dd2b37e1293e2602ad0211d",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-wss-webrtc",
+      "signing_algorithm": "ES256",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": null,
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "c6d8a780e7aea7a739f9b5d88b792fbffa5836e203efaff8166d3a83986ebf15",
+      "passed": false,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 125,
+      "unconfigured_ca_refused": null,
+      "trust": null,
+      "authenticated_owners": 0,
+      "actual_connections": 0,
+      "last_original_stage": null,
+      "original_journal_sha256": null,
+      "stage_events": [],
+      "admission": null,
+      "source_startup": null,
+      "retirement": null,
+      "failure": {
+        "phase": "actual-browser-admission",
+        "name": "FileNotFoundError",
+        "line": 1015
+      },
+      "rtc_connected_observed": false,
+      "rtc_diagnostic_omitted_peers": null,
+      "untrusted_browser": null,
+      "trusted_browser": null,
+      "original_client_closes": null,
+      "owned_stun": null,
+      "owned_audio": null
+    },
+    {
+      "attempt": "v152",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "source_revision": "d7019125ace0b3fa2dd2b37e1293e2602ad0211d",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-wss-webrtc",
+      "signing_algorithm": "EdDSA",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": null,
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "358787b84c6957afa41c1a37c778c8cbbe8f93b5cb21026b02fba7dc4f1f5ee9",
+      "passed": false,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 125,
+      "unconfigured_ca_refused": null,
+      "trust": null,
+      "authenticated_owners": 0,
+      "actual_connections": 0,
+      "last_original_stage": null,
+      "original_journal_sha256": null,
+      "stage_events": [],
+      "admission": null,
+      "source_startup": null,
+      "retirement": null,
+      "failure": {
+        "phase": "actual-browser-admission",
+        "name": "FileNotFoundError",
+        "line": 1015
+      },
+      "rtc_connected_observed": false,
+      "rtc_diagnostic_omitted_peers": null,
+      "untrusted_browser": null,
+      "trusted_browser": null,
+      "original_client_closes": null,
+      "owned_stun": null,
+      "owned_audio": null
+    },
+    {
+      "attempt": "v153",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "source_revision": "a7b85a59ba5703ff7ca65355800586936556b5a8",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-wss-webrtc",
+      "signing_algorithm": "ES256",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": "Google Chrome for Testing 156.0.8078.4",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "cd2d3276a37dbeac565bee105bce13988d6b2abab9ec194014d46dfd23910d4c",
+      "passed": true,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 0,
+      "unconfigured_ca_refused": true,
+      "trust": {
+        "normal_profile_ca_import": true,
+        "root_sha256": "1789673c7f019cf64921d03dada2a13231da72f12cda250fc7f30147dc57a1fb",
+        "browser_version": "Google Chrome for Testing 156.0.8078.4"
+      },
+      "authenticated_owners": 7,
+      "actual_connections": 6,
+      "last_original_stage": "select-5",
+      "original_journal_sha256": "52fdb72c7a45d40e7720d167ec5043f740260f1fdb56579fcc54352f93f1a39f",
+      "stage_events": [
+        {
+          "kind": "plan"
+        },
+        {
+          "kind": "intent",
+          "name": "create"
+        },
+        {
+          "kind": "accepted",
+          "name": "create"
+        },
+        {
+          "kind": "completed",
+          "name": "create"
+        },
+        {
+          "kind": "intent",
+          "name": "before"
+        },
+        {
+          "kind": "accepted",
+          "name": "before"
+        },
+        {
+          "kind": "completed",
+          "name": "before"
+        },
+        {
+          "kind": "intent",
+          "name": "add"
+        },
+        {
+          "kind": "accepted",
+          "name": "add"
+        },
+        {
+          "kind": "completed",
+          "name": "add"
+        },
+        {
+          "kind": "intent",
+          "name": "included"
+        },
+        {
+          "kind": "accepted",
+          "name": "included"
+        },
+        {
+          "kind": "completed",
+          "name": "included"
+        },
+        {
+          "kind": "intent",
+          "name": "update"
+        },
+        {
+          "kind": "accepted",
+          "name": "update"
+        },
+        {
+          "kind": "completed",
+          "name": "update"
+        },
+        {
+          "kind": "intent",
+          "name": "remove"
+        },
+        {
+          "kind": "accepted",
+          "name": "remove"
+        },
+        {
+          "kind": "completed",
+          "name": "remove"
+        },
+        {
+          "kind": "intent",
+          "name": "after"
+        },
+        {
+          "kind": "accepted",
+          "name": "after"
+        },
+        {
+          "kind": "completed",
+          "name": "after"
+        },
+        {
+          "kind": "intent",
+          "name": "readd"
+        },
+        {
+          "kind": "accepted",
+          "name": "readd"
+        },
+        {
+          "kind": "completed",
+          "name": "readd"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-0"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-0"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-0"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-0",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-1"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-1"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-1"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-1",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-0"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-0"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-1"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-1"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-2"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-2"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-3"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-3"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-4"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-4"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-5"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-5"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-5"
+        },
+        {
+          "kind": "intent",
+          "name": "select-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-0"
+        },
+        {
+          "kind": "completed",
+          "name": "select-0"
+        },
+        {
+          "kind": "intent",
+          "name": "select-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-1"
+        },
+        {
+          "kind": "completed",
+          "name": "select-1"
+        },
+        {
+          "kind": "intent",
+          "name": "select-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-2"
+        },
+        {
+          "kind": "completed",
+          "name": "select-2"
+        },
+        {
+          "kind": "intent",
+          "name": "select-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-3"
+        },
+        {
+          "kind": "completed",
+          "name": "select-3"
+        },
+        {
+          "kind": "intent",
+          "name": "select-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-4"
+        },
+        {
+          "kind": "completed",
+          "name": "select-4"
+        },
+        {
+          "kind": "intent",
+          "name": "select-5"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-5"
+        },
+        {
+          "kind": "completed",
+          "name": "select-5"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-accepted"
+        },
+        {
+          "kind": "end-accepted"
+        },
+        {
+          "kind": "end-accepted"
+        },
+        {
+          "kind": "end-accepted"
+        },
+        {
+          "kind": "end-accepted"
+        },
+        {
+          "kind": "end-accepted"
+        }
+      ],
+      "admission": {
+        "checks": [
+          "seven-current-browser-owners-on-selected-transport",
+          "original-browser-operation-reference-recovers-same-conversation",
+          "participant-add-update-remove-rejoin-and-current-addressed-history",
+          "two-concurrent-accepted-sessions-upgraded-to-audio-video-and-unoffered-screen-refused",
+          "six-real-browser-connections-with-current-session-scoped-duplex-selections"
+        ],
+        "operations": [
+          {
+            "name": "create",
+            "operationId": "matrix_op_e836e234-9755-4973-b8b3-22bf8660a49f",
+            "state": "completed"
+          },
+          {
+            "name": "before",
+            "operationId": "matrix_op_f41d5e1b-d389-4b06-b300-40a37b334893",
+            "state": "completed"
+          },
+          {
+            "name": "add",
+            "operationId": "matrix_op_b6907acb-955a-4d50-9a85-e3dddaac6c69",
+            "state": "completed"
+          },
+          {
+            "name": "included",
+            "operationId": "matrix_op_383bf975-1211-4f6f-9996-50d8f9ea0ea5",
+            "state": "completed"
+          },
+          {
+            "name": "update",
+            "operationId": "matrix_op_de27e50a-a387-495c-b985-fffc6b1f9cea",
+            "state": "completed"
+          },
+          {
+            "name": "remove",
+            "operationId": "matrix_op_dc02fc49-0596-4733-abb5-827e08b560c0",
+            "state": "completed"
+          },
+          {
+            "name": "after",
+            "operationId": "matrix_op_18fe110c-a940-459c-9267-42e785a25ce4",
+            "state": "completed"
+          },
+          {
+            "name": "readd",
+            "operationId": "matrix_op_cf6198fb-8989-47ef-85da-74a1189443a0",
+            "state": "completed"
+          },
+          {
+            "name": "invite-0",
+            "operationId": "matrix_op_53eef1ed-12da-471d-80e8-10df2f65f097",
+            "state": "completed"
+          },
+          {
+            "name": "accept-0-participant-2",
+            "operationId": "matrix_op_c34f3850-9af8-4632-a7f0-8962aca48daa",
+            "state": "completed"
+          },
+          {
+            "name": "accept-0-participant-3",
+            "operationId": "matrix_op_22724bb0-3db0-4cf8-9c72-3f126f07794d",
+            "state": "completed"
+          },
+          {
+            "name": "accept-0-participant-4",
+            "operationId": "matrix_op_82b2ca7d-98a9-42ba-a6d6-c6af2897e3d8",
+            "state": "completed"
+          },
+          {
+            "name": "upgrade-0",
+            "operationId": "matrix_op_1e4850a1-b7a0-476f-8189-d38de0d1e991",
+            "state": "completed"
+          },
+          {
+            "name": "invite-1",
+            "operationId": "matrix_op_a4501ad3-e48a-4908-a8da-1ddf5e8ea951",
+            "state": "completed"
+          },
+          {
+            "name": "accept-1-participant-2",
+            "operationId": "matrix_op_992131ad-cd4e-4684-87a4-efd615b76d7e",
+            "state": "completed"
+          },
+          {
+            "name": "upgrade-1",
+            "operationId": "matrix_op_312e2142-12cd-4e20-bbf0-74e752775ada",
+            "state": "completed"
+          },
+          {
+            "name": "offer-0",
+            "operationId": "matrix_op_289a9ccc-0a3e-4390-aee2-75e3d0bf6b6a",
+            "state": "completed"
+          },
+          {
+            "name": "offer-1",
+            "operationId": "matrix_op_4c6e6882-7ad1-46da-9340-9d2d54b19049",
+            "state": "completed"
+          },
+          {
+            "name": "offer-2",
+            "operationId": "matrix_op_61605576-5201-4586-be78-e9b79681ef49",
+            "state": "completed"
+          },
+          {
+            "name": "offer-3",
+            "operationId": "matrix_op_2eb27636-0850-4079-b6e2-d9a1ac94f446",
+            "state": "completed"
+          },
+          {
+            "name": "offer-4",
+            "operationId": "matrix_op_06a6ee5c-733c-45a3-9133-9bb557ceb23e",
+            "state": "completed"
+          },
+          {
+            "name": "offer-5",
+            "operationId": "matrix_op_c54a58c2-1647-4e74-9cbc-eb5f68ae4cd3",
+            "state": "completed"
+          },
+          {
+            "name": "select-0",
+            "operationId": "matrix_op_7acdcc36-44d8-4849-8e55-e67b3e3f8a1d",
+            "state": "completed"
+          },
+          {
+            "name": "select-1",
+            "operationId": "matrix_op_7515ebb4-9b27-43cf-802f-459d1ed22997",
+            "state": "completed"
+          },
+          {
+            "name": "select-2",
+            "operationId": "matrix_op_4e640c46-343f-436b-b6f9-b7dcf448db8e",
+            "state": "completed"
+          },
+          {
+            "name": "select-3",
+            "operationId": "matrix_op_23446904-6c86-495d-b733-227fa46063a3",
+            "state": "completed"
+          },
+          {
+            "name": "select-4",
+            "operationId": "matrix_op_c05920c1-8e25-426c-a7f4-88d820e91d2b",
+            "state": "completed"
+          },
+          {
+            "name": "select-5",
+            "operationId": "matrix_op_699fb612-9108-403a-b554-b7af21a9bcf2",
+            "state": "completed"
+          }
+        ],
+        "fullProgrammeComplete": false
+      },
+      "source_startup": {
+        "real_time_audio_state": "running",
+        "sources": [
+          {
+            "index": 0,
+            "source_id": 0,
+            "draws": 97,
+            "capture_started": true
+          },
+          {
+            "index": 1,
+            "source_id": 1,
+            "draws": 84,
+            "capture_started": true
+          },
+          {
+            "index": 2,
+            "source_id": 2,
+            "draws": 71,
+            "capture_started": true
+          },
+          {
+            "index": 3,
+            "source_id": 3,
+            "draws": 59,
+            "capture_started": true
+          },
+          {
+            "index": 4,
+            "source_id": 0,
+            "draws": 46,
+            "capture_started": true
+          },
+          {
+            "index": 5,
+            "source_id": 1,
+            "draws": 33,
+            "capture_started": true
+          }
+        ],
+        "scope": "Actual capture startup only. No decoded receive or profile-quality pass."
+      },
+      "retirement": {
+        "passed": true,
+        "elapsedMs": 271.30000000004657,
+        "originalEndsCompleted": 6,
+        "originalClientsClosed": 7,
+        "scope": "Admission component terminal only; no ten-second idle resource restoration or full media programme claim"
+      },
+      "failure": null,
+      "rtc_connected_observed": true,
+      "rtc_diagnostic_omitted_peers": 2,
+      "untrusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "trusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "original_client_closes": null,
+      "owned_stun": {
+        "received": 12,
+        "answered": 12,
+        "malformed": 0,
+        "send_errors": 0,
+        "original_socket_joined": true
+      },
+      "owned_audio": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": true,
+        "binary_sha256": "c08fc5b6e751bb83af5fc65c052a317d88ed8d506c2ca53a813bfc0a22703c78",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 0,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      }
+    },
+    {
+      "attempt": "v153",
+      "stage": "admission",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "source_revision": "a7b85a59ba5703ff7ca65355800586936556b5a8",
+      "server_platform": "ubuntu24-arm64",
+      "client_platform": "ubuntu24-arm64",
+      "transport": "chrome-wss-webrtc",
+      "signing_algorithm": "EdDSA",
+      "browser_image_id": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+      "browser": "Google Chrome for Testing 156.0.8078.4",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "report_sha256": "2895ddbe51e373b9042af675aba1fcd4c37ee0e8c253a6b6b543a7bd037f73b8",
+      "passed": true,
+      "cell_qualified": false,
+      "full_media_programme_executed": false,
+      "controller_gone": true,
+      "source_guard_active_at_terminal": false,
+      "integrity": {
+        "source_inputs_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      "servers": [
+        {
+          "name": "seed-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        },
+        {
+          "name": "materialized-server",
+          "original_joined": true,
+          "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+        }
+      ],
+      "browser_owner_joined": true,
+      "browser_exit_code": 0,
+      "unconfigured_ca_refused": true,
+      "trust": {
+        "normal_profile_ca_import": true,
+        "root_sha256": "1921e38fe295fd33186b1c7d0fb5512f0081b1b83d776623aee0bc7c464840f4",
+        "browser_version": "Google Chrome for Testing 156.0.8078.4"
+      },
+      "authenticated_owners": 7,
+      "actual_connections": 6,
+      "last_original_stage": "select-5",
+      "original_journal_sha256": "4771e362aca923c7e31d8e96c5c21dda7febc064474cb6d5ba163ec77b928ea6",
+      "stage_events": [
+        {
+          "kind": "plan"
+        },
+        {
+          "kind": "intent",
+          "name": "create"
+        },
+        {
+          "kind": "accepted",
+          "name": "create"
+        },
+        {
+          "kind": "completed",
+          "name": "create"
+        },
+        {
+          "kind": "intent",
+          "name": "before"
+        },
+        {
+          "kind": "accepted",
+          "name": "before"
+        },
+        {
+          "kind": "completed",
+          "name": "before"
+        },
+        {
+          "kind": "intent",
+          "name": "add"
+        },
+        {
+          "kind": "accepted",
+          "name": "add"
+        },
+        {
+          "kind": "completed",
+          "name": "add"
+        },
+        {
+          "kind": "intent",
+          "name": "included"
+        },
+        {
+          "kind": "accepted",
+          "name": "included"
+        },
+        {
+          "kind": "completed",
+          "name": "included"
+        },
+        {
+          "kind": "intent",
+          "name": "update"
+        },
+        {
+          "kind": "accepted",
+          "name": "update"
+        },
+        {
+          "kind": "completed",
+          "name": "update"
+        },
+        {
+          "kind": "intent",
+          "name": "remove"
+        },
+        {
+          "kind": "accepted",
+          "name": "remove"
+        },
+        {
+          "kind": "completed",
+          "name": "remove"
+        },
+        {
+          "kind": "intent",
+          "name": "after"
+        },
+        {
+          "kind": "accepted",
+          "name": "after"
+        },
+        {
+          "kind": "completed",
+          "name": "after"
+        },
+        {
+          "kind": "intent",
+          "name": "readd"
+        },
+        {
+          "kind": "accepted",
+          "name": "readd"
+        },
+        {
+          "kind": "completed",
+          "name": "readd"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-0"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-0"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-3"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-0-participant-4"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-0"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-0"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-0",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "invite-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "invite-1"
+        },
+        {
+          "kind": "completed",
+          "name": "invite-1"
+        },
+        {
+          "kind": "intent",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "completed",
+          "name": "accept-1-participant-2"
+        },
+        {
+          "kind": "intent",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "completed",
+          "name": "upgrade-1"
+        },
+        {
+          "kind": "intent",
+          "name": "unsupported-1"
+        },
+        {
+          "kind": "failure",
+          "name": "unsupported-1",
+          "certainty": "refused"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-0"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-0"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-1"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-1"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-2"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-2"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-3"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-3"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-4"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-4"
+        },
+        {
+          "kind": "intent",
+          "name": "offer-5"
+        },
+        {
+          "kind": "accepted",
+          "name": "offer-5"
+        },
+        {
+          "kind": "completed",
+          "name": "offer-5"
+        },
+        {
+          "kind": "intent",
+          "name": "select-0"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-0"
+        },
+        {
+          "kind": "completed",
+          "name": "select-0"
+        },
+        {
+          "kind": "intent",
+          "name": "select-1"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-1"
+        },
+        {
+          "kind": "completed",
+          "name": "select-1"
+        },
+        {
+          "kind": "intent",
+          "name": "select-2"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-2"
+        },
+        {
+          "kind": "completed",
+          "name": "select-2"
+        },
+        {
+          "kind": "intent",
+          "name": "select-3"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-3"
+        },
+        {
+          "kind": "completed",
+          "name": "select-3"
+        },
+        {
+          "kind": "intent",
+          "name": "select-4"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-4"
+        },
+        {
+          "kind": "completed",
+          "name": "select-4"
+        },
+        {
+          "kind": "intent",
+          "name": "select-5"
+        },
+        {
+          "kind": "accepted",
+          "name": "select-5"
+        },
+        {
+          "kind": "completed",
+          "name": "select-5"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-intent"
+        },
+        {
+          "kind": "end-accepted"
+        },
+        {
+          "kind": "end-accepted"
+        },
+        {
+          "kind": "end-accepted"
+        },
+        {
+          "kind": "end-accepted"
+        },
+        {
+          "kind": "end-accepted"
+        },
+        {
+          "kind": "end-accepted"
+        }
+      ],
+      "admission": {
+        "checks": [
+          "seven-current-browser-owners-on-selected-transport",
+          "original-browser-operation-reference-recovers-same-conversation",
+          "participant-add-update-remove-rejoin-and-current-addressed-history",
+          "two-concurrent-accepted-sessions-upgraded-to-audio-video-and-unoffered-screen-refused",
+          "six-real-browser-connections-with-current-session-scoped-duplex-selections"
+        ],
+        "operations": [
+          {
+            "name": "create",
+            "operationId": "matrix_op_7ff42f33-af54-4a78-95b4-1743fa550a90",
+            "state": "completed"
+          },
+          {
+            "name": "before",
+            "operationId": "matrix_op_570c985f-a0e6-40b2-9245-a433b8940939",
+            "state": "completed"
+          },
+          {
+            "name": "add",
+            "operationId": "matrix_op_6eb8407b-ae6c-4300-a868-c195cdc3b9fb",
+            "state": "completed"
+          },
+          {
+            "name": "included",
+            "operationId": "matrix_op_673b355b-500a-46b2-9351-e723933f1344",
+            "state": "completed"
+          },
+          {
+            "name": "update",
+            "operationId": "matrix_op_56ade414-5497-427b-82e7-4f018ecbf2ea",
+            "state": "completed"
+          },
+          {
+            "name": "remove",
+            "operationId": "matrix_op_d5a387cb-f5e0-4f08-9946-97727dd063ca",
+            "state": "completed"
+          },
+          {
+            "name": "after",
+            "operationId": "matrix_op_a6716e0b-a250-44f6-9e24-4d339f4fed21",
+            "state": "completed"
+          },
+          {
+            "name": "readd",
+            "operationId": "matrix_op_ada64fd2-1f70-4e96-afc6-4264d94cfaef",
+            "state": "completed"
+          },
+          {
+            "name": "invite-0",
+            "operationId": "matrix_op_771541d1-1f29-483b-936c-f91018b85306",
+            "state": "completed"
+          },
+          {
+            "name": "accept-0-participant-2",
+            "operationId": "matrix_op_291b684a-18da-4fc7-8e57-9a5d515324b0",
+            "state": "completed"
+          },
+          {
+            "name": "accept-0-participant-3",
+            "operationId": "matrix_op_9ea4339b-57bb-4395-9ea0-3b25e58b0b81",
+            "state": "completed"
+          },
+          {
+            "name": "accept-0-participant-4",
+            "operationId": "matrix_op_8f36bd5f-e25e-4da4-89b9-9a299c5b20d5",
+            "state": "completed"
+          },
+          {
+            "name": "upgrade-0",
+            "operationId": "matrix_op_8cce455b-4c10-4e70-abde-a994fc0a2af8",
+            "state": "completed"
+          },
+          {
+            "name": "invite-1",
+            "operationId": "matrix_op_690d5802-ab4e-474d-8ca3-43a79d5eacb3",
+            "state": "completed"
+          },
+          {
+            "name": "accept-1-participant-2",
+            "operationId": "matrix_op_254b8a90-391a-463d-8db9-c46d77ae9c4c",
+            "state": "completed"
+          },
+          {
+            "name": "upgrade-1",
+            "operationId": "matrix_op_f6f4c9fa-e12d-4471-a969-65e84b33e13d",
+            "state": "completed"
+          },
+          {
+            "name": "offer-0",
+            "operationId": "matrix_op_b0457f19-18af-465e-bd2e-46aaf8e975d5",
+            "state": "completed"
+          },
+          {
+            "name": "offer-1",
+            "operationId": "matrix_op_ed32d926-82f8-4794-af69-bd2b27b7e086",
+            "state": "completed"
+          },
+          {
+            "name": "offer-2",
+            "operationId": "matrix_op_a57a61bd-a196-4bdf-ad04-e41c7d953475",
+            "state": "completed"
+          },
+          {
+            "name": "offer-3",
+            "operationId": "matrix_op_383fe32d-676e-4f3f-bc58-dd42a93b0ca9",
+            "state": "completed"
+          },
+          {
+            "name": "offer-4",
+            "operationId": "matrix_op_9395cc1b-aa9c-4c5c-a9bc-48f84ed1b2cf",
+            "state": "completed"
+          },
+          {
+            "name": "offer-5",
+            "operationId": "matrix_op_d73694bb-bb82-4429-988d-fc801aa96573",
+            "state": "completed"
+          },
+          {
+            "name": "select-0",
+            "operationId": "matrix_op_2f4f89f1-20d2-4ccc-920a-1585b7f86eb8",
+            "state": "completed"
+          },
+          {
+            "name": "select-1",
+            "operationId": "matrix_op_50c98a76-6a4e-406f-a32d-db58a5fd9f98",
+            "state": "completed"
+          },
+          {
+            "name": "select-2",
+            "operationId": "matrix_op_aca7781e-78e5-47b5-bfa3-f402ec039930",
+            "state": "completed"
+          },
+          {
+            "name": "select-3",
+            "operationId": "matrix_op_21ed9adb-a2ea-41ca-8eaf-055b4c7683d0",
+            "state": "completed"
+          },
+          {
+            "name": "select-4",
+            "operationId": "matrix_op_49b4895f-7895-4e74-a647-dfb287188539",
+            "state": "completed"
+          },
+          {
+            "name": "select-5",
+            "operationId": "matrix_op_c3018d9e-8506-4e8e-b88a-1ef4600b0bd1",
+            "state": "completed"
+          }
+        ],
+        "fullProgrammeComplete": false
+      },
+      "source_startup": {
+        "real_time_audio_state": "running",
+        "sources": [
+          {
+            "index": 0,
+            "source_id": 0,
+            "draws": 97,
+            "capture_started": true
+          },
+          {
+            "index": 1,
+            "source_id": 1,
+            "draws": 84,
+            "capture_started": true
+          },
+          {
+            "index": 2,
+            "source_id": 2,
+            "draws": 72,
+            "capture_started": true
+          },
+          {
+            "index": 3,
+            "source_id": 3,
+            "draws": 59,
+            "capture_started": true
+          },
+          {
+            "index": 4,
+            "source_id": 0,
+            "draws": 45,
+            "capture_started": true
+          },
+          {
+            "index": 5,
+            "source_id": 1,
+            "draws": 33,
+            "capture_started": true
+          }
+        ],
+        "scope": "Actual capture startup only. No decoded receive or profile-quality pass."
+      },
+      "retirement": {
+        "passed": true,
+        "elapsedMs": 294.80000000004657,
+        "originalEndsCompleted": 6,
+        "originalClientsClosed": 7,
+        "scope": "Admission component terminal only; no ten-second idle resource restoration or full media programme claim"
+      },
+      "failure": null,
+      "rtc_connected_observed": true,
+      "rtc_diagnostic_omitted_peers": 2,
+      "untrusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "trusted_browser": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "original_client_closes": null,
+      "owned_stun": {
+        "received": 12,
+        "answered": 12,
+        "malformed": 0,
+        "send_errors": 0,
+        "original_socket_joined": true
+      },
+      "owned_audio": {
+        "scope": "Owned anonymous container software output; no physical audio or personal daemon.",
+        "passed": true,
+        "binary_sha256": "c08fc5b6e751bb83af5fc65c052a317d88ed8d506c2ca53a813bfc0a22703c78",
+        "version": "pulseaudio 16.1",
+        "startup_socket_created": true,
+        "command_exit_code": 0,
+        "original_process_joined": true,
+        "exit_code": 0,
+        "socket_exists_after_join": false,
+        "private_home_created": true,
+        "private_cookie_created": true,
+        "error_categories": []
+      }
+    }
+  ],
+  "findings": [
+    "v149 fixes the exporter epoch unit defect; actual WSS authenticates seven Devices. The earlier WT opening failure remains a normal QUIC certificate refusal.",
+    "v150 at e9809912 fixes the signed 501 unsupported_feature certainty translation. Both WSS cohorts complete Session upgrades/refusals and reach accepted offer-0; original readiness waits fail.",
+    "v151 adds the owned STUN reflector and binds browser admission to the 32-cell scheduler. Both cohorts show actual ICE/DTLS connection, but readiness still times out before media capture is started.",
+    "v152 starts real capture after accepted intent/reference persistence, before waiting for readiness. Both executions fail at the Docker audio alias mountpoint before browser execution; they remain failures.",
+    "v153 prepares the ignored mountpoint. Both WSS cohorts pass admission: seven actual browser Devices, four Participants, two Sessions, six AV Connections, current subscriptions, active synthetic captures and original teardown. All source/SDK/executable guards and owned audio/socket/process joins pass.",
+    "Chrome QUIC does not add trust from locally imported roots. WT normal-CA fixture needs a browser-known public trust chain; no certificate bypass or hash-mode substitution has been made."
+  ],
+  "references": [
+    {
+      "title": "Chromium Chrome Root Store FAQ: local trust decisions for QUIC",
+      "url": "https://chromium.googlesource.com/chromium/src/%2Bshow/main/net/data/ssl/chrome_root_store/faq.md"
+    }
+  ],
+  "verification": [
+    {
+      "kind": "signed-SDK-refusal-regression",
+      "source_revision": "e9809912aed859db5393cbe7aae2f5f5258344ce",
+      "checks": 6,
+      "negative_before_failures": 2,
+      "positive_after_passes": 6,
+      "mac_before_sha256": "ee515a3f314fddb380447e3d6f56e3e30edbb639d7bbd40294f80c474268a020",
+      "mac_after_sha256": "74158ff846360509dcc7664153a1ae3b9254079830d0fff78e94a983e2f94b54",
+      "linux_six_passes_log_sha256": "7675124c5c9f993688a3929a96b8d235a815e63a4c26cebad57c003f538e8668",
+      "scope": "Signed control fixture only; 503 and unrecognized 501 retain uncertainty. Actual browser refusal confirmed in subsequent WSS attempts."
+    },
+    {
+      "kind": "browser-stage-boundary-and-owned-STUN-socket-checks",
+      "source_revision": "bb8c166c13440c10324d955827845e3ed7f69223",
+      "matrix_checks": 4,
+      "actual_udp_socket_checks": 1,
+      "mac_matrix_log_sha256": "c2c28825cf17016f0bb1c39a512eee8c6bb403035338656ef7ea9788e97c8900",
+      "mac_stun_log_sha256": "6c4a8faa89c15af5bd017da4b077f4478e938298516feda32cb99d43b0983803",
+      "linux_five_passes_log_sha256": "1372e3bad4f81ad5d56a78b527a0c6d669f486430d15004a248373a7c025ed0c",
+      "scope": "Admission cannot qualify a cell or cross source/platform/signing/image boundaries; malformed UDP input is refused and the original reflected transaction/socket join is checked."
+    }
+  ]
+}

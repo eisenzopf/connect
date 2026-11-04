@@ -107,12 +107,12 @@ that each converted private key derives the enrolled public key; it supports the
 actual Ed25519 RFC5958 fixture format and ES256 without exposing key material in
 public reports. Both retained signing cohorts exported/imported successfully.
 
-Six new focused checks pass for intent persistence, uncertainty, original
+Six initial focused checks pass for intent persistence, uncertainty, original
 references, deadline/cleanup ownership and signing-key conversion. Key checks
 also pass on Linux Node22.16.0. Three additional actor-export checks pass for
-private-file boundaries, issuance credentials and signing cohorts. These are library checks. The browser admission
-scenario still needs the owned fixture/launcher integration and actual browser
-execution; it does not qualify a cell. The complete 60-second media, four-move,
+private-file boundaries, issuance credentials and signing cohorts. Those are library checks. Actual
+Chrome admission is now connected to the matrix runner and has passed both WSS
+signing cohorts at `a7b85a59`; it does not qualify a cell. The complete 60-second media, four-move,
 expiry and idle observations remain required. See
 [the bounded implementation evidence](../evidence/gate-6/browser-matrix-admission-candidate.json).
 
@@ -134,10 +134,11 @@ The actual browser then uses the public BrowserSdkClient to run admission.
 On the local Ubuntu ARM host, with the existing exact ARM browser image:
 
 ```sh
-python3 scripts/rehearse-gate6-browser-matrix.py --stage admission \
-  --transport chrome-webtransport --signing EdDSA \
-  --image sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b \
-  --output .local/gate-6/browser-matrix-candidate/chrome-wt-eddsa
+python3 scripts/run-gate6-transport-matrix.py --phase run --stage admission \
+  --browser-image sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b \
+  --cell G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA \
+  --cell G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256 \
+  --output .local/gate-6/browser-matrix-candidate
 ```
 
 `chrome-wss-webrtc` selects the independent WSS/RTC admission path. This stage
@@ -146,4 +147,28 @@ unexecuted. A green admission component is incomplete, never a cell pass.
 All synthetic credentials, TLS keys, original operation references and raw logs
 stay private. The image uses the VM host network for this explicit Local scope;
 its actual ARM ELF and frozen browser version are checked. No host personal
-profile, camera, microphone, provider or account is used.
+profile, camera, microphone, provider or account is used. The owned PulseAudio
+null sink supplies a real-time output clock. Its short private mount alias
+respects Linux Unix-socket path limits and joins the original daemon afterward.
+
+The actual [browser observations](../evidence/gate-6/matrix-browser-admission.json)
+retain eleven attempts and their sources. The corrected WSS SDK preserves a
+signed `501 unsupported_feature` as an explicit refusal; unrelated `503` and
+unrecognized `501` failures retain uncertainty. Six new signed control checks
+prove the before/fix boundary on both transport adapters and pass on Linux.
+Four additional matrix-stage boundary checks and one real UDP STUN/socket check
+also pass on both local hosts. Capture startup now follows accepted-reference
+persistence and precedes the offer-readiness wait. Both WSS cohorts complete all
+six current AV offers/subscriptions with active synthetic capture, six original
+ends and seven client closes in less than 300 ms. This is startup/retirement
+evidence, not decoded quality or the full movement programme.
+
+WT currently fails before authentication: Chrome QUIC rejects the locally added
+root even though HTTPS/WSS accept it. This is consistent with
+[Chromium's documented local trust policy](https://chromium.googlesource.com/chromium/src/%2Bshow/main/net/data/ssl/chrome_root_store/faq.md).
+The fixture needs a valid hostname and certificate chaining to a browser-known
+root. A Let's Encrypt DNS-01 certificate is a suitable option that can keep the
+service and test traffic local; [DNS-01 does not require a public webserver](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge).
+No Let's Encrypt certificate is configured yet. No certificate-verification
+bypass, developer-mode flag or hash-mode substitution has been used to count a
+normal-CA cell as passed.
