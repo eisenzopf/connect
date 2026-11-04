@@ -5,6 +5,7 @@ import { BrowserVideoEpochs } from "./browser_video_epochs.js";
 import { RtcpCaptureClock, RtcpReceiveClock } from "./browser_rtcp.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import { type Envelope } from "./uctp_wire.js";
+import { type BrowserReplacementRoot, type BrowserReplacementReceipt } from "./browser_replacement.js";
 export type BrowserDataProtocol = "text" | "json" | "binary";
 export type BrowserDataBody = {
     type: "text";
@@ -27,6 +28,8 @@ export interface BrowserConnectionOptions {
     nativeVideoFeedback?: boolean;
     audio?: string;
     video?: string;
+    /** Separate receiver port for movement; when present, video is sendonly. */
+    receiveVideo?: string;
     screen?: string;
     data?: {
         id: string;
@@ -140,7 +143,16 @@ export declare class BrowserMediaPeer {
         ready: Promise<BrowserMediaConnection>;
         readonly submissionAttempted: boolean;
     };
+    /** Prepare a signed target against one existing replacement root. `prepared`
+     * permits explicit capture for private readiness; only `completed` observes
+     * the original committed move. No phase is retried or silently reconnected. */
+    beginReplacementConnection(input: BrowserConnectionOptions, original: BrowserReplacementRoot, options?: RequestOptions): {
+        prepared: Promise<BrowserMediaConnection>;
+        completed: Promise<BrowserReplacementReceipt>;
+        readonly submissionAttempted: boolean;
+    };
     offerConnection(input: BrowserConnectionOptions, options?: RequestOptions, accepted?: () => void, attempted?: () => void): Promise<BrowserMediaConnection>;
+    private openConnection;
     /** Start one original native control while retaining its counteroffer owner. */
     beginControl(id: string, operationId: string, type: "stream.subscribe" | "stream.unsubscribe" | "connection.update", payload: JsonObject, expectedRevision: number, options: RequestOptions): {
         response: Promise<Envelope[]>;
@@ -149,6 +161,8 @@ export declare class BrowserMediaPeer {
     };
     private transition;
     private completed;
+    private replacementStatus;
+    private completedReplacement;
     private state;
     streams(id: string): Readonly<MediaBinding>[];
     revision(id: string): number;
@@ -160,7 +174,8 @@ export declare class BrowserMediaPeer {
     private dataReceived;
     end(id: string, operationId: string, options: RequestOptions): Promise<void>;
     private remove;
-    /** Retire local owners after observing an authorized durable end receipt. */
+    /** Retire local owners after durable end or failed local preparation.
+     * Sends no mutation and makes no claim about the remote operation outcome. */
     retireLocalConnection(id: string): void;
     private retire;
     close(): void;

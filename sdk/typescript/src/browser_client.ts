@@ -343,6 +343,9 @@ export class BrowserClient {
     get identityId(): string {
         return this.options.identityId;
     }
+    get deviceId(): string {
+        return this.options.device.id;
+    }
     get participantId(): string | undefined {
         return typeof this.auth?.payload.participant_id === "string"
             ? this.auth.payload.participant_id

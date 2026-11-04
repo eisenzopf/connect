@@ -222,6 +222,9 @@ export class BrowserClient {
     get identityId() {
         return this.options.identityId;
     }
+    get deviceId() {
+        return this.options.device.id;
+    }
     get participantId() {
         return typeof this.auth?.payload.participant_id === "string"
             ? this.auth.payload.participant_id

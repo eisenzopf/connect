@@ -37,18 +37,29 @@ frames. Its monotonic terminal cannot be extended by a stalled audio clock.
 renewal without credential refresh or automatic reconnect. The workload still
 needs to own its cadence and join it at the original terminal.
 
-Source inspection identified these remaining replacement integration steps:
+The WebTransport target API is now implemented through
+`BrowserMediaPeer.beginReplacementConnection` and typed
+`session.connections.prepareReplacement`. It submits the two original-root
+phases once, installs the exact signed target parameters for precommit capture,
+and independently waits for the original movement receipt. It retains the
+original target/device/endpoint/stream bindings and retires failed preparations.
+Seven new low-level lifecycle checks and four signed SDK boundary checks pass
+locally. The seven low-level cases reran after strengthening receipt validation;
+no older suite reran. These checks use synthetic control/codec fixtures and do
+not establish actual browser movement or decoded media success.
+
+Remaining replacement integration steps:
 
 - Bind target allocation and media preparation to the original
   `connection.replace` operation record. The Rust public client implements the
-  two signed phases in `crates/connect-client/src/canonical/native.rs`; the
-  browser SDK currently exposes the movement command but not these target phases.
+  two signed phases in `crates/connect-client/src/canonical/native.rs`; the new
+  browser counterpart now needs connection to the actual matrix movement driver.
 - Give browser replacement preparation its own readiness lifecycle. The ordinary
   `BrowserMediaPeer.transition` waits for the root to complete before installing
   routes. Replacement preparation needs actual target IO before movement can
-  complete, so copying the ordinary offer path unchanged would create a circular
-  wait. This is a source-level finding; no browser replacement run has yet proved
-  or disproved that failure in execution.
+  complete. The new replacement branch therefore exposes prepared capture before
+  final completion. Its focused lifecycle checks pass; no browser replacement
+  run has yet verified the path against the actual server.
 - Implement the corresponding WebRTC target adapter path. The current service
   explicitly refuses WebRTC replacement transport in `canonical_replacement.rs`,
   and `canonical_replacement/start.rs` configures the native adapter. Enabling an
@@ -56,7 +67,7 @@ Source inspection identified these remaining replacement integration steps:
 - Run the original four moves at 15/40 seconds through those public browser paths,
   using the continuing masters, then evaluate all complete-cell requirements.
 
-Only new local focused checks ran for this increment: ten signed-control SDK
+The preceding source/keepalive increment ran only new local focused checks: ten signed-control SDK
 keepalive cases and four source ownership/clock boundary cases. Eight keepalive
 cases passed on the initial run; two test assertions incorrectly compared a
 null-prototype wire object with a plain object and passed after correcting the

@@ -279,6 +279,8 @@ export interface BrowserOperationSnapshot {
     readonly state: BrowserOperationState;
     readonly revision: number;
     readonly recordId?: string;
+    /** Original replacement reservation recorded; not allocation or media readiness. */
+    readonly replacementPrepared?: boolean;
     readonly problem?: Json;
 }
 export interface BrowserCompletion<T> {
@@ -1343,6 +1345,12 @@ export class BrowserOperation<T> {
             );
         this.#record = value.record_id as string;
         this.#revision = Number(value.revision);
+        if (
+            value.native_replacement_prepared !== undefined &&
+            (this.reference.command !== "connection.replace" ||
+                typeof value.native_replacement_prepared !== "boolean")
+        )
+            s.malformed(this.reference);
         if (value.state === "completed" && value.result !== undefined) {
             const completed = operationRetirements.get(this);
             operationRetirements.delete(this);
@@ -1356,6 +1364,12 @@ export class BrowserOperation<T> {
                 state: value.state as BrowserOperationState,
                 revision: Number(value.revision),
                 recordId: value.record_id as string,
+                ...(value.native_replacement_prepared === undefined
+                    ? {}
+                    : {
+                          replacementPrepared:
+                              value.native_replacement_prepared as boolean,
+                      }),
                 ...(value.problem === undefined
                     ? {}
                     : { problem: copy(value.problem) }),
@@ -2398,6 +2412,183 @@ export class BrowserConversation {
 }
 export class BrowserSession {
     readonly connections = {
+        /** Target-owned physical preparation for an existing endpoint move.
+         * Start capture on the returned Connection while completion is pending.
+         * The completion promise observes the original move, never a new offer
+         * root. Existing candidate-Connection moves require separate adoption. */
+        prepareReplacement: async (
+            input: {
+                operation: BrowserSdkOperationReference<BrowserMoveResult>;
+                audio: StreamId;
+                video?: { send: StreamId; receive: StreamId };
+            },
+            options: BrowserSdkRequestOptions,
+        ): Promise<{
+            readonly connection: BrowserConnection;
+            readonly completion: Promise<BrowserCompletion<BrowserMoveResult>>;
+        }> => {
+            fields(input, ["operation", "audio", "video"], invalid);
+            fields(options, ["timeoutMs", "signal"], invalid);
+            const key = reference(
+                referenceJson(input.operation),
+                browserOperationKinds.connectionReplace,
+            );
+            const context = key.continuation;
+            if (
+                key.scope.conversationId !== this.conversationId ||
+                key.scope.sessionId !== this.id ||
+                context?.kind !== "replacement" ||
+                !identifier(input.audio)
+            )
+                invalid();
+            if (context.target.kind !== "endpoint")
+                throw new BrowserSdkError("unsupported", "not-submitted", key);
+            const audio = input.audio,
+                video = input.video ? { ...input.video } : undefined;
+            if (video) {
+                fields(video, ["send", "receive"], invalid);
+                if (
+                    ![video.send, video.receive].every(identifier) ||
+                    new Set([audio, video.send, video.receive]).size !== 3
+                )
+                    invalid();
+            }
+            const budget = new Budget(options),
+                s = current(this.client),
+                peer = s.peer,
+                epoch = s.owner.status.physicalEpoch;
+            if (peer.controlTransport !== "webtransport")
+                throw new BrowserSdkError("unsupported", "not-submitted", key);
+            const operation = new BrowserOperation(
+                this.client,
+                key,
+                browserOperationKinds.connectionReplace,
+            );
+            let snapshot: BrowserOperationSnapshot;
+            for (;;) {
+                snapshot = await operation.status(
+                    budget.options() as BrowserSdkRequestOptions,
+                );
+                s.observe(peer, epoch);
+                if (
+                    snapshot.state === "preparing" &&
+                    snapshot.replacementPrepared === true
+                )
+                    break;
+                if (!["accepted", "preparing"].includes(snapshot.state))
+                    throw new BrowserSdkError("conflict", "not-submitted", key);
+                await budget.delay();
+            }
+            const connectionId = sdkId<"connection">(
+                "replacement_" + snapshot.recordId!,
+            );
+            if (
+                s.local.has(connectionId) ||
+                s.pending.has(connectionId) ||
+                s.local.size + s.pending.size >= 8
+            )
+                throw new BrowserSdkError("conflict", "not-submitted", key);
+            const reservation = {};
+            s.pending.set(connectionId, reservation);
+            let begun:
+                | ReturnType<BrowserMediaPeer["beginReplacementConnection"]>
+                | undefined;
+            try {
+                begun = s
+                    .nativePeer()
+                    .beginReplacementConnection(
+                        {
+                            conversationId: this.conversationId,
+                            sessionId: this.id,
+                            connectionId,
+                            operationId: key.operationId,
+                            audio,
+                            video: video?.send,
+                            receiveVideo: video?.receive,
+                            nativeVideoFeedback: s.nativeVideoFeedback,
+                        },
+                        {
+                            recordId: snapshot.recordId!,
+                            operationId: key.operationId,
+                            conversationId: this.conversationId,
+                            sessionId: this.id,
+                            sourceConnectionId: key.scope.connectionId!,
+                            retainedConnectionId:
+                                context.retained_connection_id,
+                            targetConnectionId: connectionId,
+                            endpointId: context.target.id,
+                            deviceId: peer.deviceId,
+                        },
+                        budget.options(),
+                    );
+                const local = {
+                    cid: this.conversationId,
+                    sid: this.id,
+                    epoch,
+                    ready: begun.prepared,
+                    offerOperation: key.operationId,
+                    generation: 1,
+                    audio,
+                    video: video?.send,
+                };
+                s.local.set(connectionId, local);
+                s.cleanup.track(begun.prepared);
+                s.cleanup.track(begun.completed);
+                const completion = s.cleanup.track(
+                    begun.completed
+                        .then(async (receipt) => {
+                            s.observe(peer, epoch);
+                            if (s.local.get(connectionId) !== local)
+                                throw new BrowserSdkError(
+                                    "cancelled",
+                                    "read-only",
+                                    key,
+                                );
+                            local.generation = receipt.generation;
+                            const result = await operation.wait(
+                                budget.options() as BrowserSdkRequestOptions,
+                            );
+                            s.observe(peer, epoch);
+                            return result;
+                        })
+                        .catch((error) => {
+                            if (s.local.get(connectionId) === local) {
+                                s.mediaPeer?.retireLocalConnection(
+                                    connectionId,
+                                );
+                                s.local.delete(connectionId);
+                            }
+                            throw translated(error, "uncertain", key);
+                        }),
+                );
+                void completion.catch(() => {});
+                const prepared = await begun.prepared;
+                prepared.onClose(() => {
+                    if (s.local.get(connectionId) === local)
+                        s.local.delete(connectionId);
+                });
+                s.observe(peer, epoch);
+                budget.options();
+                return Object.freeze({
+                    connection: new BrowserConnection(
+                        this.client,
+                        this.conversationId,
+                        this.id,
+                        connectionId,
+                    ),
+                    completion,
+                });
+            } catch (error) {
+                throw translated(
+                    error,
+                    begun?.submissionAttempted ? "uncertain" : "not-submitted",
+                    key,
+                );
+            } finally {
+                if (s.pending.get(connectionId) === reservation)
+                    s.pending.delete(connectionId);
+            }
+        },
         byId: (id: ConnectionId) => {
             sdkId(id);
             return new BrowserConnection(

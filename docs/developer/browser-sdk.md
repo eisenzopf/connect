@@ -36,6 +36,32 @@ expired local authentication and propagates current server authorization
 refusals. Cancellation or a response timeout retires the original physical
 peer through the existing control owner's cleanup rules.
 
+For an endpoint-targeted WebTransport device move, persist the controller's
+original `connection.replace` reference and its video mappings first. On the
+target Device, `session.connections.prepareReplacement({operation: move.reference,
+audio: targetAudioId, video: {send: targetVideoId, receive: targetVideoReceiverId}},
+{timeoutMs: 8000})` observes the original recorded reservation, then submits one
+allocation phase and one media phase using that same root. The target IDs must
+match the original movement mappings. It returns `{connection, completion}`:
+start explicit capture on `connection` immediately, using clones of the original
+continuing source tracks, then await `completion` for the original movement
+receipt. Negotiated target parameters permit private readiness IO; they do not
+mean the move has completed. The shared preparation/completion deadline is not
+extended when capture begins. Lost responses are not resubmitted or reconnected;
+recover the original operation reference.
+
+The advanced `BrowserMediaPeer.beginReplacementConnection` exposes the same
+separation as `prepared` and `completed` promises. Completion checks the original
+record, scope, target Device/Endpoint, retained/retired Connections and negotiated
+stream identities before updating the local generation/revision. A failed or
+timed-out preparation retires its local codecs and capture owners. A completed
+but stopped target is a refusal with its original receipt still recoverable.
+The typed physical target path currently rejects WebRTC and existing candidate
+Connection adoption before submission; their production integration remains
+open. Eleven new local state-machine and signed SDK boundary cases cover this
+increment. Actual browser movement and complete matrix qualification have not
+yet run against it.
+
 ```ts
 import {
     BrowserSdkClient, browserOperationKinds, sdkId,

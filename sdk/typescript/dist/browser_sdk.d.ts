@@ -52,6 +52,8 @@ export interface BrowserOperationSnapshot {
     readonly state: BrowserOperationState;
     readonly revision: number;
     readonly recordId?: string;
+    /** Original replacement reservation recorded; not allocation or media readiness. */
+    readonly replacementPrepared?: boolean;
     readonly problem?: Json;
 }
 export interface BrowserCompletion<T> {
@@ -287,6 +289,21 @@ export declare class BrowserSession {
     readonly receiptSnapshot?: BrowserSessionSnapshot | undefined;
     readonly receiptConsultationReturn?: BrowserConsultationReturnReceipt | undefined;
     readonly connections: {
+        /** Target-owned physical preparation for an existing endpoint move.
+         * Start capture on the returned Connection while completion is pending.
+         * The completion promise observes the original move, never a new offer
+         * root. Existing candidate-Connection moves require separate adoption. */
+        prepareReplacement: (input: {
+            operation: BrowserSdkOperationReference<BrowserMoveResult>;
+            audio: StreamId;
+            video?: {
+                send: StreamId;
+                receive: StreamId;
+            };
+        }, options: BrowserSdkRequestOptions) => Promise<{
+            readonly connection: BrowserConnection;
+            readonly completion: Promise<BrowserCompletion<BrowserMoveResult>>;
+        }>;
         byId: (id: ConnectionId) => BrowserConnection;
         offer: (input: {
             connectionId: ConnectionId;

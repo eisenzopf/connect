@@ -46,6 +46,13 @@ import {
     type JsonObject,
 } from "./uctp_json.js";
 import { identifier, type Envelope, type Scope } from "./uctp_wire.js";
+import {
+    replacementRoot,
+    replacementFrame,
+    replacementReceipt,
+    type BrowserReplacementRoot,
+    type BrowserReplacementReceipt,
+} from "./browser_replacement.js";
 
 export type BrowserDataProtocol = "text" | "json" | "binary";
 export type BrowserDataBody =
@@ -63,6 +70,8 @@ export interface BrowserConnectionOptions {
     nativeVideoFeedback?: boolean;
     audio?: string;
     video?: string;
+    /** Separate receiver port for movement; when present, video is sendonly. */
+    receiveVideo?: string;
     screen?: string;
     data?: { id: string; protocol: BrowserDataProtocol }[];
 }
@@ -113,12 +122,13 @@ interface Route {
 interface ConnectionState {
     scope: Scope & { cid: string; sid: string; connid: string };
     revision: number;
+    connectionGeneration: number;
     caps: JsonObject;
     captureClock: RtcpCaptureClock;
     receiveClock: RtcpReceiveClock;
     routes: Map<string, Route>;
     data: Map<string, BrowserDataProtocol>;
-    allowed: Map<string, { kind: Json; codec: Json }>;
+    allowed: Map<string, { kind: Json; codec: Json; direction?: Json }>;
     received: Set<string>;
     selectedKinds: Set<string>;
     reconciling?: Promise<void>;
@@ -134,6 +144,11 @@ interface Transition {
     revision: number;
     accept: (frame: Envelope) => void;
     fail: (error: unknown) => void;
+}
+interface ReplacementPreparation {
+    root: BrowserReplacementRoot;
+    prepared: (connection: BrowserMediaConnection) => void;
+    committed: (receipt: BrowserReplacementReceipt) => void;
 }
 interface Plan {
     feedback: Map<number, ReturnType<typeof captureAllocation>>;
@@ -372,7 +387,7 @@ export class BrowserMediaPeer {
         if (
             !jsonObject(result) ||
             result.connection_id !== state.scope.connid ||
-            result.connection_generation !== 1 ||
+            result.connection_generation !== state.connectionGeneration ||
             result.action !== payload.action ||
             result.resources_changed !== false ||
             !Array.isArray(result.gate_streams) ||
@@ -696,7 +711,12 @@ export class BrowserMediaPeer {
             const allowed = state.allowed.get(value.strm_id);
             const direction = invert(value.direction);
             if (allowed) {
-                if (allowed.kind !== value.kind || allowed.codec !== codec.name)
+                if (
+                    allowed.kind !== value.kind ||
+                    allowed.codec !== codec.name ||
+                    (allowed.direction !== undefined &&
+                        allowed.direction !== direction)
+                )
                     return fail(
                         "Server changed the requested logical Stream profile",
                     );
@@ -1223,11 +1243,94 @@ export class BrowserMediaPeer {
             },
         };
     }
+    /** Prepare a signed target against one existing replacement root. `prepared`
+     * permits explicit capture for private readiness; only `completed` observes
+     * the original committed move. No phase is retried or silently reconnected. */
+    beginReplacementConnection(
+        input: BrowserConnectionOptions,
+        original: BrowserReplacementRoot,
+        options: RequestOptions = {},
+    ): {
+        prepared: Promise<BrowserMediaConnection>;
+        completed: Promise<BrowserReplacementReceipt>;
+        readonly submissionAttempted: boolean;
+    } {
+        const root = replacementRoot(original);
+        if (
+            !input ||
+            input.purpose !== undefined ||
+            !input.audio ||
+            input.screen ||
+            input.operationId !== root.operationId ||
+            input.conversationId !== root.conversationId ||
+            input.sessionId !== root.sessionId ||
+            input.connectionId !== root.targetConnectionId ||
+            (input.video !== undefined) !== (input.receiveVideo !== undefined)
+        )
+            throw new ConnectError(
+                "invalid-request",
+                "Use the original target and explicit directional Video ports",
+            );
+        let prepare!: (connection: BrowserMediaConnection) => void,
+            reject!: (error: unknown) => void;
+        const prepared = new Promise<BrowserMediaConnection>((yes, no) => {
+            prepare = yes;
+            reject = no;
+        });
+        let attempted = false,
+            receipt: BrowserReplacementReceipt | undefined;
+        const completed = this.tasks.track(
+            this.openConnection(
+                input,
+                options,
+                undefined,
+                () => {
+                    attempted = true;
+                },
+                {
+                    root,
+                    prepared: prepare,
+                    committed: (value) => {
+                        receipt = value;
+                    },
+                },
+            )
+                .then(() => {
+                    if (!receipt)
+                        return fail(
+                            "Replacement completed without its original receipt",
+                        );
+                    return receipt;
+                })
+                .catch((error) => {
+                    reject(error);
+                    throw error;
+                }),
+        );
+        void prepared.catch(() => {});
+        void completed.catch(() => {});
+        return {
+            prepared,
+            completed,
+            get submissionAttempted() {
+                return attempted;
+            },
+        };
+    }
     async offerConnection(
         input: BrowserConnectionOptions,
         options: RequestOptions = {},
         accepted?: () => void,
         attempted?: () => void,
+    ): Promise<BrowserMediaConnection> {
+        return this.openConnection(input, options, accepted, attempted);
+    }
+    private async openConnection(
+        input: BrowserConnectionOptions,
+        options: RequestOptions,
+        accepted?: () => void,
+        attempted?: () => void,
+        replacement?: ReplacementPreparation,
     ): Promise<BrowserMediaConnection> {
         this.check();
         const timeout = options.timeoutMs ?? 10000;
@@ -1242,6 +1345,7 @@ export class BrowserMediaPeer {
                 (input.purpose !== "handoff-preparation" ||
                     !input.audio ||
                     input.video ||
+                    input.receiveVideo ||
                     input.screen ||
                     input.data?.length)) ||
             (input.data !== undefined &&
@@ -1266,6 +1370,7 @@ export class BrowserMediaPeer {
             nativeVideoFeedback: input.nativeVideoFeedback,
             audio: input.audio,
             video: input.video,
+            receiveVideo: input.receiveVideo,
             screen: input.screen,
             data: input.data?.map((v) => ({ id: v.id, protocol: v.protocol })),
         };
@@ -1275,9 +1380,19 @@ export class BrowserMediaPeer {
                 streams.push({
                     id: input[kind]!,
                     kind,
-                    direction: "sendrecv",
+                    direction:
+                        kind === "video" && input.receiveVideo
+                            ? "sendonly"
+                            : "sendrecv",
                     codec_preferences: [kind === "audio" ? "opus" : "vp8"],
                 });
+        if (input.receiveVideo)
+            streams.push({
+                id: input.receiveVideo,
+                kind: "video",
+                direction: "recvonly",
+                codec_preferences: ["vp8"],
+            });
         for (const data of input.data ?? [])
             streams.push({
                 id: data.id,
@@ -1307,7 +1422,8 @@ export class BrowserMediaPeer {
         this.check();
         if (
             (input.audio && !support.audio) ||
-            ((input.video || input.screen) && !support.video)
+            ((input.video || input.receiveVideo || input.screen) &&
+                !support.video)
         )
             throw new ConnectError(
                 "unsupported-media-profile",
@@ -1323,7 +1439,7 @@ export class BrowserMediaPeer {
                   ]
                 : [],
             video_codecs:
-                input.video || input.screen
+                input.video || input.receiveVideo || input.screen
                     ? [
                           {
                               name: "vp8",
@@ -1349,6 +1465,7 @@ export class BrowserMediaPeer {
                 connid: input.connectionId,
             },
             revision: 0,
+            connectionGeneration: 1,
             caps,
             captureClock: new RtcpCaptureClock(
                 "connect-" + crypto.randomUUID(),
@@ -1359,7 +1476,11 @@ export class BrowserMediaPeer {
             allowed: new Map(
                 streams.map((s) => [
                     String(s.id),
-                    { kind: s.kind, codec: (s.codec_preferences as Json[])[0] },
+                    {
+                        kind: s.kind,
+                        codec: (s.codec_preferences as Json[])[0],
+                        ...(replacement ? { direction: s.direction } : {}),
+                    },
                 ]),
             ),
             received: new Set(),
@@ -1369,12 +1490,67 @@ export class BrowserMediaPeer {
         };
         this.connections.set(input.connectionId, state);
         try {
+            if (replacement) {
+                const root = replacement.root;
+                const observed = await this.replacementStatus(root, {
+                    ...options,
+                    timeoutMs: budget.remaining(),
+                });
+                if (
+                    observed.state !== "preparing" ||
+                    observed.native_replacement_prepared !== true
+                )
+                    throw new ConnectError(
+                        "conflict",
+                        "Original replacement preparation is not currently recorded",
+                    );
+                attempted?.();
+                const frames = await this.client.request(
+                    "connection.offer",
+                    {
+                        substrate: "webtransport",
+                        capabilities: caps,
+                        streams_offered: streams,
+                        replacement_preparation: {
+                            profile: "connect-replacement-preparation-v1",
+                            operation_record_id: root.recordId,
+                        },
+                    },
+                    {
+                        ...state.scope,
+                        operation_id: root.operationId,
+                        expected_revision: 0,
+                    },
+                    { ...options, timeoutMs: budget.remaining() },
+                );
+                const allocated = replacementFrame(
+                    root,
+                    frames,
+                    root.targetConnectionId,
+                );
+                if (
+                    allocated.state !== "preparing" ||
+                    Number(allocated.revision) < Number(observed.revision)
+                )
+                    return fail(
+                        "Original replacement allocation did not remain preparing",
+                    );
+            }
             await this.transition(
                 state,
                 input.operationId,
                 "connection.offer",
                 {
                     substrate: "webtransport",
+                    ...(replacement
+                        ? {
+                              replacement_preparation: {
+                                  profile: "connect-replacement-media-v1",
+                                  operation_record_id:
+                                      replacement.root.recordId,
+                              },
+                          }
+                        : {}),
                     ...(input.purpose === "handoff-preparation"
                         ? {
                               handoff_preparation: {
@@ -1388,9 +1564,14 @@ export class BrowserMediaPeer {
                 { ...options, timeoutMs: budget.remaining() },
                 accepted,
                 attempted,
+                undefined,
+                undefined,
+                replacement,
             );
         } catch (error) {
             this.retire(input.connectionId);
+            if (error instanceof ConnectError && error.code === "protocol")
+                this.client.close(error);
             throw error;
         }
         return new BrowserMediaConnection(this, input.connectionId);
@@ -1488,6 +1669,7 @@ export class BrowserMediaPeer {
         attempted?: () => void,
         requestedRevision?: number,
         startedResponse?: (response: Promise<Envelope[]>) => void,
+        replacement?: ReplacementPreparation,
     ): Promise<void> {
         this.check();
         const timeout = options.timeoutMs ?? 10000;
@@ -1621,22 +1803,62 @@ export class BrowserMediaPeer {
                 accepted?.();
                 await this.answer(state, frame, operationId, remaining());
                 await started.response;
-                completed = await this.completed(
-                    state.scope.cid,
-                    operationId,
-                    until,
-                    options.signal,
-                );
-                try {
+                if (replacement) {
+                    // These are the exact signed target parameters, not a
+                    // completed movement. Install before waiting so real target
+                    // IO can satisfy the server's private readiness phase.
                     this.install(state, plan);
-                } catch (error) {
-                    if (!(
-                        error instanceof ConnectError &&
-                        error.code === "closed" &&
-                        this.connections.get(state.scope.connid) !== state
-                    ))
-                        this.die(error);
-                    throw error;
+                    replacement.prepared(
+                        new BrowserMediaConnection(this, state.scope.connid),
+                    );
+                    completed = await this.completedReplacement(
+                        replacement.root,
+                        until,
+                        options.signal,
+                    );
+                    const receipt = replacementReceipt(
+                        replacement.root,
+                        completed,
+                    );
+                    const readiness = (completed.result as JsonObject)
+                        .readiness as JsonObject;
+                    const actualStreams = readiness.streams as string[];
+                    if (
+                        actualStreams.length !== state.allowed.size ||
+                        new Set(actualStreams).size !== actualStreams.length ||
+                        actualStreams.some((id) => !state.allowed.has(id))
+                    )
+                        return fail(
+                            "Replacement receipt changed the negotiated target streams",
+                        );
+                    this.requireState(state);
+                    state.revision = receipt.streamRevision;
+                    state.connectionGeneration = receipt.generation;
+                    // The original completed move transfers these receiver
+                    // ports. Later signed reconciliation may update their
+                    // source while retaining the negotiated local publishers.
+                    for (const stream of state.allowed.values())
+                        if (stream.direction !== "sendonly")
+                            state.selectedKinds.add(String(stream.kind));
+                    replacement.committed(receipt);
+                } else {
+                    completed = await this.completed(
+                        state.scope.cid,
+                        operationId,
+                        until,
+                        options.signal,
+                    );
+                    try {
+                        this.install(state, plan);
+                    } catch (error) {
+                        if (!(
+                            error instanceof ConnectError &&
+                            error.code === "closed" &&
+                            this.connections.get(state.scope.connid) !== state
+                        ))
+                            this.die(error);
+                        throw error;
+                    }
                 }
             } else
                 completed = await this.completed(
@@ -1752,6 +1974,67 @@ export class BrowserMediaPeer {
                     "Media operation remains uncertain",
                 );
             await new Promise((r) => setTimeout(r, 20));
+        }
+    }
+    private async replacementStatus(
+        root: BrowserReplacementRoot,
+        options: RequestOptions,
+    ): Promise<JsonObject> {
+        const frames = await this.client.request(
+            "operation.get",
+            { operation_id: root.operationId },
+            {
+                cid: root.conversationId,
+                sid: root.sessionId,
+                connid: root.sourceConnectionId,
+            },
+            options,
+        );
+        return replacementFrame(root, frames, root.sourceConnectionId);
+    }
+    private async completedReplacement(
+        root: BrowserReplacementRoot,
+        until: number,
+        signal?: AbortSignal,
+    ): Promise<JsonObject> {
+        let revision = -1;
+        for (;;) {
+            const left = until - performance.now();
+            if (left < 1)
+                throw new ConnectError(
+                    "timeout",
+                    "Original replacement completion remains uncertain",
+                );
+            const value = await this.replacementStatus(root, {
+                timeoutMs: left,
+                signal,
+            });
+            if (Number(value.revision) < revision)
+                return fail("Original replacement revision regressed");
+            revision = Number(value.revision);
+            if (value.state === "completed") return value;
+            if (["failed", "cancelled"].includes(String(value.state)))
+                throw new ConnectError(
+                    "refused",
+                    "Original replacement did not complete",
+                );
+            if (
+                ![
+                    "accepted",
+                    "preparing",
+                    "ready",
+                    "committing",
+                    "unknown",
+                    "interrupted",
+                ].includes(String(value.state))
+            )
+                return fail("Invalid original replacement state");
+            await new Promise((resolve) =>
+                setTimeout(
+                    resolve,
+                    Math.min(20, Math.max(0, until - performance.now())),
+                ),
+            );
         }
     }
     private state(id: string): ConnectionState {
@@ -2018,7 +2301,8 @@ export class BrowserMediaPeer {
         route.video?.close();
         this.feedbackWrites.delete(route);
     }
-    /** Retire local owners after observing an authorized durable end receipt. */
+    /** Retire local owners after durable end or failed local preparation.
+     * Sends no mutation and makes no claim about the remote operation outcome. */
     retireLocalConnection(id: string): void {
         this.retire(id);
     }

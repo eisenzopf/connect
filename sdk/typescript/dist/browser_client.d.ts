@@ -63,6 +63,7 @@ export declare class BrowserClient {
     /** Actual physical control selected at construction; caller option edits cannot change it. */
     get controlTransport(): "webtransport" | "websocket";
     get identityId(): string;
+    get deviceId(): string;
     get participantId(): string | undefined;
     /** Expiry of the signed authentication observation; not a current server grant. */
     get authenticationExpiresAt(): number | undefined;
