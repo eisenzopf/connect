@@ -69,10 +69,21 @@ export async function constrainVideoCapture(
         clearTimeout(timer);
     }
     const settings = track.getSettings();
+    // A native requestFrame-driven canvas reports zero automatic frames per
+    // second. It is a live source, not a missing capture clock. Keep the same
+    // dimension limits; the negotiated sender still enforces maxFramerate=30.
+    const manualCanvas =
+        settings.frameRate === 0 &&
+        track.readyState === "live" &&
+        typeof CanvasCaptureMediaStreamTrack === "function" &&
+        track instanceof CanvasCaptureMediaStreamTrack &&
+        typeof HTMLCanvasElement === "function" &&
+        track.canvas instanceof HTMLCanvasElement &&
+        typeof track.requestFrame === "function";
     if (
         !settings.width ||
         !settings.height ||
-        !settings.frameRate ||
+        (!manualCanvas && (!settings.frameRate || settings.frameRate < 0)) ||
         settings.width > 640 ||
         settings.height > 360 ||
         settings.frameRate > 30

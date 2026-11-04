@@ -228,6 +228,7 @@ def record_browser_result(matrix, cell, report, report_sha256, exit_code):
         failure=report.get("failure")))
     cell.update(status="incomplete" if passed else "failed",
                 reason=cell["execution"]["producer"] + ("-passed-full-checks-missing" if passed else "-failed"))
+    record_browser_control_checks(cell, observation, report_sha256, passed)
     if observation.get("selection"):
         selection_passed = (all(guards.values()) and browser_selection_verified(observation)
             and observation.get("source_revision") == matrix["source_revision"]
@@ -271,6 +272,29 @@ def record_browser_result(matrix, cell, report, report_sha256, exit_code):
             gaps.append("owned-drain-and-ten-second-idle-not-qualified")
     matrix["matrix_qualified"] = matrix["task_complete"] = matrix["whole_gate_qualified"] = False
     return cell
+
+
+def record_browser_control_checks(cell, observation, digest, passed):
+    """Record completed admission clauses without borrowing media/expiry proof."""
+    retirement = observation.get("retirement", {})
+    valid = (passed and observation.get("passed") is True
+        and observation.get("authenticated_owners") == 7 and observation.get("actual_connections") == 6
+        and retirement.get("passed") is True and retirement.get("originalEndsCompleted") == 6
+        and retirement.get("originalSessionsEnded") == 2 and retirement.get("originalClientsClosed") == 7)
+    checks = observation.get("admission", {}).get("checks", [])
+    requirements = {
+        "participant-add-update-remove-and-current-audiences":
+            "participant-add-update-remove-rejoin-and-current-addressed-history",
+        "session-upgrade-and-current-capability-refusal":
+            "two-concurrent-accepted-sessions-upgraded-to-audio-video-and-unoffered-screen-refused",
+    }
+    for name, check in requirements.items():
+        if valid and check in checks:
+            cell["check_results"][name] = dict(status="passed", evidence=digest)
+    if "non_av_scope" in cell:
+        cell["non_av_observations"] = dict(report_sha256=digest, valid=valid, checks=checks,
+            missing=["four-device-moves-and-old-owner-retirement", "current-revocation-and-expiry-refusal",
+                     "ten-second-idle-resource-restoration"])
 
 
 def merge_hosts(base, reports):
