@@ -59,7 +59,7 @@ def _context(saved: Json) -> Any:
     return saved["continuation"]
 
 
-def _topology(value: Any, client: Client, key: OperationKey, *, consultation: bool = False) -> TopologyChange:
+def _topology(value: Any, client: Client, key: OperationKey, *, consultation: bool = False, stopped: str | None = None) -> TopologyChange:
     if (type(value["retained"]) is not list or not value["retained"] or type(value["admitted"]) is not list or not value["admitted"]
             or not consultation and len(value["admitted"]) != 1 or type(value["retired"]) is not list
             or sum(len(value[k]) for k in ("retained","admitted","retired")) > 100 or not _natural(value["topologyRevision"],1)
@@ -77,7 +77,13 @@ def _topology(value: Any, client: Client, key: OperationKey, *, consultation: bo
                 or value["receiptStreamRevision"] is not None):
             return _bad()
         return client.conversations.by_id(value["conversationId"]).sessions.by_id(value["sessionId"]).connections.by_id(id(value["id"]))
-    return TopologyChange(tuple(connection(v) for v in value["retained"]),tuple(connection(v) for v in value["admitted"]),tuple(id(v) for v in value["retired"]),TopologyRevision(value["topologyRevision"]),None if value["conversationRevision"] is None else ConversationRevision(value["conversationRevision"]))
+    def retired_id(v):
+        if v == stopped:
+            if any(x["id"] == v for x in value["retained"]) or not any(x["id"] == v for x in value["admitted"]) or value["retired"].count(v) != 1:
+                return _bad()
+            return v
+        return id(v)
+    return TopologyChange(tuple(connection(v) for v in value["retained"]),tuple(connection(v) for v in value["admitted"]),tuple(retired_id(v) for v in value["retired"]),TopologyRevision(value["topologyRevision"]),None if value["conversationRevision"] is None else ConversationRevision(value["conversationRevision"]))
 
 
 def consultation_result(value: Any, client: Client, key: OperationKey, saved: Json) -> ConsultationResult:
@@ -111,10 +117,14 @@ def handoff_result(value: Any, client: Client, key: OperationKey, saved: Json) -
 
 
 def move_result(value: Any, client: Client, key: OperationKey, saved: Json) -> MoveResult:
-    if not _object(value,("retained","admitted","retired","topologyRevision","conversationRevision","connection","binding")):
+    if not _object(value,("retained","admitted","retired","topologyRevision","conversationRevision","connection","binding","activationState")):
         return _bad()
-    t=_topology(value,client,key);context=_context(saved);target=context["target"];v=value["connection"];b=value["binding"]
-    if (t.conversation_revision is not None or not any(v.id == context["retained_connection_id"] for v in t.retained)
+    state=value.get("activationState")
+    if "activationState" not in value or state is not None and (type(state) is not str or state not in ("ready","stopped")):
+        return _bad()
+    stopped=value["connection"].get("id") if state == "stopped" and type(value["connection"]) is dict else None
+    t=_topology(value,client,key,stopped=stopped);context=_context(saved);target=context["target"];v=value["connection"];b=value["binding"]
+    if ((state == "stopped") != (t.admitted[0].id in t.retired) or t.conversation_revision is not None or not any(v.id == context["retained_connection_id"] for v in t.retained)
             or key.scope.connection_id not in t.retired or not _object(v,("id","conversationId","sessionId","receiptStreamRevision"))
             or (v["id"],v["conversationId"],v["sessionId"],v["receiptStreamRevision"]) != (t.admitted[0].id,key.scope.conversation_id,key.scope.session_id,None)
             or not _object(b,("generation","participantId","membershipEpoch","endpointId","deviceId"))
@@ -123,7 +133,7 @@ def move_result(value: Any, client: Client, key: OperationKey, saved: Json) -> M
             or (b["endpointId"] != target["id"] if target["kind"] == "endpoint" else v["id"] != target["id"])):
         return _bad()
     binding=MoveBinding(b["generation"],b["participantId"],b["membershipEpoch"],b["endpointId"],b["deviceId"])
-    return MoveResult(t.retained,t.admitted,t.retired,t.topology_revision,t.conversation_revision,t.admitted[0],binding)
+    return MoveResult(t.retained,t.admitted,t.retired,t.topology_revision,t.conversation_revision,state,t.admitted[0],binding)
 
 
 async def consult(session: Session, input: ConsultInput, options: MutationOptions) -> ConsultationOperation:

@@ -62,6 +62,7 @@ export interface SdkMoveInput {
     readonly expectedTopologyRevision: SdkRevision<"topology">;
 }
 export interface SdkMoveResult extends SdkTopologyChange {
+    readonly activationState: "ready" | "stopped" | null;
     readonly connection: SdkConnection;
     /** Captured binding observation; metadata handles acquire no media ownership. */
     readonly binding: {
@@ -234,7 +235,11 @@ function original(saved: Json): JsonObject {
         return protocol();
     return saved.continuation;
 }
-function topology(v: JsonObject, ctx: Context): SdkTopologyChange {
+function topology(
+    v: JsonObject,
+    ctx: Context,
+    stopped?: string,
+): SdkTopologyChange {
     if (
         !Array.isArray(v.retained) ||
         !v.retained.length ||
@@ -267,9 +272,23 @@ function topology(v: JsonObject, ctx: Context): SdkTopologyChange {
             return protocol();
         return ctx.connection(id(value.id));
     };
+    const retiredValues = v.retired;
     const retained = Object.freeze(v.retained.map(connection)),
         admitted = Object.freeze(v.admitted.map(connection)),
-        retired = Object.freeze(v.retired.map(id));
+        retired = Object.freeze(
+            v.retired.map((value) => {
+                if (value === stopped) {
+                    if (
+                        retained.some((v) => v.id === value) ||
+                        !admitted.some((v) => v.id === value) ||
+                        retiredValues.filter((v) => v === value).length !== 1
+                    )
+                        return protocol();
+                    return value as ConnectionId;
+                }
+                return id(value);
+            }),
+        );
     return Object.freeze({
         retained,
         admitted,
@@ -357,15 +376,34 @@ export function moveResult(
             "conversationRevision",
             "connection",
             "binding",
+            "activationState",
         ])
     )
         return protocol();
     const c = original(saved),
         target = c.target as JsonObject,
-        t = topology(value, ctx),
+        t = topology(
+            value,
+            ctx,
+            value.activationState === "stopped" &&
+                object(value.connection, [
+                    "id",
+                    "conversationId",
+                    "sessionId",
+                    "receiptStreamRevision",
+                ]) &&
+                identifier(value.connection.id)
+                ? value.connection.id
+                : undefined,
+        ),
         binding = value.binding,
         connection = value.connection;
     if (
+        ![null, "ready", "stopped"].includes(
+            value.activationState as string | null,
+        ) ||
+        (value.activationState === "stopped") !==
+            t.retired.includes(t.admitted[0].id) ||
         t.conversationRevision !== undefined ||
         !t.retained.some((v) => v.id === c.retained_connection_id) ||
         !t.retired.includes(ctx.key.scope.connectionId!) ||
@@ -399,6 +437,7 @@ export function moveResult(
     return Object.freeze({
         ...t,
         connection: t.admitted[0],
+        activationState: value.activationState as "ready" | "stopped" | null,
         binding: Object.freeze({
             ...binding,
         }) as unknown as SdkMoveResult["binding"],

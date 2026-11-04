@@ -323,7 +323,12 @@ pub struct ConsultationResult<S, C> {
 pub struct HandoffResult<C> {
     pub topology: TopologyChange<C>,
 }
+pub enum MoveActivationState {
+    Ready,
+    Stopped,
+}
 pub struct MoveResult<C> {
+    pub activation_state: Option<MoveActivationState>,
     pub connection: C,
     pub topology: TopologyChange<C>,
 }

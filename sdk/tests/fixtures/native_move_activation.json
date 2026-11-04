@@ -1,0 +1,17 @@
+{
+  "retained_connection_ids": ["remote"],
+  "admitted_connection_ids": ["candidate"],
+  "retired_connection_ids": ["source"],
+  "session_revision": 4,
+  "conversation_revision": null,
+  "connection_id": "candidate",
+  "replaces": "source",
+  "generation": 2,
+  "participant_id": "publisher",
+  "membership_epoch": 9,
+  "endpoint_id": "endpoint_new",
+  "device_id": "device_new",
+  "activation_state": "ready",
+  "readiness": {"streams": ["voice", "camera", "incoming-camera"], "stream_revision": 4, "participant_revision": 4},
+  "physical_readiness": {"streams": ["voice", "camera", "incoming-camera"], "stream_revision": 4, "participant_revision": 4}
+}

@@ -505,6 +505,7 @@ class MoveBinding:
 
 @dataclass(frozen=True, repr=False)
 class MoveResult(TopologyChange):
+    activation_state: Literal["ready", "stopped"] | None
     connection: Connection
     binding: MoveBinding
 

@@ -96,6 +96,7 @@ pub(super) fn handoff_json(v: HandoffResult) -> Value {
 pub(super) fn move_json(v: MoveResult) -> Value {
     let mut result = topology(v.topology);
     result["connection"] = super::connection::handle_json(v.connection);
+    result["activationState"] = json!(v.activation_state);
     result["binding"] = json!({"generation":v.binding.generation,"participantId":v.binding.participant_id,"membershipEpoch":v.binding.membership_epoch,
         "endpointId":v.binding.endpoint_id,"deviceId":v.binding.device_id});
     result

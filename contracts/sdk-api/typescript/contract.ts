@@ -226,6 +226,7 @@ export interface ConsultationResult extends TopologyChange {
 }
 export interface HandoffResult extends TopologyChange {}
 export interface MoveResult extends TopologyChange {
+    readonly activationState: "ready" | "stopped" | null;
     readonly connection: Connection;
 }
 export interface SessionDecision {

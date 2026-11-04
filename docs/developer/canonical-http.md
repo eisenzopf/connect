@@ -259,6 +259,15 @@ an internal temporary admission refusal. Revoked credentials, foreign generation
 and uncertain effects remain permanent refusals. Telephone replacement retains
 its separately implemented `NativeReplacementCompletion` result.
 
+SDK movement results preserve this distinction as `activation_state` in Rust and
+Python and `activationState` in Node/browser: `ready` or `stopped` for native
+activation, absent (`None`/`null`) for the telephone completion contract. A stopped
+native result preserves its admitted-then-retired target in both historical
+sets. Every other cross-set overlap, duplicate, mismatched physical/readiness
+pair, partial activation field set or invented state is refused. These result
+handles remain observations and confer no media custody or current permission.
+
+
 Verification of the installation barrier is in progress under G6-058. The
 metadata prerequisite's Store cases do not qualify Service installation, physical
 termination races, process restart recovery or uninterrupted media.

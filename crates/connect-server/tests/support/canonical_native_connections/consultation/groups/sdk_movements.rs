@@ -157,6 +157,10 @@ pub(super) async fn handoff_completed(
         }
     };
     let value = operation.wait(options()).await.unwrap().value;
+    let expected_activation = recorded
+        .get("activation_state")
+        .map(|state| serde_json::from_value(state.clone()).unwrap());
+    assert_eq!(value.activation_state, expected_activation);
     assert_eq!(
         value.topology.topology_revision.get(),
         recorded["session_revision"].as_u64().unwrap()
@@ -427,6 +431,7 @@ pub(super) async fn replacement_completed(
     let replay = restored.wait(options()).await.unwrap().value;
     assert_eq!(replay.connection.id(), value.connection.id());
     assert_eq!(replay.binding.generation, value.binding.generation);
+    assert_eq!(replay.activation_state, value.activation_state);
     assert!(replay.connection.native_negotiation().unwrap().is_none());
     fresh.close(options()).await.unwrap();
     client.close(options()).await.unwrap();

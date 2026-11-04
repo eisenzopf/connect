@@ -666,6 +666,7 @@ function moveResult(
         ),
         ...transitionTopology(client, key, observed),
         binding: observed.binding,
+        activationState: observed.activationState,
     });
 }
 export const browserOperationKinds = Object.freeze({

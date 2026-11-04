@@ -213,7 +213,7 @@ createInterface({input:process.stdin}).on('line',line=>{
       const handle=id=>({...conn(a),id});
       actual={retained:[handle(c.retained_connection_id)],admitted:[handle(id)],retired:handoff?(c.outgoing==='leave'?[a.reference.scope.connection_id]:[]):[a.reference.scope.connection_id],topologyRevision:3,conversationRevision:handoff&&c.role.scope==='conversation'?c.role.expected_conversation_revision+1:null};
       if(handoff)actual.roleChange=config.mode==='handoff-no-native'?null:{participantRevision:4,roleScope:c.role.scope,outgoing:c.outgoing,sourceParticipant:c.source_participant,targetParticipant:c.target_participant,cleanup:c.outgoing==='leave'?'pending':'not_requested'};
-      else {actual.connection=handle(id);actual.binding={generation:3,participantId:'from',membershipEpoch:2,endpointId:c.target.kind==='endpoint'?c.target.id:'endpoint',deviceId:'device'};}
+      else {actual.activationState=config.activationState??null;if(config.activationState==='stopped')actual.retired.push(id);actual.connection=handle(id);actual.binding={generation:3,participantId:'from',membershipEpoch:2,endpointId:c.target.kind==='endpoint'?c.target.id:'endpoint',deviceId:'device'};}
      } else if(a.kind==='connection_offer'||a.kind==='connection_end')actual=conn(a,a.kind==='connection_offer'?1:null);
      else if(a.kind==='connection_update'){
       const u=intents.get(a.reference.operation_id)?.update??{action:'quality',interval_ms:250};let outcome;

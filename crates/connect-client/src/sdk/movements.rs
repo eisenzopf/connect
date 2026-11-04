@@ -88,8 +88,17 @@ pub struct MoveBindingObservation {
     pub endpoint_id: EndpointId,
     pub device_id: DeviceId,
 }
+/// Historical activation outcome, never current media permission.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MoveActivationState {
+    Ready,
+    Stopped,
+}
 #[derive(Clone, Debug)]
 pub struct MoveResult {
+    /// None for the separately implemented telephone completion contract.
+    pub activation_state: Option<MoveActivationState>,
     pub connection: Connection,
     pub topology: TopologyChange,
     pub binding: MoveBindingObservation,
@@ -120,6 +129,8 @@ struct WireMove {
     endpoint_id: EndpointId,
     device_id: DeviceId,
     readiness: Value,
+    activation_state: Option<MoveActivationState>,
+    physical_readiness: Option<Value>,
 }
 fn bad(key: &OperationKey, submitted: bool) -> Error {
     Error::request(ErrorKind::Protocol, Some(key), submitted)
@@ -143,8 +154,13 @@ fn bounded(value: &Value, key: &OperationKey, extra: &[&str]) -> Result<()> {
     }
     Ok(())
 }
-fn validate_topology(w: &WireTopology, key: &OperationKey) -> Result<()> {
+fn validate_topology(
+    w: &WireTopology,
+    key: &OperationKey,
+    stopped: Option<&ConnectionId>,
+) -> Result<()> {
     let mut ids = BTreeSet::new();
+    let mut retired = BTreeSet::new();
     if w.session_revision.get() == 0
         || w.retained_connection_ids.is_empty()
         || w.admitted_connection_ids.len() != 1
@@ -155,8 +171,10 @@ fn validate_topology(w: &WireTopology, key: &OperationKey) -> Result<()> {
         || w.retained_connection_ids
             .iter()
             .chain(&w.admitted_connection_ids)
-            .chain(&w.retired_connection_ids)
             .any(|id| !ids.insert(id))
+        || w.retired_connection_ids
+            .iter()
+            .any(|id| !retired.insert(id) || (ids.contains(id) && Some(id) != stopped))
     {
         return Err(bad(key, true));
     }
@@ -171,7 +189,7 @@ fn handoff(value: &Value, key: &OperationKey) -> Result<WireHandoff> {
         return Err(bad(key, true));
     }
     let w: WireHandoff = serde_json::from_value(value.clone()).map_err(|_| bad(key, true))?;
-    validate_topology(&w.topology, key)?;
+    validate_topology(&w.topology, key, None)?;
     if let Some(change) = &w.native_handoff {
         if !positive(change.participant_revision)
             || change.source_participant == change.target_participant
@@ -197,16 +215,44 @@ fn movement(value: &Value, key: &OperationKey) -> Result<WireMove> {
             "endpoint_id",
             "device_id",
             "readiness",
+            "activation_state",
+            "physical_readiness",
         ],
     )?;
     if key.command != "connection.replace" {
         return Err(bad(key, true));
     }
     let w: WireMove = serde_json::from_value(value.clone()).map_err(|_| bad(key, true))?;
-    validate_topology(&w.topology, key)?;
+    let stopped = w.activation_state == Some(MoveActivationState::Stopped);
+    // These are two current producer contracts, not a version downgrade. Native
+    // activation fields must appear together; telephone has neither field.
+    let activation_valid = match w.activation_state {
+        Some(MoveActivationState::Ready) => {
+            w.readiness.is_object()
+                && w.physical_readiness.as_ref() == Some(&w.readiness)
+                && !w.topology.retired_connection_ids.contains(&w.connection_id)
+        }
+        Some(MoveActivationState::Stopped) => {
+            w.readiness.is_null()
+                && value.get("readiness").is_some()
+                && w.physical_readiness.as_ref().is_some_and(Value::is_object)
+                && w.topology.retired_connection_ids.contains(&w.connection_id)
+        }
+        None => {
+            !value.as_object().unwrap().contains_key("activation_state")
+                && !value
+                    .as_object()
+                    .unwrap()
+                    .contains_key("physical_readiness")
+                && w.readiness.is_object()
+        }
+    };
+    if !activation_valid {
+        return Err(bad(key, true));
+    }
+    validate_topology(&w.topology, key, stopped.then_some(&w.connection_id))?;
     if !positive(w.generation)
         || !positive(w.membership_epoch)
-        || !w.readiness.is_object()
         || w.topology.conversation_revision.is_some()
         || key.scope.connection_id.as_ref() != Some(&w.replaces)
         || w.topology.admitted_connection_ids != [w.connection_id.clone()]
@@ -393,6 +439,7 @@ pub(super) fn decode_move(value: Value, client: &Client, key: &OperationKey) -> 
     let w = movement(&value, key)?;
     let s = session(client, key)?;
     Ok(MoveResult {
+        activation_state: w.activation_state,
         connection: s.connection_by_id(w.connection_id),
         topology: topology(&w.topology, &s),
         binding: MoveBindingObservation {
@@ -547,5 +594,87 @@ impl Connection {
             options,
         )
         .await
+    }
+}
+
+#[cfg(test)]
+mod activation_tests {
+    use super::*;
+    #[test]
+    fn native_activation_completion_preserves_ready_stopped_and_refuses_contradictions() {
+        let ready: Value = serde_json::from_str(include_str!(
+            "../../../../../sdk/tests/fixtures/native_move_activation.json"
+        ))
+        .unwrap();
+        let key = OperationKey {
+            operation_id: "original".parse().unwrap(),
+            command: "connection.replace".into(),
+            scope: OperationScope {
+                conversation_id: Some("conversation".parse().unwrap()),
+                session_id: Some("session".parse().unwrap()),
+                connection_id: Some("source".parse().unwrap()),
+            },
+        };
+        let context = Continuation::Replacement {
+            retained_connection_id: "remote".parse().unwrap(),
+            target: MoveTarget::Endpoint("endpoint_new".parse().unwrap()),
+        };
+        let mut stopped = ready.clone();
+        stopped["activation_state"] = json!("stopped");
+        stopped["readiness"] = Value::Null;
+        stopped["retired_connection_ids"] = json!(["source", "candidate"]);
+        for (v, state) in [
+            (&ready, MoveActivationState::Ready),
+            (&stopped, MoveActivationState::Stopped),
+        ] {
+            validate_completion(v, &key, Some(&context)).unwrap();
+            assert_eq!(movement(v, &key).unwrap().activation_state, Some(state));
+        }
+        let mut telephone = ready.clone();
+        for field in ["activation_state", "physical_readiness"] {
+            telephone.as_object_mut().unwrap().remove(field);
+        }
+        assert_eq!(movement(&telephone, &key).unwrap().activation_state, None);
+        // No generalized topology relaxation, partial field set, invented state,
+        // stale readiness or nullable-state downgrade is accepted.
+        for (base, field, value) in [
+            (
+                &ready,
+                "retired_connection_ids",
+                json!(["source", "candidate"]),
+            ),
+            (&ready, "physical_readiness", json!({"streams":["foreign"]})),
+            (&ready, "readiness", Value::Null),
+            (&ready, "activation_state", Value::Null),
+            (&ready, "activation_state", json!("prepared")),
+            (&stopped, "readiness", ready["readiness"].clone()),
+            (&stopped, "physical_readiness", Value::Null),
+            (&stopped, "retired_connection_ids", json!(["source"])),
+            (
+                &stopped,
+                "retired_connection_ids",
+                json!(["source", "candidate", "candidate"]),
+            ),
+            (
+                &stopped,
+                "retired_connection_ids",
+                json!(["source", "candidate", "remote"]),
+            ),
+            (&stopped, "retained_connection_ids", json!(["candidate"])),
+            (&stopped, "admitted_connection_ids", json!(["foreign"])),
+            (&stopped, "endpoint_id", json!("foreign")),
+        ] {
+            let mut bad = base.clone();
+            bad[field] = value;
+            assert!(
+                validate_completion(&bad, &key, Some(&context)).is_err(),
+                "{field}"
+            );
+        }
+        for field in ["activation_state", "physical_readiness", "readiness"] {
+            let mut bad = stopped.clone();
+            bad.as_object_mut().unwrap().remove(field);
+            assert!(movement(&bad, &key).is_err(), "missing {field}");
+        }
     }
 }

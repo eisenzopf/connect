@@ -250,6 +250,7 @@ class HandoffResult(TopologyChange):
 
 @dataclass(frozen=True)
 class MoveResult(TopologyChange):
+    activation_state: Literal["ready", "stopped"] | None
     connection: Connection
 
 @dataclass(frozen=True)
