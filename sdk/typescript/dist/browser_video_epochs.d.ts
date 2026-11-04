@@ -30,7 +30,7 @@ export interface VideoFeedbackWrite {
     readonly version: number;
     readonly started: number;
 }
-export declare function videoAllocation(stream: JsonObject, local: JsonObject, remote: JsonObject, operation: unknown, offer: unknown, generation: number, previous?: Allocation): Allocation | undefined;
+export declare function videoAllocation(stream: JsonObject, local: JsonObject, remote: JsonObject, operation: unknown, offer: unknown, generation: number, previous?: Allocation, connectionGeneration?: number): Allocation | undefined;
 /** Call only with an unsolicited frame from this physical client's verified
  * event reader. An operation projection or arbitrary payload is not input. */
 export declare function videoNotice(frame: Envelope): VideoNotice;

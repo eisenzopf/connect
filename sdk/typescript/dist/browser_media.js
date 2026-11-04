@@ -410,6 +410,7 @@ export class BrowserMediaPeer {
         const remote = jsonObject(frame.payload.capabilities)
             ? frame.payload.capabilities
             : {};
+        let connectionGeneration = state.connectionGeneration;
         const feedback = new Map();
         const media = [], data = new Map(), received = new Set(), ids = new Set(), handles = new Set();
         for (const value of setup.streams) {
@@ -483,7 +484,21 @@ export class BrowserMediaPeer {
                     ? prior.binding.generation
                     : (state.generations.get(value.strm_id) ?? 0) + 1
                 : 1;
-            const allocation = videoAllocation(value, state.caps, remote, frame.operation_id, setup.offer_id, generation, sameBinding ? prior.video?.allocation : undefined);
+            // A replacement starts without an observed physical generation.
+            // Bind it once from the signed, original-operation parameter offer,
+            // require every Video port to agree, then seal against its receipt.
+            // Ordinary Connections still require generation one.
+            if (connectionGeneration === 0 &&
+                value.kind === "video" &&
+                state.caps.video_feedback === VIDEO_FEEDBACK_PROFILE) {
+                const declared = jsonObject(value.video_feedback)
+                    ? value.video_feedback.connection_generation
+                    : undefined;
+                if (!Number.isSafeInteger(declared) || Number(declared) < 2)
+                    return fail("Invalid replacement Video generation");
+                connectionGeneration = Number(declared);
+            }
+            const allocation = videoAllocation(value, state.caps, remote, frame.operation_id, setup.offer_id, generation, sameBinding ? prior.video?.allocation : undefined, connectionGeneration);
             if (allocation)
                 feedback.set(Number(value.stream_local_id), allocation);
             media.push({
@@ -507,6 +522,7 @@ export class BrowserMediaPeer {
         if (declaredClock !== undefined && declaredClock !== "rtcp-sr-sdes/1")
             return fail("Unsupported source clock profile");
         return {
+            connectionGeneration,
             feedback,
             notices: new Map(),
             media,
@@ -630,6 +646,7 @@ export class BrowserMediaPeer {
         state.data = plan.data;
         state.received = plan.received;
         state.revision = plan.revision;
+        state.connectionGeneration = plan.connectionGeneration;
     }
     async drain() {
         if (this.sending || this.stopped)
@@ -998,7 +1015,7 @@ export class BrowserMediaPeer {
                 connid: input.connectionId,
             },
             revision: 0,
-            connectionGeneration: 1,
+            connectionGeneration: replacement ? 0 : 1,
             caps,
             captureClock: new RtcpCaptureClock("connect-" + crypto.randomUUID()),
             receiveClock: new RtcpReceiveClock(),
@@ -1238,6 +1255,9 @@ export class BrowserMediaPeer {
                     replacement.prepared(new BrowserMediaConnection(this, state.scope.connid));
                     completed = await this.completedReplacement(replacement.root, until, options.signal);
                     const receipt = replacementReceipt(replacement.root, completed);
+                    if (state.connectionGeneration !== 0 &&
+                        state.connectionGeneration !== receipt.generation)
+                        return fail("Replacement receipt changed the negotiated generation");
                     const readiness = completed.result
                         .readiness;
                     const actualStreams = readiness.streams;

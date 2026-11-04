@@ -12,7 +12,7 @@ const positive = (n) => Number.isSafeInteger(n) && Number(n) > 0;
 const uint = (n) => Number.isInteger(n) && Number(n) >= 0 && Number(n) <= 0xffffffff;
 const hex = (s) => typeof s === "string" && /^[0-9a-f]{32}$/.test(s) && !/^0+$/.test(s);
 const same = (a, b) => canonicalJson(a) === canonicalJson(b);
-export function videoAllocation(stream, local, remote, operation, offer, generation, previous) {
+export function videoAllocation(stream, local, remote, operation, offer, generation, previous, connectionGeneration = 1) {
     const enabled = stream.kind === "video" &&
         local.video_feedback === VIDEO_FEEDBACK_PROFILE &&
         remote.video_feedback === VIDEO_FEEDBACK_PROFILE;
@@ -22,7 +22,8 @@ export function videoAllocation(stream, local, remote, operation, offer, generat
         return bad();
     const value = captureNativeVideoFeedback(stream.video_feedback);
     if (value.streamGeneration !== generation ||
-        value.connectionGeneration !== 1 ||
+        !positive(connectionGeneration) ||
+        value.connectionGeneration !== connectionGeneration ||
         (previous
             ? !same(value, previous)
             : value.originalOperation !== operation ||
