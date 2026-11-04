@@ -8,12 +8,14 @@ import base64
 import hashlib
 import json
 import math
+import shutil
 from pathlib import Path
 import struct
 import subprocess
 
 from .package_environment import fixture_environment
 from video.marker_calibration import PROGRAM, marker_frames, ordinal_sync
+from video.build_live_vp8_encoder import build as build_live_encoder
 
 SECONDS = 62  # two seconds to establish clocks, then the frozen 60-second window
 COLORS = ('red', 'lime', 'blue', 'yellow', 'cyan', 'magenta')
@@ -27,7 +29,8 @@ def marker_profile():
 
 
 def checksum(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
 def ogg_crc(body):
@@ -122,6 +125,14 @@ def command(args, log):
 def prepare(directory):
     directory.mkdir(mode=0o700)
     ffmpeg = subprocess.check_output(['ffmpeg', '-version'], text=True, timeout=5, env=fixture_environment()).splitlines()[0]
+    # Keep the independent encoded reference and the exact raw live programme.
+    # Raw files are finite, private and streamed; never allocate six programmes.
+    raw_size = SECONDS * 30 * 640 * 360 * 3 // 2
+    if shutil.disk_usage(directory).free < len(COLORS) * raw_size + 512 * 1024 * 1024:
+        raise ValueError('Insufficient space for the finite live video programmes')
+    encoder = build_live_encoder(directory / 'live-vp8-encoder')
+    encoder.pop('output')
+    encoder['file'] = 'live-vp8-encoder'
     records = []
     pulses = marker_profile()['frames']
     audio_gate = '+'.join(f'gte(t,{frame}/30)*lt(t,{frame + 3}/30)' for frame in pulses)
@@ -132,9 +143,18 @@ def prepare(directory):
         command(common + ['-f', 'lavfi', '-i',
             f"aevalsrc='sin(2*PI*{hz}*t)*if(gt({audio_gate},0),0.7,0.05)':s=48000:d={SECONDS}",
             '-ac', '1', '-c:a', 'libopus', '-b:a', '32k', '-vbr', 'off', '-frame_duration', '20', '-application', 'audio', str(audio)], directory / f'encode-audio-{index}.log')
+        raw_video = directory / f'source-{index}.i420'
+        # Precreate privately before FFmpeg writes any raw source bytes.
+        with raw_video.open('xb'):
+            raw_video.chmod(0o600)
+        marker_filter = f"drawbox=x=0:y=0:w=80:h=80:color={color}:t=fill,drawbox=x=96:y=0:w=80:h=80:color=black:t=fill,drawbox=x=96:y=0:w=80:h=80:color=white:t=fill:enable='gt({video_gate},0)'"
         command(common + ['-f', 'lavfi', '-i', f'testsrc2=size=640x360:rate=30:duration={SECONDS}',
-            '-vf', f"drawbox=x=0:y=0:w=80:h=80:color={color}:t=fill,drawbox=x=96:y=0:w=80:h=80:color=black:t=fill,drawbox=x=96:y=0:w=80:h=80:color=white:t=fill:enable='gt({video_gate},0)'", '-an', '-c:v', 'libvpx', '-threads', '1',
-            '-deadline', 'realtime', '-cpu-used', '8', '-b:v', '500k', '-maxrate', '1M', '-bufsize', '1M', '-g', '30', str(video)], directory / f'encode-video-{index}.log')
+            '-vf', marker_filter, '-an', '-c:v', 'libvpx', '-threads', '1',
+            '-deadline', 'realtime', '-cpu-used', '8', '-b:v', '500k', '-maxrate', '1M', '-bufsize', '1M', '-g', '30', str(video),
+            '-vf', marker_filter, '-an', '-c:v', 'rawvideo', '-pix_fmt', 'yuv420p', '-threads', '1',
+            '-fps_mode', 'passthrough', '-f', 'rawvideo', str(raw_video)], directory / f'encode-video-{index}.log')
+        if raw_video.stat().st_size != raw_size:
+            raise ValueError('Raw video finite frame count')
         audio_packets = opus_packets(audio.read_bytes())[:SECONDS * 50]
         if len(audio_packets) != SECONDS * 50:
             raise ValueError('Opus frame count')
@@ -142,9 +162,10 @@ def prepare(directory):
             audio=[base64.b64encode(packet).decode() for packet in audio_packets], video=ivf_frames(video.read_bytes()))
         path = directory / f'source-{index}.json'; path.write_text(json.dumps(value) + '\n')
         records.append(dict(index=index, audio_hz=hz, video_color=color, input_sha256=checksum(path),
-            ogg_sha256=checksum(audio), ivf_sha256=checksum(video)))
+            ogg_sha256=checksum(audio), ivf_sha256=checksum(video),
+            raw_video_file=raw_video.name, raw_video_sha256=checksum(raw_video)))
     manifest = dict(format='connect/native-av-sources/2', ffmpeg=ffmpeg, seconds=SECONDS,
-        markers=marker_profile(),
+        markers=marker_profile(), live_encoder=encoder,
         warmup_seconds=2, observation_seconds=60, audio=dict(codec='opus', sample_rate=48000, channels=1, frame_ms=20, target_bps=32000),
         video=dict(codec='vp8', width=640, height=360, rate=30, target_bps=500000, max_bps=1000000, keyframe_frames=30), sources=records)
     (directory / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

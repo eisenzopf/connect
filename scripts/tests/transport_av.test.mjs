@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { addLiveVideoFixture } from "./live_video_fixture.mjs";
 import { nativeAv } from "../lib/transport_av.mjs";
 
 async function checkFailure(firstSubmissionAccepted, setupFailure = false, withControl = false, cleanupFailure = false) {
@@ -24,6 +25,7 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
     const raw = JSON.stringify({ audio: Array(3100).fill("AQ=="), video: Array.from({ length: 1860 }, (_, index) => ({ timestamp: index * 3000, payload: "AQI=" })) });
     const manifest = { format: "connect/native-av-sources/2", seconds: 62, observation_seconds: 60,
         sources: connections.map(() => ({ input_sha256: createHash("sha256").update(raw).digest("hex") })) };
+    await addLiveVideoFixture(sources, manifest);
     await writeFile(join(sources, "manifest.json"), JSON.stringify(manifest));
     const pendingReads = new Set();
     const cleanupRefusal = Object.assign(Error("publisher stopped during control cleanup"), { kind: "receipt-unavailable", certainty: "refused" });

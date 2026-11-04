@@ -5,6 +5,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, writeFile, rm } from "node:fs/promises";
 import { resolve, join } from "node:path";
+import { addLiveVideoFixture } from "./live_video_fixture.mjs";
 import { nativeAv } from "../lib/transport_av.mjs";
 
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -23,8 +24,10 @@ test("the real62s AV controller joins final control work after normal packet-rea
     const input = JSON.stringify({ audio: Array(3100).fill("AQ=="),
         video: Array.from({ length: 1860 }, (_, i) => ({ timestamp: i * 3000, payload: "AQ==" })) });
     for (let index = 0; index < 6; index++) await writeFile(join(sources, "source-" + index + ".json"), input);
-    await writeFile(join(sources, "manifest.json"), JSON.stringify({ format: "connect/native-av-sources/2",
-        seconds: 62, observation_seconds: 60, sources: Array.from({ length: 6 }, () => ({ input_sha256: sha(input) })) }));
+    const manifest = { format: "connect/native-av-sources/2",
+        seconds: 62, observation_seconds: 60, sources: Array.from({ length: 6 }, () => ({ input_sha256: sha(input) })) };
+    await addLiveVideoFixture(sources, manifest);
+    await writeFile(join(sources, "manifest.json"), JSON.stringify(manifest));
     let stoppedReads = 0, pendingReads = 0, controlJoined = false, observation;
     const media = {
         async sendRtp() { return { boundary: "local-media-queue" }; }, async sendClock() {},

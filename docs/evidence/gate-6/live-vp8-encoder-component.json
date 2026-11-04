@@ -41,5 +41,41 @@
   ],
   "transport_qualified": false,
   "full_media_qualified": false,
-  "task_complete": false
+  "task_complete": false,
+  "owned_node_worker": {
+    "status": "component-pass",
+    "run": {
+      "stage": "complete",
+      "source_guard_active": false,
+      "controller_pid": 116929,
+      "source_revision": "6bf84a2018c6d32c5c7240c8e172f8923b90b679",
+      "passed": true,
+      "steps": [
+        {
+          "case": "scripts/tests/live_vp8_encoder_worker.test.mjs (two new exact cases)",
+          "exit_code": 0,
+          "log_sha256": "184774d2920c73212369afd479e4b9c1001e8bc7a517d41a1db261abc9bb6a05",
+          "results": [
+            "ok 1 - owned encoder keeps one original reply across a raced wait and joins actual fresh-frame source",
+            "ok 2 - owned encoder rejects partial, foreign and oversized replies and joins cancellation without reissuing",
+            "# tests 2",
+            "# pass 2",
+            "# fail 0"
+          ]
+        }
+      ],
+      "general_suites_rerun": false,
+      "full_media_rehearsal_run": false,
+      "video_routing_candidate": true,
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 0.8750476499990327
+    },
+    "proof": [
+      "One original encoder reply survives a raced control wait without a repeated command.",
+      "Requested original frame7 is freshly encoded and independently decoded with its original marker and RTP timestamp.",
+      "Partial, foreign and oversized replies and cancellation fail closed; actual child process exit is joined."
+    ],
+    "scope": "Owned Node worker only; initial sender integration is the next unverified candidate. No feedback authorization, epochs or media qualification."
+  }
 }

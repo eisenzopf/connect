@@ -1,14 +1,30 @@
 // Owned native SDK packet workers. Control authority and decoding stay with the caller.
 import assert from "node:assert/strict";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { readFile, writeFile, mkdir, lstat } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { createReadStream } from "node:fs";
 import { createHash } from "node:crypto";
 import { SdkRtpPacket } from "../../sdk/typescript/dist/index.js";
 import { RtpSender, Vp8Assembler } from "../../sdk/typescript/dist/browser.js";
+import { LiveVp8Encoder } from "./live_vp8_encoder.mjs";
 import { ConnectionMediaOwner } from "./transport_media_owner.mjs";
 import { SwitchingMediaReader } from "./transport_media_reader.mjs";
 import { joinMediaProgramme } from "./transport_programme_lifetime.mjs";
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
+async function fileSha(path, size) {
+    const before = await lstat(path), limit = size ?? 16 * 1024 * 1024;
+    assert.ok(before.isFile() && !before.isSymbolicLink() && before.size <= limit);
+    if (size !== undefined) assert.equal(before.size, size);
+    const hash = createHash("sha256");
+    let bytes = 0;
+    for await (const chunk of createReadStream(path)) {
+        bytes += chunk.length; assert.ok(bytes <= limit); hash.update(chunk);
+    }
+    const after = await lstat(path);
+    for (const key of ["dev", "ino", "size", "mode", "mtimeMs", "ctimeMs"]) assert.equal(after[key], before[key]);
+    assert.equal(bytes, before.size);
+    return hash.digest("hex");
+}
 const pause = ms => new Promise(done => setTimeout(done, Math.max(0, ms)));
 const ntp = milliseconds => (BigInt(Math.floor(milliseconds / 1000) + 2208988800) << 32n) |
     BigInt(Math.floor((milliseconds % 1000) * 2 ** 32 / 1000));
@@ -24,6 +40,9 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
     let setupRoute = 0, setupStage = "media-refresh";
     // Complete every original owner's media readiness before starting any clock.
     try {
+        assert.equal(manifest.live_encoder?.file, "live-vp8-encoder");
+        const executable = resolve(sourceDirectory, manifest.live_encoder.file);
+        assert.equal(await fileSha(executable), manifest.live_encoder.executable_sha256);
         for (const [index, item] of connections.entries()) {
             const roles = rolesBySession[item.sid], previous = roles[(roles.indexOf(item.role) + roles.length - 1) % roles.length];
             const peer = connections.find(v => v.sid === item.sid && v.role === previous);
@@ -46,20 +65,30 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             assert.equal(sha(raw), manifest.sources[index].input_sha256);
             const input = JSON.parse(raw);
             assert.equal(input.audio.length, 3100); assert.equal(input.video.length, 1860);
-            routes.push({ index, item, peerIndex: connections.indexOf(peer), input,
+            const route = { index, item, peerIndex: connections.indexOf(peer), input,
                 generation: snapshot.generation,
                 audioSender: sender(ownAudio, "opus"), videoSender: sender(ownVideo, "vp8"),
                 sendAudio: item.connection.streams.byId(ownAudio.id).media, sendVideo: item.connection.streams.byId(ownVideo.id).media,
                 receiveAudio: item.connection.streams.byId(ownAudio.id).media,
                 receiveVideo: item.connection.streams.byId(plan[peer.prefix + "-video"]).media,
                 audio: [], video: [], submittedAudio: [], clockReports: { audio: [], video: [] }, stages: { send: {}, receive: {} },
-                capturedBytes: 0, clocks: { audio: 0, video: 0 }, gaps: 0, lateSendFrames: 0, sent: { audio: 0, video: 0 } });
+                capturedBytes: 0, clocks: { audio: 0, video: 0 }, gaps: 0, lateSendFrames: 0, sent: { audio: 0, video: 0 } };
+            routes.push(route);
+            setupStage = "live-video-source";
+            assert.equal(manifest.sources[index].raw_video_file, "source-" + index + ".i420");
+            const rawVideo = resolve(sourceDirectory, manifest.sources[index].raw_video_file);
+            assert.equal(await fileSha(rawVideo, 1860 * 640 * 360 * 3 / 2), manifest.sources[index].raw_video_sha256);
+            route.videoEncoder = await LiveVp8Encoder.open(executable, rawVideo, 1860);
         }
     } catch (failure) {
+        await Promise.all(routes.map(async route => {
+            if (route.videoEncoder) route.encoderJoin = await route.videoEncoder.stopAndJoin();
+        }));
         observe({ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
             original_tasks_started: 0, elapsed_ms: performance.now() - setupStarted,
             failure: { route_index: setupRoute, medium: null, direction: "setup", stage: setupStage },
             prepared_routes: routes.length, routes: [],
+            encoder_processes_joined: routes.filter(route => route.encoderJoin?.joined).length,
             scope: "Original setup failure before media tasks or source clocks start. No retries, payloads, identities or quality qualification." });
         throw failure;
     }
@@ -72,18 +101,47 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         route.videoReader = new SwitchingMediaReader(plan[peer.prefix + "-video"], route.receiveVideo, route.owner.signal);
     }
     async function sending(route, medium) {
+        let failed = false;
+        try { await sendingFrames(route, medium); }
+        catch (failure) { failed = true; throw failure; }
+        finally {
+            if (medium === "video") {
+                route.encoderJoin = await route.videoEncoder.stopAndJoin();
+                if (!failed && !route.owner.signal.aborted) assert.equal(route.encoderJoin.clean, true, "video encoder clean shutdown");
+            }
+        }
+    }
+    async function sendingFrames(route, medium) {
         const video = medium === "video", entries = route.input[medium], sender = video ? route.videoSender : route.audioSender,
             stream = video ? route.sendVideo : route.sendAudio;
+        let forceKeyframe = true;
         let lastClock = -Infinity, submitted = { ssrc: 0, packets: 0, octets: 0 };
         for (let index = 0; index < entries.length && !route.owner.signal.aborted; index++) {
-            const elapsed = video ? entries[index].timestamp / 90 : index * 20;
+            const elapsed = video ? index * 1000 / 30 : index * 20;
             await pause(start + elapsed - performance.now());
             if (route.owner.signal.aborted) return;
             // A delayed source frame is discarded at its original age. It is
             // never relabelled or replayed as current after event-loop delay.
             if (performance.now() - start - elapsed >= 200) { route.lateSendFrames++; continue; }
-            const timestamp = video ? entries[index].timestamp : index * 960;
-            const encoded = Buffer.from(video ? entries[index].payload : entries[index], "base64");
+            const timestamp = video ? index * 3000 : index * 960;
+            let encoded;
+            if (video) {
+                const remaining = Math.floor(200 - (performance.now() - start - elapsed));
+                if (remaining <= 0) { route.lateSendFrames++; continue; }
+                route.stages.send[medium] = "encode-original-frame";
+                let frame;
+                try {
+                    frame = await route.videoEncoder.frame(index, forceKeyframe,
+                        { signal: route.owner.signal, timeoutMs: Math.min(100, remaining) });
+                } catch (failure) {
+                    // A stopped owner must still join the encoder in sending's
+                    // finally. The process wrapper does not invent SDK errors.
+                    if (route.owner.signal.aborted) return;
+                    throw failure;
+                }
+                assert.equal(frame.timestamp, timestamp);
+                encoded = frame.bytes;
+            } else encoded = Buffer.from(entries[index], "base64");
             let frameCompleted = true;
             for (const packet of sender.packetize(encoded, timestamp)) {
                 const remaining = Math.floor(200 - (performance.now() - start - elapsed));
@@ -102,6 +160,9 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                 }
                 route.sent[medium]++;
             }
+            // A partially submitted frame cannot be a dependency of the next
+            // published frame. Request a fresh current frame without replay.
+            if (video) forceKeyframe = !frameCompleted;
             if (frameCompleted && elapsed - lastClock >= 500) {
                 route.stages.send[medium] = "clock";
                 await stream.sendClock(sender.nextDatagramSequence(), { ...submitted, ntp: ntp(unixStart + elapsed), rtp: timestamp,
@@ -231,6 +292,9 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
     } finally {
         controller.abort(error); await Promise.all(tasks);
         await Promise.all(routes.map(route => route.owner.stopAndJoin().catch(() => {})));
+        await Promise.all(routes.map(async route => {
+            route.encoderJoin = await route.videoEncoder.stopAndJoin();
+        }));
         for (const route of routes) await writeFile(join(outputDirectory, "received-" + route.index + ".json"), JSON.stringify({
             format: "connect/native-av-received/1", index: route.index, peer_index: route.peerIndex, audio: route.audio, video: route.video,
             connection_id: route.item.connection.id, generation: route.generation, session_index: route.item.sid,
@@ -238,10 +302,11 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             initial_video_stream_id: plan[connections[route.peerIndex].prefix + "-video"],
             captured_codec_bytes: route.capturedBytes, received_clocks: route.clocks, gap_packets: route.gaps, late_send_frames: route.lateSendFrames, submitted_packets: route.sent,
             clock_reports: route.clockReports, submitted_audio: route.submittedAudio,
-            video_reader: route.videoReader.observation,
+            video_reader: route.videoReader.observation, encoder_process: route.encoderJoin,
             unix_start_ms: unixStart, observed_seconds: (performance.now() - start) / 1000,
         }) + "\n", { flag: "wx", mode: 0o600 });
         observe({ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
+            encoder_processes_joined: routes.filter(route => route.encoderJoin?.joined).length,
             original_tasks_started: routes.length * 4, control_task_started: Boolean(during), elapsed_ms: performance.now() - start, failure: workFailure ?? null,
             routes: routes.map(route => ({ index: route.index, received_audio: route.audio.length,
                 received_video: route.video.length, submitted_packets: { ...route.sent },
