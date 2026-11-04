@@ -2392,7 +2392,14 @@
           "skipped_programme_frames": 0,
           "maximum_draw_gap_ms": 53.09999999962747
         }
-      ]
+      ],
+      "source_clock_observation": {
+        "programme_finished_wall_ms": 62007.299999999814,
+        "source_audio_elapsed_ms": 61953.333333333336,
+        "audio_minus_wall_ms": -53.96666666647798,
+        "ratio": 0.9991296723665363,
+        "scope": "Original source AudioContext read at fixed programme terminal, not a decoded-media verdict. No adjustment, padding or rebasing. A short source clock can contribute to a short decoded window, but does not establish the cause of AV skew or all losses."
+      }
     },
     {
       "attempt": "v161",
@@ -4462,6 +4469,13 @@
             }
           }
         ]
+      },
+      "source_clock_observation": {
+        "programme_finished_wall_ms": 62006.799999999814,
+        "source_audio_elapsed_ms": 62022.666666666664,
+        "audio_minus_wall_ms": 15.866666666850506,
+        "ratio": 1.000255885913591,
+        "scope": "Original source AudioContext read at fixed programme terminal, not a decoded-media verdict. No adjustment, padding or rebasing. A short source clock can contribute to a short decoded window, but does not establish the cause of AV skew or all losses."
       }
     },
     {
@@ -5263,7 +5277,28 @@
           "skipped_programme_frames": 0,
           "maximum_draw_gap_ms": 55.09999999962747
         }
-      ]
+      ],
+      "source_clock_observation": {
+        "programme_finished_wall_ms": 62007.300000000745,
+        "source_audio_elapsed_ms": 61094.666666666664,
+        "audio_minus_wall_ms": -912.6333333340808,
+        "ratio": 0.9852818404714595,
+        "scope": "Original source AudioContext read at fixed programme terminal, not a decoded-media verdict. No adjustment, padding or rebasing. A short source clock can contribute to a short decoded window, but does not establish the cause of AV skew or all losses."
+      },
+      "workload_cpu_observation": {
+        "roles": {
+          "browser": {
+            "mean_sample_cpu_cores": 0.7662823229428969,
+            "maximum_sample_cpu_cores": 0.9487976914399641
+          },
+          "server": {
+            "mean_sample_cpu_cores": 0.35449400886179744,
+            "maximum_sample_cpu_cores": 1.2641185418957794
+          }
+        },
+        "intervals": 61,
+        "scope": "Original process-tree CPU deltas per sampled wall interval; does not rule out a hot thread, scheduling delay or clock issue. Not a capacity qualification."
+      }
     }
   ],
   "contract_inputs_by_source_revision": {
@@ -5333,5 +5368,6 @@
     "audio": "actual mono960sample WebCodecs buffers; per20ms spectral identity and maximum uncovered gap after decoded20ms buffer; no synthesized/PLC coverage",
     "video": "actual640x360 decoded pixels, source identity and unique changing frames in every second (stricter than merely counting all decoded frames)",
     "av": "actual decoder-callback times, uniquely calibrated equal nonperiodic marker ordinals; envelope validity retained; no physical rendering claim"
-  }
+  },
+  "latest_source_clock_finding": "v163 source audio advanced 61.095s over 62.007s wall time, while v161/v162 advanced 61.953s/62.023s. All three still fail decoded media. The source deficit varies and is not established as the sole cause. v163 sampled total CPU does not indicate exhaustion of all six VM cores. Keep actual source/output timing and limits unchanged; compare the next full workload before assigning causation."
 }
