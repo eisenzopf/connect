@@ -99,14 +99,23 @@ fn denied<T>(_: T) -> StreamControlError {
 }
 /// A busy metadata registry cannot prove source retirement or withdrawn rights.
 /// Refuse this poll without converting transient contention into revocation.
+#[track_caller]
 fn metadata_contention<T>(error: std::sync::TryLockError<T>) -> StreamControlError {
     match error {
-        std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
+        std::sync::TryLockError::WouldBlock => {
+            tracing::debug!(target: "connect_service::packet_refusal",
+                caller = %std::panic::Location::caller(), "Current media metadata mutex busy");
+            StreamControlError::NotReady
+        }
         std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
     }
 }
 /// Only transient Store contention is retryable at a packet boundary.
+#[track_caller]
 pub(crate) fn packet_authority_error(error: connect_protocol::Error) -> StreamControlError {
+    tracing::debug!(target: "connect_service::packet_refusal",
+        caller = %std::panic::Location::caller(), code = %error.code, detail = %error.message,
+        "Current media Store authority refused");
     if error.code == "authority-busy" {
         StreamControlError::NotReady
     } else {

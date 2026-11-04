@@ -38,9 +38,12 @@ fn packet_read_until<T>(
 fn packet_lookup<T>(
     until: std::time::Instant,
     original: bool,
+    stage: &'static str,
     read: impl FnMut() -> ControlResult<T>,
 ) -> ControlResult<T> {
     super::packet_metadata::read_until(until, read).map_err(|error| {
+        tracing::debug!(target: "connect_service::packet_refusal", stage, ?error,
+            "Current packet registry lookup refused");
         if original && matches!(error, StreamControlError::NotReady) {
             StreamControlError::MetadataBusy
         } else {
@@ -64,6 +67,21 @@ impl Policy {
         queued: bool,
         original: bool,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        self.packet_current_observed(scope, held, queued, original)
+            .inspect_err(|error| {
+                tracing::debug!(target: "connect_service::packet_refusal",
+                    connection = %scope.connection,
+                    publishing = matches!(scope.purpose, MediaPurpose::Publish),
+                    queued, original, ?error, "Current packet policy refused");
+            })
+    }
+    fn packet_current_observed(
+        &self,
+        scope: &MediaScope<'_>,
+        held: Option<Arc<NativeMediaRead>>,
+        queued: bool,
+        original: bool,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         // Queued realtime owners already retry NotReady asynchronously under
         // their original frame age and earlier lease expiry. Return contention
         // after one current read so synchronous callbacks cannot occupy their
@@ -77,39 +95,45 @@ impl Policy {
                 std::time::Duration::from_millis(10)
             };
         let until = std::time::Instant::now() + budget;
-        if let Some(target) =
-            packet_lookup(until, original, || self.initial_target(scope.connection))?
-        {
+        if let Some(target) = packet_lookup(until, original, "initial-target", || {
+            self.initial_target(scope.connection)
+        })? {
             return target.current(scope);
         }
-        if let Some(target) =
-            packet_lookup(until, original, || self.telephone_target(scope.connection))?
-        {
+        if let Some(target) = packet_lookup(until, original, "telephone-target", || {
+            self.telephone_target(scope.connection)
+        })? {
             return target.current(scope);
         }
-        if let Some(target) = packet_lookup(until, original, || {
+        if let Some(target) = packet_lookup(until, original, "replacement-target", || {
             self.replacement_target(scope.connection)
         })? {
             return target.current(scope);
         }
-        let entry = packet_lookup(until, original, || self.entry(scope.connection))?;
+        let entry = packet_lookup(until, original, "native-entry", || {
+            self.entry(scope.connection)
+        })?;
         self.scope(scope, &entry).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet scope refused");error})?;
         if let MediaPurpose::Receive { source } = scope.purpose {
-            if let Some(initial) =
-                packet_lookup(until, original, || self.initial_target(&source.connection))?
-            {
+            if let Some(initial) = packet_lookup(until, original, "source-initial-target", || {
+                self.initial_target(&source.connection)
+            })? {
                 return initial.native_receive(scope, source, &entry);
             }
-            if let Some(telephone) = packet_lookup(until, original, || {
-                self.telephone_target(&source.connection)
-            })? {
+            if let Some(telephone) =
+                packet_lookup(until, original, "source-telephone-target", || {
+                    self.telephone_target(&source.connection)
+                })?
+            {
                 return telephone.native_receive(scope, source, &entry);
             }
         }
         let source = match scope.purpose {
             MediaPurpose::Receive { source } => Some((
                 source,
-                packet_lookup(until, original, || self.entry(&source.connection))?,
+                packet_lookup(until, original, "source-entry", || {
+                    self.entry(&source.connection)
+                })?,
             )),
             _ => None,
         };
@@ -145,6 +169,13 @@ impl Policy {
             problem = result.as_ref().err().map(|e| e.code.as_str()),
             "Current native packet authority");
         let read = result.map_err(|error| {
+            tracing::debug!(target: "connect_service::packet_refusal",
+                connection = %scope.connection,
+                publishing = matches!(scope.purpose, MediaPurpose::Publish),
+                queued, original, owned_file_custody = held.is_some(),
+                code = %error.code, detail = %error.message,
+                elapsed_us = started.elapsed().as_micros() as u64,
+                "Current packet Store read refused");
             if original && error.code == "authority-busy" {
                 StreamControlError::MetadataBusy
             } else {
