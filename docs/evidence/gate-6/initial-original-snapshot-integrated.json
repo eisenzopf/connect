@@ -1,0 +1,399 @@
+{
+  "format": "connect/initial-original-snapshot-integrated/1",
+  "run": "v134",
+  "source_revision": "6f30d3a32eb0366e25c252696921904bd42821df",
+  "platform": "Owner Mac Studio local Ubuntu24.04 ARM64 VM",
+  "state": {
+    "owned_original_native_ingress": true,
+    "replacement_precommit_retry": true,
+    "programme_clock_fix": true,
+    "authority_summary": true,
+    "decoder_boundary_fix": true,
+    "build_jobs": 4,
+    "audio_terminal_counters": true,
+    "original_sdk_feedback_required": true,
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 172564,
+    "source_revision": "6f30d3a32eb0366e25c252696921904bd42821df",
+    "passed": false,
+    "metadata_diagnostic": false,
+    "commit_phase_diagnostic": true,
+    "packet_policy_trace": false,
+    "helper_timing_diagnostic": false,
+    "movement_profile": "gate6-realistic-device-roundtrip-v1",
+    "scheduled_moves": 4,
+    "host_capture_requested": true,
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false,
+    "general_suites_rerun": false,
+    "previous_passed_cases_rerun": false,
+    "updated_at": "2026-11-04T14:33:45.006659+00:00",
+    "fixture_exit_code": 1,
+    "report_sha256": "f97d3440b92c59653c5a7eac040fefe6386257fb4584ba72de70327744226d04",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "binary_sha256": "eef9b342155a7fa841ba6cd101c074277fa8a956a2812b2d559b18de3a471c30",
+    "peer_binary_sha256": "839e9d87d135923f6a2752a66033754ca52fcc9469004e35c77798a29f71ef98",
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1179.5263098089927
+  },
+  "state_sha256": "78554dc6836c3d3d7f5ad39ddd3c6060756ff4f7e816aea80c05ef179df67268",
+  "failure": {
+    "phase": "public-sdk-conversation-control",
+    "name": "AssertionError",
+    "line": 595
+  },
+  "control_failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "AssertionError",
+    "kind": null,
+    "certainty": null,
+    "source": {
+      "file": "scripts/check-transport-conversation.mjs",
+      "line": 394,
+      "column": 38
+    },
+    "source_stack": [
+      {
+        "line": 394,
+        "column": 38
+      }
+    ],
+    "assertion": {
+      "actual": {
+        "type": "boolean"
+      },
+      "expected": {
+        "type": "boolean"
+      }
+    }
+  },
+  "workload": {
+    "elapsed_ms": 42578.27458100021,
+    "original_tasks_started": 30,
+    "original_tasks_joined": true,
+    "encoder_processes_joined": 6,
+    "all_observed_helpers_joined": true,
+    "completed_moves": 2,
+    "scheduled_moves": 4
+  },
+  "movements": [
+    {
+      "passed": true,
+      "failure": null,
+      "original_root_completed": true,
+      "original_reference_preserved": true,
+      "original_source_owner_joined": true,
+      "physical_data_exchange_verified": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "target_config_unchanged": true,
+      "target_executable_unchanged": true,
+      "segment": "0-0",
+      "ledger": {
+        "state": "completed",
+        "revision": 16
+      },
+      "effects": [
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "clock_anchor_matches_original_input": true,
+      "capture_failure_stage": null,
+      "capture_sha256": "24a786f0728d81fe14f8a923593db737187d29ded4d6e30b93557d8fa617884f",
+      "source_start_audio_index": 883,
+      "source_start_video_index": 530,
+      "sent_audio_packets": 1166,
+      "sent_video_packets": 1614,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 14
+    },
+    {
+      "passed": false,
+      "failure": {
+        "phase": "original-allocation-root",
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "source": {
+          "line": 360,
+          "column": 20
+        }
+      },
+      "original_root_completed": false,
+      "original_reference_preserved": false,
+      "original_source_owner_joined": false,
+      "physical_data_exchange_verified": null,
+      "target_worker_joined": false,
+      "target_worker_forced": false,
+      "target_config_unchanged": true,
+      "target_executable_unchanged": true,
+      "segment": "0-1",
+      "ledger": {
+        "state": "unknown",
+        "revision": 3
+      },
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "unknown",
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "passed": true,
+      "failure": null,
+      "original_root_completed": true,
+      "original_reference_preserved": true,
+      "original_source_owner_joined": true,
+      "physical_data_exchange_verified": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "target_config_unchanged": true,
+      "target_executable_unchanged": true,
+      "segment": "4-0",
+      "ledger": {
+        "state": "completed",
+        "revision": 16
+      },
+      "effects": [
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "clock_anchor_matches_original_input": true,
+      "capture_failure_stage": null,
+      "capture_sha256": "f2ada2e18db0ab1d160ad40e0926b4a4e10c7f3c87f7fd25af06d5536e084b9c",
+      "source_start_audio_index": 882,
+      "source_start_video_index": 529,
+      "sent_audio_packets": 1167,
+      "sent_video_packets": 1550,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 45
+    },
+    {
+      "passed": false,
+      "failure": {
+        "phase": "original-completion",
+        "name": "NodeSdkError",
+        "kind": "application",
+        "certainty": "recorded",
+        "original_recorded_observation": {
+          "state": "failed",
+          "revision": 4,
+          "problem_code_unrecognized": true
+        }
+      },
+      "original_root_completed": false,
+      "original_reference_preserved": false,
+      "original_source_owner_joined": false,
+      "physical_data_exchange_verified": null,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "target_config_unchanged": true,
+      "target_executable_unchanged": true,
+      "segment": "4-1",
+      "ledger": {
+        "state": "failed",
+        "revision": 4
+      },
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ],
+      "clock_anchor_matches_original_input": true,
+      "capture_failure_stage": "allocation",
+      "capture_sha256": "3f5decb23dbb8c4aa2b6789fdf786d006816ac8be82942159aca359999a17e5c",
+      "source_start_audio_index": 0,
+      "source_start_video_index": 0,
+      "sent_audio_packets": 0,
+      "sent_video_packets": 0,
+      "skipped_original_frames": 0,
+      "skipped_original_video_frames": 0
+    }
+  ],
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "packet_limit": 200000,
+    "media_workload": true,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+    "pcap_sha256": "3cdb1546d9254ba61ad79000ef966d9a1fc3b000f9e596c37464e818c16c5e3e",
+    "pcap_bytes": 51248056,
+    "captured_seconds": 55.00312711500737,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 70005,
+      "to_server_packets": 37635,
+      "from_server_packets": 32370,
+      "captured_bytes": 50127952,
+      "udp_payload_bytes": 47187742,
+      "to_server_udp_bytes": 20221669,
+      "from_server_udp_bytes": 26966073
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "server_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "original_counters": {
+    "collect-deferred": {
+      "events": 177,
+      "samples": 0,
+      "members": 8
+    },
+    "take-deferred": {
+      "events": 125,
+      "samples": 0,
+      "members": 8
+    },
+    "target-before-start": {
+      "events": 126,
+      "samples": 120960,
+      "members": 8
+    },
+    "subscription-refused": {
+      "events": 16298,
+      "samples": 15646080,
+      "members": 6
+    },
+    "target-deferred": {
+      "events": 28,
+      "samples": 26880,
+      "members": 8
+    },
+    "empty-output": {
+      "events": 3261,
+      "samples": 0,
+      "members": 8
+    },
+    "burst-trim": {
+      "events": 104,
+      "samples": 99840,
+      "members": 6
+    },
+    "refresh-reset": {
+      "events": 4,
+      "samples": 0,
+      "members": 2
+    },
+    "target-refused": {
+      "events": 12,
+      "samples": 11520,
+      "members": 1
+    },
+    "input-discontinuity": {
+      "events": 1,
+      "samples": 4800,
+      "members": 1
+    }
+  },
+  "observed_failure_boundary": {
+    "first_return": "Core managed preparation returned Authority; original preparation effect is unknown after one attempt. Original operation status is unknown, revision3.",
+    "sibling_return": "Original operation failed at revision4 with preparation-stopped. The record alone does not establish whether this was independently caused or followed workload cancellation."
+  },
+  "candidate_cause": {
+    "file": "crates/connect-service/src/canonical_media/replacement.rs",
+    "finding": "ReplacementPreparationInvocation.current re-looks up retained/source entries and source principal through Policy.entry. Entry uses nonblocking registry access; preparation maps every lookup error to Authority. Existing held-entry fix applies to replacement commit, not this preparation path.",
+    "confidence": "Static candidate only. The failure log does not identify which Authority branch fired; new focused original-preparation evidence is required."
+  },
+  "verification_limits": [
+    "Programme terminated before62seconds; no complete decoded audio/video or AV-sync result. v131 decoder-history failure and v125 audio-duration/AV failures remain unresolved.",
+    "All source/prepared/executable/SDK guards pass, but guarded execution is not behavior qualification.",
+    "No uncertain mutation or begun preparation was retried. No thresholds, source-window or queue limits were changed.",
+    "Recorded helper and server cleanup does not prove live resources returned to baseline within ten seconds.",
+    "All32 transport cells remain unqualified; G6-054 remains deferred."
+  ],
+  "next_action": "Exercise the actual preparation authority path with original owned entries and a held registry; preserve current authorization, original operation and expiry. Implement only after a focused counterexample identifies the failure mechanism.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
