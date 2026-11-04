@@ -1,0 +1,249 @@
+{
+  "format": "connect/projection-sql-integrated/1",
+  "task": "G6-058",
+  "source_revision": "0fa395bb1b42adecc06b10268effb25a10190eaf",
+  "server": "ubuntu24-arm64",
+  "network": "local",
+  "transport": "native-quic",
+  "signing": "EdDSA",
+  "passed": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false,
+  "report_sha256": "74f87edd1c71ac364ca81ddbcdcbd603d7809c08d464e58ecc51d5a47ac1de96",
+  "binary_sha256": "e103ad98e61fb2296f286b6f100fc67b6411ac4a1767223d73c2fae8f6ca0762",
+  "peer_binary_sha256": "839e9d87d135923f6a2752a66033754ca52fcc9469004e35c77798a29f71ef98",
+  "integrity": {
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true
+  },
+  "failure": {
+    "phase": "independent-native-opus-vp8-decode",
+    "name": "AssertionError",
+    "line": 608
+  },
+  "conversation_passed": true,
+  "moves_completed": 4,
+  "quality_routes": [
+    {
+      "index": 0,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.44,
+        "samples": 2853120,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2972,
+        "maximum_arrival_gap_ms": 141.65099999999802
+      },
+      "min_video_frames": 27,
+      "av": {
+        "status": "passed",
+        "median_abs_skew_ms": 59.66600000000355,
+        "p95_abs_skew_ms": 101.52399999999773
+      }
+    },
+    {
+      "index": 1,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.3,
+        "samples": 2846400,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2965,
+        "maximum_arrival_gap_ms": 123.12220799922943
+      },
+      "min_video_frames": 22,
+      "av": {
+        "status": "passed",
+        "median_abs_skew_ms": 55.044974490998655,
+        "p95_abs_skew_ms": 82.06015399098732
+      }
+    },
+    {
+      "index": 2,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.26,
+        "samples": 2844480,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2963,
+        "maximum_arrival_gap_ms": 137.45696797966957
+      },
+      "min_video_frames": 29,
+      "av": {
+        "status": "passed",
+        "median_abs_skew_ms": 63.15982250869246,
+        "p95_abs_skew_ms": 101.68257299065608
+      }
+    },
+    {
+      "index": 3,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.54,
+        "samples": 2809920,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2927,
+        "maximum_arrival_gap_ms": 139.76978799700737
+      },
+      "min_video_frames": 29,
+      "av": {
+        "status": "passed",
+        "median_abs_skew_ms": 73.77132248878482,
+        "p95_abs_skew_ms": 102.56290000676671
+      }
+    },
+    {
+      "index": 4,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.24,
+        "samples": 2795520,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2912,
+        "maximum_arrival_gap_ms": 382.52467799258375
+      },
+      "min_video_frames": 20,
+      "av": {
+        "status": "failed",
+        "median_abs_skew_ms": null,
+        "p95_abs_skew_ms": null
+      }
+    },
+    {
+      "index": 5,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.7,
+        "samples": 2817600,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2935,
+        "maximum_arrival_gap_ms": 346.7673099935055
+      },
+      "min_video_frames": 19,
+      "av": {
+        "status": "passed",
+        "median_abs_skew_ms": 43.153285518287454,
+        "p95_abs_skew_ms": 102.33317202329317
+      }
+    }
+  ],
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "packet_limit": 200000,
+    "media_workload": true,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+    "pcap_sha256": "00465799d483cad805a1e6e02b90603ad59703a1e3bd1cb53657fe9a7436c706",
+    "pcap_bytes": 81328723,
+    "captured_seconds": 89.45297151702107,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 105822,
+      "to_server_packets": 56767,
+      "from_server_packets": 49055,
+      "captured_bytes": 79635547,
+      "udp_payload_bytes": 75191023,
+      "to_server_udp_bytes": 30392408,
+      "from_server_udp_bytes": 44798615
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "server_cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "process_owners": {
+    "original_supervisor_joined": true,
+    "original_workers_joined": true,
+    "forced": false,
+    "collection_complete": true
+  },
+  "projection_phases": [
+    {
+      "segment": "0-0",
+      "phase": "capture",
+      "elapsed_us": 3981,
+      "attempts": 1,
+      "authority_busy": 0,
+      "store_execution_us": 3945,
+      "outside_store_us": 21
+    },
+    {
+      "segment": "0-0",
+      "phase": "activation",
+      "elapsed_us": 5689,
+      "attempts": 1,
+      "authority_busy": 0,
+      "store_execution_us": 5654,
+      "outside_store_us": 20
+    },
+    {
+      "segment": "4-0",
+      "phase": "capture",
+      "elapsed_us": 299503,
+      "attempts": 12,
+      "authority_busy": 11,
+      "store_execution_us": 64829,
+      "outside_store_us": 234258
+    },
+    {
+      "segment": "4-0",
+      "phase": "activation",
+      "elapsed_us": 4263,
+      "attempts": 1,
+      "authority_busy": 0,
+      "store_execution_us": 4224,
+      "outside_store_us": 27
+    },
+    {
+      "segment": "0-1",
+      "phase": "capture",
+      "elapsed_us": 81212,
+      "attempts": 4,
+      "authority_busy": 3,
+      "store_execution_us": 17852,
+      "outside_store_us": 63133
+    },
+    {
+      "segment": "0-1",
+      "phase": "activation",
+      "elapsed_us": 6931,
+      "attempts": 1,
+      "authority_busy": 0,
+      "store_execution_us": 6885,
+      "outside_store_us": 26
+    },
+    {
+      "segment": "4-1",
+      "phase": "capture",
+      "elapsed_us": 58152,
+      "attempts": 3,
+      "authority_busy": 2,
+      "store_execution_us": 16668,
+      "outside_store_us": 41410
+    },
+    {
+      "segment": "4-1",
+      "phase": "activation",
+      "elapsed_us": 5466,
+      "attempts": 1,
+      "authority_busy": 0,
+      "store_execution_us": 5439,
+      "outside_store_us": 15
+    }
+  ],
+  "limits": "Original failed native workload only. Capture 4-0 still takes299.503ms across12 attempts/11 authority refusals; bounded initial SQL wait has not eliminated sustained contention. No complete matrix-cell or browser claim. Actual SQL holder remains unidentified. All original private captures/logs retained."
+}

@@ -1,0 +1,124 @@
+"""Execute available matrix workloads without mistaking a component for a cell.
+
+One failed cell cannot stop selection of another. Missing producers are explicit
+work items, not skipped passes. No result crosses platform, network or key cohorts.
+"""
+import copy
+import re
+
+from .transport_matrix import DIMENSIONS
+
+
+COMPLETION_GAPS = [
+    "full-cell-current-expiry-and-conflict-observer-not-connected",
+    "full-cell-ten-second-idle-resource-observer-not-connected",
+    "full-cell-requirement-verifier-not-connected",
+]
+
+
+def configure_execution(matrix, environment):
+    if environment["server"] not in DIMENSIONS["server"]:
+        raise ValueError("Unapproved execution platform")
+    matrix["execution_environment"] = environment
+    for cell in matrix["cells"]:
+        blockers = []
+        if cell["server"] != environment["server"]:
+            blockers.append("requires-other-local-arm-host")
+        if cell["transport"] != "native-quic":
+            blockers.append("full-browser-movement-media-producer-not-connected")
+            if cell["network"] == "local" and cell["server"] == environment["server"]:
+                browser = "firefox" if cell["transport"].startswith("firefox") else "chrome"
+                if not environment["browsers"][browser]["matches_frozen_version"]:
+                    blockers.append("frozen-" + browser + "-runtime-unavailable-in-this-environment")
+        if cell["network"] != "local":
+            if cell["server"] == "macos-arm64":
+                blockers.append("mac-server-linux-client-full-workload-producer-not-connected")
+            elif cell["server"] == environment["server"] and not environment["owned_systemd_vm"]:
+                blockers.append("owned-ubuntu-systemd-and-client-netns-environment-unavailable")
+        if cell["server"] == environment["server"]:
+            blockers.extend(environment["execution_blockers"])
+        cell["execution"] = dict(
+            producer="native-media" if cell["transport"] == "native-quic" else None,
+            runnable=not blockers, blockers=blockers,
+            completion_blockers=list(COMPLETION_GAPS), attempted=False,
+            component=None,
+        )
+        cell["check_results"] = {name: {"status": "not-run", "evidence": None}
+                                 for name in cell["required_checks"]}
+        cell["reason"] = "execution-preflight-blocked" if blockers else "required-workload-ready-not-run"
+    return matrix
+
+
+def select_cells(matrix, ids):
+    if not ids or len(ids) != len(set(ids)):
+        raise ValueError("Select distinct explicit matrix cell IDs")
+    by_id = {c["id"]: c for c in matrix["cells"]}
+    if not set(ids) <= set(by_id):
+        raise ValueError("Unknown matrix cell ID")
+    return [by_id[name] for name in ids]
+
+
+def record_native_result(matrix, cell, report, report_sha256, exit_code):
+    """Bind negative/partial observations; this producer cannot qualify a cell."""
+    if cell not in matrix["cells"] or cell["transport"] != "native-quic":
+        raise ValueError("Native evidence cannot stand in for browser evidence")
+    if cell["execution"]["component"] is not None:
+        raise ValueError("Original cell attempt already recorded")
+    if not re.fullmatch(r"[0-9a-f]{64}", report_sha256):
+        raise ValueError("Missing original report digest")
+    if (report.get("format") != "connect/transport-fixture-rehearsal/1"
+            or report.get("source_revision") != matrix["source_revision"]
+            or report.get("host", {}).get("platform") != cell["server"]
+            or report.get("network_profile") != ("local" if cell["network"] == "local" else "remote")
+            or report.get("signing_algorithm") != cell["signing"]):
+        raise ValueError("Component candidate/platform/network/signing differs from selected cell")
+    if type(report.get("passed")) is not bool or type(exit_code) is not int:
+        raise ValueError("Missing terminal component outcome")
+    guards = {key: report.get(key) is True for key in (
+        "source_inputs_unchanged", "executables_unchanged", "sdk_dist_inputs_unchanged")}
+    passed = report["passed"] and exit_code == 0 and all(guards.values())
+    # Copy a small allowlist. Reports contain private paths and generated actors.
+    component = dict(kind="native-media", report_sha256=report_sha256,
+                     passed=passed, exit_code=exit_code, integrity=guards,
+                     source_revision=report["source_revision"],
+                     binary_sha256=report.get("binary_sha256"),
+                     peer_binary_sha256=report.get("peer_binary_sha256"),
+                     failure=report.get("failure"))
+    cell["execution"].update(attempted=True, component=component)
+    cell.update(status="incomplete" if passed else "failed",
+                reason="required-workload-passed-full-checks-missing" if passed else "required-workload-failed")
+    matrix["matrix_qualified"] = matrix["task_complete"] = matrix["whole_gate_qualified"] = False
+    return cell
+
+
+def merge_hosts(base, reports):
+    """Exactly one current report per host; never overwrite another attempt."""
+    merged = copy.deepcopy(base)
+    hosts = set()
+    by_id = {cell["id"]: cell for cell in merged["cells"]}
+    for report in reports:
+        host = report.get("execution_environment", {}).get("server")
+        if host not in DIMENSIONS["server"] or host in hosts:
+            raise ValueError("Missing or duplicate host report")
+        if (report.get("source_revision") != merged["source_revision"]
+                or report.get("contract_inputs") != merged["contract_inputs"]
+                or report.get("service_contract_sha256") != merged["service_contract_sha256"]):
+            raise ValueError("Host candidate or contract differs")
+        cells = report.get("cells", [])
+        if len(cells) != 32 or {c["id"] for c in cells} != set(by_id):
+            raise ValueError("Incomplete or duplicate host cell inventory")
+        for cell in cells:
+            original = by_id[cell["id"]]
+            if any(cell.get(k) != original[k] for k in DIMENSIONS):
+                raise ValueError("Cell dimensions changed")
+            if cell["required_checks"] != original["required_checks"]:
+                raise ValueError("Cell requirements changed")
+            if cell["status"] not in {"not-run", "running", "failed", "incomplete"}:
+                raise ValueError("No complete-cell verifier is connected")
+            if cell["server"] == host:
+                original.update(copy.deepcopy(cell))
+        hosts.add(host)
+    merged["host_reports_received"] = sorted(hosts)
+    merged["missing_host_reports"] = sorted(DIMENSIONS["server"] - hosts)
+    merged["matrix_qualified"] = merged["task_complete"] = merged["whole_gate_qualified"] = False
+    return merged
