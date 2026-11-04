@@ -177,8 +177,8 @@ fn replacement_video_explicit_data_gate_preserves_video_and_checks_sealed_data_r
     for generation in [1, 2, 3] {
         let shared = Shared::default();
         let mut offer = original();
-        offer["capabilities"]["data_protocols"] = json!(["json"]);
-        let data_offer = json!({"id":"messages","kind":"data","direction":"sendrecv","codec_preferences":["json"]});
+        offer["capabilities"]["data_protocols"] = json!(["binary"]);
+        let data_offer = json!({"id":"messages","kind":"data","direction":"sendrecv","codec_preferences":["binary"]});
         offer["streams_offered"]
             .as_array_mut()
             .unwrap()
@@ -187,7 +187,7 @@ fn replacement_video_explicit_data_gate_preserves_video_and_checks_sealed_data_r
             .begin("offer".into(), scope(), offer.clone())
             .unwrap();
         let (mut answer, mut callback) = pair("offer");
-        let codec = json!({"name":"json","params":{}});
+        let codec = json!({"name":"binary","params":{"reliability":"reliable_ordered"}});
         for payload in [&mut answer, &mut callback] {
             payload["capabilities"] = offer["capabilities"].clone();
             payload["substrate_setup"]["streams"][0]["video_feedback"]["connection_generation"] =

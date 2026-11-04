@@ -208,6 +208,50 @@
         "forced": false,
         "original_group_retired": true
       }
+    },
+    {
+      "run": "integrated-media-recovery-v108",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 132943,
+        "source_revision": "ae7b74b571e8854dd697482cd35464eaac04711b",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": false,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T07:26:36.155771+00:00",
+        "regression_compile": {
+          "exit_code": 0,
+          "log_sha256": "ae0fce3eca1c4cb52241c62f076a6ee140d069a5eb695bb2470573519e755d6d"
+        },
+        "regression": {
+          "case": "canonical::native_video::tests::controls::replacement_video_explicit_data_gate_preserves_video_and_checks_sealed_data_receipt",
+          "exit_code": 101,
+          "log_sha256": "4f72e226fcabec7e350333cd3346b5e26c8e333e81622ec9c84f911fe08d9819",
+          "binary_sha256": "56cce2c1988814480c71306382452b2b3c8bf30c2438e5787b12b0dfca33ed43",
+          "binary_unchanged": true,
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 295 filtered out; finished in 0.00s"
+          ]
+        },
+        "failure_class": "AssertionError",
+        "message": "",
+        "prepared_sources_unchanged": true,
+        "source_inputs_unchanged": true,
+        "elapsed_seconds": 59.36834792600712
+      },
+      "scope": "Only the new component regression ran. It failed during synthetic negotiation before exercising the Data-gate correction because its Data codec omitted reliability=reliable_ordered. Full media was not started.",
+      "fixture_correction": "Use the workload binary Data protocol with its required reliable_ordered parameter. Product gate validation remains unchanged."
     }
   ],
   "diagnosis": {
