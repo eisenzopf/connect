@@ -94,8 +94,8 @@
     }
   ],
   "counts": {
-    "not-run": 30,
-    "failed": 2
+    "not-run": 29,
+    "failed": 3
   },
   "cells": [
     {
@@ -2153,21 +2153,38 @@
       "network": "remote-profile-fixture",
       "transport": "native-quic",
       "signing": "ES256",
-      "status": "not-run",
-      "reason": "execution-preflight-blocked",
+      "status": "failed",
+      "reason": "required-workload-failed",
       "execution": {
         "producer": "native-media",
-        "runnable": false,
-        "blockers": [
-          "owned-ubuntu-systemd-and-client-netns-environment-unavailable"
-        ],
+        "runnable": true,
+        "blockers": [],
         "completion_blockers": [
           "full-cell-current-expiry-and-conflict-observer-not-connected",
           "full-cell-ten-second-idle-resource-observer-not-connected",
           "full-cell-requirement-verifier-not-connected"
         ],
-        "attempted": false,
-        "component": null
+        "attempted": true,
+        "component": {
+          "kind": "native-media",
+          "source_revision": "2fedc093a13fa55e872e6fce9308670bb8743a07",
+          "report_sha256": "a493f6ba3a33aa19039c8c16a35c3d1b626f4e26f2ce33eaa97e3aba02b4c230",
+          "passed": false,
+          "exit_code": 1,
+          "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+          "peer_binary_sha256": "1e3f0e44101d9a4ea436b058b5ac95ef86a1a855cecc408e9ffc8acbcc813a76",
+          "integrity": {
+            "source_inputs_unchanged": true,
+            "executables_unchanged": true,
+            "sdk_dist_inputs_unchanged": true
+          },
+          "failure": {
+            "phase": "independent-native-opus-vp8-decode",
+            "name": "AssertionError",
+            "line": 608
+          },
+          "public_evidence": "docs/evidence/gate-6/matrix-native-remote-es256.json"
+        }
       },
       "check_results": {
         "identified-candidate-client-server-versions": {
@@ -2199,16 +2216,16 @@
           "evidence": null
         },
         "declared-concurrent-workload": {
-          "status": "not-run",
-          "evidence": null
+          "status": "passed",
+          "evidence": "docs/evidence/gate-6/matrix-native-remote-es256.json"
         },
         "actual-private-packet-capture": {
-          "status": "not-run",
-          "evidence": null
+          "status": "passed",
+          "evidence": "docs/evidence/gate-6/matrix-native-remote-es256.json"
         },
         "independently-decoded-duplex-media-and-profile-budgets": {
-          "status": "not-run",
-          "evidence": null
+          "status": "failed",
+          "evidence": "docs/evidence/gate-6/matrix-native-remote-es256.json"
         },
         "current-revocation-expiry-and-conflicting-operation-refusals": {
           "status": "not-run",
@@ -2219,7 +2236,7 @@
           "evidence": null
         }
       },
-      "source_revision": null
+      "source_revision": "2fedc093a13fa55e872e6fce9308670bb8743a07"
     },
     {
       "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",

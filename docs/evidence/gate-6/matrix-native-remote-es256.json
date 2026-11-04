@@ -1,0 +1,231 @@
+{
+  "format": "connect/matrix-native-remote-es256/1",
+  "task": "G6-058",
+  "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+  "source_revision": "2fedc093a13fa55e872e6fce9308670bb8743a07",
+  "passed": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "source_guard_active": false,
+  "source_inputs_unchanged": true,
+  "executables_unchanged": true,
+  "sdk_dist_inputs_unchanged": true,
+  "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+  "peer_binary_sha256": "1e3f0e44101d9a4ea436b058b5ac95ef86a1a855cecc408e9ffc8acbcc813a76",
+  "reports": {
+    "rehearsal.json": "a493f6ba3a33aa19039c8c16a35c3d1b626f4e26f2ce33eaa97e3aba02b4c230",
+    "conversation.json": "0d43e42eb245d7e43c8f755faf2832b37785347450789684615e62357a5556c1"
+  },
+  "decoded_report_sha256": "b12615045d8ff5496e3111288ee4ae9312e1414176dd717c341c282fcac04ac2",
+  "failure": {
+    "phase": "independent-native-opus-vp8-decode",
+    "name": "AssertionError",
+    "line": 608
+  },
+  "conversation_passed": true,
+  "moves_completed": 4,
+  "topology": {
+    "host": {
+      "platform": "ubuntu24-arm64",
+      "os": "linux",
+      "architecture": "arm64",
+      "kernel_release": "6.8.0-117-generic",
+      "ordinary_user": true
+    },
+    "kind": "ubuntu-netns",
+    "distinct_client_server_network_namespaces_observed": true,
+    "helpers_in_client_namespace": 5,
+    "server_owned_veth_udp_bind_observed": true,
+    "ordinary_user_server_and_helpers_verified": true,
+    "client_connected_route_without_default_observed": true,
+    "server_namespace_sha256": "667718d2c7aa32064c95cf3dd71cc8be57935be72216327b6cf5b24dc9808668",
+    "client_namespace_sha256": "c19261da9ff6abe78d85d5ababcd61b58540609b9c5c84071076c8d8c8281b28",
+    "server_executable_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9"
+  },
+  "network_namespace": {
+    "kind": "ubuntu-netns",
+    "passed": true,
+    "original_namespace_removed": true,
+    "original_veth_removed": true,
+    "remaining_client_processes": 0,
+    "forced_cleanup": false,
+    "systemd_servers_verified": 2,
+    "unprivileged_client_launch_required": true,
+    "external_default_ipv4_route": false,
+    "failures": [],
+    "route_observation_sha256": "a1154fe1a6f62afcc7b7bdf2deb81d03f51478741ecf2809a212287e506ace0f"
+  },
+  "servers": [
+    {
+      "name": "seed-server",
+      "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "original_joined": true,
+      "managed_by_systemd": true
+    },
+    {
+      "name": "materialized-server",
+      "running_binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "original_joined": true,
+      "managed_by_systemd": true
+    }
+  ],
+  "owners": {
+    "original_tasks_started": 30,
+    "original_tasks_joined": true,
+    "encoder_processes_joined": 6,
+    "elapsed_ms": 63380.58476302028
+  },
+  "helpers_joined": true,
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "packet_limit": 200000,
+    "media_workload": true,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+    "pcap_sha256": "83cc823768c672de123e43392f483d665fa6b55fdd921e90cbfb627c95e87724",
+    "pcap_bytes": 81439063,
+    "captured_seconds": 89.41158267098945,
+    "kernel_dropped_packets": 0,
+    "interface": "owned-veth",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 107095,
+      "to_server_packets": 56692,
+      "from_server_packets": 50403,
+      "captured_bytes": 79725519,
+      "udp_payload_bytes": 75227529,
+      "to_server_udp_bytes": 30423760,
+      "from_server_udp_bytes": 44803769
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "original_pcap_hash_independently_verified": true,
+  "quality_routes": [
+    {
+      "index": 0,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.72,
+        "samples": 2818560,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2936,
+        "maximum_arrival_gap_ms": 718.0910000000003
+      },
+      "minimum_video_fps": 6,
+      "wrong_source_video_frames": 0,
+      "undecodable_video_frames": 0,
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 28.621999999998593,
+        "p95_abs_skew_ms": 78.45499999999817
+      }
+    },
+    {
+      "index": 1,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.54,
+        "samples": 2809920,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2927,
+        "maximum_arrival_gap_ms": 715.6295590102673
+      },
+      "minimum_video_fps": 9,
+      "wrong_source_video_frames": 0,
+      "undecodable_video_frames": 0,
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 59.915167003868675,
+        "p95_abs_skew_ms": 100.22267901897308
+      }
+    },
+    {
+      "index": 2,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.26,
+        "samples": 2844480,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2963,
+        "maximum_arrival_gap_ms": 142.0831610262394
+      },
+      "minimum_video_fps": 29,
+      "wrong_source_video_frames": 0,
+      "undecodable_video_frames": 0,
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 57.77904249727683,
+        "p95_abs_skew_ms": 83.15408799052193
+      }
+    },
+    {
+      "index": 3,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 59.1,
+        "samples": 2836800,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2955,
+        "maximum_arrival_gap_ms": 132.94407999515533
+      },
+      "minimum_video_fps": 29,
+      "wrong_source_video_frames": 0,
+      "undecodable_video_frames": 0,
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 38.93254548311287,
+        "p95_abs_skew_ms": 99.70739901065784
+      }
+    },
+    {
+      "index": 4,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 57.78,
+        "samples": 2773440,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2889,
+        "maximum_arrival_gap_ms": 600.5319769840244
+      },
+      "minimum_video_fps": 15,
+      "wrong_source_video_frames": 0,
+      "undecodable_video_frames": 0,
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 58.543000000000234,
+        "p95_abs_skew_ms": 83.02064099907902
+      }
+    },
+    {
+      "index": 5,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 55.94,
+        "samples": 2685120,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2797,
+        "maximum_arrival_gap_ms": 537.708113014698
+      },
+      "minimum_video_fps": 15,
+      "wrong_source_video_frames": 0,
+      "undecodable_video_frames": 0,
+      "sync": {
+        "status": "failed",
+        "median_abs_skew_ms": null,
+        "p95_abs_skew_ms": null
+      }
+    }
+  ],
+  "impairment_executed": false,
+  "cold_build": false,
+  "container_cache_reused": false,
+  "scope": "Actual local Ubuntu24.04 ARM64 VM-host systemd/native QUIC with separate unprivileged client network namespace, original four-move programme and actual owned-veth capture. All control checks complete but all six media quality routes fail. Warm host cache used; no compiler job during the live programme. No impaired-network/browser/full-cell/ten-second idle qualification. Original raw sources, media, capture and logs remain private on this VM."
+}

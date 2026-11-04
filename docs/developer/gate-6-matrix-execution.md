@@ -117,3 +117,5 @@ expiry and idle observations remain required. See
 [the bounded implementation evidence](../evidence/gate-6/browser-matrix-admission-candidate.json).
 
 The first [systemd/namespace Remote EdDSA result](../evidence/gate-6/matrix-native-remote-eddsa.json) completes the control/movement programme but fails independent media quality. Its cold VM-host build is retained for the next cohort; the attempted cache bind did not expose the container cache and is not claimed as reuse. Full original private media and captures remain on the owned VM.
+
+The independent [Remote ES256 workload](../evidence/gate-6/matrix-native-remote-es256.json) also completed all four moves/control checks and original cleanup, but all six quality routes failed. The current progress ledger records three attempted cells across their identified revisions, with zero qualified. No further native rerun is justified merely by these failures; continue browser launcher/media integration.
