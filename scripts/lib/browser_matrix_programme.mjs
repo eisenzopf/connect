@@ -29,9 +29,11 @@ export function browserMatrixKeepalive(actors) {
 /** Real six-source, two-Session programme and four original device moves.
  * Independent decoded receive/capture/expiry/idle proof is still required by
  * the full cell verifier; source draws and completed moves cannot stand in. */
-export async function browserMatrixProgramme({state,actors,plan,sources,journal,keepalive,report}) {
+export async function browserMatrixProgramme({state,actors,plan,sources,journal,keepalive,report,observer}) {
     check(plan.programmeMs===62000&&plan.moves.length===4,'Approved fixed programme and four moves required');
+    if(observer)await observer.initial(state,{timeoutMs:8000});
     const original=sources.beginProgramme();
+    observer?.start(original);
     Object.assign(report,{format:'connect/browser-matrix-programme/1',passed:false,source_programme:original,
         decoded_media_verified:false,packet_capture_verified:false,moves:[],terminal_ms:original.deadlineMs});
     await journal({kind:'programme-origin',original});
@@ -67,6 +69,7 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
                 video:{send:intent.video,receive:intent.receiveVideo}},options());
             await journal({kind:'move-target-prepared',operationId:intent.operation,connectionId:targetOwner.connection.id});
             await sources.start({route,connection:targetOwner.connection,options:options()});
+            if(observer)await observer.attach(route.index,targetOwner.connection,{audio:intent.audio,video:intent.receiveVideo},options());
             // Both receipts retain their original owners; do not cancel or
             // resubmit a mutation when one response is uncertain.
             const outcomes=await Promise.allSettled([operation.wait(options()),targetOwner.completion]);
@@ -81,6 +84,7 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             const old=await before.connection.refresh(options());check(old.state==='retired','Original source must be durably retired');
             const source=sources.sources.find(source=>source.index===route.index),binding=source.attachments.find(binding=>binding.connectionId===before.connection.id);
             check(binding?.capture.closed===true,'Original SDK capture must close after movement receipt');
+            observer?.activate(route.index,targetOwner.connection.id);
             sources.retireConnection(before.connection.id);
             current[route.index]={connection:targetOwner.connection,role:intent.targetRole,video:intent.video,receiveVideo:intent.receiveVideo};
             state.connections[route.index]=targetOwner.connection;
@@ -103,6 +107,7 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
     await sleep(original.deadlineMs-performance.now());keepalive.check();
     report.finished_ms=performance.now()-original.originMs;
     report.sources=sources.observation();report.passed=report.moves.length===4;
+    if(observer)report.decoded_media=observer.report();
     await journal({kind:'programme-terminal',elapsedMs:report.finished_ms,moves:report.moves.length});
     return report;
 }

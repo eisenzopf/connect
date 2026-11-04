@@ -18,8 +18,8 @@ assert.ok((await fs.realpath(inputPath)).startsWith(privateRoot+path.sep));
 assert.equal((await fs.stat(inputPath)).mode&0o077,0);
 const spec=JSON.parse(await fs.readFile(inputPath,'utf8'));
 assert.equal(spec.format,'connect/browser-matrix-admission-input/1');
-assert.ok(['admission','programme'].includes(spec.stage));
-assert.ok(spec.stage!=='programme'||spec.transport==='chrome-webtransport');
+assert.ok(['admission','programme','quality'].includes(spec.stage));
+assert.ok(spec.stage==='admission'||spec.transport==='chrome-webtransport');
 assert.ok(['chrome-webtransport','chrome-wss-webrtc'].includes(spec.transport));
 assert.ok(['EdDSA','ES256'].includes(spec.signingAlgorithm));
 assert.ok(process.platform==='linux'&&process.arch==='arm64');
@@ -73,6 +73,8 @@ try{
             if(url.pathname==='/'){response.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});response.end('<!doctype html><meta charset=utf-8><title>Owned matrix fixture</title>');return;}
             if(url.pathname==='/_matrix/admission.mjs')file=path.join(root,'scripts/lib/browser_matrix_admission.mjs');
             else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
+            else if(url.pathname==='/_matrix/observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_observation.mjs');
+            else if(url.pathname==='/video/audio_envelope.mjs')file=path.join(root,'scripts/video/audio_envelope.mjs');
             else if(url.pathname==='/_matrix/programme.mjs')file=path.join(root,'scripts/lib/browser_matrix_programme.mjs');
             else if(url.pathname==='/video/marker_calibration.mjs')file=path.join(root,'scripts/video/marker_calibration.mjs');
             else if(url.pathname==='/video/source_identity.mjs')file=path.join(root,'scripts/video/source_identity.mjs');
@@ -154,7 +156,7 @@ try{
             pinRefusal={mismatched_leaf_refused:true,original_transport_closed:true,application_streams_created:0,application_mutations_submitted:0};
         }
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
-        const actors={};window.matrixActors=actors;let state,sources,keepalive;
+        const actors={};window.matrixActors=actors;let state,sources,keepalive,observer;
         const programmeReport={};
         try{
             for(const [name,configuration] of Object.entries(spec.actors)){
@@ -171,25 +173,32 @@ try{
                     timeoutMs:8000,attemptTimeoutMs:3000,nativeVideoFeedback:true,media:spec.rtcConfiguration,resolveEnrollment:async()=>enrollment});
                 actors[name]={identityId:configuration.identityId,deviceId:configuration.device.id,endpointId:configuration.endpointId,client};
             }
-            if(spec.stage==='programme')keepalive=browserMatrixKeepalive(actors);
+            if(spec.stage!=='admission')keepalive=browserMatrixKeepalive(actors);
             window.matrixPhase='admission';const plan=browserMatrixPlan();
             sources=await browserMatrixSources();
+            if(spec.stage==='quality'){
+                const {browserMatrixObservation}=await import('/_matrix/observation.mjs');
+                const {BrowserMediaRenderer}=await import('/sdk/browser_media_renderer.js');
+                observer=browserMatrixObservation(BrowserMediaRenderer,plan);
+            }
             state=await browserMatrixAdmission({actors,plan,selectedTransport:selected,journal:event=>window.matrixJournal(event),
                 startMedia:input=>sources.start(input)});
             const sourceStartup=sources.observation();
-            if(spec.stage==='programme'){
+            if(spec.stage!=='admission'){
                 window.matrixPhase='four-move-programme';
                 await browserMatrixProgramme({state,actors,plan,sources,journal:event=>window.matrixJournal(event),
-                    keepalive,report:programmeReport});
+                    keepalive,report:programmeReport,observer});
                 await keepalive.close();
             }
             window.matrixPhase='original-retirement';
             const retirement=await retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event),
-                ...(spec.stage==='programme'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
-            return {passed:retirement.passed,wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,admission:state.report,
+                ...(spec.stage!=='admission'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
+            return {passed:retirement.passed&&(!observer||programmeReport.decoded_media.passed),
+                ...(observer?{decoded_media:programmeReport.decoded_media,
+                    ...(programmeReport.decoded_media.passed?{}:{failure:{stage:'decoded-media-quality',name:'ProfileBudgetsFailed'}})}:{}),wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,admission:state.report,
                 actual_connections:state.connections.length,source_startup:sourceStartup,retirement,
-                ...(spec.stage==='programme'?{programme:programmeReport,keepalive:keepalive.observation()}:{}),
-                ...(spec.stage==='programme'?{scope:'Actual admission and four-move source programme only; independent receive quality/capture/expiry/idle remain unverified.'}:{})};
+                ...(spec.stage!=='admission'?{programme:programmeReport,keepalive:keepalive.observation()}:{}),
+                ...(spec.stage!=='admission'?{scope:'Actual admission and four-move programme; decoded quality is explicit when requested. Capture/expiry/fallback/idle require separate evidence.'}:{})};
         }catch(error){
             console.error('Matrix failure',String(error.stack??error),JSON.stringify({kind:error.kind,certainty:error.certainty,problem:error.problem}));
             const closes=await Promise.allSettled(Object.values(actors).map(actor=>actor.client.close({timeoutMs:5000})));
@@ -198,7 +207,7 @@ try{
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
                 programme:programmeReport,keepalive:keepalive?.observation(),original_client_closes:closes.map(value=>value.status)};
-        } finally {await keepalive?.close().catch(()=>{});await sources?.close();}
+        } finally {await keepalive?.close().catch(()=>{});await observer?.close();await sources?.close();}
     },{spec,selected});
     Object.assign(report,result);report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
     stage='browser-retirement';

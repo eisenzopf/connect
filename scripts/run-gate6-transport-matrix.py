@@ -124,7 +124,7 @@ def execute_selected(matrix, ids, output, execute):
         save(output / "matrix.json", matrix)
         try:
             report, report_sha256, code = execute(cell)
-            record = record_browser_result if cell["execution"].get("producer") in {"browser-admission", "browser-programme"} else record_native_result
+            record = record_browser_result if cell["execution"].get("producer") in {"browser-admission", "browser-programme", "browser-quality"} else record_native_result
             record(matrix, cell, report, report_sha256, code)
         except Exception as error:
             cell.update(status="failed", reason="workload-execution-or-evidence-binding-failed")
@@ -148,7 +148,7 @@ def main():
     parser.add_argument("--host-report", type=Path, action="append", default=[])
     parser.add_argument("--chrome", type=Path)
     parser.add_argument("--firefox", type=Path)
-    parser.add_argument("--stage", choices=("media", "admission", "programme"), default="media")
+    parser.add_argument("--stage", choices=("media", "admission", "programme", "quality"), default="media")
     parser.add_argument("--browser-image", help="Exact already installed ARM image for browser admission")
     args = parser.parse_args()
     if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
@@ -171,7 +171,7 @@ def main():
         save(output / "matrix.json", matrix)
         print(json.dumps(dict(required_cells=32, qualified_cells=0, host_reports=matrix["host_reports_received"])))
         return 0
-    if args.stage in {"admission", "programme"} and args.phase == "run" and not args.browser_image:
+    if args.stage in {"admission", "programme", "quality"} and args.phase == "run" and not args.browser_image:
         parser.error("Browser admission requires --browser-image with an exact installed image ID")
     configure_execution(matrix, probe(args.chrome, args.firefox, args.browser_image), args.stage)
     save(output / "matrix.json", matrix)
@@ -197,7 +197,7 @@ def main():
 
         def execute(cell):
             directory = output / "cells" / cell["server"] / cell["network"] / cell["transport"] / cell["signing"]
-            if cell["execution"]["producer"] in {"browser-admission", "browser-programme"}:
+            if cell["execution"]["producer"] in {"browser-admission", "browser-programme", "browser-quality"}:
                 directory.parent.mkdir(parents=True, exist_ok=True)
                 loader = importlib.util.spec_from_file_location("matrix_browser_fixture", ROOT / "scripts/rehearse-gate6-browser-matrix.py")
                 module = importlib.util.module_from_spec(loader)

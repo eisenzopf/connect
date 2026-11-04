@@ -26,6 +26,7 @@ from lib.sealed_executable import seal_executable
 from lib.transport_actors import CONTROLLERS, DEVICES, enroll_actors
 from lib.transport_fixture import materialize, publish, toml_bytes
 from lib.transport_matrix import digest
+from lib.transport_capture import NativeCapture
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -38,13 +39,13 @@ def port(kind):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--stage", choices=("admission", "programme"), required=True)
+    parser.add_argument("--stage", choices=("admission", "programme", "quality"), required=True)
     parser.add_argument("--transport", choices=("chrome-webtransport", "chrome-wss-webrtc"), required=True)
     parser.add_argument("--signing", choices=("EdDSA", "ES256"), required=True)
     parser.add_argument("--image", required=True, help="Exact already installed local ARM browser image ID")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    if args.stage == "programme" and args.transport != "chrome-webtransport":
+    if args.stage != "admission" and args.transport != "chrome-webtransport":
         parser.error("Actual browser replacement programme currently requires Chrome WebTransport")
     if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
         parser.error("Use the owner's local ARM resources")
@@ -82,6 +83,7 @@ def main():
     save()
     before = sdk_before = executable = server = browser_owner = None
     log_handles = []
+    capture = None
     cidfile = private / "browser-container-id"
     phase = "dependencies"
     sequence = 0
@@ -258,6 +260,9 @@ def main():
             "--", "node", "scripts/video/browser_matrix_admission.mjs", str(browser_input)]
         handle = (private / "browser.log").open("xb")
         log_handles.append(handle)
+        if args.stage == "quality":
+            capture = NativeCapture(private / "packet-capture", native, env, media_workload=True)
+            capture.start()
         browser_owner = subprocess.Popen(command_args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
                                          stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
         report["browser_exit_code"] = browser_owner.wait(timeout=240)
@@ -281,6 +286,10 @@ def main():
             browser_owner.wait(timeout=10)
             report["browser_forced_cleanup"] = True
             report["passed"] = False
+        if capture is not None:
+            report["packet_capture"] = capture.finish()
+            report["packet_capture"]["transport"] = args.transport
+            report["passed"] &= report["packet_capture"]["observed"]
         try:
             stop_server()
         except BaseException:

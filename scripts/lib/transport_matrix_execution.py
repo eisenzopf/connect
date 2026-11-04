@@ -17,21 +17,21 @@ COMPLETION_GAPS = [
 
 
 def configure_execution(matrix, environment, stage="media"):
-    if stage not in {"media", "admission", "programme"}:
+    if stage not in {"media", "admission", "programme", "quality"}:
         raise ValueError("Unknown execution stage")
     if environment["server"] not in DIMENSIONS["server"]:
         raise ValueError("Unapproved execution platform")
     matrix["execution_environment"] = environment
     for cell in matrix["cells"]:
         blockers = []
-        admission = stage in {"admission", "programme"}
+        admission = stage in {"admission", "programme", "quality"}
         if cell["server"] != environment["server"]:
             blockers.append("requires-other-local-arm-host")
         if admission:
             if (cell["server"] != "ubuntu24-arm64" or cell["network"] != "local"
                     or cell["transport"] not in {"chrome-webtransport", "chrome-wss-webrtc"}):
                 blockers.append("browser-admission-producer-unavailable-for-this-cell")
-            if stage == "programme" and cell["transport"] != "chrome-webtransport":
+            if stage in {"programme", "quality"} and cell["transport"] != "chrome-webtransport":
                 blockers.append("browser-replacement-producer-not-implemented-for-this-transport")
             if not environment.get("browser_runtime_image_id"):
                 blockers.append("exact-local-arm-browser-image-not-verified")
@@ -52,7 +52,7 @@ def configure_execution(matrix, environment, stage="media"):
             producer="browser-" + stage if admission else "native-media" if cell["transport"] == "native-quic" else None,
             stage=stage,
             runnable=not blockers, blockers=blockers,
-            completion_blockers=list(COMPLETION_GAPS) + ([("browser-independent-decoded-quality-and-packet-capture-not-connected" if stage == "programme" else "full-browser-movement-media-producer-not-connected"),
+            completion_blockers=list(COMPLETION_GAPS) + ([("browser-independent-decoded-quality-and-packet-capture-not-connected" if stage in {"programme", "quality"} else "full-browser-movement-media-producer-not-connected"),
                 "browser-fallback-and-neither-path-refusal-not-executed"] if admission else []), attempted=False,
             component=None,
         )
@@ -106,7 +106,7 @@ def record_native_result(matrix, cell, report, report_sha256, exit_code):
 
 def record_browser_result(matrix, cell, report, report_sha256, exit_code):
     """An actual admission observation is a partial stage, never cell evidence."""
-    if (cell not in matrix["cells"] or cell["execution"].get("producer") not in {"browser-admission", "browser-programme"}
+    if (cell not in matrix["cells"] or cell["execution"].get("producer") not in {"browser-admission", "browser-programme", "browser-quality"}
             or cell["execution"]["component"] is not None):
         raise ValueError("Browser admission must match an unrecorded selected stage")
     if not re.fullmatch(r"[0-9a-f]{64}", report_sha256):
@@ -130,7 +130,7 @@ def record_browser_result(matrix, cell, report, report_sha256, exit_code):
             or observation.get("authenticated_owners") != 7 or observation.get("actual_connections") != 6
             or observation.get("passed") is not True):
         raise ValueError("Successful admission lacks its actual browser workload")
-    if passed and report["stage"] == "programme":
+    if passed and report["stage"] in {"programme", "quality"}:
         programme = observation.get("programme", {})
         moves = programme.get("moves", [])
         if (programme.get("passed") is not True or len(moves) != 4
@@ -140,6 +140,14 @@ def record_browser_result(matrix, cell, report, report_sha256, exit_code):
                 or programme.get("source_programme", {}).get("durationMs") != 62000
                 or not 62000 <= programme.get("finished_ms", -1) < 67000):
             raise ValueError("Browser programme lacks the four original moves and fixed terminal")
+    if passed and report["stage"] == "quality":
+        decoded = observation.get("decoded_media", {})
+        capture = report.get("packet_capture", {})
+        if (decoded.get("passed") is not True or decoded.get("window_ms") != 60000
+                or len(decoded.get("routes", [])) != 6
+                or not all(route.get("passed") is True for route in decoded["routes"])
+                or capture.get("observed") is not True or capture.get("original_joined") is not True):
+            raise ValueError("Browser quality stage lacks six measured routes or actual owned capture")
     cell["execution"].update(attempted=True, component=dict(kind=cell["execution"]["producer"], passed=passed,
         exit_code=exit_code, report_sha256=report_sha256, integrity=guards, source_revision=report["source_revision"],
         binary_sha256=report.get("binary_sha256"), browser=observation.get("browser"),
