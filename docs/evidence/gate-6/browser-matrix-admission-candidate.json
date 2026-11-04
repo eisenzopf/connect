@@ -1,0 +1,75 @@
+{
+  "format": "connect/browser-matrix-admission-candidate/1",
+  "task": "G6-058",
+  "source_revision": "dd987926ec18955b4ba5d70cda6ad6f32f18fe2e",
+  "source_files": {
+    "scripts/lib/browser_matrix_admission.mjs": "57cc38db98e412096ab6504ce6c64aa07d9bad81361d81f8e5e14212ef6b0688",
+    "scripts/lib/browser_matrix_keys.mjs": "bf6d800c36214c19d60e5e4483ee1a749e4ecb1cc5b3b3a308b5b0f9ec788da9",
+    "scripts/lib/browser_matrix_actors.py": "7a23ec848de1d8b47d48e481ab4b4d51dc0b0ecfedb4c42ed6d1c00a6e9c47e5",
+    "scripts/tests/browser_matrix_admission.test.mjs": "16dd6d6db6831441d14662d7937753f55804df39cbacc430ddaebe36f57ab12e",
+    "scripts/tests/browser_matrix_keys.test.mjs": "032193298726eb91de0a28c644e1189baae0882081d54b580536c4c49de02bea"
+  },
+  "implemented_scope": [
+    "private CLI-installation to browser actor export with issuance/identity/credential/key binding",
+    "source-bound synthetic EdDSA/ES256 key conversion and exact enrolled public-key checks",
+    "seven-browser-owner control admission programme for four Participants/two Sessions/six offers and selections",
+    "durable original intent/reference journaling without mutation resubmission",
+    "five-second acceptance deadline retained while joining original client cleanup after failure"
+  ],
+  "verification": {
+    "new_node_checks": {
+      "passed": 6,
+      "failed": 0,
+      "log_sha256": "195f77784e2d87bdc8b46cb4f4d35fcb905caeb5024ba1874c169ee5f9535afe",
+      "node_version": "v26.7.0"
+    },
+    "linux_node22_key_checks": {
+      "passed": 2,
+      "failed": 0,
+      "log_sha256": "941a9b0a91f52cac3815a694892420d6b7eb1fda68c14d6461cc8d7b816c54b8",
+      "node_version": "v22.16.0"
+    },
+    "retained_synthetic_native_actor_exports": [
+      {
+        "client_config_sha256": "78132018926c4161827a97810be1fa4278a75e0b641fa8712a1f77483cfba15b",
+        "original_intent_sha256": "90b1cea2cfec03218fdcc6ebd21e2cdd8c4191bfc6da3f10bcbe5da64f11b5e4",
+        "issuance_sha256": "e164fe9b420681180b00e983e5f6dd81759fde376c10beedae7af62d1cea86cb",
+        "signing_algorithm": "EdDSA",
+        "server_signing_algorithm": "EdDSA",
+        "private_key_imported": true,
+        "server_key_imported": true,
+        "declared_curve_matches": true,
+        "browser_authenticated": false,
+        "cell_qualified": false
+      },
+      {
+        "client_config_sha256": "975a5573b6b1f8cdf93df65c2dd119263806fe9bac9f050b9eb3296c2d825a40",
+        "original_intent_sha256": "ecfe02f1ad5b96d5f4e6607d5e5cff1d697fa93e943cb8bae79737007695d3ce",
+        "issuance_sha256": "b7ce98f440615a411ecc5fd5b7066f88629db53fb5a6a69388017febe69bd011",
+        "signing_algorithm": "ES256",
+        "server_signing_algorithm": "ES256",
+        "private_key_imported": true,
+        "server_key_imported": true,
+        "declared_curve_matches": true,
+        "browser_authenticated": false,
+        "cell_qualified": false
+      }
+    ],
+    "tracked_files_match_tested_bytes": true
+  },
+  "actual_browser_authentication_executed": false,
+  "actual_six_browser_connections_executed": false,
+  "full_media_programme_executed": false,
+  "cell_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "remaining": [
+    "browser fixture configuration and owned launch integration",
+    "actual selected transport and normal TLS validation",
+    "full60-second independently observed duplex media and four moves",
+    "browser fallback/neither-path refusal",
+    "per-cell expiry/conflict and ten-second idle observers",
+    "complete-cell verifier"
+  ],
+  "scope": "Implementation and new focused library checks only. The admission scenario itself has not been executed in Chrome or Firefox. Key conversion/import is not browser authentication and cannot qualify any matrix cell."
+}

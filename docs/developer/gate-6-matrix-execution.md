@@ -86,3 +86,29 @@ nonzero while complete-cell qualification is unavailable, even if its native
 component passes. Inspect `cells[].execution.component.passed` for the component
 outcome and `cells[].execution.blockers` for prerequisites. No command here
 dispatches GitHub Actions or provisions cloud resources.
+
+## Browser programme implementation
+
+The admission library (`scripts/lib/browser_matrix_admission.mjs`) now defines
+seven actual browser SDK owners, membership/audience changes, original operation
+reference recovery, two accepted/upgraded Sessions, and six audio/video offers
+with current Session-scoped subscriptions. It preallocates the four moves at
+15/40 seconds on the original 62-second programme, and journals each original
+mutation before submission. It returns the live owners for the remaining media
+programme; its admission-only retirement retains the original five-second
+acceptance deadline and joins cleanup even after that deadline fails.
+
+The private actor exporter (`scripts/lib/browser_matrix_actors.py`) checks the
+selected CLI installation's identity, credential, signing cohort and protected
+asset paths. The Node key adapter (`scripts/lib/browser_matrix_keys.mjs`) checks
+that each converted private key derives the enrolled public key; it supports the
+actual Ed25519 RFC5958 fixture format and ES256 without exposing key material in
+public reports. Both retained signing cohorts exported/imported successfully.
+
+Six new focused checks pass for intent persistence, uncertainty, original
+references, deadline/cleanup ownership and signing-key conversion. Key checks
+also pass on Linux Node22.16.0. These are library checks. The browser admission
+scenario still needs the owned fixture/launcher integration and actual browser
+execution; it does not qualify a cell. The complete 60-second media, four-move,
+expiry and idle observations remain required. See
+[the bounded implementation evidence](../evidence/gate-6/browser-matrix-admission-candidate.json).
