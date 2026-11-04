@@ -294,6 +294,14 @@ impl DerefMut for ConnectionGuard<'_> {
     }
 }
 impl Store {
+    /// Isolated contention fixture. No SQL handle, credentials or authority
+    /// leave this callback; production builds do not expose this seam.
+    #[cfg(feature = "test-support")]
+    pub fn with_primary_sql_held_for_test<T>(&self, held: impl FnOnce() -> T) -> Result<T> {
+        let _connection = self.connection()?;
+        Ok(held())
+    }
+
     /// Immediate current SQL observation without queuing behind command SQL or
     /// another packet observer. WAL exposes committed authoritative state; each
     /// connection's data_version invalidates metadata on primary/external writes.

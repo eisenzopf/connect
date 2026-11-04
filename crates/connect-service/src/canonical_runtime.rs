@@ -1,5 +1,6 @@
 //! Disposable Core views use durable Session IDs and the dispatcher's real peer.
 mod audience_metadata;
+mod control_work;
 use crate::StoreInvocationAuthority;
 pub(crate) use audience_metadata::capture_audience_metadata;
 use connect_protocol::{Error, Result};

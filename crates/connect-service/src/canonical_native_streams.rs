@@ -218,18 +218,9 @@ impl Runtime {
         }
         let (tx, rx) = tokio::sync::oneshot::channel();
         let runtime = self.clone();
-        {
-            let mut work = self.work.lock().map_err(|_| Error::storage())?;
-            while work.try_join_next().is_some() {}
-            if self.stop.is_cancelled()
-                || work.len() >= self.media.store.limits().connections.saturating_mul(2)
-            {
-                return Err(Error::new("busy", "Native control workers are at capacity"));
-            }
-            work.spawn(async move {
-                runtime.stream_worker(a, physical, credential, tx).await;
-            });
-        }
+        self.spawn_native_control(async move {
+            runtime.stream_worker(a, physical, credential, tx).await;
+        })?;
         rx.await.map_err(|_| Error::storage())?
     }
     async fn stream_worker(
