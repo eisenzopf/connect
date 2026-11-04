@@ -1,7 +1,8 @@
 import { BrowserDeadline } from "./browser_deadline.js";
 import { BrowserTasks } from "./browser_tasks.js";
 import { BrowserOpusCodec, BrowserVp8Codec, browserCodecSupport, } from "./browser_codecs.js";
-import { MediaBindings, MediaSendQueue, RtpSender, Vp8Assembler, decodeRtpDatagram, MEDIA_LIMITS, } from "./browser_rtp.js";
+import { MediaBindings, MediaSendQueue, RtpSender, Vp8Assembler, MEDIA_LIMITS, } from "./browser_rtp.js";
+import { decodeNativeRtpDatagram } from "./browser_video_wire.js";
 import { decodeRtcpSenderReport, isRtcpDatagram, wrapRtcpSenderReport, RtcpCaptureClock, RtcpReceiveClock, rtpTimestampFromMicroseconds, } from "./browser_rtcp.js";
 import { ConnectError } from "./errors.js";
 import { canonicalJson, jsonObject, parseCanonicalJson, } from "./uctp_json.js";
@@ -503,7 +504,7 @@ export class BrowserMediaPeer {
             }
             let packet, route;
             try {
-                packet = decodeRtpDatagram(value);
+                packet = decodeNativeRtpDatagram(value);
                 this.registry.require(packet.handle, "receive", packet.payloadType);
                 route = this.routes.get(packet.handle);
             }

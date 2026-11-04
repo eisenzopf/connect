@@ -1,0 +1,72 @@
+{
+  "format": "connect/gate6-browser-video-wire/1",
+  "task": "G6-058",
+  "status": "focused-wire-pass",
+  "source_revision": "4737e1991b8b3ae5439c7c86d0f6fe1459b57ee9",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
+  "scope": [
+    "Ordinary native browser RTP entry point rejects nonzero native flags and RTCP demultiplex types. Generic RTP parsing remains separate.",
+    "Independent literal validates exact 48-byte PLI/CNEP format against Rust contract, offset views, integer bounds, malformed/truncated/extra/padded members.",
+    "Explicit epoch parser preserves original RTP sequence, timestamp, extensions, padding and payload; refuses invalid epoch/SSRC/header/RTCP and bounded length."
+  ],
+  "limitations": [
+    "Browser still does not advertise feedback; signed selection/notice joining, epoch buffering and current-route encoder feedback integration remain unfinished.",
+    "Node execution validates browser wire primitives, not an actual browser/transport cell."
+  ],
+  "verification": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 123037,
+    "source_revision": "4737e1991b8b3ae5439c7c86d0f6fe1459b57ee9",
+    "passed": true,
+    "steps": [],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "browser_video_wire_candidate": true,
+    "component_checks": [
+      {
+        "case": "typescript-build",
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "summary": []
+      },
+      {
+        "case": "browser-video-wire",
+        "exit_code": 0,
+        "log_sha256": "90f0e8778a1a1955c2a09ea276f90e3a1caeb6afa223e43de94023714d01016a",
+        "summary": [
+          "  ...",
+          "# Subtest: native browser epoch framing preserves original RTP and cannot enter ordinary or clock parsers",
+          "ok 2 - native browser epoch framing preserves original RTP and cannot enter ordinary or clock parsers",
+          "  ---",
+          "  duration_ms: 0.790291",
+          "  type: 'test'",
+          "  ...",
+          "1..2",
+          "# tests 2",
+          "# suites 0",
+          "# pass 2",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# todo 0",
+          "# duration_ms 28.818891"
+        ]
+      }
+    ],
+    "executable_unchanged": true,
+    "runtime_sha256": {
+      "/opt/node/bin/node": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+      "/usr/bin/python3.12": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960"
+    },
+    "sdk_outputs_unchanged": true,
+    "generated_outputs_sha256": "3e09b3052c11dc6015e78360c75216a88b1072e046860e9ae2bcb064f36fb84a",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1.080619905013009
+  },
+  "result_state_sha256": "8bdcbc88898b74617cd254b73cb98afceec2dcfc8e3cf0f62c77ff34e0485a96",
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false
+}

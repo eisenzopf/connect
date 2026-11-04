@@ -407,5 +407,6 @@ extensions and padding; parsing alone grants no decoder or feedback admission.
 These codecs are preparation for browser profile integration. The browser does
 not advertise `rtcp-pli-epoch/1` yet. Signed allocation/notice joining, bounded
 unknown-epoch buffering and current-route feedback checks must be installed
-before enabling it. The new independent wire vectors await local ARM
-verification; they do not qualify a browser transport cell.
+before enabling it. Both independent wire cases pass on local ARM at `4737e199`; see
+`docs/evidence/gate-6/browser-video-wire.json`. They do not qualify a browser
+transport cell.

@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-signed-sdk-video-feedback/1",
   "task": "G6-058",
-  "status": "correction-verification-running",
+  "status": "focused-target-compile-correction",
   "source_revision": "2c7b979837d09d78950e11236213ef701ee4324d",
   "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
   "implementation": [
@@ -73,9 +73,10 @@
   "retry": {
     "source_revision": "6cda3cded0b582d380aa23965b9df9c92cfc5e6d",
     "target": "gate6_video_feedback",
-    "verification_snapshot": {
-      "stage": "compile-signed-server",
-      "source_guard_active": true,
+    "previous_sdk_pass_rerun": false,
+    "verification": {
+      "stage": "complete",
+      "source_guard_active": false,
       "controller_pid": 122629,
       "source_revision": "6cda3cded0b582d380aa23965b9df9c92cfc5e6d",
       "passed": false,
@@ -83,9 +84,21 @@
       "general_suites_rerun": false,
       "full_media_rehearsal_run": false,
       "signed_sdk_feedback_candidate": true,
-      "builds": [],
-      "executable_unchanged": true
+      "builds": [
+        {
+          "group": "signed-server",
+          "compile_exit_code": 101,
+          "compile_log_sha256": "7a2529e51560aef9f3fccc596a7cb4f50a594b6281a8a9f4e5f1834dcd129c34"
+        }
+      ],
+      "executable_unchanged": true,
+      "failure_class": "AssertionError",
+      "message": "",
+      "source_inputs_unchanged": true,
+      "prepared_sources_unchanged": true,
+      "elapsed_seconds": 803.0320875470061
     },
-    "previous_sdk_pass_rerun": false
+    "result_state_sha256": "94f04196fd1006708c33641df5f1a6270be9a0355f1cb1f0f933f8a8cd50b67e",
+    "finding": "Focused target compile failed E0275 before test execution because extraction omitted the original gate6_canonical_runtime recursion_limit=256 attribute. Restored in eefc810d; actual runtime verification remains pending."
   }
 }
