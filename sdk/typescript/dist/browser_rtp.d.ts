@@ -65,6 +65,8 @@ export declare class RtpSender {
     packetize(encoded: Uint8Array, timestamp: number): Uint8Array[];
 }
 export interface Vp8Frame {
+    /** First original fragment arrival; assembly/reordering never renews age. */
+    arrived: number;
     bytes: Uint8Array;
     timestamp: number;
     ssrc: number;
@@ -83,7 +85,10 @@ export declare class Vp8Assembler {
     get queuedFrames(): number;
     get queuedFragments(): number;
     clear(): void;
-    push(packet: RtpDatagram, now?: number): Vp8Frame | undefined;
+    push(packet: RtpDatagram, now?: number, capacity?: {
+        frames: number;
+        fragments: number;
+    }): Vp8Frame | undefined;
 }
 /** Drop obsolete media instead of allowing control backpressure to accumulate speech. */
 export declare class MediaSendQueue {

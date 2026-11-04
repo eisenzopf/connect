@@ -1,0 +1,46 @@
+{
+  "format": "connect/browser-complete-frame-order/1",
+  "date": "2026-11-04",
+  "attempt": "v179",
+  "source_revision": "fa84fa01",
+  "source_manifest_sha256": "f6a6e1c5a2212dcbcbf6591f7e9b5ab07ea280d38bc68af544f2943a4060c80c",
+  "local_platform": "Ubuntu24.04 ARM64 owned VM; isolated SDK directory, active v178 sources unchanged",
+  "typescript_build_passed": true,
+  "focused_checks_passed": 54,
+  "focused_checks_failed": 0,
+  "source_inputs_unchanged": true,
+  "first_launch": {
+    "passed": 11,
+    "unexecuted_file": "browser_rtp.test.mjs",
+    "reason": "Isolated fixture copy omitted pinned cross_runtime_media.json; original failed launch retained.",
+    "log_sha256": "576e961fc048cd029202ebfce63b3672aea21361ab0f99215ebe03fb00ac09e9"
+  },
+  "rtp_followup": {
+    "exit_code": 0,
+    "fixture_sha256": "e8e9f89252cd309c8a6d905457a1014f4e271114d9696bf4c55cb4a398c418ce",
+    "fixture_copy_unchanged": true,
+    "log_sha256": "bd22edeedec556ef1258f28b22bed9923e377fdcbb178530454a5f32f7e4b913",
+    "scope": "Only previously unexecuted RTP fixture checks; original failed launch retained."
+  },
+  "dist_changes": [
+    "sdk/typescript/dist/browser_video_order.d.ts",
+    "sdk/typescript/dist/browser_media.js",
+    "sdk/typescript/dist/browser_rtp.d.ts",
+    "sdk/typescript/dist/browser_video_order.js",
+    "sdk/typescript/dist/browser_media.d.ts",
+    "sdk/typescript/dist/browser_rtp.js"
+  ],
+  "proof": [
+    "Current browser physical owner buffers a later complete frame, decodes it after its predecessor with original receive timestamps, and emits no extra keyframe request.",
+    "Actual absence exceeds the bounded wait, marks the reference chain unusable, requests recovery and resumes at a fresh keyframe. Late missing frames cannot rewind that history.",
+    "Unsigned RTP wrap preserves order; explicit generation reset and shutdown discard pending data and cancel timers.",
+    "In-order delivery has no added delay. Complete and incomplete frames share existing eight-frame and64-fragment budgets; the original200ms maximum age is not renewed."
+  ],
+  "limits": [
+    "WebCodecs/control are controlled fixtures in these checks, not a real browser/network qualification.",
+    "Full v178 running workload does not include this SDK change. A separate live retest is required.",
+    "Old-route failure/cancellation integration audit remains open; no complete G6-058 cell qualification."
+  ],
+  "cell_qualified": false,
+  "task_complete": false
+}

@@ -1,3 +1,4 @@
+import { BrowserVideoOrder } from "./browser_video_order.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { BrowserOpusCodec, BrowserVp8Codec } from "./browser_codecs.js";
 import { RtpSender, Vp8Assembler, type MediaBinding } from "./browser_rtp.js";
@@ -64,6 +65,7 @@ interface Route {
     lastReport: number;
     clockProfile: boolean;
     assembler?: Vp8Assembler;
+    order?: BrowserVideoOrder;
     video?: BrowserVideoEpochs;
     publisherSsrc?: number;
     observed: {
@@ -116,6 +118,7 @@ export declare class BrowserMediaPeer {
         incompleteFrames: number;
         fragments: number;
         recovery?: BrowserVp8Codec["decodeDiagnostics"];
+        ordering?: BrowserVideoOrder["diagnostics"];
     }>;
     private check;
     private die;
@@ -135,6 +138,7 @@ export declare class BrowserMediaPeer {
     private drain;
     private receive;
     private deliverRtp;
+    private deliverVideoFrames;
     /** Start one original offer. `accepted` means validated current physical
      * parameters arrived; `ready` separately observes installation. Neither
      * promise can retry the mutation or lend ownership after peer retirement. */
