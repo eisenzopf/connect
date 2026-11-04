@@ -438,3 +438,29 @@ feedback, fresh VP8 keyframe at original RTP26127 and joined owners. Canonical
 unsubscribe history invalidation uses `strm_ids`. See
 `docs/evidence/gate-6/actual-browser-video-feedback.json`. Direct replacement
 integration, delayed writer uncertainty and the full frozen matrix remain open.
+
+
+### Explicit canonical replacement video owner
+
+`CanonicalClient::claim_native_video_datagrams` is available only after the
+explicit feedback profile and the exact signed native parameter exchange have
+been confirmed on that physical peer. The existing signature reader seals the
+original operation/offer, selected allocation and stream epochs. Replacement
+connections retain the server-selected connection generation across both signed
+parameter messages and every later notice; the ordinary initial SDK offer still
+requires generation one. No caller-provided JSON can install authority.
+
+`NativeVideoDatagrams::receive` retains the original wire bytes, authenticated
+video epoch and physical arrival time. Future-epoch buffering is bounded by the
+original arrival deadline. Receiver recovery requests require the current signed
+history. `take_keyframe_request` consumes a current, bounded request once,
+immediately before the next fresh encoder frame. Neither feedback nor metadata
+establishes readiness or completes the original replacement operation.
+
+The replacement example and offline capture consumer use this explicit path.
+The generic raw datagram parser remains strict. Focused local ARM evidence is in
+`docs/evidence/gate-6/replacement-video-owner.json`; a production replacement
+with fresh codec recovery remains unqualified. The current raw owner conservatively
+suspends after hold/mute/resume/unmute/codec commands: signed control/resource
+adoption remains required before those paths qualify. This is an implementation
+limitation, not an accepted permanent hold or resume contract.

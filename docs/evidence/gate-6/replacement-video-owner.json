@@ -1,0 +1,256 @@
+{
+  "format": "connect/gate6-replacement-video-owner/1",
+  "task": "G6-058",
+  "status": "focused-owner-and-capture-checks-pass-production-replacement-open",
+  "environment": {
+    "host": "Owner Mac Studio",
+    "runner": "Local Ubuntu 24.04 ARM64 VM",
+    "github_or_cloud_tests": false
+  },
+  "verification_runs": [
+    {
+      "run": "replacement-video-seal-v93",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 126565,
+        "source_revision": "7fc6e4d5f136eb8bacedbad79d82c7dd9691235b",
+        "passed": false,
+        "steps": [
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::replacement_video_seal_requires_actual_callback_original_answer_and_completed_write",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 285 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "31869f843bb0bca2fa346fd51db0aeb079a44330dd3f2e22c9ccdb53bd369910"
+          },
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::replacement_video_signed_history_cannot_replay_after_unsubscribe_gate_or_retirement",
+            "exit_code": 101,
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 285 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "2b2c226465eb19d0c150fd1679e498728366e29728cc60a1ffea993e8d422a63"
+          },
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::replacement_video_owner_uses_existing_signature_reader_and_refuses_tampered_notices",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 285 filtered out; finished in 0.19s"
+            ],
+            "log_sha256": "b1893d63508dcfa863f64936b82b73b4fedba1c118cfaf65797c78eeb823ac5d"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_seal_candidate": true,
+        "builds": [
+          {
+            "group": "client",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "14ebbd639b37d0022537d707ec25e98dd76815df676b64c55611b9dc9a2cbc07",
+            "test_executable_sha256": "0c165697b9a6ccffa23a465d12f10f30018d8f169f55c48ac2862ac4f959d65d",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "Exact prepared peer case must pass",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 56.953728093008976
+      },
+      "state_sha256": "26d642b96281853d5082557e047754cb8341044e17fdbdc64228d216ef473c87"
+    },
+    {
+      "run": "replacement-video-owner-v94",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 126728,
+        "source_revision": "3210fbaf7eeac48da60756ef8cff33ff644d2ede",
+        "passed": false,
+        "steps": [
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::replacement_video_signed_history_cannot_replay_after_unsubscribe_gate_or_retirement",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 286 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "dd3f66c591a56f2dff7b514b16889a0be97442e45896ee2ff72a25b478a3aef0"
+          },
+          {
+            "group": "client",
+            "case": "canonical::native_video::io::tests::explicit_raw_video_owner_joins_signed_packets_requests_bootstrap_and_consumes_feedback_once",
+            "exit_code": 101,
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 286 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "2ab1dcdf745705db05c427df34db2848dd4775c09e0a9948012a0d8ceb723b1f"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "client",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "4ceb847778248b1c23ce9dda2e468e16df6720fe72305715aabd1f275179d284",
+            "test_executable_sha256": "535dc914bf30b0d6a755ba2b10fca11a867ead6b37d3179478b938302938d66e",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "Exact prepared peer case must pass",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 56.83888287798618
+      },
+      "state_sha256": "0e86e8d4f41613094e4b61d62b45e8423eb070f987cc34f4ed86fcc98609dfae"
+    },
+    {
+      "run": "replacement-video-owner-v95",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 126889,
+        "source_revision": "05cf23f2d15208ab658b937e34f96835eb770f59",
+        "passed": true,
+        "steps": [
+          {
+            "group": "client",
+            "case": "canonical::native_video::io::tests::explicit_raw_video_owner_joins_signed_packets_requests_bootstrap_and_consumes_feedback_once",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 286 filtered out; finished in 0.09s"
+            ],
+            "log_sha256": "2132bcedd2034ba2eac84f5b33a8911ae49c87a6aa81ce0f624791601b591b5a"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "client",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "0fd635972f2304d946f4186fa93cd1e3bc5f60c448befa2ccbd795f3133e285a",
+            "test_executable_sha256": "28bb42fc753d3403b226426a8a9e4e7ed96339e5ac6faae70a004b5071b113bf",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 56.631690848007565
+      },
+      "state_sha256": "06142f579ec1b650f6d6324857ceb14bbed32af880380d6df8d20ddf485d2e82"
+    },
+    {
+      "run": "replacement-video-integration-v96",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 127050,
+        "source_revision": "c0dd26d07ab2594219712d2e09822c8f1564ef5b",
+        "passed": true,
+        "steps": [
+          {
+            "case": "selected replacement capture splits same-SSRC signed epochs and refuses stale or unbound history",
+            "exit_code": 0,
+            "log_sha256": "c84e3ab24f6b1015f596e1b543d7e5358713399b1e465407770569ec488bfb08"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "replacement-example",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "46e0e4777a123fa02a22afae1689644be33149158c0ac9b9de712210b2af73de",
+            "executable_sha256": "7a216aa3fdc2b731fb75e78b8186c0597d6571f8f8f302a89f6f97cc61b6336d"
+          }
+        ],
+        "executable_unchanged": true,
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 108.12285278098716
+      },
+      "state_sha256": "ce775a60808c486914cf32926d77cbeb9a456f8e9a8e6f9a00052ff020e6b28b"
+    },
+    {
+      "run": "replacement-video-generation-v97",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 127463,
+        "source_revision": "3661ec9c74dacacf9eb6f965258c59455926a336",
+        "passed": true,
+        "steps": [
+          {
+            "group": "client",
+            "case": "canonical::native_video::tests::replacement_video_seals_signed_generation_two_and_later_without_weakening_initial_negotiation",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 287 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "b96da8309e9081b86c85a9060e4de24814937252ae1682795fb391e2b54407cf"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "client",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "cf0b22b7b3b1808fdc3b24a82fdd04f0e380b59ac64df153bca7936f06a9e6cd",
+            "test_executable_sha256": "deab650305677f1f44f106d11d733db5e3fff3da692652079a582eac0c564ee5",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 56.290252115999465
+      },
+      "state_sha256": "ae0c70282f8b64eef5e2b3675e087eae86f6ebf4945c777b76db683a3b5df74a"
+    }
+  ],
+  "scope": [
+    "Sealed allocation and exact signed callback/answer; epochs arrive through the existing signature-verifying reader.",
+    "Selected raw video datagrams retain authenticated history and original physical arrival; ordinary raw parser stays strict.",
+    "Receiver bootstrap feedback and one-use publisher hint; replay, original-arrival expiry and physical-close refusal.",
+    "Replacement encoder consumes a current hint immediately before a fresh frame; capture carries signed history and original arrival. Example compiles on ARM.",
+    "New capture case distinguishes same-SSRC histories, refuses delta bootstrap, stale or unbound epochs and retains original RTP timestamps.",
+    "Replacement negotiation retains the exact signed connection generation across both parameter messages and later epochs; initial SDK negotiation remains generation-one strict."
+  ],
+  "preserved_failures": [
+    "v93 history test omitted mandatory expected_revision on scoped fixture controls; corrected in 3210fbaf and only that failed case rerun in v94.",
+    "v94 physical peer fixture reused a signed envelope ID for two notices; real verifier correctly refused replay. Corrected fresh IDs in 05cf23f2 and only failed IO case rerun in v95."
+  ],
+  "new_cases_passed": 6,
+  "previous_passed_cases_rerun": false,
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "transport_cells_qualified": 0,
+  "task_complete": false,
+  "remaining": [
+    "Actual production replacement activation with authenticated video histories, fresh libvpx feedback encoding and independent decoding.",
+    "Raw owner currently suspends on hold/mute/resume/unmute/codec changes; signed control/resource adoption must be implemented and verified before those paths qualify.",
+    "Delayed browser writer uncertainty focused proof.",
+    "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
+  ],
+  "limitations": [
+    "Signed QUIC fixture checks do not prove a production replacement transaction or sustained A/V quality.",
+    "v96 example build is at c0dd26d0; v97 client generation test is at 3661ec9c. Full example compilation with subsequent changes remains required before running it."
+  ]
+}
