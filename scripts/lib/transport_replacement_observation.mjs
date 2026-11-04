@@ -1,7 +1,7 @@
 // Offline interpretation of one already-joined physical replacement capture.
 // No authority, mutation, clock correction or decoded-quality claim is created.
 import assert from "node:assert/strict";
-import { decodeRtpDatagram, Vp8Assembler } from "../../sdk/typescript/dist/browser.js";
+import { decodeRtpDatagram, Vp8Assembler, MEDIA_LIMITS } from "../../sdk/typescript/dist/browser.js";
 import { decodeNativeVideoEpoch } from "../../sdk/typescript/dist/browser_video_wire.js";
 import { VideoReceiveHistory } from "./transport_video_recovery.mjs";
 import { decodeRtcpSenderReport } from "../../sdk/typescript/dist/browser_rtcp.js";
@@ -66,18 +66,26 @@ export function physicalAvSegment(observed, expected) {
         assert.equal(row.original_root_completed_observed, row.elapsed_us >= rootObservedUs,
             "packet completion boundary must match the actual original-root observation");
         assert.ok(!completedSeen || row.original_root_completed_observed, "completion observation cannot regress");
-        assert.ok(Array.isArray(row.datagram) && row.datagram.length >= 20 && row.datagram.length <= 1188);
+        assert.ok(Array.isArray(row.datagram) && row.datagram.length >= 20);
         assert.ok(row.datagram.every(value => uint(value, 255)));
+        const wire = Uint8Array.from(row.datagram), view = new DataView(wire.buffer);
+        assert.equal(wire[0], 1); assert.ok(wire[1] === 0 || wire[1] === 1);
+        const stream = streams.get(view.getUint16(2));
+        assert.ok(stream, "received physical handle must be the negotiated audio or retained camera");
+        // The selected epoch adds 16 framing bytes, not RTP payload capacity.
+        // Match the public strict decoders, including for quarantined rows.
+        const tagged = wire[1] === 1;
+        if (tagged) assert.ok(stream.medium === "video" && stream.feedback,
+            "tagged packet requires its selected video allocation");
+        assert.ok(wire.length >= (tagged ? 36 : 20) &&
+            wire.length <= MEDIA_LIMITS.rtpBytes + (tagged ? 24 : 8),
+            "capture exceeds its negotiated native framing bound");
         bytes += row.datagram.length;
         assert.ok(bytes <= 16 * 1024 * 1024);
         // Never feed a pre-completion fragment or clock into a later decoder.
         // Keep its original row index so the raw input still accounts for it.
         if (!row.original_root_completed_observed) { quarantine.push(index); continue; }
         completedSeen = true;
-        const wire = Uint8Array.from(row.datagram), view = new DataView(wire.buffer);
-        assert.equal(wire[0], 1); assert.ok(wire[1] === 0 || wire[1] === 1);
-        const stream = streams.get(view.getUint16(2));
-        assert.ok(stream, "received physical handle must be the negotiated audio or retained camera");
         const elapsed_ms = row.elapsed_us / 1000;
         if (wire[1] === 0 && wire[9] >= 192 && wire[9] <= 223) {
             // A malformed RTCP claim is never reinterpreted as RTP.
