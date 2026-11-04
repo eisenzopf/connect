@@ -1,0 +1,88 @@
+{
+  "format": "connect/initial-original-snapshot-fix/1",
+  "run": "v133",
+  "source_revision": "7ea3ee9a6cbcfe0d6abce79edf92ba51a0f5eefb",
+  "platform": "Owner Mac Studio local Ubuntu24.04 ARM64 VM",
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 171631,
+    "source_revision": "7ea3ee9a6cbcfe0d6abce79edf92ba51a0f5eefb",
+    "passed": true,
+    "steps": [
+      {
+        "group": "initial-model-snapshot",
+        "case": "staged_streams::tests::original_ingress_custody::original_ingress_initial_model_exclusion_preserves_original_without_waiting",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 613 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "652c4f66fed874839804a83cb3d64001d550107f93063a95c5da426787a613bd"
+      },
+      {
+        "group": "initial-model-snapshot",
+        "case": "staged_streams::tests::original_ingress_custody::original_ingress_initial_exclusion_cannot_adopt_later_gates_or_authority",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 613 filtered out; finished in 0.43s"
+        ],
+        "log_sha256": "317343d4ab090760886ee8d9f4a9acab00d98904c110f23b344d4f2925f5b083"
+      },
+      {
+        "group": "initial-model-snapshot",
+        "case": "staged_streams::tests::original_ingress_custody::original_ingress_initial_exclusion_refuses_pre_ready_and_post_receipt_activation",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 613 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "88285c4d0928407152eeefa25db8569590a165ffa22e98c20b3eb0a121624431"
+      },
+      {
+        "group": "initial-model-snapshot",
+        "case": "staged_streams::tests::original_ingress_custody::original_ingress_initial_exclusion_keeps_exact_activation_instant",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 613 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "91e0a3445ef425d6d2a8835d1f9160194cc597b68a39352e1b63d9d0c03dc4e1"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "initial_model_snapshot_fix": true,
+    "previous_passed_cases_rerun": false,
+    "builds": [
+      {
+        "group": "initial-model-snapshot",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "6fb0904c71538ffac0625d1f8676b308e6ab670bc0502b5a10c67c9d845d27d4",
+        "test_executable_sha256": "57c22c8c62ed8d4ce0962dd9913cef83bb5cf32da38035f34622e505e102dd95",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 341.5682035200007
+  },
+  "before": "docs/evidence/gate-6/initial-original-snapshot-before.json",
+  "observation": {
+    "audio": "captured=true deferred=true recovered=true exact=true fresh=true",
+    "video": "captured=true deferred=true recovered=true exact=true fresh=true"
+  },
+  "qualified_scope": [
+    "Actual Core model mutex exclusion at first capture retains audio/video without waiting; publication returns MetadataBusy while held and recovers exact original bytes/RTP/receipt after release. Distinct fresh packets succeed.",
+    "Initially excluded originals cannot cross revocation, shutdown, retirement, mute/unmute, changed consumer/scene/credential, original age expiry, semantic NotReady, or lost port readiness.",
+    "Pre-ready ports and pre-receipt/post-receipt activation boundaries are refused; same-object activation cannot silently refresh captured metadata."
+  ],
+  "design_boundary": "Model revision is retained when available. During initial model exclusion, no revision is inferred or later adopted: independently captured active port/route and exact consumer/scene activation stamps fence eligibility. Publication reacquires current model/policy and checks the model revision around that policy call. No cached positive authority or renewed frame deadline.",
+  "limits": [
+    "Controlled Core fixtures, not actual QUIC/Opus/VP8 integrated qualification.",
+    "v131 full decoder-history failure remains until the full workload verifies this candidate. No quality/parser/queue/age limits changed.",
+    "Existing earlier passing cases were not rerun; only the failed initial-snapshot case and three new refusal cases executed.",
+    "All32 complete matrix cells, credential expiry and idle-resource proof remain unqualified."
+  ],
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
