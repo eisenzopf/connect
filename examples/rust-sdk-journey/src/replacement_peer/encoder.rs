@@ -499,6 +499,63 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn live_encoder_partial_reply_survives_cancelled_wait_without_repeated_command() {
+        let fixture = Fixture::new();
+        let executable = fixture.directory.join("partial-reply-owner");
+        // The controlled child exposes only framing/lifetime behavior. The
+        // separate actual-C/FFmpeg case supplies the codec-content proof.
+        let script = r#"#!/usr/bin/python3
+import os,struct,time
+root=os.path.dirname(__file__)
+request=os.read(0,8)
+assert len(request)==8
+index,force=struct.unpack('<II',request)
+assert index==7 and force==1
+header=struct.pack('<4sIII',b'V8F1',index,10,1)
+os.write(1,header[:9])
+open(root+'/partial-ready','x').close()
+while not os.path.exists(root+'/release-reply'): time.sleep(.001)
+os.write(1,header[9:]+bytes([4,0,0,157,1,42,128,2,104,1]))
+assert os.read(0,8)==b'', 'original command was reissued'
+"#;
+        std::fs::write(&executable, script).unwrap();
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let mut program = fixture.program.clone();
+        program.executable = executable;
+        program.executable_sha256 = format!("{:x}", Sha256::digest(script));
+        let mut encoder = Encoder::open(&program).await.unwrap();
+        let pid = encoder.pid;
+        let original_deadline = tokio::time::Instant::now() + Duration::from_millis(200);
+        encoder.request(7, true, original_deadline).unwrap();
+        let partial = fixture.directory.join("partial-ready");
+        let control = async {
+            tokio::time::timeout(Duration::from_millis(100), async {
+                while !tokio::fs::try_exists(&partial).await.unwrap() {
+                    tokio::time::sleep(Duration::from_millis(1)).await;
+                }
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            })
+            .await
+            .unwrap();
+        };
+        tokio::select! {
+            _ = control => {},
+            _ = encoder.receive() => panic!("partial reply must remain pending"),
+        }
+        assert!(encoder.pending());
+        assert!(encoder.request(7, true, original_deadline).is_err());
+        tokio::fs::write(fixture.directory.join("release-reply"), [])
+            .await
+            .unwrap();
+        let frame = encoder.receive().await.unwrap();
+        assert_eq!(frame.index, 7);
+        assert_eq!(frame.bytes, [4, 0, 0, 157, 1, 42, 128, 2, 104, 1]);
+        let joined = encoder.stop_and_join().await.unwrap();
+        assert!(joined.joined && joined.clean && !joined.cancelled);
+        fixture.gone(pid);
+    }
+
+    #[tokio::test]
     async fn live_encoder_failed_or_cancelled_reply_joins_actual_process_and_refuses_reissue() {
         let fixture = Fixture::new();
         for mode in ["partial", "foreign", "oversize", "cancel"] {
