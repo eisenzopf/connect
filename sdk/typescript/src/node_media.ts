@@ -10,7 +10,13 @@ import {
     type JsonObject,
 } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
-import { captureVideoFeedback, takeVideoFeedback, consumedVideoFeedback, type SdkVideoFeedback, type SdkVideoKeyframePermit } from "./node_video_feedback.js";
+import {
+    captureVideoFeedback,
+    takeVideoFeedback,
+    consumedVideoFeedback,
+    type SdkVideoFeedback,
+    type SdkVideoKeyframePermit,
+} from "./node_video_feedback.js";
 import { captureNativeVideoFeedback } from "./native_video_feedback.js";
 import type {
     ConversationId,
@@ -78,9 +84,16 @@ export interface SdkMediaStream {
         options: CanonicalRequestOptions,
     ): Promise<SdkLocalMediaSubmission>;
     receivePacket(options: CanonicalRequestOptions): Promise<SdkMediaPacket>;
-    requestKeyframe(options: CanonicalRequestOptions): Promise<SdkLocalMediaSubmission>;
-    receiveVideoFeedback(options: CanonicalRequestOptions): Promise<SdkVideoFeedback>;
-    consumeVideoFeedback(feedback: SdkVideoFeedback, options: CanonicalRequestOptions): Promise<SdkVideoKeyframePermit | undefined>;
+    requestKeyframe(
+        options: CanonicalRequestOptions,
+    ): Promise<SdkLocalMediaSubmission>;
+    receiveVideoFeedback(
+        options: CanonicalRequestOptions,
+    ): Promise<SdkVideoFeedback>;
+    consumeVideoFeedback(
+        feedback: SdkVideoFeedback,
+        options: CanonicalRequestOptions,
+    ): Promise<SdkVideoKeyframePermit | undefined>;
     sendData(
         input: {
             readonly messageId: MessageId;
@@ -237,7 +250,14 @@ function packet(
         !Array.isArray(p) &&
         p.type === "rtp"
     ) {
-        if (!exact(p, ["type", "datagram_sequence", "header", ...(Object.hasOwn(p, "video_epoch") ? ["video_epoch"] : [])]))
+        if (
+            !exact(p, [
+                "type",
+                "datagram_sequence",
+                "header",
+                ...(Object.hasOwn(p, "video_epoch") ? ["video_epoch"] : []),
+            ])
+        )
             throw new Error();
         const result = new SdkRtpPacket(
                 p.datagram_sequence as number,
@@ -262,7 +282,8 @@ function packet(
                 })
         )
             throw new Error();
-        if (Object.hasOwn(p, "video_epoch")) captureRtpVideoEpoch(result, p.video_epoch);
+        if (Object.hasOwn(p, "video_epoch"))
+            captureRtpVideoEpoch(result, p.video_epoch);
         return result;
     }
     if (
@@ -509,7 +530,12 @@ class Owner {
                 const flight = owned(
                     this.request(
                         {
-                            action: data === true ? "receive_data" : data === "feedback" ? "receive_video_feedback" : "receive",
+                            action:
+                                data === true
+                                    ? "receive_data"
+                                    : data === "feedback"
+                                      ? "receive_video_feedback"
+                                      : "receive",
                             binding: bindingWire(binding),
                             stream_id: id,
                         },
@@ -642,18 +668,60 @@ class Owner {
                     (f) => submitted(binding, id, sequence, f),
                     true,
                 ),
-            requestKeyframe: (o: CanonicalRequestOptions) => this.request(
-                {action: "request_keyframe", binding: bindingWire(binding), stream_id: id}, Buffer.alloc(0), o,
-                f => submitted(binding, id, uint(f.metadata.datagram_sequence), f), true),
-            receiveVideoFeedback: (o: CanonicalRequestOptions) => this.receive(binding, id, o, "feedback",
-                f => captureVideoFeedback(this, binding, id, f)),
-            consumeVideoFeedback: (feedback: SdkVideoFeedback, o: CanonicalRequestOptions) => {
+            requestKeyframe: (o: CanonicalRequestOptions) =>
+                this.request(
+                    {
+                        action: "request_keyframe",
+                        binding: bindingWire(binding),
+                        stream_id: id,
+                    },
+                    Buffer.alloc(0),
+                    o,
+                    (f) =>
+                        submitted(
+                            binding,
+                            id,
+                            uint(f.metadata.datagram_sequence),
+                            f,
+                        ),
+                    true,
+                ),
+            receiveVideoFeedback: (o: CanonicalRequestOptions) =>
+                this.receive(binding, id, o, "feedback", (f) =>
+                    captureVideoFeedback(this, binding, id, f),
+                ),
+            consumeVideoFeedback: (
+                feedback: SdkVideoFeedback,
+                o: CanonicalRequestOptions,
+            ) => {
                 let token: string;
-                try { mediaDuration(o); token = takeVideoFeedback(this, binding, id, feedback); }
-                catch { throw mediaError("validation", true); }
+                try {
+                    mediaDuration(o);
+                    token = takeVideoFeedback(this, binding, id, feedback);
+                } catch {
+                    throw mediaError("validation", true);
+                }
                 const started = performance.now();
-                return this.request({action:"consume_video_feedback",binding:bindingWire(binding),stream_id:id,token},
-                    Buffer.alloc(0),o,f=>consumedVideoFeedback(binding,id,feedback,token,started,f),true);
+                return this.request(
+                    {
+                        action: "consume_video_feedback",
+                        binding: bindingWire(binding),
+                        stream_id: id,
+                        token,
+                    },
+                    Buffer.alloc(0),
+                    o,
+                    (f) =>
+                        consumedVideoFeedback(
+                            binding,
+                            id,
+                            feedback,
+                            token,
+                            started,
+                            f,
+                        ),
+                    true,
+                );
             },
             receivePacket: (o: CanonicalRequestOptions) =>
                 this.receive(binding, id, o, false, (f) =>
