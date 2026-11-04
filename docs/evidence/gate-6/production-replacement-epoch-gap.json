@@ -1,0 +1,98 @@
+{
+  "format": "connect/gate6-production-replacement-epoch-gap/1",
+  "task": "G6-058",
+  "status": "diagnosed-fix-under-verification",
+  "environment": "Owner Mac Studio local Ubuntu ARM64; no GitHub/cloud tests",
+  "observations": [
+    "Actual generation-two replacement completed and published its new connection; Store readiness stream revision4 was observed.",
+    "v101 client received tagged packet handle3, selected=true, sequence0. No signed epoch notice matched or was reported; packet expired at its unchanged200ms deadline with notice_present=false.",
+    "Ordinary offer installs enable_native_lifecycle; replacement start/movement had no lifecycle registration. The missing registration leaves NativeFlow epoch metadata without a signed notification writer."
+  ],
+  "fix_revision": "2535b7243b9906e366625b895c978d6199399fab",
+  "fix": "Seal lifecycle registration from original signed negotiation without retaining original authority readers; attach only after replacement activation, use fresh adopted-entry authority for every notification.",
+  "verification_runs": [
+    {
+      "run": "v100",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 128081,
+        "source_revision": "c9b5d383ded7497645781e80fe316cb009ffd58a",
+        "passed": false,
+        "steps": [
+          {
+            "group": "production-replacement",
+            "case": "sdk_handles::replacement_video_recovery::signed_production_replacement_transfers_video_and_recovers_fresh_frames_in_both_directions",
+            "exit_code": 101,
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.34s"
+            ],
+            "log_sha256": "8d9c972b9caea1e60040a2b7531d186be1d1985c0bc8b590140cdda0d82d53dc"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "production-replacement",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "7881c03e69b94d3f4ffd0116e39026fcf308b9cbb45f9c6c89dba3a41f61d742",
+            "test_executable_sha256": "4e79715700cee47fd9e956c8f9b94dc713c774fd2bbf1761a8b4f92ff544ed99",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "Exact prepared peer case must pass",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 71.58946917499998
+      },
+      "state_sha256": "2bdc46180a162782ae2923ae950bb2df2ca3c3b53ffe0c66de50a9fae42443f5"
+    },
+    {
+      "run": "v101",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 128244,
+        "source_revision": "4be1a161ed95c89469fceae31fda1ed9eb423432",
+        "passed": false,
+        "steps": [
+          {
+            "group": "production-replacement",
+            "case": "sdk_handles::replacement_video_recovery::signed_production_replacement_transfers_video_and_recovers_fresh_frames_in_both_directions",
+            "exit_code": 101,
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.40s"
+            ],
+            "log_sha256": "d1f1b31806696897cd748cb5410d1561ed6269bd2bdab237296308fdc7840e87"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "production-replacement",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "24c52929f9e40a36668045002966ad20fc5d23fdaa7977f723e05a0f0d735519",
+            "test_executable_sha256": "58e5a2497e60af7a66af51d58aed1766506865b9c4de8a2e17d476b8ebb80173",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "Exact prepared peer case must pass",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 324.20548247901024
+      },
+      "state_sha256": "7c2096ea276ebbf2b3b46daf0167f31329c623985e91447150dcd65c3713e924"
+    }
+  ],
+  "fix_verification": "v102 compilation active at record time; no pass claimed",
+  "transport_cells_qualified": 0,
+  "task_complete": false
+}
