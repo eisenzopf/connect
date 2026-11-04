@@ -1,0 +1,128 @@
+{
+  "format": "connect/g6-058-video-order-live/1",
+  "date": "2026-11-04",
+  "attempt": "v180",
+  "source_revision": "19828139aafa130a99c568b4fadefc3290de72eb",
+  "report_sha256": "1eafc43880b39c1530bd30d300089d2667aa3a12539a0636aedd664edff38d4c",
+  "server_log_sha256": "55150b071a140c8514b76fbbad62a55a4cf8cf1a47e9d7d0a56307559ba4f925",
+  "environment": "Owner local Ubuntu24.04 ARM64 VM; Chrome WT EdDSA",
+  "integrity": {
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "browser_owner_joined": true
+  },
+  "moves_completed": 4,
+  "decoded_quality_passed": false,
+  "idle_passed": false,
+  "failure": {
+    "phase": "actual-browser-quality",
+    "browser": {
+      "stage": "decoded-media-quality",
+      "name": "ProfileBudgetsFailed"
+    }
+  },
+  "cell_qualified": false,
+  "task_complete": false,
+  "store_refusals": {
+    "Current packet observers are busy": 2738,
+    "Current authority reader registry is busy": 456,
+    "Current packet state changed during admission": 32,
+    "Current authority is busy": 201,
+    "Exact replacement activation is awaiting durable projection": 8
+  },
+  "core_terminal_counters": {
+    "collect-deferred": {
+      "events": 230,
+      "samples": 0
+    },
+    "input-discontinuity": {
+      "events": 12,
+      "samples": 5760
+    },
+    "take-deferred": {
+      "events": 212,
+      "samples": 0
+    },
+    "target-before-start": {
+      "events": 172,
+      "samples": 165120
+    },
+    "subscription-refused": {
+      "events": 26754,
+      "samples": 25683840
+    },
+    "target-deferred": {
+      "events": 44,
+      "samples": 42240
+    },
+    "empty-output": {
+      "events": 833,
+      "samples": 0
+    },
+    "burst-trim": {
+      "events": 196,
+      "samples": 188160
+    },
+    "refresh-reset": {
+      "events": 8,
+      "samples": 0
+    },
+    "target-refused": {
+      "events": 1,
+      "samples": 960
+    }
+  },
+  "routes": [
+    {
+      "route": 0,
+      "audio_seconds": 58.38,
+      "minimum_fps": 23,
+      "av_median_ms": 117.09999999962939,
+      "sync_status": "failed",
+      "observer_failure": null
+    },
+    {
+      "route": 1,
+      "audio_seconds": 59.42,
+      "minimum_fps": 24,
+      "av_median_ms": 98.89999999851007,
+      "sync_status": "failed",
+      "observer_failure": "Decoded audio envelope is invalid or ambiguous; calibration cannot qualify timing"
+    },
+    {
+      "route": 2,
+      "audio_seconds": 59.24,
+      "minimum_fps": 24,
+      "av_median_ms": 100.15000000037233,
+      "sync_status": "failed",
+      "observer_failure": null
+    },
+    {
+      "route": 3,
+      "audio_seconds": 59.44,
+      "minimum_fps": 24,
+      "av_median_ms": 116.850000000559,
+      "sync_status": "failed",
+      "observer_failure": null
+    },
+    {
+      "route": 4,
+      "audio_seconds": 58.120000000000005,
+      "minimum_fps": 23,
+      "av_median_ms": null,
+      "sync_status": "failed",
+      "observer_failure": "Decoded audio envelope is invalid or ambiguous; calibration cannot qualify timing"
+    },
+    {
+      "route": 5,
+      "audio_seconds": 58.88,
+      "minimum_fps": 24,
+      "av_median_ms": null,
+      "sync_status": "failed",
+      "observer_failure": "Decoded audio envelope is invalid or ambiguous; calibration cannot qualify timing"
+    }
+  ],
+  "browser_ordering": [],
+  "scope": "Actual browser programme with bounded complete-frame ordering and shared-reader admission. No deliberately reordered network fixture; no full cell qualification."
+}

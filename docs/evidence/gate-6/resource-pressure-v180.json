@@ -1,0 +1,92 @@
+{
+  "format": "connect/g6-058-resource-pressure-audit/1",
+  "date": "2026-11-04",
+  "host": {
+    "cpu_cores": 14,
+    "memory_bytes": 38654705664,
+    "post_test_cpu_idle_percent": 78.11,
+    "post_test_swap_bytes": 0,
+    "d2_free_gib": 4.9
+  },
+  "vm": {
+    "cpu_cores": 6,
+    "memory_bytes": 12884901888,
+    "post_test_available_memory": "approximately11GiB",
+    "swap_configured": false,
+    "post_test_memory_psi_avg10": 0,
+    "post_test_io_psi_avg10": 0,
+    "system_slice_cpu_throttled_periods": 0,
+    "system_slice_memory_oom_events": 0,
+    "kernel_oom_or_io_errors_since_2315UTC": false,
+    "root_free_gib": 5.1
+  },
+  "runs": [
+    {
+      "attempt": "v176",
+      "report_sha256": "4db8cd768d5bae2fc46f971bea09f5953647a43e7fa87c8f24b375a19e724973",
+      "samples": 68,
+      "observed_seconds": 68.29872165799861,
+      "groups": {
+        "server": {
+          "average_cpu_cores": 0.32606759627970155,
+          "peak_sampled_interval_cores": 1.1597375480116094,
+          "peak_rss_bytes": 128172032
+        },
+        "browser": {
+          "average_cpu_cores": 0.788887386059736,
+          "peak_sampled_interval_cores": 0.933687008992392,
+          "peak_rss_bytes": 2456145920
+        }
+      },
+      "combined_average_cores": 1.1149549823394376,
+      "combined_peak_sampled_cores": 2.0934245570040013
+    },
+    {
+      "attempt": "v178",
+      "report_sha256": "12870459730aca2403b0c8db37d704e3c1ba3dbaa4d64ce940d273add495ea97",
+      "samples": 68,
+      "observed_seconds": 68.41077649099861,
+      "groups": {
+        "server": {
+          "average_cpu_cores": 0.35608424943408223,
+          "peak_sampled_interval_cores": 1.3720798315271672,
+          "peak_rss_bytes": 130600960
+        },
+        "browser": {
+          "average_cpu_cores": 0.8166841960542766,
+          "peak_sampled_interval_cores": 0.9702564522942047,
+          "peak_rss_bytes": 2463023104
+        }
+      },
+      "combined_average_cores": 1.1727684454883587,
+      "combined_peak_sampled_cores": 2.3423362838213717
+    },
+    {
+      "attempt": "v180",
+      "report_sha256": "1eafc43880b39c1530bd30d300089d2667aa3a12539a0636aedd664edff38d4c",
+      "samples": 68,
+      "observed_seconds": 68.4212029499995,
+      "groups": {
+        "server": {
+          "average_cpu_cores": 0.35135307424465817,
+          "peak_sampled_interval_cores": 1.3939353260623404,
+          "peak_rss_bytes": 126009344
+        },
+        "browser": {
+          "average_cpu_cores": 0.7988751679789108,
+          "peak_sampled_interval_cores": 0.9325623660276191,
+          "peak_rss_bytes": 2458013696
+        }
+      },
+      "combined_average_cores": 1.150228242223569,
+      "combined_peak_sampled_cores": 2.3264976920899594
+    }
+  ],
+  "conclusion": "Saved workload process samples do not show aggregate CPU/RAM saturation. Current host/VM snapshots show no swap or memory-pressure stall. Application-level observer/registry contention remains evidenced. D2 free space is low.",
+  "limits": [
+    "Host-wide CPU/PSI were inspected after the runs, not continuously during them.",
+    "Sampled process CPU averages and roughly1second peaks do not rule out short scheduling stalls or a blocked audio-critical thread.",
+    "Summed process RSS can count shared pages more than once.",
+    "No claim that disk latency was measured continuously or caused media loss."
+  ]
+}

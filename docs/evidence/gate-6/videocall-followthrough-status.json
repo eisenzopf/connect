@@ -1,7 +1,7 @@
 {
   "format": "connect/videocall-followthrough/1",
   "date": "2026-11-04",
-  "source_revision": "455d6b32133af53815220241df5c61469793134f",
+  "source_revision": "19828139aafa130a99c568b4fadefc3290de72eb",
   "review": "docs/evidence/gate-6/videocall-reference-review.json",
   "all_three_complete": false,
   "items": [
@@ -17,27 +17,29 @@
     },
     {
       "id": "video-order-and-bootstrap",
-      "status": "partially-implemented",
-      "implemented": "Bounded RTP fragment assembly, keyframe-first decoding, recovery at a fresh keyframe, and authenticated generation resets. Actual Chromium WebTransport generation-change recovery passed.",
+      "status": "implemented-focused-verification-passed-full-qualification-open",
+      "implemented": "Bounded RTP fragment assembly, keyframe-first decoding, recovery at a fresh keyframe, and authenticated generation resets. Actual Chromium WebTransport generation-change recovery passed. Complete-frame ordering is now implemented with20ms gap wait inside the shared8frame/64fragment budget, original200ms age, unchanged timestamps, and explicit generation/retirement cleanup.",
       "evidence": [
-        "docs/evidence/gate-6/actual-browser-video-feedback.json"
+        "docs/evidence/gate-6/actual-browser-video-feedback.json",
+        "docs/evidence/gate-6/browser-complete-frame-order-v179.json",
+        "docs/evidence/gate-6/browser-video-order-live-v180.json"
       ],
       "source": [
         "sdk/typescript/src/browser_rtp.ts",
         "sdk/typescript/src/browser_codecs.ts",
         "sdk/typescript/src/browser_media.ts"
       ],
-      "remaining": "Complete-frame reorder tolerance before declaring a missing reference; current decoder treats a noncontiguous completed frame as a gap immediately. Add deterministic reorder, true-loss, wrap, expiry and generation-change tests within existing budgets."
+      "remaining": "Controlled reordering and actual-loss scenarios pass, including an old-SDK counterexample. Live v180 completed four moves but full decoded quality still fails; deliberately reordered live-network and full matrix qualification remain open."
     },
     {
       "id": "quic-ordering-lesson",
-      "status": "comparison-complete-integrated-reordering-verification-incomplete",
+      "status": "controlled-reorder-loss-verification-passed-live-network-injection-open",
       "implemented": "Connect uses WebTransport datagrams; feedback requests are rate-limited and bound to the current authenticated epoch. Existing diagnostics distinguish source reordering from sequence gaps.",
       "source": [
         "sdk/typescript/src/browser_video_epochs.ts",
         "sdk/typescript/src/media_diagnostics.ts"
       ],
-      "remaining": "Verify reordered datagrams do not cause unnecessary decoder resets/keyframe requests while actual loss still recovers; include bounded feedback under repeated gaps. Upstream #814 is not proof of the same transport bug."
+      "remaining": "Controlled physical-owner test proves reordered complete frames do not require a keyframe, while real absence does recover. Deliberately impaired real-network feedback-storm qualification remains open."
     }
   ],
   "current_av_work": {
@@ -45,9 +47,10 @@
     "focused_attempt": "v177",
     "focused_passed": 13,
     "focused_failed": 0,
-    "live_attempt": "v178",
-    "live_status": "building locally",
-    "scope": "A separate contention contributor; does not complete the three videocall comparison items."
+    "live_attempt": "v180",
+    "live_status": "complete; four moves passed; decoded quality and idle failed",
+    "scope": "A separate contention contributor; does not complete the three videocall comparison items.",
+    "next": "Separate SQL observer exhaustion from original-observer reseal contention; address mixer same-tick recovery without idle authority or changed deadlines."
   },
   "task_complete": false
 }

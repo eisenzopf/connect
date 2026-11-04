@@ -1,0 +1,231 @@
+{
+  "format": "connect/g6-058-shared-reader-live/1",
+  "date": "2026-11-04",
+  "attempt": "v178",
+  "source_revision": "455d6b32133af53815220241df5c61469793134f",
+  "report_sha256": "12870459730aca2403b0c8db37d704e3c1ba3dbaa4d64ce940d273add495ea97",
+  "server_log_sha256": "2ad6f470325bfc64fcaff75063ae496ea5f09f550d09f8b306cc2f4a40a6a0f5",
+  "environment": "Owner local Ubuntu24.04 ARM64 VM; Chrome WT EdDSA",
+  "integrity": {
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "browser_owner_joined": true
+  },
+  "moves_completed": 4,
+  "decoded_quality_passed": false,
+  "idle_passed": false,
+  "failure": {
+    "phase": "actual-browser-quality",
+    "browser": {
+      "stage": "decoded-media-quality",
+      "name": "ProfileBudgetsFailed"
+    }
+  },
+  "cell_qualified": false,
+  "task_complete": false,
+  "store_refusals": [
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 1
+    },
+    {
+      "reason": "Current packet observers are busy",
+      "publishing": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 1541
+    },
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 10
+    },
+    {
+      "reason": "Current authority reader registry is busy",
+      "publishing": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 232
+    },
+    {
+      "reason": "Current packet observers are busy",
+      "publishing": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 1072
+    },
+    {
+      "reason": "Current authority reader registry is busy",
+      "publishing": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 271
+    },
+    {
+      "reason": "Current packet observers are busy",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 199
+    },
+    {
+      "reason": "Current authority reader registry is busy",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 18
+    },
+    {
+      "reason": "Current authority is busy",
+      "publishing": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 72
+    },
+    {
+      "reason": "Current packet observers are busy",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": true,
+      "events": 25
+    },
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": true,
+      "events": 7
+    },
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 7
+    },
+    {
+      "reason": "Current authority is busy",
+      "publishing": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 166
+    },
+    {
+      "reason": "Exact replacement activation is awaiting durable projection",
+      "publishing": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 358
+    },
+    {
+      "reason": "Current packet state changed during refused resolution",
+      "publishing": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 1
+    },
+    {
+      "reason": "Exact replacement activation is awaiting durable projection",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 6
+    },
+    {
+      "reason": "Exact replacement activation is awaiting durable projection",
+      "publishing": false,
+      "original_ingress": false,
+      "active_file_custody": true,
+      "events": 4
+    }
+  ],
+  "core_terminal_counters": {
+    "collect-deferred": {
+      "events": 273,
+      "samples": 0
+    },
+    "burst-trim": {
+      "events": 238,
+      "samples": 228480
+    },
+    "take-deferred": {
+      "events": 236,
+      "samples": 0
+    },
+    "target-before-start": {
+      "events": 196,
+      "samples": 188160
+    },
+    "target-deferred": {
+      "events": 40,
+      "samples": 38400
+    },
+    "empty-output": {
+      "events": 881,
+      "samples": 0
+    },
+    "input-discontinuity": {
+      "events": 7,
+      "samples": 6720
+    },
+    "subscription-refused": {
+      "events": 26760,
+      "samples": 25689600
+    },
+    "refresh-reset": {
+      "events": 8,
+      "samples": 0
+    }
+  },
+  "routes": [
+    {
+      "route": 0,
+      "audio_seconds": 59.32,
+      "minimum_fps": 20,
+      "av_median_ms": 94.50000000000003,
+      "sync_status": "failed"
+    },
+    {
+      "route": 1,
+      "audio_seconds": 59.14,
+      "minimum_fps": 23,
+      "av_median_ms": 99.9500000001845,
+      "sync_status": "failed"
+    },
+    {
+      "route": 2,
+      "audio_seconds": 58.54,
+      "minimum_fps": 24,
+      "av_median_ms": 84.40000000037351,
+      "sync_status": "failed"
+    },
+    {
+      "route": 3,
+      "audio_seconds": 59.300000000000004,
+      "minimum_fps": 24,
+      "av_median_ms": 99.60000000056013,
+      "sync_status": "failed"
+    },
+    {
+      "route": 4,
+      "audio_seconds": 58.300000000000004,
+      "minimum_fps": 20,
+      "av_median_ms": 98.79999999981237,
+      "sync_status": "failed"
+    },
+    {
+      "route": 5,
+      "audio_seconds": 58.38,
+      "minimum_fps": 19,
+      "av_median_ms": 99.70000000111767,
+      "sync_status": "failed"
+    }
+  ],
+  "scope": "Live shared-reader admission candidate; does not include subsequent SDK complete-frame ordering. Aggregate refusal counts include audio/video and retries; not unique lost frames."
+}
