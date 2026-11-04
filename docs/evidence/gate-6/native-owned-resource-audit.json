@@ -1,0 +1,13 @@
+{
+  "profile_sha256": "20bae021086ca1cffe6a3b5a60795728fe05a6eb992b43d7ae321322cbec86e7",
+  "observed_average_owned_cpu_cores": 1.3895697531584814,
+  "peak_sample_interval_owned_cpu_cores": 3.2724986770750086,
+  "peak_sampled_combined_rss_bytes": 1005436928,
+  "scope": "Exact owned server/helper process trees, approximately one-second samples, setup through teardown. Not whole VM/host utilization, scheduler latency or proof against short CPU spikes. No new runtime.",
+  "interpretation": "This profile does not show sustained saturation of the six-vCPU VM by the measured workload; continue investigating frame ownership and policy contention before increasing resources.",
+  "format": "connect/native-owned-resource-audit/1",
+  "run": "v125",
+  "source_revision": "1e558e0b704444d2c2b635fc33c33c45819b88c9",
+  "task_complete": false,
+  "cell_qualified": false
+}

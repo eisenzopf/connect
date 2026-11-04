@@ -1,0 +1,117 @@
+{
+  "format": "connect/original-native-ingress-evidence/1",
+  "run": "v128",
+  "source_revision": "fd5dacb43511c71dee243636c1ad42b530b32ccf",
+  "platform": "Owner Mac Studio local Ubuntu24.04 ARM64 VM",
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 165424,
+    "source_revision": "fd5dacb43511c71dee243636c1ad42b530b32ccf",
+    "passed": true,
+    "steps": [
+      {
+        "group": "owned-original-ingress",
+        "case": "staged_streams::tests::original_ingress_custody::original_ingress_recovers_exact_frame_and_releases_authority_between_attempts",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 609 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "3c9373ce737c84eceb76352a0c2a917712e3b604fff5e2928949a21991d30ab6"
+      },
+      {
+        "group": "owned-original-ingress",
+        "case": "staged_streams::tests::original_ingress_custody::original_ingress_refuses_revocation_aba_new_audience_and_semantic_readiness",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 609 filtered out; finished in 0.21s"
+        ],
+        "log_sha256": "f8f4d6d236d2a72887a6b9107ef775d6b1730f273a01175030998674bcb4f897"
+      },
+      {
+        "group": "owned-original-ingress",
+        "case": "staged_streams::tests::original_ingress_custody::original_ingress_cannot_capture_prepared_muted_future_or_expired_inputs",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 609 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "b126455cfa8fa8bd312cc4ad52e7d939ccd5834d72d1a77e7ecf9481d752bbf3"
+      },
+      {
+        "group": "native-original-owner",
+        "case": "peer_native::canonical_media::ingress_retry::original_native_frame_survives_temporary_metadata_unavailability_without_resend",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 191 filtered out; finished in 0.03s"
+        ],
+        "log_sha256": "ccb339d5e306399b24ae0e5659c08dbef29385f5a676570211c7ee113b452256"
+      },
+      {
+        "group": "native-original-owner",
+        "case": "peer_native::canonical_media::ingress_retry::original_native_queue_preserves_order_other_stream_progress_expiry_and_shutdown",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 191 filtered out; finished in 0.25s"
+        ],
+        "log_sha256": "e46b93dc3e583369a75ce6864f84605441d1b23926be682e0a4a9c403f1946ea"
+      },
+      {
+        "group": "service-original-policy",
+        "case": "canonical_media::tests::original_ingress_distinguishes_actual_registry_exclusion_from_absent_authority",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 0.11s"
+        ],
+        "log_sha256": "46518de4276099483e53945c01fcacf1d575372da4cdbe61d65774008e04eb49"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "owned_original_ingress_core": true,
+    "builds": [
+      {
+        "group": "owned-original-ingress",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "4ca7f7a68cd02ad953180ce801a00c13e8d553b0ed5319c0e45b17cdae41b343",
+        "test_executable_sha256": "e0573f361c27c8dca01a3396c1c0091f61219d973d7f486cb53e56cd733cffc4",
+        "executable_unchanged": true
+      },
+      {
+        "group": "native-original-owner",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "0a362abc0a63288afff66c61380e507fb6af1706c447d580119ecc8fa97ac089",
+        "test_executable_sha256": "6cefde85928f8ca64f576aa49a3d2b29a2052a54ab0c152ea71b0f9fc7a56f26",
+        "executable_unchanged": true
+      },
+      {
+        "group": "service-original-policy",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "5e85f86d795d3805f08b9d725520fc39399a0a7ef5798d5764baa8f96b05cb4c",
+        "test_executable_sha256": "975380f11deea8a0c54176c53d47338d099b985bf760dff46454d4f279727a01",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1392.7316314909986
+  },
+  "before_evidence": "docs/evidence/gate-6/native-ingress-before.json",
+  "original_wire_observation": "original_recovered=true fresh_received=true temporary_refusals=23 ingress_rejected=0 reader_joined=true",
+  "qualified_scope": [
+    "Core original frame and receive time preserved through explicit policy and model metadata exclusion; no positive grant retained between attempts; one publication only.",
+    "Core refuses revoked, cancelled, retired, mute/unmute, changed credential, replaced consumer/scene, expired, future and unready inputs; semantic NotReady is terminal.",
+    "Actual encrypted canonical QUIC original packet recovers without resend under controlled policy mutex contention. A distinct fresh packet remains usable and the reader joins.",
+    "Actual QUIC queue preserves original per-stream order; another stream progresses during contention; expired originals are discarded; shutdown joins with originals pending.",
+    "Actual Service leaf registry mutex exclusion returns MetadataBusy promptly and missing authority remains denied. This is not a production Store writer or full native workload proof."
+  ],
+  "limits": [
+    "Initial Core metadata snapshot exclusion is still a terminal refusal because no original generation has been established.",
+    "No full workload or matrix cell qualified. Existing mixer loss and v125 audio duration/identity/marker failure still require integrated verification.",
+    "Full native workload uses Opus/VP8; the focused QUIC fixture uses PCMU. No codec equivalence claim.",
+    "Earliest observed grant expiry is retained in code; this run exercises original age expiry, not a dedicated earlier-grant-expiry collision."
+  ],
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
