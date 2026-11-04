@@ -35,10 +35,14 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
     Object.assign(report,{format:'connect/browser-matrix-programme/1',passed:false,source_programme:original,
         decoded_media_verified:false,packet_capture_verified:false,moves:[],terminal_ms:original.deadlineMs});
     await journal({kind:'programme-origin',original});
-    // Replacement maps the local negotiated receive port, not the selected
-    // remote publication. Initial offers use one sendrecv video stream.
-    const current=plan.routes.map(route=>({connection:state.connections[route.index],
-        role:route.role,video:route.video,receiveVideo:route.video}));
+    // stream.subscribe creates a dedicated local receiver named after the
+    // selected publication. Transfer that port's existing selection; the
+    // original sendrecv publication port has no direct subscription to move.
+    const current=plan.routes.map(route=>{
+        const peers=plan.routes.filter(other=>other.session===route.session),index=peers.indexOf(route);
+        return {connection:state.connections[route.index],role:route.role,video:route.video,
+            receiveVideo:peers[(index+peers.length-1)%peers.length].video};
+    });
     async function move(intent){
         const route=plan.routes[intent.source],before=current[intent.source],target=actors[intent.targetRole];
         const began=performance.now(),cutoff=Math.min(began+8000,original.deadlineMs);
