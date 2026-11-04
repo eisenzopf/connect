@@ -25,13 +25,18 @@ function observed(client,receive,send){
  return ()=>readReleased&&writeReleased&&!readable.locked&&!writable.locked;
 }
 export async function runRecovery(input){
- const clients=[],peers=[],unlocked=[],stops=[],errors=[],sent=[],received=[],hints=[],notices=[],decoded=[];
+ const clients=[],peers=[],unlocked=[],stops=[],errors=[],sent=[],received=[],hints=[],notices=[],decoded=[],control=[];
  const result={passed:false,same_ssrc:false,new_epoch:false,fresh_frame:false,shutdown_joined:false,feedback_packets:0};
  let phase='connect';globalThis.videoRecoveryPhase=phase;
  const setPhase=v=>globalThis.videoRecoveryPhase=phase=v;
  const until=async(fn,label,ms=5000)=>{const end=performance.now()+ms;while(!fn()){check(!errors.length,'owned media error: '+errors.join(', '));check(performance.now()<end,label+' deadline; phase='+phase);await wait(5);}};
  try{
-  for(const actor of input.actors){const client=await BrowserClient.open(await options(actor));clients.push(client);stops.push(client.onEvent(frame=>{if(frame.type==='stream.epoch'){check(notices.length<64,'notice bound');notices.push({cid:frame.cid,sid:frame.sid,connid:frame.connid,...frame.payload});}}));}
+  for(const actor of input.actors){const client=await BrowserClient.open(await options(actor));clients.push(client);
+   const actorIndex=clients.length-1,record=row=>{check(control.length<512,'control trace bound');control.push({actor:actorIndex,at:performance.now(),...row});};
+   stops.push(client.onClose(e=>record({closed:e?.message,code:e?.code})));
+   const begin=client.begin.bind(client);client.begin=(type,payload,scope,options)=>{record({request:type,operation:scope?.operation_id,revision:scope?.expected_revision});const original=begin(type,payload,scope,options);void original.response.then(frames=>record({response:type,frames:frames.map(f=>({type:f.type,code:f.payload.code,state:f.payload.state}))}),e=>record({refused:type,code:e?.code,message:e?.message}));return original;};
+   stops.push(client.onEvent(frame=>record({event:frame.type,operation:frame.operation_id,revision:frame.payload.substrate_setup?.revision})));
+   stops.push(client.onEvent(frame=>{if(frame.type==='stream.epoch'){check(notices.length<64,'notice bound');notices.push({cid:frame.cid,sid:frame.sid,connid:frame.connid,...frame.payload});}}));}
   unlocked.push(observed(clients[0],bytes=>{if(bytes.length===48&&bytes[9]===206){check(hints.length<32,'hint bound');hints.push({...decodeNativeVideoFeedback(bytes),at:performance.now()});}},bytes=>{
    if(bytes[1]!==0||(bytes[9]>=192&&bytes[9]<=223))return;const p=decodeNativeRtpDatagram(bytes);
    if(p.payload[0]&0x10){check(sent.length<16,'source frame bound');sent.push({timestamp:p.timestamp,ssrc:p.ssrc,key:(p.payload[1]&1)===0,sequence:p.sequence,at:performance.now()});}
@@ -54,8 +59,8 @@ export async function runRecovery(input){
   const firstPacket=received.find(p=>p.timestamp===first.rtp);check(firstPacket,'initial original RTP timestamp observed');
   // Let any initial bootstrap hint expire; do not encode a stale source frame.
   await wait(210);
-  setPhase('reselect');await peers[1].beginControl(target.id,'browser-feedback-unselect','stream.unsubscribe',{streams:['camera']},target.revision,{timeoutMs:5000}).ready;
-  await target.subscribe('browser-feedback-reselect',input.source_participant,['video'],{timeoutMs:5000});
+  setPhase('unselect');await peers[1].beginControl(target.id,'browser-feedback-unselect','stream.unsubscribe',{streams:['camera']},target.revision,{timeoutMs:5000}).ready;
+  setPhase('reselect');await target.subscribe('browser-feedback-reselect',input.source_participant,['video'],{timeoutMs:5000});
   const before=hints.length;setPhase('new-history-delta');const delta=capture(110);await until(()=>sent.some(f=>f.timestamp===delta.rtp),'new source frame');
   const sentDelta=sent.find(f=>f.timestamp===delta.rtp);check(!sentDelta.key,'new history must encounter an actual interframe before recovery');
   await until(()=>received.some(p=>p.timestamp===delta.rtp),'new history packet');
@@ -68,7 +73,7 @@ export async function runRecovery(input){
   check(notices.some(n=>n.direction==='receiver'&&n.epoch===changed.epoch&&n.connid===target.id&&n.strm_id==='camera'),'packet history joins actual signed receiver notice');
   const hint=hints.at(-1);check(notices.some(n=>n.direction==='publisher'&&n.epoch===hint.epoch&&n.ssrc===hint.mediaSsrc&&n.connid===source.id),'feedback joins actual signed publisher notice');
   Object.assign(result,{passed:true,same_ssrc:true,new_epoch:true,fresh_frame:true,feedback_packets:hints.length,source_frames:sent,decoded_frames:decoded,original_timestamps:{first,delta,fresh},receiver_epoch_change:[firstPacket.epoch,changed.epoch],route_diagnostics:peers.map(p=>p.routeDiagnostics),scope:'One local EdDSA Chromium/WebTransport recovery, actual production listener and WebCodecs; not full frozen workload/network/transport cell.'});
- }catch(error){throw Error('phase='+phase+'; '+error.message+'; observed='+JSON.stringify({sent,received:received.slice(-4),hints,decoded,errors}));}
+ }catch(error){throw Error('phase='+phase+'; '+error.message+'; observed='+JSON.stringify({sent,received:received.slice(-4),hints,decoded,errors,control}));}
  finally{setPhase('shutdown');for(const stop of stops)stop();for(const peer of peers)await peer.shutdown();for(const client of clients)client.close();check(unlocked.every(f=>f()),'observer and native owner stream locks joined');result.shutdown_joined=true;}
  return result;
 }
