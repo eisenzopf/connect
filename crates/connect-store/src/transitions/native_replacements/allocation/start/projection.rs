@@ -166,6 +166,7 @@ impl Drop for AdmissionTiming<'_> {
 fn replacement_capture_wait() -> crate::AuthorityWait {
     crate::AuthorityWait::new(std::time::Duration::from_millis(5))
         .poll_every(std::time::Duration::from_micros(100))
+        .observe_projection()
 }
 
 impl Store {

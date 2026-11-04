@@ -41,7 +41,7 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True, native_port=None, arm64_component=False, native_replacement_metadata_trace=False, native_replacement_commit_trace=False, native_packet_policy_trace=False):
+def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True, native_port=None, arm64_component=False, native_replacement_metadata_trace=False, native_replacement_commit_trace=False, native_packet_policy_trace=False, native_authority_summary=False):
     global PRIVATE, OUTPUT
     assert type(host_capture) is bool and (host_capture or media_workload and network_profile == "local")
     assert native_port is None or (type(native_port) is int and 1024 <= native_port <= 65535 and media_workload and network_profile == "local")
@@ -49,6 +49,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     assert not native_replacement_metadata_trace or media_workload
     assert type(native_replacement_commit_trace) is bool
     assert not native_replacement_commit_trace or media_workload
+    assert type(native_authority_summary) is bool
+    assert not native_authority_summary or media_workload
     assert type(native_packet_policy_trace) is bool
     assert not native_packet_policy_trace or media_workload
     if media_workload:
@@ -108,6 +110,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     report["arm64_component_only"] = arm64_component
     report["native_replacement_metadata_trace_requested"] = native_replacement_metadata_trace
     report["native_replacement_commit_trace_requested"] = native_replacement_commit_trace or native_replacement_metadata_trace
+    report["native_authority_summary_requested"] = native_authority_summary
     report["native_packet_policy_trace_requested"] = native_packet_policy_trace
     report["sdk_helper_timing_trace_requested"] = native_replacement_metadata_trace
     report["host_capture_requested"] = host_capture
@@ -242,6 +245,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 # Original phase/error events and terminal audio counters. No per-frame observer,
                 # authority backtrace, SQL custody or helper timing trace.
                 server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug"
+            if native_authority_summary:
+                # Bounded slow-interval and failed projection metadata only; no stacks or per-packet trace.
+                server_env["RUST_LOG"] += ",connect_store::authority_summary=debug,connect_service::peer_authority_lifetime=debug"
             if native_packet_policy_trace:
                 # Existing current-read outcomes only. Keep this explicit:
                 # packet logging can perturb timing and cannot qualify quality.

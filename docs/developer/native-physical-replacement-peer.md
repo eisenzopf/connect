@@ -467,3 +467,24 @@ unchanged. The v116 capture exposed the mismatch: receiver4 keyframes arrived55.
 and4.390ms before its first-move and return completion observations, respectively;
 the next keyframes arrived943.495ms and993.702ms after those observations. This
 implementation still requires its new regression and failed-workload validation.
+
+
+### Bounded authority contention observation
+
+The local failed-workload diagnostic can set `native_authority_summary=True` in
+`scripts/check-transport-fixtures.py`. This enables a separate Store trace target
+that records at most 256 authority intervals exceeding one 20 ms audio quantum
+and at most 256 failed replacement-projection acquisitions per server process.
+The latter identify the admission stage, scope kind, mode, and completed/total
+scope counts; they contain no scope IDs, credentials, or packet content. Output
+runs after the corresponding Store file guards are released. The summary lane
+captures no backtraces and does not enable SQL or packet tracing. Existing bounded
+peer-command lifetime observations identify slow command kinds.
+
+This is diagnostic evidence, not a quality waiver. It changes no authority scope,
+file-lock order, retry budget, packet age, physical movement count, or quality
+threshold. A failed acquisition stage identifies where admission stopped; it does
+not by itself identify a competing owner. Correlate with the released-interval
+records and original workload evidence before assigning a cause. The decoder
+boundary regression is recorded in `docs/evidence/gate-6/decoder-start-boundary.json`;
+full workload validation with that fix and these diagnostics remains pending.

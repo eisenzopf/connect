@@ -1,6 +1,7 @@
 //! Cooperative, owned cross-process authority fences. No SQLite mutex is held
 //! while waiting or across a handler/network await. Locks are advisory: every
 //! supported Store authority writer must participate in this protocol.
+mod diagnostics;
 use connect_protocol::{Error, Result};
 use fs2::FileExt;
 use hmac::{Hmac, Mac};
@@ -109,6 +110,7 @@ pub struct AuthorityWait {
     deadline: Instant,
     cancelled: Arc<AtomicBool>,
     poll_interval: Duration,
+    projection_diagnostic: bool,
 }
 impl AuthorityWait {
     pub fn new(timeout: Duration) -> Self {
@@ -116,6 +118,7 @@ impl AuthorityWait {
             deadline: Instant::now() + timeout.min(MAX_WAIT),
             cancelled: Arc::new(AtomicBool::new(false)),
             poll_interval: Duration::from_millis(2),
+            projection_diagnostic: false,
         }
     }
     /// Narrow the same wait/cancellation owner; never renew its deadline.
@@ -124,12 +127,17 @@ impl AuthorityWait {
             deadline: self.deadline.min(Instant::now() + timeout),
             cancelled: self.cancelled.clone(),
             poll_interval: self.poll_interval,
+            projection_diagnostic: self.projection_diagnostic,
         }
     }
     /// A short metadata drain needs finer polling than an ordinary command.
     /// This changes neither the original deadline nor its cancellation owner.
     pub(crate) fn poll_every(mut self, interval: Duration) -> Self {
         self.poll_interval = interval.clamp(Duration::from_micros(50), Duration::from_millis(2));
+        self
+    }
+    pub(crate) fn observe_projection(mut self) -> Self {
+        self.projection_diagnostic = true;
         self
     }
     fn pause(&self) -> Result<()> {
@@ -278,12 +286,14 @@ struct AuthorityTiming {
 impl AuthorityTiming {
     #[track_caller]
     fn capture(waited: bool) -> Option<Self> {
-        if tracing::enabled!(target: "connect_store::authority_lifetime", tracing::Level::DEBUG) {
+        let stacks =
+            tracing::enabled!(target: "connect_store::authority_lifetime", tracing::Level::DEBUG);
+        if stacks || diagnostics::enabled_hold() {
             Some(Self {
                 started: Instant::now(),
                 caller: std::panic::Location::caller(),
                 // Packet admission must not unwind a stack on every frame.
-                admission: waited.then(std::backtrace::Backtrace::force_capture),
+                admission: (waited && stacks).then(std::backtrace::Backtrace::force_capture),
             })
         } else {
             None
@@ -292,6 +302,7 @@ impl AuthorityTiming {
 }
 impl Drop for AuthorityTiming {
     fn drop(&mut self) {
+        diagnostics::released(self.started, self.caller);
         let elapsed_ms = self.started.elapsed().as_millis() as u64;
         if elapsed_ms >= 100 {
             tracing::debug!(target: "connect_store::authority_lifetime", elapsed_ms,
@@ -417,6 +428,7 @@ impl Manager {
         scopes: &[AuthorityScope],
         wait: Option<&AuthorityWait>,
     ) -> Result<Arc<AuthorityGuardSet>> {
+        let mut diagnostic = diagnostics::Admission::new(wait);
         #[cfg(test)]
         self.admission_attempts.fetch_add(1, Ordering::Relaxed);
         if let Some(wait) = wait {
@@ -442,22 +454,30 @@ impl Manager {
                 .and_modify(|mode| *mode = std::cmp::max(*mode, scope.mode))
                 .or_insert(scope.mode);
         }
+        diagnostic.total = ordered.len();
         let mut held = Vec::with_capacity(ordered.len());
         for (key, mode) in &ordered {
+            diagnostic.scope(key.0, *mode);
             if let Some(wait) = wait {
                 wait.check()?;
             }
+            diagnostic.stage = "scope-name";
             let name = self.name(key)?;
+            diagnostic.stage = "open-admission";
             let admission = self.lock_file(&format!("{name}.admission"))?;
+            diagnostic.stage = "lock-admission";
             lock_with(admission.file(), wait)?;
             if *mode == AuthorityMode::Write {
+                diagnostic.stage = "open-resource";
                 let resource = self.file(&format!("{name}.resource"))?;
+                diagnostic.stage = "lock-resource";
                 lock_with(&resource, wait)?;
                 held.push(Held::Write {
                     _resource: resource,
                     _admission: admission,
                 });
             } else {
+                diagnostic.stage = "read-resource";
                 let resource = self
                     .read_resource(&name, wait, || self.lock_file(&format!("{name}.resource")))?;
                 drop(admission);
@@ -465,10 +485,13 @@ impl Manager {
                     _resource: resource,
                 });
             }
+            diagnostic.completed += 1;
         }
+        diagnostic.stage = "final-deadline";
         if let Some(wait) = wait {
             wait.check()?;
         }
+        diagnostic.passed = true;
         Ok(Arc::new(AuthorityGuardSet {
             manager: self.clone(),
             scopes: ordered,
