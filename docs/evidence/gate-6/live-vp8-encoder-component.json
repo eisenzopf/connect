@@ -76,6 +76,7 @@
       "Requested original frame7 is freshly encoded and independently decoded with its original marker and RTP timestamp.",
       "Partial, foreign and oversized replies and cancellation fail closed; actual child process exit is joined."
     ],
-    "scope": "Owned Node worker only; initial sender integration is the next unverified candidate. No feedback authorization, epochs or media qualification."
-  }
+    "scope": "Owned Node worker component. Initial nativeAv integration now has separate local lifecycle proofs in native-live-source-integration.json. No feedback authorization, epochs or media qualification."
+  },
+  "initial_sender_integration": "docs/evidence/gate-6/native-live-source-integration.json"
 }

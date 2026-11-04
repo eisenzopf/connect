@@ -1,0 +1,88 @@
+{
+  "format": "connect/gate6-native-live-source-integration/1",
+  "task": "G6-058",
+  "status": "component-pass",
+  "environment": "Owner Mac Studio local Ubuntu 24.04 ARM64 VM; no GitHub or cloud execution",
+  "initial_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 117134,
+    "source_revision": "b838c5e84795102b494660e2d2e2abed62038192",
+    "passed": false,
+    "steps": [
+      {
+        "case": "scripts/tests/transport_av_live_encoder.test.mjs (two new exact cases)",
+        "exit_code": 1,
+        "log_sha256": "88622942d016641858b2a3ef17fda33c1d37900975b6aa1405d9e9935295334e",
+        "results": [
+          "not ok 1 - native sender uses fresh current frames and joins only the retired Connection encoder",
+          "ok 2 - native sender setup refusal joins the encoder opened for the previous Connection",
+          "# tests 2",
+          "# pass 1",
+          "# fail 1"
+        ]
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "live_source_candidate": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 6.650559446003172
+  },
+  "corrected_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 117278,
+    "source_revision": "9c70e0cb89468a7fa1372a37dae75506505acb92",
+    "passed": true,
+    "steps": [
+      {
+        "case": "scripts/tests/transport_av_live_encoder.test.mjs (only the failed fresh-current-frame case)",
+        "exit_code": 0,
+        "log_sha256": "07f98358eee9e412eb7672fc122328b55813cebdbe7b9d23bde1320fe83ecb9c",
+        "results": [
+          "ok 1 - native sender uses fresh current frames and joins only the retired Connection encoder",
+          "# tests 1",
+          "# pass 1",
+          "# fail 0"
+        ]
+      },
+      {
+        "case": "LiveSourcePreparation.test_raw_and_reference_share_markers_and_private_finite_manifest",
+        "exit_code": 0,
+        "log_sha256": "df8a568c810aafdbe771e7e3001fe968d3243a9a242cc43da69f3a78c62db40a",
+        "results": [
+          ".",
+          "----------------------------------------------------------------------",
+          "Ran 1 test in 0.282s",
+          "",
+          "OK"
+        ]
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "live_source_candidate": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 3.7616721330123255
+  },
+  "correction": "An early timer wake could make the calculated remaining source age exceed 200 ms. Clamp each encoder/send budget to the original 200 ms ceiling without changing programme indices or timestamps.",
+  "proof": [
+    "Actual nativeAv uses actual C encoder output despite deliberately invalid preencoded reference payloads. Each observed initial frame is a keyframe and later frames preserve original 3000-tick progression.",
+    "Retiring one Connection joins its encoder PID and four packet tasks while the five other encoder PIDs and shared programme remain live. Final controlled failure joins all six encoders and receive tasks.",
+    "Second-Connection setup refusal joins the already-open first encoder before reporting failure. This passed in the initial run and was not repeated.",
+    "Real source preparation produces private finite I420 and encoded references with matching identity/sync-marker interiors in a one-second one-source fixture; executable/raw hashes match the manifest. Production remains six sources and 62 seconds."
+  ],
+  "limits": [
+    "Packet IO in the nativeAv cases is a public-interface test double; no native network, admission, decoded quality or full-cell proof.",
+    "The source-generation test is a small command/manifest/marker proof, not a frozen-workload qualification.",
+    "Raw/reference fixtures are removed after checking. Source and prepared-dependency guards passed; no retained executable-before/after guard is claimed for these temporary executables.",
+    "Replacement peer still uses immutable frames and needs its own cancellation-safe live worker integration.",
+    "Feedback codec is syntactic only; current-authorized feedback and authenticated operation/incarnation/generation/activation epochs remain unfinished.",
+    "Existing passed broad suites and full media workload were not rerun. G6-054 remains deferred."
+  ],
+  "full_media_qualified": false,
+  "task_complete": false
+}
