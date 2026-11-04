@@ -394,3 +394,18 @@ lifecycle writer. An original peer offer and its matching confirmation must
 both select the profile; server support alone cannot enable tagged packets.
 Actual public SDK/server verification is pending for this candidate. Browser
 and direct replacement consumers remain separate unfinished integrations.
+
+### Browser native framing boundary (candidate)
+
+The browser native owner uses a strict ordinary RTP entry point: nonzero
+native flags and RTCP packet types cannot fall through as RTP. The generic RTP
+parser still supports its existing explicit framing callers. Separate internal
+video codecs parse the selected 24-byte epoch header and the exact 48-byte
+PLI/CNEP feedback compound. They preserve original RTP sequence, timestamp,
+extensions and padding; parsing alone grants no decoder or feedback admission.
+
+These codecs are preparation for browser profile integration. The browser does
+not advertise `rtcp-pli-epoch/1` yet. Signed allocation/notice joining, bounded
+unknown-epoch buffering and current-route feedback checks must be installed
+before enabling it. The new independent wire vectors await local ARM
+verification; they do not qualify a browser transport cell.

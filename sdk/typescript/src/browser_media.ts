@@ -12,10 +12,10 @@ import {
     MediaSendQueue,
     RtpSender,
     Vp8Assembler,
-    decodeRtpDatagram,
     MEDIA_LIMITS,
     type MediaBinding,
 } from "./browser_rtp.js";
+import { decodeNativeRtpDatagram } from "./browser_video_wire.js";
 import {
     decodeRtcpSenderReport,
     isRtcpDatagram,
@@ -772,7 +772,7 @@ export class BrowserMediaPeer {
             }
             let packet, route;
             try {
-                packet = decodeRtpDatagram(value);
+                packet = decodeNativeRtpDatagram(value);
                 this.registry.require(
                     packet.handle,
                     "receive",
