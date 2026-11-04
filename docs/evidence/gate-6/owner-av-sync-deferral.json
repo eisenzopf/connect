@@ -1,0 +1,17 @@
+{
+  "format": "connect/gate6-owner-av-sync-deferral/1",
+  "date": "2026-11-04",
+  "instruction": "skip over av sync for now. let's progress",
+  "deferred_scope": "A/V synchronization diagnosis and qualification",
+  "verification_waived": false,
+  "evidence": "docs/evidence/gate-6/owner-av-sync-deferral.json",
+  "work_order": "Test every non-A/V requirement across all 32 G6-058 cells. Keep G6-070 not started. Preserve A/V failures and defer their further diagnosis; no full-cell or full-gate qualification from non-A/V results.",
+  "existing_regression": "v168 initial-mute registry contention is a separate replacement-control regression; allow original bounded run to finish.",
+  "no_new_av_sync_runs": true,
+  "transport_matrix_qualified": false,
+  "whole_gate_qualified": false,
+  "clarification": {
+    "instruction": "i want all non av tests to be tested on G6-058",
+    "required_cells": 32
+  }
+}
