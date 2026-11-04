@@ -12,7 +12,7 @@ from .sdk_data_types import (BinaryData, DataAcceptance, DataPayload, DataStats,
 from ._sdk_helper import _encode
 from ._sdk_media_channel import Channel, MAX_METADATA, encoded, error, open_channel, owned, wait
 from .sdk_media_types import (ClockPacket, LocalMediaSubmission, MediaBinding, MediaGap,
-    MediaNegotiation, MediaPacket, MediaStats, NegotiatedMediaStream, RtpPacket, SenderClockReport,
+    MediaNegotiation, MediaPacket, MediaStats, NegotiatedMediaStream, NativeVideoFeedback, RtpPacket, SenderClockReport,
     invalid, unsigned)
 from .sdk_types import (ConnectionId, ConversationId, RequestOptions, SessionId, StreamId,
                         StreamRevision, MessageId, MutationOptions, NonEmpty, OperationKey, ParticipantId, Scope, SdkError, SdkCancelledError, cancelled, identifier)
@@ -49,8 +49,13 @@ def negotiation(binding: MediaBinding, kind, value, payload):
         raise ValueError()
     streams=[]
     for raw in value['streams']:
-        shape(raw,('id','medium','direction','codec','stream_local_id'))
-        streams.append(NegotiatedMediaStream(raw['id'],raw['medium'],raw['direction'],raw['codec'],raw['stream_local_id']))
+        has_feedback = type(raw) is dict and 'video_feedback' in raw
+        shape(raw,('id','medium','direction','codec','stream_local_id') + (('video_feedback',) if has_feedback else ()))
+        feedback = None
+        if has_feedback:
+            descriptor = shape(raw['video_feedback'],('profile','original_operation','original_offer','stream_generation','connection_generation'))
+            feedback = NativeVideoFeedback(**descriptor)
+        streams.append(NegotiatedMediaStream(raw['id'],raw['medium'],raw['direction'],raw['codec'],raw['stream_local_id'],feedback))
     if len({s.id for s in streams}) != len(streams):
         raise ValueError()
     return MediaNegotiation(binding,value['source_clock'],StreamRevision(value['stream_revision']),tuple(streams))

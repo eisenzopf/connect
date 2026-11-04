@@ -1599,6 +1599,11 @@
       "path": "patches/rvoip/gate6-native-video-feedback-renegotiation.patch",
       "sha256": "39d08e464617f12fcdaf73db75bf7ea7633afb9dfa20106539314c5fdd3558cf",
       "source": "Refuse feedback capability changes over reused video allocations before parameter exchange; validate full confirmation before server acceptance"
+    },
+    {
+      "path": "patches/rvoip/gate6-selected-native-video-allocation.patch",
+      "sha256": "588edb870bc3eb0b8cb476663232f7e50725c0da5b62ef88b3171ef063c67b56",
+      "source": "Bind signed native prepared video feedback selection to exact original allocation operation/offer and resource generations; retain across unchanged reoffers"
     }
   ]
 }

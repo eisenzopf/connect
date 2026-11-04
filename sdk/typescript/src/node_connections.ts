@@ -4,6 +4,7 @@ import { sdkRevision } from "./node_sdk.js";
 import type {
     ConversationId,
     ParticipantId,
+    OperationId,
     SdkId,
     SdkRevision,
     SdkMutationOptions,
@@ -33,7 +34,15 @@ export interface SdkConnectionSnapshot {
     readonly streamRevision?: SdkRevision<"stream">;
     readonly state: string;
 }
+export interface SdkNativeVideoFeedback {
+    readonly profile: "rtcp-pli-epoch/1";
+    readonly originalOperation: OperationId;
+    readonly originalOffer: string;
+    readonly streamGeneration: number;
+    readonly connectionGeneration: number;
+}
 export interface SdkNegotiatedStream {
+    readonly videoFeedback?: SdkNativeVideoFeedback;
     readonly id: StreamId;
     readonly medium: SdkMedium;
     readonly direction: SdkDirection;

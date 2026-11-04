@@ -375,6 +375,7 @@ mod tests {
             session: key.session_id.clone(),
             conversation: key.conversation_id.clone(),
             selected: NativeNegotiation {
+                video_feedback: Default::default(),
                 source_clock: false,
                 stream_revision: revision,
                 streams: vec![NegotiatedStream {

@@ -54,6 +54,7 @@ mod selections;
 mod sessions;
 mod snapshot;
 mod streams;
+mod video_feedback;
 mod worker;
 pub use administration::{AdministrativeClient, TrustedProvisioningCommand};
 pub use capabilities::{features, Capabilities, CapabilitySnapshot, RuntimeRole, Transport};
@@ -107,6 +108,7 @@ pub use streams::{
     SenderClockReport, SourceClock, Stream, StreamSnapshot,
 };
 pub use tokio_util::sync::CancellationToken;
+pub use video_feedback::NativeVideoFeedback;
 #[derive(Clone)]
 pub struct RequestOptions {
     pub timeout: Duration,

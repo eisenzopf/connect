@@ -10,6 +10,7 @@ import {
     type JsonObject,
 } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
+import { captureNativeVideoFeedback } from "./native_video_feedback.js";
 import type {
     ConversationId,
     ParticipantId,
@@ -137,6 +138,12 @@ function negotiation(
                 "direction",
                 "codec",
                 "stream_local_id",
+                ...(s !== null &&
+                typeof s === "object" &&
+                !Array.isArray(s) &&
+                Object.hasOwn(s, "video_feedback")
+                    ? ["video_feedback"]
+                    : []),
             ]) ||
             !identifier(s.id) ||
             !["audio", "video", "screen", "data"].includes(
@@ -151,7 +158,13 @@ function negotiation(
                     Number(s.stream_local_id) > 65535))
         )
             throw new Error();
+        const feedback = Object.hasOwn(s, "video_feedback")
+            ? captureNativeVideoFeedback(s.video_feedback)
+            : undefined;
+        if (feedback && (s.medium !== "video" || s.stream_local_id === null))
+            throw new Error();
         return mediaFrozen({
+            ...(feedback ? { videoFeedback: feedback } : {}),
             id: s.id as StreamId,
             medium: s.medium as SdkMedium,
             direction: s.direction as SdkDirection,

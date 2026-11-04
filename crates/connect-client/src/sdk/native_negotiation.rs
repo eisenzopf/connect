@@ -71,6 +71,7 @@ impl Pending {
         let mut ids = BTreeSet::new();
         let mut handles = BTreeSet::new();
         let mut selected = Vec::new();
+        let mut video_feedback = BTreeMap::new();
         let mut expected = Vec::new();
         for stream in streams {
             let id: StreamId =
@@ -135,6 +136,20 @@ impl Pending {
                 }
                 Some(handle)
             };
+            if let Some(feedback) = video_feedback::selection(
+                stream,
+                video_feedback::Selection {
+                    local: &self.payload["capabilities"],
+                    remote: &p["capabilities"],
+                    operation: self.scope.operation_id.as_deref().ok_or_else(fail)?,
+                    offer: request_id,
+                    generation: 1,
+                    connection_generation: 1,
+                    previous: None,
+                },
+            )? {
+                video_feedback.insert(id.clone(), feedback);
+            }
             selected.push(NegotiatedStream {
                 id,
                 medium,
@@ -148,6 +163,7 @@ impl Pending {
             return Err(fail());
         }
         self.selected = Some(NativeNegotiation {
+            video_feedback,
             source_clock: p["capabilities"]["source_clock"] == "rtcp-sr-sdes/1"
                 && self.payload["capabilities"]["source_clock"] == "rtcp-sr-sdes/1",
             stream_revision: StreamRevision::try_from(1)?,

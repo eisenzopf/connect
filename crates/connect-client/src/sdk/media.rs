@@ -522,7 +522,7 @@ mod tests {
     }
     fn inbox(streams: usize) -> Inbox {
         let inbox = Inbox::default();
-        let selected=NativeNegotiation{source_clock:true,stream_revision:StreamRevision::try_from(1).unwrap(),streams:(0..streams).map(|i|NegotiatedStream{id:key(i).stream_id,medium:Medium::Audio,direction:Direction::Sendrecv,codec:json!({"name":"pcmu","params":{"payload_type":0,"sample_rate":8000,"channels":1}}),stream_local_id:Some(i as u16+1)}).collect()};
+        let selected=NativeNegotiation{video_feedback:Default::default(),source_clock:true,stream_revision:StreamRevision::try_from(1).unwrap(),streams:(0..streams).map(|i|NegotiatedStream{id:key(i).stream_id,medium:Medium::Audio,direction:Direction::Sendrecv,codec:json!({"name":"pcmu","params":{"payload_type":0,"sample_rate":8000,"channels":1}}),stream_local_id:Some(i as u16+1)}).collect()};
         let root = key(0);
         inbox
             .install(
@@ -770,6 +770,7 @@ mod tests {
         let mut other = key(0);
         other.connection_id = "other-connection".parse().unwrap();
         let selected = NativeNegotiation {
+            video_feedback: Default::default(),
             source_clock: false,
             stream_revision: StreamRevision::try_from(1).unwrap(),
             streams: vec![NegotiatedStream {

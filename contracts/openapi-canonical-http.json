@@ -560,10 +560,11 @@
         },
         "x-native-video-epochs": {
           "profile": "rtcp-pli-epoch/1 requires explicit native offer and signed parameter confirmation; opt-in runtime integration, disabled by default.",
+          "selection": "Signed native-prepared/1 Video entries include video_feedback with profile, original_operation, original_offer, stream_generation and connection_generation. Reused allocations retain their original identity; changed profiles require new Video allocations. Both explicit capabilities and exact signed setup confirmation are required.",
           "event": "Signed stream.epoch is emitted only by the existing owned native lifecycle writer, after actual ordinary packet admission or submission. It binds the original operation and prepared offer, physical incarnation, stream and Connection generations, ordered notice revision, direction, epoch, actual SSRC and first native datagram sequence/RTP timestamp.",
           "authority": "No readiness, media grant or operation completion is implied. The current original-source lifecycle authority and exact active binding/epoch fence cover the signed reliable write. Feedback separately reacquires current source and receiver authority for every dispatch.",
           "http": "HTTP cannot create a native physical incarnation, negotiate this datagram profile or submit stream.epoch as a command. The original operation remains available through normal current-authorized operation recovery.",
-          "limits": "Runtime path and new focused signed transport cases are candidates; production host enablement, client epoch ordering/packet attribution and live source-worker feedback integration remain pending."
+          "limits": "Signed epoch transport component passes locally on ARM. Selected-allocation metadata and SDK validation have pending focused checks; production host enablement, client epoch ordering/packet attribution and live source-worker feedback integration remain pending."
         },
         "x-native-flow-facts": {
           "scope": "Schema92 installation-owned historical native readiness source; no public fact query or mutation command.",

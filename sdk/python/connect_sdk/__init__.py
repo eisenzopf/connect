@@ -9,7 +9,7 @@ __all__ = [
     'ConnectError', 'NativeClient', 'NativeAudioClient', 'HttpClient', 'ContextRecord',
     'TASK_PROFILE', 'TaskCommand', 'TaskDefinition', 'TaskOutcome', 'TaskRecord', 'TaskScope',
     'Media', 'MediaConnection', 'MediaStream', 'MediaBinding', 'MediaNegotiation',
-    'NegotiatedMediaStream', 'RtpHeader', 'RtpPacket', 'SenderClockReport', 'ClockPacket',
+    'NegotiatedMediaStream', 'NativeVideoFeedback', 'RtpHeader', 'RtpPacket', 'SenderClockReport', 'ClockPacket',
     'MediaGap', 'MediaPacket', 'LocalMediaSubmission', 'MediaStats', 'MembershipAction',
     'MembershipRequest', 'MembershipOutcome', 'MembershipSnapshot', 'MembershipInvitations',
     'Client', 'Conversation', 'Participant', 'Operation', 'OperationKind', 'OperationKinds',
@@ -89,7 +89,7 @@ _EXPORT_GROUPS = (
         'Media', 'MediaConnection', 'MediaStream',
     )),
     ('.sdk_media_types', (
-        'MediaBinding', 'MediaNegotiation', 'NegotiatedMediaStream', 'RtpHeader', 'RtpPacket',
+        'MediaBinding', 'MediaNegotiation', 'NegotiatedMediaStream', 'NativeVideoFeedback', 'RtpHeader', 'RtpPacket',
         'SenderClockReport', 'ClockPacket', 'MediaGap', 'MediaPacket', 'LocalMediaSubmission',
         'MediaStats',
     )),
@@ -145,7 +145,7 @@ if TYPE_CHECKING:
     from .sdk_http import CanonicalHttpClient, HttpCommandScope, HttpControlTransport, HttpEnvelope
     from .sdk_sync import SynchronousSdk
     from .sdk_media import Media, MediaConnection, MediaStream
-    from .sdk_media_types import (MediaBinding, MediaNegotiation, NegotiatedMediaStream, RtpHeader,
+    from .sdk_media_types import (MediaBinding, MediaNegotiation, NegotiatedMediaStream, NativeVideoFeedback, RtpHeader,
         RtpPacket, SenderClockReport, ClockPacket, MediaGap, MediaPacket, LocalMediaSubmission, MediaStats)
     from .sdk_types import (
         Cancellation, CapabilitySnapshot, Completion, ConversationId, ConversationRevision, Json,

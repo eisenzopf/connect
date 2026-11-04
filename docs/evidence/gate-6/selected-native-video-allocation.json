@@ -1,0 +1,27 @@
+{
+  "format": "connect/gate6-selected-native-video-allocation/1",
+  "task": "G6-058",
+  "status": "verification-pending",
+  "patch": 298,
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM; no GitHub/cloud execution",
+  "implementation": [
+    "Signed native-prepared/1 Video entries contain explicitly selected profile and original allocation operation/offer plus stream/Connection generations. Reused resources retain their origin; actual replacement resources use the new operation. Exact setup confirmation protects the descriptor.",
+    "Rust SDK validates bilateral profile selection, strict bounded provenance and exact generation/origin through initial offer, codec renegotiation and stream selection. NativeNegotiation exposes only the validated allocation metadata.",
+    "The owned helper preserves validated selection in typed Node and Python media descriptions; strict decoders reject malformed or unrelated-medium descriptors. Existing unselected streams carry no new optional descriptor."
+  ],
+  "planned_checks": [
+    "peer_native::canonical_media::native_offers::video_epochs::signed_video_selection_binds_original_allocation_across_reoffers_and_refuses_forged_confirmation",
+    "sdk::video_feedback::tests::selected_video_history_requires_bilateral_profile_and_exact_allocation_provenance",
+    "sdk/tests/native_video_feedback.test.mjs",
+    "sdk/tests/native_video_feedback_python.py"
+  ],
+  "remaining": [
+    "Default-disabled production profile and SDK offers remain unchanged until runtime feedback handling is installed. Browser selection/runtime epoch handling is not integrated yet.",
+    "Authenticate and order stream.epoch notices against current physical-client roots and original allocation descriptor; bound media-before-notice by original200ms age and refuse stale histories.",
+    "Add distinct bounded publisher/receiver feedback APIs, integrate existing Node/Rust live encoders and prove original-clock decoder bootstrap and fragment-loss recovery.",
+    "No full media workload or G6-058 qualification cell claimed. G6-054 remains deferred."
+  ],
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false
+}

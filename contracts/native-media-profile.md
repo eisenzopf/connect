@@ -185,8 +185,8 @@ feedback permission.
 The signed `stream.epoch` lifecycle notice describes an actual ordinary packet,
 not readiness or permission. Its envelope carries the exact Conversation,
 Session and Connection. The payload binds `original_operation` and
-`original_offer` (the confirmed `native-prepared/1` setup's `offer_id`), physical
-`incarnation`, `strm_id`, `stream_local_id`, `stream_generation`,
+`original_offer` (the `native-prepared/1` offer that allocated this resource),
+current authenticated-writer `incarnation`, `strm_id`, `stream_local_id`, `stream_generation`,
 `connection_generation`, monotonic `revision`, `direction` (`publisher` or
 `receiver`), opaque `epoch`, actual `ssrc`, `first_sequence` and
 `first_timestamp`. Incarnation and epoch are 32-character UUID/u128 hexadecimal
@@ -205,6 +205,30 @@ Receipt of a number never authorizes feedback: the native adapter separately
 checks the physical handle, emitted SSRC and current selected route, then obtains
 both endpoints' current permissions before dispatching to the publisher.
 
-This contract addition is a candidate pending its new focused signed transport
-proofs. Production host enablement, SDK notice ordering and source-worker feedback
-remain pending; it does not qualify G6-058 media quality.
+The signed epoch component has focused local ARM transport evidence. Production
+host enablement, SDK notice ordering and source-worker feedback remain pending;
+it does not qualify G6-058 media quality.
+
+### Selected video allocation metadata
+
+When both peers explicitly select `rtcp-pli-epoch/1`, each Video entry in the
+signed `native-prepared/1` setup includes a strict `video_feedback` object with
+`profile`, `original_operation`, `original_offer`, `stream_generation` and
+`connection_generation`. Positive generations fit the JSON safe-integer range.
+The confirmation echoes the complete setup exactly. Advertising a capability
+without this selection does not enable feedback. Audio, Screen and Data entries
+do not carry this object.
+
+New allocations bind the operation and offer that actually prepared them. A
+later offer reusing an allocation retains all five fields; its new top-level
+`offer_id` cannot overwrite the allocation origin. Feedback-profile changes on
+reused video allocations refuse before parameter exchange. Actual replacement
+allocations receive new origins. Signed epoch notices must match these selected
+fields, the current physical client's roots and handle, and monotonic notice
+ordering. The writer incarnation can rotate during credential refresh; it is not
+a substitute for exact allocation provenance or the owned physical channel.
+
+The SDK preserves this metadata through initial negotiation, codec changes,
+stream selection and typed Node/Python media descriptions. This addition is pending its
+new focused signed allocation/SDK checks. It does not itself enable feedback or
+admit video to a decoder.

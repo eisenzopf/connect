@@ -39,6 +39,9 @@ pub struct NegotiatedStream {
 }
 #[derive(Clone, Debug)]
 pub struct NativeNegotiation {
+    /// Authenticated allocation provenance for explicitly selected video feedback.
+    /// Absent entries have no feedback profile; capabilities alone do not select it.
+    pub video_feedback: std::collections::BTreeMap<StreamId, NativeVideoFeedback>,
     pub source_clock: bool,
     pub stream_revision: StreamRevision,
     pub streams: Vec<NegotiatedStream>,

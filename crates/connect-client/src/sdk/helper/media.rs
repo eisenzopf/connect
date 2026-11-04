@@ -205,8 +205,13 @@ pub(super) async fn execute(
                 let selected = binding.negotiation(&client)?;
                 json!({"type":"negotiation","binding":binding,"source_clock":selected.source_clock,
                     "stream_revision":selected.stream_revision,
-                    "streams":selected.streams.into_iter().map(|s|json!({"id":s.id,"medium":s.medium,
-                        "direction":s.direction,"codec":s.codec,"stream_local_id":s.stream_local_id})).collect::<Vec<_>>()})
+                    "streams":selected.streams.into_iter().map(|s| {
+                        let feedback = selected.video_feedback.get(&s.id);
+                        let mut wire = json!({"id":s.id,"medium":s.medium,
+                            "direction":s.direction,"codec":s.codec,"stream_local_id":s.stream_local_id});
+                        if let Some(feedback) = feedback { wire["video_feedback"] = json!(feedback); }
+                        wire
+                    }).collect::<Vec<_>>()})
             }
             Command::SendRtp { binding, stream_id, datagram_sequence } => {
                 binding.negotiation(&client)?;

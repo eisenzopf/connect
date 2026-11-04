@@ -19,6 +19,7 @@ import type {
     ConnectionId,
     StreamId,
     SdkDirection,
+    SdkNativeVideoFeedback,
 } from "./node_connections.js";
 import type { SessionId, SdkMedium } from "./node_sessions.js";
 
@@ -127,6 +128,7 @@ export interface SdkMediaNegotiation {
     readonly sourceClock: boolean;
     readonly streamRevision: SdkRevision<"stream">;
     readonly streams: readonly {
+        readonly videoFeedback?: SdkNativeVideoFeedback;
         readonly id: StreamId;
         readonly medium: SdkMedium;
         readonly direction: SdkDirection;

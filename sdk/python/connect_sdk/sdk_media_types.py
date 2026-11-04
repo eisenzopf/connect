@@ -6,7 +6,7 @@ import struct
 from typing import ClassVar, Literal, TypeAlias
 
 from .sdk_types import (ConnectionId, ConversationId, Direction, Json, Medium,
-                        SessionId, StreamId, StreamRevision, SdkError, freeze, identifier)
+                        SessionId, StreamId, StreamRevision, OperationId, SdkError, freeze, identifier)
 
 
 def invalid():
@@ -138,18 +138,38 @@ MediaPacket: TypeAlias = RtpPacket | ClockPacket | MediaGap
 
 
 @dataclass(frozen=True, repr=False)
+class NativeVideoFeedback:
+    profile: Literal['rtcp-pli-epoch/1']
+    original_operation: OperationId
+    original_offer: str
+    stream_generation: int
+    connection_generation: int
+
+    def __post_init__(self):
+        if (self.profile != 'rtcp-pli-epoch/1' or not identifier(self.original_operation)
+                or not identifier(self.original_offer)
+                or any(type(v) is not int or not 0 < v <= 9_007_199_254_740_991
+                       for v in (self.stream_generation,self.connection_generation))):
+            invalid()
+
+
+@dataclass(frozen=True, repr=False)
 class NegotiatedMediaStream:
     id: StreamId
     medium: Medium
     direction: Direction
     codec: Json
     stream_local_id: int | None
+    video_feedback: NativeVideoFeedback | None = None
 
     def __post_init__(self):
         if (not identifier(self.id) or self.medium not in ('audio','video','screen','data')
                 or self.direction not in ('sendonly','recvonly','sendrecv','inactive')):
             invalid()
         if self.stream_local_id is not None and unsigned(self.stream_local_id,16)==0:
+            invalid()
+        if self.video_feedback is not None and (type(self.video_feedback) is not NativeVideoFeedback
+                or self.medium != 'video' or self.stream_local_id is None):
             invalid()
         object.__setattr__(self,'codec',freeze(self.codec))
 

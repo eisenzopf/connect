@@ -1,0 +1,286 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -94,7 +94,14 @@
+             .finish()
+     }
+ }
++#[derive(Clone)]
++struct VideoAllocation {
++    binding: ReadyMediaBinding,
++    operation: String,
++    offer: String,
++}
+ struct Progress {
++    video_allocations: Vec<VideoAllocation>,
+     video_feedback: bool,
+     bindings: Vec<ReadyMediaBinding>,
+     setup: Option<Value>,
+@@ -149,6 +156,7 @@
+     }
+ }
+ struct RetainedPeer {
++    video_allocations: Vec<VideoAllocation>,
+     video_feedback: bool,
+     negotiated: EndpointMediaCapabilities,
+     declared: Option<EndpointMediaCapabilities>,
+@@ -246,6 +254,13 @@
+             .lock()
+             .unwrap_or_else(|p| p.into_inner());
+         if let Some(retained) = retained.as_mut() {
++            retained.video_allocations = self
++                .operation
++                .progress
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .video_allocations
++                .clone();
+             retained.video_feedback = self
+                 .operation
+                 .progress
+@@ -266,6 +281,13 @@
+             }
+         } else {
+             *retained = Some(RetainedPeer {
++                video_allocations: self
++                    .operation
++                    .progress
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .video_allocations
++                    .clone(),
+                 video_feedback: self
+                     .operation
+                     .progress
+@@ -598,6 +620,7 @@
+                 setup: None,
+                 confirmed: false,
+                 video_feedback: false,
++                video_allocations: Vec::new(),
+                 error: None,
+                 server_reply: None,
+             }),
+@@ -671,6 +694,7 @@
+                 setup: None,
+                 confirmed: false,
+                 video_feedback: false,
++                video_allocations: Vec::new(),
+                 error: None,
+                 server_reply: None,
+             }),
+@@ -738,11 +762,49 @@
+         {
+             return Err(StreamControlError::NotReady);
+         }
++        let mut video_allocations = Vec::new();
++        if feedback {
++            let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
++            for port in ports
++                .iter()
++                .filter(|p| p.port.binding().negotiated.requested.medium == Medium::Video)
++            {
++                let binding = port.port.binding();
++                if binding.generation > 9_007_199_254_740_991
++                    || binding.connection_generation > 9_007_199_254_740_991
++                {
++                    return Err(StreamControlError::Unsupported);
++                }
++                let allocation = if port.is_new {
++                    VideoAllocation {
++                        binding: binding.clone(),
++                        operation: op
++                            .envelope
++                            .scope(Scope::Operation)
++                            .ok_or(StreamControlError::Authority)?
++                            .to_owned(),
++                        offer: op.envelope.id().to_owned(),
++                    }
++                } else {
++                    retained
++                        .as_ref()
++                        .and_then(|p| {
++                            p.video_allocations
++                                .iter()
++                                .find(|a| crate::staged_media::same_binding(&a.binding, binding))
++                        })
++                        .cloned()
++                        .ok_or(StreamControlError::NotReady)?
++                };
++                video_allocations.push(allocation);
++            }
++        }
+         let mut state = op.progress.lock().unwrap_or_else(|p| p.into_inner());
+         if !state.bindings.is_empty() {
+             return Err(MediaTransitionError::Conflict.into());
+         }
+         state.bindings = bindings;
++        state.video_allocations = video_allocations;
+         Ok(())
+     }
+     pub(crate) async fn batch_finished(
+@@ -784,7 +846,31 @@
+             .unwrap_or_else(|p| p.into_inner())
+             .bindings
+             .clone();
+-        let wire = bindings.iter().map(binding_wire).collect::<Vec<_>>();
++        let allocations = op
++            .progress
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .video_allocations
++            .clone();
++        let wire = bindings
++            .iter()
++            .map(|binding| {
++                let mut wire = binding_wire(binding);
++                if let Some(allocation) = allocations
++                    .iter()
++                    .find(|a| crate::staged_media::same_binding(&a.binding, binding))
++                {
++                    wire["video_feedback"] = json!({
++                        "profile": crate::substrate::VIDEO_FEEDBACK_PROFILE,
++                        "original_operation": allocation.operation,
++                        "original_offer": allocation.offer,
++                        "stream_generation": binding.generation,
++                        "connection_generation": binding.connection_generation
++                    });
++                }
++                wire
++            })
++            .collect::<Vec<_>>();
+         let setup = json!({"kind":"native-prepared/1","revision":op.expected+1,"offer_id":op.envelope.id(),"streams":wire});
+         let answered=bindings.iter().map(|b|json!({"id":b.negotiated.requested.logical_id.as_str(),"kind":kind(b.negotiated.requested.medium),"direction":direction(b.negotiated.requested.direction),"codec":codec_wire(&b.negotiated.format,payload_type(&b.negotiated.format))})).collect::<Vec<_>>();
+         let substrate = &op.substrate;
+@@ -912,10 +998,15 @@
+         {
+             return Ok(None);
+         }
+-        let operation = op
+-            .envelope
+-            .scope(Scope::Operation)
+-            .ok_or(StreamControlError::Authority)?;
++        let allocation = op
++            .progress
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .video_allocations
++            .iter()
++            .find(|a| crate::staged_media::same_binding(&a.binding, binding))
++            .cloned()
++            .ok_or(StreamControlError::NotReady)?;
+         let flow = self
+             .flow
+             .try_lock()
+@@ -924,8 +1015,8 @@
+             .ok_or(StreamControlError::NotReady)?;
+         Ok(Some(flow.video_feedback_profile(
+             binding,
+-            operation,
+-            op.envelope.id(),
++            &allocation.operation,
++            &allocation.offer,
+         )))
+     }
+ 
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/video_epochs.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/video_epochs.rs
+@@ -262,3 +262,100 @@
+         s.wire.server.shutdown().await.unwrap();
+     }
+ }
++
++fn selected_video(callback: &Envelope, id: &str) -> Value {
++    callback.original()["payload"]["substrate_setup"]["streams"]
++        .as_array()
++        .unwrap()
++        .iter()
++        .find(|s| s["strm_id"] == id)
++        .unwrap()["video_feedback"]
++        .clone()
++}
++#[tokio::test]
++async fn signed_video_selection_binds_original_allocation_across_reoffers_and_refuses_forged_confirmation(
++) {
++    let profile = Arc::new((*profile(false)).clone().with_video_feedback());
++    let mut s = Scene::new_profiled("quic", false, true, true, profile, None).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    let offer = |s: &Scene, revision, id: &str| {
++        let mut v = lifecycle_offer(s, 0, revision, "sendonly");
++        v["payload"]["streams_offered"]
++            .as_array_mut()
++            .unwrap()
++            .push(
++                json!({"id":id,"kind":"video","direction":"sendonly","codec_preferences":["vp8"]}),
++            );
++        v
++    };
++    let first = offer(&s, 0, "camera");
++    let (_, cb) = s.prepared(first.clone()).await;
++    let original = selected_video(&cb, "camera");
++    assert_eq!(original.as_object().unwrap().len(), 5);
++    assert_eq!(original["profile"], "rtcp-pli-epoch/1");
++    assert_eq!(original["original_operation"], first["operation_id"]);
++    assert_eq!(original["original_offer"], first["id"]);
++    assert_eq!(original["stream_generation"], 1);
++    assert_eq!(original["connection_generation"], 1);
++    assert!(selected_video(&cb, "first").is_null());
++    let handle = subscriptions::stream_handle(&cb, "camera");
++    s.confirm(&cb).await;
++    s.wait(1).await;
++    let repeated = offer(&s, 1, "camera");
++    let (_, cb) = s.prepared(repeated.clone()).await;
++    assert_ne!(repeated["id"], original["original_offer"]);
++    assert_eq!(selected_video(&cb, "camera"), original);
++    assert_eq!(subscriptions::stream_handle(&cb, "camera"), handle);
++    s.confirm(&cb).await;
++    s.wait(2).await;
++    send(&s.wire, subscriptions::video_sequence(handle, 2, 6000));
++    let notice = epoch(&s.f, &mut s.wire).await;
++    for field in [
++        "profile",
++        "original_operation",
++        "original_offer",
++        "stream_generation",
++        "connection_generation",
++    ] {
++        assert_eq!(notice["payload"][field], original[field]);
++    }
++    let replacement = offer(&s, 2, "camera_new");
++    let (_, cb) = s.prepared(replacement.clone()).await;
++    let next = selected_video(&cb, "camera_new");
++    assert_eq!(next["original_operation"], replacement["operation_id"]);
++    assert_eq!(next["original_offer"], replacement["id"]);
++    let next_handle = subscriptions::stream_handle(&cb, "camera_new");
++    assert_ne!(next_handle, handle);
++    s.confirm(&cb).await;
++    s.wait(3).await;
++    assert!(s.record.results.lock().unwrap().iter().all(|r| r.is_ok()));
++    send(&s.wire, subscriptions::video_sequence(next_handle, 1, 9000));
++    let notice = epoch(&s.f, &mut s.wire).await;
++    for field in [
++        "profile",
++        "original_operation",
++        "original_offer",
++        "stream_generation",
++        "connection_generation",
++    ] {
++        assert_eq!(notice["payload"][field], next[field]);
++    }
++    let (_, cb) = s.prepared(offer(&s, 3, "camera_new")).await;
++    let mut forged = s.confirmation(&cb);
++    let stream = forged["payload"]["substrate_setup"]["streams"]
++        .as_array_mut()
++        .unwrap()
++        .iter_mut()
++        .find(|s| s["strm_id"] == "camera_new")
++        .unwrap();
++    stream["video_feedback"]["stream_generation"] = json!(99);
++    s.wire.send(s.f.sign(forged)).await;
++    assert_eq!(s.wire.read().await.kind(), "error");
++    s.wait(4).await;
++    assert!(matches!(
++        s.record.results.lock().unwrap()[3],
++        Err(NativeOfferError::Confirmation)
++    ));
++    assert_eq!(s.controller().revision(), 3);
++    s.wire.server.shutdown().await.unwrap();
++}

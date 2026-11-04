@@ -147,6 +147,7 @@ pub(super) fn prepare(
     }
     let preferences = payload["codec_preferences"].as_array().ok_or_else(bad)?;
     let mut selected = Vec::new();
+    let mut video_feedback = BTreeMap::new();
     let mut generations = BTreeMap::new();
     let mut wire_handles = BTreeMap::new();
     let mut ids = BTreeSet::new();
@@ -277,6 +278,26 @@ pub(super) fn prepare(
                     .ok_or_else(bad)?
             },
         );
+        if let Some(feedback) = video_feedback::selection(
+            stream,
+            video_feedback::Selection {
+                local: &entry.local_capabilities,
+                remote: &entry.server_capabilities,
+                operation: key.operation_id.as_str(),
+                offer: request_id,
+                generation: *generations.get(&id).ok_or_else(bad)?,
+                connection_generation: 1,
+                previous: if unchanged {
+                    entry.selected.video_feedback.get(&id)
+                } else {
+                    None
+                },
+            },
+        )
+        .map_err(|_| bad())?
+        {
+            video_feedback.insert(id.clone(), feedback);
+        }
         let choices: Vec<_> = offered
             .iter()
             .filter(|s| s["id"] == stream["strm_id"])
@@ -293,6 +314,7 @@ pub(super) fn prepare(
     }
     let answer=serde_json::from_value(json!({"by_participant":entry.participant,"substrate":"quic","capabilities":entry.local_capabilities,"streams_answered":answered,"substrate_setup":setup})).map_err(|_|bad())?;
     let selected = NativeNegotiation {
+        video_feedback,
         source_clock: entry.selected.source_clock,
         stream_revision: StreamRevision::try_from(expected + 1).map_err(|_| bad())?,
         streams: selected,

@@ -63,6 +63,7 @@ export type {
     SdkOfferedStream,
     SdkConnectionSnapshot,
     SdkNegotiatedStream,
+    SdkNativeVideoFeedback,
     SdkCodecObservation,
     SdkStreamGateObservation,
     SdkConnectionUpdateOutcome,
