@@ -1,6 +1,7 @@
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { BrowserOpusCodec, BrowserVp8Codec } from "./browser_codecs.js";
 import { RtpSender, Vp8Assembler, type MediaBinding } from "./browser_rtp.js";
+import { BrowserVideoEpochs } from "./browser_video_epochs.js";
 import { RtcpCaptureClock, RtcpReceiveClock } from "./browser_rtcp.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import { type Envelope } from "./uctp_wire.js";
@@ -22,6 +23,8 @@ export interface BrowserConnectionOptions {
     operationId: string;
     /** Target-owned audio stays isolated until an attributed handoff commits. */
     purpose?: "handoff-preparation";
+    /** Opt into authenticated native Video epochs and bounded keyframe feedback. */
+    nativeVideoFeedback?: boolean;
     audio?: string;
     video?: string;
     screen?: string;
@@ -58,6 +61,8 @@ interface Route {
     lastReport: number;
     clockProfile: boolean;
     assembler?: Vp8Assembler;
+    video?: BrowserVideoEpochs;
+    publisherSsrc?: number;
     observed: {
         encoded: number;
         keys: number;
@@ -84,6 +89,7 @@ export declare class BrowserMediaPeer {
     private readonly connections;
     private readonly transitions;
     private readonly queue;
+    private readonly feedbackWrites;
     private readonly stopEvents;
     private readonly stopLifetime;
     private readonly timer;
@@ -110,6 +116,11 @@ export declare class BrowserMediaPeer {
     }>;
     private check;
     private die;
+    private videoControlling;
+    private installVideoNotice;
+    private requestVideoRecovery;
+    private writeVideoFeedback;
+    private applyVideoControl;
     private event;
     private serverOffer;
     private reconcile;
@@ -120,6 +131,7 @@ export declare class BrowserMediaPeer {
     private install;
     private drain;
     private receive;
+    private deliverRtp;
     /** Start one original offer. `accepted` means validated current physical
      * parameters arrived; `ready` separately observes installation. Neither
      * promise can retry the mutation or lend ownership after peer retirement. */

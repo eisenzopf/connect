@@ -49,6 +49,14 @@ async fn page(sdk: bool, media: bool, native: Option<Arc<native_actor::Coordinat
             "uctp_signing.js",
             "uctp_wire.js",
             "errors.js",
+            "browser_canonical_schema.js",
+            "browser_canonical_validation.js",
+            "browser_deadline.js",
+            "browser_tasks.js",
+            "browser_video_epochs.js",
+            "browser_video_wire.js",
+            "native_video_feedback.js",
+            "uctp_datetime.js",
         ]
         .into_iter()
         .map(|name| {

@@ -400,18 +400,36 @@ independently at RTP timestamp 6000. See
 integrity checks and limits. Browser and direct replacement consumers remain
 separate unfinished integrations.
 
-### Browser native framing boundary (candidate)
+### Browser native feedback and authenticated history
 
-The browser native owner uses a strict ordinary RTP entry point: nonzero
-native flags and RTCP packet types cannot fall through as RTP. The generic RTP
-parser still supports its existing explicit framing callers. Separate internal
-video codecs parse the selected 24-byte epoch header and the exact 48-byte
-PLI/CNEP feedback compound. They preserve original RTP sequence, timestamp,
-extensions and padding; parsing alone grants no decoder or feedback admission.
+`BrowserSdkClient.connect({ nativeVideoFeedback: true, ... })` explicitly opts
+native WebTransport Video offers into `rtcp-pli-epoch/1`. The default is false;
+the setting is captured before enrollment awaits and retained across physical
+reconnects. Direct `BrowserMediaPeer.offerConnection` accepts the same option.
+The WSS/WebRTC backend continues to use its own negotiated feedback transport.
 
-These codecs are preparation for browser profile integration. The browser does
-not advertise `rtcp-pli-epoch/1` yet. Signed allocation/notice joining, bounded
-unknown-epoch buffering and current-route feedback checks must be installed
-before enabling it. Both independent wire cases pass on local ARM at `4737e199`; see
-`docs/evidence/gate-6/browser-video-wire.json`. They do not qualify a browser
-transport cell.
+The native browser owner joins selected allocation provenance to signed
+`stream.epoch` notices and the exact packet tag, SSRC and native sequence
+boundary. Notices received during preparation are staged until the paired
+operation completes. Unknown future epochs wait at most 200ms from original
+physical read, within 32 packets per route and 128 per physical peer. Decoder
+reset discards previous references on an authenticated epoch change without
+resetting source RTP or the shared receive clock. Ordinary native RTP refuses
+flagged epochs and RTCP fallthrough; explicit video parsers preserve original
+RTP extensions, padding, sequence and timestamp.
+
+Receiver keyframe requests capture the exact current history, coalesce at
+100ms, share the owned datagram writer and are rechecked after writer readiness.
+The original sequence is consumed even when write completion is uncertain;
+writer failure retires the owner without retargeting or retry. Publisher hints
+retain original arrival time and sequence high water, consume once immediately
+before an eligible fresh frame, and cannot survive a control/hold/route change.
+The feedback force applies only to that encoding attempt, preserving the
+original programme timestamp, bitrate and frame-rate bounds.
+
+Four focused local ARM checks pass across `8804d7c0`, `640f5147` and `9b96042d`.
+They use controlled signaling/codec fixtures under Node; they are not a real
+Chromium/WebTransport or full-cell qualification. Earlier wire cases and the
+actual Rust SDK/server recovery pass are retained without reruns. See
+`docs/evidence/gate-6/browser-video-epochs.json` for exact scopes and failures.
+Actual browser/server recovery and direct replacement integration remain open.

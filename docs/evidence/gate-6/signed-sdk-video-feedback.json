@@ -9,8 +9,9 @@
     "Production canonical server advertises support via its installed signed lifecycle writer; both peer offer and confirmation must select the profile."
   ],
   "pending": [
-    "Direct replacement and browser authenticated lifecycle/feedback integration.",
-    "Full 32-cell transport qualification, original 20 moves, quality, teardown and idle evidence; G6-054 remains deferred."
+    "Raw direct replacement authenticated feedback/epoch integration.",
+    "Browser owner and public opt-in have focused component passes in browser-video-epochs.json; actual Chromium/WebTransport/server verification remains open.",
+    "Full 32-cell qualification, original 20 moves, quality, teardown and idle evidence; G6-054 remains deferred."
   ],
   "old_passed_cases_rerun": false,
   "full_media_rehearsal_run": false,

@@ -2,11 +2,13 @@ import { BrowserDeadline } from "./browser_deadline.js";
 import { BrowserTasks } from "./browser_tasks.js";
 import { BrowserOpusCodec, BrowserVp8Codec, browserCodecSupport, } from "./browser_codecs.js";
 import { MediaBindings, MediaSendQueue, RtpSender, Vp8Assembler, MEDIA_LIMITS, } from "./browser_rtp.js";
-import { decodeNativeRtpDatagram } from "./browser_video_wire.js";
+import { decodeNativeRtpDatagram, decodeNativeVideoEpoch, decodeNativeVideoFeedback, VIDEO_FEEDBACK_PROFILE, } from "./browser_video_wire.js";
+import { BrowserVideoEpochs, videoAllocation, videoNotice, } from "./browser_video_epochs.js";
 import { decodeRtcpSenderReport, isRtcpDatagram, wrapRtcpSenderReport, RtcpCaptureClock, RtcpReceiveClock, rtpTimestampFromMicroseconds, } from "./browser_rtcp.js";
 import { ConnectError } from "./errors.js";
 import { canonicalJson, jsonObject, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
+const captureAllocation = (value) => value;
 const fail = (message) => {
     throw new ConnectError("protocol", message);
 };
@@ -31,6 +33,7 @@ export class BrowserMediaPeer {
     connections = new Map();
     transitions = new Map();
     queue = new MediaSendQueue();
+    feedbackWrites = new Map();
     stopEvents;
     stopLifetime;
     timer;
@@ -65,6 +68,8 @@ export class BrowserMediaPeer {
                 route.observed.expired += expired;
                 if (expired)
                     route.vp8?.lost();
+                route.video?.expire(performance.now());
+                this.requestVideoRecovery(route);
             }
         }, 50);
         this.tasks.track(this.receive().catch((error) => this.die(error)));
@@ -103,7 +108,180 @@ export class BrowserMediaPeer {
         this.close();
         this.callbacks.error?.(error);
     }
+    videoControlling(route) {
+        const state = this.connections.get(route.binding.connectionId);
+        return (this.stopped ||
+            !state ||
+            this.routes.get(route.binding.handle) !== route ||
+            !!state.controlling ||
+            !!state.reconciling ||
+            [...this.transitions.values()].some((t) => t.scope.connid === state.scope.connid));
+    }
+    installVideoNotice(route, notice) {
+        if (!route.video?.observe(notice))
+            return;
+        if (notice.role === "receiver") {
+            route.assembler?.clear();
+            route.vp8?.resetReceiveHistory();
+            for (const item of route.video.drain(performance.now()))
+                this.deliverRtp(route, item.packet, item.arrived);
+            this.requestVideoRecovery(route);
+        }
+    }
+    requestVideoRecovery(route) {
+        if (!route.video ||
+            !route.vp8?.decodeDiagnostics.waitingForKey ||
+            this.videoControlling(route) ||
+            this.feedbackWrites.has(route))
+            return;
+        const write = route.video.request(performance.now());
+        if (!write)
+            return;
+        this.feedbackWrites.set(route, write);
+        this.tasks.track(this.drain().catch((error) => this.die(error)));
+    }
+    async writeVideoFeedback(route, write) {
+        const current = () => !this.videoControlling(route) &&
+            route.video?.current(write, performance.now());
+        if (!current())
+            return;
+        const remaining = 200 - (performance.now() - write.started);
+        let timer;
+        try {
+            await Promise.race([
+                (async () => {
+                    await this.writer.ready;
+                    if (!current())
+                        return;
+                    // This sequence was consumed on capture. An uncertain write
+                    // closes the owner; no requeue, retarget or retry follows.
+                    await this.writer.write(write.bytes);
+                })(),
+                new Promise((_, reject) => {
+                    timer = setTimeout(() => reject(new ConnectError("timeout", "Video feedback writer exceeded original age")), remaining);
+                }),
+            ]);
+        }
+        finally {
+            clearTimeout(timer);
+        }
+    }
+    applyVideoControl(state, type, payload, completed) {
+        const routes = [...state.routes.values()].filter((r) => r.video);
+        if (!routes.length)
+            return;
+        if (type === "stream.unsubscribe") {
+            if (!Array.isArray(payload.streams) ||
+                !payload.streams.every(identifier))
+                return fail("Invalid original video unsubscribe");
+            for (const route of routes)
+                if (payload.streams.includes(route.binding.streamId)) {
+                    route.video.unselect();
+                    route.assembler?.clear();
+                    route.vp8?.resetReceiveHistory();
+                }
+        }
+        if (type !== "connection.update" ||
+            !["hold", "resume", "mute", "unmute"].includes(String(payload.action)))
+            return;
+        const result = completed.result;
+        if (!jsonObject(result) ||
+            result.connection_id !== state.scope.connid ||
+            result.connection_generation !== 1 ||
+            result.action !== payload.action ||
+            result.resources_changed !== false ||
+            !Array.isArray(result.gate_streams) ||
+            !result.gate_streams.length ||
+            result.gate_streams.length > 32)
+            return fail("Invalid current video gate result");
+        const gates = result.gate_streams, ids = new Set();
+        for (const gate of gates) {
+            if (!jsonObject(gate) ||
+                !jsonObject(gate.binding) ||
+                !identifier(gate.binding.stream_id) ||
+                ids.has(gate.binding.stream_id))
+                return fail("Invalid video gate binding");
+            ids.add(gate.binding.stream_id);
+        }
+        const expected = Array.isArray(payload.streams)
+            ? payload.streams
+            : [...state.routes.keys(), ...state.data.keys()];
+        if (expected.length !== ids.size ||
+            !expected.every((id) => typeof id === "string" && ids.has(id)))
+            fail("Video gate result changed original targets");
+        for (const route of routes) {
+            const gate = gates.find((g) => g.binding.stream_id ===
+                route.binding.streamId);
+            if (!gate)
+                continue;
+            const binding = gate.binding, b = route.binding;
+            if (binding.medium !== b.kind ||
+                binding.direction !== invert(b.direction) ||
+                binding.stream_local_id !== b.handle ||
+                binding.stream_generation !== b.generation ||
+                binding.connection_generation !== 1 ||
+                !jsonObject(binding.codec) ||
+                binding.codec.name !== "vp8" ||
+                !jsonObject(binding.codec.params) ||
+                binding.codec.params.sample_rate !== 90000 ||
+                binding.codec.params.channels !== 0 ||
+                binding.codec.params.payload_type !== b.payloadType ||
+                !["active", "paused"].includes(String(gate.state)) ||
+                typeof gate.source_muted !== "boolean" ||
+                (gate.held_direction !== null &&
+                    !["sendonly", "recvonly", "sendrecv", "inactive"].includes(String(gate.held_direction))))
+                fail("Video gate result changed current allocation");
+            const direction = gate.held_direction === null
+                ? b.direction
+                : gate.held_direction === "inactive"
+                    ? "inactive"
+                    : invert(gate.held_direction);
+            const send = gate.state === "active" &&
+                !gate.source_muted &&
+                b.direction !== "recvonly" &&
+                (direction === "sendonly" || direction === "sendrecv");
+            const receive = gate.state === "active" &&
+                b.direction !== "sendonly" &&
+                (direction === "recvonly" || direction === "sendrecv");
+            route.video.gates(send, receive);
+            if (!receive) {
+                route.assembler?.clear();
+                route.vp8?.resetReceiveHistory();
+            }
+        }
+    }
     event(frame) {
+        if (frame.type === "stream.epoch") {
+            try {
+                const notice = videoNotice(frame);
+                const state = this.connections.get(notice.root.connid);
+                if (!state ||
+                    state.scope.cid !== notice.root.cid ||
+                    state.scope.sid !== notice.root.sid)
+                    return;
+                const route = state.routes.get(notice.stream);
+                if (route?.video?.matches(notice))
+                    this.installVideoNotice(route, notice);
+                else if (state.prepared) {
+                    const binding = state.prepared.media.find((b) => b.handle === notice.handle);
+                    const allocation = state.prepared.feedback.get(notice.handle);
+                    if (binding &&
+                        allocation &&
+                        new BrowserVideoEpochs(state.scope, binding, allocation).matches(notice)) {
+                        const key = notice.stream + ":" + notice.role, old = state.prepared.notices.get(key);
+                        if (!old || old.revision < notice.revision) {
+                            if (!old && state.prepared.notices.size >= 64)
+                                fail("Prepared epoch notice bound exceeded");
+                            state.prepared.notices.set(key, notice);
+                        }
+                    }
+                }
+            }
+            catch (error) {
+                this.die(error);
+            }
+            return;
+        }
         if (frame.type === "connection.offer" &&
             typeof frame.operation_id === "string") {
             const pending = this.transitions.get(frame.operation_id);
@@ -189,6 +367,7 @@ export class BrowserMediaPeer {
             !state.selectedKinds.size)
             return fail("Unbound server reconciliation parameters");
         const plan = this.plan(frame, state, state.selectedKinds);
+        state.prepared = plan;
         await this.answer(state, frame, frame.operation_id, {
             timeoutMs: 10000,
         });
@@ -227,6 +406,10 @@ export class BrowserMediaPeer {
             setup.streams.length > 32 ||
             !Number.isSafeInteger(setup.revision))
             return fail("Invalid native media setup");
+        const remote = jsonObject(frame.payload.capabilities)
+            ? frame.payload.capabilities
+            : {};
+        const feedback = new Map();
         const media = [], data = new Map(), received = new Set(), ids = new Set(), handles = new Set();
         for (const value of setup.streams) {
             if (!jsonObject(value) ||
@@ -283,12 +466,28 @@ export class BrowserMediaPeer {
             if (!Array.isArray(declared) ||
                 !declared.some((c) => jsonObject(c) && c.name === codec.name))
                 return fail("Receiver codec was never declared");
+            const prior = state.routes.get(value.strm_id);
+            const sameBinding = prior &&
+                prior.binding.handle === Number(value.stream_local_id) &&
+                prior.binding.kind === value.kind &&
+                prior.binding.codec === codec.name &&
+                prior.binding.payloadType === Number(params.payload_type) &&
+                prior.binding.direction === direction;
+            const generation = state.caps.video_feedback === VIDEO_FEEDBACK_PROFILE &&
+                value.kind === "video"
+                ? sameBinding
+                    ? prior.binding.generation
+                    : (state.generations.get(value.strm_id) ?? 0) + 1
+                : 1;
+            const allocation = videoAllocation(value, state.caps, remote, frame.operation_id, setup.offer_id, generation, sameBinding ? prior.video?.allocation : undefined);
+            if (allocation)
+                feedback.set(Number(value.stream_local_id), allocation);
             media.push({
                 handle: Number(value.stream_local_id),
                 streamId: value.strm_id,
                 connectionId: state.scope.connid,
                 sessionId: state.scope.sid,
-                generation: 1,
+                generation,
                 kind: value.kind,
                 codec: codec.name,
                 payloadType: Number(params.payload_type),
@@ -304,6 +503,8 @@ export class BrowserMediaPeer {
         if (declaredClock !== undefined && declaredClock !== "rtcp-sr-sdes/1")
             return fail("Unsupported source clock profile");
         return {
+            feedback,
+            notices: new Map(),
             media,
             data,
             revision: Number(setup.revision),
@@ -323,6 +524,9 @@ export class BrowserMediaPeer {
         for (const binding of plan.media) {
             let route = this.routes.get(binding.handle);
             if (route) {
+                if (canonicalJson(route.video?.allocation ?? null) !==
+                    canonicalJson(plan.feedback.get(binding.handle) ?? null))
+                    fail("Current video feedback allocation changed");
                 if (route.clockProfile !== plan.clockProfile)
                     fail("Current media clock profile changed");
                 if (canonicalJson(route.binding) !==
@@ -353,9 +557,12 @@ export class BrowserMediaPeer {
                         unsynchronized: 0,
                     },
                 };
+                const allocation = plan.feedback.get(binding.handle);
+                if (allocation)
+                    route.video = new BrowserVideoEpochs(state.scope, route.binding, allocation);
                 this.routes.set(binding.handle, route);
                 if (binding.direction !== "recvonly")
-                    route.sender = new RtpSender(binding, this.mtu);
+                    route.sender = new RtpSender(binding, route.video ? this.mtu - 16 : this.mtu);
                 const encoded = (frame) => {
                     if (this.stopped ||
                         this.routes.get(binding.handle) !== route ||
@@ -366,7 +573,10 @@ export class BrowserMediaPeer {
                     if (frame.key)
                         route.observed.keys++;
                     const before = this.queue.droppedPackets;
-                    const accepted = this.queue.push(route.sender.packetize(frame.bytes, rtpTimestampFromMicroseconds(frame.timestampUs, binding.kind === "audio" ? 48000 : 90000)), binding.kind === "audio");
+                    const packets = route.sender.packetize(frame.bytes, rtpTimestampFromMicroseconds(frame.timestampUs, binding.kind === "audio" ? 48000 : 90000));
+                    if (packets.length)
+                        route.publisherSsrc = new DataView(packets[0].buffer, packets[0].byteOffset).getUint32(16);
+                    const accepted = this.queue.push(packets, binding.kind === "audio");
                     if (!accepted || before !== this.queue.droppedPackets)
                         for (const r of this.routes.values())
                             r.vp8?.requestKeyFrame();
@@ -396,11 +606,23 @@ export class BrowserMediaPeer {
                 }
             }
             current.set(binding.streamId, route);
+            if (route.video) {
+                if (!state.generations.has(binding.streamId) &&
+                    state.generations.size >= 128)
+                    fail("Video generation history bound exceeded");
+                state.generations.set(binding.streamId, binding.generation);
+            }
         }
         for (const old of state.routes.values())
             if (!retained.has(old.binding.handle))
                 this.remove(old);
         state.routes = current;
+        state.prepared = undefined;
+        for (const notice of plan.notices.values()) {
+            const route = current.get(notice.stream);
+            if (route)
+                this.installVideoNotice(route, notice);
+        }
         state.data = plan.data;
         state.received = plan.received;
         state.revision = plan.revision;
@@ -411,6 +633,13 @@ export class BrowserMediaPeer {
         this.sending = true;
         try {
             for (;;) {
+                const feedback = this.feedbackWrites.entries().next().value;
+                if (feedback) {
+                    const [route, write] = feedback;
+                    this.feedbackWrites.delete(route);
+                    await this.writeVideoFeedback(route, write);
+                    continue;
+                }
                 const bytes = this.queue.pop();
                 if (!bytes || this.stopped)
                     return;
@@ -477,6 +706,7 @@ export class BrowserMediaPeer {
                     throw new ConnectError("transport", "Media datagram EOF");
                 return;
             }
+            const arrived = performance.now();
             // A stream with queued chunks can resolve every read as a microtask.
             // Give WebCodecs output/dequeue tasks a turn within its eight-frame
             // decode bound, rather than treating task starvation as media loss.
@@ -485,6 +715,34 @@ export class BrowserMediaPeer {
                 await new Promise((resolve) => setTimeout(resolve, 0));
                 if (this.stopped)
                     return;
+            }
+            if (value.length === 48 && value[1] === 0 && value[9] === 206) {
+                try {
+                    const feedback = decodeNativeVideoFeedback(value), route = this.routes.get(feedback.handle);
+                    if (!route?.video || this.videoControlling(route))
+                        throw new Error();
+                    route.video.feedback(feedback, arrived);
+                }
+                catch {
+                    this.counters.rejected++;
+                }
+                continue;
+            }
+            if (value[1] === 1) {
+                try {
+                    const packet = decodeNativeVideoEpoch(value), route = this.routes.get(packet.packet.handle);
+                    if (!route?.video)
+                        throw new Error();
+                    this.registry.require(packet.packet.handle, "receive", packet.packet.payloadType);
+                    const count = [...this.routes.values()].reduce((n, r) => n + (r.video?.pendingPackets ?? 0), 0);
+                    const admitted = route.video.packet(packet, arrived, performance.now(), count < 128);
+                    if (admitted)
+                        this.deliverRtp(route, admitted, arrived);
+                }
+                catch {
+                    this.counters.rejected++;
+                }
+                continue;
             }
             if (isRtcpDatagram(value)) {
                 try {
@@ -507,39 +765,45 @@ export class BrowserMediaPeer {
                 packet = decodeNativeRtpDatagram(value);
                 this.registry.require(packet.handle, "receive", packet.payloadType);
                 route = this.routes.get(packet.handle);
+                if (route.video)
+                    throw new Error();
             }
             catch {
                 this.counters.rejected++;
                 continue;
             }
-            this.counters.received++;
-            route.observed.received++;
-            const timing = route.clock.timestamp(packet.handle, packet.ssrc, packet.timestamp);
-            if (timing.synchronized)
-                route.observed.synchronized++;
-            else
-                route.observed.unsynchronized++;
-            if (route.opus)
-                route.opus.decode(packet.payload, timing.timestampUs);
-            else {
-                let complete;
-                try {
-                    complete = route.assembler.push(packet);
-                }
-                catch {
-                    this.counters.rejected++;
-                    route.vp8.lost();
-                    continue;
-                }
-                if (complete) {
-                    route.observed.complete++;
-                    if (route.vp8.decode(complete, timing.timestampUs))
-                        route.observed.submitted++;
-                    else
-                        route.observed.skipped++;
-                }
+            this.deliverRtp(route, packet, arrived);
+        }
+    }
+    deliverRtp(route, packet, arrived) {
+        this.counters.received++;
+        route.observed.received++;
+        const timing = route.clock.timestamp(packet.handle, packet.ssrc, packet.timestamp);
+        if (timing.synchronized)
+            route.observed.synchronized++;
+        else
+            route.observed.unsynchronized++;
+        if (route.opus)
+            route.opus.decode(packet.payload, timing.timestampUs);
+        else {
+            let complete;
+            try {
+                complete = route.assembler.push(packet, arrived);
+            }
+            catch {
+                this.counters.rejected++;
+                route.vp8.lost();
+                return;
+            }
+            if (complete) {
+                route.observed.complete++;
+                if (route.vp8.decode(complete, timing.timestampUs))
+                    route.observed.submitted++;
+                else
+                    route.observed.skipped++;
             }
         }
+        this.requestVideoRecovery(route);
     }
     /** Start one original offer. `accepted` means validated current physical
      * parameters arrived; `ready` separately observes installation. Neither
@@ -571,6 +835,8 @@ export class BrowserMediaPeer {
             throw new ConnectError("invalid-request", "Invalid media deadline");
         const budget = new BrowserDeadline(timeout);
         if (!input ||
+            (input.nativeVideoFeedback !== undefined &&
+                typeof input.nativeVideoFeedback !== "boolean") ||
             (input.purpose !== undefined &&
                 (input.purpose !== "handoff-preparation" ||
                     !input.audio ||
@@ -589,6 +855,7 @@ export class BrowserMediaPeer {
             connectionId: input.connectionId,
             operationId: input.operationId,
             purpose: input.purpose,
+            nativeVideoFeedback: input.nativeVideoFeedback,
             audio: input.audio,
             video: input.video,
             screen: input.screen,
@@ -652,6 +919,9 @@ export class BrowserMediaPeer {
             max_streams_per_connection: 32,
             identity_assurance_offered: "identified",
             source_clock: "rtcp-sr-sdes/1",
+            ...(input.nativeVideoFeedback === true
+                ? { video_feedback: VIDEO_FEEDBACK_PROFILE }
+                : {}),
         };
         const state = {
             scope: {
@@ -670,6 +940,7 @@ export class BrowserMediaPeer {
                 { kind: s.kind, codec: s.codec_preferences[0] },
             ])),
             received: new Set(),
+            generations: new Map(),
             selectedKinds: new Set(),
             closed: new Set(),
         };
@@ -777,6 +1048,8 @@ export class BrowserMediaPeer {
             expected_revision: expected,
         };
         attempted?.();
+        for (const route of state.routes.values())
+            route.video?.invalidateRequests();
         const started = this.client.begin(type, payload, scope, {
             ...remaining(),
             terminalType: type === "connection.offer" ? "connection.answer" : undefined,
@@ -842,6 +1115,7 @@ export class BrowserMediaPeer {
             if (frame) {
                 this.requireState(state);
                 const plan = this.plan(frame, state, selectedKinds);
+                state.prepared = plan;
                 accepted?.();
                 await this.answer(state, frame, operationId, remaining());
                 await started.response;
@@ -895,6 +1169,7 @@ export class BrowserMediaPeer {
                 this.requireState(state);
                 state.revision = Number(result.stream_revision);
             }
+            this.applyVideoControl(state, type, payload, completed);
             for (const kind of selectedKinds)
                 state.selectedKinds.add(kind);
         }
@@ -910,6 +1185,7 @@ export class BrowserMediaPeer {
             clearTimeout(timer);
             options.signal?.removeEventListener("abort", abort);
             this.transitions.delete(operationId);
+            state.prepared = undefined;
             const next = state.pendingServer;
             state.pendingServer = undefined;
             if (next &&
@@ -997,7 +1273,11 @@ export class BrowserMediaPeer {
             frame.close();
             throw new ConnectError("protocol", "Invalid capture timestamp");
         }
-        const accepted = route.vp8.encode(frame);
+        const feedback = !this.videoControlling(route) &&
+            route.publisherSsrc !== undefined &&
+            (route.video?.takeFeedback(performance.now(), route.publisherSsrc) ??
+                false);
+        const accepted = route.vp8.encode(frame, feedback);
         if (accepted)
             route.captureClock.observe(timestamp);
         return accepted;
@@ -1114,6 +1394,8 @@ export class BrowserMediaPeer {
         route.opus?.close();
         route.vp8?.close();
         route.assembler?.clear();
+        route.video?.close();
+        this.feedbackWrites.delete(route);
     }
     /** Retire local owners after observing an authorized durable end receipt. */
     retireLocalConnection(id) {

@@ -42,6 +42,8 @@ export interface BrowserSdkMutationOptions extends BrowserSdkRequestOptions {
 export interface BrowserSdkClientOptions extends BrowserTransportClientOptions {
     readonly tenantId: string;
     readonly media?: BrowserRtcConfiguration;
+    /** Explicit native WebTransport Video feedback/epoch profile; default false. */
+    readonly nativeVideoFeedback?: boolean;
     readonly resolveApplicationRead?: BrowserApplicationReadResolver;
 }
 export type BrowserOperationState = "accepted" | "preparing" | "ready" | "committing" | "completed" | "cancelled" | "failed" | "interrupted" | "unknown";

@@ -499,6 +499,7 @@ class State {
     actor;
     rtcConfiguration;
     applicationReads;
+    nativeVideoFeedback;
     cleanup = new BrowserTasks();
     mediaPeer;
     local = new Map();
@@ -529,12 +530,13 @@ class State {
     reader = false;
     stopEvents;
     stopClose;
-    constructor(owner, tenant, actor, rtcConfiguration, applicationReads) {
+    constructor(owner, tenant, actor, rtcConfiguration, applicationReads, nativeVideoFeedback) {
         this.owner = owner;
         this.tenant = tenant;
         this.actor = actor;
         this.rtcConfiguration = rtcConfiguration;
         this.applicationReads = applicationReads;
+        this.nativeVideoFeedback = nativeVideoFeedback;
     }
     get peer() {
         try {
@@ -1096,6 +1098,10 @@ export class BrowserSdkClient {
     }
     static async connect(options) {
         sdkId(options.tenantId);
+        if (options.nativeVideoFeedback !== undefined &&
+            typeof options.nativeVideoFeedback !== "boolean")
+            invalid();
+        const nativeVideoFeedback = options.nativeVideoFeedback === true;
         if (options.resolveApplicationRead !== undefined &&
             typeof options.resolveApplicationRead !== "function")
             invalid();
@@ -1110,7 +1116,7 @@ export class BrowserSdkClient {
             throw translated(error, "not-submitted");
         }
         try {
-            return new BrowserSdkClient(new State(await BrowserTransportClient.connect(options), tenant, actor, media, applicationReads));
+            return new BrowserSdkClient(new State(await BrowserTransportClient.connect(options), tenant, actor, media, applicationReads, nativeVideoFeedback));
         }
         catch (error) {
             throw translated(error, "not-submitted");
@@ -1571,7 +1577,10 @@ export class BrowserSession {
                 else
                     begun = s
                         .nativePeer()
-                        .beginOfferConnection(low, budget.options());
+                        .beginOfferConnection({
+                        ...low,
+                        nativeVideoFeedback: s.nativeVideoFeedback,
+                    }, budget.options());
                 const local = {
                     cid: this.conversationId,
                     sid: this.id,

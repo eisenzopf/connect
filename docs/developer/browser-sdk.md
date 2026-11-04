@@ -1201,3 +1201,20 @@ decoded media and original-operation recovery. Replacement descriptor carry
 and successful live browser consultation/return and device movement remain
 open. See [audience descriptor evidence](../evidence/gate-6/browser-sdk-audience-descriptors.json)
 for the bounded verification scope.
+
+### Native video feedback opt-in
+
+Set `nativeVideoFeedback: true` in `BrowserSdkClient.connect` options to offer
+`rtcp-pli-epoch/1` for native WebTransport Video. It defaults to false and is
+captured before asynchronous enrollment; changing the original options object
+later does not change current or reconnected clients. Direct
+`BrowserMediaPeer.offerConnection` also accepts this option. Both endpoints must
+select the profile. WSS/WebRTC uses its existing feedback path.
+
+The owned native reader validates signed allocation/epoch history, separates
+same-SSRC decoder histories, requests fresh keyframes after loss, and consumes
+publisher hints just before encoding. It preserves original media clocks and
+checks current route, original age and lifecycle before feedback dispatch.
+Four new local ARM component/owner/configuration checks pass; real browser/server
+verification is pending. See [the scoped evidence](../evidence/gate-6/browser-video-epochs.json)
+and [the native profile contract](../../contracts/native-media-profile.md).

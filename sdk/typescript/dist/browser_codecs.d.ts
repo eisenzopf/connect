@@ -55,9 +55,12 @@ export declare class BrowserVp8Codec {
     }>;
     constructor(callbacks: CodecCallbacks<VideoFrame>);
     /** Consumes and closes the caller's VideoFrame on every path. */
-    encode(frame: VideoFrame): boolean;
+    encode(frame: VideoFrame, currentFeedback?: boolean): boolean;
     /** Call after loss/expired assembly; delta frames cannot establish readiness. */
     lost(): void;
+    /** A new authenticated history discards old decoder references and queued
+     * outputs while preserving the caller's original source/receive clocks. */
+    resetReceiveHistory(): void;
     requestKeyFrame(): void;
     decode(frame: Vp8Frame, timestampUs: number): boolean;
     private fail;

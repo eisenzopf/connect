@@ -1,0 +1,261 @@
+{
+  "format": "connect/gate6-browser-video-epochs/1",
+  "task": "G6-058",
+  "status": "browser-owner-components-pass",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM; Node 26 executes browser ownership fixtures. No GitHub/cloud tests.",
+  "source_revisions": {
+    "history_and_feedback_lifetime": "8804d7c038d7070e78c14cc549432e12e5c4e0bc",
+    "physical_media_owner": "640f5147a344458d61cca7fb693a6235ee24a5ba",
+    "public_sdk_opt_in": "9b96042d23a8c27adf3896e9c5c29b5c99008eb8"
+  },
+  "current_sources_sha256": {
+    "sdk/typescript/src/browser_video_epochs.ts": "9c23de461bb9816f4a2a3bcf047ea3cf73d231317efa3de8b17ba8960bc87a5c",
+    "sdk/typescript/src/browser_video_wire.ts": "7595822dbef3b1ef23e5beab757d9eeeca2a81c102c8c3b684f8a822a57c8065",
+    "sdk/typescript/src/browser_media.ts": "28c4034cbc695057bd01eeeebf59cfc189c96db6f91b71811d71bcd26c500533",
+    "sdk/typescript/src/browser_codecs.ts": "8b6fd44286ac1ebf670d2d0be5162d6bbff718949454ac35873a064c0160b066",
+    "sdk/typescript/src/browser_sdk.ts": "66d6a9ed501bf33254a801b29e6bac5b6ad7279ffaaf0ec7c6384a0e7eac728a"
+  },
+  "new_cases_passed": 4,
+  "verified_scope": [
+    "Exact bilateral profile/allocation provenance, notice root/role/physical handle/generation, revision high water and same-SSRC packet epoch boundary.",
+    "Unknown future epoch packets retain original read age, expire at 200ms, bound to 32 per route and admission capped at 128 per physical peer; no old-tag/SSRC/first-timestamp admission.",
+    "Publisher feedback keeps one original hint, handles sequence wrap, refuses replay without renewing arrival age, consumes once before eligible fresh encoding and invalidates through controls, hold and close.",
+    "BrowserMediaPeer stages notices before paired installation, resets actual codec-owner decoder history without resetting receive clock, writes receiver feedback and forces the next original source timestamp only once; old history, replay and held hints refuse; shutdown releases stream locks.",
+    "Public BrowserSdkClient captures nativeVideoFeedback before async enrollment, defaults false and passes immutable intent into the native backend. Signed synthetic authentication fixture is used; media backend entry is intercepted for this configuration-only check."
+  ],
+  "failures_retained": [
+    "v84 TypeScript narrowing errors stopped compilation; corrected before runtime checks.",
+    "v85 physical-owner case failed because original option capture omitted nativeVideoFeedback; preserved both passing history/lifetime cases and reran only the failed owner in v86."
+  ],
+  "verification_runs": [
+    {
+      "run": "browser-video-epochs-v84",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 123393,
+        "source_revision": "7d609a7c4ca581e52a906417f693317d3b8b5117",
+        "passed": false,
+        "steps": [],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "browser_video_epochs_candidate": true,
+        "component_checks": [
+          {
+            "case": "typescript-build",
+            "exit_code": 2,
+            "log_sha256": "0b9b68d6f8c2118dac6eb18f5e40335f340b546a16b363dc651cb98e5bff24e3",
+            "summary": [
+              "sdk/typescript/src/browser_media.ts(358,21): error TS18047: 'payload.streams' is possibly 'null'.",
+              "sdk/typescript/src/browser_media.ts(358,37): error TS2339: Property 'includes' does not exist on type 'string | number | boolean | Json[] | { [key: string]: Json; }'.",
+              "  Property 'includes' does not exist on type 'number'.",
+              "sdk/typescript/src/browser_media.ts(383,23): error TS18047: 'result' is possibly 'null'.",
+              "sdk/typescript/src/browser_media.ts(383,30): error TS2339: Property 'gate_streams' does not exist on type 'string | number | boolean | Json[] | { [key: string]: Json; }'.",
+              "  Property 'gate_streams' does not exist on type 'string'.",
+              "sdk/typescript/src/browser_media.ts(393,21): error TS18047: 'gate.binding' is possibly 'null'.",
+              "sdk/typescript/src/browser_media.ts(393,34): error TS2339: Property 'stream_id' does not exist on type 'string | number | boolean | Json[] | { [key: string]: Json; }'.",
+              "  Property 'stream_id' does not exist on type 'string'."
+            ]
+          }
+        ],
+        "executable_unchanged": true,
+        "runtime_sha256": {
+          "/opt/node/bin/node": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+          "/usr/bin/python3.12": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960"
+        },
+        "failure_class": "AssertionError",
+        "message": "typescript-build",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 0.9765858180035139
+      },
+      "state_sha256": "46b80d9d16dcef0aa5aac8fb3c9872394812d04311299a1e9669dc87bc389c09"
+    },
+    {
+      "run": "browser-video-epochs-v85",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 123512,
+        "source_revision": "8804d7c038d7070e78c14cc549432e12e5c4e0bc",
+        "passed": false,
+        "steps": [],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "browser_video_epochs_candidate": true,
+        "component_checks": [
+          {
+            "case": "typescript-build",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "summary": []
+          },
+          {
+            "case": "browser-video-epochs",
+            "exit_code": 1,
+            "log_sha256": "dd351d07c5baad98c03f0bdec6a962f119d83a485f19116b7514be25a588c5d4",
+            "summary": [
+              "  stack: |-",
+              "    Control.begin (file:///workspace/sdk/tests/browser_video_epochs.test.mjs:96:12)",
+              "    BrowserMediaPeer.transition (file:///workspace/.local/gate6-arm64-browser-video-epochs-v85/typescript-dist/browser_media.js:1050:37)",
+              "    async BrowserMediaPeer.offerConnection (file:///workspace/.local/gate6-arm64-browser-video-epochs-v85/typescript-dist/browser_media.js:946:13)",
+              "  ...",
+              "# (node:123615) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1)",
+              "# (Use `node --trace-warnings ...` to show where the warning was created)",
+              "1..3",
+              "# tests 3",
+              "# suites 0",
+              "# pass 2",
+              "# fail 1",
+              "# cancelled 0",
+              "# skipped 0",
+              "# todo 0",
+              "# duration_ms 36.688485"
+            ]
+          }
+        ],
+        "executable_unchanged": true,
+        "runtime_sha256": {
+          "/opt/node/bin/node": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+          "/usr/bin/python3.12": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960"
+        },
+        "failure_class": "AssertionError",
+        "message": "browser-video-epochs",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 0.8859471659961855
+      },
+      "state_sha256": "b3733a38cf82bb241f250006162279e813c58df9751aa8276b7b02ab41c9f387"
+    },
+    {
+      "run": "browser-video-epochs-v86",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 123648,
+        "source_revision": "640f5147a344458d61cca7fb693a6235ee24a5ba",
+        "passed": true,
+        "steps": [],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "browser_video_epochs_candidate": true,
+        "component_checks": [
+          {
+            "case": "typescript-build",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "summary": []
+          },
+          {
+            "case": "browser-video-epochs",
+            "exit_code": 0,
+            "log_sha256": "fe637fb8200be38aef43b81cd92869af02db17cca7e92ecd915895035f29c85b",
+            "summary": [
+              "TAP version 13",
+              "# Subtest: browser physical owner stages signed epochs, resets same-SSRC decode history, writes current feedback and forces only a fresh frame",
+              "ok 1 - browser physical owner stages signed epochs, resets same-SSRC decode history, writes current feedback and forces only a fresh frame",
+              "  ---",
+              "  duration_ms: 19.23431",
+              "  type: 'test'",
+              "  ...",
+              "1..1",
+              "# tests 1",
+              "# suites 0",
+              "# pass 1",
+              "# fail 0",
+              "# cancelled 0",
+              "# skipped 0",
+              "# todo 0",
+              "# duration_ms 45.859226"
+            ]
+          }
+        ],
+        "executable_unchanged": true,
+        "runtime_sha256": {
+          "/opt/node/bin/node": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+          "/usr/bin/python3.12": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960"
+        },
+        "sdk_outputs_unchanged": true,
+        "generated_outputs_sha256": "2eea9730dcb6ab8aa962cfad75ad98b02ba2c279098e1a2d229e3a032637db58",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 0.8895863470097538
+      },
+      "state_sha256": "d5a7f17a7b8f03da9c049b89f501abf35f09c8e92f6f98e08505a5d113a4217c"
+    },
+    {
+      "run": "browser-sdk-video-profile-v87",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 123791,
+        "source_revision": "9b96042d23a8c27adf3896e9c5c29b5c99008eb8",
+        "passed": true,
+        "steps": [],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "browser_sdk_video_profile_candidate": true,
+        "component_checks": [
+          {
+            "case": "typescript-build",
+            "exit_code": 0,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "summary": []
+          },
+          {
+            "case": "browser-sdk-video-profile",
+            "exit_code": 0,
+            "log_sha256": "15292b91689728b0eae6b49d91032d5fd4842c6bac5454b459478ed6503a6436",
+            "summary": [
+              "TAP version 13",
+              "# Subtest: public browser SDK freezes explicit native feedback intent before asynchronous enrollment and preserves default off",
+              "ok 1 - public browser SDK freezes explicit native feedback intent before asynchronous enrollment and preserves default off",
+              "  ---",
+              "  duration_ms: 18.91698",
+              "  type: 'test'",
+              "  ...",
+              "1..1",
+              "# tests 1",
+              "# suites 0",
+              "# pass 1",
+              "# fail 0",
+              "# cancelled 0",
+              "# skipped 0",
+              "# todo 0",
+              "# duration_ms 59.27324"
+            ]
+          }
+        ],
+        "executable_unchanged": true,
+        "runtime_sha256": {
+          "/opt/node/bin/node": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+          "/usr/bin/python3.12": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960"
+        },
+        "sdk_outputs_unchanged": true,
+        "generated_outputs_sha256": "8e47b0741f192c44d61c97d72117eb8ec7a7ef01b1d745011040eab9960f4ec3",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 0.967756277997978
+      },
+      "state_sha256": "f3fc23623765851763dca0e4e68443b0f52e0b3e07479baead28336fa66f103b"
+    }
+  ],
+  "v85_post_verification": {
+    "generated_outputs_match_pretest_manifest": true,
+    "runtime_sha256": {
+      "/opt/node/bin/node": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+      "/usr/bin/python3.12": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960"
+    },
+    "runtime_digests_match_initial_v85_and_successful_v86_v87": true,
+    "note": "v85 stopped after the third case failed, before its success-only generated/runtime comparison. Original two passing cases retained without rerun; copied terminal artifacts and current unchanged runtime chain verified explicitly."
+  },
+  "limitations": [
+    "History/lifetime and physical-owner cases use controlled already-verified signaling and codec fixtures under Node, not Chromium, real WebTransport, actual codec bitstreams or a production server.",
+    "The separate Rust signed production-listener recovery proof is retained; these results must not be combined into a claimed actual-browser/server recovery pass.",
+    "The real-browser fixture module serving list was corrected by import-closure inspection; its runtime is not verified in this batch.",
+    "Delayed actual writer uncertainty, raw replacement-peer integration and complete frozen transport qualification remain to be exercised."
+  ],
+  "previous_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false
+}
