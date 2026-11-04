@@ -1,0 +1,55 @@
+{
+  "format": "connect/native-original-audio-cap/1",
+  "run": "v130",
+  "source_revision": "02e0def384c0fe17f6b6fd890a5d59c7c7bbf8b5",
+  "platform": "Owner Mac Studio local Ubuntu24.04 ARM64 VM",
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 167726,
+    "source_revision": "02e0def384c0fe17f6b6fd890a5d59c7c7bbf8b5",
+    "passed": true,
+    "steps": [
+      {
+        "group": "native-audio-cap",
+        "case": "peer_native::canonical_media::ingress_retry::original_native_audio_contention_queue_never_exceeds_ten_original_frames",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 192 filtered out; finished in 0.04s"
+        ],
+        "log_sha256": "532e6a99032c028c40d3fd051edf5e464610dacf3e5ef9b8182ec2f027ae66b3"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_audio_pending_cap": 10,
+    "previous_passed_cases_rerun": false,
+    "builds": [
+      {
+        "group": "native-audio-cap",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "b0729b85eaedff64f72385840a52dd6eefc08dd170df8843b3dc14d311a050ed",
+        "test_executable_sha256": "a0cefcc68d00e851aada66581038b7b772e3cd8a7c7fba8d6fe431333a906e2c",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 256.7888172870007
+  },
+  "wire_observation": "saturated=true accepted_before=0 rejected_before=10 accepted_after=11 rejected_after=10 originals=true no_extra=true fresh=true",
+  "qualified_scope": [
+    "Actual encrypted canonical QUIC reader retains at most ten original 20ms audio frames during controlled temporary policy mutex contention.",
+    "Ten retained originals recover in order; ten overflow originals are refused; distinct fresh packet succeeds; no extra original observed; physical reader joins."
+  ],
+  "limits": [
+    "Controlled PCMU policy fixture; not production Opus/VP8 full workload or complete matrix cell.",
+    "The six prior passing focused cases were not rerun.",
+    "Full native audio duration, identity, A/V alignment, resource reclamation and complete-cell qualification remain open."
+  ],
+  "prior_audit": "docs/evidence/gate-6/native-ingress-cap-audit.json",
+  "task_complete": false,
+  "cell_qualified": false,
+  "whole_gate_qualified": false
+}
