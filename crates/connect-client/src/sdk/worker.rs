@@ -6,6 +6,7 @@ mod data;
 mod events;
 mod reconciliations;
 mod selections;
+mod video_epochs;
 use crate::canonical::{CanonicalClient, CommandScope, ReplyBatch};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -164,6 +165,7 @@ impl Shared {
                         if matches!(frame.kind(), "auth.bye" | "identity.assurance-changed") {
                             break ErrorKind::Authentication;
                         }
+                        match video_epochs::frame(&owned_native,&owned_media,&frame) {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         if owned_invitations.frame(&frame) {continue;}
                         match events.frame(&mut peer,&frame) {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         match owned_data.frame(&owned_native,&frame) {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}

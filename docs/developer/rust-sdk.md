@@ -917,3 +917,14 @@ transport installation contract. The current public workflow is exercised in
 Session controls, native negotiation and actual codec bytes.
 
 Scoped snapshot readers may recover a signed `503` refusal whose category is `authorization` and reason is exactly `authority_unavailable`. The same `conversation.get` page is read again under the original timeout, cancellation, total request limit and cumulative byte bound. Each request obtains current authority; no grant survives the bounded wait and no mutation is replayed. Current policy denial, unrelated service errors and transport uncertainty remain terminal. Three new exact ARM signed QUIC cases verify initial and same-page recovery, terminal policy/unrelated refusals and the original deadline/cancellation. Fresh application workload verification remains required.
+
+
+Native video selected with `rtcp-pli-epoch/1` exposes authenticated receive history
+through `RtpPacket::video_epoch() -> Option<&VideoReceiveEpoch>`. Its epoch,
+incarnation, revision, SSRC and first packet boundary come from the signed notice
+matched to the exact selected allocation. Unknown tagged histories wait for
+that notice within the original 200 ms packet lifetime. Applications must reset
+decoder history when this identity changes; metadata grants no feedback right.
+The profile remains disabled by default while live encoder recovery and the
+remaining runtime integrations are completed. See
+[`native-media-profile.md`](../../contracts/native-media-profile.md).

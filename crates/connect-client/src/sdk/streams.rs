@@ -174,6 +174,8 @@ pub struct RtpHeader {
 }
 #[derive(Clone)]
 pub struct RtpPacket {
+    pub(super) video_tag: Option<u128>,
+    pub(super) video_epoch: Option<VideoReceiveEpoch>,
     pub datagram_sequence: u32,
     bytes: Vec<u8>,
     header: RtpHeader,
@@ -223,7 +225,14 @@ impl RtpPacket {
             header,
             payload_start,
             payload_len,
+            video_tag: None,
+            video_epoch: None,
         })
+    }
+    /// Authenticated native video history, when this packet used the explicitly
+    /// negotiated feedback profile. Ordinary RTP has no such history.
+    pub fn video_epoch(&self) -> Option<&VideoReceiveEpoch> {
+        self.video_epoch.as_ref()
     }
     pub fn bytes(&self) -> &[u8] {
         &self.bytes

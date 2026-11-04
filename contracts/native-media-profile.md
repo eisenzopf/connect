@@ -259,6 +259,36 @@ SSRC, sequence boundary and original allocation against the signed notice before
 decoder admission. Pending packets retain their original arrival age and must
 expire under the existing200ms bound. A tag alone is never permission or a clock.
 
-This packet extension is a candidate pending its new syntax and signed native
-transport cases. SDK parser/history admission and encoder feedback integration
-remain open; the production profile remains disabled.
+The packet syntax and signed native transport cases pass on local ARM64 at
+`b7e5b97f`. See `docs/evidence/gate-6/native-video-packet-epochs.json`. The
+production profile remains disabled pending end-to-end SDK and encoder recovery.
+
+
+### SDK notice and packet join
+
+The owned Rust SDK reader consumes `stream.epoch` only after the existing
+physical peer signature verifier. It matches logical roots, selected original
+operation/offer, handle, stream and connection generations, direction and a
+monotonically newer notice revision. Incarnation and epoch must be nonzero
+canonical 32-character lowercase hexadecimal values. Incarnation identifies the
+current authenticated writer and can change on credential refresh; it is not
+used as an immutable substitute for the owned physical peer.
+
+A notice for a confirmed but not yet adopted selection is retained as bounded
+metadata on that preparation. It cannot create an inbox or admit media. The
+existing paired resource-capture path installs it only after resource adoption;
+failed or superseded preparation drops its metadata.
+
+Explicit receiver video accepts only tagged RTP. The tag, actual SSRC, serial
+native sequence boundary and exact first-packet timestamp must match the signed
+notice before delivery. A future unknown tag waits in the existing bounded
+queue with its original arrival time. It expires at 200 ms even if no notice or
+new packet arrives. A late notice does not restart this deadline. Local receive
+hold invalidates active history while retaining its revision, so replay of the
+same notice cannot reactivate it. Changed allocations discard old history.
+
+`RtpPacket::video_epoch()` exposes `VideoReceiveEpoch` only after this join;
+ordinary RTP returns `None`. Metadata never changes RTP bytes or timestamps and
+never authorizes feedback. These SDK changes have focused checks pending; typed
+publisher feedback, helper/browser/direct-peer integration and real decoder
+bootstrap/fragment-loss recovery remain required before production opt-in.

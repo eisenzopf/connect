@@ -108,7 +108,7 @@ pub use streams::{
     SenderClockReport, SourceClock, Stream, StreamSnapshot,
 };
 pub use tokio_util::sync::CancellationToken;
-pub use video_feedback::NativeVideoFeedback;
+pub use video_feedback::{epochs::VideoReceiveEpoch, NativeVideoFeedback};
 #[derive(Clone)]
 pub struct RequestOptions {
     pub timeout: Duration,

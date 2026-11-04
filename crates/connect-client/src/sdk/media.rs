@@ -1,5 +1,6 @@
 //! One bounded native receive inbox; slow media readers cannot block control.
 use super::streams::StreamKey;
+use super::video_feedback::epochs::{Notice, Role};
 use super::*;
 use std::{
     collections::{BTreeMap, VecDeque},
@@ -34,6 +35,10 @@ pub(super) struct Binding {
     pub clock: bool,
 }
 struct Queue {
+    video: Option<NativeVideoFeedback>,
+    receiver_epoch: Option<Notice>,
+    receiver_epoch_active: bool,
+    publisher_epoch: Option<Notice>,
     binding: Binding,
     items: VecDeque<(MediaPacket, usize, Instant)>,
     gap: u64,
@@ -81,6 +86,10 @@ impl Inbox {
             s.queues.insert(
                 key,
                 Queue {
+                    video: selected.video_feedback.get(&stream.id).cloned(),
+                    receiver_epoch: None,
+                    receiver_epoch_active: false,
+                    publisher_epoch: None,
                     binding: Binding {
                         stream: stream.clone(),
                         clock: selected.source_clock,
@@ -90,6 +99,37 @@ impl Inbox {
                 },
             );
         }
+        Ok(())
+    }
+    pub fn install_epoch(&self, notice: Notice) -> Result<()> {
+        let mut s = self
+            .state
+            .lock()
+            .map_err(|_| Error::local(ErrorKind::Protocol))?;
+        let Some(queue) = s.queues.get_mut(&notice.key) else {
+            return Ok(());
+        };
+        if queue.video.as_ref() != Some(&notice.allocation)
+            || !notice.matches_stream(&queue.binding.stream)
+        {
+            return Ok(());
+        }
+        let slot = match notice.role {
+            Role::Receiver => &mut queue.receiver_epoch,
+            Role::Publisher => &mut queue.publisher_epoch,
+        };
+        if slot
+            .as_ref()
+            .is_none_or(|old| old.history.revision < notice.history.revision)
+        {
+            let receiver = notice.role == Role::Receiver;
+            *slot = Some(notice);
+            if receiver {
+                queue.receiver_epoch_active = true;
+            }
+        }
+        drop(s);
+        self.changed.notify_waiters();
         Ok(())
     }
     pub fn stats(&self) -> Result<MediaStats> {
@@ -124,7 +164,23 @@ impl Inbox {
             return Ok(());
         }
         s.stats.received_datagrams = s.stats.received_datagrams.saturating_add(1);
-        let parsed = match observe_native_media_datagram(&bytes) {
+        let tagged = bytes.get(1) == Some(&rvoip_uctp::substrate::VIDEO_EPOCH_FLAG);
+        let (parsed, video_tag, body_offset) = match if tagged {
+            rvoip_uctp::substrate::observe_video_epoch_datagram(&bytes).map(|p| {
+                (
+                    Native::Rtp(rvoip_uctp::substrate::ObservedRtpDatagram {
+                        stream_local_id: p.stream_local_id,
+                        seq: p.seq,
+                        flags: 0,
+                        rtp: p.rtp,
+                    }),
+                    Some(p.epoch),
+                    24,
+                )
+            })
+        } else {
+            observe_native_media_datagram(&bytes).map(|p| (p, None, 8))
+        } {
             Ok(value) => value,
             Err(_) => {
                 s.stats.malformed_datagrams = s.stats.malformed_datagrams.saturating_add(1);
@@ -160,11 +216,14 @@ impl Inbox {
             Native::Rtp(p)
                 if receiving
                     && p.flags == 0
+                    && (video_tag.is_some() == queue.video.is_some())
+                    && (video_tag.is_none() || queue.binding.stream.medium == Medium::Video)
                     && Some(u64::from(p.rtp.packet().header.payload_type))
                         == queue.binding.stream.codec["params"]["payload_type"].as_u64() =>
             {
-                let packet = RtpPacket::new(p.seq, bytes[8..].to_vec())
+                let mut packet = RtpPacket::new(p.seq, bytes[body_offset..].to_vec())
                     .map_err(|_| Error::local(ErrorKind::Protocol))?;
+                packet.video_tag = video_tag;
                 s.stats.rtp_packets = s.stats.rtp_packets.saturating_add(1);
                 MediaPacket::Rtp(packet)
             }
@@ -261,6 +320,10 @@ impl Inbox {
             };
             let key = key(&stream.id);
             let queue = s.queues.entry(key.clone()).or_insert_with(|| Queue {
+                video: selected.video_feedback.get(&stream.id).cloned(),
+                receiver_epoch: None,
+                receiver_epoch_active: false,
+                publisher_epoch: None,
                 binding: Binding {
                     stream: stream.clone(),
                     clock: selected.source_clock,
@@ -270,8 +333,12 @@ impl Inbox {
             });
             let changed = queue.binding.stream.stream_local_id != Some(handle)
                 || queue.binding.stream.codec != stream.codec
-                || queue.binding.clock != selected.source_clock;
+                || queue.binding.clock != selected.source_clock
+                || queue.video.as_ref() != selected.video_feedback.get(&stream.id);
             let direction = *directions.get(&stream.id).ok_or_else(bad)?;
+            if !matches!(direction, Direction::Recvonly | Direction::Sendrecv) {
+                queue.receiver_epoch_active = false;
+            }
             let lost = if changed || !matches!(direction, Direction::Recvonly | Direction::Sendrecv)
             {
                 let count = queue.items.len();
@@ -282,6 +349,12 @@ impl Inbox {
             } else {
                 None
             };
+            if changed {
+                queue.receiver_epoch = None;
+                queue.receiver_epoch_active = false;
+                queue.publisher_epoch = None;
+            }
+            queue.video = selected.video_feedback.get(&stream.id).cloned();
             let old = queue.binding.stream.stream_local_id;
             queue.binding = Binding {
                 stream: stream.clone(),
@@ -322,6 +395,7 @@ impl Inbox {
                 .ok_or_else(|| Error::local(ErrorKind::Protocol))?;
             queue.binding.stream.direction = *direction;
             if !matches!(direction, Direction::Recvonly | Direction::Sendrecv) {
+                queue.receiver_epoch_active = false;
                 let packets = queue.items.len();
                 let bytes: usize = queue.items.iter().map(|(_, bytes, _)| *bytes).sum();
                 queue.items.clear();
@@ -390,6 +464,7 @@ impl Inbox {
             let changed = self.changed.notified();
             tokio::pin!(changed);
             changed.as_mut().enable();
+            let mut epoch_wakeup = None;
             {
                 let mut s = self
                     .state
@@ -411,8 +486,10 @@ impl Inbox {
                 let now = Instant::now();
                 let mut expired_packets = 0usize;
                 let mut expired_bytes = 0usize;
-                while queue.items.front().is_some_and(|(_, _, arrived)| {
+                while queue.items.front().is_some_and(|(packet, _, arrived)| {
                     now.saturating_duration_since(*arrived) >= RECEIVE_QUEUE_AGE
+                        || matches!(packet, MediaPacket::Rtp(p) if p.video_tag.is_some()
+                            && queue.receiver_epoch.as_ref().is_some_and(|e| e.definitely_stale(p)))
                 }) {
                     if let Some((_, bytes, _)) = queue.items.pop_front() {
                         expired_packets += 1;
@@ -421,8 +498,22 @@ impl Inbox {
                 }
                 // Expired prefix loss precedes the remaining fresh packets.
                 // Capacity loss still follows the packets admitted before it.
-                let next = if expired_packets == 0 {
-                    queue.items.pop_front()
+                let pending_epoch = queue.items.front().is_some_and(|(packet, _, arrived)| {
+                    let pending = matches!(packet, MediaPacket::Rtp(p) if p.video_tag.is_some()
+                        && !(queue.receiver_epoch_active && queue.receiver_epoch.as_ref().is_some_and(|e| e.admits(p))));
+                    if pending { epoch_wakeup = Some(*arrived + RECEIVE_QUEUE_AGE); }
+                    pending
+                });
+                let next = if expired_packets == 0 && !pending_epoch {
+                    queue.items.pop_front().map(|(mut packet, bytes, arrived)| {
+                        if let MediaPacket::Rtp(p) = &mut packet {
+                            if p.video_tag.is_some() {
+                                p.video_epoch =
+                                    queue.receiver_epoch.as_ref().map(|e| e.history.clone());
+                            }
+                        }
+                        (packet, bytes, arrived)
+                    })
                 } else {
                     None
                 };
@@ -457,6 +548,7 @@ impl Inbox {
             tokio::select! {biased;
                 _=options.signal.cancelled()=>return Err(Error::request(ErrorKind::Cancelled,None,false)),
                 _=tokio::time::sleep_until(until)=>return Err(Error::request(ErrorKind::Deadline,None,false)),
+                _=tokio::time::sleep_until(epoch_wakeup.unwrap_or(until)), if epoch_wakeup.is_some()=>{},
                 _=changed=>{}
             }
         }

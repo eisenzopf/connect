@@ -5,6 +5,7 @@ use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone)]
 pub(super) struct Prepared {
+    pub video_epochs: BTreeMap<(StreamId, bool), super::super::video_feedback::epochs::Notice>,
     pub(super) key: OperationKey,
     pub(super) expected: u64,
     pub(super) selected: NativeNegotiation,
@@ -325,6 +326,7 @@ pub(super) fn prepare(
     let entry = cache.get_mut(conn).ok_or_else(bad)?;
     entry.reserved_handles.extend(handles);
     entry.prepared = Some(Prepared {
+        video_epochs: Default::default(),
         key: key.clone(),
         expected,
         selected,
@@ -415,6 +417,9 @@ pub(super) fn record(
         &selected,
         &directions,
     )?;
+    for notice in prepared.video_epochs.values() {
+        media.install_epoch(notice.clone())?;
+    }
     entry.known_revision = selected.stream_revision;
     entry.selected = selected;
     entry.generations.extend(prepared.generations.clone());

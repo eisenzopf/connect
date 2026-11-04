@@ -1,4 +1,5 @@
 //! Signed selection metadata; this does not authorize or enable media feedback.
+pub(super) mod epochs;
 use super::*;
 use serde::{Deserialize, Serialize};
 

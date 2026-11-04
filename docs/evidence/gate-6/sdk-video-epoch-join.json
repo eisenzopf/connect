@@ -1,0 +1,23 @@
+{
+  "format": "connect/gate6-sdk-video-epoch-join/1",
+  "task": "G6-058",
+  "status": "verification-pending",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
+  "implementation": [
+    "Owned signature-verified reader validates epoch notices against current selected allocation, roots, direction and original provenance. Prepared selection metadata waits for paired resource adoption.",
+    "Explicit tagged video joins epoch/SSRC/serial sequence/first timestamp before SDK delivery; no ordinary-RTP fallback for selected video. Unknown histories retain original arrival age and expire at200ms without additional traffic.",
+    "RtpPacket exposes authenticated receive history; local hold prevents replayed notice from reactivating decoder history; unchanged allocations retain provenance."
+  ],
+  "planned_checks": [
+    "sdk::video_feedback::epochs::tests::signed_video_notice_requires_exact_selected_allocation_and_packet_boundary",
+    "sdk::video_feedback::epochs::tests::video_epoch_join_preserves_arrival_age_and_refuses_previous_decoder_history",
+    "sdk::worker::video_epochs::tests::signed_notice_waits_for_paired_resource_adoption_on_its_own_physical_client"
+  ],
+  "limits": [
+    "These new SDK cases exercise typed local state and production adoption code, not a complete signed SDK transport or decoder recovery run.",
+    "Typed publisher feedback, helper/browser/direct Rust peer integration and live encoder recovery remain open. Production profile stays disabled.",
+    "No full media workload,32-cell completion or task-complete claim. G6-054 remains deferred."
+  ],
+  "old_passed_cases_rerun": false,
+  "task_complete": false
+}

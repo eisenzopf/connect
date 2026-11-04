@@ -251,6 +251,7 @@ pub(super) fn prepare(
     let entry = cache.get_mut(conn).ok_or_else(bad)?;
     entry.reserved_handles.extend(handles);
     entry.prepared = Some(codecs::Prepared {
+        video_epochs: Default::default(),
         key: key.clone(),
         expected,
         selected,
