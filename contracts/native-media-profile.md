@@ -289,6 +289,7 @@ same notice cannot reactivate it. Changed allocations discard old history.
 
 `RtpPacket::video_epoch()` exposes `VideoReceiveEpoch` only after this join;
 ordinary RTP returns `None`. Metadata never changes RTP bytes or timestamps and
-never authorizes feedback. These SDK changes have focused checks pending; typed
-publisher feedback, helper/browser/direct-peer integration and real decoder
+never authorizes feedback. These SDK changes pass three focused local ARM checks at `928c5f94`; see
+`docs/evidence/gate-6/sdk-video-epoch-join.json`. Typed publisher feedback,
+helper/browser/direct-peer integration and real decoder
 bootstrap/fragment-loss recovery remain required before production opt-in.
