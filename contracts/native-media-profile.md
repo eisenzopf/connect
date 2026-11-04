@@ -432,4 +432,9 @@ They use controlled signaling/codec fixtures under Node; they are not a real
 Chromium/WebTransport or full-cell qualification. Earlier wire cases and the
 actual Rust SDK/server recovery pass are retained without reruns. See
 `docs/evidence/gate-6/browser-video-epochs.json` for exact scopes and failures.
-Actual browser/server recovery and direct replacement integration remain open.
+Actual Chromium/WebTransport recovery against the production server now passes
+separately at `fc40c3c0`: same-SSRC authenticated reselection, current receiver
+feedback, fresh VP8 keyframe at original RTP26127 and joined owners. Canonical
+unsubscribe history invalidation uses `strm_ids`. See
+`docs/evidence/gate-6/actual-browser-video-feedback.json`. Direct replacement
+integration, delayed writer uncertainty and the full frozen matrix remain open.

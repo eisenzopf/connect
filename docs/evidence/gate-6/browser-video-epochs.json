@@ -2,7 +2,7 @@
   "format": "connect/gate6-browser-video-epochs/1",
   "task": "G6-058",
   "status": "browser-owner-components-pass",
-  "environment": "Owner Mac Studio local Ubuntu ARM64 VM; Node 26 executes browser ownership fixtures. No GitHub/cloud tests.",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM; Node 22.16.0 executes browser ownership fixtures. No GitHub/cloud tests.",
   "source_revisions": {
     "history_and_feedback_lifetime": "8804d7c038d7070e78c14cc549432e12e5c4e0bc",
     "physical_media_owner": "640f5147a344458d61cca7fb693a6235ee24a5ba",
@@ -257,5 +257,7 @@
   ],
   "previous_passed_cases_rerun": false,
   "full_media_rehearsal_run": false,
-  "task_complete": false
+  "task_complete": false,
+  "runtime_version_correction": "Read-only v92 runtime inspection identifies Node22.16.0. Its binary SHA256 matches the original v84-v87 evidence; earlier Node26 prose was incorrect.",
+  "follow_up_evidence": "actual-browser-video-feedback.json: separate actual Chromium/production-server recovery passes at fc40c3c0; original component limitations remain scoped to those checks."
 }

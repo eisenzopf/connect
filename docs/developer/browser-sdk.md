@@ -1215,6 +1215,11 @@ The owned native reader validates signed allocation/epoch history, separates
 same-SSRC decoder histories, requests fresh keyframes after loss, and consumes
 publisher hints just before encoding. It preserves original media clocks and
 checks current route, original age and lifecycle before feedback dispatch.
-Four new local ARM component/owner/configuration checks pass; real browser/server
-verification is pending. See [the scoped evidence](../evidence/gate-6/browser-video-epochs.json)
+Four local ARM component/owner/configuration checks pass. A separate actual
+Chromium/WebTransport check now passes against the production server: same-SSRC
+reselection, authenticated epoch change, receiver feedback and fresh VP8 decode
+at the original RTP timestamp. Canonical unsubscribe uses `strm_ids`; history
+cleanup follows those exact stream IDs. Full transport qualification remains
+open. See [actual browser evidence](../evidence/gate-6/actual-browser-video-feedback.json),
+[component evidence](../evidence/gate-6/browser-video-epochs.json)
 and [the native profile contract](../../contracts/native-media-profile.md).

@@ -1,0 +1,496 @@
+{
+  "format": "connect/gate6-actual-browser-video-feedback/1",
+  "task": "G6-058",
+  "status": "actual-chromium-production-webtransport-recovery-pass",
+  "source_revision": "fc40c3c0789ea42d75294dc8e041616d65eef2fe",
+  "environment": {
+    "host": "Owner Mac Studio",
+    "runner": "Local Ubuntu 24.04 ARM64 VM",
+    "node": "22.16.0",
+    "chrome": "156.0.8078.4",
+    "browser_container_user": "1001:1001",
+    "browser_home": "Private ephemeral tmpfs owned by 1001:1001",
+    "github_or_cloud_tests": false
+  },
+  "scope": [
+    "Two enrolled local EdDSA identities authenticate through actual Chromium WebTransport against the production canonical listener.",
+    "Original VP8 keyframe decodes; unsubscribe/reselect keeps the receiver SSRC but changes the signed in-band epoch.",
+    "Actual delta frame at original RTP25632 cannot bootstrap the new decoder history; receiver sends one current feedback packet matching signed publisher allocation.",
+    "Next freshly captured frame becomes a keyframe at original RTP26127 and actual WebCodecs decodes marker211; the old decoded marker was32. Source SSRC and clocks remain unchanged.",
+    "Native owner and observer release their stream locks; server and page are joined; dedicated Chrome container joins and is removed."
+  ],
+  "fixes": [
+    "v88 Chrome startup failed because ephemeral home belonged to uid1000 while pinned image runs uid1001. Corrected launcher home ownership and explicit HOME/XDG directories.",
+    "v89 Node/OpenSSL rejected ring RFC5958 Ed25519 private key encoding; fixture converts only the exact encoding to PKCS8 and verifies the derived original public key.",
+    "v90/v91 traced unsubscribe timeout to fixture streams field instead of canonical strm_ids; browser video history cleanup also used the wrong field. Corrected both fixture submission and production history invalidation."
+  ],
+  "new_cases_passed": 1,
+  "test_seconds": 0.83,
+  "runtime_seconds_including_compile": 67.79981813300401,
+  "verification_runs": [
+    {
+      "run": "chromium-video-feedback-v88",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 123947,
+        "source_revision": "f1017e4e4ff30b881f3811f8ae763aea965fcfc2",
+        "passed": false,
+        "steps": [],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "actual_chromium_feedback_candidate": true,
+        "builds": [
+          {
+            "group": "signed-server",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "803e8af4957d692c7b7c516f0dbbef0a6a353b4b95dac63b697a2fe7039b54aa",
+            "test_executable_sha256": "3eeca6fe7c23657970ce27b79619dc2c31089dfded838ee7c3208f3f7b8c8263"
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "Owned local browser startup failed",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 85.69756214000518
+      },
+      "state_sha256": "db8c83c3eb75e7b919b6372d7c34928f3e802f9967804845bebcd50a846eb675"
+    },
+    {
+      "run": "chromium-video-feedback-v89",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 125334,
+        "source_revision": "f1017e4e4ff30b881f3811f8ae763aea965fcfc2",
+        "passed": false,
+        "steps": [
+          {
+            "group": "signed-server",
+            "case": "browser_video_feedback::actual_chromium_signed_webtransport_reselection_feedback_fresh_vp8",
+            "exit_code": 101,
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s"
+            ],
+            "log_sha256": "76bcc7ad3cd2ed50a406da334e9c33b51d1af0585f817cd33dabe839b6b0cc49"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "actual_chromium_feedback_candidate": true,
+        "builds": [
+          {
+            "group": "signed-server",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "ed25347caffa840331412422d7abc658fb460f3e39f478ca10c1ebeb6056d12f",
+            "test_executable_sha256": "3eeca6fe7c23657970ce27b79619dc2c31089dfded838ee7c3208f3f7b8c8263",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "browser": {
+          "port": 19288,
+          "version": "Chrome/156.0.8078.4",
+          "architecture": "aarch64",
+          "image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+          "binary_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+          "owned_container": "connect-gate6-chromium-feedback-v89",
+          "local_only": true
+        },
+        "failure_class": "AssertionError",
+        "message": "Exact prepared peer case must pass",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 3.0364755839982536
+      },
+      "state_sha256": "bcffac3f95490e29eabd3a8e67924dd72e42fdd2e35bc57370fa2548d23d76d1",
+      "browser_final": {
+        "port": 19288,
+        "version": "Chrome/156.0.8078.4",
+        "architecture": "aarch64",
+        "image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+        "binary_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+        "owned_container": "connect-gate6-chromium-feedback-v89",
+        "local_only": true,
+        "binary_unchanged": true,
+        "joined": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "run": "chromium-video-feedback-v90",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 125530,
+        "source_revision": "b83a4d266b4952b0b38c82d1e83abd23baa211f1",
+        "passed": false,
+        "steps": [
+          {
+            "group": "signed-server",
+            "case": "browser_video_feedback::actual_chromium_signed_webtransport_reselection_feedback_fresh_vp8",
+            "exit_code": 101,
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.68s"
+            ],
+            "log_sha256": "e952c11c471b1227a120f52dc91aaf5346f11bf2582039693820ee7d9bcb4c8b"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "actual_chromium_feedback_candidate": true,
+        "builds": [
+          {
+            "group": "signed-server",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "577a03d775298ee5c722d68fb06eff2e544cccc51bf23335cd1fa429b59d0c20",
+            "test_executable_sha256": "3eeca6fe7c23657970ce27b79619dc2c31089dfded838ee7c3208f3f7b8c8263",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "browser": {
+          "port": 19288,
+          "version": "Chrome/156.0.8078.4",
+          "architecture": "aarch64",
+          "image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+          "binary_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+          "owned_container": "connect-gate6-chromium-feedback-v90",
+          "local_only": true
+        },
+        "failure_class": "AssertionError",
+        "message": "Exact prepared peer case must pass",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 8.282720610994147
+      },
+      "state_sha256": "43ea3ce6d9876ee8f25769447ddd834ed23d1213e92d6267e28ff153d0b5f5df",
+      "browser_final": {
+        "port": 19288,
+        "version": "Chrome/156.0.8078.4",
+        "architecture": "aarch64",
+        "image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+        "binary_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+        "owned_container": "connect-gate6-chromium-feedback-v90",
+        "local_only": true,
+        "binary_unchanged": true,
+        "joined": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "run": "chromium-video-feedback-v91",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 125731,
+        "source_revision": "f40db2d76896f024c6687a350ea6b1b17652a787",
+        "passed": false,
+        "steps": [
+          {
+            "group": "signed-server",
+            "case": "browser_video_feedback::actual_chromium_signed_webtransport_reselection_feedback_fresh_vp8",
+            "exit_code": 101,
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.67s"
+            ],
+            "log_sha256": "86f300b66d504bd428869109b90605a15e44aba517538b824af5b82c99471099"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "actual_chromium_feedback_candidate": true,
+        "builds": [
+          {
+            "group": "signed-server",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "434e3b265fa0e5da431da85529599013944b58ac7c8f0cc5bb7354ddab219f1f",
+            "test_executable_sha256": "3eeca6fe7c23657970ce27b79619dc2c31089dfded838ee7c3208f3f7b8c8263",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "browser": {
+          "port": 19288,
+          "version": "Chrome/156.0.8078.4",
+          "architecture": "aarch64",
+          "image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+          "binary_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+          "owned_container": "connect-gate6-chromium-feedback-v91",
+          "local_only": true
+        },
+        "failure_class": "AssertionError",
+        "message": "Exact prepared peer case must pass",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 7.994453378007165
+      },
+      "state_sha256": "89b64ab6af0d3925a8eed1b726830b26c56f97274f30a08e10b2b162293e8c32",
+      "browser_final": {
+        "port": 19288,
+        "version": "Chrome/156.0.8078.4",
+        "architecture": "aarch64",
+        "image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+        "binary_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+        "owned_container": "connect-gate6-chromium-feedback-v91",
+        "local_only": true,
+        "binary_unchanged": true,
+        "joined": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "run": "chromium-video-feedback-v92",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 125924,
+        "source_revision": "fc40c3c0789ea42d75294dc8e041616d65eef2fe",
+        "passed": true,
+        "steps": [
+          {
+            "group": "signed-server",
+            "case": "browser_video_feedback::actual_chromium_signed_webtransport_reselection_feedback_fresh_vp8",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.83s"
+            ],
+            "log_sha256": "70c1e1193663b600fcc3865d27bd97259a5205f9b92128276280e1efd8920156"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "actual_chromium_feedback_candidate": true,
+        "typescript_build": {
+          "exit_code": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "runtime_sha256": {
+          "/opt/node/bin/node": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+          "/usr/bin/python3.12": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960"
+        },
+        "builds": [
+          {
+            "group": "signed-server",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "ee4939a0fca6b63877fbc4bf3b35de75d67642c815847486b4f0286298299757",
+            "test_executable_sha256": "78ff004b464c9d3de2f7a853ef36f29931a4dd126adf9f152515316277366d46",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "browser": {
+          "port": 19288,
+          "version": "Chrome/156.0.8078.4",
+          "architecture": "aarch64",
+          "image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+          "binary_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+          "owned_container": "connect-gate6-chromium-feedback-v92",
+          "local_only": true
+        },
+        "sdk_outputs_unchanged": true,
+        "runtime_unchanged": true,
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 67.79981813300401
+      },
+      "state_sha256": "cba3c286ae35573bc3a713bc440f7aa2b5dcdefaf1e3bfdc670805f581ea9009",
+      "browser_final": {
+        "port": 19288,
+        "version": "Chrome/156.0.8078.4",
+        "architecture": "aarch64",
+        "image": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+        "binary_sha256": "2b3a2bb9c4308ce74cb680dcd50305cfae1f79589305dc92b993f876b5a94f65",
+        "owned_container": "connect-gate6-chromium-feedback-v92",
+        "local_only": true,
+        "binary_unchanged": true,
+        "joined": true,
+        "exit_code": 0
+      }
+    }
+  ],
+  "result": {
+    "passed": true,
+    "same_ssrc": true,
+    "new_epoch": true,
+    "fresh_frame": true,
+    "shutdown_joined": true,
+    "feedback_packets": 1,
+    "source_frames": [
+      {
+        "timestamp": 27,
+        "ssrc": 3429891867,
+        "key": true,
+        "sequence": 14508,
+        "at": 111.6000000089407
+      },
+      {
+        "timestamp": 25632,
+        "ssrc": 3429891867,
+        "key": false,
+        "sequence": 14509,
+        "at": 394.70000000298023
+      },
+      {
+        "timestamp": 26127,
+        "ssrc": 3429891867,
+        "key": true,
+        "sequence": 14510,
+        "at": 401
+      }
+    ],
+    "decoded_frames": [
+      {
+        "stream": "camera",
+        "red": 32,
+        "timestamp": 117700,
+        "at": 119
+      },
+      {
+        "stream": "camera",
+        "red": 211,
+        "timestamp": 400588,
+        "at": 418
+      }
+    ],
+    "original_timestamps": {
+      "first": {
+        "timestamp": 300,
+        "rtp": 27
+      },
+      "delta": {
+        "timestamp": 284800,
+        "rtp": 25632
+      },
+      "fresh": {
+        "timestamp": 290300,
+        "rtp": 26127
+      }
+    },
+    "receiver_epoch_change": [
+      "3136b1335caa4cd081250cf7634cc241",
+      "fbedcfd97c5443ba8eff0f56315f22eb"
+    ],
+    "route_diagnostics": [
+      [
+        {
+          "streamId": "camera",
+          "direction": "sendrecv",
+          "kind": "video",
+          "counters": {
+            "encoded": 3,
+            "keys": 2,
+            "received": 0,
+            "complete": 0,
+            "submitted": 0,
+            "skipped": 0,
+            "decoded": 0,
+            "expired": 0,
+            "clockReports": 0,
+            "synchronized": 0,
+            "unsynchronized": 0
+          },
+          "clockProfile": true,
+          "incompleteFrames": 0,
+          "fragments": 0,
+          "recovery": {
+            "sourceEpochs": 0,
+            "sequenceGaps": 0,
+            "lateFrames": 0,
+            "assemblyLosses": 0,
+            "queueDrops": 0,
+            "waitingForKey": true
+          }
+        }
+      ],
+      [
+        {
+          "streamId": "monitor",
+          "direction": "sendrecv",
+          "kind": "video",
+          "counters": {
+            "encoded": 0,
+            "keys": 0,
+            "received": 0,
+            "complete": 0,
+            "submitted": 0,
+            "skipped": 0,
+            "decoded": 0,
+            "expired": 0,
+            "clockReports": 0,
+            "synchronized": 0,
+            "unsynchronized": 0
+          },
+          "clockProfile": true,
+          "incompleteFrames": 0,
+          "fragments": 0,
+          "recovery": {
+            "sourceEpochs": 0,
+            "sequenceGaps": 0,
+            "lateFrames": 0,
+            "assemblyLosses": 0,
+            "queueDrops": 0,
+            "waitingForKey": true
+          }
+        },
+        {
+          "streamId": "camera",
+          "direction": "recvonly",
+          "kind": "video",
+          "counters": {
+            "encoded": 0,
+            "keys": 0,
+            "received": 3,
+            "complete": 3,
+            "submitted": 2,
+            "skipped": 1,
+            "decoded": 2,
+            "expired": 0,
+            "clockReports": 1,
+            "synchronized": 2,
+            "unsynchronized": 1
+          },
+          "clockProfile": true,
+          "incompleteFrames": 0,
+          "fragments": 0,
+          "recovery": {
+            "sourceEpochs": 2,
+            "sequenceGaps": 0,
+            "lateFrames": 0,
+            "assemblyLosses": 0,
+            "queueDrops": 0,
+            "waitingForKey": false
+          }
+        }
+      ]
+    ],
+    "scope": "One local EdDSA Chromium/WebTransport recovery, actual production listener and WebCodecs; not full frozen workload/network/transport cell.",
+    "browser": "Chrome/156.0.8078.4"
+  },
+  "result_sha256": "6f443dcbd39d5a49377de2a33389c3a2f47e6e4797a2e5ba4fbe8d5be53fab7c",
+  "source_files_sha256": {
+    "crates/connect-server/tests/gate6_browser_video_feedback.rs": "0163513d73f570ddcff53e7da8e996212a185b90d78a388775254d449a37eaaa",
+    "crates/connect-server/tests/support/browser_video_feedback.rs": "cb7ddaaf262914564fd2145c5c95e2f41cb91e4da30f0059c6d5e9b7c1f28998",
+    "crates/connect-server/tests/support/canonical_webtransport_media/identities.rs": "bd75ce50d912fd144aea3be9e114a2b07b8386c3a1cb9d7aed5a1f6b39387473",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/video-feedback.mjs": "27565957eb001ad6af89742408d47761ec7b96b676b9c29f6da6f2fe60524e11",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-video-feedback.mjs": "beff3d4c57bb089c130938f0c0e0909dd915d8968f9747e4da40289396e482fd",
+    "sdk/typescript/src/browser_media.ts": "12077074e09b91992d8097ebb3ff22e1d7691671874b8fb8432b53c2bb614f08",
+    "sdk/typescript/dist/browser_media.js": "fa8dabb7230c7ee60fba249070017d5a17ab8a6e232ec38bf9618b5bc6a02deb"
+  },
+  "generated_manifest_sha256": "1e580f235334f171adf793d4fb49f74b96127fe62b0f7462fc1b15af6533fa1f",
+  "previous_passed_cases_rerun": false,
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "transport_cells_qualified": 0,
+  "task_complete": false,
+  "remaining": [
+    "Direct replacement-peer authenticated epoch/feedback integration and fresh encoder recovery.",
+    "Delayed writer uncertainty still needs its focused proof.",
+    "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
+  ],
+  "limitations": [
+    "This is one short video-only local recovery with no mocked control or codecs. It does not qualify sustained A/V sync, bitrate, frame pacing, replacement/handoff, impaired networks or a complete transport cell.",
+    "The four prior browser Node component checks and earlier Rust production-server pass are retained without rerun."
+  ]
+}
