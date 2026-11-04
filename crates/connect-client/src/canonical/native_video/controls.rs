@@ -85,13 +85,13 @@ pub(super) fn outgoing(s: &mut State, frame: &Value) -> Result<()> {
             .map(|v| v.id.as_str().to_owned())
             .collect(),
     };
+    // Explicit Data gates remain valid on the same negotiated connection.
+    // Only video targets below invalidate video history; exact signed receipts
+    // still have to match every selected resource, including Data.
     if targets.is_empty()
-        || targets.iter().any(|id| {
-            !selected
-                .streams
-                .iter()
-                .any(|v| v.id.as_str() == id && v.medium != crate::sdk::Medium::Data)
-        })
+        || targets
+            .iter()
+            .any(|id| !selected.streams.iter().any(|v| v.id.as_str() == id))
     {
         return Err(ClientError::Protocol);
     }

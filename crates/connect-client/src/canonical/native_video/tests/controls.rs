@@ -171,3 +171,94 @@ fn replacement_video_gate_results_refuse_foreign_binding_revision_and_uncertain_
     deliver(&shared, failed).unwrap();
     assert_eq!(active(&shared, true), None);
 }
+
+#[test]
+fn replacement_video_explicit_data_gate_preserves_video_and_checks_sealed_data_receipt() {
+    for generation in [1, 2, 3] {
+        let shared = Shared::default();
+        let mut offer = original();
+        offer["capabilities"]["data_protocols"] = json!(["json"]);
+        let data_offer = json!({"id":"messages","kind":"data","direction":"sendrecv","codec_preferences":["json"]});
+        offer["streams_offered"]
+            .as_array_mut()
+            .unwrap()
+            .push(data_offer.clone());
+        shared
+            .begin("offer".into(), scope(), offer.clone())
+            .unwrap();
+        let (mut answer, mut callback) = pair("offer");
+        let codec = json!({"name":"json","params":{}});
+        for payload in [&mut answer, &mut callback] {
+            payload["capabilities"] = offer["capabilities"].clone();
+            payload["substrate_setup"]["streams"][0]["video_feedback"]["connection_generation"] =
+                json!(generation);
+            payload["substrate_setup"]["streams"].as_array_mut().unwrap().push(json!({"strm_id":"messages","kind":"data","direction":"sendrecv","stream_local_id":8,"codec":codec}));
+        }
+        answer["streams_answered"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"id":"messages","kind":"data","direction":"sendrecv","codec":codec}));
+        callback["streams_offered"]
+            .as_array_mut()
+            .unwrap()
+            .push(data_offer);
+        shared
+            .verified(&scoped("connection.answer", answer, Some("offer")))
+            .unwrap();
+        shared
+            .verified(&scoped("connection.offer", callback, None))
+            .unwrap();
+        shared.confirmed().unwrap();
+        for publisher in [false, true] {
+            let mut value = epoch("offer", 1, publisher).original().clone();
+            value["payload"]["connection_generation"] = json!(generation);
+            deliver(&shared, value).unwrap();
+        }
+        let mut data = command("data-unmute", 4, "unmute");
+        data["payload"]["streams"] = json!(["messages"]);
+        // The exact original Data intent is accepted without retiring either
+        // active video direction. A foreign target still refuses locally.
+        let mut foreign = data.clone();
+        foreign["payload"]["streams"] = json!(["foreign"]);
+        assert!(shared.outgoing(&foreign).is_err());
+        shared.outgoing(&data).unwrap();
+        for publisher in [false, true] {
+            assert_eq!(active(&shared, publisher), Some(1));
+        }
+        let mut receipt = completed(&data);
+        receipt["payload"]["result"]["connection_generation"] = json!(generation);
+        receipt["payload"]["result"]["gate_streams"] = json!([{"binding":{"stream_id":"messages","medium":"data","direction":"sendrecv","codec":codec,"stream_local_id":8,"stream_generation":1,"connection_generation":generation},"state":"active","source_muted":false,"held_direction":null}]);
+        for field in [
+            "stream_local_id",
+            "stream_generation",
+            "connection_generation",
+        ] {
+            let mut wrong = receipt.clone();
+            wrong["payload"]["result"]["gate_streams"][0]["binding"][field] = json!(99);
+            assert!(deliver(&shared, wrong).is_err());
+        }
+        deliver(&shared, receipt.clone()).unwrap();
+        shared.outgoing(&data).unwrap();
+        deliver(&shared, receipt).unwrap();
+        for publisher in [false, true] {
+            assert_eq!(active(&shared, publisher), Some(1));
+        }
+        assert_eq!(
+            shared
+                .state
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .selected
+                .as_ref()
+                .unwrap()
+                .stream_revision
+                .get(),
+            5
+        );
+        let mut changed = data;
+        changed["payload"]["action"] = json!("mute");
+        assert!(shared.outgoing(&changed).is_err());
+    }
+}

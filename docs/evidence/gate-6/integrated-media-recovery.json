@@ -1,0 +1,234 @@
+{
+  "format": "connect/gate6-integrated-media-recovery/1",
+  "task": "G6-058",
+  "status": "failed-explicit-data-control-before-complete-media-window",
+  "source_revision": "e0f4e92d2fdfa5c4e2d10271d22d003ab82a9528",
+  "environment": {
+    "runner": "Local Ubuntu 24.04 ARM64 VM on owner Mac Studio",
+    "github_or_cloud_tests": false
+  },
+  "verification_runs": [
+    {
+      "run": "integrated-media-recovery-v107",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 130711,
+        "source_revision": "e0f4e92d2fdfa5c4e2d10271d22d003ab82a9528",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": false,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T07:20:28.116486+00:00",
+        "fixture_exit_code": 1,
+        "report_sha256": "9167c94e38d64f8eaf4cf325895bd1764deb7a4a93b68b5e31becfb8ba2f28c6",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "961926d776beab98e4d16eac0f68d80537771c04b775e2596b181943e485c67b",
+        "peer_binary_sha256": "e38bd64c82bf746d34f86bb2d120f9943f6b40a787765334a48fb8106dda7b5f",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 1278.9114758070064
+      },
+      "state_sha256": "8a7351ed3d480d67bf7b6a356b8c6dc98d2261333b60f26f3ce7c1bd8cf3c4d1",
+      "conversation_sha256": "5940bddf74e821ca093116294413ca898432b335dc9c64f53368a8d76e7b2c3b",
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "observation": {
+          "source_index": 4,
+          "session_index": 1,
+          "ordinal": 0,
+          "stage": "physical-target-readiness"
+        }
+      },
+      "completed_workload_moves": 0,
+      "targets": [
+        {
+          "source_ordinal": "0-0",
+          "original_root_completed": true,
+          "original_reference_preserved": true,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "failure_stage": "original-post-commit-data-controls",
+          "owner_ready": false,
+          "video_transfer_admitted": true,
+          "sent_video_packets": 0,
+          "original_client_joined": true,
+          "encoder_process": {
+            "cancelled": false,
+            "clean": true,
+            "joined": true
+          }
+        },
+        {
+          "source_ordinal": "4-0",
+          "original_root_completed": true,
+          "original_reference_preserved": true,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "failure_stage": "original-post-commit-data-controls",
+          "owner_ready": false,
+          "video_transfer_admitted": true,
+          "sent_video_packets": 0,
+          "original_client_joined": true,
+          "encoder_process": {
+            "cancelled": false,
+            "clean": true,
+            "joined": true
+          }
+        }
+      ],
+      "media_observation": {
+        "format": "connect/native-av-work-observation/1",
+        "original_tasks_joined": true,
+        "encoder_processes_joined": 6,
+        "original_tasks_started": 24,
+        "control_task_started": true,
+        "elapsed_ms": 19071.857152,
+        "failure": {
+          "route_index": null,
+          "medium": null,
+          "direction": "control",
+          "stage": "during-workload"
+        },
+        "routes": [
+          {
+            "index": 0,
+            "received_audio": 902,
+            "received_video": 536,
+            "submitted_packets": {
+              "audio": 930,
+              "video": 1305
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 1,
+            "received_audio": 903,
+            "received_video": 546,
+            "submitted_packets": {
+              "audio": 930,
+              "video": 1305
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 2,
+            "received_audio": 916,
+            "received_video": 551,
+            "submitted_packets": {
+              "audio": 930,
+              "video": 1305
+            },
+            "received_clocks": {
+              "audio": 19,
+              "video": 19
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 3,
+            "received_audio": 906,
+            "received_video": 551,
+            "submitted_packets": {
+              "audio": 930,
+              "video": 1305
+            },
+            "received_clocks": {
+              "audio": 19,
+              "video": 19
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 4,
+            "received_audio": 872,
+            "received_video": 542,
+            "submitted_packets": {
+              "audio": 928,
+              "video": 1302
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 5,
+            "received_audio": 882,
+            "received_video": 542,
+            "submitted_packets": {
+              "audio": 930,
+              "video": 1301
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          }
+        ],
+        "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+      },
+      "capture": {
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "kernel_dropped_packets": 0,
+        "pcap_sha256": "a2fceaf4a314e3cd3611b992b394f2a90a6bd8886e8ba2d8bb89e0eadda571f3"
+      },
+      "server_cleanup": {
+        "server_exit_code": 0,
+        "forced": false,
+        "original_group_retired": true
+      }
+    }
+  ],
+  "diagnosis": {
+    "confirmed": "Both original replacement roots completed. Both raw physical peers then refused the explicit Data-unmute command locally. CanonicalClient::send_value calls native_video.outgoing before submission; controls::outgoing rejects every selected Data target even though the protocol and signed resource model permit Data gates. No Data-unmute receipt or ready marker was produced.",
+    "source": [
+      "crates/connect-client/src/canonical.rs",
+      "crates/connect-client/src/canonical/native_video/controls.rs",
+      "examples/rust-sdk-journey/src/replacement_peer/controls.rs"
+    ],
+    "candidate_fix": "Permit explicit targets matching any sealed negotiated stream, including Data. Keep implicit hold/resume target semantics unchanged. Invalidate video history only for selected video directions, and retain exact binding/generation/revision validation for every signed receipt.",
+    "verification": "One new component regression covers explicit Data controls and unchanged video history across connection generations 1/2/3, exact Data handle/generation checks, foreign targets and changed original reuse. It is pending, followed by the failed full workload."
+  },
+  "task_complete": false,
+  "transport_cells_qualified": 0,
+  "limitations": [
+    "The scenario stopped after about 19 seconds and completed no complete workload moves; two durable replacement roots are not completed workload moves.",
+    "No full independent media decode or comparison with the old 544ms gap is available. Earlier quality failures remain unresolved.",
+    "All original media tasks, six encoders, replacement workers, server groups and packet capture joined; no forced cleanup or capture kernel drops."
+  ],
+  "remaining": [
+    "Rerun only the failed integrated workload after the Data-control correction and new regression.",
+    "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
+  ]
+}
