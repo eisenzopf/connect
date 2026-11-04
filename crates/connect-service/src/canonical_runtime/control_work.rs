@@ -202,6 +202,17 @@ impl Runtime {
         if let Ok(mut jobs) = self.control_polls.jobs.try_lock() {
             self.control_polls.reap(&mut jobs);
         }
+        // The periodic custodian must also join completed outer controls.
+        // Reaping only at the next submission retains the final batch forever
+        // in an otherwise idle runtime. Pending controls keep their original
+        // custody; neither observation nor cleanup may cancel or replace them.
+        if let Ok(mut work) = self.work.try_lock() {
+            while let Some(result) = work.try_join_next() {
+                if result.is_err() {
+                    self.retirement_failed.store(true, Ordering::Release);
+                }
+            }
+        }
         if self.control_polls.failed.load(Ordering::Acquire) {
             self.retirement_failed.store(true, Ordering::Release);
         }

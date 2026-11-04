@@ -342,3 +342,68 @@ async fn native_control_poll_panic_remains_a_failed_drain() {
     );
     assert_eq!(runtime.control_polls.len(), Some(0));
 }
+
+#[tokio::test]
+async fn periodic_custodian_joins_completed_controls_without_new_submission_or_cancelling_pending()
+{
+    let (_directory, _store, runtime) = fixture();
+    let barrier = Arc::new(tokio::sync::Barrier::new(9));
+    let (release, pending) = tokio::sync::oneshot::channel::<()>();
+    runtime
+        .spawn_native_control(async move { pending.await.expect("original pending release") })
+        .expect("original pending control");
+    for _ in 0..8 {
+        let ready = barrier.clone();
+        runtime
+            .spawn_native_control(async move {
+                ready.wait().await;
+            })
+            .expect("original completed batch");
+    }
+    barrier.wait().await;
+    {
+        let held = runtime.work.lock().expect("contended control registry");
+        runtime.reap_control_polls();
+        assert_eq!(held.len(), 9, "contention preserves every original owner");
+    }
+    tokio::time::timeout(Duration::from_secs(2), async {
+        loop {
+            runtime.reap_control_polls();
+            if runtime
+                .operational_resources()
+                .is_some_and(|v| v.owned_tasks == 1)
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("periodic join of completed outer tasks");
+    assert!(
+        !release.is_closed(),
+        "reaping cannot cancel original pending work"
+    );
+    release.send(()).expect("release same original control");
+    tokio::time::timeout(Duration::from_secs(2), async {
+        loop {
+            runtime.reap_control_polls();
+            if runtime
+                .operational_resources()
+                .is_some_and(|v| v.owned_tasks == 0)
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("idle without another command submission");
+    assert!(!runtime.retirement_failed.load(Ordering::Acquire));
+    runtime.stop.cancel();
+    assert!(
+        runtime
+            .drain_control_polls(tokio::time::Instant::now() + Duration::from_secs(2))
+            .await
+    );
+}
