@@ -348,4 +348,6 @@ A lost consumption response is not retry permission.
 RTP helper packets carry optional `video_epoch` only when the Rust SDK has
 matched the signed notice and packet; fields are epoch, incarnation, revision,
 SSRC, first native sequence and first RTP timestamp. Ordinary packets omit it.
-Helper bridge verification and Node/Python consumers are still pending.
+The two focused helper-reference checks pass on local ARM64 at `490acc71`; see
+`docs/evidence/gate-6/helper-video-feedback.json`. Node/Python consumers and
+end-to-end IPC/live decoder recovery remain unverified.

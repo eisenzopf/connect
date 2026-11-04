@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-helper-video-feedback/1",
   "task": "G6-058",
-  "status": "verification-pending",
+  "status": "component-pass",
   "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
   "implementation": [
     "Per-channel opaque original-hint references; one perStream and128total. Recheck original Client/allocation/history/200ms deadline at one-shot consumption, return floored remaining milliseconds without a renewed deadline.",
@@ -19,5 +19,50 @@
   ],
   "old_passed_cases_rerun": false,
   "full_media_rehearsal_run": false,
-  "task_complete": false
+  "task_complete": false,
+  "source_revision": "490acc71254062b24b45f743d18cc1ecb7177b70",
+  "verification": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 120929,
+    "source_revision": "490acc71254062b24b45f743d18cc1ecb7177b70",
+    "passed": true,
+    "steps": [
+      {
+        "group": "sdk",
+        "case": "sdk::helper::media::feedback::tests::helper_feedback_lease_retains_original_age_and_consumes_once_on_current_binding",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 281 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "dab5187746d5795c69beb868e21452f871f4b36c4e8b09b8d6835a8c19b86659"
+      },
+      {
+        "group": "sdk",
+        "case": "sdk::helper::media::feedback::tests::helper_feedback_lease_capacity_expires_without_extending_original_hints",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 281 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "2a971437f463376e1534eaf186aa24850aeb0ac7d83b000960e59ffff16ec26a"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "helper_video_feedback_candidate": true,
+    "builds": [
+      {
+        "group": "sdk",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "448a2cd97c5b2dce2d2456987397c9928997ac08da1c2d5abef4a11c2a58eec0",
+        "test_executable_sha256": "f98814297b666fd470d7f15fdaf5524e9fb8ba01a4ecbf1c3c7df85b4ff52b09",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 56.146535565989325
+  },
+  "result_state_sha256": "83af473d422e8f1f5c548c89eb67bcecbd0993d37f568dc40280d23946674803"
 }
