@@ -1,0 +1,69 @@
+{
+  "format": "connect/projection-sql-fix/1",
+  "run": "v143",
+  "source_revision": "bc93021cb4cab149f643c1d05e3d68c3f99dae87",
+  "platform": "Owner Mac Studio local Ubuntu 24.04 ARM64 VM",
+  "passed": true,
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 184670,
+    "source_revision": "bc93021cb4cab149f643c1d05e3d68c3f99dae87",
+    "passed": true,
+    "steps": [
+      {
+        "group": "projection-sql",
+        "case": "connection_control::tests::replacement_sources::commit::diagnostics::captured_projection_drains_brief_primary_sql_exclusion_within_original_admission_budget",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1350 filtered out; finished in 0.24s"
+        ],
+        "log_sha256": "6f824624389a57193180944aec522404e36e25b448ff1b701295995ac59c0190"
+      },
+      {
+        "group": "projection-sql",
+        "case": "connection_control::tests::replacement_sources::commit::diagnostics::initial_projection_sql_wait_keeps_refusals_effect_free_and_current_installation_required",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1350 filtered out; finished in 0.25s"
+        ],
+        "log_sha256": "8538651ae5a39c2d203805b9993753251994dbb5fb4f00252df1dcbce62a623a"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "projection_initial_sql_fix": true,
+    "previous_passed_cases_rerun": false,
+    "builds": [
+      {
+        "group": "projection-sql",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "2c4938c08c7920d957f0b02908d51a0ee3f7d17f286cf7d863bb54e0baa255ba",
+        "test_executable_sha256": "fb05edca94507582eacead0a014703e47f9e4f2c1880b422194e81285979d48b",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 54.77500516700093
+  },
+  "state_sha256": "2982c4d6b7c48f4f79d9e535bcdbf1cb746e81725ae236dfee8aae13ae3d6cb1",
+  "observed_markers": [
+    "original projection short SQL exclusion: admitted=true code=ok elapsed_us=6445",
+    "original projection SQL budget: sustained SQL/authority and foreign writer refused; no partial metadata, fresh packet authority restored, missing installation refused, exact capture activated once"
+  ],
+  "counterexample_evidence": "docs/evidence/gate-6/projection-sql-before.json",
+  "change": "Initial SQL acquisition and subsequent authority acquisition share one existing five-millisecond deadline. No authority is held during the initial SQL wait. SQL reacquisition after authority remains immediate, zero SQLite busy timeout and current rederivation/installation checks remain intact.",
+  "findings": [
+    "The failed short SQL exclusion case now succeeds on its original captured activation attempt. The actual SQL owner joins, original capture recovery does not advance state or create another effect.",
+    "The measured6.445ms is the whole metadata call plus SQL owner join, including transaction work; the five-millisecond bound applies to admission, not transaction execution.",
+    "Sustained primary mutex exclusion, a retained authority reader and an external SQLite writer refuse within one20ms quantum with unchanged Store snapshot. Missing current installation evidence refuses and grants no packet read; the exact original capture subsequently activates.",
+    "All source/prepared/executable guards pass. Each exact case filters1350 others; no previously passing suite or full workload rerun in this component."
+  ],
+  "next": "Run the previously failed v141 full local ARM workload after this causal correction; compare original handoff projection timings and audio/video quality. Distributed audio omissions and every complete cell remain unqualified.",
+  "task_complete": false,
+  "cell_qualified": false,
+  "matrix_qualified": false,
+  "whole_gate_qualified": false
+}

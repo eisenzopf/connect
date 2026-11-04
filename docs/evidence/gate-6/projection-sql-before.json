@@ -47,7 +47,7 @@
   "scope": "Actual Store captured replacement activation and real primary SQL mutex held for2ms by an independent joined owner. Initial attempt returns authority-busy. Original exact metadata subsequently settles and replays without another physical effect or effect row; failure assertion follows cleanup.",
   "finding": "Initial projection SQL acquisition is immediate, discarding the existing bounded admission opportunity and forcing the outer20ms retry cadence even for a short mutex clash. This case confirms that mechanism, not the unlogged actual v141 SQL holder.",
   "candidate": "Use one original5ms admission deadline for the initial SQL wait and subsequent authority acquisition. Hold no authority during the initial SQL wait. Final SQL reacquisition remains immediate, SQLite busy_timeout remains zero, current scope derivation and installation validation remain mandatory.",
-  "verification_status": "Correction implemented; retry only the failed case and one new bounded-refusal/current-installation case next. No full workload pass is claimed.",
+  "verification_status": "v143 atbc93021c passes the previously failed case and one new bounded-refusal/current-installation case. Full workload remains unverified after this correction; see projection-sql-fix.json.",
   "task_complete": false,
   "cell_qualified": false,
   "matrix_qualified": false,
