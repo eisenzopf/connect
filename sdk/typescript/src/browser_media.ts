@@ -350,12 +350,12 @@ export class BrowserMediaPeer {
         if (!routes.length) return;
         if (type === "stream.unsubscribe") {
             if (
-                !Array.isArray(payload.streams) ||
-                !payload.streams.every(identifier)
+                !Array.isArray(payload.strm_ids) ||
+                !payload.strm_ids.every(identifier)
             )
                 return fail("Invalid original video unsubscribe");
             for (const route of routes)
-                if (payload.streams.includes(route.binding.streamId)) {
+                if (payload.strm_ids.includes(route.binding.streamId)) {
                     route.video!.unselect();
                     route.assembler?.clear();
                     route.vp8?.resetReceiveHistory();

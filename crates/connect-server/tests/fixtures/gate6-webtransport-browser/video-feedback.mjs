@@ -59,7 +59,7 @@ export async function runRecovery(input){
   const firstPacket=received.find(p=>p.timestamp===first.rtp);check(firstPacket,'initial original RTP timestamp observed');
   // Let any initial bootstrap hint expire; do not encode a stale source frame.
   await wait(210);
-  setPhase('unselect');await peers[1].beginControl(target.id,'browser-feedback-unselect','stream.unsubscribe',{streams:['camera']},target.revision,{timeoutMs:5000}).ready;
+  setPhase('unselect');await peers[1].beginControl(target.id,'browser-feedback-unselect','stream.unsubscribe',{strm_ids:['camera']},target.revision,{timeoutMs:5000}).ready;
   setPhase('reselect');await target.subscribe('browser-feedback-reselect',input.source_participant,['video'],{timeoutMs:5000});
   const before=hints.length;setPhase('new-history-delta');const delta=capture(110);await until(()=>sent.some(f=>f.timestamp===delta.rtp),'new source frame');
   const sentDelta=sent.find(f=>f.timestamp===delta.rtp);check(!sentDelta.key,'new history must encounter an actual interframe before recovery');

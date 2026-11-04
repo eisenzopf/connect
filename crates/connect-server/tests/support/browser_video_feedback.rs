@@ -19,7 +19,10 @@ impl Page {
     async fn open() -> Self {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let mut files = HashMap::new();
-        for item in std::fs::read_dir(root.join("sdk/typescript/dist")).unwrap() {
+        let sdk = std::env::var_os("CONNECT_GATE6_TS_DIST")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| root.join("sdk/typescript/dist"));
+        for item in std::fs::read_dir(sdk).unwrap() {
             let item = item.unwrap();
             if item.path().extension().and_then(|e| e.to_str()) != Some("js") {
                 continue;
