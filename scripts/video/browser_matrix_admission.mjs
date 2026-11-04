@@ -18,6 +18,8 @@ assert.ok((await fs.realpath(inputPath)).startsWith(privateRoot+path.sep));
 assert.equal((await fs.stat(inputPath)).mode&0o077,0);
 const spec=JSON.parse(await fs.readFile(inputPath,'utf8'));
 assert.equal(spec.format,'connect/browser-matrix-admission-input/1');
+assert.ok(['admission','programme'].includes(spec.stage));
+assert.ok(spec.stage!=='programme'||spec.transport==='chrome-webtransport');
 assert.ok(['chrome-webtransport','chrome-wss-webrtc'].includes(spec.transport));
 assert.ok(['EdDSA','ES256'].includes(spec.signingAlgorithm));
 assert.ok(process.platform==='linux'&&process.arch==='arm64');
@@ -51,7 +53,7 @@ for(const actor of Object.values(spec.actors)){
 }
 const {chromium}=await import(pathToFileURL('/opt/connect-browser-tools/node_modules/playwright/index.mjs').href);
 const report={format:'connect/browser-matrix-admission-observation/1',source_revision:spec.sourceRevision,
-    transport:spec.transport,signing_algorithm:spec.signingAlgorithm,browser:version.stdout.trim(),
+    transport:spec.transport,stage:spec.stage,signing_algorithm:spec.signingAlgorithm,browser:version.stdout.trim(),
     passed:false,cell_qualified:false,task_complete:false,full_media_programme_executed:false,
     scope:'Actual isolated Chrome/public browser-SDK admission only. HTTPS/WSS use configured CA trust; WT uses its explicitly supplied fresh short-lived certificate SHA256 through the standard API. No full media/four-move/expiry/idle/fallback or complete-cell qualification.',
     tls_trust:{https_wss:'isolated-profile-CA',webtransport:spec.transport==='chrome-webtransport'?'explicit-fresh-certificate-sha256':null,
@@ -71,6 +73,7 @@ try{
             if(url.pathname==='/'){response.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});response.end('<!doctype html><meta charset=utf-8><title>Owned matrix fixture</title>');return;}
             if(url.pathname==='/_matrix/admission.mjs')file=path.join(root,'scripts/lib/browser_matrix_admission.mjs');
             else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
+            else if(url.pathname==='/_matrix/programme.mjs')file=path.join(root,'scripts/lib/browser_matrix_programme.mjs');
             else if(url.pathname==='/video/marker_calibration.mjs')file=path.join(root,'scripts/video/marker_calibration.mjs');
             else if(url.pathname==='/video/source_identity.mjs')file=path.join(root,'scripts/video/source_identity.mjs');
             else{
@@ -120,6 +123,7 @@ try{
         const {BrowserSdkClient}=await import('/sdk/browser.js');
         const {browserMatrixPlan,browserMatrixAdmission,retireBrowserMatrixAdmission}=await import('/_matrix/admission.mjs');
         const {browserMatrixSources}=await import('/_matrix/sources.mjs');
+        const {browserMatrixProgramme,browserMatrixKeepalive}=await import('/_matrix/programme.mjs');
         const pin=Uint8Array.from(spec.tls.leafSha256.match(/../g),value=>parseInt(value,16));
         let pinRefusal;
         if(selected==='webtransport'){
@@ -139,7 +143,8 @@ try{
             pinRefusal={mismatched_leaf_refused:true,original_transport_closed:true,application_streams_created:0,application_mutations_submitted:0};
         }
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
-        const actors={};window.matrixActors=actors;let state,sources;
+        const actors={};window.matrixActors=actors;let state,sources,keepalive;
+        const programmeReport={};
         try{
             for(const [name,configuration] of Object.entries(spec.actors)){
                 window.matrixPhase='authenticate-'+name;
@@ -153,17 +158,27 @@ try{
                 const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:configuration.identityId,
                     deviceId:configuration.device.id,endpoints:spec.endpoints,preferredTransport:selected,allowFallback:false,
                     timeoutMs:8000,attemptTimeoutMs:3000,nativeVideoFeedback:true,media:spec.rtcConfiguration,resolveEnrollment:async()=>enrollment});
-                actors[name]={identityId:configuration.identityId,deviceId:configuration.device.id,client};
+                actors[name]={identityId:configuration.identityId,deviceId:configuration.device.id,endpointId:configuration.endpointId,client};
             }
+            if(spec.stage==='programme')keepalive=browserMatrixKeepalive(actors);
             window.matrixPhase='admission';const plan=browserMatrixPlan();
             sources=await browserMatrixSources();
             state=await browserMatrixAdmission({actors,plan,selectedTransport:selected,journal:event=>window.matrixJournal(event),
                 startMedia:input=>sources.start(input)});
             const sourceStartup=sources.observation();
+            if(spec.stage==='programme'){
+                window.matrixPhase='four-move-programme';
+                await browserMatrixProgramme({state,actors,plan,sources,journal:event=>window.matrixJournal(event),
+                    keepalive,report:programmeReport});
+                await keepalive.close();
+            }
             window.matrixPhase='original-retirement';
-            const retirement=await retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event)});
+            const retirement=await retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event),
+                ...(spec.stage==='programme'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
             return {passed:retirement.passed,wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,admission:state.report,
-                actual_connections:state.connections.length,source_startup:sourceStartup,retirement};
+                actual_connections:state.connections.length,source_startup:sourceStartup,retirement,
+                ...(spec.stage==='programme'?{programme:programmeReport,keepalive:keepalive.observation()}:{}),
+                ...(spec.stage==='programme'?{scope:'Actual admission and four-move source programme only; independent receive quality/capture/expiry/idle remain unverified.'}:{})};
         }catch(error){
             console.error('Matrix failure',String(error.stack??error),JSON.stringify({kind:error.kind,certainty:error.certainty,problem:error.problem}));
             const closes=await Promise.allSettled(Object.values(actors).map(actor=>actor.client.close({timeoutMs:5000})));
@@ -171,8 +186,8 @@ try{
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
-                original_client_closes:closes.map(value=>value.status)};
-        } finally {await sources?.close();}
+                programme:programmeReport,keepalive:keepalive?.observation(),original_client_closes:closes.map(value=>value.status)};
+        } finally {await keepalive?.close().catch(()=>{});await sources?.close();}
     },{spec,selected});
     Object.assign(report,result);report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
     stage='browser-retirement';

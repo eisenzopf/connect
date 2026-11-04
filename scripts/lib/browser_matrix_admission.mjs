@@ -15,7 +15,8 @@ export function browserMatrixPlan(uuid = () => crypto.randomUUID()) {
         role: roles[role], connection: id("connection"), audio: id("audio"), video: id("video"),
         offer: id("op"), select: id("op"), end: id("op")}));
     const moves = [0, 4].flatMap(source => [15000, 40000].map((offset, ordinal) => ({source, ordinal, scheduledStartMs: offset,
-        operation: id("op"), selection: id("op"), audio: id("audio"), video: id("video"), targetRole: ordinal ? "participant-1" : "replacement-1"})));
+        operation: id("op"), selection: id("op"), audio: id("audio"), video: id("video"), receiveVideo: id("receive-video"),
+        targetRole: ordinal ? "participant-1" : "replacement-1"})));
     return {format: "connect/browser-matrix-plan/1", movementProfile: "gate6-realistic-device-roundtrip-v1",
         programmeMs: 62000, operations, messages, sessions, routes, moves};
 }
@@ -175,14 +176,14 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
 
 // The admission-only caller requests one terminal intent here. Future full media
 // callers retain these same owners until the unchanged programme terminal.
-export async function retireBrowserMatrixAdmission({state,actors,plan,journal,now=()=>performance.now()}) {
-    const terminal=now(),cutoff=terminal+5000;
+export async function retireBrowserMatrixAdmission({state,actors,plan,journal,now=()=>performance.now(),terminalMs,reason='matrix-admission-complete'}) {
+    const terminal=terminalMs??now(),cutoff=terminal+5000;
     const left=()=>{const timeoutMs=Math.floor(cutoff-now());check(timeoutMs>0,"original browser teardown deadline");return {timeoutMs};};
     const ends=await Promise.allSettled(state.connections.map(async(connection,index)=>{
         const original=plan.routes[index].end;
         const snapshot=await connection.refresh(left());
         await journal({kind:"end-intent",operationId:original,connectionId:connection.id,expectedStreamRevision:snapshot.streamRevision});
-        const operation=await connection.end({reasonCode:0,reason:"matrix-admission-complete",expectedStreamRevision:snapshot.streamRevision},
+        const operation=await connection.end({reasonCode:0,reason,expectedStreamRevision:snapshot.streamRevision},
             {...left(),operationId:original});
         await journal({kind:"end-accepted",operationId:original,reference:operation.referenceJson()});
         const result=await operation.wait(left());check(result.snapshot.state==="completed","original browser end must complete");

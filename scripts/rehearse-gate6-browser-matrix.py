@@ -38,12 +38,14 @@ def port(kind):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--stage", choices=("admission",), required=True)
+    parser.add_argument("--stage", choices=("admission", "programme"), required=True)
     parser.add_argument("--transport", choices=("chrome-webtransport", "chrome-wss-webrtc"), required=True)
     parser.add_argument("--signing", choices=("EdDSA", "ES256"), required=True)
     parser.add_argument("--image", required=True, help="Exact already installed local ARM browser image ID")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    if args.stage == "programme" and args.transport != "chrome-webtransport":
+        parser.error("Actual browser replacement programme currently requires Chrome WebTransport")
     if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
         parser.error("Use the owner's local ARM resources")
     assert platform.system() == "Linux" and platform.machine() == "aarch64"
@@ -71,7 +73,7 @@ def main():
         signing_algorithm=args.signing, transport=args.transport, browser_image_id=args.image,
         passed=False, cell_qualified=False, task_complete=False, whole_gate_qualified=False,
         full_media_programme_executed=False, commands=[], servers=[],
-        scope="Actual fresh production CLI/normal TLS/enrolled browser-SDK admission component. Full 62-second media/four-move/fallback/expiry/idle stages remain required.")
+        scope="Actual fresh production CLI/normal TLS/enrolled browser-SDK " + args.stage + " component. Independent decoded media/capture/fallback/expiry/idle remain required.")
     state = dict(stage="preparing", controller_pid=os.getpid(), source_revision=revision,
                  cell_id=cell_id, source_guard_active=False)
     def save():
@@ -226,8 +228,9 @@ def main():
                 dict(type="verify_endpoint", operation_id="browser-media-verify-" + name, endpoint_id=result["endpoint_id"],
                     expected_revision=result["revision"], evidence_ref="native-signed-device-proof-" + hashlib.sha256(proof).hexdigest())))["result"]["Ok"]
             assert verified["verification_state"] == "verified"
+            config["endpointId"] = result["endpoint_id"]
         report["actor_bindings"] = bindings
-        phase = "actual-browser-admission"
+        phase = "actual-browser-" + args.stage
         browser_output = private / "browser"
         browser_output.mkdir()
         # Docker cannot create a nested destination beneath the read-only
@@ -238,7 +241,7 @@ def main():
         assert not audio_mount.is_symlink() and not any(audio_mount.iterdir())
         browser_input = browser_output / "input.json"
         publish(browser_input, (json.dumps(dict(format="connect/browser-matrix-admission-input/1", sourceRevision=revision,
-            transport=args.transport, signingAlgorithm=args.signing, origin=origin,
+            transport=args.transport, signingAlgorithm=args.signing, origin=origin, stage=args.stage,
             endpoints={"webtransport": f"https://127.0.0.1:{native}/connect", "wss-webrtc": f"wss://127.0.0.1:{wss}/connect"},
             actors=exported, output=str(browser_output),
             tls=dict(certificatePem=str(tls / "leaf.pem"), privateKeyPem=str(tls / "leaf-key.pem"), rootDer=str(initial / "browser-root.der"),
