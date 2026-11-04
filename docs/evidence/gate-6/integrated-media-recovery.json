@@ -541,6 +541,218 @@
         "original_group_retired": true
       },
       "all_observed_helpers_joined": true
+    },
+    {
+      "run": "v110",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 134691,
+        "source_revision": "8e313c56e7089ffd76526960428ab1cc36742f72",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": true,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T07:43:26.283604+00:00",
+        "fixture_exit_code": 1,
+        "report_sha256": "c0ba967a8e7762f04b18f7bc360f3430e6fdf67ca596cbd0bca608bd70f5fcfb",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "394281c4683d691e111ea4e531e1d621a54b3314e5b1d8e713a6cd5e265b273e",
+        "peer_binary_sha256": "9743613b7f674eb1e3bb5851df48e6d3260006f7def386daa80b80fbee89c925",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 122.7721791560034
+      },
+      "state_sha256": "a6e74bcbfa63169c7e39de8a10f6742e232a292b3d432a0084c963e7a08ec524",
+      "scope": "Failed full native EdDSA/local workload with sparse replacement commit diagnostics. No passed component or regression rerun.",
+      "movement_report_sha256": "6358f194ef1d970015594176afed54b8f9feb665f4fbf01da8449249fbf66140",
+      "completed_workload_moves": 3,
+      "moves": [
+        {
+          "source_index": 4,
+          "session_index": 1,
+          "ordinal": 0,
+          "original_reference_preserved": true,
+          "original_retired": true,
+          "camera_transfer_admitted": true,
+          "elapsed_ms": 3513.469186000002,
+          "scheduled_start_ms": 15000,
+          "actual_start_ms": 15512.622163,
+          "data_exchange_verified": true
+        },
+        {
+          "source_index": 0,
+          "session_index": 0,
+          "ordinal": 0,
+          "original_reference_preserved": true,
+          "original_retired": true,
+          "camera_transfer_admitted": true,
+          "elapsed_ms": 4571.336947,
+          "scheduled_start_ms": 15000,
+          "actual_start_ms": 15436.872959,
+          "data_exchange_verified": true
+        },
+        {
+          "source_index": 4,
+          "session_index": 1,
+          "ordinal": 1,
+          "original_reference_preserved": true,
+          "original_retired": true,
+          "camera_transfer_admitted": false,
+          "elapsed_ms": 3541.9815919999965,
+          "scheduled_start_ms": 40000,
+          "actual_start_ms": 40622.918619000004,
+          "data_exchange_verified": false
+        }
+      ],
+      "movement_failure": {
+        "name": "NodeSdkError",
+        "kind": "application",
+        "certainty": "recorded",
+        "observation": {
+          "source_index": 0,
+          "session_index": 0,
+          "ordinal": 1,
+          "stage": "physical-target"
+        },
+        "original_recorded_observation": {
+          "state": "failed",
+          "revision": 14,
+          "problem_code_unrecognized": true
+        }
+      },
+      "target_joins_failed": 1,
+      "failure_stage": "Core replacement planning before commit reservation: Media(Model(Conflict)); the specific conflict branch is not identified by existing logs.",
+      "media_observation": {
+        "format": "connect/native-av-work-observation/1",
+        "original_tasks_joined": true,
+        "encoder_processes_joined": 6,
+        "original_tasks_started": 24,
+        "control_task_started": true,
+        "elapsed_ms": 44334.195856,
+        "failure": {
+          "route_index": null,
+          "medium": null,
+          "direction": "control",
+          "stage": "during-workload"
+        },
+        "routes": [
+          {
+            "index": 0,
+            "received_audio": 935,
+            "received_video": 568,
+            "submitted_packets": {
+              "audio": 978,
+              "video": 1375
+            },
+            "received_clocks": {
+              "audio": 19,
+              "video": 19
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 1,
+            "received_audio": 2122,
+            "received_video": 1304,
+            "submitted_packets": {
+              "audio": 2181,
+              "video": 3080
+            },
+            "received_clocks": {
+              "audio": 44,
+              "video": 44
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 2,
+            "received_audio": 2156,
+            "received_video": 1305,
+            "submitted_packets": {
+              "audio": 2181,
+              "video": 3074
+            },
+            "received_clocks": {
+              "audio": 44,
+              "video": 43
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 3,
+            "received_audio": 2139,
+            "received_video": 1305,
+            "submitted_packets": {
+              "audio": 2181,
+              "video": 3081
+            },
+            "received_clocks": {
+              "audio": 44,
+              "video": 43
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 4,
+            "received_audio": 887,
+            "received_video": 539,
+            "submitted_packets": {
+              "audio": 926,
+              "video": 1298
+            },
+            "received_clocks": {
+              "audio": 18,
+              "video": 18
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          },
+          {
+            "index": 5,
+            "received_audio": 2085,
+            "received_video": 1304,
+            "submitted_packets": {
+              "audio": 2181,
+              "video": 3074
+            },
+            "received_clocks": {
+              "audio": 44,
+              "video": 44
+            },
+            "gap_packets": 0,
+            "late_send_frames": 0
+          }
+        ],
+        "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+      },
+      "capture": {
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "kernel_dropped_packets": 0,
+        "pcap_sha256": "f2ead439aeb67f93d400c78ada741ffc376c8344b7c0d24c7048ec403610d357"
+      },
+      "server_cleanup": {
+        "server_exit_code": 0,
+        "forced": false,
+        "original_group_retired": true
+      },
+      "all_observed_helpers_joined": true
     }
   ],
   "diagnosis": {
@@ -556,17 +768,17 @@
   "task_complete": false,
   "transport_cells_qualified": 0,
   "limitations": [
-    "The scenario stopped after about 19 seconds and completed no complete workload moves; two durable replacement roots are not completed workload moves.",
-    "No full independent media decode or comparison with the old 544ms gap is available. Earlier quality failures remain unresolved.",
-    "All original media tasks, six encoders, replacement workers, server groups and packet capture joined; no forced cleanup or capture kernel drops."
+    "v110 reports three original moves completed; only the first two report camera transfer admission and verified Data exchange. The fourth original fails during planning before movement commit. This is not four qualified moves.",
+    "The workload stops after about 44 seconds; no complete 60-second independent media-quality result or transport cell is qualified.",
+    "v109 initial start refusal did not recur in v110 and remains unexplained; do not assume both failures have the same cause."
   ],
   "remaining": [
-    "Rerun only the failed integrated workload after the Data-control correction and new regression.",
+    "Identify the precise Core planning conflict, correct its cause, and rerun only the failed integrated workload.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
   "next_investigation": {
-    "observed": "Saved original start effect is unknown and exact candidate absence is settled with three once-confirmed compensations. Existing log records native offer source/forbidden; it does not distinguish negotiation, initial mute, confirmation guard or dormant lifecycle preparation.",
-    "action": "Use existing sparse replacement phase/error logging on one rerun of the failed full scenario, with the same source behavior, original four-move profile, packet capture and bounds. No passed regression rerun.",
+    "observed": "Core plan errors conflate state try-lock contention, audience revision/context mismatch, stale video binding and saved audio selection conflicts. Service maps all of these to forbidden.",
+    "action": "One local ARM rerun with metadata-only failure-stage diagnostics in Core plus initial-start diagnostics in Service. No behavior relaxation, deadline extension or generic conflict retry.",
     "cause_proven": false
   }
 }

@@ -1,0 +1,115 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
+@@ -55,11 +55,17 @@
+         let old_state = old
+             .state
+             .try_lock()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
++            .map_err(|_| {
++                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "video-old-state", "Replacement plan state lock busy");
++                MediaTransitionError::Conflict
++            })?;
+         let new_state = new
+             .state
+             .try_lock()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
++            .map_err(|_| {
++                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "video-new-state", "Replacement plan state lock busy");
++                MediaTransitionError::Conflict
++            })?;
+         if old_state.closed
+             || new_state.closed
+             || old.shutdown.is_cancelled()
+@@ -148,6 +154,12 @@
+             || port.binding.stream_local_id != stream.stream_local_id
+             || port.binding.generation != stream.generation
+         {
++            tracing::debug!(target: "rvoip_core::replacement_commit", stage = "video-binding",
++                negotiated_matches = (port.binding.negotiated == stream.negotiated),
++                transport_matches = (port.binding.transport_id == stream.transport_id),
++                local_id_matches = (port.binding.stream_local_id == stream.stream_local_id),
++                generation_matches = (port.binding.generation == stream.generation),
++                "Replacement plan binding differs from model");
+             return Err(MediaTransitionError::Conflict.into());
+         }
+         Ok(stream)
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -263,6 +263,11 @@
+                 .get(&context.group.operation)
+                 .is_some_and(|g| Arc::ptr_eq(g, &context.group))
+         {
++            tracing::debug!(target: "rvoip_core::replacement_commit", stage = "audience-registry",
++                actual_revision = registry.revision, expected_revision = request.expected_revision,
++                duplicate_operation = registry.groups.contains_key(&request.operation_id),
++                preparation_present = registry.groups.get(&context.group.operation).is_some_and(|g| Arc::ptr_eq(g, &context.group)),
++                "Replacement plan audience conflict");
+             return Err(MediaTransitionError::Conflict.into());
+         }
+         let old = &members
+@@ -303,7 +308,10 @@
+             let state = old
+                 .state
+                 .try_lock()
+-                .map_err(|_| MediaTransitionError::Conflict)?;
++                .map_err(|_| {
++                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "audio-old-state", "Replacement plan state lock busy");
++                MediaTransitionError::Conflict
++            })?;
+             state
+                 .model
+                 .streams()
+@@ -316,15 +324,24 @@
+             let state = new
+                 .state
+                 .try_lock()
+-                .map_err(|_| MediaTransitionError::Conflict)?;
++                .map_err(|_| {
++                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "audio-new-state", "Replacement plan state lock busy");
++                MediaTransitionError::Conflict
++            })?;
+             if let Some(confirmation) = &confirmation {
+-                confirmation.current(new, &state)?;
++                confirmation.current(new, &state).map_err(|error| {
++                    tracing::debug!(target: "rvoip_core::replacement_commit", stage = "confirmation-current", ?error, "Replacement plan readiness refused");
++                    error
++                })?;
+             }
+             members[&request.admitted].audio_consumer.duplex_since(
+                 new,
+                 context.committed_at,
+                 &state,
+-            )?
++            ).map_err(|error| {
++                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "audio-duplex", ?error, "Replacement plan readiness refused");
++                error
++            })?
+         };
+         let replaced_audience = registry.groups.values().find(|g| g.contains(old)).cloned();
+         let origins = replaced_audience.as_ref().map_or_else(Vec::new, |g| {
+@@ -357,7 +374,10 @@
+                 } else {
+                     member.audio_consumer.subscriptions.saved_program()
+                 };
+-                saved.replacing_connection(old, new, &old_logical, &new_logical, pending)?
++                saved.replacing_connection(old, new, &old_logical, &new_logical, pending).map_err(|error| {
++                    tracing::debug!(target: "rvoip_core::replacement_commit", stage = "audio-program", ?error, "Replacement plan saved selection refused");
++                    error
++                })?
+             };
+             programs.insert(id.clone(), program);
+         }
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -760,7 +760,10 @@
+         self.owns_replacement(p)?;
+         p.check()?;
+         let mut pending = p.state.lock().unwrap_or_else(|v| v.into_inner());
+-        pending.refresh_confirmation()?;
++        pending.refresh_confirmation().map_err(|error| {
++            tracing::debug!(target: "rvoip_core::replacement_commit", stage = "confirmation-refresh", ?error, "Replacement plan confirmation refused");
++            error
++        })?;
+         let context = pending
+             .context
+             .as_ref()

@@ -191,13 +191,26 @@ impl Runtime {
             tracing::debug!(target:"connect_service::canonical_replacement",stage="negotiate","Replacement resource start");
             let outcome=native.negotiate_native_offer(&id,a.clone(),invocation.clone(),deadline).await.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement native negotiation refused");Error::forbidden()})?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="mute","Replacement resource start");
-            native.mute_native_media_for_private_admission(&id,&a,invocation.clone(),deadline).await.map_err(|_|Error::forbidden())?;
-            if !invocation.read.current() || activation.confirmed_generation()!=Some(policy.pending.generation()) || controller.revision()!=2 || !native.is_connection_live(&id) {return Err(Error::forbidden());}
+            native.mute_native_media_for_private_admission(&id,&a,invocation.clone(),deadline).await.map_err(|error| {
+                tracing::debug!(target:"connect_service::canonical_replacement", stage="initial-mute", ?error, "Replacement resource start refused");
+                Error::forbidden()
+            })?;
+            let current = invocation.read.current();
+            let confirmed = activation.confirmed_generation();
+            let revision = controller.revision();
+            let live = native.is_connection_live(&id);
+            if !current || confirmed!=Some(policy.pending.generation()) || revision!=2 || !live {
+                tracing::debug!(target:"connect_service::canonical_replacement", stage="initial-confirmation", current, ?confirmed, expected_generation=policy.pending.generation(), revision, live, "Replacement resource start refused");
+                return Err(Error::forbidden());
+            }
             let resource_streams=outcome.accepted.iter().map(|s|s.as_str().to_owned()).collect::<Vec<_>>();
             let observation=serde_json::json!({"candidate":id.as_str(),"generation":policy.pending.generation(),"stream_revision":controller.revision(),"streams":resource_streams,"resources_prepared":true,"prepared_muted":true,"media_ready":false});
             // Seal the original authenticated writer metadata while the signed
             // invocation exists. Keep it dormant through private preparation.
-            let lifecycle=self.prepare_replacement_native_lifecycle(&id,&a,&physical)?;
+            let lifecycle=self.prepare_replacement_native_lifecycle(&id,&a,&physical).map_err(|error| {
+                tracing::debug!(target:"connect_service::canonical_replacement", stage="lifecycle-capture", code=%error.code, "Replacement resource start refused");
+                error
+            })?;
             Ok((controller,observation,resource_streams,lifecycle))
         }.await;
         drop(invocation);
