@@ -673,8 +673,9 @@ are retained in `docs/evidence/gate-6/rust-sdk-raw.json`. G6-060 remains in prog
 
 ## Explicit configuration and receipt reads
 
-`sdk::ClientConfig` contains `control: CanonicalClientConfig`, `tenant_id` and an
-optional `application: ApplicationClientConfig`. `Client::connect_configured`
+`sdk::ClientConfig` contains `control: CanonicalClientConfig`, `tenant_id`,
+`native_video_feedback` (false by default) and an optional
+`application: ApplicationClientConfig`. `Client::connect_configured`
 validates every configuration before constructing transports. The application
 endpoint must explicitly select the existing protected loopback HTTP profile and
 use exactly the native credential. It serves named application reads and never
@@ -925,8 +926,9 @@ incarnation, revision, SSRC and first packet boundary come from the signed notic
 matched to the exact selected allocation. Unknown tagged histories wait for
 that notice within the original 200 ms packet lifetime. Applications must reset
 decoder history when this identity changes; metadata grants no feedback right.
-The profile remains disabled by default while live encoder recovery and the
-remaining runtime integrations are completed. See
+Configured clients may explicitly set `native_video_feedback = true` to offer
+`rtcp-pli-epoch/1`. The default remains false; `Client::connect` and raw-peer
+adoption do not opt in. Current runtime qualification is recorded separately. See
 [`native-media-profile.md`](../../contracts/native-media-profile.md).
 
 

@@ -137,5 +137,8 @@ immediately before forcing the next fresh source frame. Its deadline charges
 the complete consumption RPC round trip against the original Rust lifetime;
 response receipt never starts a new 200 ms lifetime. Cloned/foreign references
 cannot be consumed. `SdkRtpPacket.videoEpoch` exposes matched receive history
-without changing the original RTP bytes. Production profile opt-in remains
-disabled pending live encoder/decoder recovery qualification.
+without changing the original RTP bytes. Set `native_video_feedback = true`
+in the original helper SDK TOML, before its `[control]` table, to opt in. The
+default is false. Server selection must confirm the profile; configuration
+alone cannot establish feedback authority. Integrated transport qualification
+is tracked in the Gate 6 evidence.

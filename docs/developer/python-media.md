@@ -120,4 +120,7 @@ forcing the next fresh encoder frame. The permit charges the full consumption
 RPC round trip against the original Rust deadline. Response arrival cannot
 renew it, and an equal-looking copied reference is not the captured object.
 `RtpPacket.video_epoch` exposes matched receive history while preserving original
-packet bytes. Production opt-in and live encoder recovery remain unqualified.
+packet bytes. Set `native_video_feedback = true` in the original helper SDK
+TOML, before `[control]`, to opt in; it defaults to false. Server selection must
+confirm the profile. Integrated transport qualification is tracked separately
+in the Gate 6 evidence.
