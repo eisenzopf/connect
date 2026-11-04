@@ -73,6 +73,7 @@ try{
             if(url.pathname==='/'){response.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});response.end('<!doctype html><meta charset=utf-8><title>Owned matrix fixture</title>');return;}
             if(url.pathname==='/_matrix/admission.mjs')file=path.join(root,'scripts/lib/browser_matrix_admission.mjs');
             else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
+            else if(url.pathname==='/_matrix/browser_matrix_pipeline.mjs')file=path.join(root,'scripts/lib/browser_matrix_pipeline.mjs');
             else if(url.pathname==='/_matrix/observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_observation.mjs');
             else if(url.pathname==='/video/audio_envelope.mjs')file=path.join(root,'scripts/video/audio_envelope.mjs');
             else if(url.pathname==='/_matrix/programme.mjs')file=path.join(root,'scripts/lib/browser_matrix_programme.mjs');
@@ -179,7 +180,7 @@ try{
             if(spec.stage==='quality'){
                 const {browserMatrixObservation}=await import('/_matrix/observation.mjs');
                 const {BrowserMediaRenderer}=await import('/sdk/browser_media_renderer.js');
-                observer=browserMatrixObservation(BrowserMediaRenderer,plan);
+                observer=browserMatrixObservation(BrowserMediaRenderer,plan,BrowserMediaPeer);
             }
             state=await browserMatrixAdmission({actors,plan,selectedTransport:selected,journal:event=>window.matrixJournal(event),
                 startMedia:input=>sources.start(input)});

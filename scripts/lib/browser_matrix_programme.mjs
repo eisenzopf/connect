@@ -69,7 +69,7 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
                 video:{send:intent.video,receive:intent.receiveVideo}},options());
             await journal({kind:'move-target-prepared',operationId:intent.operation,connectionId:targetOwner.connection.id});
             await sources.start({route,connection:targetOwner.connection,options:options()});
-            if(observer)await observer.attach(route.index,targetOwner.connection,{audio:intent.audio,video:intent.receiveVideo},options());
+            if(observer)await observer.attach(route.index,targetOwner.connection,{audio:intent.audio,video:intent.receiveVideo,sendVideo:intent.video},options());
             // Both receipts retain their original owners; do not cancel or
             // resubmit a mutation when one response is uncertain.
             const outcomes=await Promise.allSettled([operation.wait(options()),targetOwner.completion]);

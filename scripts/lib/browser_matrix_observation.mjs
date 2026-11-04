@@ -1,3 +1,4 @@
+import {browserMatrixPipeline} from './browser_matrix_pipeline.mjs';
 import {classifySourceFrame,sourceIdentityReport} from '../video/source_identity.mjs';
 import {ordinalSync} from '../video/marker_calibration.mjs';
 import {AudioEnvelope,combineAudioEnvelopeSync} from '../video/audio_envelope.mjs';
@@ -62,7 +63,7 @@ export class DecodedRoute {
 /** Fixture-owned observer of actual borrowed decoder outputs. The public render
  * owner still receives every frame normally. Copies contain only this run's
  * synthetic media; no borrowed frame is retained or closed by the observer. */
-export function browserMatrixObservation(Renderer,plan) {
+export function browserMatrixObservation(Renderer,plan,Peer) {
     const routes=plan.routes.map(route=>{
         const peers=plan.routes.filter(other=>other.session===route.session),at=peers.indexOf(route);
         const selected=peers[(at+peers.length-1)%peers.length];
@@ -70,6 +71,10 @@ export function browserMatrixObservation(Renderer,plan) {
     });
     const bindings=new Map(),owners=[],originalAudio=Renderer.prototype.audio,originalVideo=Renderer.prototype.video;
     let closed=false;
+    const pipeline=Peer?browserMatrixPipeline(Peer,(connection,kind,stream)=>{
+        const owner=bindings.get(connection);
+        return owner&&routes[owner.index].active===connection&&stream===(kind==='audio'?owner.audio:owner.sendVideo)?owner:null;
+    }):null;
     function observe(binding,frame,kind){
         const owner=bindings.get(binding.connectionId);if(!owner||routes[owner.index].active!==binding.connectionId)return;
         if(binding.streamId!==owner[kind])return;
@@ -90,23 +95,25 @@ export function browserMatrixObservation(Renderer,plan) {
     Renderer.prototype.audio=function(binding,frame){observe(binding,frame,'audio');return originalAudio.call(this,binding,frame);};
     Renderer.prototype.video=function(binding,frame){observe(binding,frame,'video');return originalVideo.call(this,binding,frame);};
     return {
-        async attach(index,connection,{audio,video,active=false},options){
+        async attach(index,connection,{audio,video,sendVideo,active=false},options){
             check(!closed&&!bindings.has(connection.id)&&owners.length<10,'Bounded original render owners');
             const canvas=document.createElement('canvas');canvas.width=128;canvas.height=72;
             const context=canvas.getContext('2d',{willReadFrequently:true});context.imageSmoothingEnabled=false;
-            bindings.set(connection.id,{index,audio,video,context});
+            bindings.set(connection.id,{index,audio,video,sendVideo,context});
             const output=document.createElement('canvas');
             const owner=await connection.render({audio:true,video:[{stream:connection.streams.byId(video),canvas:output}]},options);
             owners.push(owner);if(active)routes[index].active=connection.id;
         },
         async initial(state,options){for(const route of plan.routes){const selected=routes[route.index].selected;
-            await this.attach(route.index,state.connections[route.index],{audio:route.audio,video:selected.video,active:true},options);}},
-        start(origin){for(const route of routes)route.measure.start(origin.originMs);},
+            await this.attach(route.index,state.connections[route.index],{audio:route.audio,video:selected.video,sendVideo:route.video,active:true},options);}},
+        start(origin){pipeline?.start(origin.originMs);for(const route of routes)route.measure.start(origin.originMs);},
         activate(index,connectionId){check(bindings.get(connectionId)?.index===index,'Original prepared observer required');routes[index].active=connectionId;},
         report(){const measured=routes.map(route=>route.measure.report());return {format:'connect/browser-matrix-decoded-media/1',
             method:'Independent content measurements on actual WebCodecs decoded PCM/pixels at local receive callback times; no physical playback claim',
-            window_ms:60000,source_counters_used:false,passed:measured.every(route=>route.passed),routes:measured};},
-        async close(){if(closed)return;closed=true;Renderer.prototype.audio=originalAudio;Renderer.prototype.video=originalVideo;
+            window_ms:60000,source_counters_used:false,
+            pipeline:pipeline?.report(routes.map((route,index)=>({index,source:route.selected.index,
+                audio:route.measure.envelope.edges,video:route.measure.videoEdges}))),passed:measured.every(route=>route.passed),routes:measured};},
+        async close(){if(closed)return;closed=true;pipeline?.close();Renderer.prototype.audio=originalAudio;Renderer.prototype.video=originalVideo;
             for(const owner of owners)owner.close();const outcomes=await Promise.allSettled(owners.map(owner=>owner.finished));
             bindings.clear();return {owners:owners.length,joined:outcomes.every(value=>value.status==='fulfilled')};},
     };
