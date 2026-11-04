@@ -8,6 +8,7 @@ pub(crate) struct Pending {
     payload: Value,
     answer: Option<Value>,
     selected: Option<NativeNegotiation>,
+    replacement: bool,
 }
 pub(super) type Context = (ParticipantId, Value, Value, BTreeMap<StreamId, u16>);
 impl Pending {
@@ -17,6 +18,17 @@ impl Pending {
             scope,
             answer: None,
             selected: None,
+            replacement: false,
+        }
+    }
+    /// Only the canonical replacement owner uses this mode, after its existing
+    /// reader verifies the server signature and current physical authority.
+    /// The signed original allocation selects its connection generation; both
+    /// negotiation legs and every later epoch must retain that exact selection.
+    pub(crate) fn replacement(payload: Value, scope: CommandScope) -> Self {
+        Self {
+            replacement: true,
+            ..Self::new(payload, scope)
         }
     }
     fn roots(&self, frame: &Envelope) -> Result<()> {
@@ -73,6 +85,7 @@ impl Pending {
         let mut selected = Vec::new();
         let mut video_feedback = BTreeMap::new();
         let mut expected = Vec::new();
+        let mut replacement_generation = None;
         for stream in streams {
             let id: StreamId =
                 serde_json::from_value(stream["strm_id"].clone()).map_err(|_| fail())?;
@@ -136,6 +149,20 @@ impl Pending {
                 }
                 Some(handle)
             };
+            let connection_generation =
+                if self.replacement && stream.get("video_feedback").is_some() {
+                    let generation = stream["video_feedback"]["connection_generation"]
+                        .as_u64()
+                        .filter(|n| (1..=9_007_199_254_740_991).contains(n))
+                        .ok_or_else(fail)?;
+                    if replacement_generation.is_some_and(|previous| previous != generation) {
+                        return Err(fail());
+                    }
+                    replacement_generation = Some(generation);
+                    generation
+                } else {
+                    1
+                };
             if let Some(feedback) = video_feedback::selection(
                 stream,
                 video_feedback::Selection {
@@ -144,7 +171,7 @@ impl Pending {
                     operation: self.scope.operation_id.as_deref().ok_or_else(fail)?,
                     offer: request_id,
                     generation: 1,
-                    connection_generation: 1,
+                    connection_generation,
                     previous: None,
                 },
             )? {

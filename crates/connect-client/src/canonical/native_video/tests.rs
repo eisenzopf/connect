@@ -266,3 +266,58 @@ async fn replacement_video_owner_uses_existing_signature_reader_and_refuses_tamp
             .unwrap();
     }
 }
+
+#[test]
+fn replacement_video_seals_signed_generation_two_and_later_without_weakening_initial_negotiation() {
+    for generation in [2, 3, 9_007_199_254_740_991_u64] {
+        let shared = Shared::default();
+        shared.begin("offer".into(), scope(), original()).unwrap();
+        let (mut answer, mut callback) = pair("offer");
+        for payload in [&mut answer, &mut callback] {
+            payload["substrate_setup"]["streams"][0]["video_feedback"]["connection_generation"] =
+                json!(generation);
+        }
+        let answer = scoped("connection.answer", answer, Some("offer"));
+        let mut ordinary = Negotiating::new(original(), scope());
+        assert!(ordinary.answer(&answer, "offer").is_err());
+        shared.verified(&answer).unwrap();
+        let mut different = callback.clone();
+        different["substrate_setup"]["streams"][0]["video_feedback"]["connection_generation"] =
+            json!(generation - 1);
+        assert!(shared
+            .verified(&scoped("connection.offer", different, None))
+            .is_err());
+        let callback = scoped("connection.offer", callback, None);
+        shared.verified(&callback).unwrap();
+        shared.confirmed().unwrap();
+        // An old generation-one notice cannot seed the replacement history.
+        shared.verified(&epoch("offer", 1, false)).unwrap();
+        assert!(shared
+            .state
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .active
+            .is_empty());
+        let mut notice = epoch("offer", 2, false).original().clone();
+        notice["payload"]["connection_generation"] = json!(generation);
+        shared
+            .verified(&Envelope::from_value(notice).unwrap())
+            .unwrap();
+        assert_eq!(
+            shared.state.lock().unwrap().as_ref().unwrap().active.len(),
+            1
+        );
+    }
+    for invalid in [json!(0), json!(9_007_199_254_740_992_u64), json!("2")] {
+        let shared = Shared::default();
+        shared.begin("offer".into(), scope(), original()).unwrap();
+        let (mut answer, _) = pair("offer");
+        answer["substrate_setup"]["streams"][0]["video_feedback"]["connection_generation"] =
+            invalid;
+        assert!(shared
+            .verified(&scoped("connection.answer", answer, Some("offer")))
+            .is_err());
+    }
+}

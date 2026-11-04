@@ -34,7 +34,7 @@ fn protocol<T>(value: crate::sdk::Result<T>) -> Result<T> {
     value.map_err(|_| ClientError::Protocol)
 }
 impl Shared {
-    /// Called after the original replacement media command was submitted. This
+    /// Registered before the original replacement media command is submitted. This
     /// can happen once on a physical peer and only with an explicit profile.
     pub fn begin(&self, request: String, scope: CommandScope, payload: Value) -> Result<()> {
         let mut guard = self.state.lock().map_err(|_| ClientError::Protocol)?;
@@ -50,7 +50,7 @@ impl Shared {
         }
         *guard = Some(State {
             request,
-            negotiating: Negotiating::new(payload, scope.clone()),
+            negotiating: Negotiating::replacement(payload, scope.clone()),
             scope,
             callback: None,
             answer: None,
