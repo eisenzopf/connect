@@ -1,0 +1,418 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -393,7 +393,110 @@
+     admitted_at: Instant,
+     deadline: tokio::time::Instant,
+ }
++// Fixed-size metadata only. No logging, payload or authority is retained on the
++// packet path. Nonzero counters are emitted once when this member is dropped.
++mod observations {
++    use super::*;
++    #[derive(Clone, Copy)]
++    pub(super) enum Stage {
++        RefreshRefused,
++        RefreshReset,
++        CollectExpired,
++        CollectDeferred,
++        CollectRefused,
++        DecodeRefused,
++        DecodeExpired,
++        InputDiscontinuity,
++        InputBudget,
++        BurstTrim,
++        MissedQuanta,
++        TakeExpired,
++        TakeDeferred,
++        TakeRefused,
++        TargetBeforeStart,
++        TargetExpired,
++        SubscriptionRefused,
++        SourceGone,
++        TargetRefused,
++        TargetDeferred,
++        EmptyOutput,
++        OutputExpired,
++        EncodeRefused,
++        OutputFull,
++    }
++    const NAMES: [&str; 24] = [
++        "refresh-refused",
++        "refresh-reset",
++        "collect-expired",
++        "collect-deferred",
++        "collect-refused",
++        "decode-refused",
++        "decode-expired",
++        "input-discontinuity",
++        "input-budget",
++        "burst-trim",
++        "missed-quanta",
++        "take-expired",
++        "take-deferred",
++        "take-refused",
++        "target-before-start",
++        "target-expired",
++        "subscription-refused",
++        "source-gone",
++        "target-refused",
++        "target-deferred",
++        "empty-output",
++        "output-expired",
++        "encode-refused",
++        "output-full",
++    ];
++    #[derive(Clone, Copy, Default)]
++    struct Counter {
++        events: u64,
++        samples: u64,
++        first: Option<(u64, Option<u32>)>,
++        last: Option<(u64, Option<u32>)>,
++    }
++    pub(super) struct Observations {
++        started: Instant,
++        counters: [Counter; 24],
++    }
++    impl Default for Observations {
++        fn default() -> Self {
++            Self {
++                started: Instant::now(),
++                counters: [Counter::default(); 24],
++            }
++        }
++    }
++    impl Observations {
++        pub(super) fn note(&mut self, stage: Stage, rtp: Option<u32>, samples: usize) {
++            let counter = &mut self.counters[stage as usize];
++            let at = (
++                self.started.elapsed().as_micros().min(u64::MAX as u128) as u64,
++                rtp,
++            );
++            counter.events = counter.events.saturating_add(1);
++            counter.samples = counter.samples.saturating_add(samples as u64);
++            counter.first.get_or_insert(at);
++            counter.last = Some(at);
++        }
++        pub(super) fn emit(&self, connection: &ConnectionId) {
++            for (index, counter) in self.counters.iter().enumerate() {
++                if counter.events != 0 {
++                    tracing::debug!(target: "rvoip_core::audio_summary", %connection,
++                        stage = NAMES[index], events = counter.events,
++                        samples = counter.samples, first = ?counter.first, last = ?counter.last,
++                        "Guarded audio member terminal counters");
++                }
++            }
++        }
++    }
++}
++use observations::{Observations, Stage as AudioStage};
++
+ pub(crate) struct AudioMember {
++    observations: Observations,
+     pub(super) controller: Arc<StreamController>,
+     pub(super) logical: StreamId,
+     pub(super) participant: ParticipantId,
+@@ -415,6 +518,11 @@
+     clock_source: u128,
+     source_timeline: Option<SourceTimeline>,
+ }
++impl Drop for AudioMember {
++    fn drop(&mut self) {
++        self.observations.emit(&self.controller.connection);
++    }
++}
+ impl AudioMember {
+     pub(crate) fn activate(&mut self, speaks: bool) {
+         self.consumer.activate(speaks);
+@@ -445,6 +553,11 @@
+         let changed = !Arc::ptr_eq(&port, &self.port);
+         let epoch = !self.ticket.is_current() || !self.stamp.is_current();
+         if changed || epoch {
++            self.observations.note(
++                AudioStage::RefreshReset,
++                self.next_input_timestamp,
++                self.pending.iter().map(|c| c.samples.len()).sum(),
++            );
+             self.clock_route = crate::clock_route::ClockRouteLease::new();
+             self.clock_source = uuid::Uuid::new_v4().as_u128();
+             self.source_timeline = None;
+@@ -490,6 +603,11 @@
+                 },
+             };
+             if packet.admitted_at.elapsed() > Duration::from_millis(200) {
++                self.observations.note(
++                    AudioStage::CollectExpired,
++                    Some(packet.frame.timestamp_rtp),
++                    0,
++                );
+                 continue;
+             }
+             let (_lease, _admission, deadline) = match self.controller.admit_retained_source(
+@@ -515,15 +633,37 @@
+                 {
+                     // One bounded original frame; no authority survives the
+                     // refusal. Fresh ingress stays in the existing bounded queue.
++                    self.observations.note(
++                        AudioStage::CollectDeferred,
++                        Some(packet.frame.timestamp_rtp),
++                        0,
++                    );
+                     self.waiting = Some(packet);
+                     break;
+                 }
+-                Err(_) => continue,
++                Err(_) => {
++                    self.observations.note(
++                        AudioStage::CollectRefused,
++                        Some(packet.frame.timestamp_rtp),
++                        0,
++                    );
++                    continue;
++                }
+             };
+             let Ok(decoded) = self.codecs.decode(&packet.frame) else {
++                self.observations.note(
++                    AudioStage::DecodeRefused,
++                    Some(packet.frame.timestamp_rtp),
++                    0,
++                );
+                 continue;
+             };
+             if tokio::time::Instant::now() >= deadline {
++                self.observations.note(
++                    AudioStage::DecodeExpired,
++                    Some(packet.frame.timestamp_rtp),
++                    decoded.samples.len(),
++                );
+                 continue;
+             }
+             if !decoded.samples.is_empty() {
+@@ -538,6 +678,13 @@
+         // tick. Overlapping/discontinuous input keeps the existing newest-input
+         // rule, including replacement of an older packet's remaining samples.
+         if self.next_input_timestamp != Some(packet.frame.timestamp_rtp) {
++            if self.next_input_timestamp.is_some() {
++                self.observations.note(
++                    AudioStage::InputDiscontinuity,
++                    Some(packet.frame.timestamp_rtp),
++                    self.pending.iter().map(|c| c.samples.len()).sum(),
++                );
++            }
+             self.pending.clear();
+         }
+         self.next_input_timestamp = Some(
+@@ -554,6 +701,11 @@
+         let maximum = self.consumer.mix_rate as usize / 5;
+         if samples.len() > maximum {
+             consumed = samples.len() - maximum;
++            self.observations.note(
++                AudioStage::InputBudget,
++                Some(packet.frame.timestamp_rtp),
++                consumed,
++            );
+             samples.drain(..consumed);
+         }
+         let budget = maximum - samples.len();
+@@ -572,6 +724,11 @@
+             } else {
+                 (count - budget).min(first.samples.len())
+             };
++            self.observations.note(
++                AudioStage::InputBudget,
++                Some(first.packet.frame.timestamp_rtp),
++                remove,
++            );
+             first.samples.drain(..remove);
+             first.consumed += remove;
+             count -= remove;
+@@ -608,7 +765,13 @@
+         let keep = 2;
+         let mut discarded = 0u64;
+         while self.pending.len() > keep {
+-            self.pending.remove(if partial { 1 } else { 0 });
++            if let Some(chunk) = self.pending.remove(if partial { 1 } else { 0 }) {
++                self.observations.note(
++                    AudioStage::BurstTrim,
++                    Some(chunk.packet.frame.timestamp_rtp),
++                    chunk.samples.len(),
++                );
++            }
+             discarded += 1;
+         }
+         if discarded > 0 {
+@@ -630,6 +793,13 @@
+             .saturating_sub(1)
+             .saturating_mul(size as u64)
+             .min(count.saturating_sub(size) as u64) as usize;
++        if quanta > 1 {
++            self.observations.note(
++                AudioStage::MissedQuanta,
++                self.pending.front().map(|c| c.packet.frame.timestamp_rtp),
++                skip,
++            );
++        }
+         while skip > 0 {
+             let Some(chunk) = self.pending.front_mut() else {
+                 break;
+@@ -656,6 +826,11 @@
+                 break;
+             };
+             if chunk.packet.admitted_at.elapsed() > Duration::from_millis(200) {
++                self.observations.note(
++                    AudioStage::TakeExpired,
++                    Some(chunk.packet.frame.timestamp_rtp),
++                    chunk.samples.len(),
++                );
+                 self.pending.pop_front();
+                 continue;
+             }
+@@ -681,9 +856,19 @@
+                             ))
+                             .is_ok() =>
+                 {
+-                    break
++                    self.observations.note(
++                        AudioStage::TakeDeferred,
++                        Some(chunk.packet.frame.timestamp_rtp),
++                        0,
++                    );
++                    break;
+                 }
+                 Err(_) => {
++                    self.observations.note(
++                        AudioStage::TakeRefused,
++                        Some(chunk.packet.frame.timestamp_rtp),
++                        chunk.samples.len(),
++                    );
+                     self.pending.pop_front();
+                     continue;
+                 }
+@@ -806,6 +991,7 @@
+         let stamp = consumer.stamp();
+         drop(state);
+         Ok(AudioMember {
++            observations: Observations::default(),
+             controller,
+             logical,
+             participant: consumer_participant(&port)?,
+@@ -860,6 +1046,11 @@
+         for (id, member) in &mut *members {
+             member.ticks = member.ticks.wrapping_add(quanta);
+             if member.refresh().is_err() {
++                member.observations.note(
++                    AudioStage::RefreshRefused,
++                    member.next_input_timestamp,
++                    member.pending.iter().map(|c| c.samples.len()).sum(),
++                );
+                 member.pending.clear();
+                 member.waiting = None;
+                 continue;
+@@ -889,17 +1080,38 @@
+                     continue;
+                 }
+                 for segment in segments {
+-                    if segment.admitted_at < member.target_started.max(subscription.started)
+-                        || tokio::time::Instant::now() >= segment.deadline
+-                    {
++                    if segment.admitted_at < member.target_started.max(subscription.started) {
++                        member.observations.note(
++                            AudioStage::TargetBeforeStart,
++                            None,
++                            segment.samples.len(),
++                        );
++                        continue;
++                    }
++                    if tokio::time::Instant::now() >= segment.deadline {
++                        member.observations.note(
++                            AudioStage::TargetExpired,
++                            None,
++                            segment.samples.len(),
++                        );
+                         continue;
+                     }
+                     let Some(source) = segment.origin.source.owner.upgrade() else {
++                        member.observations.note(
++                            AudioStage::SourceGone,
++                            None,
++                            segment.samples.len(),
++                        );
+                         continue;
+                     };
+                     let Ok(subscription_guard) =
+                         subscription.begin(&source, &segment.origin.descriptor.logical_id)
+                     else {
++                        member.observations.note(
++                            AudioStage::SubscriptionRefused,
++                            None,
++                            segment.samples.len(),
++                        );
+                         continue;
+                     };
+                     let Ok((lease, admission, deadline)) = member.controller.admit_packet(
+@@ -915,6 +1127,7 @@
+                         ),
+                         leases[segment.lease_index].packet_context(),
+                     ).map_err(|problem| {
++                        member.observations.note(if matches!(&problem, StreamControlError::NotReady) { AudioStage::TargetDeferred } else { AudioStage::TargetRefused }, None, segment.samples.len());
+                         tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
+                             target = %member.controller.connection, stage = "mixer-target", ?problem,
+                             "Guarded audio delivery refused");
+@@ -944,6 +1157,7 @@
+                 }
+             }
+             if provenance.is_empty() {
++                member.observations.note(AudioStage::EmptyOutput, None, 0);
+                 member.previous_sources.clear();
+                 continue;
+             }
+@@ -980,6 +1194,9 @@
+                 member.codecs.from_mix = codecs.from_mix;
+             }
+             if tokio::time::Instant::now() >= bound {
++                member
++                    .observations
++                    .note(AudioStage::OutputExpired, None, total.len());
+                 continue;
+             }
+             let timestamp = (member
+@@ -1003,6 +1220,9 @@
+                     .collect(),
+                 timestamp,
+             ) else {
++                member
++                    .observations
++                    .note(AudioStage::EncodeRefused, Some(timestamp), 0);
+                 continue;
+             };
+             let route = member.clock_route.predicate();
+@@ -1026,6 +1246,9 @@
+             );
+             frame.stream_id = member.port.binding.transport_id.clone();
+             if tokio::time::Instant::now() >= bound {
++                member
++                    .observations
++                    .note(AudioStage::OutputExpired, Some(timestamp), size);
+                 continue;
+             }
+             member.previous_subscription = Some(subscription.clone());
+@@ -1033,6 +1256,7 @@
+             tracing::trace!(target: "rvoip_core::audio_path", target = %member.controller.connection,
+                 age_us = oldest.elapsed().as_micros() as u64, "Guarded audio queued");
+             outputs.push((
++                &mut member.observations,
+                 member.port.egress.clone(),
+                 QueuedMedia {
+                     frame,
+@@ -1055,8 +1279,11 @@
+         drop(subscription_guards);
+         drop(admissions);
+         drop(leases);
+-        for (output, queued) in outputs {
+-            let _ = output.try_send(queued);
++        for (observations, output, queued) in outputs {
++            let timestamp = queued.frame.timestamp_rtp;
++            if output.try_send(queued).is_err() {
++                observations.note(AudioStage::OutputFull, Some(timestamp), size);
++            }
+         }
+     }
+ }

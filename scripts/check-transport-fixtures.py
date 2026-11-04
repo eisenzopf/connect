@@ -239,9 +239,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             streams.append(stream)
             server_env = dict(env, RUST_LOG="info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug") if data_workload else env
             if native_replacement_commit_trace:
-                # Original phase/error events only. No per-frame observer,
+                # Original phase/error events and terminal audio counters. No per-frame observer,
                 # authority backtrace, SQL custody or helper timing trace.
-                server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug"
+                server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug"
             if native_packet_policy_trace:
                 # Existing current-read outcomes only. Keep this explicit:
                 # packet logging can perturb timing and cannot qualify quality.

@@ -1624,6 +1624,11 @@
       "path": "patches/rvoip/gate6-private-activation-failure-stages.patch",
       "sha256": "0bff09d393953c8ed0c444307c3fb2585a7c0de58bd674ac890885475de2f103",
       "source": "G6-058 v113 diagnosis: identify private audience activation failure before publication, including held authority, audio preparation, validation and commit locks. Preserve errors, authorization and original deadlines."
+    },
+    {
+      "path": "patches/rvoip/gate6-audio-terminal-counters.patch",
+      "sha256": "24da9fa615d85b5d252d5040f3cd3b5b75aab486fc3abc8577a5ebb2498e3ee6",
+      "source": "G6-058 v116 diagnosis: fixed-size per-member audio loss/defer counters emitted only at teardown. Distinguish original PCM trim, missed ticks, expiry, input discontinuity and source/target admission without per-packet logs or changed media authority/quality limits."
     }
   ]
 }
