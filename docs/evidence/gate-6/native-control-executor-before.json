@@ -1,0 +1,67 @@
+{
+  "format": "connect/native-control-executor-before/1",
+  "run": "v138",
+  "source_revision": "38570499be671dcb12fa1d0af501b7f3853d2e22",
+  "platform": "Owner Mac Studio local Ubuntu24.04 ARM64 VM",
+  "passed": false,
+  "expected_counterexample_observed": true,
+  "state": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 179845,
+    "source_revision": "38570499be671dcb12fa1d0af501b7f3853d2e22",
+    "passed": false,
+    "steps": [
+      {
+        "group": "native-control-executor",
+        "case": "canonical_runtime::control_work::tests::native_control_sql_wait_preserves_executor_progress_and_original_join",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 81 filtered out; finished in 0.44s"
+        ],
+        "log_sha256": "1605db847ba7f686859720e995317c33f714088914b521f6ce3ce3afbabab093"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_control_executor_counterexample": true,
+    "previous_passed_cases_rerun": false,
+    "builds": [
+      {
+        "group": "native-control-executor",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "4bd32c9ca669eddfd1f02fa9a83346c420b5250d6546becc6da8902fccd9b416",
+        "test_executable_sha256": "2449813b9e3b92a81c705cddb3628fc969bcaf1656d420a059bfb34b6e0af034",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "expected_counterexample_observed": true,
+    "failure_class": "AssertionError",
+    "message": "Original native control executor must remain responsive",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 789.1472298980079
+  },
+  "observations": {
+    "actual_store_query_entered": true,
+    "independent_timer_progressed_while_sql_held": false,
+    "query_already_finished_when_executor_resumed": true,
+    "original_owner_retained": true,
+    "stop_preserved_owner": true,
+    "original_worker_joined": 1,
+    "sql_holder_joined": true,
+    "actual_credential_read_succeeded": true
+  },
+  "scope": "One new exact component case uses the unchanged production native stream worker launcher, an isolated real Store primary SQL mutex and credential lookup, and a single-thread Tokio executor. Independent holder releases SQL after300ms even when the async executor cannot poll. Assertion occurs after original cleanup. 81 other tests filtered out.",
+  "finding": "Synchronous SQL exclusion in the native control worker can occupy the async executor. This is a reproduced scheduling defect; it does not identify the unlogged competing SQL owner in v137 or prove that all original media gaps share this cause.",
+  "correction_requirements": [
+    "Keep blocking execution segments away from the media executor without occupying a shared blocking-pool thread across async waits.",
+    "Track and join original blocking work even if the outer request/custodian is cancelled. Bound capacity and retain actual error/panic evidence.",
+    "Preserve the original future/attempt/receipt, current authorization, deadlines and effect identity. No effect replay or renewed timeout."
+  ],
+  "task_complete": false,
+  "cell_qualified": false,
+  "matrix_qualified": false,
+  "whole_gate_qualified": false
+}
