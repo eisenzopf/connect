@@ -241,7 +241,8 @@ def main():
             transport=args.transport, signingAlgorithm=args.signing, origin=origin,
             endpoints={"webtransport": f"https://127.0.0.1:{native}/connect", "wss-webrtc": f"wss://127.0.0.1:{wss}/connect"},
             actors=exported, output=str(browser_output),
-            tls=dict(certificatePem=str(tls / "leaf.pem"), privateKeyPem=str(tls / "leaf-key.pem"), rootDer=str(initial / "browser-root.der")))) + "\n").encode())
+            tls=dict(certificatePem=str(tls / "leaf.pem"), privateKeyPem=str(tls / "leaf-key.pem"), rootDer=str(initial / "browser-root.der"),
+                     leafSha256=digest(initial / "certificate.der"), webtransportTrust="certificate-sha256"))) + "\n").encode())
         command_args = ["docker", "run", "--rm", "--cidfile", str(cidfile), "--network", "host", "--read-only",
             "--user", f"{os.getuid()}:{os.getgid()}", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
             "--shm-size", "512m", "--tmpfs", "/tmp:rw,size=512m,mode=1777",

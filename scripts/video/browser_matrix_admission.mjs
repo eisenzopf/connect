@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import https from 'node:https';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {createHash,X509Certificate} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {fixturePrivateJwk,fixtureServerJwk} from '../lib/browser_matrix_keys.mjs';
 import {launchOwnedChromium} from './owned_chromium.mjs';
@@ -23,6 +24,14 @@ assert.ok(process.platform==='linux'&&process.arch==='arm64');
 assert.equal(process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER,'1');
 const output=await fs.realpath(spec.output);
 assert.ok(output.startsWith(privateRoot+path.sep));
+const leaf=new X509Certificate(await fs.readFile(spec.tls.certificatePem));
+const leafSha256=createHash('sha256').update(leaf.raw).digest('hex');
+assert.equal(leafSha256,spec.tls.leafSha256);
+assert.equal(leaf.publicKey.asymmetricKeyType,'ec');
+assert.equal(leaf.publicKey.asymmetricKeyDetails.namedCurve,'prime256v1');
+const notBefore=Date.parse(leaf.validFrom),notAfter=Date.parse(leaf.validTo);
+assert.ok(notBefore<=Date.now()&&Date.now()<notAfter&&notAfter-notBefore<=14*86400000);
+assert.equal(spec.tls.webtransportTrust,'certificate-sha256');
 const binary='/ms-playwright/chromium-1248/chrome-linux-arm64/chrome';
 const version=spawnSync(binary,['--version'],{encoding:'utf8',timeout:10000});
 assert.equal(version.status,0);assert.equal(version.stdout.trim(),'Google Chrome for Testing 156.0.8078.4');
@@ -44,7 +53,9 @@ const {chromium}=await import(pathToFileURL('/opt/connect-browser-tools/node_mod
 const report={format:'connect/browser-matrix-admission-observation/1',source_revision:spec.sourceRevision,
     transport:spec.transport,signing_algorithm:spec.signingAlgorithm,browser:version.stdout.trim(),
     passed:false,cell_qualified:false,task_complete:false,full_media_programme_executed:false,
-    scope:'Actual isolated Chrome normal-CA/public browser-SDK control and six-connection admission only. No full media/four-move/expiry/idle/fallback or complete-cell qualification.'};
+    scope:'Actual isolated Chrome/public browser-SDK admission only. HTTPS/WSS use configured CA trust; WT uses its explicitly supplied fresh short-lived certificate SHA256 through the standard API. No full media/four-move/expiry/idle/fallback or complete-cell qualification.',
+    tls_trust:{https_wss:'isolated-profile-CA',webtransport:spec.transport==='chrome-webtransport'?'explicit-fresh-certificate-sha256':null,
+        leaf_sha256:leafSha256,leaf_key:'ECDSA-P256',leaf_validity_seconds:(notAfter-notBefore)/1000,certificate_errors_ignored:false}};
 let owner,server,page,journal,stun,stage='asset-listener',events=0,serial=Promise.resolve(),diagnostics=Promise.resolve(),diagnosticBytes=0;
 const diagnostic=text=>{
     const body=String(text).slice(0,8192)+'\n';diagnosticBytes+=Buffer.byteLength(body);
@@ -107,6 +118,24 @@ try{
         const {BrowserSdkClient}=await import('/sdk/browser.js');
         const {browserMatrixPlan,browserMatrixAdmission,retireBrowserMatrixAdmission}=await import('/_matrix/admission.mjs');
         const {browserMatrixSources}=await import('/_matrix/sources.mjs');
+        const pin=Uint8Array.from(spec.tls.leafSha256.match(/../g),value=>parseInt(value,16));
+        let pinRefusal;
+        if(selected==='webtransport'){
+            const wrong=pin.slice();wrong[0]^=1;
+            const physical=new WebTransport(spec.endpoints.webtransport,{allowPooling:false,
+                serverCertificateHashes:[{algorithm:'sha-256',value:wrong}]});
+            let timer,refused=false,closed=false;
+            void physical.closed.catch(()=>{});
+            try{
+                await Promise.race([physical.ready.catch(error=>{refused=true;throw error;}),
+                    new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('original-wrong-pin-deadline')),3000);})]);
+            }catch(error){if(!refused)throw error;}
+            finally{clearTimeout(timer);physical.close();await Promise.race([
+                physical.closed.then(()=>{closed=true;},()=>{closed=true;}),
+                new Promise(resolve=>{timer=setTimeout(resolve,3000);})]);clearTimeout(timer);}
+            if(!refused||!closed)throw Error('Wrong WT certificate pin was not refused and joined');
+            pinRefusal={mismatched_leaf_refused:true,original_transport_closed:true,application_streams_created:0,application_mutations_submitted:0};
+        }
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
         const actors={};window.matrixActors=actors;let state,sources;
         try{
@@ -117,7 +146,8 @@ try{
                 const enrollment={identityId:configuration.identityId,device:configuration.device,credential:configuration.credential,
                     signing:{key,keyId:configuration.signing.keyId,algorithm:configuration.signing.algorithm},
                     server:{key:trust,keyId:configuration.server.keyId,algorithm:configuration.server.algorithm,
-                        notBefore:configuration.server.notBefore,expiresAt:configuration.server.expiresAt}};
+                        notBefore:configuration.server.notBefore,expiresAt:configuration.server.expiresAt},
+                    ...(selected==='webtransport'?{serverCertificateHashes:[{algorithm:'sha-256',value:pin.slice()}]}:{})};
                 const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:configuration.identityId,
                     deviceId:configuration.device.id,endpoints:spec.endpoints,preferredTransport:selected,allowFallback:false,
                     timeoutMs:8000,attemptTimeoutMs:3000,nativeVideoFeedback:true,media:spec.rtcConfiguration,resolveEnrollment:async()=>enrollment});
@@ -130,12 +160,12 @@ try{
             const sourceStartup=sources.observation();
             window.matrixPhase='original-retirement';
             const retirement=await retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event)});
-            return {passed:retirement.passed,authenticated_owners:Object.keys(actors).length,admission:state.report,
+            return {passed:retirement.passed,wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,admission:state.report,
                 actual_connections:state.connections.length,source_startup:sourceStartup,retirement};
         }catch(error){
             console.error('Matrix failure',String(error.stack??error),JSON.stringify({kind:error.kind,certainty:error.certainty,problem:error.problem}));
             const closes=await Promise.allSettled(Object.values(actors).map(actor=>actor.client.close({timeoutMs:5000})));
-            return {passed:false,authenticated_owners:Object.keys(actors).length,failure:{stage:window.matrixPhase,
+            return {passed:false,wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,failure:{stage:window.matrixPhase,
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),

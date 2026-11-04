@@ -214,6 +214,22 @@ not a browser/media pass or evidence that ARM fixes any Mac failure.
 
 ## Default bounds
 
+November4 local WebTransport trust clarification, before the next affected run:
+use the standard `serverCertificateHashes` API with the exact SHA-256 of the
+fresh owned fixture's ECDSA P-256 leaf, valid for one day. HTTPS assets and
+WSS retain normal fresh-profile CA validation. The independent server signing
+pin and current enrolled Device credentials remain required. A deliberately
+wrong leaf hash must fail before any application stream or mutation; the exact
+configured hash must authenticate the actual browser owners. No certificate-error
+bypass, developer flag, inherited fixture pin or external hostname is used.
+This is the existing SDK's explicit local WebTransport trust mechanism, already
+documented in the G6-049 rehearsal. It does not claim a publicly trusted CA
+deployment or convert earlier private-CA QUIC refusals into passes. The32cells,
+full media/movement programme and all quality/authority/cleanup requirements are
+unchanged. The WebTransport specification defines this hash verification mode
+and its two-week maximum certificate lifetime:
+https://www.w3.org/TR/webtransport/#dom-webtransportoptions-servercertificatehashes.
+
 November1 native six-Connection marker source update, before its first affected
 run: source manifest `connect/native-av-sources/2` adds the existing
 `connect-av-cadence/1` programme to each of the six identified Opus/VP8 sources.
