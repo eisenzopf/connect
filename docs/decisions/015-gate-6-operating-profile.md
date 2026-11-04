@@ -58,6 +58,25 @@ runner edits receive static inspection without general regression reruns. No
 historical result is relabeled, no current ARM pass is inferred from an edit,
 and all remaining Gate6 work stays in the approved dependency plan.
 
+November 4 matrix idle observation, before first execution: retain the same
+running server and the same isolated browser container after the original media
+terminal. Record two one-second-separated pre-authentication samples, then
+one-second workload and idle observations. The original terminal starts the
+unchanged ten-second reclamation window; it is not reset after client cleanup.
+Compare current public physical-owner/task/resource-pool counts and each owned
+process tree's live processes, threads, descriptors and RSS against the fixed
+pre-workload baseline. No extra descriptor/thread/RSS retention is allowed in
+this first profile; any retained allocation is a failure to investigate, not an
+implicit cache allowance. CPU remains a measured cumulative/delta observation,
+not a capacity claim. Require stable restoration by ten seconds, original local
+capture/renderer/media-queue cleanup within five seconds, and original process
+joins afterward. Keep the browser page, server and PulseAudio fixture alive
+while observing idle; no forced GC, source-clock adjustment or process restart.
+Browser process measurements include its Node driver and owned PulseAudio
+fixture. No native SDK helper exists in this browser/browser topology. Missing
+or unavailable observations cannot establish idle. Media failures remain failed
+while this independent requirement is measured.
+
 ## Runtime and topology
 
 Local development/first run: macOS arm64. Baseline observed macOS and toolchain

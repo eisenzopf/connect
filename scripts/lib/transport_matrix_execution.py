@@ -155,6 +155,35 @@ def record_browser_result(matrix, cell, report, report_sha256, exit_code):
         failure=report.get("failure")))
     cell.update(status="incomplete" if passed else "failed",
                 reason=cell["execution"]["producer"] + ("-passed-full-checks-missing" if passed else "-failed"))
+    if report.get("idle_resources") is not None:
+        from .matrix_idle import idle_verdict
+        idle = report["idle_resources"]
+        local = observation.get("idle_resources", {})
+        retirement = observation.get("retirement", {})
+        browser = observation.get("trusted_browser", {})
+        audio = report.get("owned_audio", {})
+        reclaimed = (report["stage"] == "quality" and all(guards.values())
+            and observation.get("source_revision") == matrix["source_revision"]
+            and observation.get("transport") == cell["transport"] and observation.get("signing_algorithm") == cell["signing"]
+            and idle.get("passed") is True and idle_verdict(idle)
+            and local.get("passed") is True and local.get("localOwnersJoined") is True
+            and 4 <= local.get("media_peers", 0) <= 7 and local.get("renderer", {}).get("joined") is True
+            and local.get("renderer", {}).get("owners") == 10
+            and local.get("active_bindings") == 0 and local.get("queued_packets") == 0 and local.get("queued_bytes") == 0
+            and retirement.get("passed") is True and 0 <= retirement.get("allLocalOwnersElapsedMs", -1) <= 5000
+            and retirement.get("originalEndsCompleted") == 6 and retirement.get("originalClientsClosed") == 7
+            and browser.get("original_process_joined") is True and browser.get("forced_kill") is False
+            and audio.get("original_process_joined") is True and audio.get("forced_kill", False) is False
+            and len(report.get("servers", [])) == 2 and all(s.get("original_joined") is True for s in report["servers"]))
+        cell["check_results"]["owned-drain-and-resource-reclamation"] = dict(
+            status="passed" if reclaimed else "failed",
+            evidence=dict(report_sha256=report_sha256, source_revision=report["source_revision"], section="idle_resources"))
+        gaps = cell["execution"]["completion_blockers"]
+        gap = "full-cell-ten-second-idle-resource-observer-not-connected"
+        if gap in gaps:
+            gaps.remove(gap)
+        if not reclaimed:
+            gaps.append("owned-drain-and-ten-second-idle-not-qualified")
     matrix["matrix_qualified"] = matrix["task_complete"] = matrix["whole_gate_qualified"] = False
     return cell
 

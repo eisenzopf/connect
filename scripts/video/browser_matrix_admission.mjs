@@ -10,6 +10,7 @@ import {fixturePrivateJwk,fixtureServerJwk} from '../lib/browser_matrix_keys.mjs
 import {launchOwnedChromium} from './owned_chromium.mjs';
 import {installPeerDiagnostics} from './browser_failure.mjs';
 import {openLoopbackStun} from './loopback_stun.mjs';
+import {matrixResourceBridge} from '../lib/matrix_resource_bridge.mjs';
 
 const [inputPath]=process.argv.slice(2);
 assert.equal(process.argv.length,3);
@@ -113,6 +114,7 @@ try{
     page.on('console',message=>diagnostic(message.text()));
     page.on('pageerror',error=>diagnostic(error.stack??error));
     await page.goto(spec.origin,{timeout:5000});
+    if(spec.stage==='quality')await page.exposeFunction('matrixResources',matrixResourceBridge(output));
     journal=await fs.open(path.join(output,'original-operations.jsonl'),'wx',0o600);
     await page.exposeFunction('matrixJournal',event=>{
         serial=serial.then(async()=>{
@@ -128,6 +130,11 @@ try{
         // the private browser log before the public SDK classifies it. No wire
         // bodies, credentials, retries or altered promise outcomes.
         const {BrowserMediaPeer}=await import('/sdk/browser_media.js');
+        const retiredPeers=new Set(),originalShutdown=BrowserMediaPeer.prototype.shutdown;
+        BrowserMediaPeer.prototype.shutdown=function(...args){
+            if(!retiredPeers.has(this)&&retiredPeers.size>=7)throw Error('Bounded original media owners');
+            retiredPeers.add(this);return originalShutdown.apply(this,args);
+        };
         const beginReplacement=BrowserMediaPeer.prototype.beginReplacementConnection;
         BrowserMediaPeer.prototype.beginReplacementConnection=function(...args){
             const original=beginReplacement.apply(this,args);
@@ -160,6 +167,7 @@ try{
         const actors={};window.matrixActors=actors;let state,sources,keepalive,observer;
         const programmeReport={};
         try{
+            if(spec.stage==='quality')await window.matrixResources('baseline');
             for(const [name,configuration] of Object.entries(spec.actors)){
                 window.matrixPhase='authenticate-'+name;
                 const key=await crypto.subtle.importKey('jwk',configuration.signing.jwk,parameters(configuration.signing.algorithm),false,['sign']);
@@ -192,14 +200,32 @@ try{
                 await keepalive.close();
             }
             window.matrixPhase='original-retirement';
+            if(spec.stage==='quality')await window.matrixResources('terminal');
             const retirement=await retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event),
                 ...(spec.stage!=='admission'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
-            return {passed:retirement.passed&&(!observer||programmeReport.decoded_media.passed),
+            let idleResources;
+            if(spec.stage==='quality'){
+                const renderer=await observer.close();await sources.close();
+                const source=sources.observation();
+                const peers=[...retiredPeers].map(peer=>peer.diagnostics);
+                const localOwnersJoined=renderer.joined&&source.source_terminal&&source.real_time_audio_state==='closed'
+                    &&source.sources.every(s=>!s.original_master_tracks_live&&s.attachments.every(a=>a.retired))
+                    &&peers.length>=4&&peers.every(p=>p.activeBindings===0&&p.queuedPackets===0&&p.queuedBytes===0);
+                const completedMs=performance.now()-programmeReport.terminal_ms;
+                retirement.passed&&=completedMs<=5000&&localOwnersJoined;
+                retirement.allLocalOwnersElapsedMs=completedMs;
+                window.matrixPhase='ten-second-idle-observation';
+                const measured=await window.matrixResources('retired');
+                idleResources={passed:measured.passed&&localOwnersJoined,localOwnersJoined,renderer,
+                    media_peers:peers.length,active_bindings:peers.reduce((n,p)=>n+p.activeBindings,0),
+                    queued_packets:peers.reduce((n,p)=>n+p.queuedPackets,0),queued_bytes:peers.reduce((n,p)=>n+p.queuedBytes,0)};
+            }
+            return {passed:retirement.passed&&(!observer||programmeReport.decoded_media.passed)&&(!idleResources||idleResources.passed),
                 ...(observer?{decoded_media:programmeReport.decoded_media,
                     ...(programmeReport.decoded_media.passed?{}:{failure:{stage:'decoded-media-quality',name:'ProfileBudgetsFailed'}})}:{}),wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,admission:state.report,
-                actual_connections:state.connections.length,source_startup:sourceStartup,retirement,
+                actual_connections:state.connections.length,source_startup:sourceStartup,retirement,idle_resources:idleResources,
                 ...(spec.stage!=='admission'?{programme:programmeReport,keepalive:keepalive.observation()}:{}),
-                ...(spec.stage!=='admission'?{scope:'Actual admission and four-move programme; decoded quality is explicit when requested. Capture/expiry/fallback/idle require separate evidence.'}:{})};
+                ...(spec.stage!=='admission'?{scope:'Actual admission and four-move programme; decoded quality and idle resources are explicit when requested. Capture/expiry/fallback require separate evidence.'}:{})};
         }catch(error){
             console.error('Matrix failure',String(error.stack??error),JSON.stringify({kind:error.kind,certainty:error.certainty,problem:error.problem}));
             const closes=await Promise.allSettled(Object.values(actors).map(actor=>actor.client.close({timeoutMs:5000})));
@@ -208,7 +234,7 @@ try{
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
                 programme:programmeReport,keepalive:keepalive?.observation(),original_client_closes:closes.map(value=>value.status)};
-        } finally {await keepalive?.close().catch(()=>{});await observer?.close();await sources?.close();}
+        } finally {await keepalive?.close().catch(()=>{});await observer?.close();await sources?.close();BrowserMediaPeer.prototype.shutdown=originalShutdown;}
     },{spec,selected});
     Object.assign(report,result);report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
     stage='browser-retirement';

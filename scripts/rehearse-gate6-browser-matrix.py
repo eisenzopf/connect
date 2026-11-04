@@ -27,6 +27,7 @@ from lib.transport_actors import CONTROLLERS, DEVICES, enroll_actors
 from lib.transport_fixture import materialize, publish, toml_bytes
 from lib.transport_matrix import digest
 from lib.transport_capture import NativeCapture
+from lib.matrix_idle import MatrixIdle
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -84,6 +85,7 @@ def main():
     before = sdk_before = executable = server = browser_owner = None
     log_handles = []
     capture = None
+    idle = None
     cidfile = private / "browser-container-id"
     phase = "dependencies"
     sequence = 0
@@ -265,7 +267,23 @@ def main():
             capture.start()
         browser_owner = subprocess.Popen(command_args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
                                          stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
-        report["browser_exit_code"] = browser_owner.wait(timeout=240)
+        browser_cutoff = time.monotonic() + 240
+        while browser_owner.poll() is None:
+            if args.stage == "quality":
+                if idle is None and (browser_output / "resources-baseline.json").exists():
+                    cid = cidfile.read_text().strip()
+                    assert re.fullmatch("[0-9a-f]{64}", cid)
+                    container = json.loads(subprocess.check_output(["docker", "inspect", cid], text=True, timeout=3))[0]
+                    assert container["Id"] == cid and container["State"]["Running"]
+                    credential = tomllib.loads((initial / "operator.application.toml").read_text())["credential"]
+                    idle = MatrixIdle(browser_output, server.pid, container["State"]["Pid"],
+                        f"http://127.0.0.1:{http}/v1/operations", credential)
+                if idle is not None:
+                    idle.poll()
+            if time.monotonic() >= browser_cutoff:
+                raise subprocess.TimeoutExpired(command_args, 240)
+            time.sleep(.05)
+        report["browser_exit_code"] = browser_owner.wait(timeout=1)
         report["browser_owner_joined"] = True
         browser_owner = None
         report["browser_observation"] = json.loads((browser_output / "browser-observation.json").read_text())
@@ -290,6 +308,12 @@ def main():
             report["packet_capture"] = capture.finish()
             report["packet_capture"]["transport"] = args.transport
             report["passed"] &= report["packet_capture"]["observed"]
+        if idle is not None:
+            report["idle_resources"] = idle.finish()
+            report["passed"] &= report["idle_resources"]["passed"]
+        elif args.stage == "quality":
+            report["idle_resources"] = dict(passed=False, failure="idle-observer-not-started")
+            report["passed"] = False
         try:
             stop_server()
         except BaseException:
