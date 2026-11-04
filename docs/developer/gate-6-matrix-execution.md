@@ -319,3 +319,16 @@ certificate-error bypass or developer-mode flag is used. The standard defines
 [certificate hashing and its short-lived certificate requirements](https://www.w3.org/TR/webtransport/#dom-webtransportoptions-servercertificatehashes).
 Let's Encrypt cannot issue for `localhost`; it is unnecessary for this declared
 local trust mode. See [Let's Encrypt's localhost documentation](https://letsencrypt.org/docs/certificates-for-localhost/).
+
+
+November 4 continuation: v166-prechecks passes four new/affected checks on the
+local ARM VM at 6c596c55 (original Session ends/deadline, original idle clock and
+the independent idle evidence boundary). The corrected test-support Rust build
+is still running; no pass is inferred from compilation. Candidate 67762f43 adds
+actual browser fallback to the admission workload before the fixed media
+programme: owned UDP silence forces WSS, owned TCP refusal makes both paths
+unusable, and the original admission create receipt is read before/after the
+refusal without submitting another mutation. Failed physical owners and both
+fixture listeners must join. This is control-selection evidence only, not WSS
+media qualification. Its two new focused checks and actual Chrome run are
+pending. Existing passing cleanup checks will not be rerun.

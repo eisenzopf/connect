@@ -609,7 +609,7 @@
   },
   "production_fix": {
     "source_revision": "2ca6793e",
-    "status": "runner-feature-corrected-verification-pending",
+    "status": "correct-feature-regression-compiling",
     "full_workload_retested": false,
     "attempts": [
       {
@@ -650,6 +650,33 @@
   "fixture_cleanup_fix": {
     "source_revision": "4b1a78a3",
     "change": "End both original Sessions with their preallocated operation IDs and current revisions before closing clients; all use the existing five-second terminal deadline. Anchor host idle observation conservatively to the original programme terminal using the prior browser/host monotonic observation.",
-    "verification": "New focused Session-end and original-clock tests authored; execution pending until original VM compile finishes. No live rerun yet."
+    "verification": "Four new/affected checks pass on local ARM Linux at 6c596c55: two original Session terminal cases, original monotonic clock retention, and the independent idle evidence boundary. No live workload rerun yet.",
+    "focused_tests": {
+      "attempt": "v166-prechecks",
+      "source_revision": "6c596c5565f0636f69403916500d3ac9f0bb3ae3",
+      "passed": true,
+      "source_inputs_unchanged": true,
+      "tests_executed": 4,
+      "commands": [
+        {
+          "name": "session-terminal",
+          "exit_code": 0
+        },
+        {
+          "name": "original-idle-clock",
+          "exit_code": 0
+        },
+        {
+          "name": "idle-evidence-boundary",
+          "exit_code": 0
+        }
+      ],
+      "log_sha256": {
+        "state.json": "224ec63fe085911f7f95f31a2cda7f4b311d41626e6b779dbb8b46749a4611ec",
+        "session-terminal.log": "ee55a4bb2f6a49b08902a98816bbf0515ee69fc7dc7cc5abdb3fd78b02634383",
+        "original-idle-clock.log": "4c347a6704de11a9998ea5d5388970e5df72dd2a6b1cdb6246a10a6dabad6172",
+        "idle-evidence-boundary.log": "a41e08b8782ccff561fc04da1c4aa92b79d00989913c15ae6639e0c2e9b7e03c"
+      }
+    }
   }
 }
