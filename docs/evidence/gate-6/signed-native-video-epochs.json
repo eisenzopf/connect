@@ -1,0 +1,79 @@
+{
+  "format": "connect/gate6-signed-native-video-epochs/1",
+  "task": "G6-058",
+  "status": "component-pass",
+  "patch": 296,
+  "source_revision": "0b2b7f08fcc0042861a17b82b72a474d19508cbf",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM; no GitHub/cloud execution",
+  "implementation": [
+    "NativeMediaProfile explicitly opts into rtcp-pli-epoch/1. NativeNegotiation installs per-binding metadata profiles only for explicit offers/retained negotiated support; exact signed parameter confirmation must carry the profile before ordinary activation.",
+    "Publisher epochs capture the actual admitted native sequence/RTP timestamp; receiver epochs capture the actual first submitted output sequence/timestamp. Core exposes a structural route-generation predicate without lending permission.",
+    "One bounded metadata registry feeds the existing owned native lifecycle writer. Per-Connection notice revision is monotonic and capped; metadata includes original operation/prepared offer, actual signed physical incarnation, binding generations/direction, epoch and SSRC.",
+    "Signed stream.epoch has no readiness/operation-completion meaning. It may precede unrelated stream readiness, but exact current binding/epoch and original physical-source authority fence reliable submission.",
+    "Native envelope schema, generated Rust payloads, browser validation data and HTTP/OpenAPI reference include the candidate. Existing protocol vector IDs and contents are unchanged."
+  ],
+  "planned_checks": [],
+  "remaining": [
+    "A subsequent feedback-profile change over reused video allocations was found during review. Patch297 refuses it before parameter exchange; its new focused case is pending separately in native-video-feedback-renegotiation.json.",
+    "The new transport cases use actual signed native writers and physical QUIC peers but controlled relationship authority. They do not prove installed Connect Store authority or SDK media quality.",
+    "Production native host remains default-disabled. Client monotonic notice validation, epoch/SSRC/sequence packet attribution and publisher/receiver feedback APIs still require integration and focused proofs.",
+    "Connect both live encoder workers to currently bound feedback, then prove initial decoder bootstrap and fragment-loss recovery under original timing/profile. Do not admit preparation media or replay old encoded frames.",
+    "No full captured workload,32-cell qualification,20-transition or cleanup/idle promotion; G6-054 remains deferred."
+  ],
+  "task_complete": false,
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 118711,
+    "source_revision": "0b2b7f08fcc0042861a17b82b72a474d19508cbf",
+    "passed": true,
+    "steps": [
+      {
+        "group": "native",
+        "case": "peer_native::canonical_media::native_offers::video_epochs::signed_video_epochs_bind_original_operations_physical_peers_and_reselected_packet_boundaries",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 0.38s"
+        ],
+        "log_sha256": "dcba16e56d96cc99fbef51ed3842ce42628071580c0c0b2801cde6169facbdbd"
+      },
+      {
+        "group": "native",
+        "case": "peer_native::canonical_media::native_offers::video_epochs::signed_video_feedback_requires_explicit_peer_confirmation_before_activation",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 0.08s"
+        ],
+        "log_sha256": "15eb57599cf08abf76e019a2d20f89de0f38cbc56ca742a39a3070b7e2feac71"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "signed_native_video_epochs_candidate": true,
+    "builds": [
+      {
+        "group": "native",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "d4143eeccaf4ad49829d8b8c7fe2f0b19e343bbc3bd14442ad20de11c9bbfec5",
+        "test_executable_sha256": "211e4c4cdf5701c5a8b122437d98282cb10f781ec99b58164c92a61948bf068a",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "service_check": {
+      "exit_code": 0,
+      "log_sha256": "e9263ff101e80cabfedbf34f85c7ee83f1d53c37f681a69c4352040acb3817eb"
+    },
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 1120.9181627630023
+  },
+  "proof": [
+    "Actual signed lifecycle output on two local physical QUIC peers binds the original operation/prepared offer, distinct physical incarnations, actual handle, direction and packet SSRC/first native sequence/original RTP timestamp. No unrelated audio readiness is required to receive the epoch notice.",
+    "Initial preparation traffic does not produce an epoch. Unsubscribe/resubscribe of the same source preserves the receiver handle, SSRC and resource generation but rotates its route epoch and signed notice revision; the old feedback binding refuses and the current one reaches the source.",
+    "A missing explicit feedback capability in the signed parameter confirmation refuses activation: controller revision remains zero, no bindings become active and subsequent preparation traffic emits no epoch.",
+    "Two exact new cases passed (0.38s and0.08s,186 other cases filtered each), followed by a successful local ARM Service compile check. Final tracked source, prepared dependencies and executable integrity guards pass. No old passed cases or full workload were rerun."
+  ]
+}
