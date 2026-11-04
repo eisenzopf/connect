@@ -48,9 +48,12 @@ running locally. Full workload verification of the fix remains pending. The stop
 v163 database also retains two accepted Sessions: the fixture ended Connections
 but omitted its two preallocated Session-end operations. Candidate `4b1a78a3`
 ends both Sessions before client closure under the same five-second deadline.
-Its new focused checks await the current VM build. That build
-(v165) uses the same production candidate offline after v164 stopped before
-test execution on a missing locked crate and VM DNS failure. All 75 missing
+The v165 offline build completed, but its binary selected zero tests: the
+runner omitted the required `test-support` feature. This is recorded as
+unexecuted, not passed. Candidate `2b4e27f2` enables the feature and requires the
+exact regression in the binary test list before execution. The corrected run
+and fixture checks remain pending. v164 had stopped before test execution on
+a missing locked crate and VM DNS failure. All 75 missing
 locked cache files were transferred from the Mac with Cargo.lock SHA256 checks.
 
 

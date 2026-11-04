@@ -609,7 +609,7 @@
   },
   "production_fix": {
     "source_revision": "2ca6793e",
-    "status": "new-focused-regression-running",
+    "status": "runner-feature-corrected-verification-pending",
     "full_workload_retested": false,
     "attempts": [
       {
@@ -625,9 +625,17 @@
       {
         "attempt": "v165",
         "source_revision": "2ca6793e",
-        "stage": "compiling",
-        "passed": null,
-        "scope": "Same original new regression; dependency cache supplied from Mac, verified against Cargo.lock; offline cargo execution."
+        "stage": "test-not-selected",
+        "passed": false,
+        "scope": "Same original new regression; dependency cache supplied from Mac, verified against Cargo.lock; offline cargo execution.",
+        "compile_exit_code": 0,
+        "test_exit_code": 0,
+        "tests_executed": 0,
+        "binary_sha256": "eef6151da7e44480e571db79724d9197d40e52f9377f42be0b827810caea2e5a",
+        "test_log_sha256": "11c0ec2f78640ffe594a7044299a7d3a4dff4223a384def84223498a0e04d6c0",
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true,
+        "reason": "Required control_work regression is gated by test-support; runner omitted that feature. Zero tests selected is unexecuted, not passed."
       }
     ],
     "cache_recovery": {
@@ -635,7 +643,9 @@
       "bytes": 20669094,
       "source": "existing local Mac Cargo cache",
       "verification": "Each transferred crate SHA256 matches its Cargo.lock checksum; no dependency/version change."
-    }
+    },
+    "runner_fix_source_revision": "2b4e27f2",
+    "runner_fix": "Compile with test-support and require the exact test in the binary test list before execution."
   },
   "fixture_cleanup_fix": {
     "source_revision": "4b1a78a3",
