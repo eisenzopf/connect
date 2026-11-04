@@ -94,5 +94,6 @@
   ],
   "fix_verification": "v102 compilation active at record time; no pass claimed",
   "transport_cells_qualified": 0,
-  "task_complete": false
+  "task_complete": false,
+  "follow_up": "Fix passed the separate v102 production replacement recovery case at2535b724; see production-replacement-video-feedback.json. Original diagnostic run results above remain unchanged."
 }

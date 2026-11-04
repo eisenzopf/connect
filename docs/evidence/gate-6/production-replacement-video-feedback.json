@@ -1,0 +1,229 @@
+{
+  "format": "connect/gate6-production-replacement-video-feedback/1",
+  "task": "G6-058",
+  "status": "production-replacement-recovery-pass",
+  "environment": {
+    "host": "Owner Mac Studio",
+    "runner": "Local Ubuntu 24.04 ARM64 VM",
+    "github_or_cloud_tests": false,
+    "cargo_scope": "connect-server integration target; --no-default-features --features test-support omits CLI executable, no conditional cli library code"
+  },
+  "source_revision": "2535b7243b9906e366625b895c978d6199399fab",
+  "verification_runs": [
+    {
+      "run": "production-replacement-video-v98",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 127607,
+        "source_revision": "390a1a4f62e5df0b598c4b6d1925071a8f588cfc",
+        "passed": false,
+        "steps": [],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "production-replacement",
+            "compile_exit_code": 101,
+            "compile_log_sha256": "7dd0da20ebf989426f76b65b98606f16c638bf7fda564cf1249e702f88352f86"
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 265.37728469099966
+      },
+      "state_sha256": "69b88c726adb4cb10896ea127c3e571ffc701338726706336af84d26d949e367"
+    },
+    {
+      "run": "production-replacement-video-v99",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 127914,
+        "source_revision": "e1368b1184a4f36e95a80de4f3c6d7286d7e34ed",
+        "passed": false,
+        "steps": [
+          {
+            "group": "production-replacement",
+            "case": "sdk_handles::replacement_video_recovery::signed_production_replacement_transfers_video_and_recovers_fresh_frames_in_both_directions",
+            "exit_code": 101,
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s"
+            ],
+            "log_sha256": "5dd6d4d9d29f440e3f5f0031408139fbcb0cd0bf7c8d49f69c715cfe2f636d09"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "production-replacement",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "fd809fa15b9160282ad3260cd016111e1ee7d65edfc023a36dcec96d84286a65",
+            "test_executable_sha256": "45cd78c40eab749f8826b4fe317ab6e939dbaed287a21e177d77de2765bc3972",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "Exact prepared peer case must pass",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 64.60630948499602
+      },
+      "state_sha256": "665a4767ce372ca3394f9ea06d9ca40da02c82dc36ea0e8f80bc1511125843ed"
+    },
+    {
+      "run": "production-replacement-video-v100",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 128081,
+        "source_revision": "c9b5d383ded7497645781e80fe316cb009ffd58a",
+        "passed": false,
+        "steps": [
+          {
+            "group": "production-replacement",
+            "case": "sdk_handles::replacement_video_recovery::signed_production_replacement_transfers_video_and_recovers_fresh_frames_in_both_directions",
+            "exit_code": 101,
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.34s"
+            ],
+            "log_sha256": "8d9c972b9caea1e60040a2b7531d186be1d1985c0bc8b590140cdda0d82d53dc"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "production-replacement",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "7881c03e69b94d3f4ffd0116e39026fcf308b9cbb45f9c6c89dba3a41f61d742",
+            "test_executable_sha256": "4e79715700cee47fd9e956c8f9b94dc713c774fd2bbf1761a8b4f92ff544ed99",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "Exact prepared peer case must pass",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 71.58946917499998
+      },
+      "state_sha256": "2bdc46180a162782ae2923ae950bb2df2ca3c3b53ffe0c66de50a9fae42443f5"
+    },
+    {
+      "run": "production-replacement-video-v101",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 128244,
+        "source_revision": "4be1a161ed95c89469fceae31fda1ed9eb423432",
+        "passed": false,
+        "steps": [
+          {
+            "group": "production-replacement",
+            "case": "sdk_handles::replacement_video_recovery::signed_production_replacement_transfers_video_and_recovers_fresh_frames_in_both_directions",
+            "exit_code": 101,
+            "test_results": [
+              "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.40s"
+            ],
+            "log_sha256": "d1f1b31806696897cd748cb5410d1561ed6269bd2bdab237296308fdc7840e87"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "production-replacement",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "24c52929f9e40a36668045002966ad20fc5d23fdaa7977f723e05a0f0d735519",
+            "test_executable_sha256": "58e5a2497e60af7a66af51d58aed1766506865b9c4de8a2e17d476b8ebb80173",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "failure_class": "AssertionError",
+        "message": "Exact prepared peer case must pass",
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 324.20548247901024
+      },
+      "state_sha256": "7c2096ea276ebbf2b3b46daf0167f31329c623985e91447150dcd65c3713e924"
+    },
+    {
+      "run": "production-replacement-video-v102",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 128606,
+        "source_revision": "2535b7243b9906e366625b895c978d6199399fab",
+        "passed": true,
+        "steps": [
+          {
+            "group": "production-replacement",
+            "case": "sdk_handles::replacement_video_recovery::signed_production_replacement_transfers_video_and_recovers_fresh_frames_in_both_directions",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.53s"
+            ],
+            "log_sha256": "89c737cfb0b4a16810474d378f074a269b95a4884d3d3000e43a51070e53cd6f"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "replacement_video_owner_candidate": true,
+        "builds": [
+          {
+            "group": "production-replacement",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "69e2901a55518cb914d12c7182c7eb7f3daf9f3a612a9c647395c74f937b7708",
+            "test_executable_sha256": "185b09da774e1e40e921a00eff747f024832fc54139e0f052cb742b99fe8f1b4",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 775.3545113090076
+      },
+      "state_sha256": "2d56d2ee530e19b347c48b02250e9324ff90e03e4b2e808012b31d2401efc03d"
+    }
+  ],
+  "root_cause": "The replacement path negotiated and activated native media without registering the signed lifecycle writer used by ordinary connections. Epoch-tagged video reached the new client, but its authenticated epoch notice was never emitted. The client correctly expired the packet at its unchanged 200ms deadline.",
+  "fix": "Capture the original signed lifecycle registration during native replacement negotiation, without retaining its invocation or Store reader. Attach it to the same physical peer only after ordinary activation is published. Every notification uses current entry, credential, physical lifetime and media authority checks. Failed attachment settles the known movement as stopped; no second movement or media replay.",
+  "scope": [
+    "Two real enrolled EdDSA SDK peers establish audio/video and original video history.",
+    "The original replacement operation allocates, negotiates and commits generation-two native resources, transferring both existing video directions.",
+    "Replacement receiver admits authenticated current epochs, emits actual feedback, and receives a freshly encoded keyframe independently decoded at original RTP6000.",
+    "Retained receiver requests recovery from the raw replacement publisher; the hint is consumed once before fresh encoding, and the fresh key independently decodes at original RTP12000.",
+    "Original operation, source frames, SSRCs and RTP clocks are retained. Owned peers, encoder and server join."
+  ],
+  "failures_retained": [
+    "v98 fixture used receive_control extension instead of public CanonicalClient.receive; compile failed, no runtime test.",
+    "v99 initial fixture audio offered pcmu instead of session-accepted g.711-mu; actual Store refusal was unsupported-media-profile before replacement.",
+    "v100 replacement completed but receiver timed out.",
+    "v101 diagnostics confirmed tagged packet handle3 selected=true, then expiration at200ms with notice_present=false; no signed matching notice."
+  ],
+  "new_cases_passed": 1,
+  "previous_passed_cases_rerun": false,
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "transport_cells_qualified": 0,
+  "task_complete": false,
+  "remaining": [
+    "Raw signed gate/resource adoption and its failure/lifetime checks.",
+    "Delayed browser writer uncertainty focused proof.",
+    "Full frozen 32-cell transport matrix, original 20 moves, quality, teardown and idle qualification. G6-054 remains deferred."
+  ],
+  "limitations": [
+    "This short un-impaired production replacement case does not qualify a complete transport cell or sustained A/V synchronization, quality, bitrate, frame pacing, or all failure/recovery transitions."
+  ]
+}

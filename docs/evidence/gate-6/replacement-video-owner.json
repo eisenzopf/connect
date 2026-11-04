@@ -252,5 +252,6 @@
   "limitations": [
     "Signed QUIC fixture checks do not prove a production replacement transaction or sustained A/V quality.",
     "v96 example build is at c0dd26d0; v97 client generation test is at 3661ec9c. Full example compilation with subsequent changes remains required before running it."
-  ]
+  ],
+  "follow_up": "Production replacement recovery passes separately at2535b724 after repairing its missing signed lifecycle writer. See production-replacement-video-feedback.json; original component scope and limitations above remain historical."
 }

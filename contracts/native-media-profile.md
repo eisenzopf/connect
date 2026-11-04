@@ -436,8 +436,8 @@ Actual Chromium/WebTransport recovery against the production server now passes
 separately at `fc40c3c0`: same-SSRC authenticated reselection, current receiver
 feedback, fresh VP8 keyframe at original RTP26127 and joined owners. Canonical
 unsubscribe history invalidation uses `strm_ids`. See
-`docs/evidence/gate-6/actual-browser-video-feedback.json`. Direct replacement
-integration, delayed writer uncertainty and the full frozen matrix remain open.
+`docs/evidence/gate-6/actual-browser-video-feedback.json`. Raw replacement control/resource adoption, delayed writer uncertainty and the
+full frozen matrix remain open.
 
 
 ### Explicit canonical replacement video owner
@@ -459,8 +459,20 @@ establishes readiness or completes the original replacement operation.
 
 The replacement example and offline capture consumer use this explicit path.
 The generic raw datagram parser remains strict. Focused local ARM evidence is in
-`docs/evidence/gate-6/replacement-video-owner.json`; a production replacement
-with fresh codec recovery remains unqualified. The current raw owner conservatively
+`docs/evidence/gate-6/replacement-video-owner.json`; the separate production
+recovery evidence is linked below. The current raw owner conservatively
 suspends after hold/mute/resume/unmute/codec commands: signed control/resource
 adoption remains required before those paths qualify. This is an implementation
 limitation, not an accepted permanent hold or resume contract.
+
+
+Replacement activation also attaches the lifecycle registration captured from
+its original signed negotiation. The registration stays dormant during private
+preparation, retains no invocation or Store reader, and binds the adopted entry
+only after ordinary publication. Each epoch/flow notification still acquires
+fresh current authority. This repairs missing signed epoch notices on otherwise
+working replacement media routes without relaxing packet-age admission.
+A short production replacement now verifies feedback and fresh independent VP8
+decode in both directions at unchanged RTP timestamps; see
+`docs/evidence/gate-6/production-replacement-video-feedback.json`. Full cell
+qualification and the raw gate/resource adoption limitation above remain open.
