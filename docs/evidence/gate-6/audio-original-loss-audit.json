@@ -1,0 +1,302 @@
+{
+  "format": "connect/audio-original-loss-audit/1",
+  "run": "v125",
+  "source_revision": "1e558e0b704444d2c2b635fc33c33c45819b88c9",
+  "scope": "Read-only analysis of original captured packets and existing independently decoded PCM; hashes checked against the original decode report. No workload or decoder rerun.",
+  "private_analysis_sha256": "f94e3240a0b40ddf51d7d490b0ec8da191a01d23fb8d14600ecbea5fa1f9ecb5",
+  "routes": [
+    {
+      "index": 0,
+      "bad_blocks": [
+        {
+          "capture_id": "original-0",
+          "first_ms": 17936.425684005022,
+          "last_ms": 18096.432587996125,
+          "frames": 5,
+          "energy": 0.0456051082965739,
+          "powers": [
+            8.055394272628758e-06,
+            4.3222721961571974e-05,
+            0.000119870312859864,
+            0.00047263205690744746,
+            3.896870213954017e-05,
+            7.169754746583431e-06
+          ],
+          "expected_frequency": 920
+        }
+      ],
+      "histories": [
+        {
+          "capture_id": "original-0",
+          "owner_start_ms": 0,
+          "owner_end_ms": 19212.672,
+          "packets": 851,
+          "first_ms": 2025.2170899957418,
+          "last_ms": 19150.309355005622,
+          "first_rtp": 517440,
+          "last_rtp": 1340160,
+          "rtp_elapsed_ms": 17140.0,
+          "arrival_elapsed_ms": 17125.09226500988,
+          "rtp_missing_frames": 7,
+          "gap_count": 6,
+          "rtp_jump_count": 2
+        },
+        {
+          "capture_id": "physical-0-0",
+          "owner_start_ms": 19212.672,
+          "owner_end_ms": 43860.768,
+          "packets": 1217,
+          "first_ms": 19234.997,
+          "last_ms": 43791.224,
+          "first_rtp": 60480,
+          "last_rtp": 1238400,
+          "rtp_elapsed_ms": 24540.0,
+          "arrival_elapsed_ms": 24556.227000000003,
+          "rtp_missing_frames": 11,
+          "gap_count": 8,
+          "rtp_jump_count": 3
+        },
+        {
+          "capture_id": "physical-0-1",
+          "owner_start_ms": 43860.768,
+          "owner_end_ms": 62000,
+          "packets": 903,
+          "first_ms": 43870.445,
+          "last_ms": 61990.922,
+          "first_rtp": 44160,
+          "last_rtp": 911040,
+          "rtp_elapsed_ms": 18060.0,
+          "arrival_elapsed_ms": 18120.477,
+          "rtp_missing_frames": 1,
+          "gap_count": 2,
+          "rtp_jump_count": 1
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "bad_blocks": [],
+      "histories": [
+        {
+          "capture_id": "original-1",
+          "owner_start_ms": 0,
+          "owner_end_ms": 62000,
+          "packets": 849,
+          "first_ms": 2024.5825770050287,
+          "last_ms": 19150.512738004327,
+          "first_rtp": 515520,
+          "last_rtp": 1336320,
+          "rtp_elapsed_ms": 17100.0,
+          "arrival_elapsed_ms": 17125.930160999298,
+          "rtp_missing_frames": 7,
+          "gap_count": 8,
+          "rtp_jump_count": 2
+        },
+        {
+          "capture_id": "original-1",
+          "owner_start_ms": 0,
+          "owner_end_ms": 62000,
+          "packets": 1210,
+          "first_ms": 19197.492166996002,
+          "last_ms": 43791.20383900404,
+          "first_rtp": 1340160,
+          "last_rtp": 2520960,
+          "rtp_elapsed_ms": 24600.0,
+          "arrival_elapsed_ms": 24593.711672008038,
+          "rtp_missing_frames": 21,
+          "gap_count": 12,
+          "rtp_jump_count": 9
+        },
+        {
+          "capture_id": "original-1",
+          "owner_start_ms": 0,
+          "owner_end_ms": 62000,
+          "packets": 903,
+          "first_ms": 43851.116858005524,
+          "last_ms": 61991.339677006006,
+          "first_rtp": 2523840,
+          "last_rtp": 3390720,
+          "rtp_elapsed_ms": 18060.0,
+          "arrival_elapsed_ms": 18140.222819000483,
+          "rtp_missing_frames": 1,
+          "gap_count": 2,
+          "rtp_jump_count": 1
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "bad_blocks": [],
+      "histories": [
+        {
+          "capture_id": "original-2",
+          "owner_start_ms": 0,
+          "owner_end_ms": 62000,
+          "packets": 2974,
+          "first_ms": 2025.9538889974356,
+          "last_ms": 61991.17421899736,
+          "first_rtp": 514560,
+          "last_rtp": 3392640,
+          "rtp_elapsed_ms": 59960.0,
+          "arrival_elapsed_ms": 59965.220329999924,
+          "rtp_missing_frames": 25,
+          "gap_count": 17,
+          "rtp_jump_count": 8
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "bad_blocks": [],
+      "histories": [
+        {
+          "capture_id": "original-3",
+          "owner_start_ms": 0,
+          "owner_end_ms": 62000,
+          "packets": 2974,
+          "first_ms": 2025.6628929972649,
+          "last_ms": 61990.924511000514,
+          "first_rtp": 514560,
+          "last_rtp": 3390720,
+          "rtp_elapsed_ms": 59920.0,
+          "arrival_elapsed_ms": 59965.26161800325,
+          "rtp_missing_frames": 23,
+          "gap_count": 18,
+          "rtp_jump_count": 6
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "bad_blocks": [],
+      "histories": [
+        {
+          "capture_id": "original-4",
+          "owner_start_ms": 0,
+          "owner_end_ms": 18083.713,
+          "packets": 799,
+          "first_ms": 2025.1964240074158,
+          "last_ms": 18045.830633997917,
+          "first_rtp": 512640,
+          "last_rtp": 1281600,
+          "rtp_elapsed_ms": 16020.0,
+          "arrival_elapsed_ms": 16020.634209990501,
+          "rtp_missing_frames": 3,
+          "gap_count": 3,
+          "rtp_jump_count": 2
+        },
+        {
+          "capture_id": "physical-4-0",
+          "owner_start_ms": 18083.713,
+          "owner_end_ms": 43196.361,
+          "packets": 1238,
+          "first_ms": 18103.986,
+          "last_ms": 43127.687,
+          "first_rtp": 18240,
+          "last_rtp": 1214400,
+          "rtp_elapsed_ms": 24920.0,
+          "arrival_elapsed_ms": 25023.700999999997,
+          "rtp_missing_frames": 9,
+          "gap_count": 10,
+          "rtp_jump_count": 2
+        },
+        {
+          "capture_id": "physical-4-1",
+          "owner_start_ms": 43196.361,
+          "owner_end_ms": 62000,
+          "packets": 936,
+          "first_ms": 43200.353,
+          "last_ms": 61999.191,
+          "first_rtp": 20160,
+          "last_rtp": 921600,
+          "rtp_elapsed_ms": 18780.0,
+          "arrival_elapsed_ms": 18798.837999999996,
+          "rtp_missing_frames": 4,
+          "gap_count": 6,
+          "rtp_jump_count": 1
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "bad_blocks": [],
+      "histories": [
+        {
+          "capture_id": "original-5",
+          "owner_start_ms": 0,
+          "owner_end_ms": 62000,
+          "packets": 791,
+          "first_ms": 2024.554855003953,
+          "last_ms": 18046.214101999998,
+          "first_rtp": 510720,
+          "last_rtp": 1277760,
+          "rtp_elapsed_ms": 15980.0,
+          "arrival_elapsed_ms": 16021.659246996045,
+          "rtp_missing_frames": 9,
+          "gap_count": 9,
+          "rtp_jump_count": 2
+        },
+        {
+          "capture_id": "original-5",
+          "owner_start_ms": 0,
+          "owner_end_ms": 62000,
+          "packets": 1218,
+          "first_ms": 18102.992730006576,
+          "last_ms": 43122.54795099795,
+          "first_rtp": 1284480,
+          "last_rtp": 2485440,
+          "rtp_elapsed_ms": 25020.0,
+          "arrival_elapsed_ms": 25019.555220991373,
+          "rtp_missing_frames": 34,
+          "gap_count": 35,
+          "rtp_jump_count": 12
+        },
+        {
+          "capture_id": "original-5",
+          "owner_start_ms": 0,
+          "owner_end_ms": 62000,
+          "packets": 924,
+          "first_ms": 43186.48888900876,
+          "last_ms": 61999.1009760052,
+          "first_rtp": 2488320,
+          "last_rtp": 3387840,
+          "rtp_elapsed_ms": 18740.0,
+          "arrival_elapsed_ms": 18812.612086996436,
+          "rtp_missing_frames": 14,
+          "gap_count": 20,
+          "rtp_jump_count": 5
+        }
+      ]
+    }
+  ],
+  "findings": [
+    "Loss clusters around approximately18-19s and43-45s, while route5 also shows four-frame source-clock jumps at ordinary approximately20ms packet-arrival intervals.",
+    "The only failed identity block is route0 at17.936-18.096s: five original packets span160ms. The expected920Hz tone has the highest measured power, but fails the existing8x spectral dominance requirement. This is not evidence of another identified source and is not a pass.",
+    "Core records65explicit trimmed20ms chunks. Native ingress source audit finds that PortIngress maps temporary NotReady to Closed and NativePeerMedia::route consumes the datagram after is_ok(), with no owned retry. The fresh admission callback may synchronously retry authority-busy for up to10ms.",
+    "Neither aggregate trim counters nor sender-report interpolation assigns every missing packet to a unique cause. Do not claim all audio loss is explained or change quality limits."
+  ],
+  "source_audit": [
+    {
+      "path": "crates/connect-service/src/canonical_media/packets.rs",
+      "behavior": "Fresh publishing admission has a10ms synchronous retry budget; retained/receiving admissions use immediate reads."
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-uctp/src/staged_media.rs",
+      "behavior": "PortIngress::publish_source calls try_publish_clocked once; Backpressure maps to Full, every other error maps to Closed."
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_media.rs",
+      "behavior": "The owned datagram reader invokes route synchronously and counts refusal; the exact refused frame is not retained for a bounded admission retry."
+    },
+    {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs",
+      "behavior": "keep_next_original trims larger unplayed backlogs to two chunks; take/collect already retry unavailable current metadata through original queued owners."
+    }
+  ],
+  "next": [
+    "Add a focused deterministic native-ingress contention case using a real original frame/current scope, distinguishing temporary metadata refusal from revoked/prepared/paused/changed authority.",
+    "If confirmed, retain only definite temporary admission failures under exact original route/consumer/scene stamps and the original receive time/earliest expiry; yield asynchronously. Do not retry generic NotReady across readiness/publication transitions or recapture a newer audience.",
+    "Inspect mixer backlog/discontinuity separately; no larger buffer, longer frame age, replayed audio or looser quality thresholds as a substitute for the cause."
+  ],
+  "task_complete": false
+}
