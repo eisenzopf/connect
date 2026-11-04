@@ -66,7 +66,9 @@ export function physicalAvSegment(observed, expected) {
         assert.equal(row.original_root_completed_observed, row.elapsed_us >= rootObservedUs,
             "packet completion boundary must match the actual original-root observation");
         assert.ok(!completedSeen || row.original_root_completed_observed, "completion observation cannot regress");
-        assert.ok(Array.isArray(row.datagram) && row.datagram.length >= 20);
+        assert.ok(Array.isArray(row.datagram) && row.datagram.length >= 20 &&
+            row.datagram.length <= MEDIA_LIMITS.rtpBytes + 24,
+            "capture exceeds its negotiated native framing bound");
         assert.ok(row.datagram.every(value => uint(value, 255)));
         const wire = Uint8Array.from(row.datagram), view = new DataView(wire.buffer);
         assert.equal(wire[0], 1); assert.ok(wire[1] === 0 || wire[1] === 1);
