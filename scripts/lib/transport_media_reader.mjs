@@ -9,6 +9,7 @@ export class SwitchingMediaReader {
     #failure;
     #switches = 0;
     #cancelledReads = 0;
+    #reads = new WeakMap();
 
     constructor(streamId, media, parent) {
         this.#current = { streamId, media, controller: new AbortController() };
@@ -61,7 +62,9 @@ export class SwitchingMediaReader {
                 const value = await current.media.receivePacket({ ...options,
                     timeoutMs: remaining,
                     signal: AbortSignal.any([this.#parent, current.controller.signal]) });
-                return { value, streamId: current.streamId };
+                const result = { value, streamId: current.streamId };
+                this.#reads.set(result, current);
+                return result;
             } catch (failure) {
                 if (this.#failure) throw this.#failure;
                 if (this.#parent.aborted) throw failure;
@@ -90,5 +93,15 @@ export class SwitchingMediaReader {
                 throw failure;
             }
         }
+    }
+
+    async requestKeyframe(read, options) {
+        const current = this.#reads.get(read);
+        // Same Stream ID does not make a retired physical read current. Do not
+        // retarget feedback across a selection, including one still in flight.
+        if (!current || current !== this.#current || this.#selection || this.#failure || this.#parent.aborted)
+            return undefined;
+        return current.media.requestKeyframe({ ...options,
+            signal: AbortSignal.any([this.#parent, current.controller.signal]) });
     }
 }

@@ -43,6 +43,10 @@ def rows(value, medium, allowed_streams, default_stream=None):
     if not isinstance(value, list) or len(value) > (3200 if medium == 'audio' else 2000):
         raise ValueError('moving codec row bound')
     histories = {}
+    clocks = {}
+    video_boundary = None
+    video_group = 0
+    last_decoder_history = 0
     previous = -1
     for row in value:
         at, timestamp, ssrc = row['elapsed_ms'], row['timestamp'], row['ssrc']
@@ -55,18 +59,34 @@ def rows(value, medium, allowed_streams, default_stream=None):
         payload = base64.b64decode(row['payload'], validate=True)
         if not 0 < len(payload) <= (1168 if medium == 'audio' else 256 * 1024):
             raise ValueError('moving original codec payload bound')
-        key = (stream, ssrc)
-        history = histories.setdefault(key, [])
-        if history:
-            distance = (timestamp - history[-1]['timestamp']) % 2 ** 32
+        clock_key = (stream, ssrc)
+        if clock_key in clocks:
+            distance = (timestamp - clocks[clock_key]) % 2 ** 32
             if not 0 < distance < 2 ** 31:
                 raise ValueError('moving codec history repeated or regressed original RTP clock')
+        clocks[clock_key] = timestamp
         if medium == 'video' and type(row['key']) is not bool:
             raise ValueError('moving original VP8 keyframe flag')
+        if medium == 'video':
+            decoder_history = row.get('decoder_history')
+            if decoder_history is not None:
+                if type(decoder_history) is not int or decoder_history < 1 or decoder_history < last_decoder_history:
+                    raise ValueError('moving video decoder history regressed')
+                last_decoder_history = decoder_history
+            # Decode each contiguous physical history separately. Returning to
+            # the same stream/SSRC cannot recover a previous decoder's state.
+            boundary = (stream, ssrc, decoder_history)
+            if boundary != video_boundary:
+                video_group += 1
+                video_boundary = boundary
+            key = (stream, ssrc, video_group)
+        else:
+            key = (stream, ssrc, 0)
+        history = histories.setdefault(key, [])
         history.append(row)
     if len(histories) > 32:
         raise ValueError('moving physical codec history bound')
-    return [(stream, ssrc, history) for (stream, ssrc), history in histories.items()]
+    return [(stream, ssrc, history) for (stream, ssrc, _), history in histories.items()]
 
 
 def timeline(directory, metadata):
