@@ -249,6 +249,8 @@ export interface BrowserSdkMutationOptions extends BrowserSdkRequestOptions {
 export interface BrowserSdkClientOptions extends BrowserTransportClientOptions {
     readonly tenantId: string;
     readonly media?: BrowserRtcConfiguration;
+    /** Explicit native WebTransport Video feedback/epoch profile; default false. */
+    readonly nativeVideoFeedback?: boolean;
     readonly resolveApplicationRead?: BrowserApplicationReadResolver;
 }
 export type BrowserOperationState =
@@ -1035,6 +1037,7 @@ class State {
         readonly actor: string,
         readonly rtcConfiguration: BrowserRtcConfiguration,
         readonly applicationReads: BrowserApplicationReads,
+        readonly nativeVideoFeedback: boolean,
     ) {}
     get peer(): BrowserClient {
         try {
@@ -1782,6 +1785,12 @@ export class BrowserSdkClient {
     ): Promise<BrowserSdkClient> {
         sdkId(options.tenantId);
         if (
+            options.nativeVideoFeedback !== undefined &&
+            typeof options.nativeVideoFeedback !== "boolean"
+        )
+            invalid();
+        const nativeVideoFeedback = options.nativeVideoFeedback === true;
+        if (
             options.resolveApplicationRead !== undefined &&
             typeof options.resolveApplicationRead !== "function"
         )
@@ -1811,6 +1820,7 @@ export class BrowserSdkClient {
                     actor,
                     media,
                     applicationReads,
+                    nativeVideoFeedback,
                 ),
             );
         } catch (error) {
@@ -2518,7 +2528,13 @@ export class BrowserSession {
                 } else
                     begun = s
                         .nativePeer()
-                        .beginOfferConnection(low, budget.options());
+                        .beginOfferConnection(
+                            {
+                                ...low,
+                                nativeVideoFeedback: s.nativeVideoFeedback,
+                            },
+                            budget.options(),
+                        );
                 const local = {
                     cid: this.conversationId,
                     sid: this.id,
