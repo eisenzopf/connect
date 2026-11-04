@@ -332,3 +332,12 @@ refusal without submitting another mutation. Failed physical owners and both
 fixture listeners must join. This is control-selection evidence only, not WSS
 media qualification. Its two new focused checks and actual Chrome run are
 pending. Existing passing cleanup checks will not be rerun.
+
+
+Later November 4: the original v166 completes successfully in 860.09 seconds,
+with exactly one selected Rust regression passing in 0.16 seconds, no ignored
+cases, and unchanged source/executable guards. v167 at 90038f24 passes its two
+new unavailable-socket/evidence-boundary checks and is building the production
+CLI for one affected local ARM Chrome WT EdDSA quality workload. No prior
+passing cleanup tests are repeated. The full workload remains pending; neither
+focused check proves actual browser fallback. Its original controller is 30874.

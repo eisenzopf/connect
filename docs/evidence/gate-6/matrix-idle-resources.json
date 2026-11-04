@@ -609,7 +609,7 @@
   },
   "production_fix": {
     "source_revision": "2ca6793e",
-    "status": "correct-feature-regression-compiling",
+    "status": "focused-production-regression-passed-full-workload-pending",
     "full_workload_retested": false,
     "attempts": [
       {
@@ -636,6 +636,25 @@
         "source_inputs_unchanged": true,
         "executable_unchanged": true,
         "reason": "Required control_work regression is gated by test-support; runner omitted that feature. Zero tests selected is unexecuted, not passed."
+      },
+      {
+        "attempt": "v166",
+        "source_revision": "6c596c5565f0636f69403916500d3ac9f0bb3ae3",
+        "stage": "complete",
+        "passed": true,
+        "case": "canonical_runtime::control_work::tests::periodic_custodian_joins_completed_controls_without_new_submission_or_cancelling_pending",
+        "scope": "One production Service periodic-custody regression; no full media or idle-resource pass.",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "e7d301399757f405757af800a35899d8bd557b494f4af344d310070afaf85392",
+        "binary_sha256": "310c84f89e587c04e378f2b69e254db04d09dcf97fa8c62cbd37711dd1d79451",
+        "test_list_exit_code": 0,
+        "test_list_sha256": "557c7a61e37cbd0ac08c971e75f5c3bd5840f42f5652223384998217daa7f6f2",
+        "test_exit_code": 0,
+        "test_log_sha256": "f3bf0285ad364a27592bcb15026f1568c37d54291f6d3059a91580030b301750",
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true,
+        "elapsed_seconds": 860.0870082020001,
+        "tests_executed": 1
       }
     ],
     "cache_recovery": {

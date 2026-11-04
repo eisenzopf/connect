@@ -1,0 +1,30 @@
+{
+  "format": "connect/gate6-browser-selection-evidence/1",
+  "task": "G6-058",
+  "task_complete": false,
+  "cell_qualified": false,
+  "scope": "Two new focused fixture/evidence checks; actual browser selection is running as part of v167 and has no terminal result yet.",
+  "focused_checks": {
+    "attempt": "v167-prechecks",
+    "source_revision": "90038f24c52147c7a581a00ba53bfe5a175d50f0",
+    "passed": true,
+    "tests_executed": 2,
+    "source_inputs_unchanged": true,
+    "commands": [
+      {
+        "name": "owned-unavailable-sockets",
+        "exit_code": 0
+      },
+      {
+        "name": "selection-evidence-boundary",
+        "exit_code": 0
+      }
+    ],
+    "log_sha256": {
+      "state.json": "3b126f8b5842c629015f61f7243c902a4219c79c59d8953bb886a467b496bcf5",
+      "owned-unavailable-sockets.log": "70ee398d4ec4e64c58c2582ae016002951644eb494087312f1983722e874d058",
+      "selection-evidence-boundary.log": "fb184ea57734512b1f088f9181209901b9cd46df3eb7eaa2500ea9e48dde20b5"
+    }
+  },
+  "actual_browser_attempts": []
+}
