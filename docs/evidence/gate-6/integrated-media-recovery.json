@@ -1369,6 +1369,106 @@
       },
       "evidence": "decoder-start-boundary.json",
       "full_media_quality_comparison_available": false
+    },
+    {
+      "run": "v119",
+      "state": {
+        "authority_summary": true,
+        "decoder_boundary_fix": true,
+        "build_jobs": 4,
+        "audio_terminal_counters": true,
+        "original_sdk_feedback_required": true,
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 153017,
+        "source_revision": "5910df820faed1595341eda536fdbe517d6e942f",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": true,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T10:55:32.034201+00:00",
+        "fixture_exit_code": 1,
+        "report_sha256": "c42388c512bdfb5178f343e2f8ff9bac95a391535314b77d02d38a5ee13deb93",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "45c6e8b91ebf33d4842e68a6e991307f592e1124cbf35078e4cd9afe8e9fd253",
+        "peer_binary_sha256": "92d7ab89863eacd6acb4f85d9962605acc472f7682923f0d1dc23390c8c58625",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 932.6591712410009
+      },
+      "evidence": "authority-contention.json",
+      "full_media_quality_comparison_available": false,
+      "original_roots_completed": 4,
+      "physical_stages": [
+        {
+          "segment": "0-0",
+          "passed": true,
+          "original_root_completed": true,
+          "original_source_owner_joined": true,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "physical_data_exchange_verified": true,
+          "failure": null
+        },
+        {
+          "segment": "0-1",
+          "passed": false,
+          "original_root_completed": true,
+          "original_source_owner_joined": true,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "physical_data_exchange_verified": null,
+          "failure": {
+            "phase": "target-worker-join",
+            "name": "AssertionError",
+            "kind": null,
+            "certainty": null,
+            "source": {
+              "line": 236,
+              "column": 20
+            }
+          }
+        },
+        {
+          "segment": "4-0",
+          "passed": true,
+          "original_root_completed": true,
+          "original_source_owner_joined": true,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "physical_data_exchange_verified": true,
+          "failure": null
+        },
+        {
+          "segment": "4-1",
+          "passed": false,
+          "original_root_completed": true,
+          "original_source_owner_joined": true,
+          "target_worker_joined": true,
+          "target_worker_forced": false,
+          "physical_data_exchange_verified": null,
+          "failure": {
+            "phase": "target-worker-join",
+            "name": "AssertionError",
+            "kind": null,
+            "certainty": null,
+            "source": {
+              "line": 236,
+              "column": 20
+            }
+          }
+        }
+      ]
     }
   ],
   "diagnosis": {
@@ -1393,7 +1493,7 @@
     "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
-  "next_investigation": "Decoder boundary regression passed at ab223644. Investigate deferred packet/PCM authority and post-cutover metadata writer contention before the next full workload; do not relax original packet budgets, operation identity or quality bounds.",
+  "next_investigation": "v119 exposes wall/monotonic programme divergence at both return Data markers (~100ms), with correct original identities and completed roots. Preserve one original same-host monotonic origin while keeping RTP/NTP epochs and all cutoffs; add focused clock-step regression. Signed peer intervals remain the dominant observed long authority holders; audio deferrals/trims remain unresolved.",
   "activation_investigation": {
     "run": "v113",
     "operation_ledger_verified": true,

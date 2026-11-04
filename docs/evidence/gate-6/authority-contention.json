@@ -1,0 +1,555 @@
+{
+  "format": "connect/gate6-authority-contention-evidence/1",
+  "run": "v119",
+  "source_revision": "5910df820faed1595341eda536fdbe517d6e942f",
+  "state": {
+    "authority_summary": true,
+    "decoder_boundary_fix": true,
+    "build_jobs": 4,
+    "audio_terminal_counters": true,
+    "original_sdk_feedback_required": true,
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 153017,
+    "source_revision": "5910df820faed1595341eda536fdbe517d6e942f",
+    "passed": false,
+    "metadata_diagnostic": false,
+    "commit_phase_diagnostic": true,
+    "packet_policy_trace": false,
+    "helper_timing_diagnostic": false,
+    "movement_profile": "gate6-realistic-device-roundtrip-v1",
+    "scheduled_moves": 4,
+    "host_capture_requested": true,
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false,
+    "general_suites_rerun": false,
+    "previous_passed_cases_rerun": false,
+    "updated_at": "2026-11-04T10:55:32.034201+00:00",
+    "fixture_exit_code": 1,
+    "report_sha256": "c42388c512bdfb5178f343e2f8ff9bac95a391535314b77d02d38a5ee13deb93",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "binary_sha256": "45c6e8b91ebf33d4842e68a6e991307f592e1124cbf35078e4cd9afe8e9fd253",
+    "peer_binary_sha256": "92d7ab89863eacd6acb4f85d9962605acc472f7682923f0d1dc23390c8c58625",
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 932.6591712410009
+  },
+  "report_sha256": "c42388c512bdfb5178f343e2f8ff9bac95a391535314b77d02d38a5ee13deb93",
+  "conversation_sha256": "bec9108deb6be75db63b0de682f4007f563577ab8bc448fb664261ab7bfe2173",
+  "server_log_sha256": "985473ab9731cd447127b42122667c908b0bc361ff613d6135ebd2f5f06a6ce9",
+  "terminal_summary_sha256": "011045f28d7744cb14ec0a50920a6469c1bf12948ed44b6b29ab124b75038c5f",
+  "clock_metadata_sha256": "1fa54330349d1e1f628f07295d9e3aecafbcae37c508b474c7124d1a64f50698",
+  "operations": [
+    {
+      "record_id": "opr_bd0544f2-1080-4eed-8118-d47b48ca6043",
+      "operation_id": "move_ed67e757-c9a0-405b-a7f1-1fa5bce9fa93",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "record_id": "opr_8b3c2b8b-6f7a-4fb2-ae3b-68b9f273b251",
+      "operation_id": "move_2743e029-dcb8-4e87-aef8-bf74a6e91ea4",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "record_id": "opr_b4cda08d-daed-4e9c-a5bf-e2abb4cf6979",
+      "operation_id": "move_5b410aac-d5d5-4130-b5a0-bb0772e35d47",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "record_id": "opr_703cb4c2-f1e7-43a2-92c2-177e3579d549",
+      "operation_id": "move_64ee137d-9c44-478a-bfb3-a34a5bee01cb",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    }
+  ],
+  "physical_stages": [
+    {
+      "segment": "0-0",
+      "passed": true,
+      "original_root_completed": true,
+      "original_source_owner_joined": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": true,
+      "failure": null
+    },
+    {
+      "segment": "0-1",
+      "passed": false,
+      "original_root_completed": true,
+      "original_source_owner_joined": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": null,
+      "failure": {
+        "phase": "target-worker-join",
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "source": {
+          "line": 236,
+          "column": 20
+        }
+      }
+    },
+    {
+      "segment": "4-0",
+      "passed": true,
+      "original_root_completed": true,
+      "original_source_owner_joined": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": true,
+      "failure": null
+    },
+    {
+      "segment": "4-1",
+      "passed": false,
+      "original_root_completed": true,
+      "original_source_owner_joined": true,
+      "target_worker_joined": true,
+      "target_worker_forced": false,
+      "physical_data_exchange_verified": null,
+      "failure": {
+        "phase": "target-worker-join",
+        "name": "AssertionError",
+        "kind": null,
+        "certainty": null,
+        "source": {
+          "line": 236,
+          "column": 20
+        }
+      }
+    }
+  ],
+  "authority_counts": {
+    "hold": 174,
+    "peer": 57,
+    "admission": 5
+  },
+  "failed_projection_stages": {
+    "lock-resource/identity/true": 5
+  },
+  "held_interval_callers": {
+    "crates/connect-store/src/peer_authority.rs:775": {
+      "count": 170,
+      "max_us": 703070,
+      "total_us": 19493528
+    },
+    "crates/connect-store/src/peer_authority/connection_media/snapshot.rs:380": {
+      "count": 2,
+      "max_us": 23220,
+      "total_us": 44202
+    },
+    "crates/connect-store/src/peer_authority/connection_media/admission.rs:194": {
+      "count": 1,
+      "max_us": 61221,
+      "total_us": 61221
+    },
+    "crates/connect-store/src/transitions/native_streams.rs:674": {
+      "count": 1,
+      "max_us": 106097,
+      "total_us": 106097
+    }
+  },
+  "peer_command_intervals": {
+    "conversation.get": {
+      "count": 47,
+      "max_held_ms": 279,
+      "max_admission_ms": 468
+    },
+    "operation.get": {
+      "count": 4,
+      "max_held_ms": 153,
+      "max_admission_ms": 215
+    },
+    "stream.subscribe": {
+      "count": 4,
+      "max_held_ms": 621,
+      "max_admission_ms": 169
+    },
+    "connection.update": {
+      "count": 2,
+      "max_held_ms": 391,
+      "max_admission_ms": 121
+    }
+  },
+  "aggregate_audio_counters": {
+    "collect-deferred": {
+      "events": 351,
+      "samples": 0,
+      "members": 9
+    },
+    "burst-trim": {
+      "events": 236,
+      "samples": 226560,
+      "members": 8
+    },
+    "take-deferred": {
+      "events": 284,
+      "samples": 0,
+      "members": 9
+    },
+    "target-before-start": {
+      "events": 179,
+      "samples": 171840,
+      "members": 10
+    },
+    "empty-output": {
+      "events": 4014,
+      "samples": 0,
+      "members": 10
+    },
+    "subscription-refused": {
+      "events": 19658,
+      "samples": 18871680,
+      "members": 8
+    },
+    "target-deferred": {
+      "events": 26,
+      "samples": 24960,
+      "members": 7
+    },
+    "refresh-reset": {
+      "events": 8,
+      "samples": 0,
+      "members": 4
+    },
+    "target-refused": {
+      "events": 25,
+      "samples": 24000,
+      "members": 2
+    },
+    "collect-expired": {
+      "events": 8,
+      "samples": 0,
+      "members": 4
+    },
+    "input-discontinuity": {
+      "events": 7,
+      "samples": 7680,
+      "members": 5
+    },
+    "take-expired": {
+      "events": 14,
+      "samples": 13440,
+      "members": 4
+    }
+  },
+  "data_marker_clock_observations": [
+    {
+      "segment": "0-0",
+      "armed_programme_ms": 20032,
+      "cutoff_programme_ms": 28032,
+      "marker_mtime_ns": 1793789697080772755,
+      "output_mtime_ns": 1793789721932052130,
+      "programme_origin_unix_us": 1793789677045000,
+      "marker_wall_programme_ms": 20035.77294921875,
+      "output_wall_programme_ms": 44887.05224609375,
+      "identities_match": true,
+      "last_packet_programme_us": 43271894,
+      "failure_stage": null
+    },
+    {
+      "segment": "4-0",
+      "armed_programme_ms": 19036,
+      "cutoff_programme_ms": 27036,
+      "marker_mtime_ns": 1793789696085523492,
+      "output_mtime_ns": 1793789720911891183,
+      "programme_origin_unix_us": 1793789677045000,
+      "marker_wall_programme_ms": 19040.5234375,
+      "output_wall_programme_ms": 43866.89111328125,
+      "identities_match": true,
+      "last_packet_programme_us": 43292703,
+      "failure_stage": null
+    },
+    {
+      "segment": "0-1",
+      "armed_programme_ms": 46811,
+      "cutoff_programme_ms": 54811,
+      "marker_mtime_ns": 1793789723756300191,
+      "output_mtime_ns": 1793789723847729369,
+      "programme_origin_unix_us": 1793789677045000,
+      "marker_wall_programme_ms": 46711.30029296875,
+      "output_wall_programme_ms": 46802.7294921875,
+      "identities_match": true,
+      "last_packet_programme_us": 46718996,
+      "failure_stage": "physical-data-exchange"
+    },
+    {
+      "segment": "4-1",
+      "armed_programme_ms": 44943,
+      "cutoff_programme_ms": 52943,
+      "marker_mtime_ns": 1793789721887787825,
+      "output_mtime_ns": 1793789721990400532,
+      "programme_origin_unix_us": 1793789677045000,
+      "marker_wall_programme_ms": 44842.787841796875,
+      "output_wall_programme_ms": 44945.400390625,
+      "identities_match": true,
+      "last_packet_programme_us": 44843937,
+      "failure_stage": "physical-data-exchange"
+    }
+  ],
+  "media_work": {
+    "format": "connect/native-av-work-observation/1",
+    "original_tasks_joined": true,
+    "encoder_processes_joined": 6,
+    "original_tasks_started": 30,
+    "control_task_started": true,
+    "elapsed_ms": 53034.187795000005,
+    "failure": {
+      "route_index": null,
+      "medium": null,
+      "direction": "control",
+      "stage": "during-workload"
+    },
+    "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+  },
+  "process_profile": {
+    "format": "connect/native-workload-process-profile/1",
+    "started_unix_ms": 1793789665352,
+    "elapsed_seconds": 65.5012454270036,
+    "sample_count": 66,
+    "groups": {
+      "server": {
+        "peak_sampled_rss_bytes": 158384128,
+        "observed_cpu_seconds": 45.49,
+        "peak_live_processes": 1,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 51,
+        "peak_sampled_threads": 18,
+        "open_resource_unavailable_samples": 0
+      },
+      "helper": {
+        "peak_sampled_rss_bytes": 836689920,
+        "observed_cpu_seconds": 45.99,
+        "peak_live_processes": 20,
+        "unavailable_samples": 0,
+        "peak_sampled_open_descriptors": 207,
+        "peak_sampled_threads": 110,
+        "open_resource_unavailable_samples": 1
+      }
+    },
+    "original_supervisor_joined": true,
+    "original_workers_joined": true,
+    "forced": false,
+    "failure": null,
+    "collection_complete": false,
+    "scope": "One-second numeric observations of the original local Linux server and native workload command, including its Node controller, native SDK helpers, independent physical peers and the small Python supervisor. Includes setup and teardown; not a media-only CPU measurement. Sampled descendants can miss very short-lived children. RSS can double-count shared pages. Open descriptor counts expose no targets. Browser is absent. No capacity, resource-reclamation or complete-cell claim.",
+    "resource_reclamation_qualified": false,
+    "cell_qualified": false,
+    "task_complete": false
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "packet_limit": 200000,
+    "media_workload": true,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+    "pcap_sha256": "4507eed3c1c8ee4e2626867eebd37f59d4c28e34220c78c21ff2d0ed805e8c3b",
+    "pcap_bytes": 61459983,
+    "captured_seconds": 65.7770119689958,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 85187,
+      "to_server_packets": 46468,
+      "from_server_packets": 38719,
+      "captured_bytes": 60096967,
+      "udp_payload_bytes": 56519113,
+      "to_server_udp_bytes": 24940765,
+      "from_server_udp_bytes": 31578348
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "failure": {
+    "phase": "six-native-opus-vp8-sixty-second-workload",
+    "name": "NodeSdkError",
+    "kind": "deadline",
+    "certainty": "read-only",
+    "source_stack": []
+  },
+  "all_observed_helpers_joined": true,
+  "full_quality_comparison_available": false,
+  "task_complete": false,
+  "cell_qualified": false,
+  "findings": [
+    "All four original roots and source retirement reads complete. Both return owners then fail physical Data marker validation; parent later reports read-only deadline. First two Data exchanges pass.",
+    "Return marker identities match the originally admitted owners/contracts. Their guest filesystem wall timestamps are about100ms behind the controller monotonic programme coordinates. Earlier markers are3.8ms/4.5ms after their armed coordinates. This establishes inconsistent clock mapping; exact time-adjustment mechanism remains unproven.",
+    "Node advances the original programme with performance.now; newly created Rust peers reconstruct its monotonic origin from current SystemTime and original wall epoch. Clock adjustment can therefore give the return peers different programme origins. Do not widen marker bounds or rebase media.",
+    "All five observed failed projection acquisitions wait on an identity resource write lock at the first of five scopes. Most >=20ms released authority intervals originate in signed peer admission, not packet admission. Callsite/timing correlation does not identify the exact competing scope owner.",
+    "Observed server/helpers consume45.49s/45.99s CPU over65.50s sampled elapsed; this does not suggest sustained exhaustion of six vCPUs. Samples are not a peak-capacity proof.",
+    "Audio still defers and trims original PCM; no integrated decoded-quality result is available because control ends the programme at53.03s."
+  ],
+  "next": [
+    "Use one original monotonic programme origin for same-host controller and replacement peers; retain original RTP/NTP epochs and deadlines. Prove refusal of foreign/expired clock inputs and wall-clock-step immunity in a new focused regression.",
+    "Trace signed command held intervals and current metadata derivation to remove remaining authority contention without weakening fences.",
+    "Run the failed full workload only after concrete fixes/necessary focused evidence; G6-054 stays deferred."
+  ]
+}
