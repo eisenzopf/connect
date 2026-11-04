@@ -381,6 +381,8 @@ impl Runtime {
             cancel: self.stop.child_token(),
             telephone: telephone_target,
         };
+        #[cfg(feature = "test-support")]
+        invocation.probe_registry_for_test(&command.operation_id);
         // Begin is never retried. Core owns only a capacity/binding ticket here;
         // all allocation/target IO phases remain independently default-denied.
         let roles = self.role_projection.lock().await;

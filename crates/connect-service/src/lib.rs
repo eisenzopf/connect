@@ -304,6 +304,18 @@ impl Service {
             .media
             .with_registry_for_test(hold)
     }
+    /// Probe the original preparation invocation without starting another effect.
+    #[cfg(feature = "test-support")]
+    pub fn arm_canonical_preparation_registry_probe_for_test(
+        &self,
+        operation: &str,
+    ) -> Result<Arc<std::sync::atomic::AtomicUsize>> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .arm_preparation_registry_probe_for_test(operation)
+    }
     /// Actual coordinator metadata only; this exposes no media or control grant.
     #[cfg(feature = "test-support")]
     pub fn with_canonical_media_activation_for_test(

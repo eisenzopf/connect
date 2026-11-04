@@ -357,6 +357,13 @@ async fn signed_replacement_commit_preserves_current_owner_under_registry_conten
         .await
         .unwrap();
 }
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_replacement_preparation_preserves_current_authority_under_registry_contention() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(4))
+        .await
+        .unwrap();
+}
 async fn codec_change(
     owner: &mut CanonicalClient,
     scope: &CommandScope,
@@ -656,6 +663,17 @@ async fn exercise(mode: u8) {
         None
     };
     eprintln!("production replacement phase: replacement-prepare");
+    #[cfg(feature = "test-support")]
+    let preparation_registry_probe = if mode == 4 {
+        Some(
+            f.server
+                .service
+                .arm_canonical_preparation_registry_probe_for_test(&command.operation_id)
+                .unwrap(),
+        )
+    } else {
+        None
+    };
     let root = controller.transition(command.clone()).await.unwrap();
     phase(&f, &mut controller, &command, 1).await;
     eprintln!("production replacement phase: replacement-allocate");
@@ -909,5 +927,17 @@ async fn exercise(mode: u8) {
     publisher.close(options()).await.unwrap();
     subscriber.close(options()).await.unwrap();
     f.server.shutdown().await.unwrap();
+    #[cfg(feature = "test-support")]
+    if let Some(probe) = preparation_registry_probe {
+        let bits = probe.load(std::sync::atomic::Ordering::Acquire);
+        eprintln!(
+            "original preparation registry probe: before={} held={} cancelled_refused={} after={}",
+            bits & 1 != 0,
+            bits & 2 != 0,
+            bits & 4 != 0,
+            bits & 8 != 0
+        );
+        assert_eq!(bits, 15, "original preparation authority must survive registry exclusion while cancelled authority refuses");
+    }
     eprintln!("production replacement: signed generation2, transferred both original video selections, real receiver feedback and fresh libvpx keys independently decoded at original RTP6000 and12000; one-use raw publisher hint; owned peers and encoder joined; no full transport cell qualified");
 }

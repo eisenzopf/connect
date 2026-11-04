@@ -74,6 +74,8 @@ pub(crate) struct Policy {
     #[cfg(feature = "test-support")]
     held_registry_probes: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicUsize>>>,
     #[cfg(feature = "test-support")]
+    preparation_registry_probes: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicUsize>>>,
+    #[cfg(feature = "test-support")]
     replacement_adoption_refusals: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>>,
     #[cfg(feature = "test-support")]
     replacement_data_observer_refusals: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicBool>>>,
@@ -723,6 +725,8 @@ impl Policy {
             replacement_adoption_refusals: Default::default(),
             #[cfg(feature = "test-support")]
             held_registry_probes: Default::default(),
+            #[cfg(feature = "test-support")]
+            preparation_registry_probes: Default::default(),
             #[cfg(feature = "test-support")]
             replacement_data_observer_refusals: Default::default(),
             #[cfg(feature = "test-support")]

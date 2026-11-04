@@ -20,6 +20,73 @@ pub(crate) struct ReplacementPreparationInvocation {
     pub cancel: tokio_util::sync::CancellationToken,
     pub telephone: Option<Arc<crate::telephone_replacement::authority::Target>>,
 }
+#[cfg(feature = "test-support")]
+impl ReplacementPreparationInvocation {
+    /// Observe the original invocation under the real registry mutex without
+    /// starting, retrying or modifying any Core preparation effect.
+    pub(crate) fn probe_registry_for_test(&self, operation: &str) {
+        use std::sync::atomic::Ordering;
+        let Some(probe) = self
+            .policy
+            .preparation_registry_probes
+            .lock()
+            .expect("probe registry")
+            .remove(operation)
+        else {
+            return;
+        };
+        let context = self.read.context();
+        let conversation =
+            rvoip_core::ids::ConversationId::from_string(context.conversation_id.clone());
+        let session = SessionId::from_string(context.session_id.clone());
+        let scope = ParticipantReplacementScope {
+            conversation: &conversation,
+            session: &session,
+            principal: &self.principal,
+            intent: &self.intent,
+            phase: ReplacementPhase::Prepare,
+            plan: None,
+        };
+        // Each temporary authority result drops before the next observation.
+        let before = self.current(&scope).is_ok();
+        let (held, cancelled) = {
+            let _registry = self.policy.entries.lock().expect("actual media registry");
+            let held = self.current(&scope).is_ok();
+            let mut invalid = self.clone();
+            invalid.cancel = tokio_util::sync::CancellationToken::new();
+            invalid.cancel.cancel();
+            let cancelled = matches!(
+                invalid.current(&scope),
+                Err(ParticipantControlError::Authority)
+            );
+            (held, cancelled)
+        };
+        let after = self.current(&scope).is_ok();
+        let bits = usize::from(before)
+            | (usize::from(held) << 1)
+            | (usize::from(cancelled) << 2)
+            | (usize::from(after) << 3);
+        probe.store(bits, Ordering::Release);
+    }
+}
+#[cfg(feature = "test-support")]
+impl Policy {
+    pub(crate) fn arm_preparation_registry_probe_for_test(
+        &self,
+        operation: &str,
+    ) -> connect_protocol::Result<Arc<std::sync::atomic::AtomicUsize>> {
+        let mut probes = self
+            .preparation_registry_probes
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?;
+        if probes.contains_key(operation) {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        probes.insert(operation.into(), observed.clone());
+        Ok(observed)
+    }
+}
 impl ParticipantReplacementLease for ReplacementPreparationInvocation {
     fn current(
         &self,
