@@ -1,0 +1,695 @@
+{
+  "format": "connect/return-gap-original-audit/1",
+  "source_revision": "1d3d14d102aa8884c3caec511e432807797b12a4",
+  "source_guards_passed": true,
+  "read_only": true,
+  "no_media_rerun": true,
+  "no_decode_rerun": true,
+  "original_capture_sha256": "bb91baf96fb14c0577e704d19df64370a2c4ace1efd2e916317037fa64b1b4e9",
+  "original_database_sha256": "17c5f5d20680b558981fde369dd9735b4cb9b28115186271578f4db93f7044e9",
+  "metadata_phases": [
+    {
+      "segment": "0-0",
+      "phase": "capture",
+      "result": "ok",
+      "elapsed_us": 3659,
+      "dispatch_us": 23,
+      "store_execution_us": 3611,
+      "outside_store_us": 25,
+      "attempts": 1,
+      "completed_calls": 1,
+      "authority_busy": 0,
+      "storage_unavailable": 0,
+      "permanent_refusal": 0,
+      "store_admission": {
+        "activation": {
+          "admitted": 0,
+          "attempts": 0,
+          "authority_busy": 0,
+          "authority_wait_us": 0,
+          "derive_after_us": 0,
+          "derive_before_us": 0,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 0,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 0,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 0,
+            "body_aborted": 0,
+            "body_us": 0,
+            "commit_failed": 0,
+            "commit_us": 0,
+            "committed": 0,
+            "unchanged": 0
+          }
+        },
+        "capture": {
+          "admitted": 1,
+          "attempts": 1,
+          "authority_busy": 0,
+          "authority_wait_us": 315,
+          "derive_after_us": 271,
+          "derive_before_us": 471,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 0,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 10,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 2,
+            "body_aborted": 0,
+            "body_us": 1807,
+            "commit_failed": 0,
+            "commit_us": 705,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "format": "connect/replacement-projection-diagnostics/1"
+      }
+    },
+    {
+      "segment": "0-0",
+      "phase": "activation",
+      "result": "ok",
+      "elapsed_us": 10116,
+      "dispatch_us": 27,
+      "store_execution_us": 10065,
+      "outside_store_us": 24,
+      "attempts": 1,
+      "completed_calls": 1,
+      "authority_busy": 0,
+      "storage_unavailable": 0,
+      "permanent_refusal": 0,
+      "store_admission": {
+        "activation": {
+          "admitted": 1,
+          "attempts": 1,
+          "authority_busy": 0,
+          "authority_wait_us": 786,
+          "derive_after_us": 281,
+          "derive_before_us": 777,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 0,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 13,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 1,
+            "body_aborted": 0,
+            "body_us": 7384,
+            "commit_failed": 0,
+            "commit_us": 735,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "capture": {
+          "admitted": 1,
+          "attempts": 1,
+          "authority_busy": 0,
+          "authority_wait_us": 315,
+          "derive_after_us": 271,
+          "derive_before_us": 471,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 0,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 10,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 2,
+            "body_aborted": 0,
+            "body_us": 1807,
+            "commit_failed": 0,
+            "commit_us": 705,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "format": "connect/replacement-projection-diagnostics/1"
+      }
+    },
+    {
+      "segment": "4-0",
+      "phase": "capture",
+      "result": "ok",
+      "elapsed_us": 240528,
+      "dispatch_us": 402,
+      "store_execution_us": 3576,
+      "outside_store_us": 236550,
+      "attempts": 12,
+      "completed_calls": 12,
+      "authority_busy": 11,
+      "storage_unavailable": 0,
+      "permanent_refusal": 0,
+      "store_admission": {
+        "activation": {
+          "admitted": 0,
+          "attempts": 0,
+          "authority_busy": 0,
+          "authority_wait_us": 0,
+          "derive_after_us": 0,
+          "derive_before_us": 0,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 0,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 0,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 0,
+            "body_aborted": 0,
+            "body_us": 0,
+            "commit_failed": 0,
+            "commit_us": 0,
+            "committed": 0,
+            "unchanged": 0
+          }
+        },
+        "capture": {
+          "admitted": 1,
+          "attempts": 21,
+          "authority_busy": 20,
+          "authority_wait_us": 284,
+          "derive_after_us": 293,
+          "derive_before_us": 550,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 20,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 11,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 2,
+            "body_aborted": 0,
+            "body_us": 1771,
+            "commit_failed": 0,
+            "commit_us": 452,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "format": "connect/replacement-projection-diagnostics/1"
+      }
+    },
+    {
+      "segment": "4-0",
+      "phase": "activation",
+      "result": "ok",
+      "elapsed_us": 10382,
+      "dispatch_us": 13,
+      "store_execution_us": 10341,
+      "outside_store_us": 28,
+      "attempts": 1,
+      "completed_calls": 1,
+      "authority_busy": 0,
+      "storage_unavailable": 0,
+      "permanent_refusal": 0,
+      "store_admission": {
+        "activation": {
+          "admitted": 1,
+          "attempts": 1,
+          "authority_busy": 0,
+          "authority_wait_us": 237,
+          "derive_after_us": 817,
+          "derive_before_us": 462,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 0,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 12,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 2,
+            "body_aborted": 0,
+            "body_us": 8145,
+            "commit_failed": 0,
+            "commit_us": 592,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "capture": {
+          "admitted": 1,
+          "attempts": 21,
+          "authority_busy": 20,
+          "authority_wait_us": 284,
+          "derive_after_us": 293,
+          "derive_before_us": 550,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 20,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 11,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 2,
+            "body_aborted": 0,
+            "body_us": 1771,
+            "commit_failed": 0,
+            "commit_us": 452,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "format": "connect/replacement-projection-diagnostics/1"
+      }
+    },
+    {
+      "segment": "4-1",
+      "phase": "capture",
+      "result": "ok",
+      "elapsed_us": 47872,
+      "dispatch_us": 56,
+      "store_execution_us": 5758,
+      "outside_store_us": 42058,
+      "attempts": 3,
+      "completed_calls": 3,
+      "authority_busy": 2,
+      "storage_unavailable": 0,
+      "permanent_refusal": 0,
+      "store_admission": {
+        "activation": {
+          "admitted": 0,
+          "attempts": 0,
+          "authority_busy": 0,
+          "authority_wait_us": 0,
+          "derive_after_us": 0,
+          "derive_before_us": 0,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 0,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 0,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 0,
+            "body_aborted": 0,
+            "body_us": 0,
+            "commit_failed": 0,
+            "commit_us": 0,
+            "committed": 0,
+            "unchanged": 0
+          }
+        },
+        "capture": {
+          "admitted": 1,
+          "attempts": 4,
+          "authority_busy": 3,
+          "authority_wait_us": 1245,
+          "derive_after_us": 459,
+          "derive_before_us": 767,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 3,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 13,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 5,
+            "body_aborted": 0,
+            "body_us": 2500,
+            "commit_failed": 0,
+            "commit_us": 715,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "format": "connect/replacement-projection-diagnostics/1"
+      }
+    },
+    {
+      "segment": "4-1",
+      "phase": "activation",
+      "result": "ok",
+      "elapsed_us": 6515,
+      "dispatch_us": 16,
+      "store_execution_us": 6483,
+      "outside_store_us": 16,
+      "attempts": 1,
+      "completed_calls": 1,
+      "authority_busy": 0,
+      "storage_unavailable": 0,
+      "permanent_refusal": 0,
+      "store_admission": {
+        "activation": {
+          "admitted": 1,
+          "attempts": 1,
+          "authority_busy": 0,
+          "authority_wait_us": 55,
+          "derive_after_us": 297,
+          "derive_before_us": 372,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 0,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 12,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 1,
+            "body_aborted": 0,
+            "body_us": 5110,
+            "commit_failed": 0,
+            "commit_us": 567,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "capture": {
+          "admitted": 1,
+          "attempts": 5,
+          "authority_busy": 4,
+          "authority_wait_us": 1245,
+          "derive_after_us": 459,
+          "derive_before_us": 780,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 4,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 13,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 5,
+            "body_aborted": 0,
+            "body_us": 2500,
+            "commit_failed": 0,
+            "commit_us": 715,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "format": "connect/replacement-projection-diagnostics/1"
+      }
+    },
+    {
+      "segment": "0-1",
+      "phase": "capture",
+      "result": "ok",
+      "elapsed_us": 557448,
+      "dispatch_us": 1240,
+      "store_execution_us": 4279,
+      "outside_store_us": 551929,
+      "attempts": 27,
+      "completed_calls": 27,
+      "authority_busy": 26,
+      "storage_unavailable": 0,
+      "permanent_refusal": 0,
+      "store_admission": {
+        "activation": {
+          "admitted": 0,
+          "attempts": 0,
+          "authority_busy": 0,
+          "authority_wait_us": 0,
+          "derive_after_us": 0,
+          "derive_before_us": 0,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 0,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 0,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 0,
+            "body_aborted": 0,
+            "body_us": 0,
+            "commit_failed": 0,
+            "commit_us": 0,
+            "committed": 0,
+            "unchanged": 0
+          }
+        },
+        "capture": {
+          "admitted": 1,
+          "attempts": 52,
+          "authority_busy": 51,
+          "authority_wait_us": 5367,
+          "derive_after_us": 360,
+          "derive_before_us": 1217,
+          "failed_authority_wait": 1,
+          "failed_derive_after": 0,
+          "failed_derive_before": 50,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 11,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 2,
+            "body_aborted": 0,
+            "body_us": 2075,
+            "commit_failed": 0,
+            "commit_us": 504,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "format": "connect/replacement-projection-diagnostics/1"
+      }
+    },
+    {
+      "segment": "0-1",
+      "phase": "activation",
+      "result": "ok",
+      "elapsed_us": 5477,
+      "dispatch_us": 10,
+      "store_execution_us": 5449,
+      "outside_store_us": 18,
+      "attempts": 1,
+      "completed_calls": 1,
+      "authority_busy": 0,
+      "storage_unavailable": 0,
+      "permanent_refusal": 0,
+      "store_admission": {
+        "activation": {
+          "admitted": 1,
+          "attempts": 1,
+          "authority_busy": 0,
+          "authority_wait_us": 55,
+          "derive_after_us": 293,
+          "derive_before_us": 371,
+          "failed_authority_wait": 0,
+          "failed_derive_after": 0,
+          "failed_derive_before": 0,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 9,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 1,
+            "body_aborted": 0,
+            "body_us": 3948,
+            "commit_failed": 0,
+            "commit_us": 721,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "capture": {
+          "admitted": 1,
+          "attempts": 53,
+          "authority_busy": 52,
+          "authority_wait_us": 5367,
+          "derive_after_us": 360,
+          "derive_before_us": 1226,
+          "failed_authority_wait": 1,
+          "failed_derive_after": 0,
+          "failed_derive_before": 51,
+          "failed_scope_revalidation": 0,
+          "failed_sql_reacquire": 0,
+          "incomplete": 0,
+          "permanent_refusal": 0,
+          "sql_reacquire_us": 11,
+          "storage_unavailable": 0,
+          "transaction": {
+            "begin_failed": 0,
+            "begin_us": 2,
+            "body_aborted": 0,
+            "body_us": 2075,
+            "commit_failed": 0,
+            "commit_us": 504,
+            "committed": 1,
+            "unchanged": 0
+          }
+        },
+        "format": "connect/replacement-projection-diagnostics/1"
+      }
+    }
+  ],
+  "wire_window": {
+    "start_ms": 43300,
+    "end_ms": 43500,
+    "peers": [
+      {
+        "peer_ordinal": 0,
+        "to_server": {
+          "packets": 23,
+          "udp_payload_bytes": 13712
+        },
+        "from_server": {
+          "packets": 10,
+          "udp_payload_bytes": 360
+        }
+      },
+      {
+        "peer_ordinal": 1,
+        "to_server": {
+          "packets": 1,
+          "udp_payload_bytes": 37
+        },
+        "from_server": {
+          "packets": 1,
+          "udp_payload_bytes": 1304
+        }
+      },
+      {
+        "peer_ordinal": 2,
+        "to_server": {
+          "packets": 10,
+          "udp_payload_bytes": 1326
+        },
+        "from_server": {
+          "packets": 5,
+          "udp_payload_bytes": 176
+        }
+      },
+      {
+        "peer_ordinal": 3,
+        "to_server": {
+          "packets": 17,
+          "udp_payload_bytes": 14302
+        },
+        "from_server": {
+          "packets": 10,
+          "udp_payload_bytes": 360
+        }
+      },
+      {
+        "peer_ordinal": 5,
+        "to_server": {
+          "packets": 4,
+          "udp_payload_bytes": 497
+        },
+        "from_server": {
+          "packets": 8,
+          "udp_payload_bytes": 88607
+        }
+      },
+      {
+        "peer_ordinal": 8,
+        "to_server": {
+          "packets": 16,
+          "udp_payload_bytes": 6809
+        },
+        "from_server": {
+          "packets": 8,
+          "udp_payload_bytes": 288
+        }
+      },
+      {
+        "peer_ordinal": 9,
+        "to_server": {
+          "packets": 21,
+          "udp_payload_bytes": 11578
+        },
+        "from_server": {
+          "packets": 10,
+          "udp_payload_bytes": 360
+        }
+      },
+      {
+        "peer_ordinal": 10,
+        "to_server": {
+          "packets": 38,
+          "udp_payload_bytes": 23712
+        },
+        "from_server": {
+          "packets": 18,
+          "udp_payload_bytes": 648
+        }
+      },
+      {
+        "peer_ordinal": 11,
+        "to_server": {
+          "packets": 17,
+          "udp_payload_bytes": 14930
+        },
+        "from_server": {
+          "packets": 9,
+          "udp_payload_bytes": 328
+        }
+      }
+    ]
+  },
+  "findings": [
+    "Return segment0-1 capture takes557.448ms:27 outer calls,26authority-busy refusals;551.929ms outside Store work and4.279ms executing Store. The final capture body takes2.075ms and commit0.504ms. Fifty inner refusals occur in initial SQL acquisition/scope derivation and one in authority acquisition. This identifies delayed metadata admission rather than a557ms commit; the precise SQL owner is not logged.",
+    "During43.3\u201343.5s, seven peer ports continue client-to-server UDP traffic while server-to-client payload volume is only176\u2013648bytes per port. Control traffic continues on a different port. This rules out total wire silence during that interval but cannot identify encrypted media contents or distinguish Core admission from egress scheduling.",
+    "The independent retained-route gaps require investigation in addition to the moved route publication delay. Neither ciphertext nor coincident command timing proves a single common cause.",
+    "Static source: replacement capture initial derivation uses Store::try_connection on the main SQL mutex; packet snapshots use separate nonblocking WAL observer connections. Do not attribute all retained-route loss to the main SQL mutex without testing the actual shared blocking boundary."
+  ],
+  "next": "Use a bounded focused actual control/media case to distinguish SQL owner contention, pending authority writer exclusion, Core model/scene locking and executor scheduling. Include original cleanup and current authorization; do not weaken limits or repeat full workload before a causal correction.",
+  "limits": "Exact original UDP capture header timestamps and sizes. Anonymous peer ordinals identify ports only, not media routes. Encrypted QUIC traffic includes media, control, acknowledgements and retransmissions; continuous traffic cannot prove continuous media or server delivery. Clock alignment is original wall-time based.",
+  "task_complete": false,
+  "cell_qualified": false
+}
