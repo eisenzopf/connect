@@ -1770,7 +1770,8 @@
               "maximum_sample_gap_seconds": 0.13909999999962785,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -108.10000000055808
           }
         },
         {
@@ -1885,7 +1886,8 @@
               "maximum_sample_gap_seconds": 0.1144999999999996,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -96.0499999998099
           }
         },
         {
@@ -2000,7 +2002,8 @@
               "maximum_sample_gap_seconds": 0.17009999999962666,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -97.74999999999734
           }
         },
         {
@@ -2115,7 +2118,8 @@
               "maximum_sample_gap_seconds": 0.12099999999999511,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -93.94999999972065
           }
         },
         {
@@ -2230,7 +2234,8 @@
               "maximum_sample_gap_seconds": 0.16599999999999682,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -102.3999999994416
           }
         },
         {
@@ -2345,7 +2350,8 @@
               "maximum_sample_gap_seconds": 0.08050000000000068,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -80.69999999972133
           }
         }
       ],
@@ -2564,7 +2570,8 @@
               "maximum_sample_gap_seconds": 0.21649999999999991,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -117.00000000000088
           }
         },
         {
@@ -2679,7 +2686,8 @@
               "maximum_sample_gap_seconds": 0.11759999999962645,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -98.34999999962513
           }
         },
         {
@@ -2794,7 +2802,8 @@
               "maximum_sample_gap_seconds": 0.13609999999962774,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -82.74999999953536
           }
         },
         {
@@ -2909,7 +2918,8 @@
               "maximum_sample_gap_seconds": 0.11840000000037243,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -99.99999999999964
           }
         },
         {
@@ -3024,7 +3034,8 @@
               "maximum_sample_gap_seconds": 0.22380000000074496,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -99.79999999934685
           }
         },
         {
@@ -3139,7 +3150,8 @@
               "maximum_sample_gap_seconds": 0.12909999999962807,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -99.39999999990734
           }
         }
       ],
@@ -3358,7 +3370,8 @@
               "maximum_sample_gap_seconds": 0.17920000000018632,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -100.80000000028022
           }
         },
         {
@@ -3473,7 +3486,8 @@
               "maximum_sample_gap_seconds": 0.177799999999813,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -101.25000000046569
           }
         },
         {
@@ -3588,7 +3602,8 @@
               "maximum_sample_gap_seconds": 0.13490000000037128,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -116.69999999972092
           }
         },
         {
@@ -3703,7 +3718,8 @@
               "maximum_sample_gap_seconds": 0.12679999999981462,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -98.20000000018325
           }
         },
         {
@@ -3818,7 +3834,8 @@
               "maximum_sample_gap_seconds": 0.2096000000005631,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -98.5999999996281
           }
         },
         {
@@ -3933,7 +3950,8 @@
               "maximum_sample_gap_seconds": 0.11120000000018848,
               "invalid_input": false,
               "overflow": false
-            }
+            },
+            "signed_median_video_minus_audio_ms": -100.0000000004686
           }
         }
       ],
@@ -4488,5 +4506,21 @@
       ],
       "scratch_free_bytes": 5312589824
     }
-  ]
+  ],
+  "findings": [
+    "v159: all four moves and exact owned UDP capture passed both signing variants; initial observer audio was wired to a nonexistent subscription port. Those quality failures remain retained, with this limitation explicit.",
+    "v160: no media tests ran; preflight refused scratch below five GiB. Older terminal fixtures v150-v154 were losslessly archived with every regular file SHA256 checked before expanded trees were removed.",
+    "342e943f/v161: corrected own-duplex-audio observation and faster polling of the original unchanged 30fps source coordinate. Zero source-coordinate skips in both actual runs. No catch-up frames, padding or timestamp offsets.",
+    "v161: both cohorts complete four moves and original teardown and validate actual duplex UDP capture, but all six quality routes fail. Audio duration and decoded AV skew remain outside profile; three ES256 routes also fail the stricter changing-frame-per-second check.",
+    "Matched marker medians are negative video-minus-audio: audio is observed roughly 81-117ms after Video. Do not assume Video is the delayed path or infer a WebRTC defect from this WT result. Trace source/capture, encoded submission and decoded reception separately before changing production buffering."
+  ],
+  "observer_profile": {
+    "window_ms": [
+      1000,
+      61000
+    ],
+    "audio": "actual mono960sample WebCodecs buffers; per20ms spectral identity and maximum uncovered gap after decoded20ms buffer; no synthesized/PLC coverage",
+    "video": "actual640x360 decoded pixels, source identity and unique changing frames in every second (stricter than merely counting all decoded frames)",
+    "av": "actual decoder-callback times, uniquely calibrated equal nonperiodic marker ordinals; envelope validity retained; no physical rendering claim"
+  }
 }
