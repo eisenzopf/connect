@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-sdk-video-epoch-join/1",
   "task": "G6-058",
-  "status": "verification-pending",
+  "status": "component-pass",
   "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
   "implementation": [
     "Owned signature-verified reader validates epoch notices against current selected allocation, roots, direction and original provenance. Prepared selection metadata waits for paired resource adoption.",
@@ -19,5 +19,59 @@
     "No full media workload,32-cell completion or task-complete claim. G6-054 remains deferred."
   ],
   "old_passed_cases_rerun": false,
-  "task_complete": false
+  "task_complete": false,
+  "source_revision": "928c5f944e4ea5772202331652546d80817a7c10",
+  "verification": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 120449,
+    "source_revision": "928c5f944e4ea5772202331652546d80817a7c10",
+    "passed": true,
+    "steps": [
+      {
+        "group": "sdk",
+        "case": "sdk::video_feedback::epochs::tests::signed_video_notice_requires_exact_selected_allocation_and_packet_boundary",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 276 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "b629a909eb5815e6ecc3c515fedf9cced7e065c04e316603f1222f0f23a70cde"
+      },
+      {
+        "group": "sdk",
+        "case": "sdk::video_feedback::epochs::tests::video_epoch_join_preserves_arrival_age_and_refuses_previous_decoder_history",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 276 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "27c4fc34fa909542138daeea077c3277ff631ad3c3dd742ce7faec0bf677298b"
+      },
+      {
+        "group": "sdk",
+        "case": "sdk::worker::video_epochs::tests::signed_notice_waits_for_paired_resource_adoption_on_its_own_physical_client",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 276 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "c9d717a39b8661fbc679c88c2e2721d9142e3a59db791951cb87d5799298575c"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "sdk_video_epoch_join_candidate": true,
+    "builds": [
+      {
+        "group": "sdk",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "d47ff41c9f79b64b18a9957fee26b878b40ec9658d373b329931afec36edd87c",
+        "test_executable_sha256": "b490bd37c5a9fed84d6d290f99ee2a85d9e8b3e6a8a9cf1997ac503fd592a7eb",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 116.96220749198983
+  },
+  "result_state_sha256": "52330c2e6d8727329e17dcced1f9661af28b64424ed70bf071199f81a39554b0"
 }
