@@ -320,6 +320,7 @@ The live source must call `video_feedback_is_current` immediately before asking
 its owned encoder to encode the next eligible fresh source frame. No encoded
 history is replayed and no timestamp or frame index is reset. Core separately
 rechecks current source/receiver authority and retains its shared publisher
-100 ms feedback limit. These APIs remain verification-pending and production
-profile opt-in remains disabled until runtime integration and decoder recovery
-are demonstrated.
+100 ms feedback limit. Three focused local ARM checks pass at `ecbec2fc`; see
+`docs/evidence/gate-6/sdk-video-keyframe-feedback.json`. Production profile
+opt-in remains disabled until runtime integration and decoder recovery are
+demonstrated.

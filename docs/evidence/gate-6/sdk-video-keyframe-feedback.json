@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-sdk-video-keyframe-feedback/1",
   "task": "G6-058",
-  "status": "verification-pending",
+  "status": "component-pass",
   "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
   "implementation": [
     "Typed separate receive_video_feedback/request_keyframe/video_feedback_is_current APIs. Existing bounded worker owns all transport submissions; original target rechecked at actual send, uncertain attempts consume serial without retry.",
@@ -20,5 +20,59 @@
   ],
   "old_passed_cases_rerun": false,
   "full_media_rehearsal_run": false,
-  "task_complete": false
+  "task_complete": false,
+  "source_revision": "ecbec2fcb681f1e44c172708be20d20bbd0a5e79",
+  "verification": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 120762,
+    "source_revision": "ecbec2fcb681f1e44c172708be20d20bbd0a5e79",
+    "passed": true,
+    "steps": [
+      {
+        "group": "sdk",
+        "case": "sdk::media::feedback::tests::publisher_feedback_is_bounded_current_and_never_grants_media_receive_direction",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 279 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "2aa2bd086f67417e6b07fb079e84731fe1a9ad5bd9459d92cd26395a7b260d9d"
+      },
+      {
+        "group": "sdk",
+        "case": "sdk::media::feedback::tests::queued_keyframe_request_cannot_retarget_or_retry_an_uncertain_submission",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 279 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "158a92b897697f194f284a061feacdd28184542f16d004317f9efd9ead92ec85"
+      },
+      {
+        "group": "sdk",
+        "case": "canonical::native::tests::owned_video_feedback_transport_keeps_explicit_syntax_and_current_peer_authority",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 279 filtered out; finished in 0.09s"
+        ],
+        "log_sha256": "5efddabee76cdef51f1adf1095d628abc0ad183fcca53edaff505b44b472b0f5"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "sdk_keyframe_feedback_candidate": true,
+    "builds": [
+      {
+        "group": "sdk",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "a324ad78d3b693a2ae19ae18041295c88224e85d1725c09ce3e4c8ba165a19ac",
+        "test_executable_sha256": "40ea5cafe77bc86727e769602c89b5ac56f44393956a4f10eec1b9d445155179",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 55.89055226999335
+  },
+  "result_state_sha256": "60ba2abd281008f2c54706979d15c0319a7020fe41b33ccf5ac18a79f3a288c7"
 }
