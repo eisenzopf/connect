@@ -121,6 +121,17 @@ try{
     const selected=spec.transport==='chrome-webtransport'?'webtransport':'wss-webrtc';
     const result=await page.evaluate(async({spec,selected})=>{
         const {BrowserSdkClient}=await import('/sdk/browser.js');
+        // Diagnostic-only observer: retain the original low-level rejection in
+        // the private browser log before the public SDK classifies it. No wire
+        // bodies, credentials, retries or altered promise outcomes.
+        const {BrowserMediaPeer}=await import('/sdk/browser_media.js');
+        const beginReplacement=BrowserMediaPeer.prototype.beginReplacementConnection;
+        BrowserMediaPeer.prototype.beginReplacementConnection=function(...args){
+            const original=beginReplacement.apply(this,args);
+            void original.completed.catch(error=>console.error('Original replacement rejection',
+                String(error.code??error.name),String(error.message),String(error.stack)));
+            return original;
+        };
         const {browserMatrixPlan,browserMatrixAdmission,retireBrowserMatrixAdmission}=await import('/_matrix/admission.mjs');
         const {browserMatrixSources}=await import('/_matrix/sources.mjs');
         const {browserMatrixProgramme,browserMatrixKeepalive}=await import('/_matrix/programme.mjs');
