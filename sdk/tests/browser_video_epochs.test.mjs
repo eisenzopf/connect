@@ -118,6 +118,28 @@ test('browser physical owner stages signed epochs, resets same-SSRC decode histo
   c.incoming.enqueue(packet(2,12,36000,83,false));await until(()=>peer.routeDiagnostics[0].counters.complete===3);assert.equal(decoded.length,1);
   c.incoming.enqueue(packet(1,11,33000,83,true));await tick();assert.equal(decoded.length,1,'late previous history cannot decode after reselection');
   c.incoming.enqueue(packet(2,13,39000,83,true));await until(()=>decoded.length===2);assert.ok(decoded[1].timestamp>firstTimestamp,'receive clock is not reset with history');
+  // Whole frames can arrive out of order even when each frame's fragments
+  // are complete. Stay in the authenticated history and retain source clocks.
+  c.emit(notice(3,'receiver',20));c.incoming.enqueue(packet(3,20,60000,83,true));
+  await until(()=>decoded.length===3);await tick();await tick();
+  const feedbackBefore=c.writes.filter(b=>b.length===48).length;
+  const completeBefore=peer.routeDiagnostics[0].counters.complete;
+  c.incoming.enqueue(packet(3,22,66000,83,false));
+  await until(()=>peer.routeDiagnostics[0].counters.complete===completeBefore+1);
+  assert.equal(decoded.length,3,'later complete delta waits for its predecessor');
+  assert.equal(peer.routeDiagnostics[0].recovery.waitingForKey,false);
+  c.incoming.enqueue(packet(3,21,63000,83,false));await until(()=>decoded.length===5);
+  assert.ok(decoded[3].timestamp<decoded[4].timestamp);
+  assert.equal(peer.routeDiagnostics[0].ordering.gaps,0);
+  assert.equal(c.writes.filter(b=>b.length===48).length,feedbackBefore,'reordering must not request a keyframe');
+  // Real absence still breaks the reference chain after the bounded wait.
+  c.incoming.enqueue(packet(3,24,72000,83,false));
+  await until(()=>peer.routeDiagnostics[0].recovery.waitingForKey);
+  await until(()=>c.writes.filter(b=>b.length===48).length>feedbackBefore);
+  assert.equal(c.writes.filter(b=>b.length===48).length,feedbackBefore+1);
+  c.incoming.enqueue(packet(3,25,75000,83,true));await until(()=>decoded.length===6);
+  c.incoming.enqueue(packet(3,23,69000,83,false));await tick();
+  assert.equal(decoded.length,6,'late missing frame cannot rewind recovery');
   assert.equal(connection.encodeVideo('video',new Frame(0)),true);await until(()=>c.writes.some(b=>b.length!==48));
   const source=c.writes.find(b=>b[9]===224),own=decodeNativeRtpDatagram(source);
   const published=notice(1,'publisher',own.datagramSequence,own.ssrc);published.payload.first_timestamp=own.timestamp;c.emit(published);

@@ -1,3 +1,7 @@
+import {
+    BrowserVideoOrder,
+    type OrderedVideoFrame,
+} from "./browser_video_order.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import { BrowserTasks } from "./browser_tasks.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
@@ -103,6 +107,7 @@ interface Route {
     lastReport: number;
     clockProfile: boolean;
     assembler?: Vp8Assembler;
+    order?: BrowserVideoOrder;
     video?: BrowserVideoEpochs;
     publisherSsrc?: number;
     observed: {
@@ -259,6 +264,7 @@ export class BrowserMediaPeer {
         incompleteFrames: number;
         fragments: number;
         recovery?: BrowserVp8Codec["decodeDiagnostics"];
+        ordering?: BrowserVideoOrder["diagnostics"];
     }> {
         return [...this.routes.values()].map((r) => ({
             streamId: r.binding.streamId,
@@ -269,6 +275,7 @@ export class BrowserMediaPeer {
             incompleteFrames: r.assembler?.queuedFrames ?? 0,
             fragments: r.assembler?.queuedFragments ?? 0,
             recovery: r.vp8?.decodeDiagnostics,
+            ordering: r.order?.diagnostics,
         }));
     }
     private check(): void {
@@ -301,6 +308,7 @@ export class BrowserMediaPeer {
         if (!route.video?.observe(notice)) return;
         if (notice.role === "receiver") {
             route.assembler?.clear();
+            route.order?.clear();
             route.vp8?.resetReceiveHistory();
             for (const item of route.video.drain(performance.now()))
                 this.deliverRtp(route, item.packet, item.arrived);
@@ -374,6 +382,7 @@ export class BrowserMediaPeer {
                 if (payload.strm_ids.includes(route.binding.streamId)) {
                     route.video!.unselect();
                     route.assembler?.clear();
+                    route.order?.clear();
                     route.vp8?.resetReceiveHistory();
                 }
         }
@@ -463,6 +472,7 @@ export class BrowserMediaPeer {
             route.video!.gates(send, receive);
             if (!receive) {
                 route.assembler?.clear();
+                route.order?.clear();
                 route.vp8?.resetReceiveHistory();
             }
         }
@@ -963,6 +973,25 @@ export class BrowserMediaPeer {
                     });
                 else {
                     route.assembler = new Vp8Assembler();
+                    route.order = new BrowserVideoOrder((frames, expired) => {
+                        if (
+                            this.stopped ||
+                            this.routes.get(binding.handle) !== route
+                        )
+                            return;
+                        try {
+                            this.registry.require(
+                                binding.handle,
+                                "receive",
+                                binding.payloadType,
+                            );
+                            if (expired) route!.vp8?.lost();
+                            route!.observed.expired += expired;
+                            this.deliverVideoFrames(route!, frames);
+                        } catch (error) {
+                            this.die(error);
+                        }
+                    });
                     route.vp8 = new BrowserVp8Codec({
                         encoded,
                         decoded: (frame) => {
@@ -1218,7 +1247,18 @@ export class BrowserMediaPeer {
         else {
             let complete;
             try {
-                complete = route.assembler!.push(packet, arrived);
+                // Complete and incomplete frames share the original eight-frame /
+                // 64-fragment budget; no additional queue capacity is introduced.
+                if (
+                    route.order!.queuedFrames >= MEDIA_LIMITS.frames ||
+                    route.order!.queuedFragments >= MEDIA_LIMITS.fragments
+                )
+                    route.order!.flush(performance.now(), true);
+                complete = route.assembler!.push(packet, arrived, {
+                    frames: MEDIA_LIMITS.frames - route.order!.queuedFrames,
+                    fragments:
+                        MEDIA_LIMITS.fragments - route.order!.queuedFragments,
+                });
             } catch {
                 this.counters.rejected++;
                 route.vp8!.lost();
@@ -1226,10 +1266,22 @@ export class BrowserMediaPeer {
             }
             if (complete) {
                 route.observed.complete++;
-                if (route.vp8!.decode(complete, timing.timestampUs))
-                    route.observed.submitted++;
-                else route.observed.skipped++;
+                route.order!.push(complete, timing.timestampUs);
             }
+        }
+        this.requestVideoRecovery(route);
+    }
+
+    private deliverVideoFrames(
+        route: Route,
+        frames: OrderedVideoFrame[],
+    ): void {
+        for (const { frame, timestampUs } of frames) {
+            if (this.stopped || this.routes.get(route.binding.handle) !== route)
+                return;
+            if (route.vp8!.decode(frame, timestampUs))
+                route.observed.submitted++;
+            else route.observed.skipped++;
         }
         this.requestVideoRecovery(route);
     }
@@ -2326,6 +2378,8 @@ export class BrowserMediaPeer {
         route.opus?.close();
         route.vp8?.close();
         route.assembler?.clear();
+        route.order?.clear();
+        route.order?.close();
         route.video?.close();
         this.feedbackWrites.delete(route);
     }

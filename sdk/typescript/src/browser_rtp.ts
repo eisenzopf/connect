@@ -266,6 +266,8 @@ interface Assembly {
     end?: number;
 }
 export interface Vp8Frame {
+    /** First original fragment arrival; assembly/reordering never renews age. */
+    arrived: number;
     bytes: Uint8Array;
     timestamp: number;
     ssrc: number;
@@ -307,8 +309,18 @@ export class Vp8Assembler {
         this.completed.clear();
         this.fragments = 0;
     }
-    push(packet: RtpDatagram, now = performance.now()): Vp8Frame | undefined {
+    push(
+        packet: RtpDatagram,
+        now = performance.now(),
+        capacity: { frames: number; fragments: number } = {
+            frames: MEDIA_LIMITS.frames,
+            fragments: MEDIA_LIMITS.fragments,
+        },
+    ): Vp8Frame | undefined {
         this.expire(now);
+        if (capacity.frames < 1 || capacity.fragments < 1) return undefined;
+        const frames = Math.min(MEDIA_LIMITS.frames, capacity.frames);
+        const fragments = Math.min(MEDIA_LIMITS.fragments, capacity.fragments);
         const p = packet.payload;
         if (p.length < 2) return invalid();
         let offset = 1;
@@ -329,17 +341,14 @@ export class Vp8Assembler {
         if (this.completed.has(key)) return undefined;
         let frame = this.pending.get(key);
         if (!frame) {
-            while (
-                this.pending.size >= MEDIA_LIMITS.frames ||
-                this.fragments >= MEDIA_LIMITS.fragments
-            )
+            while (this.pending.size >= frames || this.fragments >= fragments)
                 this.remove(this.pending.keys().next().value!);
             frame = { created: now, fragments: new Map(), bytes: 0 };
             this.pending.set(key, frame);
         }
         if (frame.fragments.has(packet.sequence)) return undefined;
         if (
-            this.fragments >= MEDIA_LIMITS.fragments ||
+            this.fragments >= fragments ||
             frame.bytes + p.length - offset > MEDIA_LIMITS.frameBytes
         ) {
             this.remove(key);
@@ -388,6 +397,7 @@ export class Vp8Assembler {
             this.completed.delete(this.completed.keys().next().value!);
         this.completed.set(key, now);
         return {
+            arrived: frame.created,
             bytes: output,
             timestamp: packet.timestamp,
             ssrc: packet.ssrc,
