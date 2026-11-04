@@ -28,6 +28,7 @@ struct Hint {
 }
 #[derive(Default)]
 struct Recovery {
+    decoder_started: Option<Instant>,
     history: Option<VideoReceiveEpoch>,
     assembler: VideoFrameAssembler,
     waiting: bool,
@@ -86,6 +87,43 @@ impl NativeVideoDatagrams {
     /// Submit original source RTP/clock bytes. The server owns receiver tagging.
     pub fn send(&self, bytes: &[u8]) -> Result<()> {
         self.io.send(bytes)
+    }
+    /// Start a fresh application decoder for one selected receiving video stream.
+    /// Returns the exact monotonic boundary: older raw packets may still be
+    /// returned for custody, but cannot bootstrap this decoder's recovery state.
+    /// The next fresh interframe requests a keyframe through current signed
+    /// history. Existing feedback sequence/rate bounds, RTP clocks and source
+    /// authorization remain unchanged; this creates no media permission.
+    pub fn reset_video_receive_decoder(&mut self, handle: u16) -> Result<Instant> {
+        self.io.current()?;
+        let guard = self
+            .shared
+            .state
+            .lock()
+            .map_err(|_| ClientError::Protocol)?;
+        let selected = guard
+            .as_ref()
+            .filter(|s| !s.ended && !s.suspended)
+            .and_then(|s| s.selected.as_ref())
+            .is_some_and(|s| {
+                s.streams.iter().any(|v| {
+                    v.stream_local_id == Some(handle)
+                        && v.medium == crate::sdk::Medium::Video
+                        && v.direction != crate::sdk::Direction::Sendonly
+                        && s.video_feedback.contains_key(&v.id)
+                })
+            });
+        if !selected {
+            return Err(ClientError::Protocol);
+        }
+        drop(guard);
+        let at = Instant::now();
+        let recovery = self.recovery.entry(handle).or_default();
+        recovery.decoder_started = Some(at);
+        recovery.assembler = VideoFrameAssembler::default();
+        recovery.last_frame = None;
+        recovery.waiting = true;
+        Ok(at)
     }
     /// Consume at most one original hint immediately before fresh encoding.
     /// Calling twice cannot repeat it; age, source SSRC, selected history,
@@ -202,6 +240,13 @@ impl NativeVideoDatagrams {
     fn receive_video(&mut self, item: Waiting, notice: Notice) -> Result<NativeVideoDatagram> {
         let handle = item.packet.stream_local_id;
         let recovery = self.recovery.entry(handle).or_default();
+        if recovery.decoder_started.is_some_and(|at| item.arrived < at) {
+            return Ok(NativeVideoDatagram {
+                bytes: item.bytes,
+                video_epoch: Some(notice.history),
+                received_at: item.arrived,
+            });
+        }
         if recovery.history.as_ref() != Some(&notice.history) {
             recovery.history = Some(notice.history.clone());
             recovery.assembler = VideoFrameAssembler::default();

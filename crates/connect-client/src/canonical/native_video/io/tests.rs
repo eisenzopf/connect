@@ -116,3 +116,107 @@ async fn explicit_raw_video_owner_joins_signed_packets_requests_bootstrap_and_co
         .unwrap()
         .unwrap();
 }
+
+#[tokio::test]
+async fn decoder_restart_quarantines_old_keyframes_and_preserves_feedback_bounds() {
+    use crate::canonical::tests::{controlled, Fault};
+    let (mut client, server, _) = controlled(Fault::NativeVideoIo).await;
+    client.start_signaling_reader().unwrap();
+    let request = command_value("connection.offer", original(), scope()).unwrap();
+    let id = request["id"].as_str().unwrap().to_owned();
+    client.native_video.begin(id, scope(), original()).unwrap();
+    client.write(request, true).await.unwrap();
+    let answer = client.receive().await.unwrap();
+    assert_eq!(answer.kind(), "connection.answer");
+    let callback = client.receive().await.unwrap();
+    let expected = {
+        let guard = client.native_video.state.lock().unwrap();
+        protocol(guard.as_ref().unwrap().negotiating.confirmation(&callback)).unwrap()
+    };
+    client
+        .answer_connection_offer(&callback, expected, &scope())
+        .await
+        .unwrap();
+    let mut io = client.claim_native_video_datagrams().unwrap();
+    assert_eq!(
+        tokio::time::timeout(Duration::from_secs(2), io.receive())
+            .await
+            .unwrap()
+            .unwrap()
+            .bytes,
+        video()
+    );
+    assert_eq!(
+        tokio::time::timeout(Duration::from_secs(2), io.receive())
+            .await
+            .unwrap()
+            .unwrap()
+            .bytes,
+        audio()
+    );
+    let notice = io.shared.state.lock().unwrap().as_ref().unwrap().active[&(7, false)].clone();
+    // These original fragments exercise recovery state, not codec decoding.
+    // The history/allocation and feedback transport came from the signed peer.
+    let packet = |sequence: u16, key: bool, arrived: Instant| {
+        let mut bytes = video();
+        bytes[4..8].copy_from_slice(&u32::from(sequence).to_be_bytes());
+        bytes[26..28].copy_from_slice(&sequence.to_be_bytes());
+        bytes[28..32].copy_from_slice(&(u32::from(sequence) * 3000).to_be_bytes());
+        bytes[37] = if key { 0x30 } else { 0x31 };
+        Waiting {
+            packet: observe_video_epoch_datagram(&bytes).unwrap(),
+            bytes,
+            arrived,
+        }
+    };
+    io.receive_video(packet(1, true, Instant::now()), notice.clone())
+        .unwrap();
+    assert!(!io.recovery[&7].waiting);
+    let sequence = io.recovery[&7].sequence;
+    let last_request = io.recovery[&7].last_request;
+    assert!(io.reset_video_receive_decoder(8).is_err());
+    assert!(io.reset_video_receive_decoder(65535).is_err());
+    let at = io.reset_video_receive_decoder(7).unwrap();
+    assert!(io.recovery[&7].waiting);
+    assert_eq!(io.recovery[&7].sequence, sequence);
+    assert_eq!(io.recovery[&7].last_request, last_request);
+    let old_arrival = at - Duration::from_micros(1);
+    let retained = io
+        .receive_video(packet(2, true, old_arrival), notice.clone())
+        .unwrap();
+    assert_eq!(retained.received_at, old_arrival);
+    assert_eq!(retained.video_epoch.as_ref(), Some(&notice.history));
+    assert!(
+        io.recovery[&7].waiting,
+        "quarantined keyframe bootstrapped a new decoder"
+    );
+    assert_eq!(io.recovery[&7].assembler.diagnostics().completed_frames, 0);
+    // A caller cannot bypass the existing100ms rate limit by resetting again.
+    io.reset_video_receive_decoder(7).unwrap();
+    assert_eq!(io.recovery[&7].sequence, sequence);
+    assert_eq!(io.recovery[&7].last_request, last_request);
+    tokio::time::sleep(Duration::from_millis(110)).await;
+    io.receive_video(packet(3, false, Instant::now()), notice.clone())
+        .unwrap();
+    assert!(io.recovery[&7].waiting);
+    assert_eq!(io.recovery[&7].sequence, sequence + 1);
+    io.receive_video(packet(4, false, Instant::now()), notice.clone())
+        .unwrap();
+    assert_eq!(
+        io.recovery[&7].sequence,
+        sequence + 1,
+        "feedback rate renewed"
+    );
+    io.receive_video(packet(5, true, Instant::now()), notice)
+        .unwrap();
+    assert!(!io.recovery[&7].waiting);
+    assert_eq!(io.recovery[&7].last_frame, Some(5));
+    client.close();
+    assert!(io.reset_video_receive_decoder(7).is_err());
+    drop(io);
+    client.shutdown().await.unwrap();
+    tokio::time::timeout(Duration::from_secs(2), server)
+        .await
+        .unwrap()
+        .unwrap();
+}

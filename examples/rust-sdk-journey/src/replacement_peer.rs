@@ -437,8 +437,9 @@ pub(super) async fn run(
                         scope.connection_id.as_deref().ok_or("replacement scope missing candidate")?,
                         &device, &selected, &mut root_revision);
                     if let Some(admission) = pump.during(tokio::time::timeout_at(until, pending)).await??? {
-                        pump.observation.root_observed = true;
-                        pump.observation.root_observed_programme_us = Some(start.elapsed().as_micros());
+                        let receiving = selected.iter().find(|binding| binding.id == video.receive_video_stream_id)
+                            .ok_or("original receiving video binding missing")?;
+                        pump.observe_root_completion(receiving.handle)?;
                         // Video is already transferred by the original activation. Data keeps
                         // distinct authorization and commands while the video pump progresses.
                         pump.observation.video_open = true;

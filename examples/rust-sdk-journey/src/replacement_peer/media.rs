@@ -133,6 +133,23 @@ impl<'a> Pump<'a> {
         })
     }
 
+    /// Begin the decoder at the same original-root boundary used by capture.
+    /// A keyframe consumed while completion was pending cannot initialize the
+    /// new application decoder or suppress its fresh recovery request.
+    pub fn observe_root_completion(&mut self, receive_video_handle: u16) -> Result<()> {
+        if self.observation.root_observed {
+            return Err("root completion already observed".into());
+        }
+        let Io::Video(io) = &mut self.io else {
+            return Err("video decoder requires its original video IO owner".into());
+        };
+        let at = io.reset_video_receive_decoder(receive_video_handle)?;
+        self.observation.root_observed_programme_us =
+            Some(at.duration_since(self.start).as_micros());
+        self.observation.root_observed = true;
+        Ok(())
+    }
+
     /// The original control future remains pinned and is never restarted. Its
     /// cancellation/uncertainty semantics remain the client's responsibility.
     pub async fn during<F: Future>(&mut self, control: F) -> Result<F::Output> {

@@ -448,3 +448,22 @@ An already-started local stop-marker read can finish within the original
 post-programme join cutoff. Packet pumping stops at the original source end,
 and the loop starts no further control work after that read crosses the end.
 Completion/publication/Data futures keep their original programme cutoffs.
+
+
+### Application decoder start after original completion
+
+The physical peer starts its incoming video decoder at its verified original-root
+completion observation. `NativeVideoDatagrams::reset_video_receive_decoder(handle)`
+returns the exact monotonic cutoff used by the capture. It resets only local
+assembly/recovery state for a currently selected receiving video stream. Signed
+history, feedback sequence and rate bounds, original RTP clocks, and server media
+authorization remain unchanged. Earlier raw packets retain their original arrival
+for custody but cannot initialize the new decoder's recovery state. The next fresh
+interframe requests a current keyframe; a fresh keyframe completes bootstrap.
+
+This aligns live recovery with the existing verifier's pre-completion quarantine.
+The verifier, independent decoder, observation window and quality limits are
+unchanged. The v116 capture exposed the mismatch: receiver4 keyframes arrived55.310ms
+and4.390ms before its first-move and return completion observations, respectively;
+the next keyframes arrived943.495ms and993.702ms after those observations. This
+implementation still requires its new regression and failed-workload validation.
