@@ -59,6 +59,7 @@ export function videoAllocation(
     offer: unknown,
     generation: number,
     previous?: Allocation,
+    connectionGeneration = 1,
 ): Allocation | undefined {
     const enabled =
         stream.kind === "video" &&
@@ -70,7 +71,8 @@ export function videoAllocation(
     const value = captureNativeVideoFeedback(stream.video_feedback);
     if (
         value.streamGeneration !== generation ||
-        value.connectionGeneration !== 1 ||
+        !positive(connectionGeneration) ||
+        value.connectionGeneration !== connectionGeneration ||
         (previous
             ? !same(value, previous)
             : value.originalOperation !== operation ||

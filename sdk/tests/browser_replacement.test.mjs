@@ -9,7 +9,7 @@ const root=()=>({recordId:'record',operationId:'original-move',conversationId:'r
     sourceConnectionId:'old',retainedConnectionId:'remote',targetConnectionId:'replacement_record',endpointId:'endpoint',deviceId:'device'});
 const input=()=>({conversationId:'room',sessionId:'session',connectionId:'replacement_record',operationId:'original-move',
     audio:'audio',video:'camera',receiveVideo:'incoming-camera'});
-async function fixture(run,{mode}={}) {
+async function fixture(run,{mode,feedback=false,generation=2}={}) {
     const names=['AudioEncoder','AudioDecoder','AudioData','EncodedAudioChunk','VideoEncoder','VideoDecoder','VideoFrame'];
     const originals=names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]);
     class Codec {
@@ -25,7 +25,7 @@ async function fixture(run,{mode}={}) {
     const status=()=>({record_id:'record',operation_id:'original-move',command_type:'connection.replace',expected_revision:7,
         state:complete?'completed':'preparing',revision:complete?8:3,native_replacement_prepared:mode!=='not-prepared',
         ...(complete?{result:{activation_state:mode==='stopped'?'stopped':'ready',connection_id:'replacement_record',replaces:'old',
-            endpoint_id:'endpoint',device_id:'device',generation:2,retained_connection_ids:['remote'],admitted_connection_ids:['replacement_record'],
+            endpoint_id:'endpoint',device_id:'device',generation:mode==='receipt-generation'?generation+1:generation,retained_connection_ids:['remote'],admitted_connection_ids:['replacement_record'],
             retired_connection_ids:['old'],readiness:{stream_revision:6,streams:['audio','camera','incoming-camera']},
             physical_readiness:{stream_revision:6,streams:['audio','camera','incoming-camera']}}}:{})});
     const client={closed:false,
@@ -49,6 +49,11 @@ async function fixture(run,{mode}={}) {
                     channels:stream.kind==='audio'?1:0,payload_type:stream.kind==='audio'?111:96}}}));
             parameters={by_participant:'participant',substrate:'webtransport',
                 substrate_setup:{kind:'native-prepared/1',revision:1,offer_id:id,streams}};
+            if(feedback){parameters.capabilities={video_feedback:'rtcp-pli-epoch/1'};
+                for(const stream of streams.filter(stream=>stream.kind==='video'))stream.video_feedback={profile:'rtcp-pli-epoch/1',
+                    original_operation:'original-move',original_offer:id,stream_generation:1,
+                    connection_generation:mode==='mixed-generation'&&stream.strm_id==='incoming-camera'?generation+1:generation};
+            }
             queueMicrotask(()=>{for(const fn of events)fn(envelope('connection.offer',parameters,scope));});
             return {id,response:Promise.resolve([envelope('connection.answer',{}, {...scope,in_reply_to:id})])};
         },
@@ -95,3 +100,17 @@ for(const mode of ['changed-root','stopped','hold'])test(`prepared target retire
     assert.equal(sent.filter(frame=>frame.type==='connection.offer').length,2);
     assert.equal(sent.filter(frame=>frame.type==='connection.replace'||frame.type==='connection.end').length,0);
 },{mode}));
+
+for(const generation of [2,3])test(`replacement signed Video generation ${generation} survives preparation and matches its original receipt`,()=>fixture(async({peer})=>{
+    const begun=peer.beginReplacementConnection({...input(),nativeVideoFeedback:true},root(),{timeoutMs:500});
+    const prepared=await begun.prepared;
+    assert.equal(prepared.encodeAudio('audio',new Float32Array(960),100000),true);
+    assert.equal((await begun.completed).generation,generation);
+},{feedback:true,generation}));
+for(const mode of ['mixed-generation','receipt-generation'])test(`replacement signed Video rejects ${mode} and retires the original target`,()=>fixture(async({peer})=>{
+    const begun=peer.beginReplacementConnection({...input(),nativeVideoFeedback:true},root(),{timeoutMs:500});
+    if(mode==='mixed-generation')await assert.rejects(()=>begun.prepared,{code:'protocol'});
+    else {const prepared=await begun.prepared;prepared.encodeAudio('audio',new Float32Array(960),100000);}
+    await assert.rejects(()=>begun.completed,{code:'protocol'});
+    assert.equal(peer.diagnostics.activeBindings,0);
+},{feedback:true,mode}));
