@@ -83,7 +83,9 @@ export async function constrainVideoCapture(
     if (
         !settings.width ||
         !settings.height ||
-        (!manualCanvas && (!settings.frameRate || settings.frameRate < 0)) ||
+        typeof settings.frameRate !== "number" ||
+        !Number.isFinite(settings.frameRate) ||
+        (!manualCanvas && settings.frameRate <= 0) ||
         settings.width > 640 ||
         settings.height > 360 ||
         settings.frameRate > 30
