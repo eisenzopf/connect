@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-native-video-packet-epochs/1",
   "task": "G6-058",
-  "status": "verification-pending",
+  "status": "component-pass",
   "patch": 300,
   "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM; no GitHub/cloud execution",
   "problem": "A reliable signed epoch notice can follow packets from a new selection that reused the same handle and SSRC. A sequence lower bound and old current notice alone cannot safely identify those packets before the new notice is read.",
@@ -21,5 +21,58 @@
   ],
   "old_passed_cases_rerun": false,
   "full_media_rehearsal_run": false,
-  "task_complete": false
+  "task_complete": false,
+  "source_revision": "b7e5b97f27a0fb96e9bcb8351c8f6f06a997bbb6",
+  "verification": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 120214,
+    "source_revision": "b7e5b97f27a0fb96e9bcb8351c8f6f06a997bbb6",
+    "passed": true,
+    "steps": [
+      {
+        "group": "codec",
+        "case": "epoch_video_envelope_preserves_original_rtp_and_requires_explicit_parser",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+        ],
+        "log_sha256": "b3e27b34f82a1eb7964b090c8738234670c31b154d5d37f8322f4d2117a02297"
+      },
+      {
+        "group": "native",
+        "case": "peer_native::canonical_media::native_offers::video_epochs::native_video_packets_identify_reselection_before_reading_the_signed_notice",
+        "exit_code": 0,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 189 filtered out; finished in 0.05s"
+        ],
+        "log_sha256": "16ba88e40d6a7e86f54e883854110170fc135c3437a56690c6af35813f49e9ee"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_video_packet_epochs_candidate": true,
+    "builds": [
+      {
+        "group": "codec",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "796ef6249fe6781d5424e1a428ff4b8d6cb7d3db1f35718776a02723dd183fdb",
+        "test_executable_sha256": "143f7f7749e4967522ffd89a543b1d24acf74fa91b8985a1dd48c49678655106",
+        "executable_unchanged": true
+      },
+      {
+        "group": "native",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "9eccc31e0c21132a6e9181bd293d231c85f878cc1f84110615c948ea69f58e38",
+        "test_executable_sha256": "0c1d6d359d5d7fe681b9f0a34695ffa8686bdf90c7da6078372d824b362b9cf2",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 460.6652069319971
+  },
+  "result_state_sha256": "e65702216a12c1b15151131f3b8c2c8ff4e2761dd58a6a8c47bfb2a279e674d6",
+  "verified_scope": "Packet syntax preserves complete RTP and explicit profile separation; actual signed local peers distinguish same-handle/SSRC reselection before notice consumption and dispatch current feedback. No SDK decoder or full quality qualification."
 }
