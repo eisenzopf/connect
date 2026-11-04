@@ -5,6 +5,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { link, mkdir, open, readFile, realpath, stat, unlink } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { liveVideoProgram } from "./transport_live_video_program.mjs";
 import { operationFailure } from "./transport_failure.mjs";
 import { inspectReplacementCapture, verifyInspectedDataReceipt } from "./transport_capture_inspection.mjs";
 import { validatePhysicalData, verifyPhysicalDataReceipt, readPhysicalDataReceipt } from "./transport_movement_data.mjs";
@@ -85,26 +86,12 @@ export function replacementInput({ operationId, conversationId, sessionId, conne
                 dataStreamId].includes(v.receiveDataStreamId));
         }
         assert.ok(Number.isInteger(v.ssrc) && v.ssrc > 0 && v.ssrc <= 0xffffffff && v.ssrc !== source.ssrc);
-        assert.ok(Array.isArray(v.frames) && v.frames.length === source.seconds * 30);
-        let bytes = 0, lastKey;
-        const frames = v.frames.map((frame, index) => {
-            assert.ok(Array.isArray(frame) && frame.length >= 3 && frame.length <= 256 * 1024 &&
-                frame.every(value => Number.isInteger(value) && value >= 0 && value <= 255));
-            bytes += frame.length; assert.ok(bytes <= 16 * 1024 * 1024);
-            if (!(frame[0] & 1)) {
-                assert.ok(frame.length >= 10 && frame[3] === 0x9d && frame[4] === 1 && frame[5] === 0x2a &&
-                    ((frame[6] | frame[7] << 8) & 0x3fff) === 640 && ((frame[8] | frame[9] << 8) & 0x3fff) === 360);
-                lastKey = index;
-            }
-            assert.ok(lastKey !== undefined && index - lastKey < 30);
-            // Preserve exact encoded bytes without decimal-array expansion
-            // inside the original operation's bounded preparation window.
-            return Buffer.from(frame).toString("base64");
-        });
+        assert.equal(v.frames, undefined, "replacement requires the live original source");
+        const program = liveVideoProgram(v.program, source.seconds * 30);
         video = { stream_id: v.streamId, receive_audio_stream_id: v.receiveAudioStreamId,
             receive_video_stream_id: v.receiveVideoStreamId,
             ...(v.receiveDataStreamId === undefined ? {} : { receive_data_stream_id: v.receiveDataStreamId }),
-            ssrc: v.ssrc, frames };
+            ssrc: v.ssrc, program };
     }
     const command = { operation_id: operationId, conversation_id: conversationId,
         session_id: sessionId, connection_id: connectionId, expected_revision: expectedTopologyRevision,
@@ -272,7 +259,9 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             if (intent.source.video) {
                 assert.equal(observed.original_root_completed_observed, true);
                 assert.equal(observed.video_transfer_admitted, true);
-                const packetLimit = intent.source.video.frames.reduce((sum, frame) => sum + Math.ceil(frame.length / 1167), 0);
+                assert.equal(observed.encoder_process?.joined, true);
+                assert.ok(observed.encoder_process.clean || observed.encoder_process.cancelled);
+                const packetLimit = intent.source.video.program.frame_count * Math.ceil(256 * 1024 / 1167);
                 assert.ok(Number.isInteger(observed.sent_video_packets) && observed.sent_video_packets > 0 && observed.sent_video_packets <= packetLimit);
                 verifyReplacementStreamIdentities(observed.negotiated_streams, intent);
                 report.video_control_files = {};

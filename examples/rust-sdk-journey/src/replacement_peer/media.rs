@@ -38,6 +38,8 @@ pub(super) struct Pump<'a> {
     video_octets: u32,
     first_video_key: bool,
     last_video_clock: Option<usize>,
+    encoder: Option<&'a mut encoder::Encoder>,
+    encoded: Option<encoder::Frame>,
 }
 impl<'a> Pump<'a> {
     pub fn new(
@@ -46,6 +48,7 @@ impl<'a> Pump<'a> {
         audio: &'a selected::Binding,
         video: Option<&'a selected::Binding>,
         observation: &'a mut Observation,
+        encoder: Option<&'a mut encoder::Encoder>,
     ) -> Result<Self> {
         let anchor = tokio::time::Instant::now();
         let program = timeline::Program::at(
@@ -77,6 +80,8 @@ impl<'a> Pump<'a> {
             video_octets: 0,
             first_video_key: true,
             last_video_clock: None,
+            encoder,
+            encoded: None,
         })
     }
 
@@ -134,11 +139,36 @@ impl<'a> Pump<'a> {
             .source
             .video
             .as_ref()
-            .filter(|v| self.video_index < v.frames.len())
-            .map(|_| self.start + Duration::from_micros(self.video_index as u64 * 1_000_000 / 30))
+            .filter(|v| self.video_index < v.program.frame_count as usize)
+            .map(|_| {
+                if self
+                    .encoder
+                    .as_ref()
+                    .is_some_and(|encoder| encoder.pending())
+                {
+                    self.until
+                } else {
+                    self.start + Duration::from_micros(self.video_index as u64 * 1_000_000 / 30)
+                }
+            })
             .unwrap_or(self.until);
         let next = next_audio.min(next_video).min(control_tick).min(self.until);
-        if let Some(packet) = timeline::receive_before_tick(next, self.io.receive()).await {
+        let pending = self
+            .encoder
+            .as_ref()
+            .is_some_and(|encoder| encoder.pending());
+        let packet = tokio::select! {
+            biased;
+            _ = tokio::time::sleep_until(next) => None,
+            frame = async { self.encoder.as_mut().ok_or("missing live encoder")?.receive().await }, if pending => {
+                // No await between taking the retained reply and storing it in
+                // Pump. A control event can cancel the wait, never its ownership.
+                self.encoded = Some(frame?);
+                None
+            },
+            packet = self.io.receive() => Some(packet),
+        };
+        if let Some(packet) = packet {
             let packet = packet?;
             self.observation.captured_bytes += packet.len();
             let maximum_rows = if self.source.video.is_some() {
@@ -204,16 +234,28 @@ impl<'a> Pump<'a> {
             self.audio_index += 1;
         }
         if let (Some(video), Some(binding)) = (&self.source.video, self.video) {
-            if self.video_index < video.frames.len() && tokio::time::Instant::now() >= next_video {
-                let frame = &video.frames[self.video_index];
-                let original_us = self.video_index as u128 * 1_000_000 / 30;
+            let pending = self
+                .encoder
+                .as_ref()
+                .is_some_and(|encoder| encoder.pending());
+            let original_us = self.video_index as u128 * 1_000_000 / 30;
+            let due = self.start + Duration::from_micros(original_us as u64);
+            if self.video_index < video.program.frame_count as usize
+                && tokio::time::Instant::now() >= due
+                && !pending
+            {
                 if !self.observation.video_open
                     || self.start.elapsed().as_micros().saturating_sub(original_us) >= 200_000
-                    || (self.first_video_key && !video::key(frame))
                 {
+                    self.encoded = None;
                     self.observation.skipped_video += 1;
-                } else {
-                    let timestamp = self.video_index as u32 * 3000;
+                    self.video_index += 1;
+                    self.first_video_key = true;
+                } else if let Some(frame) = self.encoded.take() {
+                    if frame.index as usize != self.video_index {
+                        return Err("encoder changed original programme position".into());
+                    }
+                    let timestamp = frame.index * 3000;
                     let mut complete = true;
                     for packet in video::packets(
                         binding,
@@ -221,7 +263,7 @@ impl<'a> Pump<'a> {
                         timestamp,
                         &mut self.video_seq,
                         &mut self.datagram,
-                        frame,
+                        &frame.bytes,
                     ) {
                         if self.start.elapsed().as_micros().saturating_sub(original_us) >= 200_000 {
                             complete = false;
@@ -232,31 +274,37 @@ impl<'a> Pump<'a> {
                         self.observation.sent_video += 1;
                         self.video_octets += (packet.len() - 20) as u32;
                     }
-                    if complete {
-                        self.first_video_key = false;
-                        if self
+                    self.first_video_key = !complete;
+                    if complete
+                        && self
                             .last_video_clock
                             .is_none_or(|last| self.video_index - last >= 15)
-                        {
-                            self.io
-                                .send(&pack_sender_clock_datagram(&SenderClockDatagram {
-                                    stream_local_id: binding.handle,
-                                    seq: self.datagram,
-                                    report: SenderClockReport {
-                                        ssrc: video.ssrc,
-                                        rtp: timestamp,
-                                        ntp: ntp(self.unix + original_us),
-                                        packets: self.observation.sent_video,
-                                        octets: self.video_octets,
-                                        cname: "g6-replacement-target".into(),
-                                    },
-                                })?)?;
-                            self.datagram += 1;
-                            self.last_video_clock = Some(self.video_index);
-                        }
+                    {
+                        self.io
+                            .send(&pack_sender_clock_datagram(&SenderClockDatagram {
+                                stream_local_id: binding.handle,
+                                seq: self.datagram,
+                                report: SenderClockReport {
+                                    ssrc: video.ssrc,
+                                    rtp: timestamp,
+                                    ntp: ntp(self.unix + original_us),
+                                    packets: self.observation.sent_video,
+                                    octets: self.video_octets,
+                                    cname: "g6-replacement-target".into(),
+                                },
+                            })?)?;
+                        self.datagram += 1;
+                        self.last_video_clock = Some(self.video_index);
                     }
+                    self.video_index += 1;
+                } else {
+                    let deadline = (tokio::time::Instant::now() + Duration::from_millis(100))
+                        .min(due + Duration::from_millis(200));
+                    self.encoder
+                        .as_mut()
+                        .ok_or("missing live video encoder")?
+                        .request(self.video_index as u32, self.first_video_key, deadline)?;
                 }
-                self.video_index += 1;
             }
         }
         Ok(())

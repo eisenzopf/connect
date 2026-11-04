@@ -1,3 +1,4 @@
+import { liveVideoProgramFromManifest } from "./lib/transport_live_video_program.mjs";
 // Actual public Node SDK/native helper scenario. No Store or provider IO.
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
@@ -385,7 +386,7 @@ try {
                 assert.equal(hash(bytes), sourceManifest.sources[index].input_sha256);
                 const source = JSON.parse(bytes);
                 sourcePrograms[index] = { audioPackets: source.audio.map(packet => [...Buffer.from(packet, "base64")]),
-                    videoFrames: source.video.map(frame => [...Buffer.from(frame.payload, "base64")]) };
+                    videoProgram: liveVideoProgramFromManifest(input.media_source_directory, sourceManifest, index) };
             }
             report.native_av = await nativeAv(connections, sessionRoles, input.media_source_directory, input.media_output_directory, plan,
                 observation => { report.native_av_observation = observation; }, async workload => {

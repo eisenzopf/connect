@@ -386,6 +386,7 @@ dependencies = [
  "connect-client",
  "serde",
  "serde_json",
+ "sha2",
  "tokio",
 ]
 

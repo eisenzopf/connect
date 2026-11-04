@@ -34,9 +34,8 @@ test("unbounded sources, duplicate physical legs and invalid originals refuse be
 
 const avIntent = () => {
     const value = intent();
-    const frame = [4, 0, 0, 0x9d, 1, 0x2a, 0x80, 0x02, 0x68, 0x01];
     value.source.video = { streamId: "original-target-camera", previousStreamId: "previous-camera", previousReceiveVideoStreamId: "retained-camera", receiveAudioStreamId: "retained-audio",
-        receiveVideoStreamId: "retained-camera", ssrc: 8, frames: Array.from({ length: 30 }, () => [...frame]) };
+        receiveVideoStreamId: "retained-camera", ssrc: 8, program: { executable: "/private/.local/encoder", executable_sha256: "a".repeat(64), raw_path: "/private/.local/source.i420", raw_sha256: "b".repeat(64), frame_count: 30 } };
     return value;
 };
 
@@ -44,7 +43,7 @@ test("physical Data originals bind both streams and stay distinct from replaceme
     const value = avIntent();
     value.source.seconds = 62; value.source.programStartUnixUs = 1793600000000000;
     value.source.audioPackets = Array.from({ length: 3100 }, () => [1, 2, 3]);
-    value.source.video.frames = Array.from({ length: 1860 }, () => [...value.source.video.frames[0]]);
+    value.source.video.program.frame_count = 1860;
     value.source.video.receiveDataStreamId = "incoming-data"; value.dataStreamId = "outgoing-data";
     value.source.data = { incoming: { operation_id: "incoming-original", message_id: "incoming-message", stream_id: "incoming-data",
         from_participant: "upstream", to_participant: "local", body_base64: Buffer.alloc(65536, 7).toString("base64") },
@@ -58,14 +57,15 @@ test("physical Data originals bind both streams and stay distinct from replaceme
     }
 });
 
-test("AV target retains independent stream identities and copies originals for the full 62-second source", () => {
+test("live AV target retains stream identities and copies the finite raw-source descriptor", () => {
     const value = avIntent();
     value.source.seconds = 62;
     value.source.audioPackets = Array.from({ length: 62 * 50 }, () => [1, 2, 3]);
-    value.source.video.frames = Array.from({ length: 62 * 30 }, () => [...value.source.video.frames[0]]);
+    value.source.video.program.frame_count = 1860;
     const captured = replacementInput(value);
-    value.source.video.frames[0][3] = 0;
-    assert.equal(Buffer.from(captured.media.video.frames[0], "base64")[3], 0x9d);
+    value.source.video.program.raw_sha256 = "c".repeat(64);
+    assert.equal(captured.media.video.program.raw_sha256, "b".repeat(64));
+    assert.equal(captured.media.video.frames, undefined);
     assert.equal(captured.media.seconds, 62);
     assert.deepEqual(captured.offer.capabilities.video_codecs,
         [{ name: "vp8", params: { sample_rate: 90000, channels: 0 } }]);
@@ -99,18 +99,17 @@ test("replacement carries its distinct reliable Data offer alongside the origina
     assert.throws(() => replacementInput({ ...value, dataStreamId: undefined }));
 });
 
-test("AV source collision, dimensions, missing originals and keyframe starvation refuse before target IO", () => {
+test("live AV source rejects immutable frames, invalid counts, paths and hashes before target IO", () => {
     for (const change of [v => { v.source.seconds = 63; },
         v => { v.source.video.ssrc = v.source.ssrc; },
         v => { v.source.video.streamId = v.streamId; },
         v => { v.source.video.receiveVideoStreamId = v.source.video.receiveAudioStreamId; },
-        v => { v.source.video.frames.pop(); },
-        v => { v.source.video.frames[0][6] = 0; },
-        v => { v.source.video.frames[0][3] = 0; },
-        v => { v.source.video.frames[0][0] |= 1; },
-        v => { v.source.seconds = 2; v.source.audioPackets.push(...v.source.audioPackets);
-            v.source.video.frames = Array.from({ length: 60 }, (_, i) => i ? [1, 0, 0] : v.source.video.frames[0]); },
-        v => { v.source.video.frames[0] = Array(256 * 1024 + 1).fill(0); }]) {
+        v => { v.source.video.program.frame_count--; },
+        v => { v.source.video.program.raw_path = "relative.i420"; },
+        v => { v.source.video.program.executable = "/private/.local/../foreign"; },
+        v => { v.source.video.program.raw_sha256 = "bad"; },
+        v => { v.source.video.program.extra = true; },
+        v => { v.source.video.frames = [[4, 0, 0]]; }]) {
         const value = avIntent(); change(value); assert.throws(() => replacementInput(value));
     }
 });
@@ -162,7 +161,7 @@ test("replacement inputs carry one immutable AV program origin without shifting 
     const captured = replacementInput(value);
     assert.equal(captured.media.program_start_unix_us, value.source.programStartUnixUs);
     assert.deepEqual(captured.media.audio_packets, value.source.audioPackets);
-    assert.deepEqual(captured.media.video.frames.map(v => [...Buffer.from(v, "base64")]), value.source.video.frames);
+    assert.deepEqual(captured.media.video.program, value.source.video.program);
     for (const origin of [0, -1, 1.25, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
         value.source.programStartUnixUs = origin;
         assert.throws(() => replacementInput(value));
@@ -192,7 +191,7 @@ test("live and joined replacement resource identities require both exact Data bi
 test("terminal owner input preserves its original62second programme and separate end key", () => {
     const value = avIntent(); value.source.seconds = 62;
     value.source.audioPackets = Array.from({ length: 3100 }, () => [1, 2, 3]);
-    value.source.video.frames = Array.from({ length: 1860 }, () => [...value.source.video.frames[0]]);
+    value.source.video.program.frame_count = 1860;
     value.source.programStartUnixUs = 1793600000000000;
     value.source.terminalEndOperationId = "original-final-end";
     const captured = replacementInput(value);

@@ -129,7 +129,7 @@ async function scenario(mode) {
             connections, streamIds,
             participantIds: roles.map(v => "participant-" + v),
             targets: [{ deviceId: "original-device" }, { deviceId: "replacement-device" }],
-            sourcePrograms: Object.fromEntries([0, 4].map(i => [i, { audioPackets: Array(3100).fill([1]), videoFrames: Array(1860).fill([1]) }])),
+            sourcePrograms: Object.fromEntries([0, 4].map(i => [i, { audioPackets: Array(3100).fill([1]), videoProgram: { executable: "/private/.local/encoder", executable_sha256: "a".repeat(64), raw_path: "/private/.local/source.i420", raw_sha256: "b".repeat(64), frame_count: 1860 } }])),
             privateRoot: root, directory: join(directory, "run"), executable: "unexecuted-test-double",
             executableSha256: "0".repeat(64), currentEnds, startTarget, endRetained, now: () => clock,
             wait: async (ms, abort) => {

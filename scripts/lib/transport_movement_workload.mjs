@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, open } from "node:fs/promises";
 import { join } from "node:path";
 import { startPhysicalReplacementTarget } from "./transport_replacement_target.mjs";
+import { liveVideoProgram } from "./transport_live_video_program.mjs";
 import { operationFailure } from "./transport_failure.mjs";
 import { inspectReplacementCapture } from "./transport_capture_inspection.mjs";
 import { endRetainedConnections } from "./transport_current_end.mjs";
@@ -52,7 +53,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     assert.deepEqual(sources.map(index => workload.routes[index].sessionIndex), [0, 1]);
     for (const index of sources) {
         assert.equal(sourcePrograms[index].audioPackets.length, 3100);
-        assert.equal(sourcePrograms[index].videoFrames.length, 1860);
+        liveVideoProgram(sourcePrograms[index].videoProgram, 1860);
     }
     await mkdir(directory, { mode: 0o700 });
     const plan = sources.flatMap(sourceIndex => Array.from({ length: MOVES_PER_SESSION }, (_, ordinal) => ({
@@ -212,7 +213,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                         previousReceiveVideoStreamId: streamIds[incoming].video, receiveAudioStreamId: streamIds[incoming].audio,
                         receiveVideoStreamId: streamIds[incoming].video,
                         ...(dataWorkload ? { receiveDataStreamId: streamIds[incoming].data } : {}),
-                        ssrc: 0x47000002 + sourceIndex * 256 + step.ordinal * 2, frames: source.videoFrames } },
+                        ssrc: 0x47000002 + sourceIndex * 256 + step.ordinal * 2, program: source.videoProgram } },
                 retireOriginal: async proof => {
                     stage("previous-owner-join");
                     if (previous) await collect(previous, sourceIndex, previousDirectory);

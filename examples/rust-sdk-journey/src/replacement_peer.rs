@@ -8,6 +8,7 @@ use connect_client::canonical::{
 use std::time::{SystemTime, UNIX_EPOCH};
 mod controls;
 mod data;
+mod encoder;
 mod media;
 mod owner;
 mod selected;
@@ -361,7 +362,11 @@ pub(super) async fn run(
     let mut stop_requested = false;
     let mut terminal_end_receipt = None;
     let mut data_exchange = None;
+    let mut encoder = None;
     let work = async {
+        phase = "live-video-source";
+        if let Some(video) = &source.video { encoder = Some(encoder::Encoder::open(&video.program).await?); }
+        phase = "allocation";
         client
             .allocate_native_replacement_target(&command, &root, offer.clone())
             .await?;
@@ -393,7 +398,7 @@ pub(super) async fn run(
         emit(json!({"phase":"target-negotiated","media_ready_inferred":false})).await?;
         phase = "physical-media";
         let io = client.claim_native_datagrams()?;
-        let mut pump = media::Pump::new(io, &source, &audio, video_binding.as_ref(), &mut media)?;
+        let mut pump = media::Pump::new(io, &source, &audio, video_binding.as_ref(), &mut media, encoder.as_mut())?;
         let start = pump.start;
         let until = pump.until;
         let mut root_revision = root.revision;
@@ -473,6 +478,10 @@ pub(super) async fn run(
         Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
     }
     .await;
+    let encoder_join = match &mut encoder {
+        Some(encoder) => encoder.stop_and_join().await.map(Some),
+        None => Ok(None),
+    };
     // Preserve negative observations too, and always join this physical owner.
     let diagnostic = if let Err(error) = &work {
         // The caller owns private stdout/logs, just as it owns media output.
@@ -498,7 +507,7 @@ pub(super) async fn run(
     } = media;
     let shutdown = client.shutdown().await;
     let result = json!({"format":"connect/native-replacement-peer-observation/1",
-        "passed":work.is_ok() && shutdown.is_ok(),"sent_audio_packets":sent,"skipped_original_frames":skipped,
+        "passed":work.is_ok() && shutdown.is_ok() && encoder_join.as_ref().is_ok_and(|joined| joined.as_ref().is_none_or(|joined| joined.joined && (joined.clean || joined.cancelled))),"encoder_process":encoder_join.as_ref().ok().and_then(|joined| joined.as_ref()),"sent_audio_packets":sent,"skipped_original_frames":skipped,
         "captured_bytes":captured_bytes,"received":rows,"packet_events_during_control":control_packet_events,"original_client_joined":shutdown.is_ok(),
         "failure_stage":if work.is_err(){Some(phase)}else{None},
         "operation_completed_inferred":false,"decoded_media_verified":false,
@@ -516,6 +525,9 @@ pub(super) async fn run(
     shutdown?;
     diagnostic?;
     work?;
+    if encoder_join?.is_some_and(|joined| !joined.clean && !joined.cancelled) {
+        return Err("encoder stopped without clean completion".into());
+    }
     emit(json!({"phase":"target-joined","sent_audio_packets":sent,"captured_bytes":captured_bytes}))
         .await
 }
@@ -539,7 +551,7 @@ mod tests {
                 receive_video_stream_id: "remote-camera".into(),
                 receive_data_stream_id: None,
                 ssrc: 8,
-                frames: vec![vec![4, 0, 0, 0x9d, 1, 0x2a, 0x80, 0x02, 0x68, 0x01]; 1860],
+                program: encoder::test_program(1860),
             }),
         };
         make().validate().unwrap();
@@ -591,7 +603,7 @@ mod tests {
             receive_video_stream_id: "remote-camera".into(),
             receive_data_stream_id: None,
             ssrc: 8,
-            frames: vec![vec![4, 0, 0, 0x9d, 1, 0x2a, 0x80, 0x02, 0x68, 0x01]; 30],
+            program: encoder::test_program(30),
         });
         source.validate().unwrap();
         let mut av = offer;

@@ -13,6 +13,7 @@ base64 = "=0.22.1"
 connect-client = { path = "../../crates/connect-client" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "=0.10.9"
 tokio = { version = "1", features = ["full"] }
 
 # The current source checkout has not reached dependency packaging yet.
