@@ -1,0 +1,93 @@
+{
+  "format": "connect/gate6-live-feedback-recovery/1",
+  "task": "G6-058",
+  "status": "component-pass",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM; no GitHub/cloud execution",
+  "source_revision": "1cab50f295873de049defd10beebf2683713fbf0",
+  "verification": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 121250,
+    "source_revision": "1cab50f295873de049defd10beebf2683713fbf0",
+    "passed": true,
+    "steps": [],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "live_feedback_recovery_candidate": true,
+    "component_checks": [
+      {
+        "case": "node-live-recovery",
+        "exit_code": 0,
+        "log_sha256": "a04ee152c4582f903b3ddef97a7a97ab2e10a313db76bd85d9b1a592c0b9c0e8",
+        "summary": [
+          "TAP version 13",
+          "# {\"independently_decoded_frames\":4,\"recovered_original_indices\":[2,5,6,9],\"feedback_authority\":\"controlled SDK boundary\",\"signed_transport_qualified\":false}",
+          "# Subtest: current feedback recovers fresh VP8 after same-SSRC epoch change and fragment loss without resetting clocks",
+          "ok 1 - current feedback recovers fresh VP8 after same-SSRC epoch change and fragment loss without resetting clocks",
+          "  ---",
+          "  duration_ms: 304.593215",
+          "  type: 'test'",
+          "  ...",
+          "# Subtest: receiver feedback stays with its exact read across same-ID selection and refuses cloned observations",
+          "ok 2 - receiver feedback stays with its exact read across same-ID selection and refuses cloned observations",
+          "  ---",
+          "  duration_ms: 0.448335",
+          "  type: 'test'",
+          "  ...",
+          "1..2",
+          "# tests 2",
+          "# suites 0",
+          "# pass 2",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# todo 0",
+          "# duration_ms 354.696338"
+        ]
+      },
+      {
+        "case": "python-history-boundaries",
+        "exit_code": 0,
+        "log_sha256": "a6707d4eff38012da33ddc34bc6dc076a3b17151cfc9aef223c8790cbe64c3da",
+        "summary": [
+          "..",
+          "----------------------------------------------------------------------",
+          "Ran 2 tests in 0.000s",
+          "",
+          "OK"
+        ]
+      }
+    ],
+    "executable_unchanged": true,
+    "runtime_sha256": {
+      "/opt/node/bin/node": "fd959ead1bf6d636f3c441b0943c4c0929db48cbf7608aa3516e66d12a727ec5",
+      "/usr/bin/python3.12": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960",
+      "/usr/bin/ffmpeg": "dbb8cc21c4b4e0e9bbb750cf74f7af6b023199e1b311eb2f6aec31c9722ceb88",
+      "/usr/bin/aarch64-linux-gnu-gcc-13": "a20520ee21543f243d40636a9181a142c45ecd989de31ab86b99a8ea5ada870d"
+    },
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 0.9900772709952435
+  },
+  "result_state_sha256": "61ad25c05a6a0b2d531793a6524d6e9e95377f6602ef711cf691c2474a41c3b5",
+  "implementation": [
+    "Initial nativeAv sender owns a bounded feedback reader, consumes its original hint just before encoding and checks the returned original-age permit. No feedback retry, encoded replay, frame-index reset or timestamp reset.",
+    "Receiver clears assembly/decode history on authenticated epoch changes, same-SSRC reselection and detected loss; interframes cannot bootstrap missing history. Recovery requests use the exact owned read, refuse a superseded or in-flight selection, and coalesce at100ms.",
+    "Capture includes decoder-history boundaries. Quality analysis starts an independent decoder at each contiguous history and never rejoins a returning camera to its previous decoder."
+  ],
+  "proved": [
+    "Actual C/libvpx encoder, RTP packetizer and VP8 assembler recover at original indices2,5,9 after same-SSRC epoch change, dropped middle fragment and expired feedback. Independent FFmpeg processes decode four original marker frames2,5,6,9.",
+    "Uncertain consumption propagates once and cannot force another frame. Actual encoder PID is joined.",
+    "Exact read identity prevents feedback from old, cloned or superseded same-ID observations.",
+    "Two Python cases verify decoder histories remain separate and clocks cannot regress across boundaries."
+  ],
+  "limits": [
+    "Feedback authority and authenticated packet metadata are controlled at the SDK boundary in the worker test; this does not prove integrated signed SDK/server transport.",
+    "The nativeAv wiring is implemented but this run exercises its extracted workers, not a full six-Connection nativeAv workload.",
+    "Server profile and production SDK offers remain disabled. Actual signed SDK/server bootstrap and loss recovery, direct Rust replacement peer and browser integration remain open.",
+    "No full transport cell or task promotion; G6-054 deferred."
+  ],
+  "old_passed_cases_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false
+}

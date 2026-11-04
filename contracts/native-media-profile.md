@@ -354,3 +354,27 @@ ARM64 at `cae7f036`; see `docs/evidence/gate-6/sdk-video-feedback-ipc.json`.
 Consumption deducts the full RPC elapsed time, including a delayed reply; a
 cloned or already consumed reference cannot create a new permit. Actual signed
 server and live encoder/decoder recovery remain unverified.
+
+
+### Fixture encoder and receiver recovery
+
+The initial native workload owns a feedback reader alongside each selected
+Video sender. It retains only the latest hint and consumes that original
+reference just before encoding the next eligible source frame. Expiry is
+checked again immediately before the encoder call. An uncertain consumption
+is propagated without retry; it cannot become permission to force a frame.
+The source frame index and RTP timestamp remain on the original programme.
+
+Receivers partition assembly and decoder history by authenticated epoch and
+physical stream/SSRC. Missing fragments or discontinuities invalidate history;
+interframes cannot initialize it. Receiver requests coalesce at100ms and stay
+bound to the exact physical read across selection. Capture rows include
+`decoder_history` and optional `video_epoch`; the independent moving-media
+analyzer splits those histories instead of joining a returning camera to its
+old decoder. Loss remains missing coverage; it is not hidden by time rebasing.
+
+Four focused local ARM cases pass at `1cab50f2`, including actual libvpx
+encoding and independent FFmpeg decoding. Feedback authority is controlled in
+this worker proof. See `docs/evidence/gate-6/live-feedback-recovery.json` for
+scope. Actual signed SDK/server recovery, the replacement peer and browser
+integration remain unfinished; no full transport cell is qualified.
