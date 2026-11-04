@@ -33,15 +33,15 @@ impl Encoder {
         );
         let raw = directory.join("feedback-original.i420");
         let plane = 640 * 360;
-        let mut bytes = Vec::with_capacity(plane * 3 / 2 * 8);
-        for index in 0..8 {
+        let mut bytes = Vec::with_capacity(plane * 3 / 2 * 12);
+        for index in 0..12 {
             bytes.extend(std::iter::repeat_n(60 + index * 3, plane));
             bytes.extend(std::iter::repeat_n(128, plane / 2));
         }
         init::private_write(&raw, &bytes).unwrap();
         let mut child = tokio::process::Command::new(binary)
             .arg(raw)
-            .arg("8")
+            .arg("12")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
@@ -334,11 +334,55 @@ async fn phase(
 #[tokio::test]
 async fn signed_production_replacement_transfers_video_and_recovers_fresh_frames_in_both_directions(
 ) {
-    tokio::time::timeout(Duration::from_secs(90), exercise())
+    tokio::time::timeout(Duration::from_secs(90), exercise(false))
         .await
         .unwrap();
 }
-async fn exercise() {
+#[tokio::test]
+async fn signed_production_replacement_hold_resume_recovers_both_video_directions() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(true))
+        .await
+        .unwrap();
+}
+async fn gate(
+    owner: &mut CanonicalClient,
+    scope: &CommandScope,
+    operation: &str,
+    revision: u64,
+    action: &str,
+) -> u64 {
+    let mut scope = scope.clone();
+    scope.operation_id = Some(operation.into());
+    scope.expected_revision = Some(revision);
+    let mut payload =
+        json!({"action":action,"streams":["replacement-camera","replacement-incoming-camera"]});
+    if action == "hold" {
+        payload["details"] = json!({"direction":"inactive"});
+    }
+    let request = owner
+        .send_value("connection.update", payload, scope)
+        .await
+        .unwrap();
+    let mut result = None;
+    for _ in 0..32 {
+        let frame = owner.receive().await.unwrap();
+        if frame.scope(rvoip_uctp::v2::Scope::Reply) != Some(request.as_str()) {
+            continue;
+        }
+        if frame.kind() == "operation.updated" {
+            let p = &frame.original()["payload"];
+            assert_eq!(p["state"], "completed", "{p}");
+            assert_eq!(p["result"]["connection_generation"], 2);
+            result = Some(p["result"]["stream_revision"].as_u64().unwrap());
+        } else if frame.kind() == "ack" {
+            return result.unwrap();
+        } else {
+            panic!("unexpected gate result {:?}", frame.original());
+        }
+    }
+    panic!("bounded gate result missing")
+}
+async fn exercise(gates: bool) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter("connect_client::canonical::native_video=debug,connect_service::canonical_flow_ready=debug")
         .with_test_writer()
@@ -354,6 +398,7 @@ async fn exercise() {
         "stream.subscribe".into(),
         "stream.unsubscribe".into(),
         "connection.end".into(),
+        "connection.update".into(),
     ]);
     let receiver_config = super::super::canonical_native_connections::party_with_scope(
         &f,
@@ -638,6 +683,7 @@ async fn exercise() {
     assert_eq!(same, epoch);
     assert_eq!(bytes, fresh);
     decode(f.temp.path(), &bytes, 2).await;
+    let before_gate_receive = same.clone();
     // In the reverse direction the retained receiver requests a keyframe from
     // the raw generation-two publisher. Pumping receives the physical feedback;
     // the boolean is consumed once immediately before the next fresh encoding.
@@ -662,6 +708,71 @@ async fn exercise() {
     assert_eq!(same, epoch);
     assert_eq!(bytes, fresh);
     decode(f.temp.path(), &bytes, 4).await;
+    if gates {
+        eprintln!("production replacement phase: signed-hold-resume");
+        let revision: u64 = rusqlite::Connection::open(&f.config.database)
+            .unwrap()
+            .query_row(
+                "SELECT stream_revision FROM connections WHERE id=?1",
+                [scope.connection_id.as_ref().unwrap()],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let held = gate(
+            &mut replacement,
+            &scope,
+            "replacement-video-hold",
+            revision,
+            "hold",
+        )
+        .await;
+        assert_eq!(held, revision + 1);
+        assert!(!io.take_keyframe_request(camera, 0x74657374).unwrap());
+        let resumed = gate(
+            &mut replacement,
+            &scope,
+            "replacement-video-resume",
+            held,
+            "resume",
+        )
+        .await;
+        assert_eq!(resumed, held + 1);
+        let delta = encoder.frame(5, false).await;
+        assert_eq!(delta[0] & 1, 1);
+        publish(&retained_send, &delta, 5, &mut retained_sequence).await;
+        let (bytes, resumed_receive) = raw_receive(&mut io, 5, incoming).await;
+        assert_eq!(bytes, delta);
+        assert_ne!(resumed_receive.epoch, before_gate_receive.epoch);
+        let hint = retained_send
+            .receive_video_feedback(options())
+            .await
+            .unwrap();
+        assert!(retained_send.video_feedback_is_current(&hint).unwrap());
+        let fresh = encoder.frame(6, true).await;
+        publish(&retained_send, &fresh, 6, &mut retained_sequence).await;
+        let (bytes, current) = raw_receive(&mut io, 6, incoming).await;
+        assert_eq!(current, resumed_receive);
+        assert_eq!(bytes, fresh);
+        decode(f.temp.path(), &bytes, 6).await;
+        let delta = encoder.frame(7, false).await;
+        assert_eq!(delta[0] & 1, 1);
+        raw_publish(&io, camera, &delta, 7, &mut sequence);
+        let (bytes, resumed_publish) = receive(&retained_recv, 7).await;
+        assert_eq!(bytes, delta);
+        assert_ne!(resumed_publish.epoch, epoch.epoch);
+        retained_recv.request_keyframe(options()).await.unwrap();
+        let _ = tokio::time::timeout(Duration::from_millis(50), io.receive()).await;
+        let requested = io.take_keyframe_request(camera, 0x74657374).unwrap();
+        assert!(requested);
+        let fresh = encoder.frame(8, requested).await;
+        assert!(!io.take_keyframe_request(camera, 0x74657374).unwrap());
+        raw_publish(&io, camera, &fresh, 8, &mut sequence);
+        let (bytes, current) = receive(&retained_recv, 8).await;
+        assert_eq!(current, resumed_publish);
+        assert_eq!(bytes, fresh);
+        decode(f.temp.path(), &bytes, 8).await;
+        eprintln!("production replacement gate proof: signed generation2 hold/resume, fresh epoch and independent VP8 decode in both directions at original RTP18000 and24000");
+    }
     encoder.close().await;
     replacement.shutdown().await.unwrap();
     drop(io);

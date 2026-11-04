@@ -225,7 +225,9 @@ pub(super) fn observe(s: &mut State, frame: &Envelope) -> Result<()> {
     let Some(pending) = s.controls.operations.get(operation) else {
         return Ok(());
     };
-    if frame.scope(Scope::Operation) != Some(operation)
+    if frame
+        .scope(Scope::Operation)
+        .is_some_and(|v| v != operation)
         || update
             .command_type
             .as_deref()

@@ -158,6 +158,7 @@ fn replacement_video_gate_results_refuse_foreign_binding_revision_and_uncertain_
     // and complete immutable intent still have to match.
     let mut recovered = completed(&hold);
     recovered["in_reply_to"] = json!("original-operation-status-read");
+    recovered.as_object_mut().unwrap().remove("operation_id");
     deliver(&shared, recovered).unwrap();
     assert_eq!(active(&shared, true), None);
     let mut wrong = command("new", 3, "resume");
