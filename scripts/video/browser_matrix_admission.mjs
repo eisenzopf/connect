@@ -43,7 +43,11 @@ const report={format:'connect/browser-matrix-admission-observation/1',source_rev
     transport:spec.transport,signing_algorithm:spec.signingAlgorithm,browser:version.stdout.trim(),
     passed:false,cell_qualified:false,task_complete:false,full_media_programme_executed:false,
     scope:'Actual isolated Chrome normal-CA/public browser-SDK control and six-connection admission only. No full media/four-move/expiry/idle/fallback or complete-cell qualification.'};
-let owner,server,page,journal,stage='asset-listener',events=0,serial=Promise.resolve();
+let owner,server,page,journal,stage='asset-listener',events=0,serial=Promise.resolve(),diagnostics=Promise.resolve(),diagnosticBytes=0;
+const diagnostic=text=>{
+    const body=String(text).slice(0,8192)+'\n';diagnosticBytes+=Buffer.byteLength(body);
+    if(diagnosticBytes<=1024*1024)diagnostics=diagnostics.then(()=>fs.appendFile(path.join(output,'browser-private.log'),body,{mode:0o600})).catch(()=>{});
+};
 const assets=path.join(root,'sdk/typescript/dist');
 try{
     server=https.createServer({cert:await fs.readFile(spec.tls.certificatePem),key:await fs.readFile(spec.tls.privateKeyPem)},async(request,response)=>{
@@ -79,7 +83,10 @@ try{
         report.trust={normal_profile_ca_import:true,root_sha256:result.root_sha256,browser_version:result.version};
     });
     stage='current-browser-authentication';
-    page=await owner.browser.newPage();await page.goto(spec.origin,{timeout:5000});
+    page=await owner.browser.newPage();
+    page.on('console',message=>diagnostic(message.text()));
+    page.on('pageerror',error=>diagnostic(error.stack??error));
+    await page.goto(spec.origin,{timeout:5000});
     journal=await fs.open(path.join(output,'original-operations.jsonl'),'wx',0o600);
     await page.exposeFunction('matrixJournal',event=>{
         serial=serial.then(async()=>{
@@ -131,7 +138,7 @@ try{
     await fs.writeFile(path.join(output,'failure-private.log'),String(error.stack??error),{mode:0o600});
 }finally{
     if(owner)report.failure_browser=await owner.close();
-    await serial.catch(()=>{});await journal?.close();
+    await serial.catch(()=>{});await journal?.close();await diagnostics;
     if(server)await new Promise(resolve=>server.close(resolve));
     report.journal_events=events;
     await fs.writeFile(path.join(output,'browser-observation.json'),JSON.stringify(report,null,2)+'\n',{mode:0o600});

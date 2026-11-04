@@ -253,6 +253,8 @@ def main():
         report["browser_observation"] = json.loads((browser_output / "browser-observation.json").read_text())
         report["browser_observation_sha256"] = digest(browser_output / "browser-observation.json")
         report["passed"] = report["browser_exit_code"] == 0 and report["browser_observation"]["passed"]
+        if not report["passed"] and report["browser_observation"].get("failure"):
+            report["failure"] = dict(phase=phase, browser=report["browser_observation"]["failure"])
     except BaseException as error:
         (private / "failure.log").write_text(traceback.format_exc())
         report["failure"] = dict(phase=phase, name=type(error).__name__, line=traceback.extract_tb(error.__traceback__)[-1].lineno)

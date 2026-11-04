@@ -1,5 +1,6 @@
 """Private browser fixture exports must retain issuer and actor-file boundaries."""
 import base64
+import datetime
 import json
 from pathlib import Path
 import sys
@@ -73,6 +74,12 @@ class BrowserActorExport(unittest.TestCase):
         key.symlink_to(self.installation / "server-signing.pub")
         with self.assertRaisesRegex(FixtureError, "actor-asset-path"):
             self.export()
+
+    def test_browser_signer_validity_uses_wire_epoch_seconds(self):
+        actor, _ = self.export()
+        expected = int(datetime.datetime.fromisoformat("2026-11-04T00:00:00+00:00").timestamp())
+        self.assertEqual(actor["server"]["notBefore"], expected)
+        self.assertEqual(actor["server"]["expiresAt"] - actor["server"]["notBefore"], 86400)
 
 
 if __name__ == "__main__":

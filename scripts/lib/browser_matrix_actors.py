@@ -17,11 +17,13 @@ def _base64(value):
     return base64.urlsafe_b64encode(value).decode().rstrip("=")
 
 
-def _milliseconds(value):
+def _seconds(value):
     when = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
     if when.tzinfo is None:
         raise FixtureError("browser-fixture-server-validity")
-    return int(when.timestamp() * 1000)
+    # ServerTrust uses the signing protocol's Unix seconds. Envelope freshness
+    # separately uses the browser's millisecond clock in verifyEnvelope.
+    return int(when.timestamp())
 
 
 def browser_actor(installation, *, scope, algorithm):
@@ -55,7 +57,7 @@ def browser_actor(installation, *, scope, algorithm):
         device=dict(id=client["device_id"], kind=client["device_kind"], platform=client["device_platform"]),
         signing=dict(algorithm=algorithm, keyId=client["signing_key_id"], privatePkcs8=_base64(private), publicRaw=_base64(public)),
         server=dict(algorithm=algorithm, keyId=client["server_key_id"], publicRaw=_base64(server),
-                    notBefore=_milliseconds(client["server_key_not_before"]), expiresAt=_milliseconds(client["server_key_expires_at"])))
+                    notBefore=_seconds(client["server_key_not_before"]), expiresAt=_seconds(client["server_key_expires_at"])))
     binding = dict(client_config_sha256=hashlib.sha256(client_bytes).hexdigest(),
                    original_intent_sha256=hashlib.sha256(intent_bytes).hexdigest(),
                    issuance_sha256=hashlib.sha256(issued_bytes).hexdigest(),
