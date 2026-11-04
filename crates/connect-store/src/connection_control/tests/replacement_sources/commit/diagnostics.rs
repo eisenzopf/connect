@@ -94,3 +94,77 @@ fn projection_diagnostics_distinguish_sql_mutex_authority_and_transaction_refusa
     assert_eq!(metrics["activation"]["failed_derive_after"], 0);
     assert_eq!(metrics["activation"]["failed_scope_revalidation"], 0);
 }
+
+#[test]
+fn captured_projection_drains_brief_primary_sql_exclusion_within_original_admission_budget() {
+    let m = fixture(true);
+    let capture = super::activation_barrier::captured(&m);
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let effects = m.f.count("operation_effects");
+    let began = std::time::Instant::now();
+    let first = std::thread::scope(|workers| {
+        let (locked, ready) = std::sync::mpsc::sync_channel(0);
+        let (release, released) = std::sync::mpsc::sync_channel(0);
+        let store = &m.f.store;
+        let holder = workers.spawn(move || {
+            let sql = store.connection().unwrap();
+            locked.send(()).unwrap();
+            released.recv().unwrap();
+            // Short-lived real command SQL contention. No authority writer is
+            // held by this owner, and no physical operation is manufactured.
+            std::thread::sleep(std::time::Duration::from_millis(2));
+            drop(sql);
+        });
+        ready.recv().unwrap();
+        release.send(()).unwrap();
+        let result =
+            m.f.store
+                .project_native_replacement_committed(&capture, &MetadataOnlyInstalled);
+        holder.join().unwrap();
+        result
+    });
+    let elapsed = began.elapsed();
+    let admitted = first.is_ok();
+    let code = first
+        .as_ref()
+        .err()
+        .map(|e| e.code.as_str())
+        .unwrap_or("ok");
+    eprintln!(
+        "original projection short SQL exclusion: admitted={admitted} code={code} elapsed_us={}",
+        elapsed.as_micros()
+    );
+    if !admitted {
+        assert_eq!(
+            Store::inspect_snapshot(m.f.store.path()).unwrap(),
+            before,
+            "refused initial admission has no partial metadata effect"
+        );
+    }
+    // Settle/recover only the exact captured metadata after joining its SQL
+    // owner, including on the expected before-fix failure. Never repeat Core IO.
+    let established =
+        m.f.store
+            .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+            .unwrap();
+    let complete = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let recovered =
+        m.f.store
+            .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+            .unwrap();
+    assert_eq!(
+        established.runtime_connection_id(),
+        recovered.runtime_connection_id()
+    );
+    assert_eq!(established.generation(), recovered.generation());
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), complete);
+    assert_eq!(m.f.count("operation_effects"), effects);
+    assert!(
+        elapsed < std::time::Duration::from_millis(50),
+        "bounded original admission"
+    );
+    assert!(
+        admitted,
+        "brief SQL exclusion discarded an otherwise live original admission budget"
+    );
+}
