@@ -559,9 +559,9 @@ async fn exercise() {
         )
         .await
         .unwrap();
-    let answer = replacement.receive_control().await.unwrap();
+    let answer = replacement.receive().await.unwrap();
     assert_eq!(answer.kind(), "connection.answer");
-    let callback = replacement.receive_control().await.unwrap();
+    let callback = replacement.receive().await.unwrap();
     assert_eq!(callback.kind(), "connection.offer");
     let p = &callback.original()["payload"];
     let bindings = p["substrate_setup"]["streams"].as_array().unwrap();
