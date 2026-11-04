@@ -71,6 +71,8 @@ try{
             if(url.pathname==='/'){response.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});response.end('<!doctype html><meta charset=utf-8><title>Owned matrix fixture</title>');return;}
             if(url.pathname==='/_matrix/admission.mjs')file=path.join(root,'scripts/lib/browser_matrix_admission.mjs');
             else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
+            else if(url.pathname==='/video/marker_calibration.mjs')file=path.join(root,'scripts/video/marker_calibration.mjs');
+            else if(url.pathname==='/video/source_identity.mjs')file=path.join(root,'scripts/video/source_identity.mjs');
             else{
                 assert.ok(url.pathname.startsWith('/sdk/')&&url.pathname.endsWith('.js'));
                 file=await fs.realpath(path.resolve(assets,'.'+url.pathname.slice(4)));

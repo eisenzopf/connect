@@ -26,6 +26,46 @@ installed browsers and earlier narrow browser results do not fill those rows.
 
 ## Execution order
 
+Current browser implementation work (November 4): all four Chrome admission
+results remain bound to their recorded sources. The next full workload needs
+actual replacement target media, independent receive observers, packet capture,
+expiry and idle accounting. The new source owner preserves six master streams
+across Connection-owned clones, exposes one immutable 62-second programme,
+schedules the existing nonperiodic 100ms AV markers and records skipped source
+frames. Its monotonic terminal cannot be extended by a stalled audio clock.
+`BrowserSdkClient.keepAlive` now exposes explicit current-session reachability
+renewal without credential refresh or automatic reconnect. The workload still
+needs to own its cadence and join it at the original terminal.
+
+Source inspection identified these remaining replacement integration steps:
+
+- Bind target allocation and media preparation to the original
+  `connection.replace` operation record. The Rust public client implements the
+  two signed phases in `crates/connect-client/src/canonical/native.rs`; the
+  browser SDK currently exposes the movement command but not these target phases.
+- Give browser replacement preparation its own readiness lifecycle. The ordinary
+  `BrowserMediaPeer.transition` waits for the root to complete before installing
+  routes. Replacement preparation needs actual target IO before movement can
+  complete, so copying the ordinary offer path unchanged would create a circular
+  wait. This is a source-level finding; no browser replacement run has yet proved
+  or disproved that failure in execution.
+- Implement the corresponding WebRTC target adapter path. The current service
+  explicitly refuses WebRTC replacement transport in `canonical_replacement.rs`,
+  and `canonical_replacement/start.rs` configures the native adapter. Enabling an
+  enum alone would not implement allocation, negotiated media, readiness or drain.
+- Run the original four moves at 15/40 seconds through those public browser paths,
+  using the continuing masters, then evaluate all complete-cell requirements.
+
+Only new local focused checks ran for this increment: ten signed-control SDK
+keepalive cases and four source ownership/clock boundary cases. Eight keepalive
+cases passed on the initial run; two test assertions incorrectly compared a
+null-prototype wire object with a plain object and passed after correcting the
+assertion (only those two reran). Source cases cover cloned-track retirement,
+switch/return ownership, missed-frame accounting, stalled-clock terminal and
+capture/close races. These are in-memory boundary fixtures, **not actual device
+movements or decoded media evidence**. Earlier admission suites were not rerun;
+no matrix cell or Gate task was promoted.
+
 1. Probe both actual local hosts at the committed candidate. Record tool and
    frozen browser versions, scratch capacity and systemd availability. The
    current ordinary Ubuntu container has `docker-init`, so it cannot stand in
