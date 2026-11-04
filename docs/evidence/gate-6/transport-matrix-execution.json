@@ -95,8 +95,8 @@
   ],
   "counts": {
     "not-run": 25,
-    "failed": 3,
-    "incomplete": 4
+    "failed": 5,
+    "incomplete": 2
   },
   "cells": [
     {
@@ -1570,8 +1570,8 @@
       "transport": "chrome-webtransport",
       "signing": "EdDSA",
       "expected_client_platform": "ubuntu24-arm64",
-      "status": "incomplete",
-      "reason": "browser-programme-passed-full-checks-missing",
+      "status": "failed",
+      "reason": "browser-quality-failed",
       "required_checks": [
         "identified-candidate-client-server-versions",
         "normal-tls-and-current-device-key-authority",
@@ -1595,8 +1595,8 @@
       "decoded_media": null,
       "outcome": null,
       "execution": {
-        "producer": "browser-programme",
-        "stage": "programme",
+        "producer": "browser-quality",
+        "stage": "quality",
         "runnable": true,
         "blockers": [],
         "completion_blockers": [
@@ -1608,22 +1608,28 @@
         ],
         "attempted": true,
         "component": {
-          "kind": "browser-programme",
-          "passed": true,
-          "exit_code": 0,
-          "report_sha256": "f33a6c23d9e5f530287d4ebb3b368e67eeb303ca773784d9aa2d72b772b31b98",
+          "kind": "browser-quality",
+          "passed": false,
+          "exit_code": 1,
+          "report_sha256": "25539128fef8592770873bad52dc5ad5cb8a44a745bc3320476eedb6a50560ae",
           "integrity": {
             "source_inputs_unchanged": true,
             "executable_unchanged": true,
             "sdk_dist_inputs_unchanged": true,
             "browser_owner_joined": true
           },
-          "source_revision": "7bbe7700e88c8bcc40fb1565918be71db761cf02",
+          "source_revision": "342e943f8398c6bffe893d07a2b36e6fe5ecb5fc",
           "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
           "browser": "Google Chrome for Testing 156.0.8078.4",
           "authenticated_owners": 7,
           "actual_connections": 6,
-          "failure": null
+          "failure": {
+            "phase": "actual-browser-quality",
+            "browser": {
+              "stage": "decoded-media-quality",
+              "name": "ProfileBudgetsFailed"
+            }
+          }
         }
       },
       "check_results": {
@@ -1684,7 +1690,7 @@
           "evidence": null
         }
       },
-      "source_revision": "7bbe7700e88c8bcc40fb1565918be71db761cf02"
+      "source_revision": "342e943f8398c6bffe893d07a2b36e6fe5ecb5fc"
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
@@ -1693,8 +1699,8 @@
       "transport": "chrome-webtransport",
       "signing": "ES256",
       "expected_client_platform": "ubuntu24-arm64",
-      "status": "incomplete",
-      "reason": "browser-programme-passed-full-checks-missing",
+      "status": "failed",
+      "reason": "browser-quality-failed",
       "required_checks": [
         "identified-candidate-client-server-versions",
         "normal-tls-and-current-device-key-authority",
@@ -1718,8 +1724,8 @@
       "decoded_media": null,
       "outcome": null,
       "execution": {
-        "producer": "browser-programme",
-        "stage": "programme",
+        "producer": "browser-quality",
+        "stage": "quality",
         "runnable": true,
         "blockers": [],
         "completion_blockers": [
@@ -1731,22 +1737,28 @@
         ],
         "attempted": true,
         "component": {
-          "kind": "browser-programme",
-          "passed": true,
-          "exit_code": 0,
-          "report_sha256": "95428601f352eb1cad87edc9070606dd738fe3a9e9007adb4595fac34a3b81e2",
+          "kind": "browser-quality",
+          "passed": false,
+          "exit_code": 1,
+          "report_sha256": "d4e21f0a0cfdd3ca5c5bc31eeb5b9273ef6aa8ca8ddba8e9cf5f829f3a95481c",
           "integrity": {
             "source_inputs_unchanged": true,
             "executable_unchanged": true,
             "sdk_dist_inputs_unchanged": true,
             "browser_owner_joined": true
           },
-          "source_revision": "7bbe7700e88c8bcc40fb1565918be71db761cf02",
+          "source_revision": "342e943f8398c6bffe893d07a2b36e6fe5ecb5fc",
           "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
           "browser": "Google Chrome for Testing 156.0.8078.4",
           "authenticated_owners": 7,
           "actual_connections": 6,
-          "failure": null
+          "failure": {
+            "phase": "actual-browser-quality",
+            "browser": {
+              "stage": "decoded-media-quality",
+              "name": "ProfileBudgetsFailed"
+            }
+          }
         }
       },
       "check_results": {
@@ -1807,7 +1819,7 @@
           "evidence": null
         }
       },
-      "source_revision": "7bbe7700e88c8bcc40fb1565918be71db761cf02"
+      "source_revision": "342e943f8398c6bffe893d07a2b36e6fe5ecb5fc"
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
@@ -2958,10 +2970,12 @@
     }
   },
   "source_revisions": [
+    "00b50b5186606bf46be41dd5bdba086556cb0d29",
     "248d7e162bd50b24b4733ab6e336546ef54c0ef6",
     "2ed53986b84277953e40de73cd8b9871c8f57549",
     "2fa7382caee8a47b8f315ac7931e6f664f00c743",
     "2fedc093a13fa55e872e6fce9308670bb8743a07",
+    "342e943f8398c6bffe893d07a2b36e6fe5ecb5fc",
     "64ac4963dd6ca2d77b81203a7cb226d966586f2e",
     "7bbe7700e88c8bcc40fb1565918be71db761cf02",
     "a7b85a59ba5703ff7ca65355800586936556b5a8",
@@ -3112,7 +3126,28 @@
       "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
       "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
       "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "00b50b5186606bf46be41dd5bdba086556cb0d29": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "342e943f8398c6bffe893d07a2b36e6fe5ecb5fc": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "5a63c32b5e27f53791afa179e96fc0d163f2fa37e4d355210f452f402ad426dd",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
     }
   },
-  "browser_programme_evidence": "docs/evidence/gate-6/matrix-browser-programme.json"
+  "browser_programme_evidence": "docs/evidence/gate-6/matrix-browser-programme.json",
+  "browser_quality_evidence": "docs/evidence/gate-6/matrix-browser-quality.json"
 }

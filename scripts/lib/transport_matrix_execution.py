@@ -52,7 +52,7 @@ def configure_execution(matrix, environment, stage="media"):
             producer="browser-" + stage if admission else "native-media" if cell["transport"] == "native-quic" else None,
             stage=stage,
             runnable=not blockers, blockers=blockers,
-            completion_blockers=list(COMPLETION_GAPS) + ([("browser-independent-decoded-quality-and-packet-capture-not-connected" if stage in {"programme", "quality"} else "full-browser-movement-media-producer-not-connected"),
+            completion_blockers=list(COMPLETION_GAPS) + ([("browser-independent-decoded-quality-not-qualified" if stage == "quality" else "browser-independent-decoded-quality-and-packet-capture-not-connected" if stage == "programme" else "full-browser-movement-media-producer-not-connected"),
                 "browser-fallback-and-neither-path-refusal-not-executed"] if admission else []), attempted=False,
             component=None,
         )

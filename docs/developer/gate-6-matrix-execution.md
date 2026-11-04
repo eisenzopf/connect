@@ -24,9 +24,46 @@ the complete-cell verifier. Every required check remains visible. Browser
 workloads and Mac-server/Linux-client full workloads still need integration;
 installed browsers and earlier narrow browser results do not fill those rows.
 
+## Latest decoded-media measurements
+
+The new `--stage quality` producer runs the original browser programme with
+independent WebCodecs PCM/pixel observers over the declared 1–61 second window
+and an owned exact-port UDP capture. At `342e943f`, both local ARM Chrome WT
+signing variants complete all four moves and teardown within275ms, and both
+capture files validate with zero kernel drops and joined original processes.
+All six receive routes **fail** quality. Audio totals58.64–59.58s versus59.9s;
+AV median80.7–117.0ms/p95138.4–159.2ms exceed80/120ms. All EdDSA routes meet
+24 changing frames/second, while three ES256 routes have weakest seconds22–23.
+No complete cell or Gate task is promoted.
+
+[Original results and corrections](../evidence/gate-6/matrix-browser-quality.json)
+retain the first failed measurements, corrected observer audio-port mapping,
+source-clock sampling correction and scratch-preflight not-run attempt. Source
+polling now observes the unchanged30fps AudioContext coordinate every5ms;
+all actual source-coordinate skips are zero. It never creates catch-up frames
+or rebases the programme. Every regular file in terminal fixturesv150–v154 was
+verified against its lossless private archive before removing the expanded tree.
+Recent raw failures and captures remain directly accessible.
+
+The current observer counts actual decoded20ms audio frames and evaluates their
+spectral identity; it reports the uncovered interval after each20ms buffer.
+Video counts only unique changing identified pixels per second, a stricter test
+than all decoded frames. These distinctions remain explicit and must not be
+silently mixed with native observer statistics. Three new content/coverage tests,
+one port/activation-ownership case and one quantized-source-clock case pass;
+the affected stalled-clock terminal test also passes. No unrelated suite reran.
+
+The AV markers show **audio arriving after Video**, not the reverse. Next causal
+work is to instrument original capture input, encoded submission and decoded
+receive times using the same marker ordinals. Inspect the AudioWorklet path,
+server audio handling and receive queues before changing buffering. The Video
+capture path uses a media element callback, but the observed skew direction does
+not establish it as the current cause. Preserve deadlines and original media;
+do not compensate with timestamp shifts, padding or relaxed quality thresholds.
+
 ## Execution order
 
-Current browser execution (November 4): actual Chrome WebTransport EdDSA and
+Earlier movement-stage execution (November 4): actual Chrome WebTransport EdDSA and
 ES256 both pass the six-source, four-move 62-second programme at candidate
 `7bbe7700`. Each run completes two outward moves at 15 seconds and two returns
 at 40 seconds, retaining the original master clocks while retiring each old
@@ -55,10 +92,10 @@ missed source frames are recorded, never synthesized. Actual source draws are
 
 Remaining integration steps:
 
-- Bind independent decoded audio/video observers and actual packet capture to
-  all six browser receive routes, including the replacement and returned owners.
-  Apply the unchanged complete-cell quality thresholds; these runs do not prove
-  audio continuity, minimum received FPS or AV synchronization.
+- Resolve the decoded audio/AV and remaining Video failures in the new quality
+  producer, which now observes all six logical receive routes across replacement
+  and return, with exact owned packet capture. Its passing movement/capture
+  stages cannot override failed quality measurements.
 - Add actual current-authority expiry/conflict/fallback checks and ten-second
   idle-resource restoration to the same complete-cell verifier.
 - Implement the WebRTC target adapter lifecycle. The service still refuses
