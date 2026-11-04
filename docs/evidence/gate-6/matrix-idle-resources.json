@@ -1,0 +1,645 @@
+{
+  "format": "connect/gate6-matrix-idle-evidence/1",
+  "task": "G6-058",
+  "task_complete": false,
+  "cell_qualified": false,
+  "attempts": [
+    {
+      "attempt": "v163",
+      "source_revision": "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd",
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "report_sha256": "aa85caf36c7656e5675df13714b6aabf75673d21421454d9af4e14972b840c36",
+      "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
+      "passed": false,
+      "policy": {
+        "profile": "connect/matrix-idle/1",
+        "idle_seconds": 10,
+        "sample_seconds": 1,
+        "rss_retention_bytes": 0,
+        "extra_descriptors": 0,
+        "extra_threads": 0,
+        "scope": "No retained-resource allowance. CPU is measured, not a capacity limit."
+      },
+      "scope": "Same live server and original container browser tree (Chrome, Node driver and owned PulseAudio fixture); numeric RSS/CPU/descriptors/threads and public live owner/pool counts. No process restart or forced GC. CPU is descriptive; no capacity claim. Browser sources/renderers/client joins are separate required evidence.",
+      "terminal_observation": "Node driver receipt of the original browser terminal notification, before any end/close submissions.",
+      "observed_seconds": 10.069878004999737,
+      "restored_within_seconds": null,
+      "final_failures": [
+        "owned_tasks",
+        "server:sampled_threads",
+        "server:sampled_open_descriptors",
+        "server:sampled_rss_bytes",
+        "browser:live_processes",
+        "browser:sampled_threads",
+        "browser:sampled_open_descriptors",
+        "browser:sampled_rss_bytes"
+      ],
+      "baseline": {
+        "stage": "baseline",
+        "monotonic_seconds": 6296.545368417,
+        "usage": {
+          "physical_owners": 0,
+          "owned_tasks": 0,
+          "pool:quic-ingress": 0,
+          "pool:native-quic": 0,
+          "pool:webtransport": 0,
+          "pool:websocket": 0,
+          "pool:http-connections": 1,
+          "pool:http-requests": 1,
+          "pool:https-application-connections": 0,
+          "pool:https-application-requests": 0,
+          "pool:https-application-handshakes": 0
+        },
+        "groups": {
+          "server": {
+            "live_processes": 1,
+            "unavailable_processes": 0,
+            "retired_processes": 0,
+            "sampled_rss_bytes": 62173184,
+            "observed_cpu_seconds": 0.18,
+            "root_state": "available",
+            "open_resource_unavailable_processes": 0,
+            "sampled_open_descriptors": 35,
+            "sampled_threads": 11
+          },
+          "browser": {
+            "live_processes": 19,
+            "unavailable_processes": 0,
+            "retired_processes": 11,
+            "sampled_rss_bytes": 1827500032,
+            "observed_cpu_seconds": 1.52,
+            "root_state": "available",
+            "open_resource_unavailable_processes": 0,
+            "sampled_open_descriptors": 608,
+            "sampled_threads": 207
+          }
+        }
+      },
+      "final": {
+        "stage": "idle-final",
+        "monotonic_seconds": 6369.772394869,
+        "usage": {
+          "physical_owners": 0,
+          "owned_tasks": 8,
+          "pool:quic-ingress": 0,
+          "pool:native-quic": 0,
+          "pool:webtransport": 0,
+          "pool:websocket": 0,
+          "pool:http-connections": 1,
+          "pool:http-requests": 1,
+          "pool:https-application-connections": 0,
+          "pool:https-application-requests": 0,
+          "pool:https-application-handshakes": 0
+        },
+        "groups": {
+          "server": {
+            "live_processes": 1,
+            "unavailable_processes": 0,
+            "retired_processes": 0,
+            "sampled_rss_bytes": 124751872,
+            "observed_cpu_seconds": 23.53,
+            "root_state": "available",
+            "open_resource_unavailable_processes": 0,
+            "sampled_open_descriptors": 49,
+            "sampled_threads": 16
+          },
+          "browser": {
+            "live_processes": 20,
+            "unavailable_processes": 0,
+            "retired_processes": 13,
+            "sampled_rss_bytes": 2157506560,
+            "observed_cpu_seconds": 50.34,
+            "root_state": "available",
+            "open_resource_unavailable_processes": 0,
+            "sampled_open_descriptors": 726,
+            "sampled_threads": 218
+          }
+        }
+      },
+      "idle_samples": [
+        {
+          "stage": "idle",
+          "monotonic_seconds": 6360.051796114,
+          "usage": {
+            "physical_owners": 1,
+            "owned_tasks": 8,
+            "pool:quic-ingress": 0,
+            "pool:native-quic": 0,
+            "pool:webtransport": 0,
+            "pool:websocket": 0,
+            "pool:http-connections": 1,
+            "pool:http-requests": 1,
+            "pool:https-application-connections": 0,
+            "pool:https-application-requests": 0,
+            "pool:https-application-handshakes": 0
+          },
+          "groups": {
+            "server": {
+              "live_processes": 1,
+              "unavailable_processes": 0,
+              "retired_processes": 0,
+              "sampled_rss_bytes": 124620800,
+              "observed_cpu_seconds": 23.14,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 49,
+              "sampled_threads": 16
+            },
+            "browser": {
+              "live_processes": 20,
+              "unavailable_processes": 0,
+              "retired_processes": 13,
+              "sampled_rss_bytes": 2256371712,
+              "observed_cpu_seconds": 49.86,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 728,
+              "sampled_threads": 222
+            }
+          }
+        },
+        {
+          "stage": "idle",
+          "monotonic_seconds": 6361.08907074,
+          "usage": {
+            "physical_owners": 0,
+            "owned_tasks": 8,
+            "pool:quic-ingress": 0,
+            "pool:native-quic": 0,
+            "pool:webtransport": 0,
+            "pool:websocket": 0,
+            "pool:http-connections": 1,
+            "pool:http-requests": 1,
+            "pool:https-application-connections": 0,
+            "pool:https-application-requests": 0,
+            "pool:https-application-handshakes": 0
+          },
+          "groups": {
+            "server": {
+              "live_processes": 1,
+              "unavailable_processes": 0,
+              "retired_processes": 0,
+              "sampled_rss_bytes": 124751872,
+              "observed_cpu_seconds": 23.18,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 49,
+              "sampled_threads": 16
+            },
+            "browser": {
+              "live_processes": 20,
+              "unavailable_processes": 0,
+              "retired_processes": 13,
+              "sampled_rss_bytes": 2256371712,
+              "observed_cpu_seconds": 49.91,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 728,
+              "sampled_threads": 222
+            }
+          }
+        },
+        {
+          "stage": "idle",
+          "monotonic_seconds": 6362.16676174,
+          "usage": {
+            "physical_owners": 0,
+            "owned_tasks": 8,
+            "pool:quic-ingress": 0,
+            "pool:native-quic": 0,
+            "pool:webtransport": 0,
+            "pool:websocket": 0,
+            "pool:http-connections": 1,
+            "pool:http-requests": 1,
+            "pool:https-application-connections": 0,
+            "pool:https-application-requests": 0,
+            "pool:https-application-handshakes": 0
+          },
+          "groups": {
+            "server": {
+              "live_processes": 1,
+              "unavailable_processes": 0,
+              "retired_processes": 0,
+              "sampled_rss_bytes": 124751872,
+              "observed_cpu_seconds": 23.23,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 49,
+              "sampled_threads": 16
+            },
+            "browser": {
+              "live_processes": 20,
+              "unavailable_processes": 0,
+              "retired_processes": 13,
+              "sampled_rss_bytes": 2255716352,
+              "observed_cpu_seconds": 49.99,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 725,
+              "sampled_threads": 218
+            }
+          }
+        },
+        {
+          "stage": "idle",
+          "monotonic_seconds": 6363.216053282,
+          "usage": {
+            "physical_owners": 0,
+            "owned_tasks": 8,
+            "pool:quic-ingress": 0,
+            "pool:native-quic": 0,
+            "pool:webtransport": 0,
+            "pool:websocket": 0,
+            "pool:http-connections": 1,
+            "pool:http-requests": 1,
+            "pool:https-application-connections": 0,
+            "pool:https-application-requests": 0,
+            "pool:https-application-handshakes": 0
+          },
+          "groups": {
+            "server": {
+              "live_processes": 1,
+              "unavailable_processes": 0,
+              "retired_processes": 0,
+              "sampled_rss_bytes": 124751872,
+              "observed_cpu_seconds": 23.27,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 49,
+              "sampled_threads": 16
+            },
+            "browser": {
+              "live_processes": 20,
+              "unavailable_processes": 0,
+              "retired_processes": 13,
+              "sampled_rss_bytes": 2255192064,
+              "observed_cpu_seconds": 50.03,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 725,
+              "sampled_threads": 218
+            }
+          }
+        },
+        {
+          "stage": "idle",
+          "monotonic_seconds": 6364.272110991,
+          "usage": {
+            "physical_owners": 0,
+            "owned_tasks": 8,
+            "pool:quic-ingress": 0,
+            "pool:native-quic": 0,
+            "pool:webtransport": 0,
+            "pool:websocket": 0,
+            "pool:http-connections": 1,
+            "pool:http-requests": 1,
+            "pool:https-application-connections": 0,
+            "pool:https-application-requests": 0,
+            "pool:https-application-handshakes": 0
+          },
+          "groups": {
+            "server": {
+              "live_processes": 1,
+              "unavailable_processes": 0,
+              "retired_processes": 0,
+              "sampled_rss_bytes": 124751872,
+              "observed_cpu_seconds": 23.32,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 49,
+              "sampled_threads": 16
+            },
+            "browser": {
+              "live_processes": 20,
+              "unavailable_processes": 0,
+              "retired_processes": 13,
+              "sampled_rss_bytes": 2255323136,
+              "observed_cpu_seconds": 50.07,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 725,
+              "sampled_threads": 218
+            }
+          }
+        },
+        {
+          "stage": "idle",
+          "monotonic_seconds": 6365.327631075,
+          "usage": {
+            "physical_owners": 0,
+            "owned_tasks": 8,
+            "pool:quic-ingress": 0,
+            "pool:native-quic": 0,
+            "pool:webtransport": 0,
+            "pool:websocket": 0,
+            "pool:http-connections": 1,
+            "pool:http-requests": 1,
+            "pool:https-application-connections": 0,
+            "pool:https-application-requests": 0,
+            "pool:https-application-handshakes": 0
+          },
+          "groups": {
+            "server": {
+              "live_processes": 1,
+              "unavailable_processes": 0,
+              "retired_processes": 0,
+              "sampled_rss_bytes": 124751872,
+              "observed_cpu_seconds": 23.36,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 49,
+              "sampled_threads": 16
+            },
+            "browser": {
+              "live_processes": 20,
+              "unavailable_processes": 0,
+              "retired_processes": 13,
+              "sampled_rss_bytes": 2255323136,
+              "observed_cpu_seconds": 50.12,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 726,
+              "sampled_threads": 218
+            }
+          }
+        },
+        {
+          "stage": "idle",
+          "monotonic_seconds": 6366.370854242,
+          "usage": {
+            "physical_owners": 0,
+            "owned_tasks": 8,
+            "pool:quic-ingress": 0,
+            "pool:native-quic": 0,
+            "pool:webtransport": 0,
+            "pool:websocket": 0,
+            "pool:http-connections": 1,
+            "pool:http-requests": 1,
+            "pool:https-application-connections": 0,
+            "pool:https-application-requests": 0,
+            "pool:https-application-handshakes": 0
+          },
+          "groups": {
+            "server": {
+              "live_processes": 1,
+              "unavailable_processes": 0,
+              "retired_processes": 0,
+              "sampled_rss_bytes": 124751872,
+              "observed_cpu_seconds": 23.41,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 49,
+              "sampled_threads": 16
+            },
+            "browser": {
+              "live_processes": 20,
+              "unavailable_processes": 0,
+              "retired_processes": 13,
+              "sampled_rss_bytes": 2255323136,
+              "observed_cpu_seconds": 50.15,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 726,
+              "sampled_threads": 218
+            }
+          }
+        },
+        {
+          "stage": "idle",
+          "monotonic_seconds": 6367.411489534,
+          "usage": {
+            "physical_owners": 0,
+            "owned_tasks": 8,
+            "pool:quic-ingress": 0,
+            "pool:native-quic": 0,
+            "pool:webtransport": 0,
+            "pool:websocket": 0,
+            "pool:http-connections": 1,
+            "pool:http-requests": 1,
+            "pool:https-application-connections": 0,
+            "pool:https-application-requests": 0,
+            "pool:https-application-handshakes": 0
+          },
+          "groups": {
+            "server": {
+              "live_processes": 1,
+              "unavailable_processes": 0,
+              "retired_processes": 0,
+              "sampled_rss_bytes": 124751872,
+              "observed_cpu_seconds": 23.44,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 49,
+              "sampled_threads": 16
+            },
+            "browser": {
+              "live_processes": 20,
+              "unavailable_processes": 0,
+              "retired_processes": 13,
+              "sampled_rss_bytes": 2158940160,
+              "observed_cpu_seconds": 50.23,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 726,
+              "sampled_threads": 218
+            }
+          }
+        },
+        {
+          "stage": "idle",
+          "monotonic_seconds": 6368.443549952,
+          "usage": {
+            "physical_owners": 0,
+            "owned_tasks": 8,
+            "pool:quic-ingress": 0,
+            "pool:native-quic": 0,
+            "pool:webtransport": 0,
+            "pool:websocket": 0,
+            "pool:http-connections": 1,
+            "pool:http-requests": 1,
+            "pool:https-application-connections": 0,
+            "pool:https-application-requests": 0,
+            "pool:https-application-handshakes": 0
+          },
+          "groups": {
+            "server": {
+              "live_processes": 1,
+              "unavailable_processes": 0,
+              "retired_processes": 0,
+              "sampled_rss_bytes": 124751872,
+              "observed_cpu_seconds": 23.47,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 49,
+              "sampled_threads": 16
+            },
+            "browser": {
+              "live_processes": 20,
+              "unavailable_processes": 0,
+              "retired_processes": 13,
+              "sampled_rss_bytes": 2157817856,
+              "observed_cpu_seconds": 50.3,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 726,
+              "sampled_threads": 218
+            }
+          }
+        },
+        {
+          "stage": "idle",
+          "monotonic_seconds": 6369.475300785,
+          "usage": {
+            "physical_owners": 0,
+            "owned_tasks": 8,
+            "pool:quic-ingress": 0,
+            "pool:native-quic": 0,
+            "pool:webtransport": 0,
+            "pool:websocket": 0,
+            "pool:http-connections": 1,
+            "pool:http-requests": 1,
+            "pool:https-application-connections": 0,
+            "pool:https-application-requests": 0,
+            "pool:https-application-handshakes": 0
+          },
+          "groups": {
+            "server": {
+              "live_processes": 1,
+              "unavailable_processes": 0,
+              "retired_processes": 0,
+              "sampled_rss_bytes": 124751872,
+              "observed_cpu_seconds": 23.52,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 49,
+              "sampled_threads": 16
+            },
+            "browser": {
+              "live_processes": 20,
+              "unavailable_processes": 0,
+              "retired_processes": 13,
+              "sampled_rss_bytes": 2157506560,
+              "observed_cpu_seconds": 50.33,
+              "root_state": "available",
+              "open_resource_unavailable_processes": 0,
+              "sampled_open_descriptors": 726,
+              "sampled_threads": 218
+            }
+          }
+        }
+      ],
+      "browser_local_owners": {
+        "passed": false,
+        "localOwnersJoined": true,
+        "renderer": {
+          "owners": 10,
+          "joined": true
+        },
+        "media_peers": 5,
+        "active_bindings": 0,
+        "queued_packets": 0,
+        "queued_bytes": 0
+      },
+      "retirement": {
+        "passed": true,
+        "elapsedMs": 354.90000000037253,
+        "originalEndsCompleted": 6,
+        "originalClientsClosed": 7,
+        "scope": "Admission component terminal only; no ten-second idle resource restoration or full media programme claim",
+        "allLocalOwnersElapsedMs": 355.20000000018626
+      },
+      "source_inputs_unchanged": true,
+      "sdk_dist_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "browser_owner_joined": true,
+      "servers_original_joined": true,
+      "packet_capture": {
+        "format": "connect/native-private-packet-capture/1",
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+        "exit_code": 0,
+        "packet_limit": 200000,
+        "media_workload": true,
+        "version": "tcpdump version 4.99.4",
+        "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+        "pcap_sha256": "a35fc26e2e89815f600c63885b3e4ab7f16b82ee840e085b717d88d5ab44ac8c",
+        "pcap_bytes": 56126542,
+        "captured_seconds": 80.85875632999978,
+        "kernel_dropped_packets": 0,
+        "interface": "lo",
+        "link_type": "Ethernet/IPv4/UDP",
+        "filter": "udp and exact owned fixture server/peer addresses and native server port",
+        "counts": {
+          "packets": 107996,
+          "to_server_packets": 63690,
+          "from_server_packets": 44306,
+          "captured_bytes": 54398582,
+          "udp_payload_bytes": 49862750,
+          "to_server_udp_bytes": 24502390,
+          "from_server_udp_bytes": 25360360
+        },
+        "raw_capture_private": true,
+        "decoded_media_verified": false,
+        "transport": "chrome-webtransport"
+      },
+      "stopped_original_session_state": {
+        "query": "select state,count(*) from sessions group by state",
+        "counts": [
+          [
+            "accepted",
+            2
+          ]
+        ],
+        "files": {
+          "": "876790f22c542909757dc76e0708bc3b5f6500d670a2c595b08f2da78b365a15",
+          "-wal": "fa93a7627d42a0c6aaadaaa808087bbfffc9123d6f1bcfb8afe266b3f9ec170b"
+        }
+      }
+    }
+  ],
+  "interpretation": "Physical owners and transport pools return to baseline, all ten render owners join and five SDK media peers have zero bindings/queues. Eight outer control task entries remain retained; source inspection finds periodic cleanup reaps inner polls but not completed outer JoinSet entries. RSS, descriptors and thread/process residuals also fail the predeclared zero-retention profile; they are not yet attributed to a production leak or a legitimate cache.",
+  "new_verifier_tests": {
+    "source_revision": "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd",
+    "cases": 4,
+    "passed": 4,
+    "platform": "ubuntu24-arm64",
+    "scope": "New idle verifier and evidence-boundary regressions only"
+  },
+  "production_fix": {
+    "source_revision": "2ca6793e",
+    "status": "new-focused-regression-running",
+    "full_workload_retested": false,
+    "attempts": [
+      {
+        "attempt": "v164",
+        "source_revision": "2ca6793e",
+        "stage": "compile-dependency-failure",
+        "passed": false,
+        "compile_exit_code": 101,
+        "compile_log_sha256": "0ec6a8086c54509af70b8e8963968d6da8daa96f0b483ed1f2fc7b449ba16492",
+        "source_inputs_unchanged": true,
+        "reason": "VM crates.io DNS resolution failed for locked tempfile3.27.0; test never ran."
+      },
+      {
+        "attempt": "v165",
+        "source_revision": "2ca6793e",
+        "stage": "compiling",
+        "passed": null,
+        "scope": "Same original new regression; dependency cache supplied from Mac, verified against Cargo.lock; offline cargo execution."
+      }
+    ],
+    "cache_recovery": {
+      "locked_files": 75,
+      "bytes": 20669094,
+      "source": "existing local Mac Cargo cache",
+      "verification": "Each transferred crate SHA256 matches its Cargo.lock checksum; no dependency/version change."
+    }
+  },
+  "fixture_cleanup_fix": {
+    "source_revision": "4b1a78a3",
+    "change": "End both original Sessions with their preallocated operation IDs and current revisions before closing clients; all use the existing five-second terminal deadline. Anchor host idle observation conservatively to the original programme terminal using the prior browser/host monotonic observation.",
+    "verification": "New focused Session-end and original-clock tests authored; execution pending until original VM compile finishes. No live rerun yet."
+  }
+}

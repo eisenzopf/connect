@@ -1601,24 +1601,24 @@
         "blockers": [],
         "completion_blockers": [
           "full-cell-current-expiry-and-conflict-observer-not-connected",
-          "full-cell-ten-second-idle-resource-observer-not-connected",
           "full-cell-requirement-verifier-not-connected",
           "browser-independent-decoded-quality-not-qualified",
-          "browser-fallback-and-neither-path-refusal-not-executed"
+          "browser-fallback-and-neither-path-refusal-not-executed",
+          "owned-drain-and-ten-second-idle-not-qualified"
         ],
         "attempted": true,
         "component": {
           "kind": "browser-quality",
           "passed": false,
           "exit_code": 1,
-          "report_sha256": "bb13d3ca3b17b0ce69def8277b52a09a5ee30d79a39b307c4aebba078844bb12",
+          "report_sha256": "aa85caf36c7656e5675df13714b6aabf75673d21421454d9af4e14972b840c36",
           "integrity": {
             "source_inputs_unchanged": true,
             "executable_unchanged": true,
             "sdk_dist_inputs_unchanged": true,
             "browser_owner_joined": true
           },
-          "source_revision": "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7",
+          "source_revision": "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd",
           "binary_sha256": "6876e5e7ec3cf442be4dd5bf9c5c5d84ae6e97a7e98f84aa479c06c439d69fc9",
           "browser": "Google Chrome for Testing 156.0.8078.4",
           "authenticated_owners": 7,
@@ -1678,8 +1678,12 @@
           "evidence": null
         },
         "owned-drain-and-resource-reclamation": {
-          "status": "not-run",
-          "evidence": null
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "aa85caf36c7656e5675df13714b6aabf75673d21421454d9af4e14972b840c36",
+            "source_revision": "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd",
+            "section": "idle_resources"
+          }
         },
         "wt-unavailable-selects-documented-wss-fallback-with-reason": {
           "status": "not-run",
@@ -1690,7 +1694,7 @@
           "evidence": null
         }
       },
-      "source_revision": "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7"
+      "source_revision": "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd"
     },
     {
       "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
@@ -2976,16 +2980,17 @@
     "2fa7382caee8a47b8f315ac7931e6f664f00c743",
     "2fedc093a13fa55e872e6fce9308670bb8743a07",
     "342e943f8398c6bffe893d07a2b36e6fe5ecb5fc",
+    "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7",
     "64ac4963dd6ca2d77b81203a7cb226d966586f2e",
     "7bbe7700e88c8bcc40fb1565918be71db761cf02",
     "a7b85a59ba5703ff7ca65355800586936556b5a8",
+    "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd",
     "b7b64d2abfb9b5948905f0fd313aace5cbc24422",
     "bb8c166c13440c10324d955827845e3ed7f69223",
     "d7019125ace0b3fa2dd2b37e1293e2602ad0211d",
     "e9809912aed859db5393cbe7aae2f5f5258344ce",
     "eb8736270c621ac9f4482e645ab1d7983652ba66",
-    "ec2b19a72f8f485cf498401b7a962736a2663d50",
-    "47ccc658a5a4508e2acdd7dd2c3a87ac5721e6f7"
+    "ec2b19a72f8f485cf498401b7a962736a2663d50"
   ],
   "browser_admission_evidence": {
     "path": "docs/evidence/gate-6/matrix-browser-admission.json",
@@ -3157,8 +3162,19 @@
       "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
       "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
       "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
+    },
+    "b03fcc00d41bff4dcdabfb05f187ef8e2e33ccfd": {
+      "contracts/gate6-transport-matrix.json": "4a52208670daeda652e6d0fb0a6cbbefa3508aa3aee26ade52c181cbd70a1b84",
+      "docs/decisions/015-gate-6-operating-profile.md": "f0b7d64bb6a0842e1b0073d9de4d1ef2b87ad56c70a002b88bab0fa23bd32c08",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/openapi-canonical-http.json": "25625070d490ff59c93e475238d115f14c0bf091e7bd591e174c5ece488152f9",
+      "contracts/openapi-application-http.json": "2d06bbcb6c47b80b18ca3304f34451155f8ff8bf6e14219271672bdb671e1c9d",
+      "scripts/fixtures/transport-matrix/local.json": "f84c6367996b3f23a5c10a0855aaafca858a9f456b1e1fa3f5e400c1cfc61ee3",
+      "scripts/fixtures/transport-matrix/remote-profile.json": "adfb8370cc4d34dd21b2c80febb87d9f3bdf5ae4eef9a818e185cbeb3bafa044"
     }
   },
   "browser_programme_evidence": "docs/evidence/gate-6/matrix-browser-programme.json",
-  "browser_quality_evidence": "docs/evidence/gate-6/matrix-browser-quality.json"
+  "browser_quality_evidence": "docs/evidence/gate-6/matrix-browser-quality.json",
+  "browser_idle_evidence": "docs/evidence/gate-6/matrix-idle-resources.json"
 }

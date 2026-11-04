@@ -26,6 +26,34 @@ installed browsers and earlier narrow browser results do not fill those rows.
 
 ## Latest decoded-media measurements
 
+Attempt v163 (`b03fcc00`) connects ten-second idle observations to the same
+original local ARM WT EdDSA workload. Four new verifier cases pass on ARM Linux.
+All four moves and local capture/renderer/client retirement finish within
+356 ms. Five SDK media peers have zero active bindings/queues; physical server
+owners and transport pools return to baseline. **Idle restoration fails:**
+eight control task entries remain; server descriptors 49 versus 35 initially,
+server RSS 124,751,872 versus 62,173,184 bytes, and browser tree RSS
+2,157,506,560 versus 1,827,500,032 bytes. Threads/process counts also remain above
+baseline. The browser tree includes Node and owned PulseAudio; native helper is
+absent. These are sampled numeric observations, not allocation traces or a leak
+attribution. No cache allowance is fitted after the result. See
+[idle evidence](../evidence/gate-6/matrix-idle-resources.json).
+
+The integrated ledger now records the owned-drain/idle requirement as **failed**
+instead of unrun for this attempted cell, independently of media failure. Source
+inspection found that periodic control cleanup reaped blocking polls but not
+completed outer JoinSet entries. Candidate `2ca6793e` also joins those completed
+controls without a fresh command; its new focused production regression is
+running locally. Full workload verification of the fix remains pending. The stopped original
+v163 database also retains two accepted Sessions: the fixture ended Connections
+but omitted its two preallocated Session-end operations. Candidate `4b1a78a3`
+ends both Sessions before client closure under the same five-second deadline.
+Its new focused checks await the current VM build. That build
+(v165) uses the same production candidate offline after v164 stopped before
+test execution on a missing locked crate and VM DNS failure. All 75 missing
+locked cache files were transferred from the Mac with Cargo.lock SHA256 checks.
+
+
 Attempt v162 at `47ccc658` reran only the affected local ARM Chrome WT EdDSA
 quality case with passive encoder-input diagnostics. All four moves, owned UDP
 capture, source/SDK/executable guards and original cleanup pass; all six decoded
