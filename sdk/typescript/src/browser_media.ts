@@ -353,7 +353,7 @@ export class BrowserMediaPeer {
                 !Array.isArray(payload.streams) ||
                 !payload.streams.every(identifier)
             )
-                fail("Invalid original video unsubscribe");
+                return fail("Invalid original video unsubscribe");
             for (const route of routes)
                 if (payload.streams.includes(route.binding.streamId)) {
                     route.video!.unselect();
@@ -379,7 +379,7 @@ export class BrowserMediaPeer {
             !result.gate_streams.length ||
             result.gate_streams.length > 32
         )
-            fail("Invalid current video gate result");
+            return fail("Invalid current video gate result");
         const gates = result.gate_streams as JsonObject[],
             ids = new Set<string>();
         for (const gate of gates) {
@@ -389,7 +389,7 @@ export class BrowserMediaPeer {
                 !identifier(gate.binding.stream_id) ||
                 ids.has(gate.binding.stream_id)
             )
-                fail("Invalid video gate binding");
+                return fail("Invalid video gate binding");
             ids.add(gate.binding.stream_id as string);
         }
         const expected = Array.isArray(payload.streams)
