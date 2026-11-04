@@ -884,6 +884,91 @@
       },
       "all_observed_helpers_joined": true,
       "offline_recovery_evidence": "docs/evidence/gate-6/capture-framing.json"
+    },
+    {
+      "run": "v113",
+      "state": {
+        "original_sdk_feedback_required": true,
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 141061,
+        "source_revision": "85928c4e0ae0150cb949a65ee733a6ebe22b5012",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": true,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T08:31:08.514348+00:00",
+        "fixture_exit_code": 1,
+        "report_sha256": "d8aacf8de12ff9065e13154e6d006ee310b869176a2061c9d9c23ec45f4e4c9c",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "67b615b246e69fc1a1f29bc88bb0a59bb183c94fc82bf091585b6654caca2341",
+        "peer_binary_sha256": "fc892758af6336bc5aa70f5e8364b94409f72c2a3c10445b897551881e633438",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 119.34189599599631
+      },
+      "state_sha256": "1702657e1fda08230ac38c358e09a0c3cd41f2311c0d1ee1c8813b5d61b933f5",
+      "scope": "Failed full native workload with native video feedback required on all original SDK owners; existing production binaries reused unchanged fromv111, no passing component test rerun.",
+      "feedback_configuration": {
+        "all_configs_enabled": true,
+        "negotiated_both_video_directions_required": true,
+        "original_media_tasks_started": 30,
+        "feedback_workers_started": 6
+      },
+      "completed_workload_moves": 2,
+      "failure": {
+        "name": "NodeSdkError",
+        "kind": "application",
+        "certainty": "recorded",
+        "observation": {
+          "source_index": 4,
+          "session_index": 1,
+          "ordinal": 1,
+          "stage": "physical-target"
+        },
+        "original_recorded_observation": {
+          "state": "failed",
+          "revision": 12,
+          "problem_code_unrecognized": true
+        }
+      },
+      "first_logged_failure": "Replacement private activation refused: Media(NotReady). Later sibling replacement planning refuses Media(NotReady); exact underlying cause is not yet proved.",
+      "media_observation": {
+        "original_tasks_joined": true,
+        "encoder_processes_joined": 6,
+        "original_tasks_started": 30,
+        "elapsed_ms": 43489.964165,
+        "failure": {
+          "route_index": null,
+          "medium": null,
+          "direction": "control",
+          "stage": "during-workload"
+        }
+      },
+      "capture": {
+        "observed": true,
+        "original_joined": true,
+        "forced": false,
+        "kernel_dropped_packets": 0,
+        "pcap_sha256": "14a2b3d2fa5ed1e5f633b29026dc9a9ea7e86c9c2513682cc0697c67d9c83419"
+      },
+      "server_cleanup": {
+        "server_exit_code": 0,
+        "forced": false,
+        "original_group_retired": true
+      },
+      "all_observed_helpers_joined": true,
+      "full_media_quality_comparison_available": false
     }
   ],
   "diagnosis": {
@@ -901,26 +986,22 @@
   "limitations": [
     "Original v111 full command failed before final history/idle assertions, and is retained as failed. Offline capture recovery cannot promote that command to a pass.",
     "All six decoded quality rows fail unchanged bounds. Audio interruption, insufficient audio coverage and video continuity remain; one marker-alignment row fails.",
-    "v109 initial-start refusal and v110 planning conflict did not recur in v111; neither is proven fixed."
+    "v109 initial-start refusal and v110 planning conflict did not recur in v111; neither is proven fixed.",
+    "v113 verifies original SDK feedback selection and six feedback workers, but stops after two completed moves. It does not establish improved whole-window media quality or clear prior intermittent failures."
   ],
   "remaining": [
     "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
   "next_investigation": {
-    "cause": "Full native workload omitted root ClientConfig.native_video_feedback. Rust defaults false; all six original routes recorded video_feedback:null, so no original publisher feedback workers ran. Replacement peers alone selected the profile.",
-    "original_sdk_config_sha256": [
-      "f257f4dbb2e2ae5bfb72c8e6c3a551d4bdd1bdc0293936e045ecb8f37017bf8b",
-      "e5d21823a3d6d5ff0816c547c15407e34e6a4333c5bf2a21ff572dfa58e785f9",
-      "12169838bbe77289553296d0b17ba883c05f95570a0b5a1590e98e51596abe86",
-      "f663c626df9c91d1379d3b3389e142f1dd61087df2ee3cab103226d626720b28",
-      "814da5bd0cb89e133fbfede149af15877501962c0eb1ff9fc955d006abe7da97",
-      "db84620d1d975029c1be3e38980494bf7795653002473d0da5575cb5513c106d",
-      "1d9c8c283b7ad44650a7fe77ddf27621b7743630fa1094814cbf63e5fba25c9a"
-    ],
-    "all_original_configs_omit_feedback": true,
-    "original_routes_with_feedback": 0,
-    "candidate_correction": "Enable native_video_feedback for every full-media SDK config and require selection in both negotiated video directions during setup; verify in the next failed-workload run.",
-    "audio_cause_proven": false
+    "observed": "Replacement private activation refused: Media(NotReady). Later sibling replacement planning refuses Media(NotReady); exact underlying cause is not yet proved.",
+    "action": "Trace the first private activation failure at its original Core/policy boundary. Preserve the later sibling planning refusal separately; no generic NotReady retry or extension of original deadlines.",
+    "cause_proven": false,
+    "feedback_wiring_verified": {
+      "all_configs_enabled": true,
+      "negotiated_both_video_directions_required": true,
+      "original_media_tasks_started": 30,
+      "feedback_workers_started": 6
+    }
   }
 }
