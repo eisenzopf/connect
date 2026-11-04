@@ -1127,6 +1127,49 @@
         }
       ],
       "full_media_quality_comparison_available": false
+    },
+    {
+      "run": "v116",
+      "state": {
+        "build_jobs": 4,
+        "original_sdk_feedback_required": true,
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 146196,
+        "source_revision": "63308b219061cebdf8b904310221a0929198ef3c",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": true,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T09:55:57.582942+00:00",
+        "fixture_exit_code": 1,
+        "report_sha256": "7b890c911cf523d07e64f62ab3fe302cbd54b2392cf924eeca77347792f53b9c",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "31e9942e87e64139934cd34a271e877bf1926c700e84d52c8d8988f2c9ee1418",
+        "peer_binary_sha256": "bc102bb9c1fe0b7cd8209ff10c497237afa3fc62e3f595d9d05d846b026c5c94",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 975.4222118690086
+      },
+      "evidence": "held-replacement-full-workload.json",
+      "full_media_quality_comparison_available": true,
+      "original_moves_completed": 4,
+      "completed_original_roots": 4,
+      "confirmed_original_effects": 28,
+      "all_effect_attempts_one": true,
+      "independently_decoded_codec_histories": 35,
+      "quality_routes_passed": 0,
+      "quality_routes_failed": 6
     }
   ],
   "diagnosis": {
@@ -1151,12 +1194,7 @@
     "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
-  "next_investigation": {
-    "observed": "v115 proves old candidate owner lookup refuses under actual registry contention while new exact owned entries succeed; expired invocation still refuses. Signed replacement completes with7confirmed single-attempt effects and recovered video both directions.",
-    "action": "Rerun only the failed full native workload with normal production features; inspect all4moves and independent whole-window quality. Preserve earlier failures until directly resolved.",
-    "contention_mechanism_proven": true,
-    "historical_v113_v114_exact_subbranch_proven": false
-  },
+  "next_investigation": "v116 completes all four moves and 28 original effects, each attempt1. Investigate steady audio omissions before outgoing packetization, common return-move interruption across both Sessions, and source4 video recovery; preserve all original quality limits.",
   "activation_investigation": {
     "run": "v113",
     "operation_ledger_verified": true,

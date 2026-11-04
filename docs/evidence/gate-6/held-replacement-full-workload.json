@@ -1,0 +1,541 @@
+{
+  "format": "connect/gate6-held-replacement-full-workload/1",
+  "run": "v116",
+  "source_revision": "63308b219061cebdf8b904310221a0929198ef3c",
+  "state": {
+    "build_jobs": 4,
+    "original_sdk_feedback_required": true,
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 146196,
+    "source_revision": "63308b219061cebdf8b904310221a0929198ef3c",
+    "passed": false,
+    "metadata_diagnostic": false,
+    "commit_phase_diagnostic": true,
+    "packet_policy_trace": false,
+    "helper_timing_diagnostic": false,
+    "movement_profile": "gate6-realistic-device-roundtrip-v1",
+    "scheduled_moves": 4,
+    "host_capture_requested": true,
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false,
+    "general_suites_rerun": false,
+    "previous_passed_cases_rerun": false,
+    "updated_at": "2026-11-04T09:55:57.582942+00:00",
+    "fixture_exit_code": 1,
+    "report_sha256": "7b890c911cf523d07e64f62ab3fe302cbd54b2392cf924eeca77347792f53b9c",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "binary_sha256": "31e9942e87e64139934cd34a271e877bf1926c700e84d52c8d8988f2c9ee1418",
+    "peer_binary_sha256": "bc102bb9c1fe0b7cd8209ff10c497237afa3fc62e3f595d9d05d846b026c5c94",
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 975.4222118690086
+  },
+  "report_sha256": "7b890c911cf523d07e64f62ab3fe302cbd54b2392cf924eeca77347792f53b9c",
+  "conversation_sha256": "240811bb93282345b2d0aa13f0b5630fb710c69346178bf1fb559fc06b034c6e",
+  "decoded_sha256": "98b00587390be7d9f0fc89d0d4790d6bf7ecaf4d75abb29b3608a308842748fa",
+  "ledger_sha256": "cf9ebf05d97e81d250bacdbb25b69d98811b68815a526e5a851b4cfd6ca0f234",
+  "operations": [
+    {
+      "record_id": "opr_13abbd2d-397a-4311-8860-6164351f02af",
+      "operation_id": "move_e52776b9-118b-4b58-99cd-7624e6f837d1",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "record_id": "opr_9cfffb4e-6334-4654-9cd3-08e36d4c45a1",
+      "operation_id": "move_b84f9275-2634-47b6-a4a4-0f44a4b2e718",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "record_id": "opr_57f6adf1-f2d0-410d-a5bc-9a9df83bcf78",
+      "operation_id": "move_b82a488a-bdb3-44f9-8baa-df89c259b9cc",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    },
+    {
+      "record_id": "opr_bd6489d1-b884-43b7-8feb-1f6576eee2b5",
+      "operation_id": "move_a7f12b2a-e381-4819-bd27-58b1928bc2f8",
+      "state": "completed",
+      "revision": 16,
+      "effects": [
+        {
+          "provider": "native-replacement-prepare",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-allocate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-start",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-attach",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-activate",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-readiness",
+          "state": "confirmed",
+          "attempt": 1
+        },
+        {
+          "provider": "native-replacement-commit",
+          "state": "confirmed",
+          "attempt": 1
+        }
+      ]
+    }
+  ],
+  "original_moves_completed": 4,
+  "replacement_data_io_verified": true,
+  "all_moves_camera_transfer_admitted": true,
+  "media_work": {
+    "original_tasks_joined": true,
+    "encoder_processes_joined": 6,
+    "original_tasks_started": 30,
+    "elapsed_ms": 63498.562305,
+    "failure": null
+  },
+  "all_observed_helpers_joined": true,
+  "current_connections_ended": 6,
+  "physical_codec_histories_inspected": 35,
+  "independently_decoded_codec_histories": 35,
+  "routes": [
+    {
+      "index": 0,
+      "peer_index": 3,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.82,
+        "samples": 2823360,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2941,
+        "maximum_arrival_gap_ms": 525.7640000000029
+      },
+      "video": {
+        "decoded_window_frames": 1781,
+        "changing_fps": 29.666666666666668,
+        "wrong_source_pixel_frames": 0,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_observation_second": 14,
+      "low_video_seconds": [
+        {
+          "observation_second": 41,
+          "frames": 14
+        }
+      ],
+      "av_alignment": {
+        "status": "passed",
+        "median_abs_skew_ms": 63.72299999999598,
+        "p95_abs_skew_ms": 103.42100000000443
+      }
+    },
+    {
+      "index": 1,
+      "peer_index": 0,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.56,
+        "samples": 2810880,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2928,
+        "maximum_arrival_gap_ms": 383.5050620000038
+      },
+      "video": {
+        "decoded_window_frames": 1779,
+        "changing_fps": 29.633333333333333,
+        "wrong_source_pixel_frames": 0,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_observation_second": 11,
+      "low_video_seconds": [
+        {
+          "observation_second": 41,
+          "frames": 11
+        }
+      ],
+      "av_alignment": {
+        "status": "passed",
+        "median_abs_skew_ms": 76.15133100000193,
+        "p95_abs_skew_ms": 100.53510099999485
+      }
+    },
+    {
+      "index": 2,
+      "peer_index": 1,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.84,
+        "samples": 2824320,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2942,
+        "maximum_arrival_gap_ms": 388.97548700000334
+      },
+      "video": {
+        "decoded_window_frames": 1785,
+        "changing_fps": 29.733333333333334,
+        "wrong_source_pixel_frames": 0,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_observation_second": 15,
+      "low_video_seconds": [
+        {
+          "observation_second": 41,
+          "frames": 15
+        }
+      ],
+      "av_alignment": {
+        "status": "passed",
+        "median_abs_skew_ms": 59.32935949999951,
+        "p95_abs_skew_ms": 101.42977600001046
+      }
+    },
+    {
+      "index": 3,
+      "peer_index": 2,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.9,
+        "samples": 2827200,
+        "bad_identity_blocks": 1,
+        "original_window_packets": 2945,
+        "maximum_arrival_gap_ms": 384.8483650000053
+      },
+      "video": {
+        "decoded_window_frames": 1787,
+        "changing_fps": 29.766666666666666,
+        "wrong_source_pixel_frames": 0,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_observation_second": 16,
+      "low_video_seconds": [
+        {
+          "observation_second": 41,
+          "frames": 16
+        }
+      ],
+      "av_alignment": {
+        "status": "passed",
+        "median_abs_skew_ms": 58.488199499997506,
+        "p95_abs_skew_ms": 83.94708699999853
+      }
+    },
+    {
+      "index": 4,
+      "peer_index": 5,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 58.14,
+        "samples": 2790720,
+        "bad_identity_blocks": 0,
+        "original_window_packets": 2907,
+        "maximum_arrival_gap_ms": 499.24243900000147
+      },
+      "video": {
+        "decoded_window_frames": 1712,
+        "changing_fps": 28.516666666666666,
+        "wrong_source_pixel_frames": 0,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_observation_second": 0,
+      "low_video_seconds": [
+        {
+          "observation_second": 16,
+          "frames": 15
+        },
+        {
+          "observation_second": 17,
+          "frames": 2
+        },
+        {
+          "observation_second": 41,
+          "frames": 16
+        },
+        {
+          "observation_second": 42,
+          "frames": 0
+        }
+      ],
+      "av_alignment": {
+        "status": "failed",
+        "median_abs_skew_ms": 80.90999999999937,
+        "p95_abs_skew_ms": 103.35600199999995
+      }
+    },
+    {
+      "index": 5,
+      "peer_index": 4,
+      "passed": false,
+      "audio": {
+        "decoded_seconds": 57.58,
+        "samples": 2763840,
+        "bad_identity_blocks": 2,
+        "original_window_packets": 2879,
+        "maximum_arrival_gap_ms": 400.31594100000075
+      },
+      "video": {
+        "decoded_window_frames": 1766,
+        "changing_fps": 29.416666666666668,
+        "wrong_source_pixel_frames": 0,
+        "undecodable_frames": 0
+      },
+      "minimum_frames_per_observation_second": 14,
+      "low_video_seconds": [
+        {
+          "observation_second": 16,
+          "frames": 15
+        },
+        {
+          "observation_second": 41,
+          "frames": 14
+        }
+      ],
+      "av_alignment": {
+        "status": "passed",
+        "median_abs_skew_ms": 63.087844000003116,
+        "p95_abs_skew_ms": 102.36722899999506
+      }
+    }
+  ],
+  "native_media_diagnostics": {
+    "forwarding": [
+      {
+        "handoff_timeouts": 0,
+        "max_us": 184100,
+        "missing_ingress_observations": 0,
+        "p50_us": 16383,
+        "p95_us": 65535,
+        "percentile_method": "log2-bucket-upper-bound",
+        "samples": 26102,
+        "stage": "canonical-native-video-fanout"
+      }
+    ],
+    "forwarding_boundary": "adapter-frame-publication-to-core-destination-queue-handoff",
+    "queue_depth_observation": "sampled-at-enqueue-and-pump-poll",
+    "queues": [
+      {
+        "capacity_packets": 10,
+        "enqueue_full_observations": 1,
+        "frame_age_boundary": null,
+        "kind": "audio",
+        "max_forwarded_frame_age_ms": null,
+        "observations": 18483,
+        "sampled_high_water_packets": 10,
+        "stage": "quic-audio-ingress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 10,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": "dequeue-before-handoff-or-write",
+        "kind": "audio",
+        "max_forwarded_frame_age_ms": 155,
+        "observations": 18175,
+        "sampled_high_water_packets": 2,
+        "stage": "quic-audio-egress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 64,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": null,
+        "kind": "video",
+        "max_forwarded_frame_age_ms": null,
+        "observations": 26132,
+        "sampled_high_water_packets": 15,
+        "stage": "quic-video-ingress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      },
+      {
+        "capacity_packets": 64,
+        "enqueue_full_observations": 0,
+        "frame_age_boundary": "dequeue-before-handoff-or-write",
+        "kind": "video",
+        "max_forwarded_frame_age_ms": 186,
+        "observations": 52224,
+        "sampled_high_water_packets": 17,
+        "stage": "quic-video-egress",
+        "stale_forwarding_discards": 0,
+        "unit": "frame-packets"
+      }
+    ],
+    "scope": "server-process"
+  },
+  "packet_capture": {
+    "format": "connect/native-private-packet-capture/1",
+    "observed": true,
+    "original_joined": true,
+    "forced": false,
+    "scope": "Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.",
+    "exit_code": 0,
+    "packet_limit": 200000,
+    "media_workload": true,
+    "version": "tcpdump version 4.99.4",
+    "executable_sha256": "607d22b548b563e4571fda4b7c5e410c8d4bce0e068bb4d8e4ecf127c8947ecc",
+    "pcap_sha256": "24ef2e1b23b25166005a053fa7d9ebdd734aa1b96176b9a6c4c0d9cd7b96c733",
+    "pcap_bytes": 81218803,
+    "captured_seconds": 89.13621221799986,
+    "kernel_dropped_packets": 0,
+    "interface": "lo",
+    "link_type": "Ethernet/IPv4/UDP",
+    "filter": "udp and exact owned fixture server/peer addresses and native server port",
+    "counts": {
+      "packets": 104741,
+      "to_server_packets": 55802,
+      "from_server_packets": 48939,
+      "captured_bytes": 79542923,
+      "udp_payload_bytes": 75143801,
+      "to_server_udp_bytes": 30335979,
+      "from_server_udp_bytes": 44807822
+    },
+    "raw_capture_private": true,
+    "decoded_media_verified": false
+  },
+  "cleanup": {
+    "server_exit_code": 0,
+    "forced": false,
+    "original_group_retired": true
+  },
+  "failure": {
+    "phase": "independent-native-opus-vp8-decode",
+    "name": "AssertionError",
+    "line": 602
+  },
+  "task_complete": false,
+  "cell_qualified": false,
+  "scope": "Full failed native component on local Ubuntu24.04 ARM64 with normal production features, original SDK feedback, four moves, unchanged codecs/clocks/limits, and independent decode. No GitHub/cloud execution or passed-case rerun.",
+  "limitations": [
+    "One complete movement run does not prove absence of intermittent control failures.",
+    "All six quality rows fail; no transport cell qualifies.",
+    "G6-054 remains deferred."
+  ]
+}
