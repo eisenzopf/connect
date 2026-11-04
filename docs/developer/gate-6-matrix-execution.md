@@ -119,3 +119,31 @@ expiry and idle observations remain required. See
 The first [systemd/namespace Remote EdDSA result](../evidence/gate-6/matrix-native-remote-eddsa.json) completes the control/movement programme but fails independent media quality. Its cold VM-host build is retained for the next cohort; the attempted cache bind did not expose the container cache and is not claimed as reuse. Full original private media and captures remain on the owned VM.
 
 The independent [Remote ES256 workload](../evidence/gate-6/matrix-native-remote-es256.json) also completed all four moves/control checks and original cleanup, but all six quality routes failed. The current progress ledger records three attempted cells across their identified revisions, with zero qualified. No further native rerun is justified merely by these failures; continue browser launcher/media integration.
+
+## Execute actual Chrome admission
+
+The production fixture/owned launcher is now `scripts/rehearse-gate6-browser-matrix.py`.
+It initializes a new CLI instance, creates a normal CA/leaf pair, configures WT,
+WSS/WebRTC and the HTTPS application surface, seals a stopped backup through the
+existing materializer, and enrolls seven separate Devices through the public CLI.
+Media endpoint verification names the actual native signed-device proof; the
+subsequent browser authentication is a separate observation. An untrusted fresh
+Chrome profile must refuse the CA before another fresh profile imports it.
+The actual browser then uses the public BrowserSdkClient to run admission.
+
+On the local Ubuntu ARM host, with the existing exact ARM browser image:
+
+```sh
+python3 scripts/rehearse-gate6-browser-matrix.py --stage admission \
+  --transport chrome-webtransport --signing EdDSA \
+  --image sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b \
+  --output .local/gate-6/browser-matrix-candidate/chrome-wt-eddsa
+```
+
+`chrome-wss-webrtc` selects the independent WSS/RTC admission path. This stage
+retains full media, four moves, fallback/refusal, expiry and idle requirements as
+unexecuted. A green admission component is incomplete, never a cell pass.
+All synthetic credentials, TLS keys, original operation references and raw logs
+stay private. The image uses the VM host network for this explicit Local scope;
+its actual ARM ELF and frozen browser version are checked. No host personal
+profile, camera, microphone, provider or account is used.
