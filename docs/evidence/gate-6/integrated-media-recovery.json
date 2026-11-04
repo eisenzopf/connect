@@ -1330,6 +1330,45 @@
           "members": 3
         }
       }
+    },
+    {
+      "run": "v118",
+      "state": {
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 152692,
+        "source_revision": "ab223644bc9ba1c605ec9e0cb7f9d967ee606715",
+        "passed": true,
+        "steps": [
+          {
+            "group": "decoder-start-boundary",
+            "case": "canonical::native_video::io::tests::decoder_restart_quarantines_old_keyframes_and_preserves_feedback_bounds",
+            "exit_code": 0,
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 296 filtered out; finished in 0.21s"
+            ],
+            "log_sha256": "e503fae9856390d38ab85964c00591e5ae408a6ae266cbb0c572bf340b5221b8"
+          }
+        ],
+        "general_suites_rerun": false,
+        "full_media_rehearsal_run": false,
+        "decoder_start_boundary_regression": true,
+        "builds": [
+          {
+            "group": "decoder-start-boundary",
+            "compile_exit_code": 0,
+            "compile_log_sha256": "692db2238f827eda514e6a793b57c84b0ea4c50c57256ca804d53cb13af0d44f",
+            "test_executable_sha256": "66b417fcbe693992cbc703bf682a0591d5114c87a4fdb7bda24474b873185670",
+            "executable_unchanged": true
+          }
+        ],
+        "executable_unchanged": true,
+        "source_inputs_unchanged": true,
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 87.72643157500715
+      },
+      "evidence": "decoder-start-boundary.json",
+      "full_media_quality_comparison_available": false
     }
   ],
   "diagnosis": {
@@ -1354,7 +1393,7 @@
     "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
-  "next_investigation": "v117: investigate deferred packet/PCM authority and post-physical-cutover metadata writer contention. Preserve original packet budgets and operation identity. Separately align live receiver decoder bootstrap with existing post-completion capture boundary; new regression is pending.",
+  "next_investigation": "Decoder boundary regression passed at ab223644. Investigate deferred packet/PCM authority and post-cutover metadata writer contention before the next full workload; do not relax original packet budgets, operation identity or quality bounds.",
   "activation_investigation": {
     "run": "v113",
     "operation_ledger_verified": true,
