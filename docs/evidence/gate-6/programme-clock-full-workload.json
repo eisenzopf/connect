@@ -1,0 +1,99 @@
+{
+  "format": "connect/programme-clock-full-workload-evidence/1",
+  "run": "v121",
+  "source_revision": "0944cdaabb221f32d88d4d03abc3772254d5680e",
+  "state": {
+    "programme_clock_fix": true,
+    "authority_summary": true,
+    "decoder_boundary_fix": true,
+    "build_jobs": 4,
+    "audio_terminal_counters": true,
+    "original_sdk_feedback_required": true,
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 156041,
+    "source_revision": "0944cdaabb221f32d88d4d03abc3772254d5680e",
+    "passed": false,
+    "metadata_diagnostic": false,
+    "commit_phase_diagnostic": true,
+    "packet_policy_trace": false,
+    "helper_timing_diagnostic": false,
+    "movement_profile": "gate6-realistic-device-roundtrip-v1",
+    "scheduled_moves": 4,
+    "host_capture_requested": true,
+    "task_complete": false,
+    "cell_qualified": false,
+    "whole_gate_qualified": false,
+    "general_suites_rerun": false,
+    "previous_passed_cases_rerun": false,
+    "updated_at": "2026-11-04T11:21:42.627631+00:00",
+    "fixture_exit_code": 1,
+    "report_sha256": "3ef2e78f639727a5b9f75d711c27cade58237f15f6bef5c5036ff1bd83dd4f84",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "binary_sha256": "45c6e8b91ebf33d4842e68a6e991307f592e1124cbf35078e4cd9afe8e9fd253",
+    "peer_binary_sha256": "7ec333029ca48fe3aa7b52974575152ba58be31429b99da102135fe3914b802b",
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 158.90098933198897
+  },
+  "failure": {
+    "phase": "public-sdk-conversation-control",
+    "name": "AssertionError",
+    "line": 595
+  },
+  "media_work": {
+    "format": "connect/native-av-work-observation/1",
+    "original_tasks_joined": true,
+    "encoder_processes_joined": 6,
+    "original_tasks_started": 30,
+    "control_task_started": true,
+    "elapsed_ms": 67135.12469699979,
+    "failure": {
+      "route_index": null,
+      "medium": null,
+      "direction": "control",
+      "stage": "during-workload"
+    },
+    "scope": "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification."
+  },
+  "aggregate_counters": {
+    "collect-deferred": {
+      "events": 289,
+      "samples": 0,
+      "members": 6
+    },
+    "burst-trim": {
+      "events": 201,
+      "samples": 192960,
+      "members": 6
+    },
+    "take-deferred": {
+      "events": 216,
+      "samples": 0,
+      "members": 6
+    },
+    "subscription-refused": {
+      "events": 24622,
+      "samples": 23637120,
+      "members": 4
+    },
+    "target-deferred": {
+      "events": 48,
+      "samples": 46080,
+      "members": 6
+    },
+    "empty-output": {
+      "events": 4252,
+      "samples": 0,
+      "members": 6
+    }
+  },
+  "diagnosis": {
+    "first_cause": "The outer two-second warmup in check-transport-conversation.mjs subtracts process-relative performance.now() from the shared boot-monotonic startedAt; it waits beyond the original 67-second join deadline. No movement plan or physical target ran. observeMovementSessions also retained its process-relative default.",
+    "correction": "Warmup uses waitForProgrammeOffset(current, 2000) and the observer inherits workload.now. A new controlled regression forces unrelated clock origins and checks warmup delays, current-read budgets and joined observers. Verification pending.",
+    "not_proven": "No integrated Node-to-Rust handoff clock or decoded quality pass; v120 focused clock evidence remains scoped."
+  },
+  "task_complete": false,
+  "cell_qualified": false
+}

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { setTimeout as sleep } from "node:timers/promises";
 
 export async function observeMovementSessions({ workload, primarySessions, controllerSessions, run,
-    now = () => performance.now(), wait = (ms, signal) => sleep(ms, undefined, { signal }) }) {
+    now = workload.now ?? (() => performance.now()), wait = (ms, signal) => sleep(ms, undefined, { signal }) }) {
     assert.equal(primarySessions.length, 2); assert.equal(controllerSessions.length, 2);
     assert.ok(Number.isFinite(workload.startedAt));
     assert.deepEqual(controllerSessions.map(session => session.id), primarySessions.map(session => session.id));

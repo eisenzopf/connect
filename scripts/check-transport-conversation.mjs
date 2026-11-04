@@ -1,3 +1,4 @@
+import { waitForProgrammeOffset } from "./lib/transport_programme_clock.mjs";
 import { liveVideoProgramFromManifest } from "./lib/transport_live_video_program.mjs";
 // Actual public Node SDK/native helper scenario. No Store or provider IO.
 import assert from "node:assert/strict";
@@ -393,7 +394,7 @@ try {
                     const observed = await observeMovementSessions({ workload, primarySessions: sessions,
                         controllerSessions: controllers.map((client, index) => client.conversations.byId(cid).sessions.byId(sessions[index].id)),
                         run: async current => {
-                            await sleep(Math.max(0, current.startedAt + 2000 - performance.now()), undefined, { signal: current.signal });
+                            await waitForProgrammeOffset(current, 2000);
                             return deviceMovementWorkload({ workload: current, controllers, conversationId: cid, sessions,
                             connections, streamIds: connections.map(item => ({ audio: plan[item.prefix + "-audio"],
                                 video: plan[item.prefix + "-video"], data: plan[item.prefix + "-stream"] })),

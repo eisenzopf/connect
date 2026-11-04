@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync, readlinkSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { setTimeout as sleep } from "node:timers/promises";
 
 export const monotonicNow = () => Number(process.hrtime.bigint()) / 1e6;
 export function programmeClockDomain() {
@@ -38,4 +39,13 @@ export function programmeElapsed(clock, seconds) {
     assert.ok(elapsed >= 0n && elapsed < BigInt(seconds) * 1000000000n,
         "original monotonic programme must be current");
     return Number(elapsed) / 1e6;
+}
+
+// Use the source programme coordinate at every boundary, including warmup.
+export async function waitForProgrammeOffset(workload, offsetMs,
+    wait = (ms, signal) => sleep(ms, undefined, { signal })) {
+    assert.equal(typeof workload.now, "function");
+    assert.ok(Number.isFinite(workload.startedAt));
+    assert.ok(Number.isFinite(offsetMs) && offsetMs >= 0 && offsetMs <= 62000);
+    await wait(Math.max(0, workload.startedAt + offsetMs - workload.now()), workload.signal);
 }

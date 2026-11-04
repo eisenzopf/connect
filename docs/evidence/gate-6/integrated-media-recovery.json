@@ -1527,6 +1527,46 @@
       },
       "evidence": "programme-clock.json",
       "full_media_quality_comparison_available": false
+    },
+    {
+      "run": "v121",
+      "state": {
+        "programme_clock_fix": true,
+        "authority_summary": true,
+        "decoder_boundary_fix": true,
+        "build_jobs": 4,
+        "audio_terminal_counters": true,
+        "original_sdk_feedback_required": true,
+        "stage": "complete",
+        "source_guard_active": false,
+        "controller_pid": 156041,
+        "source_revision": "0944cdaabb221f32d88d4d03abc3772254d5680e",
+        "passed": false,
+        "metadata_diagnostic": false,
+        "commit_phase_diagnostic": true,
+        "packet_policy_trace": false,
+        "helper_timing_diagnostic": false,
+        "movement_profile": "gate6-realistic-device-roundtrip-v1",
+        "scheduled_moves": 4,
+        "host_capture_requested": true,
+        "task_complete": false,
+        "cell_qualified": false,
+        "whole_gate_qualified": false,
+        "general_suites_rerun": false,
+        "previous_passed_cases_rerun": false,
+        "updated_at": "2026-11-04T11:21:42.627631+00:00",
+        "fixture_exit_code": 1,
+        "report_sha256": "3ef2e78f639727a5b9f75d711c27cade58237f15f6bef5c5036ff1bd83dd4f84",
+        "source_inputs_unchanged": true,
+        "executables_unchanged": true,
+        "sdk_dist_inputs_unchanged": true,
+        "binary_sha256": "45c6e8b91ebf33d4842e68a6e991307f592e1124cbf35078e4cd9afe8e9fd253",
+        "peer_binary_sha256": "7ec333029ca48fe3aa7b52974575152ba58be31429b99da102135fe3914b802b",
+        "prepared_sources_unchanged": true,
+        "elapsed_seconds": 158.90098933198897
+      },
+      "evidence": "programme-clock-full-workload.json",
+      "full_media_quality_comparison_available": false
     }
   ],
   "diagnosis": {
@@ -1551,7 +1591,7 @@
     "Verify full-media SDK feedback selection, then resolve the remaining independent decoded quality failures. Preserve intermittent start/planning findings until tested.",
     "Complete all 32 transport cells and the original quality, teardown, idle, failure and separate twenty-handoff requirements. The current device movement workload uses four moves; G6-054 remains deferred."
   ],
-  "next_investigation": "Rerun only the failed four-move full workload with the shared original monotonic clock; keep all original cutoffs and quality thresholds. Continue audio authority contention diagnosis. G6-054 remains deferred; local ARM resources only; no task or cell promotion.",
+  "next_investigation": "Verify the new warmup/session-observer clock consumer regression, then retry only the failed full workload. Preserve v120 focused evidence; do not claim integrated clock or quality success. Audio authority contention remains unresolved; G6-054 stays deferred.",
   "activation_investigation": {
     "run": "v113",
     "operation_ledger_verified": true,
