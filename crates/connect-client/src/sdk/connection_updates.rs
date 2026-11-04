@@ -206,7 +206,7 @@ impl Connection {
         ))
     }
 }
-pub(super) struct Observed {
+pub(crate) struct Observed {
     pub ice: Option<u64>,
     pub generation: u64,
     pub revision: StreamRevision,
@@ -221,7 +221,7 @@ fn positive(value: &Value) -> Option<u64> {
         .as_u64()
         .filter(|n| *n > 0 && *n <= 9_007_199_254_740_991)
 }
-pub(super) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
+pub(crate) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
     let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
     if key.command != "connection.update"
         || !connections::valid_scope(&key.scope)
@@ -353,7 +353,7 @@ pub(super) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
         resources_changed: false,
     })
 }
-pub(super) fn validate_intent(
+pub(crate) fn validate_intent(
     observed: &Observed,
     payload: &Value,
     expected: u64,

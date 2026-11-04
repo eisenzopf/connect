@@ -135,7 +135,7 @@ fn replacement_video_signed_history_cannot_replay_after_unsubscribe_gate_or_reti
         .outgoing(
             scoped(
                 "connection.update",
-                json!({"action":"hold","details":{}}),
+                json!({"action":"hold","details":{"direction":"inactive"}}),
                 None,
             )
             .original(),
@@ -321,3 +321,5 @@ fn replacement_video_seals_signed_generation_two_and_later_without_weakening_ini
             .is_err());
     }
 }
+
+mod controls;

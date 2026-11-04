@@ -27,6 +27,7 @@ struct State {
     notices: BTreeMap<(u16, bool), Notice>,
     active: BTreeMap<(u16, bool), Notice>,
     suspended: bool,
+    controls: controls::Controls,
     ended: bool,
     version: u64,
 }
@@ -58,6 +59,7 @@ impl Shared {
             notices: BTreeMap::new(),
             active: BTreeMap::new(),
             suspended: false,
+            controls: controls::Controls::default(),
             ended: false,
             version: 0,
         });
@@ -107,7 +109,7 @@ impl Shared {
                 return Err(ClientError::Protocol);
             }
             s.notices.insert(key, n.clone());
-            if s.selected.is_some() && !s.suspended {
+            if s.selected.is_some() && !s.suspended && s.controls.admits(&n) {
                 s.active.insert(key, n);
             }
             drop(guard);
@@ -124,6 +126,16 @@ impl Shared {
             s.ended = true;
             s.active.clear();
             s.version = s.version.wrapping_add(1);
+            drop(guard);
+            self.changed.notify_waiters();
+            return Ok(false);
+        }
+        if !s.ended
+            && own_root
+            && frame.scope(Scope::Connection) == s.scope.connection_id.as_deref()
+            && frame.kind() == "operation.updated"
+        {
+            controls::observe(s, frame)?;
             drop(guard);
             self.changed.notify_waiters();
             return Ok(false);
@@ -212,12 +224,11 @@ impl Shared {
             }
             Some("connection.update") => {
                 s.version = s.version.wrapping_add(1);
-                if matches!(
-                    frame["payload"]["action"].as_str(),
-                    Some("hold" | "mute" | "resume" | "unmute" | "codec-renegotiate")
-                ) {
-                    // Until signed control/resource adoption exists for this raw
-                    // owner, a gate mutation suspends it conservatively.
+                if connect_protocol::native_gates::is_gate(&frame["payload"]) {
+                    controls::outgoing(s, frame)?;
+                } else if frame["payload"]["action"] == "codec-renegotiate" {
+                    // Resource replacement must still pair a new signed offer
+                    // with its durable result before installing new bindings.
                     s.suspended = true;
                     s.active.clear();
                 }
@@ -239,6 +250,8 @@ impl Shared {
             }
             _ => (),
         }
+        drop(guard);
+        self.changed.notify_waiters();
         Ok(())
     }
 }
@@ -254,5 +267,6 @@ fn self_scope(scope: &CommandScope) -> [Option<&str>; 4] {
 #[cfg(test)]
 pub(crate) mod tests;
 
+mod controls;
 pub(super) mod io;
 pub use io::{NativeVideoDatagram, NativeVideoDatagrams};

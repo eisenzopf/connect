@@ -29,7 +29,7 @@ mod application_reads;
 mod capabilities;
 mod configuration;
 mod connection_controls;
-mod connection_updates;
+pub(crate) mod connection_updates;
 mod connections;
 mod consultations;
 mod control;
