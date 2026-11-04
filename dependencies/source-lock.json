@@ -1584,6 +1584,11 @@
       "path": "patches/rvoip/gate6-native-video-feedback-binding.patch",
       "sha256": "dacb36afb80af8c47fd5defddfc975d8991e2c81dacd629f71e8287c919fc514",
       "source": "Gate 6 native per-allocation video feedback binding and current source dispatch; authenticated profile defaults disabled"
+    },
+    {
+      "path": "patches/rvoip/gate6-replacement-fixture-video-argument.patch",
+      "sha256": "3931f5abcf58b973966d1327b4bdffbc2ddae44d0d8b960945755e54bb1048a5",
+      "source": "Compile existing audio-only native/adapter replacement fixtures against explicit optional video request API; no old case rerun"
     }
   ]
 }

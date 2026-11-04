@@ -161,8 +161,9 @@ feedback or activation epochs. See the [scoped evidence](../evidence/gate-6/repl
 
 The `rtcp-pli-epoch/1` codec passes its focused local ARM syntax test at
 `6a697185`; see [guarded evidence](../evidence/gate-6/native-video-feedback-codec.json). It is
-not yet advertised or admitted by a native transport. Existing media and
-sender-clock parsers continue to reject it; codec success grants no permission.
+not yet advertised by the production native negotiation profile. A separate
+checked native feedback path is now implemented behind explicit profile installation;
+existing media and sender-clock parsers still reject it. Codec success grants no permission.
 
 The proposed datagram is exactly 48 bytes, in network byte order:
 
@@ -192,11 +193,18 @@ reselection, pause/resume and source physical replacement. Unrelated Data change
 preserve the video epoch. These are Core fixture proofs, not signed Service or
 native transport qualification. See [the exact evidence](../evidence/gate-6/video-feedback-authority.json).
 
-Before enabling it, the adapter must bind the physical receiver handle and epoch
-to the actual current direct selection, source, original operation and generation.
-It must reacquire current receiver and source authority and bound/coalesce
-requests before dispatch to the source encoder. An echoed number, transport
-authentication or a sender-clock report alone supplies none of these checks.
-Authenticated epoch delivery, source-worker dispatch and fresh-frame timing still
-require implementation and focused proofs. No integrated media qualification is
-claimed by this codec checkpoint.
+The native adapter candidate at `72c3e78b` binds feedback to the actual emitted
+receiver SSRC and Core route epoch. Dispatch resolves the publisher from Core's
+current selected physical port, checks that exact allocation and observed source
+SSRC, and emits the publisher's own epoch and sequence under both current policy
+guards. A shared publisher limit bounds fan-in across receivers. Cleanup owns the
+bounded state. The two new local canonical QUIC cases are pending; see
+[the candidate and exact scope](../evidence/gate-6/native-video-feedback-binding.json).
+
+The production negotiation profile remains disabled. Before enabling it, connect
+explicit capability negotiation and signed notices to the original operation,
+physical incarnation, logical stream, generations and selected source. Notices
+also need monotonic ordering and an exact first admitted/submitted packet boundary:
+a numeric epoch or SSRC alone cannot classify packets across a reselection.
+Then wire receiver feedback and publisher requests to the existing live source
+workers and prove fresh-frame timing. No integrated media qualification is claimed.

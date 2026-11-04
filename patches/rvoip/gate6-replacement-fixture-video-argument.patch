@@ -1,0 +1,203 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement.rs
+@@ -913,7 +913,7 @@
+             assert!(s
+                 .core
+                 .orch
+-                .plan_staged_device_replacement(&c.pending)
++                .plan_staged_device_replacement(&c.pending, None)
+                 .is_err());
+             assert_eq!(
+                 c.event(
+@@ -941,7 +941,7 @@
+                 assert!(s
+                     .core
+                     .orch
+-                    .plan_staged_device_replacement(&c.pending)
++                    .plan_staged_device_replacement(&c.pending, None)
+                     .is_err());
+                 assert_eq!(
+                     c.event(
+@@ -968,7 +968,7 @@
+                 assert!(s
+                     .core
+                     .orch
+-                    .plan_staged_device_replacement(&c.pending)
++                    .plan_staged_device_replacement(&c.pending, None)
+                     .is_err());
+                 assert_eq!(
+                     c.event(
+@@ -995,7 +995,7 @@
+             let plan = s
+                 .core
+                 .orch
+-                .plan_staged_device_replacement(&c.pending)
++                .plan_staged_device_replacement(&c.pending, None)
+                 .unwrap();
+             let g = grant(
+                 &s,
+@@ -1139,7 +1139,7 @@
+         assert!(s
+             .core
+             .orch
+-            .plan_staged_device_replacement(&c.pending)
++            .plan_staged_device_replacement(&c.pending, None)
+             .is_err());
+         assert_eq!(
+             s.core.orch.participant_revision(&s.core.session).unwrap(),
+@@ -1246,7 +1246,7 @@
+     let plan = s
+         .core
+         .orch
+-        .plan_staged_device_replacement(&c.pending)
++        .plan_staged_device_replacement(&c.pending, None)
+         .unwrap();
+     s.grants
+         .0
+@@ -1443,7 +1443,7 @@
+         assert!(s
+             .core
+             .orch
+-            .plan_staged_device_replacement(&c.pending)
++            .plan_staged_device_replacement(&c.pending, None)
+             .is_err());
+         assert_eq!(c.event(&s, five.clone()).await, Observation::PendingDigits);
+         assert_eq!(c.event(&s, five).await, Observation::PendingDigits);
+@@ -1458,7 +1458,7 @@
+         let old_plan = s
+             .core
+             .orch
+-            .plan_staged_device_replacement(&c.pending)
++            .plan_staged_device_replacement(&c.pending, None)
+             .unwrap();
+         if mode == "confirmed-epoch" {
+             for action in [StreamGateAction::Pause, StreamGateAction::Resume] {
+@@ -1486,7 +1486,7 @@
+             assert!(
+                 s.core
+                     .orch
+-                    .plan_staged_device_replacement(&c.pending)
++                    .plan_staged_device_replacement(&c.pending, None)
+                     .is_err(),
+                 "old completed confirmation survived a media epoch"
+             );
+@@ -1523,7 +1523,7 @@
+             assert!(s
+                 .core
+                 .orch
+-                .plan_staged_device_replacement(&c.pending)
++                .plan_staged_device_replacement(&c.pending, None)
+                 .is_ok());
+         }
+         assert!(c.pending.cancel());
+@@ -1584,7 +1584,7 @@
+     assert!(s
+         .core
+         .orch
+-        .plan_staged_device_replacement(&c.pending)
++        .plan_staged_device_replacement(&c.pending, None)
+         .is_err());
+     for (i, digit) in expected.chars().enumerate() {
+         let observed = c
+@@ -1607,7 +1607,7 @@
+     assert!(s
+         .core
+         .orch
+-        .plan_staged_device_replacement(&c.pending)
++        .plan_staged_device_replacement(&c.pending, None)
+         .is_ok());
+     assert!(c.pending.cancel());
+     c.stop().await;
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
+@@ -539,7 +539,7 @@
+         assert!(s
+             .core
+             .orch
+-            .plan_staged_device_replacement(&c.pending)
++            .plan_staged_device_replacement(&c.pending, None)
+             .is_err());
+         s.tone(0, 1).await;
+         s.tone(1, 0).await;
+@@ -559,7 +559,7 @@
+         assert!(s
+             .core
+             .orch
+-            .plan_staged_device_replacement(&c.pending)
++            .plan_staged_device_replacement(&c.pending, None)
+             .is_err());
+         assert_eq!(
+             c.event(
+@@ -593,7 +593,7 @@
+         let plan = s
+             .core
+             .orch
+-            .plan_staged_device_replacement(&c.pending)
++            .plan_staged_device_replacement(&c.pending, None)
+             .unwrap();
+         let g = grant(
+             &s,
+@@ -680,7 +680,7 @@
+             assert!(s
+                 .core
+                 .orch
+-                .plan_staged_device_replacement(&c.pending)
++                .plan_staged_device_replacement(&c.pending, None)
+                 .is_err());
+             if mode == "lost-adapter" {
+                 // No event hint is sent: bounded ownership observes actual
+@@ -724,7 +724,7 @@
+         assert!(s
+             .core
+             .orch
+-            .plan_staged_device_replacement(&c.pending)
++            .plan_staged_device_replacement(&c.pending, None)
+             .is_err());
+         assert_eq!(
+             s.core
+@@ -788,7 +788,7 @@
+         assert!(s
+             .core
+             .orch
+-            .plan_staged_device_replacement(&c.pending)
++            .plan_staged_device_replacement(&c.pending, None)
+             .is_err());
+         assert_eq!(
+             c.event(
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
+@@ -536,7 +536,7 @@
+     assert!(s
+         .core
+         .orch
+-        .plan_staged_device_replacement(&c.pending)
++        .plan_staged_device_replacement(&c.pending, None)
+         .is_err());
+     for _ in 0..2 {
+         let g = grant(&s, c.pending.intent(), &c.principal, Approval::Start).await;
+@@ -772,14 +772,14 @@
+     assert!(s
+         .core
+         .orch
+-        .plan_staged_device_replacement(&c.pending)
++        .plan_staged_device_replacement(&c.pending, None)
+         .is_err());
+     peer.digit("#").await;
+     assert_eq!(c.signal(&s).await, Observation::Confirmed);
+     let plan = s
+         .core
+         .orch
+-        .plan_staged_device_replacement(&c.pending)
++        .plan_staged_device_replacement(&c.pending, None)
+         .unwrap();
+     let g = grant(
+         &s,
+@@ -870,7 +870,7 @@
+         assert!(s
+             .core
+             .orch
+-            .plan_staged_device_replacement(&c.pending)
++            .plan_staged_device_replacement(&c.pending, None)
+             .is_err());
+         if mode == "remote-eof" {
+             peer.bye().await;

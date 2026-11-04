@@ -1,0 +1,54 @@
+{
+  "format": "connect/gate6-native-video-feedback-binding/1",
+  "task": "G6-058",
+  "status": "verification-pending",
+  "patch": 294,
+  "source_revision": "72c3e78be018e8d3ed6817323a58f9a3a2661a0a",
+  "environment": "Owner Mac Studio local Ubuntu24 ARM64 VM; no GitHub/cloud execution",
+  "implementation": [
+    "One bounded feedback endpoint per actual RouterHandle allocation, cleared by owned cleanup. No packet buffers, idle policy readers, global source registry or detached feedback tasks.",
+    "Actual successful video ingress records a publisher SSRC and weak generation predicate. Actual successful guarded egress records the emitted receiver SSRC and current Core route epoch.",
+    "Receiver feedback must match its physical handle, emitted SSRC and route epoch. Core reacquires both current permissions and resolves the selected publisher port; the adapter downcasts that exact allocation and checks its current source SSRC and binding.",
+    "Publisher dispatch rewrites to its own actual handle, SSRC, activation epoch and independent sequence. Shared publisher100ms coalescing bounds fan-in in addition to per-route bounds; uncertain local send consumes its sequence.",
+    "Canonical reader separates bounded checked video feedback from clock/media. Native negotiation defaults disabled and does not advertise the profile. An installed profile must admit an authenticated epoch notice before feedback can use its record."
+  ],
+  "planned_checks": [
+    "peer_native::canonical_media::video_feedback::native_feedback_binds_actual_handles_ssrc_epochs_authority_and_shared_publisher_rate",
+    "peer_native::canonical_media::video_feedback::native_feedback_unnegotiated_and_unannounced_epochs_remain_disabled"
+  ],
+  "remaining": [
+    "The new canonical QUIC cases use controlled readiness and epoch-notice admission. They do not prove signed Service epoch negotiation or decoded media.",
+    "Production NativeNegotiation still uses the default-disabled profile. Implement explicit capability negotiation, signed original-operation/physical-incarnation/generation/selected-source association, monotonic notice ordering and first admitted/submitted packet boundary before enabling it.",
+    "Wire feedback into Node and Rust live source workers, with original frame clock and bounded force-keyframe handling; prove receiver startup and fragment-loss recovery.",
+    "No full captured workload,32-cell qualification,20-transition or cleanup/idle promotion. G6-054 remains deferred."
+  ],
+  "task_complete": false,
+  "full_media_rehearsal_run": false,
+  "old_passed_cases_rerun": false,
+  "first_attempt": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 118266,
+    "source_revision": "72c3e78be018e8d3ed6817323a58f9a3a2661a0a",
+    "passed": false,
+    "steps": [],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "native_video_feedback_binding_candidate": true,
+    "builds": [
+      {
+        "group": "native",
+        "compile_exit_code": 101,
+        "compile_log_sha256": "c3582c70ba874a671d0c5a4be5e2e1f73d2df141b6d869bcdbba8088ed3696d1"
+      }
+    ],
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 299.980049159989,
+    "classification": "Compile-only fixture drift:22 older audio-only test calls omitted the new Option<ReplacementVideoRequest> argument. No feedback test executed. Patch295 supplies None in those fixtures; runtime feedback code unchanged."
+  },
+  "fixture_correction_patch": 295
+}
