@@ -79,11 +79,17 @@ fn actor(f: &Fixture, c: &CanonicalClientConfig, hash: &[u8]) -> Value {
 }
 #[tokio::test]
 async fn actual_chromium_signed_webtransport_reselection_feedback_fresh_vp8() {
-    tokio::time::timeout(Duration::from_secs(90), exercise())
+    tokio::time::timeout(Duration::from_secs(90), exercise(false))
         .await
         .unwrap();
 }
-async fn exercise() {
+#[tokio::test]
+async fn actual_chromium_signed_webtransport_feedback_writer_uncertainty() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(true))
+        .await
+        .unwrap();
+}
+async fn exercise(delayed_feedback: bool) {
     let page = Page::open().await;
     let Fixture {
         temp,
@@ -141,7 +147,7 @@ async fn exercise() {
         .parse::<u16>()
         .unwrap();
     assert!(port > 1024);
-    let input = json!({"debug_port":port,"page_url":format!("http://{}/",page.address),"run":{"cid":cid,"sid":"http3-media-session","source_participant":source_participant,"actors":[actor(&f,&f.client,&hash),actor(&f,&other,&hash)]}});
+    let input = json!({"debug_port":port,"page_url":format!("http://{}/",page.address),"run":{"delayed_feedback":delayed_feedback,"cid":cid,"sid":"http3-media-session","source_participant":source_participant,"actors":[actor(&f,&f.client,&hash),actor(&f,&other,&hash)]}});
     let path = output.join("private-input.json");
     init::private_write(&path, &serde_json::to_vec(&input).unwrap()).unwrap();
     let driver = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -163,10 +169,25 @@ async fn exercise() {
     assert_eq!(result["passed"], true);
     assert_eq!(result["same_ssrc"], true);
     assert_eq!(result["new_epoch"], true);
-    assert_eq!(result["fresh_frame"], true);
+    if delayed_feedback {
+        assert_eq!(result["delayed_feedback"], true);
+        assert_eq!(result["write_attempts"], 1);
+        assert_eq!(result["forwarded_feedback"], 1);
+        assert_eq!(result["shutdown_waited"], true);
+        assert_eq!(
+            result["timeout_message"],
+            "Video feedback writer exceeded original age"
+        );
+    } else {
+        assert_eq!(result["fresh_frame"], true);
+    }
     assert_eq!(result["shutdown_joined"], true);
     assert!(result["feedback_packets"].as_u64().unwrap() > 0);
     f.server.shutdown().await.unwrap();
     page.close().await;
-    eprintln!("actual local Chromium: signed production WebTransport, same-SSRC epoch change, receiver PLI, fresh original VP8 frame and joined browser peers; not a full matrix cell");
+    if delayed_feedback {
+        eprintln!("actual local Chromium: signed production WebTransport, one native feedback submission, original writer timeout, no retry, shutdown waits for delayed completion and joins both peers; not a full matrix cell");
+    } else {
+        eprintln!("actual local Chromium: signed production WebTransport, same-SSRC epoch change, receiver PLI, fresh original VP8 frame and joined browser peers; not a full matrix cell");
+    }
 }

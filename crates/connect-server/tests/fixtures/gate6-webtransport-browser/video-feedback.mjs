@@ -15,11 +15,11 @@ async function options(a){
  server:{key:await crypto.subtle.importKey('raw',unbase64url(a.server_public_raw),server,false,['verify']),keyId:a.server_keyid,algorithm:a.server_algorithm,notBefore:a.server_not_before,expiresAt:a.server_expires_at},
  serverCertificateHashes:[{algorithm:'sha-256',value:unbase64url(a.certificate_sha256)}],timeoutMs:5000};
 }
-function observed(client,receive,send){
+function observed(client,receive,send,afterWrite=async()=>{}){
  const raw=client.datagrams,reader=raw.readable.getReader(),writer=raw.writable.getWriter();let readReleased=false,writeReleased=false;
  const releaseRead=()=>{if(!readReleased){readReleased=true;reader.releaseLock();}},releaseWrite=()=>{if(!writeReleased){writeReleased=true;writer.releaseLock();}};
  const readable=new ReadableStream({async pull(controller){try{const {value,done}=await reader.read();if(done){releaseRead();controller.close();}else{receive(value);controller.enqueue(value);}}catch(error){releaseRead();controller.error(error);}},async cancel(reason){try{await reader.cancel(reason);}finally{releaseRead();}}});
- const writable=new WritableStream({async write(bytes){send(bytes);await writer.write(bytes);},async abort(reason){try{await writer.abort(reason);}finally{releaseWrite();}},async close(){try{await writer.close();}finally{releaseWrite();}}});
+ const writable=new WritableStream({async write(bytes){send(bytes);await writer.write(bytes);await afterWrite(bytes);},async abort(reason){try{await writer.abort(reason);}finally{releaseWrite();}},async close(){try{await writer.close();}finally{releaseWrite();}}});
  const proxy={readable,writable};for(const key of ['maxDatagramSize','incomingMaxAge','outgoingMaxAge','incomingHighWaterMark','outgoingHighWaterMark'])Object.defineProperty(proxy,key,{get:()=>raw[key],...(key==='maxDatagramSize'?{}:{set:v=>raw[key]=v})});
  Object.defineProperty(client,'datagrams',{value:proxy});
  return ()=>readReleased&&writeReleased&&!readable.locked&&!writable.locked;
@@ -27,6 +27,8 @@ function observed(client,receive,send){
 export async function runRecovery(input){
  const clients=[],peers=[],unlocked=[],stops=[],errors=[],sent=[],received=[],hints=[],notices=[],decoded=[],control=[];
  const result={passed:false,same_ssrc:false,new_epoch:false,fresh_frame:false,shutdown_joined:false,feedback_packets:0};
+ let releaseDelay;const delayed=new Promise(resolve=>releaseDelay=resolve);let delayArmed=false;
+ const delay={attempts:0,forwarded:0,submittedAt:0,errorAt:0,shutdownWaited:false};
  let phase='connect';globalThis.videoRecoveryPhase=phase;
  const setPhase=v=>globalThis.videoRecoveryPhase=phase=v;
  const until=async(fn,label,ms=5000)=>{const end=performance.now()+ms;while(!fn()){check(!errors.length,'owned media error: '+errors.join(', '));check(performance.now()<end,label+' deadline; phase='+phase);await wait(5);}};
@@ -41,10 +43,16 @@ export async function runRecovery(input){
    if(bytes[1]!==0||(bytes[9]>=192&&bytes[9]<=223))return;const p=decodeNativeRtpDatagram(bytes);
    if(p.payload[0]&0x10){check(sent.length<16,'source frame bound');sent.push({timestamp:p.timestamp,ssrc:p.ssrc,key:(p.payload[1]&1)===0,sequence:p.sequence,at:performance.now()});}
   }));
-  unlocked.push(observed(clients[1],bytes=>{if(bytes[1]===1){const p=decodeNativeVideoEpoch(bytes);check(received.length<256,'receive packet bound');received.push({epoch:p.epoch,ssrc:p.packet.ssrc,timestamp:p.packet.timestamp,sequence:p.packet.datagramSequence});}},()=>{}));
+  unlocked.push(observed(clients[1],bytes=>{if(bytes[1]===1){const p=decodeNativeVideoEpoch(bytes);check(received.length<256,'receive packet bound');received.push({epoch:p.epoch,ssrc:p.packet.ssrc,timestamp:p.packet.timestamp,sequence:p.packet.datagramSequence});}},bytes=>{
+   if(input.delayed_feedback&&delayArmed&&bytes.length===48&&bytes[9]===206){delay.attempts++;delay.submittedAt=performance.now();}
+  },async bytes=>{
+   // Preserve the actual native write and bytes. Only its application-facing
+   // completion is held, making delivery uncertain to the owner.
+   if(input.delayed_feedback&&delayArmed&&bytes.length===48&&bytes[9]===206){delay.forwarded++;await delayed;}
+  }));
   const pixels=new OffscreenCanvas(640,360),pixelContext=pixels.getContext('2d',{willReadFrequently:true});
   peers.push(new BrowserMediaPeer(clients[0],{error:e=>errors.push(e.message)}));
-  peers.push(new BrowserMediaPeer(clients[1],{error:e=>errors.push(e.message),video:(binding,frame)=>{
+  peers.push(new BrowserMediaPeer(clients[1],{error:e=>{errors.push(e.message);delay.errorAt=performance.now();},video:(binding,frame)=>{
    check(decoded.length<16,'decoded frame bound');pixelContext.drawImage(frame,0,0);const rgba=pixelContext.getImageData(8,8,16,16).data;let red=0;for(let i=0;i<rgba.length;i+=4)red+=rgba[i];decoded.push({stream:binding.streamId,red:red/256,timestamp:frame.timestamp,at:performance.now()});
   }}));
   setPhase('offers');
@@ -59,6 +67,7 @@ export async function runRecovery(input){
   const firstPacket=received.find(p=>p.timestamp===first.rtp);check(firstPacket,'initial original RTP timestamp observed');
   // Let any initial bootstrap hint expire; do not encode a stale source frame.
   await wait(210);
+  delayArmed=!!input.delayed_feedback;
   setPhase('unselect');await peers[1].beginControl(target.id,'browser-feedback-unselect','stream.unsubscribe',{strm_ids:['camera']},target.revision,{timeoutMs:5000}).ready;
   setPhase('reselect');await target.subscribe('browser-feedback-reselect',input.source_participant,['video'],{timeoutMs:5000});
   const before=hints.length;setPhase('new-history-delta');const delta=capture(110);await until(()=>sent.some(f=>f.timestamp===delta.rtp),'new source frame');
@@ -67,6 +76,21 @@ export async function runRecovery(input){
   const changed=received.find(p=>p.timestamp===delta.rtp);check(changed.epoch!==firstPacket.epoch,'same source must have new receiver epoch');check(changed.ssrc===firstPacket.ssrc,'same source SSRC retained');
   await until(()=>hints.length>before,'actual receiver feedback reaches source');
   check(!decoded.some(f=>Math.abs(f.red-110)<15),'interframe cannot initialize the new decoder history');
+  if(input.delayed_feedback){
+   setPhase('uncertain-feedback-write');
+   await until(()=>delay.forwarded===1,'actual native feedback submission');
+   const end=performance.now()+2000;while(!errors.length){check(performance.now()<end,'original feedback deadline did not expire');await wait(5);}
+   check(errors.length===1&&errors[0].includes('Video feedback writer exceeded original age'),'exact owned feedback timeout');
+   check(delay.attempts===1&&hints.length-before===1,'exactly one original native feedback submission');
+   check(delay.errorAt-delay.submittedAt>=100&&delay.errorAt-delay.submittedAt<1000,'original deadline retained after native submission');
+   let joined=false;const closing=peers[1].shutdown().then(()=>joined=true);
+   await wait(20);check(!joined&&!unlocked[1](),'shutdown must retain ownership while original completion remains pending');delay.shutdownWaited=true;
+   releaseDelay();await closing;await wait(20);
+   check(delay.attempts===1&&hints.length-before===1,'no feedback retry after uncertain native write');check(unlocked[1](),'all receiver observer and owner locks joined');
+   const hint=hints.at(-1);check(notices.some(n=>n.direction==='publisher'&&n.epoch===hint.epoch&&n.ssrc===hint.mediaSsrc&&n.connid===source.id),'actual feedback joined signed publisher history');
+   Object.assign(result,{passed:true,same_ssrc:true,new_epoch:true,delayed_feedback:true,write_attempts:delay.attempts,forwarded_feedback:delay.forwarded,shutdown_waited:delay.shutdownWaited,timeout_message:errors[0],write_to_timeout_ms:delay.errorAt-delay.submittedAt,feedback_packets:hints.length,source_frames:sent,decoded_frames:decoded,scope:'One local signed Chromium/WebTransport uncertain feedback write. Native write happens once; application completion is intentionally delayed. Original 200ms owner deadline and owned shutdown are verified; not a network-loss simulation or full transport cell.'});
+   return result;
+  }
   setPhase('fresh-feedback-key');const fresh=capture(210);await until(()=>decoded.some(f=>f.stream==='camera'&&Math.abs(f.red-210)<15),'fresh original decoded marker');
   const sentFresh=sent.find(f=>f.timestamp===fresh.rtp);check(sentFresh?.key,'feedback forces fresh original keyframe');
   check(received.some(p=>p.timestamp===fresh.rtp&&p.epoch===changed.epoch),'fresh key stays in current epoch at original RTP timestamp');
@@ -74,6 +98,6 @@ export async function runRecovery(input){
   const hint=hints.at(-1);check(notices.some(n=>n.direction==='publisher'&&n.epoch===hint.epoch&&n.ssrc===hint.mediaSsrc&&n.connid===source.id),'feedback joins actual signed publisher notice');
   Object.assign(result,{passed:true,same_ssrc:true,new_epoch:true,fresh_frame:true,feedback_packets:hints.length,source_frames:sent,decoded_frames:decoded,original_timestamps:{first,delta,fresh},receiver_epoch_change:[firstPacket.epoch,changed.epoch],route_diagnostics:peers.map(p=>p.routeDiagnostics),scope:'One local EdDSA Chromium/WebTransport recovery, actual production listener and WebCodecs; not full frozen workload/network/transport cell.'});
  }catch(error){throw Error('phase='+phase+'; '+error.message+'; observed='+JSON.stringify({sent,received:received.slice(-4),hints,decoded,errors,control}));}
- finally{setPhase('shutdown');for(const stop of stops)stop();for(const peer of peers)await peer.shutdown();for(const client of clients)client.close();check(unlocked.every(f=>f()),'observer and native owner stream locks joined');result.shutdown_joined=true;}
+ finally{releaseDelay();setPhase('shutdown');for(const stop of stops)stop();for(const peer of peers)await peer.shutdown();for(const client of clients)client.close();check(unlocked.every(f=>f()),'observer and native owner stream locks joined');result.shutdown_joined=true;}
  return result;
 }
