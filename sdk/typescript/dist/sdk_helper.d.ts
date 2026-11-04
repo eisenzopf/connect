@@ -20,6 +20,7 @@ export declare class SdkHelper {
     private active?;
     private chunks;
     private bytes;
+    private readonly timing;
     constructor(config: {
         readonly config: string;
         readonly executable?: string;

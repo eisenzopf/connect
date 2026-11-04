@@ -1,3 +1,4 @@
+import { replacementVideo, } from "./replacement_video.js";
 import { fields } from "./browser_sdk_sessions.js";
 import { canonicalJson, jsonObject, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
@@ -138,7 +139,7 @@ export function handoffIntent(input, bad) {
     };
 }
 export function moveIntent(input, via, bad) {
-    fields(input, ["retain", "target", "expectedTopologyRevision"], bad);
+    fields(input, ["retain", "target", "expectedTopologyRevision", "video"], bad);
     if (!identifier(input.retain) ||
         input.retain === via ||
         !revision(input.expectedTopologyRevision))
@@ -153,6 +154,9 @@ export function moveIntent(input, via, bad) {
     return {
         body: {
             retained_connid: input.retain,
+            ...(input.video === undefined
+                ? {}
+                : { video: replacementVideo(input.video, bad) }),
             ...(endpoint
                 ? { endpoint_id: target }
                 : { candidate_connid: target }),
@@ -186,6 +190,8 @@ export function movementCompletion(value, key, bad) {
                 "endpoint_id",
                 "device_id",
                 "readiness",
+                "activation_state",
+                "physical_readiness",
             ]),
     ], bad);
     const lists = [
@@ -195,11 +201,17 @@ export function movementCompletion(value, key, bad) {
     ];
     if (lists.some((list) => !Array.isArray(list) || list.some((id) => !identifier(id))))
         return bad();
+    const stopped = key.command === "connection.replace" &&
+        value.activation_state === "stopped";
     const [retained, admitted, retired] = lists, all = [...retained, ...admitted, ...retired], context = key.continuation;
     if (!retained.length ||
         admitted.length !== 1 ||
         all.length > 100 ||
-        new Set(all).size !== all.length ||
+        new Set(retained).size !== retained.length ||
+        new Set(retired).size !== retired.length ||
+        retained.some((id) => admitted.includes(id) || retired.includes(id)) ||
+        admitted.some((id) => retired.includes(id) &&
+            !(stopped && id === value.connection_id)) ||
         !positive(value.session_revision) ||
         (value.conversation_revision !== undefined &&
             value.conversation_revision !== null &&
@@ -267,7 +279,22 @@ export function movementCompletion(value, key, bad) {
             ...(roleChange === undefined ? {} : { roleChange }),
         };
     }
-    if (key.command !== "connection.replace" ||
+    const activationState = value.activation_state;
+    const activationValid = activationState === "ready"
+        ? jsonObject(value.readiness) &&
+            jsonObject(value.physical_readiness) &&
+            canonicalJson(value.readiness) ===
+                canonicalJson(value.physical_readiness) &&
+            !retired.includes(value.connection_id)
+        : activationState === "stopped"
+            ? value.readiness === null &&
+                jsonObject(value.physical_readiness) &&
+                retired.includes(value.connection_id)
+            : !("activation_state" in value) &&
+                !("physical_readiness" in value) &&
+                jsonObject(value.readiness);
+    if (!activationValid ||
+        key.command !== "connection.replace" ||
         context.kind !== "replacement" ||
         !identifier(value.connection_id) ||
         value.replaces !== key.scope.connectionId ||
@@ -278,7 +305,6 @@ export function movementCompletion(value, key, bad) {
         !identifier(value.participant_id) ||
         !identifier(value.endpoint_id) ||
         !identifier(value.device_id) ||
-        !jsonObject(value.readiness) ||
         topology.conversationRevision !== undefined ||
         (context.target.kind === "endpoint"
             ? value.endpoint_id !== context.target.id
@@ -287,6 +313,7 @@ export function movementCompletion(value, key, bad) {
     return {
         ...topology,
         kind: "replacement",
+        activationState: (activationState ?? null),
         connectionId: value.connection_id,
         binding: {
             generation: value.generation,

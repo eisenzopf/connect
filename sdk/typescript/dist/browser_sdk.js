@@ -271,6 +271,7 @@ function moveResult(value, client, key) {
         connection: new BrowserConnection(client, key.scope.conversationId, key.scope.sessionId, observed.connectionId),
         ...transitionTopology(client, key, observed),
         binding: observed.binding,
+        activationState: observed.activationState,
     });
 }
 export const browserOperationKinds = Object.freeze({

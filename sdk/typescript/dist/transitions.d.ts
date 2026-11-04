@@ -1,3 +1,4 @@
+import type { ReplacementVideo } from "./replacement_video.js";
 /** Durable intent; admission does not prove media readiness or completion. */
 export type OperationState = "accepted" | "preparing" | "ready" | "committing" | "completed" | "cancelled" | "failed" | "interrupted" | "unknown";
 export type TransitionIntent = {
@@ -20,6 +21,7 @@ export type TransitionIntent = {
     expected_conversation_revision?: number | null;
 } | {
     type: "connection.replace";
+    video?: ReplacementVideo;
     endpoint_id?: string | null;
     candidate_connid?: string | null;
     retained_connid: string;

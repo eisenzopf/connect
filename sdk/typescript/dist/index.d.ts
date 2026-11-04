@@ -26,3 +26,4 @@ export type { HttpControlTransport } from "./control_endpoint.js";
 export { SdkRtpPacket, SdkTextData, SdkJsonData, SdkBinaryData, } from "./node_media_types.js";
 export type { SdkMedia, SdkMediaConnection, SdkMediaStream, } from "./node_media.js";
 export type { SdkMediaBinding, SdkMediaNegotiation, SdkRtpHeader, SdkMediaPacket, SdkSenderClockReport, SdkLocalMediaSubmission, SdkMediaStats, SdkDataPayload, SdkReceivedData, SdkDataAcceptance, SdkDataStats, } from "./node_media_types.js";
+export type { ReplacementVideo, ReplacementVideoStream, } from "./replacement_video.js";

@@ -1,3 +1,4 @@
+import { type ReplacementVideo } from "./replacement_video.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import type { BrowserOperationReference } from "./browser_transport_client.js";
 import type { BrowserConnection, BrowserOperation } from "./browser_sdk.js";
@@ -32,6 +33,7 @@ export type BrowserMoveTarget = {
     readonly endpoint?: never;
 };
 export interface BrowserMoveInput {
+    readonly video?: ReplacementVideo;
     readonly retain: ConnectionId;
     readonly target: BrowserMoveTarget;
     readonly expectedTopologyRevision: SdkRevision<"topology">;
@@ -55,6 +57,7 @@ export interface BrowserMoveBindingObservation {
     readonly deviceId: DeviceId;
 }
 export interface BrowserMoveResult extends BrowserTopologyChange {
+    readonly activationState: "ready" | "stopped" | null;
     readonly connection: BrowserConnection;
     readonly binding: BrowserMoveBindingObservation;
 }
@@ -112,6 +115,7 @@ export declare function movementCompletion(value: Json, key: TransitionReference
     topologyRevision: SdkRevision<"topology">;
     conversationRevision?: SdkRevision<"conversation"> | undefined;
     kind: "replacement";
+    activationState: "ready" | "stopped" | null;
     connectionId: ConnectionId;
     binding: {
         generation: number;

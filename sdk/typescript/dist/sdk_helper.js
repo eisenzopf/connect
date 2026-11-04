@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { HelperTimingLog } from "./sdk_helper_timing.js";
 import { CanonicalError, } from "./canonical_error.js";
 import { canonicalJson, parseCanonicalJson, jsonObject, } from "./uctp_json.js";
 import { duration, } from "./canonical_validation.js";
@@ -30,6 +31,7 @@ export class SdkHelper {
     active;
     chunks = [];
     bytes = 0;
+    timing;
     constructor(config, backend = "participant") {
         if (backend !== "participant" && backend !== "administrative")
             throw new NodeSdkError("configuration", "not-submitted");
@@ -44,6 +46,7 @@ export class SdkHelper {
                 v.length > 4096 ||
                 v.includes("\0")))
             throw new NodeSdkError("configuration", "not-submitted");
+        this.timing = new HelperTimingLog(config.config);
         this.child = spawn(executable, [
             this.administrative ? "sdk-admin-stdio" : "sdk-stdio",
             "--config",
@@ -111,6 +114,7 @@ export class SdkHelper {
                 key,
                 mutation,
                 sent: false,
+                timing: this.timing.capture(started),
                 decode,
                 resolve,
                 reject,
@@ -119,6 +123,7 @@ export class SdkHelper {
             };
             options.signal?.addEventListener("abort", abort, { once: true });
             this.queue.push(job);
+            this.timing.record("queued", job, this.child.pid, this.queue.length);
             this.next();
         });
     }
@@ -135,6 +140,7 @@ export class SdkHelper {
     }
     cancel(job, kind) {
         if (this.active === job) {
+            this.timing.record("cancelled", job, this.child.pid, this.queue.length, kind);
             this.fence(kind);
             return;
         }
@@ -142,6 +148,7 @@ export class SdkHelper {
         if (i < 0)
             return;
         this.queue.splice(i, 1);
+        this.timing.record("cancelled", job, this.child.pid, this.queue.length, kind);
         this.release(job);
         job.reject(this.error(job, kind));
     }
@@ -153,6 +160,9 @@ export class SdkHelper {
             return;
         const remaining = Math.floor(job.expires - performance.now());
         if (remaining < 1 || job.options.signal?.aborted) {
+            this.timing.record(job.options.signal?.aborted
+                ? "aborted-queued"
+                : "expired-queued", job, this.child.pid, this.queue.length, job.options.signal?.aborted ? "cancelled" : "deadline");
             this.release(job);
             job.reject(this.error(job, job.options.signal?.aborted ? "cancelled" : "deadline"));
             this.next();
@@ -177,6 +187,7 @@ export class SdkHelper {
                         : 65536))
                 throw new Error();
             job.sent = true;
+            this.timing.record("dispatched", job, this.child.pid, this.queue.length);
             this.child.stdin.write(line, (error) => {
                 if (error)
                     this.fence("transport-uncertain");
@@ -194,6 +205,7 @@ export class SdkHelper {
         this.chunks = [];
         this.bytes = 0;
         for (const job of jobs) {
+            this.timing.record("fenced", job, this.child.pid, this.queue.length, kind);
             this.release(job);
             job.reject(this.error(job, kind));
         }
@@ -331,6 +343,7 @@ export class SdkHelper {
                 this.fence("deadline");
                 return;
             }
+            this.timing.record("reply", job, this.child.pid, this.queue.length, error?.kind);
             this.active = undefined;
             this.release(job);
             if (error) {

@@ -1,0 +1,78 @@
+{
+  "format": "connect/gate6-native-move-activation-sdk/1",
+  "task": "G6-058",
+  "environment": "Owner Mac Studio local Ubuntu ARM64 VM",
+  "failed_native_run": {
+    "stage": "complete",
+    "source_guard_active": false,
+    "controller_pid": 115474,
+    "source_revision": "c59ed0818296b1405a4cd0df58288dc5921a404b",
+    "passed": false,
+    "steps": [
+      {
+        "group": "native",
+        "case": "canonical_native_connections::consultation::groups::replacement::av::transfer::production_native_video_transfer_activates_both_directions_without_post_commit_controls",
+        "exit_code": 101,
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 439 filtered out; finished in 11.91s"
+        ],
+        "log_sha256": "eb75660c182c26b53caaf98a2e1eda540329a4dc2d0b6e0f2ad2346e14f97c49"
+      }
+    ],
+    "general_suites_rerun": false,
+    "full_media_rehearsal_run": false,
+    "video_routing_candidate": true,
+    "builds": [
+      {
+        "group": "native",
+        "compile_exit_code": 0,
+        "compile_log_sha256": "d88e90970b825f426cdfb7a5a7b7a98aae2ba3cabd269d684e0bdd63a5c54474",
+        "test_executable_sha256": "1969a3a602323c22b6c10301209ea3132b93718bd33fbbbb92e3a76e4209017f",
+        "executable_unchanged": true
+      }
+    ],
+    "executable_unchanged": true,
+    "failure_class": "AssertionError",
+    "message": "Exact prepared peer case must pass",
+    "source_inputs_unchanged": true,
+    "prepared_sources_unchanged": true,
+    "elapsed_seconds": 252.96051648900902
+  },
+  "cause": "Native completed operation contains documented activation_state and physical_readiness; Rust bounded result decoder rejects these keys. Stopped outcome additionally requires exactly one admitted/retired target overlap and null readiness, which the previous decoder refused. Journal confirms completed ready outcome before SDK refusal.",
+  "correction_source": "6c1932c7",
+  "sdk_components": {
+    "source_revision": "6c1932c7",
+    "arch": "aarch64",
+    "steps": [
+      {
+        "name": "typescript-build",
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "activation-node-browser",
+        "exit_code": 0,
+        "log_sha256": "789c9f9374519a87ee2771cdbc2a0eeee32a8abe731b96c2dc4213436af6134a"
+      },
+      {
+        "name": "activation-python",
+        "exit_code": 0,
+        "log_sha256": "d10ffbd9f0faa72cd6837063279524e199b59fbc3d035051302a1e8dbc4b36ad"
+      }
+    ],
+    "source_inputs_unchanged": true
+  },
+  "proof": [
+    "TypeScript compiles; two new Node/browser activation component cases and one new Python component case pass.",
+    "Exact ready/stopped state, original binding/topology, separate telephone contract and malformed/partial/contradictory outcomes are checked.",
+    "Generated TypeScript outputs copied from local ARM build and byte hashes verified."
+  ],
+  "pending": [
+    "New Rust activation component and corrected failed signed native case.",
+    "Native routing, feedback/encoder/epoch integration, decoded quality and full Gate 6 matrix."
+  ],
+  "general_suites_rerun": false,
+  "full_media_rehearsal_run": false,
+  "task_complete": false,
+  "cell_qualified": false
+}

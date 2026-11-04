@@ -1,3 +1,4 @@
+import { type ReplacementVideo } from "./replacement_video.js";
 import type { SdkId, SdkRevision, ParticipantId, SdkConsultationOperation, SdkOperationKey } from "./node_sdk.js";
 import type { ConnectionId, SdkConnection } from "./node_connections.js";
 import type { Json, JsonObject } from "./uctp_json.js";
@@ -46,11 +47,13 @@ export type SdkMoveTarget = {
     readonly endpoint?: never;
 };
 export interface SdkMoveInput {
+    readonly video?: ReplacementVideo;
     readonly retain: ConnectionId;
     readonly target: SdkMoveTarget;
     readonly expectedTopologyRevision: SdkRevision<"topology">;
 }
 export interface SdkMoveResult extends SdkTopologyChange {
+    readonly activationState: "ready" | "stopped" | null;
     readonly connection: SdkConnection;
     /** Captured binding observation; metadata handles acquire no media ownership. */
     readonly binding: {

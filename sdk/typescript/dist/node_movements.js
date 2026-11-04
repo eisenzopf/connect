@@ -1,3 +1,4 @@
+import { replacementVideo, } from "./replacement_video.js";
 import { sdkRevision } from "./node_sdk.js";
 import { NodeSdkError, object } from "./sdk_helper.js";
 import { identifier } from "./uctp_wire.js";
@@ -73,6 +74,9 @@ export function moveInput(v, via) {
         retain: v.retain,
         target: { kind: endpoint ? "endpoint" : "candidate", id },
         expected_revision: sdkRevision(v.expectedTopologyRevision),
+        ...(v.video === undefined
+            ? {}
+            : { video: replacementVideo(v.video, invalid) }),
     };
 }
 export function movementContext(v, command, via) {
@@ -133,7 +137,7 @@ function original(saved) {
         return protocol();
     return saved.continuation;
 }
-function topology(v, ctx) {
+function topology(v, ctx, stopped) {
     if (!Array.isArray(v.retained) ||
         !v.retained.length ||
         !Array.isArray(v.admitted) ||
@@ -163,7 +167,17 @@ function topology(v, ctx) {
             return protocol();
         return ctx.connection(id(value.id));
     };
-    const retained = Object.freeze(v.retained.map(connection)), admitted = Object.freeze(v.admitted.map(connection)), retired = Object.freeze(v.retired.map(id));
+    const retiredValues = v.retired;
+    const retained = Object.freeze(v.retained.map(connection)), admitted = Object.freeze(v.admitted.map(connection)), retired = Object.freeze(v.retired.map((value) => {
+        if (value === stopped) {
+            if (retained.some((v) => v.id === value) ||
+                !admitted.some((v) => v.id === value) ||
+                retiredValues.filter((v) => v === value).length !== 1)
+                return protocol();
+            return value;
+        }
+        return id(value);
+    }));
     return Object.freeze({
         retained,
         admitted,
@@ -230,10 +244,23 @@ export function moveResult(value, ctx, saved) {
         "conversationRevision",
         "connection",
         "binding",
+        "activationState",
     ]))
         return protocol();
-    const c = original(saved), target = c.target, t = topology(value, ctx), binding = value.binding, connection = value.connection;
-    if (t.conversationRevision !== undefined ||
+    const c = original(saved), target = c.target, t = topology(value, ctx, value.activationState === "stopped" &&
+        object(value.connection, [
+            "id",
+            "conversationId",
+            "sessionId",
+            "receiptStreamRevision",
+        ]) &&
+        identifier(value.connection.id)
+        ? value.connection.id
+        : undefined), binding = value.binding, connection = value.connection;
+    if (![null, "ready", "stopped"].includes(value.activationState) ||
+        (value.activationState === "stopped") !==
+            t.retired.includes(t.admitted[0].id) ||
+        t.conversationRevision !== undefined ||
         !t.retained.some((v) => v.id === c.retained_connection_id) ||
         !t.retired.includes(ctx.key.scope.connectionId) ||
         !object(connection, [
@@ -265,6 +292,7 @@ export function moveResult(value, ctx, saved) {
     return Object.freeze({
         ...t,
         connection: t.admitted[0],
+        activationState: value.activationState,
         binding: Object.freeze({
             ...binding,
         }),
