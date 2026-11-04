@@ -178,6 +178,20 @@ additional members, truncated identities, unmatched APP senders and bare PLIs
 are refused. Datagram sequence wrap is valid syntax; duplicate/coalescing policy
 belongs to current-authorized admission, not this parser.
 
+The Core route record now passes two focused local ARM cases at `9619169e`.
+It retains weak physical-port references, exact direct/port/scene generation
+metadata, and one bounded epoch/rate/sequence record per direct selection. It
+stores neither packet bytes nor permission readers. Each local dispatch reacquires
+current publication and receiver-source authority and pins the corresponding
+generation guards through the synchronous nonblocking send callback. Old media
+still expires at its original age; feedback is a distinct fresh admission.
+
+The cases verify per-route 100 ms coalescing, duplicate/serial handling including
+wrap and failed local IO, source/receiver revocation and retirement, video
+reselection, pause/resume and source physical replacement. Unrelated Data changes
+preserve the video epoch. These are Core fixture proofs, not signed Service or
+native transport qualification. See [the exact evidence](../evidence/gate-6/video-feedback-authority.json).
+
 Before enabling it, the adapter must bind the physical receiver handle and epoch
 to the actual current direct selection, source, original operation and generation.
 It must reacquire current receiver and source authority and bound/coalesce
