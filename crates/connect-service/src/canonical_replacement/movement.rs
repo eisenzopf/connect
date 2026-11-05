@@ -24,6 +24,17 @@ impl Runtime {
                     tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="plan",?error,"Replacement pre-commit refused");
                     super::projection::core_plan_error(error)
                 })?;
+                let plan = if let Some(parent) = plan.media().private_predecessor() {
+                    let original = {
+                        let audiences = self.consultation_audiences.lock().map_err(|_| Error::storage())?;
+                        let original = audiences.get(parent).ok_or_else(Error::forbidden)?;
+                        if original.session != root.origin.request().session_id
+                            || original.handle.primary_connection() != &plan.media().request().source
+                        { return Err(Error::forbidden()); }
+                        original.handle.clone()
+                    };
+                    plan.with_private_consultation(&original).map_err(super::projection::core_plan_error)?
+                } else { plan };
                 self.continuation_read_once(root, started, Phase::Commit(plan)).await
             }).await.map_err(|error| {
                 tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="scene-read",code=%error.code,"Replacement pre-commit refused");
@@ -138,7 +149,9 @@ impl Runtime {
         };
         let movement = serde_json::json!({"operation_id":actual.operation_id,"session":actual.session.as_str(),"participant":actual.participant.as_str(),"membership_epoch":actual.membership_epoch,"source":actual.replaced.as_str(),"candidate":actual.admitted.as_str(),"retained":actual.retained.as_str(),"endpoint":actual.endpoint.as_str(),"device":actual.device.as_str(),"generation":actual.generation,"participant_revision":actual.revision,"role":role,"confirmation":confirmation});
         let ready = connect_store::NativeReadyObservation {
-            private_consultation: None,
+            private_consultation: handle
+                .private_successor()
+                .map(|successor| successor.audience().operation_id().to_owned()),
             handoff_preparation: false,
             conversation_id: root.origin.request().conversation_id.clone(),
             session_id: actual.session.as_str().into(),
@@ -195,6 +208,35 @@ impl Runtime {
             root.deadline
                 .min(tokio::time::Instant::now() + Duration::from_secs(5)),
             || async {
+                // Install only the actual committed private successor. Repeated
+                // metadata observation can recognize that same capability;
+                // neither an ID nor a historical receipt can substitute for it.
+                if let Some(successor) = handle.private_successor() {
+                    let mut audiences = self
+                        .consultation_audiences
+                        .lock()
+                        .map_err(|_| Error::storage())?;
+                    let original = audiences
+                        .get_mut(successor.audience().operation_id())
+                        .ok_or_else(Error::forbidden)?;
+                    if original.session != root.origin.request().session_id {
+                        return Err(Error::forbidden());
+                    }
+                    if !successor.same_restoration(&original.handle) {
+                        if !successor.succeeds(&original.handle) {
+                            return Err(Error::forbidden());
+                        }
+                        original.handle = successor.clone();
+                        if original
+                            .original_receivers
+                            .remove(outcome.replaced.as_str())
+                        {
+                            original
+                                .original_receivers
+                                .insert(outcome.admitted.as_str().into());
+                        }
+                    }
+                }
                 for id in handle.audience().commit().connections() {
                     if id != &outcome.replaced
                         && self.native_connection_live(id)

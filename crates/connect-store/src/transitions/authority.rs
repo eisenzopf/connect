@@ -170,6 +170,26 @@ pub(super) fn admission(
             private_participants,
             ..
         } => {
+            // A current physical successor still occupies its original private
+            // slot. It cannot evade consultation exclusion through a new ID.
+            for id in [r.connection_id.as_deref(), Some(r.intent.retained())]
+                .into_iter()
+                .flatten()
+            {
+                if let Some(floor) =
+                    crate::connection_control::private_consultation::replacement_lineage::floor(
+                        c, id,
+                    )?
+                {
+                    let same:bool=c.query_row("SELECT operation_id=?2 AND owner_id=?3 FROM operations WHERE record_id=?1",params![floor.record,r.operation_id,actor.identity_id],|r|r.get(0)).map_err(|_|Error::storage())?;
+                    if !same {
+                        return Err(Error::new(
+                            "conflict",
+                            "An existing private context requires an authorized return or decision",
+                        ));
+                    }
+                }
+            }
             // Completion preserves the private context after generic operation
             // reservations are released. Its explicit receivers, including the
             // held remote, cannot be borrowed by another consultation. Disjoint

@@ -3,6 +3,7 @@ use super::*;
 use crate::{AuthorityMode, AuthorityScope, NativeConsultationOrigin};
 use connect_protocol::transitions::TransitionIntent;
 pub(crate) mod active;
+pub(crate) mod replacement_lineage;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Purpose {
@@ -296,13 +297,13 @@ pub(crate) fn for_connection(
 ) -> Result<Option<Context>> {
     // Keep only compiled SQL in the existing bounded connection cache. Every
     // lookup binds this current Connection and executes for current floor rows.
-    let record: Option<String> = c
-        .prepare_cached(
-            "SELECT f.operation_record_id FROM native_private_content_floors f JOIN consultation_candidate_bindings b ON b.operation_record_id=f.operation_record_id WHERE f.connection_id=?1 AND (b.candidate_kind='sip' OR b.connection_id=f.connection_id)",
-        )
-        .and_then(|mut statement| statement.query_row([connection], |r| r.get(0)))
-        .optional()
-        .map_err(|_| Error::storage())?;
+    let floor = replacement_lineage::floor(c, connection)?;
+    let record = if let Some(floor) = floor {
+        let sip: bool = c.query_row("SELECT candidate_kind='sip' FROM consultation_candidate_bindings WHERE operation_record_id=?1", [&floor.record], |r| r.get(0)).map_err(|_|Error::storage())?;
+        (sip || floor.candidate).then_some(floor.record)
+    } else {
+        None
+    };
     record
         .map(|record| registered_current(store, c, &record, purpose))
         .transpose()
@@ -450,14 +451,7 @@ pub(crate) fn observation_allowed(
     if !super::handoff_preparation::observation_allowed(c, connection, selected)? {
         return Ok(false);
     }
-    let audience: Option<String> = c
-        .query_row(
-            "SELECT audience_json FROM native_private_content_floors WHERE connection_id=?1",
-            [connection],
-            |r| r.get(0),
-        )
-        .optional()
-        .map_err(|_| Error::storage())?;
+    let audience = replacement_lineage::floor(c, connection)?.map(|floor| floor.audience);
     let Some(audience) = audience else {
         return Ok(true);
     };
@@ -490,12 +484,7 @@ pub(crate) fn observation_source_current(
 pub(crate) fn private_partner(c: &Connection, connection: &str) -> Result<Option<String>> {
     // Reuse the compiled view query, never its rows or a prior authority grant.
     // Every packet still executes against this current connection/snapshot.
-    c.prepare_cached(
-        "SELECT partner_connection_id FROM native_private_content_floors WHERE connection_id=?1",
-    )
-    .and_then(|mut statement| statement.query_row([connection], |r| r.get(0)))
-    .optional()
-    .map_err(|_| Error::storage())
+    Ok(replacement_lineage::floor(c, connection)?.map(|floor| floor.partner))
 }
 
 pub(crate) fn require_connection_context(c: &Connection, session: &str) -> Result<()> {

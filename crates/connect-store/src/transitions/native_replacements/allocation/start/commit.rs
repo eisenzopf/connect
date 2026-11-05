@@ -16,6 +16,8 @@ pub struct NativeReplacementCommitAttempt {
     resources: String,
     source_expires_at: i64,
     activation: Arc<crate::NativeReplacementActivation>,
+    private_successor:
+        Option<crate::connection_control::private_consultation::replacement_lineage::Successor>,
 }
 pub struct NativeReplacementCommitted {
     attempt: NativeReplacementCommitAttempt,
@@ -50,7 +52,11 @@ impl NativeReplacementCommitAttempt {
     ) -> Result<NativeReplacementCommitted> {
         let target = &self.target;
         if movement != self.expected()?
-            || ready.private_consultation.is_some()
+            || ready.private_consultation.as_deref()
+                != self
+                    .private_successor
+                    .as_ref()
+                    .map(|lineage| lineage.consultation_record_id.as_str())
             || ready.handoff_preparation
             || ready.conversation_id != target.connection.conversation_id
             || ready.session_id != target.connection.session_id
@@ -183,6 +189,17 @@ impl Store {
             return Err(Error::forbidden());
         }
         let resources = crate::provisioning::canonical_json(&serde_json::json!(recipients))?;
+        let private_successor =
+            crate::connection_control::private_consultation::replacement_lineage::capture(
+                self,
+                &tx,
+                &ctx.source_connection_id,
+                &ctx.retained_connection_id,
+                &read.media.target,
+                &descriptor,
+                source_expires_at,
+                &read.media.interval,
+            )?;
         let revision = saved["expected_preparation"]["participant_revision"]
             .as_u64()
             .and_then(|v| v.checked_add(1))
@@ -229,6 +246,7 @@ impl Store {
             resources,
             source_expires_at,
             activation,
+            private_successor,
         })
     }
     /// Persist a known actual outcome after all transient engine grants have
@@ -610,6 +628,15 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.execute("INSERT INTO native_replacement_lifetimes(operation_record_id,credential_id,key_id,device_id,endpoint_id,participant_id,membership_epoch,generation,resources_json,source_expires_at,attempt_runtime,attempt_id,effect_id) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)",params![p.record,descriptor["credential_id"].as_str().ok_or_else(invalid)?,descriptor["key_id"].as_str().ok_or_else(invalid)?,target.device_id,target.connection.endpoint_id,target.connection.participant_id,target.connection.membership_epoch,target.connection.generation,p.facts.resources,p.facts.source_expires_at,p.runtime,p.attempt,p.effect]).map_err(|_| Error::storage())?;
         tx.execute("INSERT INTO native_connection_lifetimes(operation_record_id,connection_id,runtime_epoch,generation,retired) VALUES(?1,?2,?3,?4,?5)",params![p.record,target.connection.connection_id,p.runtime,target.connection.generation,stopped]).map_err(|_| Error::storage())?;
+        if !stopped {
+            if let Some(lineage) = &p.facts.private_successor {
+                // New rows remain invisible under this full writer until the
+                // installed exact Core owner publishes the same transaction.
+                // Recheck the new physical private pair, never the retired
+                // predecessor or its historical execution credential.
+                crate::connection_control::private_consultation::replacement_lineage::require_published(self,&tx,lineage,&held)?;
+            }
+        }
         if stopped {
             let changed = tx.execute(
                 "UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND generation=?2 AND state='ready'",

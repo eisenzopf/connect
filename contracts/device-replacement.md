@@ -1053,3 +1053,46 @@ source and executables. See docs/evidence/gate-6/native-candidate-production-loc
 Earlier failures remain in docs/evidence/gate-6/native-candidate-adoption.json.
 The complete current Linux matrix, full SDK and Gate 6 acceptance remain
 unqualified; publication stays separate.
+
+
+## Established private primary replacement
+
+The native primary of an established private consultation can use the existing
+`connection.replace` intent with its exact private partner as `retained_connid`.
+The target completes the ordinary signed allocation and real decoded-media
+readiness phases. During preparation and any failed or cancelled target attempt,
+the original private route and its restore capability remain current. Pending
+private replacement is never authorized through the public continuation path.
+
+The successful atomic Core move creates a successor of the original private
+consultation handle. It preserves that consultation ID, private audience,
+held-remote treatment, unrelated receiver selections and saved public restore
+programs. Only the intended original primary physical connection is translated
+to the replacement. The prior exact handle cannot restore or revive a stale
+route. Metadata handles retain weak physical owners, not live authority readers.
+
+The Store records the successor's actual physical tuple and its immediate
+predecessor operation/capture digest in the existing immutable replacement
+observation. It leaves the original consultation selection and audience intact.
+Each media and return read resolves this same completed, confirmed lineage and
+then applies current credential, signing-key, Device, Endpoint, membership,
+role, runtime and recipient checks. A historical capture is not an IO grant.
+Repeated replacements must descend from the preceding confirmed owner of this
+same original slot; cancelled, stopped, conflicting or foreign-runtime captures
+cannot publish a replacement. The private interval retains its earliest
+already-observed absolute ceiling; a longer new-device credential does not renew
+it, and the retired device's key does not authorize the new owner.
+
+`session.consult.return` continues to name the original consultation record,
+the current primary connection and original held remote. It requires fresh
+return authority and restores the original saved public programs with the
+current primary substitution; the private consultant remains isolated after
+return. A missing or denied private context is never converted into public
+permission. This implementation transfers the established native **primary**
+slot only. Replacing the private consultant/provider or held remote is refused
+before movement rather than inventing a different restoration policy.
+
+The focused Store controls use explicitly controlled engine observations;
+actual Core decoded PCM and signed server private-replacement/return controls
+are separate required behavior evidence. Source changes or typechecks alone do
+not qualify Gate 6 continuity or idle-resource requirements.

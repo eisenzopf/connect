@@ -47,10 +47,65 @@ pub(super) fn prepared_target_with_capabilities(
     PeerAuthorityRequest,
     Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
 ) {
+    prepared_target_for_scene(extra_operations, setup_with_capabilities(capabilities))
+}
+pub(super) fn prepared_target_for_scene(
+    extra_operations: &[&str],
+    scene: (
+        Fixture,
+        String,
+        TransitionCommand,
+        crate::NativeReplacementOrigin,
+        Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
+    ),
+) -> (
+    Fixture,
+    String,
+    TransitionCommand,
+    NativeReplacementPrepared,
+    PeerAuthorityRequest,
+    Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
+) {
+    prepared_target_for_scene_named(extra_operations, scene, "replacement")
+}
+pub(super) fn prepared_target_for_scene_named(
+    extra_operations: &[&str],
+    scene: (
+        Fixture,
+        String,
+        TransitionCommand,
+        crate::NativeReplacementOrigin,
+        Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
+    ),
+    label: &str,
+) -> (
+    Fixture,
+    String,
+    TransitionCommand,
+    NativeReplacementPrepared,
+    PeerAuthorityRequest,
+    Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
+) {
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
     use ring::signature::{Ed25519KeyPair, KeyPair};
-    let (f, key, command, origin, sources) = setup_with_capabilities(capabilities);
-    let lease = prepare(&f, &origin, &sources);
+    let (f, key, command, origin, sources) = scene;
+    let context = f.store.native_replacement_context(&origin).unwrap();
+    let read = f
+        .store
+        .try_native_replacement_preparation_read(
+            &origin,
+            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+            &sources[1],
+        )
+        .unwrap();
+    let mut requested = request();
+    requested.candidate_connection_id = format!("{label}-next");
+    requested.participant_revision=f.store.connection().unwrap().query_row("SELECT json_extract(readiness_json,'$.participant_revision') FROM connections WHERE id=?1",[sources[0].connection_id()],|r|r.get::<_,Option<u64>>(0)).unwrap().unwrap_or(1);
+    let lease = f
+        .store
+        .prepare_native_replacement(read, requested)
+        .unwrap()
+        .unwrap();
     let plan = lease.plan().unwrap();
     let observation = plan["expected_preparation"].clone();
     let receipt = begin(&f, lease).prepared(observation).unwrap();
@@ -72,11 +127,11 @@ pub(super) fn prepared_target_with_capabilities(
         .execute_provisioning(
             &f.admin,
             ProvisioningCommand::SigningKey {
-                operation_id: "replacement-target-key".into(),
+                operation_id: format!("{label}-target-key"),
                 identity_id: identity,
                 credential_id: target.id.clone(),
-                device_id: "device-replacement".into(),
-                key_id: "replacement-key".into(),
+                device_id: context.target_device_id.clone(),
+                key_id: format!("{label}-key"),
                 algorithm: SigningAlgorithm::EdDSA,
                 public_key: URL_SAFE_NO_PAD.encode(pair.public_key().as_ref()),
                 not_before: crate::now() - 1,
@@ -92,11 +147,11 @@ pub(super) fn prepared_target_with_capabilities(
     let request = PeerAuthorityRequest {
         credentials: vec![target.id],
         device: crate::PeerDeviceClaim {
-            id: "device-replacement".into(),
+            id: context.target_device_id,
             kind: "desktop".into(),
             platform: "isolated-store-fixture".into(),
         },
-        key_id: "replacement-key".into(),
+        key_id: format!("{label}-key"),
         algorithm: "EdDSA".into(),
         command: crate::PeerCommand::NativeConnectionOffer(intent),
     };

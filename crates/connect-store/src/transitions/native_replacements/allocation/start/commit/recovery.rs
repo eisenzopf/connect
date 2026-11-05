@@ -17,6 +17,8 @@ pub(super) struct ProjectionFacts {
     pub target: Target,
     pub resources: String,
     pub source_expires_at: i64,
+    pub private_successor:
+        Option<crate::connection_control::private_consultation::replacement_lineage::Successor>,
 }
 impl ProjectionFacts {
     pub(super) fn from_attempt(a: &NativeReplacementCommitAttempt) -> Self {
@@ -29,6 +31,7 @@ impl ProjectionFacts {
             },
             resources: a.resources.clone(),
             source_expires_at: a.source_expires_at,
+            private_successor: a.private_successor.clone(),
         }
     }
 }

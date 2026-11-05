@@ -148,8 +148,11 @@ pub(super) fn target(c: &Connection, store: &Store, record: &str) -> Result<Targ
     if runtime != store.runtime_epoch() {
         return Err(Error::forbidden());
     }
-    let selection: serde_json::Value =
-        serde_json::from_str(&selection).map_err(|_| Error::storage())?;
+    let resolved = crate::connection_control::private_consultation::replacement_lineage::resolve(
+        c, record, &selection, &primary, &runtime,
+    )?;
+    let primary = resolved.primary;
+    let selection = resolved.selection;
     let remote = selection["remote"]["connection_id"]
         .as_str()
         .ok_or_else(Error::storage)?

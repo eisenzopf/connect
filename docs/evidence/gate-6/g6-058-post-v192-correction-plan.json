@@ -7,7 +7,7 @@
   "active_source_changes_applied": true,
   "new_runtime_tests_executed": 0,
   "new_matrix_cells_qualified": 0,
-  "batch_policy": "All known correction boundaries and newly source-proven integration gaps remain one coordinated batch. Browser native readiness, continuation/native readiness/epoch/cadence and fixture corrections are applied but runtime-unverified; established-private successor handling remains in implementation. Server resource causation and exact public activation-cut design remain open. Focused verification and one clean all32/all432 local ARM matrix follow complete integration.",
+  "batch_policy": "All known correction boundaries remain one coordinated batch. Native/browser readiness, cadence, continuation/epoch and actual private successor/lineage are applied but runtime-unverified. Exact native public activation boundary is in private implementation; server resource causation remains open. Focused behavior verification and one clean all32/all432 local ARM matrix follow complete integration.",
   "items": [
     {
       "id": "prepared-subscription-metadata",
@@ -110,7 +110,7 @@
   ],
   "applied_scope": "Audio/subscription/canvas/Worker/observer/startup/TLS/ICE corrections plus paired current continuation, native decoded readiness, exact same-source decoder epoch promotion, original20ms preparation sample cadence and adapted signed/decoder fixtures. Static checks pass; latest broad typecheck exposed two fixture API/ownership errors, now corrected. No new runtime pass. Browser native decoded proof/custody now applied and TypeScript build/full formatting pass; four new/changed Node test files parse, but no runtime test has run.",
   "integration_evidence": "g6-058-coordinated-integration-progress.json",
-  "source_lock_sha256": "cf291eca04bc1a8495df51f2137f1e1fd95c4131c493c48bab277e3fabbe25e2",
+  "source_lock_sha256": "c9cb82f2a87b847bb42f714ee11e2d73dee73ddfbaaa46f9988f968f590af35f",
   "integration_findings": [
     {
       "id": "preparation-audio-cadence",
@@ -136,20 +136,20 @@
       "id": "private-primary-successor",
       "title": "Established private movement and return",
       "kind": "library",
-      "status": "private-implementation-in-progress",
+      "status": "applied-prepared-static-only-runtime-unverified",
       "finding": "Private floor history captures original physical primary; Core replacement consumes the original restorable audience handle. Store aliases alone cannot retain current private duplex and return.",
       "fix": "Actual-commit-derived exact successor restoration handle and fresh parent-bound current Store lineage, preserving original consultation/audience/programmes. No public fallback or history rewrite.",
-      "proof": "Strengthened actual signed completed-private/paused-refusal/return fixtures applied; production repair is private and unrun. All-muted completion is a failure.",
-      "reference": ".local/gate-6/private-replacement-successor-candidate/proposal.json"
+      "proof": "Actual Core successor plus current immutable parent-bound Store lineage applied from guarded candidate;5 Core,13 Store,4 existing controls and3 signed ancestry cases require execution. Fresh dependency preparation532files/39reviewed results and formatting/reference checks pass.",
+      "reference": ".local/gate-6/private-replacement-successor-candidate/apply-manifest.json"
     },
     {
       "id": "native-decoder-context-and-observation",
       "title": "Decoder continuity and public measurement",
       "kind": "library-and-fixture",
-      "status": "continuity-applied-activation-cut-proposal-open",
+      "status": "continuity-applied-native-cut-private-implementation",
       "finding": "Replacement decoding used to restart at durable completed-root observation, discarding genuine private keyframe context. Earlier actual public activation is still not identified by that later root observation.",
-      "fix": "Retain only genuine same-physical/stream/SSRC/generation/epoch decoder context, exclude private outputs from public quality; actual decoder continuity then explicit test-owned cold reset. Exact signed per-stream public activation cut needs separate concrete design.",
-      "proof": "Rust/helper/oracle and seven epoch-aware recovery cases applied but unrun. Original public ownership window stays unchanged; earlier interval remains unresolved.",
+      "fix": "Retain genuine same-source decoder context; exact original native packetizer boundary is being added to actual Core commit, durable result, SDK datagram lineage and public oracle. No source timestamp or threshold changes.",
+      "proof": "Existing decoder/epoch fixtures applied but unrun. Native packet lineage and race/old-owner refusal controls are in private implementation. WebRTC retains its separate measurement contract.",
       "reference": ".local/gate-6/native-private-context-oracle-candidate/proposal.json"
     }
   ]

@@ -1739,6 +1739,11 @@
       "path": "patches/rvoip/connect-runtime-retention-attribution.patch",
       "sha256": "b2293d1319b864888e15eb7ed1940700e1b60b4971198ad3b873b1da0d3aeb56",
       "source": "G6-058 bounded read-only OS thread identity for original blocking-call attribution; no runtime setting, allocator feature, job, authority or idle acceptance change. Focused Linux/macOS identity tests are drafted and unexecuted."
+    },
+    {
+      "path": "patches/rvoip/connect-private-replacement-successor.patch",
+      "sha256": "2e4007d2fe1dd6d681bd76fcebe93ed136fe8f6893b27eefe51c67c7bbc33fcd",
+      "source": "G6-058 actual same-commit native private-primary restoration successor and parent-bound immutable physical lineage. Original private expiry and fresh current target authority remain required; consultant/provider and held-remote replacement remain refused. Focused and full matrix behavior verification pending."
     }
   ]
 }

@@ -6,7 +6,7 @@ use sha2::{Digest, Sha256};
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Incarnation {
+pub(super) struct Incarnation {
     connection_id: String,
     runtime_connection_id: String,
     participant_id: String,
@@ -85,13 +85,21 @@ pub(crate) fn validate_for(
     audience: &str,
     purpose: Purpose,
 ) -> Result<Established> {
-    let selection: Selection = serde_json::from_str(selected).map_err(|_| Error::storage())?;
     let audience: Vec<(String, String, u64)> =
         serde_json::from_str(audience).map_err(|_| Error::storage())?;
     let (candidate, primary, session, conversation, kind): (String,String,String,String,String) = c.query_row(
         "SELECT l.connection_id,l.primary_connection_id,v.session_id,s.conversation_id,l.candidate_kind FROM consultation_candidate_bindings l JOIN connections v ON v.id=l.primary_connection_id JOIN sessions s ON s.id=v.session_id WHERE l.operation_record_id=?1",
         [record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?)),
     ).map_err(|_|Error::storage())?;
+    let resolved =
+        replacement_lineage::resolve(c, record, selected, &primary, store.runtime_epoch())?;
+    let primary = resolved.primary;
+    let private_expires_at = resolved.private_expires_at;
+    if purpose.media() && private_expires_at.is_some_and(|expiry| crate::now() >= expiry) {
+        return Err(Error::forbidden());
+    }
+    let selection: Selection =
+        serde_json::from_value(resolved.selection).map_err(|_| Error::storage())?;
     if selection.private.len() != 2
         || selection
             .private
@@ -119,7 +127,7 @@ pub(crate) fn validate_for(
         &conversation,
         AuthorityMode::Read,
     )?];
-    let mut expires_at = i64::MAX;
+    let mut expires_at = private_expires_at.unwrap_or(i64::MAX);
     let mut private_actors = vec![];
     for original in selection
         .private

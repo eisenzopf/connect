@@ -1,0 +1,827 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -346,6 +346,13 @@
+     preparation: Arc<DeviceReplacementPreparation>,
+ }
+ impl ManagedAudioDeviceReplacementPlan {
++    pub fn with_private_consultation(
++        mut self,
++        original: &crate::staged_streams::consultation::PrivateConsultationHandle,
++    ) -> ControlResult<Self> {
++        self.media = self.media.with_private_consultation(original)?;
++        Ok(self)
++    }
+     pub fn media(&self) -> &AudioDeviceReplacementPlan {
+         &self.media
+     }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -151,6 +151,81 @@
+     pub(super) endpoint_preparation: bool,
+ }
+ impl AudioAudienceHandle {
++    /// Translate this actual original restore programme before its private
++    /// device moves. The returned metadata is not a committed successor yet.
++    pub(super) fn prepare_replacement_successor(
++        &self,
++        group: Arc<ClosedAudience>,
++        old: &Arc<StreamController>,
++        new: &Arc<StreamController>,
++        old_logical: &StreamId,
++        new_logical: &StreamId,
++        pending: &crate::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<Self> {
++        if !self.restore_allowed
++            || self.endpoint_preparation
++            || self.group.operation != group.operation
++            || !self.group.contains(old)
++            || !group.contains(new)
++            || self.receivers.contains_key(&new.connection)
++            || !self
++                .receivers
++                .get(&old.connection)
++                .is_some_and(|origin| origin.matches(old))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut original = BTreeMap::new();
++        for (id, programme) in &self.original {
++            let id = if id == &old.connection {
++                new.connection.clone()
++            } else {
++                id.clone()
++            };
++            let programme =
++                programme.replacing_connection(old, new, old_logical, new_logical, pending)?;
++            if original.insert(id, programme).is_some() {
++                return Err(StreamControlError::Authority);
++            }
++        }
++        let mut receivers = self.receivers.clone();
++        receivers.remove(&old.connection);
++        receivers.insert(new.connection.clone(), AudienceOrigin::new(new));
++        let muted_source = self.muted_source.as_ref().map(|origin| {
++            if origin.matches(old) {
++                AudienceOrigin::new(new)
++            } else {
++                origin.clone()
++            }
++        });
++        Ok(Self {
++            scene: self.scene,
++            group,
++            original,
++            receivers,
++            muted_source,
++            committed_at: self.committed_at,
++            commit: self.commit.clone(),
++            restore_allowed: true,
++            endpoint_preparation: false,
++        })
++    }
++    pub(super) fn validate_replacement_commit(
++        &self,
++        plan: &AudioAudiencePlan,
++    ) -> ControlResult<()> {
++        if self.scene != plan.scene || !Arc::ptr_eq(&self.group, &plan.group) {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(())
++    }
++    /// The caller validates the immutable group before submitting that exact
++    /// plan. A successful apply returns its same group/scene; sealing only copies
++    /// its actual commit metadata and cannot fail after publication.
++    pub(super) fn seal_replacement_commit(&mut self, actual: &Self) {
++        self.commit = actual.commit.clone();
++        self.committed_at = actual.committed_at;
++    }
+     pub fn commit(&self) -> &AudioAudienceCommit {
+         &self.commit
+     }
+@@ -910,6 +985,17 @@
+                 return Err(MediaTransitionError::Conflict.into());
+             }
+             let mut groups = registry.groups.clone();
++            if plan
++                .replacement
++                .as_ref()
++                .is_some_and(|r| r.restoration.is_some())
++                && (plan.replaced_audiences.len() != 1
++                    || !registry
++                        .restorable
++                        .contains(&plan.replaced_audiences[0].operation))
++            {
++                return Err(StreamControlError::Authority);
++            }
+             let muted_source = if let Some(restore) = &plan.restore {
+                 if !groups
+                     .get(&plan.group.operation)
+@@ -1096,7 +1182,11 @@
+                         .map(|(id, _)| id.clone())
+                         .collect::<BTreeSet<_>>();
+                     if ids.is_empty() {
+-                        return Err(refused("gate-audio-missing", id, StreamControlError::NotReady));
++                        return Err(refused(
++                            "gate-audio-missing",
++                            id,
++                            StreamControlError::NotReady,
++                        ));
+                     }
+                     if plan.restore.is_none()
+                         && ids.iter().any(|id| !state.model.streams()[id].source_muted)
+@@ -1242,8 +1332,9 @@
+             // Validate one receiver at a time: another receiver is often also
+             // its publisher. Holding all state locks here would reenter them.
+             for target in &targets {
+-                current(target, deadline, &cancel)
+-                .map_err(|error| refused("validate-current", &target.controller.connection, error))?;
++                current(target, deadline, &cancel).map_err(|error| {
++                    refused("validate-current", &target.controller.connection, error)
++                })?;
+                 let id = &target.controller.connection;
+                 let member = &members[id];
+                 let state = target
+@@ -1269,16 +1360,21 @@
+                 state
+                     .model
+                     .check_routing(&owner.current(), plan.expected[id])?;
+-                receive.extend(target.audio.validate(
+-                    self,
+-                    &members,
+-                    member,
+-                    &state,
+-                    &scope,
+-                    &owner,
+-                    Some(&target.control),
+-                    None,
+-                ).map_err(|error| refused("validate-audio", id, error))?);
++                receive.extend(
++                    target
++                        .audio
++                        .validate(
++                            self,
++                            &members,
++                            member,
++                            &state,
++                            &scope,
++                            &owner,
++                            Some(&target.control),
++                            None,
++                        )
++                        .map_err(|error| refused("validate-audio", id, error))?,
++                );
+                 if let Some(direct) = &target.direct {
+                     receive.extend(direct.validate(
+                         &target.controller,
+@@ -1300,8 +1396,9 @@
+             let mut models = Vec::new();
+             let mut revisions = BTreeMap::new();
+             for ((target, state), owner) in targets.iter().zip(&states).zip(&owners) {
+-                current(target, deadline, &cancel)
+-                .map_err(|error| refused("model-current", &target.controller.connection, error))?;
++                current(target, deadline, &cancel).map_err(|error| {
++                    refused("model-current", &target.controller.connection, error)
++                })?;
+                 if state.closed {
+                     return Err(StreamControlError::Cancelled);
+                 }
+@@ -1333,15 +1430,20 @@
+             }
+             let mut commits = targets
+                 .iter()
+-                .map(|t| t.audio.lock().map_err(|error| refused("audio-commit-lock", &t.controller.connection, error)))
++                .map(|t| {
++                    t.audio.lock().map_err(|error| {
++                        refused("audio-commit-lock", &t.controller.connection, error)
++                    })
++                })
+                 .collect::<ControlResult<Vec<_>>>()?;
+             let mut direct_commits = targets
+                 .iter()
+                 .map(|t| t.direct.as_ref().map(|d| d.lock(&t.controller)).transpose())
+                 .collect::<ControlResult<Vec<_>>>()?;
+             for (target, state) in targets.iter().zip(&states) {
+-                current(target, deadline, &cancel)
+-                .map_err(|error| refused("publish-current", &target.controller.connection, error))?;
++                current(target, deadline, &cancel).map_err(|error| {
++                    refused("publish-current", &target.controller.connection, error)
++                })?;
+                 if let Some(handoff) = &plan.handoff {
+                     handoff.validate_target(&target.controller, state)?;
+                 }
+@@ -1424,6 +1526,14 @@
+                 && plan.replacement.is_none()
+                 && !plan.preparation_muted
+             {
++                registry.restorable.insert(plan.group.operation.clone());
++            } else if plan
++                .replacement
++                .as_ref()
++                .is_some_and(|r| r.restoration.is_some())
++            {
++                // The same actual commit consumes the predecessor and installs
++                // its mapped successor. No observer can expose both identities.
+                 registry.restorable.insert(plan.group.operation.clone());
+             }
+             registry.groups = next_groups;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/consultation.rs b/crates/foundation/rvoip-core/src/staged_streams/consultation.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/consultation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/consultation.rs
+@@ -38,10 +38,65 @@
+     primary: AudienceOrigin,
+     remote: AudienceOrigin,
+     consultant: AudienceOrigin,
++    predecessor: Option<Arc<ClosedAudience>>,
+ }
+ impl PrivateConsultationHandle {
+     pub fn audience(&self) -> &AudioAudienceHandle {
+         &self.audience
++    }
++    pub fn primary_connection(&self) -> &ConnectionId {
++        &self.primary.connection
++    }
++    /// Compare the same actual restoration incarnation, never just its name.
++    pub fn same_restoration(&self, other: &Self) -> bool {
++        self.audience.scene == other.audience.scene
++            && Arc::ptr_eq(&self.audience.group, &other.audience.group)
++    }
++    pub fn succeeds(&self, original: &Self) -> bool {
++        self.audience.scene == original.audience.scene
++            && self
++                .predecessor
++                .as_ref()
++                .is_some_and(|previous| Arc::ptr_eq(previous, &original.audience.group))
++    }
++    pub(super) fn prepare_replacement_successor(
++        &self,
++        group: Arc<ClosedAudience>,
++        old: &Arc<StreamController>,
++        new: &Arc<StreamController>,
++        old_logical: &StreamId,
++        new_logical: &StreamId,
++        pending: &crate::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<Self> {
++        // This extension transfers the established private primary only. A
++        // provider/consultant or held remote needs its own explicit contract.
++        if !self.primary.matches(old) || self.remote.matches(old) || self.consultant.matches(old) {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(Self {
++            audience: self.audience.prepare_replacement_successor(
++                group,
++                old,
++                new,
++                old_logical,
++                new_logical,
++                pending,
++            )?,
++            primary: AudienceOrigin::new(new),
++            remote: self.remote.clone(),
++            consultant: self.consultant.clone(),
++            predecessor: Some(self.audience.group.clone()),
++        })
++    }
++    pub(super) fn validate_replacement_commit(
++        &self,
++        plan: &AudioAudiencePlan,
++    ) -> ControlResult<()> {
++        self.audience.validate_replacement_commit(plan)
++    }
++    pub(super) fn seal_replacement_commit(mut self, actual: &AudioAudienceHandle) -> Self {
++        self.audience.seal_replacement_commit(actual);
++        self
+     }
+ }
+ /// Bounded media preparation outcome, not Connection.ready or presence.
+@@ -140,6 +195,7 @@
+                 primary: plan.primary,
+                 remote: plan.remote,
+                 consultant: plan.consultant,
++                predecessor: None,
+             },
+         ))
+     }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs b/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
+@@ -17,6 +17,7 @@
+     pub receivers: Vec<ReplacementVideoStream>,
+ }
+ 
++#[derive(Clone)]
+ pub(crate) struct VideoPlan {
+     old: Weak<StreamController>,
+     new: Weak<StreamController>,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -17,6 +17,7 @@
+     pub retained: ConnectionId,
+     pub video: Option<ReplacementVideoRequest>,
+ }
++#[derive(Clone)]
+ pub(super) struct ReplacementIntent {
+     pub(super) request: AudioDeviceReplacementRequest,
+     pub(super) preparation: Arc<ClosedAudience>,
+@@ -31,8 +32,14 @@
+     pub(super) old_gate: LogicalStream,
+     pub(super) video: Option<video::VideoPlan>,
+     pending: PreparedParticipantReplacement,
++    pub(super) restoration: Option<super::consultation::PrivateConsultationHandle>,
+ }
+ impl ReplacementIntent {
++    pub(super) fn private_consultation_parent(&self) -> Option<&str> {
++        self.restoration
++            .as_ref()
++            .map(|handle| handle.audience().operation_id())
++    }
+     pub(super) fn validate_target(
+         &self,
+         controller: &StreamController,
+@@ -68,6 +75,60 @@
+     audience: AudioAudiencePlan,
+ }
+ impl AudioDeviceReplacementPlan {
++    /// Classification only; the exact retained handle is separately required.
++    pub fn private_predecessor(&self) -> Option<&str> {
++        self.audience
++            .replaced_audiences
++            .first()
++            .map(|group| group.operation.as_str())
++    }
++    pub fn with_private_consultation(
++        mut self,
++        original: &super::consultation::PrivateConsultationHandle,
++    ) -> ControlResult<Self> {
++        if self.audience.scene != original.audience().scene
++            || self.audience.replaced_audiences.len() != 1
++            || !Arc::ptr_eq(
++                &self.audience.replaced_audiences[0],
++                &original.audience().group,
++            )
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let intent = self
++            .audience
++            .replacement
++            .as_mut()
++            .ok_or(StreamControlError::Authority)?;
++        let intent = Arc::make_mut(intent);
++        if intent.restoration.is_some() {
++            return Err(StreamControlError::Authority);
++        }
++        let old = intent.origins[&intent.request.source]
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::NotReady)?;
++        let new = intent.origins[&intent.request.admitted]
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::NotReady)?;
++        // Keep the consultation's immutable identity, but issue a fresh exact
++        // group Arc with only this physically confirmed device substitution.
++        let group = Arc::new(ClosedAudience {
++            operation: original.audience().group.operation.clone(),
++            origins: self.audience.group.origins.clone(),
++        });
++        intent.restoration = Some(original.prepare_replacement_successor(
++            group.clone(),
++            &old,
++            &new,
++            &intent.old_logical,
++            &intent.new_logical,
++            &intent.pending,
++        )?);
++        self.audience.group = group;
++        Ok(self)
++    }
+     pub fn audience(&self) -> &AudioAudiencePlan {
+         &self.audience
+     }
+@@ -115,8 +176,12 @@
+ pub struct AudioDeviceReplacementHandle {
+     audience: AudioAudienceHandle,
+     source: AudienceOrigin,
++    private_successor: Option<super::consultation::PrivateConsultationHandle>,
+ }
+ impl AudioDeviceReplacementHandle {
++    pub fn private_successor(&self) -> Option<&super::consultation::PrivateConsultationHandle> {
++        self.private_successor.as_ref()
++    }
+     pub fn audience(&self) -> &AudioAudienceHandle {
+         &self.audience
+     }
+@@ -413,6 +478,7 @@
+             old_gate,
+             video,
+             pending: pending.clone(),
++            restoration: None,
+         });
+         Ok(AudioDeviceReplacementPlan {
+             audience: AudioAudiencePlan {
+@@ -457,6 +523,9 @@
+             .replacement
+             .clone()
+             .ok_or(StreamControlError::Authority)?;
++        if let Some(restoration) = &intent.restoration {
++            restoration.validate_replacement_commit(&plan.audience)?;
++        }
+         let (media, audience) = self
+             .apply_audio_audience_managed(
+                 plan.audience,
+@@ -469,6 +538,10 @@
+             )
+             .await?;
+         self.remove(&intent.request.source);
++        let private_successor = intent
++            .restoration
++            .clone()
++            .map(|prepared| prepared.seal_replacement_commit(&audience));
+         Ok((
+             AudioDeviceReplacementOutcome {
+                 media,
+@@ -488,6 +561,7 @@
+             AudioDeviceReplacementHandle {
+                 audience,
+                 source: intent.origins[&intent.request.source].clone(),
++                private_successor,
+             },
+         ))
+     }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/private_successor.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/private_successor.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/private_successor.rs
+@@ -0,0 +1,260 @@
++//! Actual decoded PCM and same-commit private restoration. No Store projection
++//! or caller-provided receipt can fabricate the successor handle in these tests.
++use super::*;
++async fn close(f: Move) {
++    for node in f.room.nodes.values() {
++        assert_eq!(node.controller.shutdown(deadline()).await, 0);
++    }
++    drop(f);
++}
++
++#[tokio::test]
++async fn private_primary_successor_restores_original_public_programmes_after_actual_replacement() {
++    let mut f = Move::private_primary().await;
++    let original = f.consultation.clone().unwrap();
++    f.room.publish("alice", 800).unwrap();
++    f.room.tick();
++    f.room.heard("consult", 800).await;
++    f.room.silent(&["bob", "public", "other", "device"]);
++    f.room.publish("hold", 10400).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 10400).await;
++    f.room
++        .silent(&["alice", "consult", "public", "other", "device"]);
++    f.io().await;
++    f.confirm().await;
++    let plan = f
++        .plan()
++        .unwrap()
++        .with_private_consultation(&original)
++        .unwrap();
++    let (_, movement) = f.commit(plan).await.unwrap();
++    let successor = movement
++        .private_successor()
++        .expect("actual private commit supplies successor")
++        .clone();
++    assert!(successor.succeeds(&original));
++    assert!(!successor.same_restoration(&original));
++    assert_eq!(
++        successor.audience().operation_id(),
++        original.audience().operation_id()
++    );
++    assert_eq!(
++        successor.primary_connection(),
++        &ConnectionId::from_string("device")
++    );
++    assert!(f
++        .room
++        .scene
++        .plan_restore_audio_audience(
++            original.audience(),
++            "old-refused".into(),
++            f.room.scene.audience_revision()
++        )
++        .is_err());
++    assert!(f.room.publish("alice", 800).is_err());
++    f.room.publish("device", 5200).unwrap();
++    f.room.tick();
++    f.room.heard("consult", 5200).await;
++    f.room.silent(&["bob", "public", "other", "alice"]);
++    f.room.publish("consult", 6800).unwrap();
++    f.room.tick();
++    f.room.heard("device", 6800).await;
++    f.room.silent(&["bob", "public", "other", "alice"]);
++    f.room.restore_consultation(&successor).await;
++    f.room.publish("device", 2400).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 2400).await;
++    f.room.heard("public", 2400).await;
++    f.room.silent(&["consult", "alice", "other"]);
++    f.room.publish("bob", 3200).unwrap();
++    f.room.tick();
++    f.room.heard("device", 3200).await;
++    f.room.heard("other", 3200).await;
++    f.room.silent(&["consult", "alice", "public"]);
++    f.room.publish("other", 1800).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 1800).await;
++    f.room.heard("public", 1800).await;
++    f.room.silent(&["consult", "alice", "device"]);
++    assert!(
++        f.room.publish("consult", 6800).is_err(),
++        "restored private consultant stays quarantined"
++    );
++    assert!(f
++        .room
++        .scene
++        .plan_restore_audio_audience(
++            successor.audience(),
++            "duplicate-refused".into(),
++            f.room.scene.audience_revision()
++        )
++        .is_err());
++    close(f).await;
++}
++
++#[tokio::test]
++async fn private_primary_successor_rejects_foreign_handle_and_cancel_keeps_original_restore_owner()
++{
++    let mut f = Move::private_primary().await;
++    let foreign = Move::private_primary().await;
++    let original = f.consultation.clone().unwrap();
++    f.io().await;
++    f.confirm().await;
++    assert!(f
++        .plan()
++        .unwrap()
++        .with_private_consultation(foreign.consultation.as_ref().unwrap())
++        .is_err());
++    let plan = f
++        .plan()
++        .unwrap()
++        .with_private_consultation(&original)
++        .unwrap();
++    let grant = f
++        .room
++        .grant(Approval::Audience(plan.audience().clone()))
++        .await;
++    let cancel = CancellationToken::new();
++    cancel.cancel();
++    assert!(f
++        .room
++        .scene
++        .commit_audio_device_replacement(plan, deadline(), cancel, &grant)
++        .await
++        .is_err());
++    drop(grant);
++    f.room.publish("alice", 800).unwrap();
++    f.room.tick();
++    f.room.heard("consult", 800).await;
++    f.room.silent(&["bob", "public", "other", "device"]);
++    f.room.restore_consultation(&original).await;
++    f.room.publish("alice", 2400).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 2400).await;
++    f.room.heard("public", 2400).await;
++    f.room.silent(&["consult", "device"]);
++    close(foreign).await;
++    close(f).await;
++}
++
++#[tokio::test]
++async fn private_primary_successor_requires_current_authority_and_fresh_original_revision() {
++    let mut f = Move::private_primary().await;
++    let original = f.consultation.clone().unwrap();
++    f.io().await;
++    f.confirm().await;
++    let plan = f
++        .plan()
++        .unwrap()
++        .with_private_consultation(&original)
++        .unwrap();
++    f.room
++        .domain
++        .deny_replacement
++        .store(true, Ordering::Release);
++    assert!(f.commit(plan).await.is_err());
++    f.room
++        .domain
++        .deny_replacement
++        .store(false, Ordering::Release);
++    let stale = f
++        .plan()
++        .unwrap()
++        .with_private_consultation(&original)
++        .unwrap();
++    f.room.restore_consultation(&original).await;
++    assert!(
++        f.commit(stale).await.is_err(),
++        "restored private identity cannot be revived by a prepared replacement"
++    );
++    f.room.publish("alice", 2400).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 2400).await;
++    f.room.heard("public", 2400).await;
++    f.room.silent(&["consult", "device"]);
++    close(f).await;
++}
++
++#[tokio::test]
++async fn private_primary_successor_metadata_has_no_strong_controller_or_scene_owner_cycle() {
++    let mut f = Move::private_primary().await;
++    let original = f.consultation.clone().unwrap();
++    f.io().await;
++    f.confirm().await;
++    let plan = f
++        .plan()
++        .unwrap()
++        .with_private_consultation(&original)
++        .unwrap();
++    let (_, movement) = f.commit(plan).await.unwrap();
++    let successor = movement.private_successor().unwrap().clone();
++    let weak_scene = Arc::downgrade(&f.room.scene);
++    let weak_controllers = f
++        .room
++        .nodes
++        .values()
++        .map(|n| Arc::downgrade(&n.controller))
++        .collect::<Vec<_>>();
++    for node in f.room.nodes.values() {
++        assert_eq!(node.controller.shutdown(deadline()).await, 0);
++    }
++    drop(f);
++    assert!(weak_scene.upgrade().is_none());
++    assert!(weak_controllers
++        .iter()
++        .all(|owner| owner.upgrade().is_none()));
++    assert!(
++        successor.succeeds(&original),
++        "immutable lineage metadata survives without owning physical resources"
++    );
++    drop((successor, movement, original));
++}
++
++#[tokio::test]
++async fn private_primary_successor_role_change_refuses_old_plan_and_restore_does_not_unmute() {
++    let mut f = Move::private_primary().await;
++    let original = f.consultation.clone().unwrap();
++    f.io().await;
++    f.confirm().await;
++    let stale = f
++        .plan()
++        .unwrap()
++        .with_private_consultation(&original)
++        .unwrap();
++    let target = f
++        .room
++        .scene
++        .role_targets(&[ConnectionId::from_string("alice")])
++        .remove(0);
++    target
++        .prepare_role(deadline(), CancellationToken::new())
++        .await
++        .unwrap()
++        .commit(false);
++    assert!(f.commit(stale).await.is_err());
++    let plan = f
++        .plan()
++        .unwrap()
++        .with_private_consultation(&original)
++        .unwrap();
++    assert!(!plan.old_may_speak());
++    let (_, movement) = f.commit(plan).await.unwrap();
++    let successor = movement.private_successor().unwrap().clone();
++    assert!(f.room.publish("device", 5200).is_err());
++    f.room.publish("consult", 6800).unwrap();
++    f.room.tick();
++    f.room.heard("device", 6800).await;
++    f.room.silent(&["bob", "public", "other", "alice"]);
++    f.room.restore_consultation(&successor).await;
++    assert!(
++        f.room.publish("device", 2400).is_err(),
++        "restoration cannot create current speaking permission"
++    );
++    f.room.publish("bob", 3200).unwrap();
++    f.room.tick();
++    f.room.heard("device", 3200).await;
++    f.room.heard("other", 3200).await;
++    f.room.silent(&["consult", "alice", "public"]);
++    close(f).await;
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -11,6 +11,7 @@
+     model: ParticipantSession,
+     pending: PreparedParticipantReplacement,
+     context: AudioAudienceHandle,
++    consultation: Option<crate::staged_streams::consultation::PrivateConsultationHandle>,
+ }
+ fn endpoint_for(source: &MediaOwner, name: &str) -> EndpointBinding {
+     let id = IdentityBinding::from_authenticated(
+@@ -101,6 +102,27 @@
+         logical: bool,
+         media: Vec<DesiredStream>,
+         confirmation: EndpointConfirmationPolicy,
++    ) -> Self {
++        Self::with_consultation_mode(closed, route_actor, logical, media, confirmation, false).await
++    }
++    async fn private_primary() -> Self {
++        Self::with_consultation_mode(
++            false,
++            "alice",
++            false,
++            vec![desired(Medium::Audio)],
++            EndpointConfirmationPolicy::AnsweredDtmf { digits: "7".into() },
++            true,
++        )
++        .await
++    }
++    async fn with_consultation_mode(
++        closed: bool,
++        route_actor: &str,
++        logical: bool,
++        media: Vec<DesiredStream>,
++        confirmation: EndpointConfirmationPolicy,
++        private_primary: bool,
+     ) -> Self {
+         let mut room = Room::new().await;
+         let source = room.domain.base.0.read().await.owners["alice"].clone();
+@@ -180,12 +202,26 @@
+                 .await
+                 .unwrap();
+         }
++        let consultation = if private_primary {
++            room.select(
++                "bob",
++                vec![
++                    AudioSubscription::Connection(ConnectionId::from_string("alice")),
++                    AudioSubscription::Connection(ConnectionId::from_string("other")),
++                ],
++            )
++            .await;
++            room.add("consult", Some("public"), true).await;
++            Some(room.start_consultation().await)
++        } else {
++            None
++        };
+         let mut model = ParticipantSession::new(
+             TenantId::from_string("tenant"),
+             source.member.conversation().clone(),
+             source.presence.session().clone(),
+             4,
+-            6,
++            if private_primary { 8 } else { 6 },
+             128,
+         )
+         .unwrap();
+@@ -258,7 +294,7 @@
+             participant: source.member.participant().clone(),
+             source: source.connection.connection().clone(),
+             replacement: ConnectionId::from_string("device"),
+-            retained: ConnectionId::from_string("bob"),
++            retained: ConnectionId::from_string(if private_primary { "consult" } else { "bob" }),
+             endpoint: ep.endpoint().clone(),
+             device: ep.device().clone(),
+             confirmation,
+@@ -295,6 +331,7 @@
+             model,
+             pending,
+             context,
++            consultation,
+         }
+     }
+     fn plan(&self) -> ControlResult<AudioDeviceReplacementPlan> {
+@@ -326,7 +363,7 @@
+         )
+     }
+     fn queue_prompt(&mut self, sample: i16) -> ControlResult<()> {
+-        use rvoip_media_core::{AudioFrame, codec::factory::CodecFactory};
++        use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
+         let node = self.room.nodes.get_mut("device").unwrap();
+         node.sequence += 1;
+         let port = node.adapter.port(Medium::Audio);
+@@ -870,7 +907,7 @@
+ #[tokio::test]
+ async fn replacement_metadata_collision_retries_original_plan_and_preserves_refusals() {
+     use crate::orchestrator::participant_control::{
+-        ParticipantControlError, replacement::metadata_retry,
++        replacement::metadata_retry, ParticipantControlError,
+     };
+     for mode in ["recover", "cancel", "expire", "revoke", "role-change"] {
+         let mut f = Move::new(false).await;
+@@ -985,3 +1022,6 @@
+ }
+ 
+ mod metadata_contention;
++
++#[path = "replacement/private_successor.rs"]
++mod private_successor;

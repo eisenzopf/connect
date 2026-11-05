@@ -272,9 +272,15 @@ fn resolve(
     let mut expires_at = (crate::now() + 5)
         .min(actor.expires_at)
         .min(selection.origin.request.expires_at);
-    let (primary,candidate,context):(String,String,String)=c.query_row("SELECT l.primary_connection_id,l.connection_id,n.context_selection_json FROM native_consultation_returns n JOIN consultation_candidate_bindings l ON l.operation_record_id=n.consultation_record_id WHERE n.operation_record_id=?1",[&selection.origin.record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::storage())?;
+    let (_original_primary,candidate,context):(String,String,String)=c.query_row("SELECT l.primary_connection_id,l.connection_id,n.context_selection_json FROM native_consultation_returns n JOIN consultation_candidate_bindings l ON l.operation_record_id=n.consultation_record_id WHERE n.operation_record_id=?1",[&selection.origin.record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::storage())?;
     let context: serde_json::Value =
         serde_json::from_str(&context).map_err(|_| Error::storage())?;
+    let primary =
+        crate::connection_control::private_consultation::replacement_lineage::primary_for_return(
+            c,
+            selection.origin.consultation_record_id(),
+            store.runtime_epoch(),
+        )?;
     let actual = selection
         .sources
         .iter()
@@ -502,10 +508,11 @@ impl Store {
         let sip_reads =
             consultation_sip::return_reads(self, &c, sips, origin, held.clone(), expires_at)
                 .map_err(|e| phase_error("SIP control", e))?;
-        let (primary, candidate): (String, String) = c.query_row(
+        let (_original_primary, candidate): (String, String) = c.query_row(
             "SELECT primary_connection_id,connection_id FROM consultation_candidate_bindings WHERE operation_record_id=?1",
             [origin.consultation_record_id()], |r| Ok((r.get(0)?,r.get(1)?)),
         ).map_err(|_|Error::storage())?;
+        let primary=crate::connection_control::private_consultation::replacement_lineage::primary_for_return(&c,origin.consultation_record_id(),self.runtime_epoch())?;
         let sip_send = consultation_sip::return_edges(
             self, &c, sources, &sip_reads, &mut reads, &primary, &candidate,
         )

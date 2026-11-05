@@ -1286,3 +1286,5 @@ impl crate::NativeReplacementInstallationGuard for MetadataOnlyInstallationGuard
         commit()
     }
 }
+
+mod private_successor;

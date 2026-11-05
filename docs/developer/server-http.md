@@ -38,6 +38,19 @@ They add no HTTP media endpoint or HTTP readiness proof. The original source
 remains active during preparation; a second peer connection becomes public only
 after current authority, real resource readiness and movement commit succeed.
 
+An established native private consultation may move its primary to another
+currently authorized native device using that same command. Its retained
+connection is the exact private partner. The actual Core commit transfers the
+original consultation's restoration handle; current Store lineage binds the
+new physical owner to the unchanged private audience and original lifetime
+ceiling. The old primary, historical receipts and a longer target credential
+cannot authorize or extend that private context. Pending private movement never
+falls back to public media. A later `session.consult.return` still names the
+original consultation record and current primary and restores only its saved
+public selections. Replacing a private consultant or held remote is refused;
+these roles require a separately defined restoration contract. No new HTTP
+command, readiness proof or caller-supplied lineage field is introduced.
+
 Enrolled credentials add an admission ceiling across finite application HTTP:
 the actual Origin must equal the enrollment's exact browser Origin, including
 the absence required by native enrollment. Explicit Task bearers retain their
