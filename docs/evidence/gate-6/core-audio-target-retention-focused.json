@@ -1,0 +1,48 @@
+{
+  "format": "connect/core-audio-target-retention-focused/1",
+  "scope": "Actual local Ubuntu24.04 ARM64 focused Core tests from a private upstream candidate. No host upstream integration, full transport, AV or complete-cell qualification.",
+  "candidate_patch_sha256": "0a11066157b25bf2e6755bd5199b0778e2ecbd9a1baf9387540cb0f146db42ac",
+  "original_source_lock_sha256": "4418ed32f97be4e8678d4940d41baad22c3f0432f34996d44d983c74a9fb8d0f",
+  "binary": {
+    "sha256": "c9c5293455e23fba8cf28e0efe35c12d0997661f0c4534c75a8efb27a126993f",
+    "bytes": 22575120
+  },
+  "passed": 85,
+  "failed": 0,
+  "groups": [
+    {
+      "group": "guarded-mixer",
+      "log_sha256": "c6c3f842127598384a0a85c44482c81680ab4b550ec54345d92ba1f9236d60bf",
+      "passed": 76,
+      "rerun": false
+    },
+    {
+      "group": "original_ingress_custody",
+      "log_sha256": "ab50bcae54b1319b2ad4069bbca7ee97785cb279ea4b5596eeb91734bd8c06f3",
+      "passed": 7,
+      "rerun": false
+    },
+    {
+      "group": "packet-expiry",
+      "passed": 2,
+      "log_sha256": "7892936c9cd2e0c3945219e359d82e0a91c5d9923da011680778d0c99f1acdf7",
+      "rerun": false
+    }
+  ],
+  "original_groups_joined": true,
+  "source_guards_unchanged": true,
+  "vm_lease_released": true,
+  "completion_audit_sha256": "5ee94682f40850c0bad66ceff59312fff0c537e2d33927c0a1c26b34eca73c1a",
+  "preserved_wrapper_failure": "Contiguous per-test status assertion rejected legitimate stdout within one passing original-ingress test; exact inventory, process exit0 and complete 7passed/0failed/0ignored summary verified.",
+  "behavior": [
+    "The same unchanged target-only loss regression that failed the negative-control binary now passes.",
+    "Real original PCM is retained in a bounded recipient FIFO across temporary admission contention; no synthetic samples or held authority while waiting.",
+    "Original ingress/collect/source/target/credential deadlines only narrow; later grants cannot extend original retained PCM.",
+    "Queue limits, generation/subscription changes, revocation, pause/resume, shutdown, independent recipients and actual expiry are checked."
+  ],
+  "remaining": [
+    "Integrate reproducible upstream patch and source-lock digests after original Mac RTC build/test source guard releases.",
+    "Separately classify exact planning/readiness lock exclusion as MetadataBusy; current85tests do not qualify that future delta.",
+    "Residual synthetic input/codec failures, video quality, actual idle restoration and all32 transport configurations remain unresolved."
+  ]
+}
