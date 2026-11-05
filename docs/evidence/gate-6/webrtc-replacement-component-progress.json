@@ -39,6 +39,18 @@
   },
   "firefox_smoke": "docs/evidence/gate-6/firefox-original-programme.json",
   "linux_runtime": "docs/evidence/gate-6/browser-arm-runtime-v190.json",
-  "integrated_arm_server": "compiling; positive actual media verification pending",
-  "full_matrix": "latest completed v189, 0/32 qualified; next full run pending"
+  "integrated_arm_server": "service and server libraries compiled; integration test binary compiling; positive actual media verification pending",
+  "full_matrix": "latest completed v189, 0/32 qualified; next full run pending",
+  "adapter": {
+    "host": "owned Ubuntu24 ARM64 VM",
+    "passed": 5,
+    "failed": 0,
+    "ignored": 0,
+    "filter": "canonical::media::screen_profile_tests",
+    "features": [
+      "comprehensive"
+    ],
+    "scope": "logical port directions, screen boundaries and no receive-egress fanout; no real handoff qualification",
+    "log_sha256": "bac4475052636bbe83d562b8e69b6f8568881be315bc728ad5a887c397c2a111"
+  }
 }

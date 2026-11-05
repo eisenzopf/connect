@@ -1,0 +1,66 @@
+{
+  "format": "connect/matrix-blocker-priorities/1",
+  "run": "v189",
+  "scope": "Disjoint configuration groups with common runner prerequisites; clearing a prerequisite permits observation, not automatic passes. Downstream library failures can remain.",
+  "groups": [
+    {
+      "group": "Missing Mac-server/Linux-client workloads",
+      "type": "fixture",
+      "configurations": 8,
+      "counts": {
+        "blocked": 102,
+        "failed": 6
+      },
+      "cells": [
+        "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+        "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+        "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+        "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+        "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+        "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+        "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+        "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256"
+      ]
+    },
+    {
+      "group": "Linux remote browser HTTPS origin",
+      "type": "fixture-configuration",
+      "configurations": 6,
+      "counts": {
+        "failed": 12,
+        "blocked": 72
+      },
+      "cells": [
+        "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+        "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+        "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+        "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+        "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+        "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256"
+      ]
+    },
+    {
+      "group": "Local Firefox runtime and automation",
+      "type": "environment-and-harness",
+      "configurations": 4,
+      "counts": {
+        "passed": 2,
+        "blocked": 42,
+        "failed": 12
+      },
+      "cells": [
+        "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+        "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+        "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+        "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256"
+      ]
+    }
+  ],
+  "blocked_checks_in_groups": 216,
+  "total_blocked_checks": 230,
+  "real_library_gap": "WebRTC staged replacement absent in v189; now implemented, positive actual handoff pending",
+  "remaining_behavior_failures": [
+    "decoded media/profile budgets",
+    "resource reclamation and idle restoration"
+  ]
+}
