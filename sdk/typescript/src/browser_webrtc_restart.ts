@@ -342,18 +342,26 @@ export class BrowserIceRestart {
                 );
             a.answer = setup.sdp;
             a.application = this.tasks.track(
-                this.peer.setRemoteDescription({
-                    type: "answer",
-                    sdp: a.answer,
-                }).then(() => {
-                    // The browser serializes its parsed description (including
-                    // BUNDLE addresses and SDP ordering). Retain that installed
-                    // value while the signed wire answer remains immutable.
-                    const installed = this.peer.remoteDescription;
-                    if (installed?.type !== "answer" || !validSdp(installed.sdp))
-                        throw new ConnectError("protocol", "Original ICE answer was not installed");
-                    a.appliedAnswer = installed.sdp;
-                }),
+                this.peer
+                    .setRemoteDescription({
+                        type: "answer",
+                        sdp: a.answer,
+                    })
+                    .then(() => {
+                        // The browser serializes its parsed description (including
+                        // BUNDLE addresses and SDP ordering). Retain that installed
+                        // value while the signed wire answer remains immutable.
+                        const installed = this.peer.remoteDescription;
+                        if (
+                            installed?.type !== "answer" ||
+                            !validSdp(installed.sdp)
+                        )
+                            throw new ConnectError(
+                                "protocol",
+                                "Original ICE answer was not installed",
+                            );
+                        a.appliedAnswer = installed.sdp;
+                    }),
             );
         }
         await wait(a.application);

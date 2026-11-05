@@ -61,6 +61,8 @@ export declare class BrowserVideoEpochs {
     invalidateRequests(): void;
     unselect(): void;
     gates(send: boolean, receive: boolean): void;
+    /** Exact installed signed history, never an authorization grant. */
+    currentReceiver(notice: VideoNotice): boolean;
     private admits;
     private stale;
     packet(value: NativeVideoEpochPacket, arrived: number, now: number, capacity?: boolean): RtpDatagram | undefined;

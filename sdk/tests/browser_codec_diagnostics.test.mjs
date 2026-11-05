@@ -39,3 +39,16 @@ test('VP8 diagnostics distinguish rolling-rate, timestamp and queue refusal with
   assert.equal(report.queueRefusals,1);assert.equal(report.stoppedRefusals,1);assert.equal(report.nativeOutputs,1);assert.equal(report.forwardedOutputs,1);assert.equal(closed,35);
  }finally{codec.close();}
 }));
+
+test('private readiness observers run only on matched actual decoder output and release on reset/close',()=>fixture(()=>{
+ const errors=[],seen=[],codec=new BrowserVp8Codec({encoded(){},decoded(){},error:e=>errors.push(e)});
+ const frame=(sequence,key=true)=>({arrived:performance.now(),ssrc:7,timestamp:sequence*3000,key,firstSequence:sequence,lastSequence:sequence,bytes:new Uint8Array([key?0:1,1,2])});
+ codec.decode(frame(0),100000,f=>seen.push(f.timestamp));assert.deepEqual(seen,[],'accepted input is not output');
+ codec.decoder.emit(100000);assert.deepEqual(seen,[100000]);
+ codec.decode(frame(1,false),133333,()=>seen.push('old'));codec.resetReceiveHistory();assert.equal(codec.pendingDecode.length,0);
+ codec.decode(frame(2),166667,()=>seen.push('fresh'));codec.decoder.emit(166667);assert.deepEqual(seen,[100000,'fresh']);
+ codec.decode(frame(3,false),200000,()=>seen.push('closed'));codec.close();assert.equal(codec.pendingDecode.length,0);assert.equal(errors.length,0);
+ const audio=new BrowserOpusCodec({encoded(){},decoded(){},error:e=>errors.push(e)});
+ audio.decode(new Uint8Array([1]),100000,f=>seen.push(f.numberOfFrames));assert.equal(seen.length,2);audio.decoder.emit(0);assert.equal(seen.at(-1),960);
+ audio.decode(new Uint8Array([1]),120000,()=>seen.push('closed-audio'));audio.close();assert.equal(audio.pendingDecode.length,0);
+}));

@@ -1,9 +1,9 @@
 {
   "format": "connect/g6-058-coordinated-integration-progress/1",
   "task": "G6-058",
-  "status": "coordinated-readiness-batch-applied-runtime-unverified",
-  "basis_revision": "b569ea44af5fb5204d61d4e7fef9c41adcdbbdc4",
-  "recorded_at": "2026-11-05T16:09:56.230768+00:00",
+  "status": "browser-and-cadence-followup-applied-runtime-unverified",
+  "basis_revision": "5806455f402a36d5fe0cfd236ed69358a81df0d6",
+  "recorded_at": "2026-11-05T16:43:07.559457+00:00",
   "source_lock_sha256": "d4a87d43935c102979c166b610f835fe3831f146ba8585baa8a520fcbc22fabf",
   "prepared_files_verified": 531,
   "reviewed_upstream_results_verified": 33,
@@ -22,12 +22,14 @@
     "Rust native SDK immutable readiness continuation and actual owned Opus/VP8 decoder in matrix programme",
     "original same-context private decoder inputs, excluded from public quality coverage",
     "shared native readiness fixtures and actual private ancestry refusal/isolation controls",
-    "bounded read-only original server blocking-call attribution, no runtime or allocator tuning"
+    "bounded read-only original server blocking-call attribution, no runtime or allocator tuning",
+    "exact20ms purpose-scoped preparation audio source with original sample slots and real missed-slot gaps",
+    "epoch-aware native recovery fixture with same actual decoder through commit followed by explicit test-owned cold reset",
+    "private ancestry fixtures require established completed consultation and exact signed return, preserving journal replay effects",
+    "browser native signed challenge and actual matched WebCodecs output proof, immutable retry, source-transition status-only resolution and bounded queued-reconciliation custody"
   ],
   "pending": [
-    "browser WT/native-WSS actual decoded readiness continuation",
     "real private consultation replacement lineage and current private route projection",
-    "epoch-aware cold-recovery fixture migration",
     "public activation interval currently excluded until completed-root observation; signed per-stream cut proposal pending",
     "causal server thread/RSS diagnosis with actual runtime observations",
     "complete-batch successful builds, exact before/after regressions and full32/all432 runtime verification"
@@ -36,10 +38,10 @@
     "dependency_preparation_exit_code": 0,
     "repository_format_check_exit_code": 0,
     "javascript_python_syntax_checked_files": 27,
-    "rust_typescript_builds_executed": 4,
+    "rust_typescript_builds_executed": 8,
     "runtime_tests_executed": 0,
     "new_matrix_cells_qualified": 0,
-    "rust_typecheck_attempts": 4,
+    "rust_typecheck_attempts": 5,
     "rust_typecheck_passed": false,
     "typecheck_findings": [
       "Removed manifest video field migrated to invalid unsupported live-media declaration, preserving refusal/no-persistence assertions",
@@ -48,16 +50,31 @@
     ],
     "corrected_source_rechecked": false,
     "new_batch_syntax_json_checks": 13,
-    "new_batch_builds_executed": 1,
+    "new_batch_builds_executed": 5,
     "new_batch_runtime_tests_executed": 0,
     "latest_typecheck": {
       "exit_code": 101,
       "original_jobs_joined": true,
       "tracked_source_hashes_verified": 5584,
       "prepared_file_hashes_verified": 531,
-      "failure": "SDK StreamId conversion used Display; corrected to existing as_str().to_owned() API",
+      "failures": [
+        "Consuming client shutdown through borrowed slice; corrected to own exact target and await its shutdown",
+        "Public OperationUpdated has no effects field; keep signed record/result replay plus fresh authoritative Store effects comparison"
+      ],
+      "followup_source_rechecked": false,
       "runtime_tests_executed": 0
-    }
+    },
+    "typescript_build_attempts": 3,
+    "typescript_build_exit_codes": [
+      2,
+      0,
+      0
+    ],
+    "typescript_source_build_passed": true,
+    "typescript_full_format_check_exit_code": 0,
+    "browser_node_syntax_checked_files": 4,
+    "typescript_correction": "Explicit never-returning protocol-refusal helper declaration preserves marker guards and enables control-flow narrowing; first failed build retained",
+    "preexisting_typescript_formatting": "Five HEAD-matching files flagged by full formatter corrected; pinned debug AST checks and exact original formatter-output equality pass, no runtime test"
   },
   "latest_runtime_matrix": {
     "run": "v192",
@@ -93,6 +110,14 @@
     ".local/gate-6/coordinated-staging-v198/static-syntax-checks.json",
     ".local/gate-6/coordinated-staging-v198/prepare-format-correction.json",
     ".local/gate-6/coordinated-staging-v198/openapi-regeneration-receipt.json",
-    ".local/gate-6/coordinated-staging-v198/integrated-typecheck-receipt.json"
+    ".local/gate-6/coordinated-staging-v198/integrated-typecheck-receipt.json",
+    ".local/gate-6/coordinated-staging-v198/corrected-integrated-typecheck-receipt.json",
+    ".local/gate-6/coordinated-followup-v199/integration-receipt.json",
+    ".local/gate-6/native-preparation-cadence-candidate/apply-manifest.json",
+    ".local/gate-6/native-epoch-readiness-fixture-candidate/apply-manifest.json",
+    ".local/gate-6/replacement-private-ancestry-delta-v2/apply-manifest.json",
+    ".local/gate-6/coordinated-followup-v199/browser-integration-receipt.json",
+    ".local/gate-6/coordinated-followup-v199/typescript-first-build-receipt.json",
+    ".local/gate-6/coordinated-followup-v199/preexisting-typescript-format-receipt.json"
   ]
 }

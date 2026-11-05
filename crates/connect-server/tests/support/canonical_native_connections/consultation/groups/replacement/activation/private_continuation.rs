@@ -111,6 +111,19 @@ async fn exercise(case: Case) {
     )
     .await;
 
+    let consultation = wait_state(&f, &group.key.id, &group.command.operation_id, true).await;
+    assert_eq!(consultation.record_id, group.record);
+    let db = rusqlite::Connection::open(&f.config.database).unwrap();
+    let established: bool = db.query_row(
+        "SELECT EXISTS(SELECT 1 FROM native_private_lifetimes WHERE operation_record_id=?1 AND runtime_epoch=?2 AND restored_at IS NULL)",
+        rusqlite::params![group.record, f.server.store.runtime_epoch()], |r| r.get(0),
+    ).unwrap();
+    assert!(
+        established,
+        "the original consultation must have its completed ordinary lifetime before replacement"
+    );
+    drop(db);
+
     if matches!(case, Case::OriginalPrivate) {
         restore(&f, &mut peers, &cid, &group).await;
         probe(
@@ -160,9 +173,11 @@ async fn exercise(case: Case) {
         .unwrap();
     drop(db);
     let mut grant = Scope::collaboration(vec!["*".into()]);
-    grant
-        .operations
-        .extend(["connection.replace".into(), "operation.cancel".into()]);
+    grant.operations.extend([
+        "connection.replace".into(),
+        "operation.cancel".into(),
+        "session.consult.return".into(),
+    ]);
     let key = f
         .server
         .store
@@ -403,9 +418,49 @@ async fn exercise(case: Case) {
         "completed-private-public-remote-remains-excluded",
     )
     .await;
-    let replay = controller.transition(command).await.unwrap();
-    assert_eq!(replay.effects, done.effects);
+    let replay = controller.transition(command.clone()).await.unwrap();
+    assert_eq!(replay.record_id, done.record_id);
     assert_eq!(replay.result, done.result);
+    let replayed = status(&f, &key.id, &command.operation_id).await;
+    assert_eq!(replayed.effects, done.effects);
+    let returning = TransitionCommand {
+        operation_id: "private-successor-return-to-held-remote".into(),
+        conversation_id: cid.clone(),
+        session_id: "native-session".into(),
+        connection_id: Some(candidate.clone()),
+        expected_revision: revision(&f),
+        intent: TransitionIntent::ConsultReturn {
+            consultation_record_id: group.record.clone(),
+            retained_connid: peers[0].id.clone(),
+        },
+        payload_extensions: Default::default(),
+    };
+    controller.transition(returning.clone()).await.unwrap();
+    let returned = wait_state(&f, &key.id, &returning.operation_id, true).await;
+    assert_eq!(
+        returned.result.as_ref().unwrap()["retired_connection_ids"],
+        json!([peers[2].id])
+    );
+    peers[2].live = false;
+    probe(
+        &mut peers,
+        0,
+        &[3],
+        "private-successor-return-held-remote-to-new-device",
+    )
+    .await;
+    probe(
+        &mut peers,
+        3,
+        &[0],
+        "private-successor-return-new-device-to-held-remote",
+    )
+    .await;
+    let return_replay = controller.transition(returning.clone()).await.unwrap();
+    assert_eq!(return_replay.record_id, returned.record_id);
+    assert_eq!(return_replay.result, returned.result);
+    let return_replayed = status(&f, &key.id, &returning.operation_id).await;
+    assert_eq!(return_replayed.effects, returned.effects);
     drop(frozen);
     for peer in peers {
         peer.client.shutdown().await.unwrap();

@@ -1,6 +1,7 @@
 import { captureAudioNode, captureWorkletModule, } from "./browser_audio_source.js";
 import { captureDevices, } from "./browser_capture.js";
 import { ConnectError } from "./errors.js";
+import { boundedCanvasVideoCapture, captureVideoCanvas, } from "./browser_video_capture.js";
 export function browserCaptureSupport() {
     const media = typeof navigator === "undefined" ? undefined : navigator.mediaDevices;
     return {
@@ -40,6 +41,7 @@ export class BrowserMediaCapture {
     worklet;
     silent;
     video;
+    canvasCapture;
     callback;
     timer;
     stopOwner;
@@ -84,7 +86,7 @@ export class BrowserMediaCapture {
                     s.direction !== "recvonly"))
                 throw new ConnectError("invalid-request", "Capture must use this Connection's negotiated sender Streams");
         }
-        const sourceNode = captureAudioNode(options, !!audio);
+        const sourceNode = captureAudioNode(options, !!audio), sourceCanvas = captureVideoCanvas(options, video ? (options.videoSource ?? "camera") : undefined);
         const devices = captureDevices(options, !!video, !!options.stream);
         if (options.videoSource === "screen" &&
             options.videoDeviceId !== undefined)
@@ -95,11 +97,12 @@ export class BrowserMediaCapture {
             (!options.stream &&
                 ((audio && !sourceNode && !support.microphone) ||
                     (video &&
+                        !sourceCanvas &&
                         !(options.videoSource === "screen"
                             ? support.screen
                             : support.camera)))))
             throw new ConnectError("unsupported-media-profile", "Required capture APIs are unavailable");
-        const capture = new BrowserMediaCapture(connection, { ...options, audioNode: undefined }, timeout);
+        const capture = new BrowserMediaCapture(connection, { ...options, audioNode: undefined, videoCanvas: undefined }, timeout);
         try {
             if (capture.stopped)
                 throw new ConnectError("cancelled", "Media capture cancelled before permission");
@@ -115,7 +118,7 @@ export class BrowserMediaCapture {
                         },
                         audio: false,
                     }));
-                const camera = video && options.videoSource !== "screen";
+                const camera = video && options.videoSource !== "screen" && !sourceCanvas;
                 if ((audio && !sourceNode) || camera)
                     await capture.permission(navigator.mediaDevices.getUserMedia({
                         audio: audio && !sourceNode
@@ -146,6 +149,10 @@ export class BrowserMediaCapture {
                             }
                             : false,
                     }));
+            }
+            if (sourceCanvas) {
+                capture.canvasCapture = boundedCanvasVideoCapture(new MediaStream(), sourceCanvas, (error) => capture.close(error));
+                capture.own(capture.canvasCapture.stream);
             }
             const tracks = [...capture.streams].flatMap((s) => s.getTracks());
             if (tracks.filter((t) => t.kind === "audio").length !==
@@ -466,6 +473,11 @@ export class BrowserMediaCapture {
         for (const [track, handler] of this.ended)
             track.removeEventListener("ended", handler);
         this.ended.clear();
+        if (this.canvasCapture) {
+            this.streams.delete(this.canvasCapture.stream);
+            this.canvasCapture.close();
+            this.canvasCapture = undefined;
+        }
         for (const stream of this.streams)
             for (const track of stream.getTracks())
                 track.stop();

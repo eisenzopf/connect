@@ -1632,7 +1632,8 @@ export class BrowserSession {
                 })
                     .catch((error) => {
                     if (s.local.get(connectionId) === local &&
-                        !local.rtc?.replacementMayHaveCommitted) {
+                        !local.rtc?.replacementMayHaveCommitted &&
+                        !s.mediaPeer?.replacementMayHaveCommitted(connectionId)) {
                         if (local.rtc) {
                             local.rtc.close();
                             s.cleanup.track(local.rtc.shutdown(), true);
@@ -2359,6 +2360,7 @@ export class BrowserConnection {
                     videoDeviceId: captured.videoDeviceId,
                     stream: captured.stream,
                     audioNode: captured.audioNode,
+                    videoCanvas: captured.videoCanvas,
                     state,
                     ...budget.options(),
                 }));

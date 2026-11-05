@@ -8,6 +8,8 @@ export interface BrowserMediaCaptureOptions extends BrowserCaptureDevices {
     stream?: MediaStream;
     /** Borrows output zero of a caller-owned running 48 kHz AudioContext node. Supplied streams may contain only video. */
     audioNode?: AudioNode;
+    /** Borrows fixed-size canvas changes; selects camera video without a device or supplied video track. */
+    videoCanvas?: HTMLCanvasElement;
     timeoutMs?: number;
     signal?: AbortSignal;
     state?: (state: "active" | "paused" | "closed", error?: Error) => void;
@@ -37,6 +39,7 @@ export declare class BrowserMediaCapture {
     private worklet?;
     private silent?;
     private video?;
+    private canvasCapture?;
     private callback?;
     private timer?;
     private stopOwner?;

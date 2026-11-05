@@ -1373,3 +1373,44 @@ the first original fragment arrival on the local monotonic clock. The controlled
 ARM checks and old-SDK counterexample are recorded in
 [`browser-complete-frame-order-v179.json`](../evidence/gate-6/browser-complete-frame-order-v179.json);
 these checks do not qualify a real browser/network matrix cell.
+
+
+### Native replacement decoder readiness
+
+The WebTransport/native-datagram replacement path keeps its original source
+connection working while the target negotiates its own receive ports. Both
+signed native negotiation legs must carry the same original server-issued
+readiness challenge. Native parameter revision 1 and private preparation
+revision 2 are different phases.
+
+The SDK now waits for three actual 960-sample WebCodecs Opus outputs and, for
+an explicitly mapped incoming video stream, a complete keyframe that actually
+produces a 640×360 WebCodecs output. Decoded silence is eligible. Mapped native
+video requires `nativeVideoFeedback: true` so the actual output is bound to its
+current signed source epoch. A socket, packet, keyframe input, sender counter or
+completed operation cannot substitute for decoded output. Decoder input/output
+correlations are bounded and discarded when the original decoder resets or
+closes; there is no decoder reset at replacement commit.
+
+The third signed readiness offer retains the original immutable media offer,
+logical operation, target connection, nonce, generations and first decoded
+observation. Only that frozen value can be retried after a current original-root
+read under the existing server replay contract. Pending status alone does not
+prove the first capture was absent. A bounded uncertain reply or cancelled wait
+keeps a potentially committed native target owned for recovery; definitive
+failures cannot become successful completion. Allocation, SDP/media start and
+physical connection creation are never replayed. Public ownership and Data
+still require the exact completed-root receipt, under the original deadline.
+
+This native readiness path is separate from the later full-window media oracle
+and does not mark any transport matrix cell passed.
+
+A target whose ready submission may have reached the server retains its original
+physical owner if the bounded receipt wait is cancelled, times out, or returns a
+definitive refusal after possible capture. A definitive refusal remains an error,
+even if a later read sees completion. The SDK performs no blind replay and does
+not replace the peer. One already accepted server reconciliation callback stays
+owned and unapplied until the exact completed receipt has validated public
+ownership; closing the SDK joins the retained target. A real private-silence to
+public-audio SSRC change after submission disables proof replay and permits only
+original-operation status recovery. It is not itself evidence of commitment.

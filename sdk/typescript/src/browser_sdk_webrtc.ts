@@ -519,7 +519,11 @@ export class BrowserRtcConnection {
         if (this.captureOwner && !this.captureOwner.closed)
             throw new ConnectError("conflict", "Capture already owned");
         const canvasSource = captureVideoCanvas(input, input.video),
-            selected = { ...input, audioNode: undefined, videoCanvas: undefined },
+            selected = {
+                ...input,
+                audioNode: undefined,
+                videoCanvas: undefined,
+            },
             audio = !!selected.audio,
             video = selected.video !== undefined;
         let canvasCapture: CanvasVideoCapture | undefined;

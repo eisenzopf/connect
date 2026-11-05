@@ -106,7 +106,9 @@ function event(value, validate, depth) {
 }
 function source(value) {
     return (shape(value, ["source_id", "kind", "actor_id", "provenance", "state"], ["body"], ["created_at", "record"]) &&
-        (value.record === undefined || (validContextRecord(value.record) && value.record.uuid === value.source_id)) &&
+        (value.record === undefined ||
+            (validContextRecord(value.record) &&
+                value.record.uuid === value.source_id)) &&
         "created_at" in value &&
         (value.created_at === null || integer(value.created_at)) &&
         ["available", "deleted", "expired", "unavailable"].includes(String(value.state)));

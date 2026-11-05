@@ -1,8 +1,9 @@
+import { type NativeDecodeIdentity } from "./browser_native_readiness.js";
 import { BrowserVideoOrder } from "./browser_video_order.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { BrowserOpusCodec, BrowserVp8Codec } from "./browser_codecs.js";
 import { RtpSender, Vp8Assembler, type MediaBinding } from "./browser_rtp.js";
-import { BrowserVideoEpochs } from "./browser_video_epochs.js";
+import { BrowserVideoEpochs, type VideoNotice } from "./browser_video_epochs.js";
 import { RtcpCaptureClock, RtcpReceiveClock } from "./browser_rtcp.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import { type Envelope } from "./uctp_wire.js";
@@ -56,6 +57,8 @@ export interface BrowserMediaCallbacks {
     error?: (error: Error) => void;
 }
 interface Route {
+    receiveEpoch?: VideoNotice;
+    audioSource?: NativeDecodeIdentity;
     binding: Readonly<MediaBinding>;
     sender?: RtpSender;
     opus?: BrowserOpusCodec;
@@ -184,6 +187,8 @@ export declare class BrowserMediaPeer {
     /** Retire local owners after durable end or failed local preparation.
      * Sends no mutation and makes no claim about the remote operation outcome. */
     retireLocalConnection(id: string): void;
+    /** Retain a possibly committed original target until authoritative recovery. */
+    replacementMayHaveCommitted(id: string): boolean;
     private retire;
     close(): void;
     ownCleanup(work: Promise<unknown>): void;

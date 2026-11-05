@@ -167,7 +167,8 @@ export class BrowserMediaCapture {
             (video && !support.videoFrames) ||
             (!options.stream &&
                 ((audio && !sourceNode && !support.microphone) ||
-                    (video && !sourceCanvas &&
+                    (video &&
+                        !sourceCanvas &&
                         !(options.videoSource === "screen"
                             ? support.screen
                             : support.camera))))

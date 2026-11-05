@@ -363,16 +363,23 @@ export interface BrowserIncomingInvitations extends AsyncIterableIterator<Browse
     next(): Promise<IteratorResult<BrowserIncomingInvitation, undefined>>;
     close(): Promise<void>;
 }
-/** Local capture sources; AudioNode output zero and its context remain caller-owned.
- * With audioNode, an optional owned stream supplies video only. Device IDs and
- * media objects are never sent in signaling or operation payloads. */
+/** Local graph/canvas sources remain caller-owned. Each capture owns its derived
+ * tracks and graph edges. An optional owned stream supplies only kinds not
+ * selected by audioNode/videoCanvas. Device IDs and media objects stay local. */
 export type BrowserCaptureInput = {
     audio?: boolean;
-    video?: "camera" | "screen";
-    videoDeviceId?: string;
     stream?: MediaStream;
     state?: BrowserMediaCaptureOptions["state"];
 } & ({
+    videoCanvas?: undefined;
+    video?: "camera" | "screen";
+    videoDeviceId?: string;
+} | {
+    /** Borrow a fixed-size 1–640 × 1–360 canvas; supplied streams may contain only audio. */
+    videoCanvas: HTMLCanvasElement;
+    video: "camera";
+    videoDeviceId?: never;
+}) & ({
     audioNode?: undefined;
     audioDeviceId?: string;
 } | {

@@ -4,6 +4,8 @@ use super::{
     continuation::{Invocation, Phase},
     start::StartedReplacement,
 };
+mod audio_clock;
+use audio_clock::PreparationAudioClock;
 use connect_store::{NativeReplacementMediaCapture, NativeReplacementMediaPhase as Step};
 use rvoip_core::{
     orchestrator::participant_control::{
@@ -331,13 +333,23 @@ impl Runtime {
             return Err(Error::forbidden());
         };
         let rate = *clock_rate_hz;
-        let start = tokio::time::Instant::now();
+        let mut audio_clock = PreparationAudioClock::new(rate, tokio::time::Instant::now())?;
 
         let cancellation = root.handle.cancellation();
         let mut waiting_reported = false;
         let mut duplex_reported = false;
         loop {
-            tokio::select! {biased;_=self.stop.cancelled()=>return Ok(()),_=cancellation.cancelled()=>return Ok(()),_=tokio::time::sleep(Duration::from_millis(50))=>{}}
+            tokio::select! { biased;
+                _ = self.stop.cancelled() => return Ok(()),
+                _ = cancellation.cancelled() => return Ok(()),
+                _ = tokio::time::sleep_until(root.deadline) => {
+                    return Err(Error::new("expired", "Original replacement preparation deadline elapsed"));
+                },
+                _ = tokio::time::sleep_until(audio_clock.next_due()) => {},
+            }
+            let Some(timestamp_rtp) = audio_clock.take_due(tokio::time::Instant::now()) else {
+                continue;
+            };
             // Core's first successful writer completion can precede the new
             // peer's decoded-media observation. Keep the same purpose-scoped
             // preparation audio available while that original report is pending;
@@ -358,7 +370,7 @@ impl Runtime {
                     LocalAudioPurpose::EndpointPreparation {
                         operation_id: context.operation_id().into(),
                     },
-                    (start.elapsed().as_micros() * u128::from(rate) / 1_000_000) as u32,
+                    timestamp_rtp,
                 );
                 continue;
             }

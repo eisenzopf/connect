@@ -90,7 +90,7 @@ pub(in super::super) async fn paused(
     credential: &str,
     target_credential: &str,
     command: &TransitionCommand,
-    peers: &mut [Peer],
+    peers: &mut Vec<Peer>,
     case: Case,
     video: Option<(u16, u16, u16, u16)>,
     original_video_sequence: &mut u16,
@@ -231,8 +231,10 @@ pub(in super::super) async fn paused(
         // The live sender has no new target authority. Both endpoints may close;
         // original generation retirement is independently verified after resume.
     } else if matches!(case, Case::Retire) {
-        peers[2].client.shutdown().await.unwrap();
-        peers[2].live = false;
+        assert_eq!(peers.len(), 3);
+        let retired = peers.pop().expect("original owned target");
+        assert_eq!(retired.id, candidate);
+        retired.client.shutdown().await.unwrap();
         let until = tokio::time::Instant::now() + Duration::from_secs(3);
         let target = rvoip_core::ids::ConnectionId::from_string(target.clone());
         while session.read().unwrap().connections.contains_key(&target) {

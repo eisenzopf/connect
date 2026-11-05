@@ -548,7 +548,6 @@ export class BrowserClient {
     ): Promise<Envelope[]> {
         const marker = payload.replacement_preparation;
         if (
-            this.controlTransport !== "websocket" ||
             ![scope.cid, scope.sid, scope.connid].every(
                 (value) => typeof value === "string" && identifier(value),
             ) ||

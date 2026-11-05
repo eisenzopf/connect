@@ -224,15 +224,18 @@ export class BrowserIceRestart {
             if (a.answer !== undefined && a.answer !== setup.sdp)
                 throw new ConnectError("protocol", "Original ICE answer changed");
             a.answer = setup.sdp;
-            a.application = this.tasks.track(this.peer.setRemoteDescription({
+            a.application = this.tasks.track(this.peer
+                .setRemoteDescription({
                 type: "answer",
                 sdp: a.answer,
-            }).then(() => {
+            })
+                .then(() => {
                 // The browser serializes its parsed description (including
                 // BUNDLE addresses and SDP ordering). Retain that installed
                 // value while the signed wire answer remains immutable.
                 const installed = this.peer.remoteDescription;
-                if (installed?.type !== "answer" || !validSdp(installed.sdp))
+                if (installed?.type !== "answer" ||
+                    !validSdp(installed.sdp))
                     throw new ConnectError("protocol", "Original ICE answer was not installed");
                 a.appliedAnswer = installed.sdp;
             }));

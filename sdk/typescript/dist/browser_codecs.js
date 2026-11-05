@@ -155,6 +155,7 @@ export class BrowserOpusCodec {
                     }
                     this.counts.decodedFrames++;
                     this.counts.lastDecodedTimestampUs = original.timestampUs;
+                    original.observe?.(restored ?? frame);
                     callbacks.decoded(restored ?? frame);
                 }
                 catch (e) {
@@ -228,7 +229,7 @@ export class BrowserOpusCodec {
             frame.close();
         }
     }
-    decode(bytes, timestampUs) {
+    decode(bytes, timestampUs, observe) {
         if (!this.stopped) {
             this.counts.decodeCalls++;
             this.counts.lastDecodeTimestampUs = timestampUs;
@@ -245,7 +246,7 @@ export class BrowserOpusCodec {
             bytes.length > 1160 ||
             !Number.isSafeInteger(timestampUs))
             throw new ConnectError("media", "Invalid Opus RTP payload or timestamp");
-        const original = { timestampUs };
+        const original = { timestampUs, observe };
         this.pendingDecode.push(original);
         this.counts.maxPendingDecode = Math.max(this.counts.maxPendingDecode, this.pendingDecode.length);
         try {
@@ -286,6 +287,7 @@ export class BrowserOpusCodec {
 }
 export class BrowserVp8Codec {
     callbacks;
+    pendingDecode = [];
     encoder;
     decoder;
     stopped = false;
@@ -390,6 +392,11 @@ export class BrowserVp8Codec {
             output: (frame) => {
                 try {
                     if (!this.stopped) {
+                        const original = this.pendingDecode.shift();
+                        if (!original ||
+                            original.timestampUs !== frame.timestamp)
+                            throw new ConnectError("media", "Unmatched original VP8 decoder output");
+                        original.observe?.(frame);
                         this.decodeCounts.decodedFrames++;
                         this.decodeCounts.lastDecodedTimestampUs =
                             frame.timestamp;
@@ -470,16 +477,19 @@ export class BrowserVp8Codec {
         this.needsKey = true;
         this.ssrc = undefined;
         this.lastSequence = this.lastTimestamp = undefined;
+        this.pendingDecode.length = 0;
         this.decoder.reset();
         this.decoder.configure({ codec: "vp8", optimizeForLatency: true });
     }
     requestKeyFrame() {
         this.forceKey = true;
     }
-    decode(frame, timestampUs) {
+    decode(frame, timestampUs, observe) {
         if (!this.stopped)
             this.decodeCounts.maxDecoderQueue = Math.max(this.decodeCounts.maxDecoderQueue, this.decoder.decodeQueueSize);
-        if (this.stopped || this.decoder.decodeQueueSize >= 8) {
+        if (this.stopped ||
+            this.decoder.decodeQueueSize >= 8 ||
+            this.pendingDecode.length >= 8) {
             if (!this.stopped)
                 this.decodeCounts.queueDrops++;
             this.needsKey = true;
@@ -491,6 +501,7 @@ export class BrowserVp8Codec {
             this.needsKey = true;
             this.lastSequence = undefined;
             this.lastTimestamp = undefined;
+            this.pendingDecode.length = 0;
             this.decoder.reset();
             this.decoder.configure({ codec: "vp8", optimizeForLatency: true });
         }
@@ -516,11 +527,21 @@ export class BrowserVp8Codec {
             this.decodeCounts.waitingForKeyDrops++;
             return false;
         }
-        this.decoder.decode(new EncodedVideoChunk({
-            type: frame.key ? "key" : "delta",
-            timestamp: timestampUs,
-            data: frame.bytes,
-        }));
+        const original = { timestampUs, observe };
+        this.pendingDecode.push(original);
+        try {
+            this.decoder.decode(new EncodedVideoChunk({
+                type: frame.key ? "key" : "delta",
+                timestamp: timestampUs,
+                data: frame.bytes,
+            }));
+        }
+        catch (error) {
+            const index = this.pendingDecode.indexOf(original);
+            if (index >= 0)
+                this.pendingDecode.splice(index, 1);
+            throw error;
+        }
         this.decodeCounts.submittedFrames++;
         this.decodeCounts.maxDecoderQueue = Math.max(this.decodeCounts.maxDecoderQueue, this.decoder.decodeQueueSize);
         this.needsKey = false;
@@ -536,6 +557,7 @@ export class BrowserVp8Codec {
         if (this.stopped)
             return;
         this.stopped = true;
+        this.pendingDecode.length = 0;
         if (this.encoder.state !== "closed")
             this.encoder.close();
         if (this.decoder.state !== "closed")

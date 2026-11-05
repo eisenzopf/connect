@@ -7,7 +7,7 @@
   "active_source_changes_applied": true,
   "new_runtime_tests_executed": 0,
   "new_matrix_cells_qualified": 0,
-  "batch_policy": "All nine known boundaries remain one coordinated batch. Current target/source continuation and native private decoded readiness are still being implemented; server resource attribution remains incomplete. No component or cell is newly runtime-qualified. Focused checks and one clean all32/all432 local ARM matrix follow complete integration.",
+  "batch_policy": "All known correction boundaries and newly source-proven integration gaps remain one coordinated batch. Browser native readiness, continuation/native readiness/epoch/cadence and fixture corrections are applied but runtime-unverified; established-private successor handling remains in implementation. Server resource causation and exact public activation-cut design remain open. Focused verification and one clean all32/all432 local ARM matrix follow complete integration.",
   "items": [
     {
       "id": "prepared-subscription-metadata",
@@ -32,10 +32,10 @@
     {
       "id": "public-target-activation",
       "kind": "library",
-      "status": "private-implementation-in-progress",
+      "status": "applied-runtime-unverified",
       "finding": "Core can retire the original route before the ordinary target authority is active; current target preparation policy refuses a committed root during projection.",
       "fix": "Preinstall inactive exact continuation, then require actual current Core binding plus fresh current Store admission until ordinary activation is verifiably active.",
-      "proof": "Paired target/source current admission and native video gate activation are included in the private implementation review. Actual signed paused-projection, revocation/cancellation/generation/crash/replay witnesses remain required.",
+      "proof": "Paired current Store/Core continuation and native same-source decoder epoch promotion applied. Signed paused-projection, current revocation/cancellation/generation/crash/replay and decoded-media proofs remain unrun.",
       "reference": ".local/gate-6/native-media-continuity-proposal/README.txt",
       "title": "Target activation"
     },
@@ -45,17 +45,17 @@
       "status": "applied-static-checks-only-runtime-unverified",
       "finding": "Four added server descriptors match original WAL paths across independent native cases; fixed Store packet readers retain them after physical owners end.",
       "fix": "Physical resource scopes plus complete-observation leases, generation-safe fixed slots and close outside all foreign guards in existing owned custody.",
-      "proof": "Scoped readers and original-cutoff admission applied, with 19 new drafted cases and34existing controls. Same public live-server WAL witness and two baseline controls are ready for before/after execution. None compiled or run; no RSS claim.",
+      "proof": "Scoped readers and original-cutoff admission applied. New public concurrent control Option predicate corrected during typecheck; original WAL witness and before/after controls remain unrun. No RSS claim.",
       "reference": ".local/gate-6/packet-observer-idle-proposal/proposal.html",
       "title": "Packet observer lifetime"
     },
     {
       "id": "framework-idle-lifetimes",
       "kind": "runtime-hosting",
-      "status": "programme-worker-applied-server-causation-incomplete",
+      "status": "worker-and-read-only-attribution-applied-runtime-causation-incomplete",
       "finding": "Node retains a loop-owned emergency descriptor after child streams; server threads are consistent with blocking-pool growth while background scans continue. Anonymous RSS growth remains unexplained.",
       "fix": "Owned programme Worker now carries SDK/helpers/encoders/sources and full report; its natural exit, stdio and helper joins precede original T+10, with full report loaded afterward. A sealed quality failure remains false and does not masquerade as a Worker crash. Server task/allocator attribution remains separate.",
-      "proof": "V1 plus reviewed V2 correction applied with required idle/2 and conversation/3 receipts; syntax-only checks pass. No actual Worker, FD, heap or matrix proof yet. No prewarming, GC, allowance or keepalive fitting.",
+      "proof": "Owned Worker v2 and bounded original blocking-call/TID attribution applied. Actual Worker, FD/thread/RSS and matrix proof pending; no runtime/allocator tuning.",
       "reference": ".local/gate-6/packet-observer-idle-proposal/proposal.html",
       "title": "Runtime resources"
     },
@@ -108,7 +108,49 @@
     "Recorded upstream patches/source-lock and freshly prepared sources before builds",
     "Exact before-fail/after-pass evidence before broad claims; publication separate"
   ],
-  "applied_scope": "Audio retention, subscription metadata retry, explicit canvas capture, v2 programme Worker, physical observer lifetime, busy-only startup metadata and both fixture corrections applied. Fresh dependency/format/syntax checks only; no build/runtime test yet.",
+  "applied_scope": "Audio/subscription/canvas/Worker/observer/startup/TLS/ICE corrections plus paired current continuation, native decoded readiness, exact same-source decoder epoch promotion, original20ms preparation sample cadence and adapted signed/decoder fixtures. Static checks pass; latest broad typecheck exposed two fixture API/ownership errors, now corrected. No new runtime pass. Browser native decoded proof/custody now applied and TypeScript build/full formatting pass; four new/changed Node test files parse, but no runtime test has run.",
   "integration_evidence": "g6-058-coordinated-integration-progress.json",
-  "source_lock_sha256": "cf291eca04bc1a8495df51f2137f1e1fd95c4131c493c48bab277e3fabbe25e2"
+  "source_lock_sha256": "cf291eca04bc1a8495df51f2137f1e1fd95c4131c493c48bab277e3fabbe25e2",
+  "integration_findings": [
+    {
+      "id": "preparation-audio-cadence",
+      "title": "Native preparation cadence",
+      "kind": "library",
+      "status": "applied-runtime-unverified",
+      "finding": "Existing production preparation emits one20ms codec frame on50ms wakes and stamps wall-observation jitter; newly required contiguous decoder readiness cannot accumulate three frames. This is source-proven integration incompatibility, not established historical v192 causation.",
+      "fix": "Original purpose-scoped generated source uses exact20ms sample-clock slots; full missed slots remain gaps and original cancellation/deadline stop generation. Remote/live clocks and decoder/quality rules unchanged.",
+      "proof": "Four timing/RTP-wrap/refusal controls drafted; actual signed G711 and native Opus decoding and fullmatrix required. No runtime pass.",
+      "reference": ".local/gate-6/native-preparation-cadence-candidate/apply-manifest.json"
+    },
+    {
+      "id": "browser-native-ready-proof",
+      "title": "Browser native readiness",
+      "kind": "library",
+      "status": "applied-typescript-built-runtime-unverified",
+      "finding": "Browser WT/native-WSS path previously waits for completed root without sending newly required native decoded readiness proof.",
+      "fix": "Exact two-leg challenge and actual bounded correlated WebCodecs output; immutable proof on original peer. Changed source after possible submission disables replay and permits only original-root status resolution; definitive refusal stays refused.",
+      "proof": "Eleven-file SDK/test/doc candidate applied; TypeScript build and full source formatting pass after exact never-helper correction and five preexisting style corrections. Forty-seven modeled/lifecycle cases and actual pinned browser media remain unrun.",
+      "reference": ".local/gate-6/browser-native-readiness-candidate"
+    },
+    {
+      "id": "private-primary-successor",
+      "title": "Established private movement and return",
+      "kind": "library",
+      "status": "private-implementation-in-progress",
+      "finding": "Private floor history captures original physical primary; Core replacement consumes the original restorable audience handle. Store aliases alone cannot retain current private duplex and return.",
+      "fix": "Actual-commit-derived exact successor restoration handle and fresh parent-bound current Store lineage, preserving original consultation/audience/programmes. No public fallback or history rewrite.",
+      "proof": "Strengthened actual signed completed-private/paused-refusal/return fixtures applied; production repair is private and unrun. All-muted completion is a failure.",
+      "reference": ".local/gate-6/private-replacement-successor-candidate/proposal.json"
+    },
+    {
+      "id": "native-decoder-context-and-observation",
+      "title": "Decoder continuity and public measurement",
+      "kind": "library-and-fixture",
+      "status": "continuity-applied-activation-cut-proposal-open",
+      "finding": "Replacement decoding used to restart at durable completed-root observation, discarding genuine private keyframe context. Earlier actual public activation is still not identified by that later root observation.",
+      "fix": "Retain only genuine same-physical/stream/SSRC/generation/epoch decoder context, exclude private outputs from public quality; actual decoder continuity then explicit test-owned cold reset. Exact signed per-stream public activation cut needs separate concrete design.",
+      "proof": "Rust/helper/oracle and seven epoch-aware recovery cases applied but unrun. Original public ownership window stays unchanged; earlier interval remains unresolved.",
+      "reference": ".local/gate-6/native-private-context-oracle-candidate/proposal.json"
+    }
+  ]
 }

@@ -415,6 +415,14 @@ challenge's revision 2 identifies the ensuing private-mute/preparation state.
 The host constructs this typed challenge; arbitrary client extensions are never
 reflected into it.
 
+The host-generated neutral preparation source emits one actual encoded 20 ms
+frame for the current slot of its original sample clock. Scheduling jitter
+within a slot leaves its codec timestamp stable; a missed full slot remains a
+real timestamp gap. The source neither catches up nor restarts its clock, and
+stops at original cancellation or preparation expiry. Current local-purpose
+authorization is checked again at actual delivery. This preparation source does
+not alter remote media timestamps or qualify public audio/video coverage.
+
 Before original public retirement, the target sends the original immutable
 media offer and scope again with profile `connect-replacement-ready-v1`. Its
 `readiness` repeats the challenge and includes `audio: {stream_id,

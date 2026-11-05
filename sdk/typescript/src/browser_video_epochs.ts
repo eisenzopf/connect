@@ -224,6 +224,15 @@ export class BrowserVideoEpochs {
             this.pending = [];
         }
     }
+    /** Exact installed signed history, never an authorization grant. */
+    currentReceiver(notice: VideoNotice): boolean {
+        return (
+            !this.stopped &&
+            this.receiveGate &&
+            this.receiveActive &&
+            this.receiver === notice
+        );
+    }
     private admits(value: NativeVideoEpochPacket): boolean {
         const n = this.receiver,
             p = value.packet;

@@ -2602,7 +2602,10 @@ export class BrowserSession {
                         .catch((error) => {
                             if (
                                 s.local.get(connectionId) === local &&
-                                !local.rtc?.replacementMayHaveCommitted
+                                !local.rtc?.replacementMayHaveCommitted &&
+                                !s.mediaPeer?.replacementMayHaveCommitted(
+                                    connectionId,
+                                )
                             ) {
                                 if (local.rtc) {
                                     local.rtc.close();
@@ -3327,14 +3330,15 @@ export type BrowserCaptureInput = {
           video: "camera";
           videoDeviceId?: never;
       }
-) & (
-    | { audioNode?: undefined; audioDeviceId?: string }
-    | {
-          audio: true;
-          audioNode: AudioNode;
-          audioDeviceId?: never;
-      }
-);
+) &
+    (
+        | { audioNode?: undefined; audioDeviceId?: string }
+        | {
+              audio: true;
+              audioNode: AudioNode;
+              audioDeviceId?: never;
+          }
+    );
 
 export interface BrowserCaptureHandle {
     readonly closed: boolean;

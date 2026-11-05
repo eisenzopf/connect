@@ -383,8 +383,7 @@ export class BrowserClient {
      * abandoned request ID; writes and actual physical failures still retire. */
     requestReplacementContinuation(type, payload, scope, options) {
         const marker = payload.replacement_preparation;
-        if (this.controlTransport !== "websocket" ||
-            ![scope.cid, scope.sid, scope.connid].every((value) => typeof value === "string" && identifier(value)) ||
+        if (![scope.cid, scope.sid, scope.connid].every((value) => typeof value === "string" && identifier(value)) ||
             (type === "connection.offer"
                 ? !jsonObject(marker) ||
                     ![

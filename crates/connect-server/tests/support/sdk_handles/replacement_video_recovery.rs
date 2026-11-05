@@ -3,8 +3,14 @@ use super::*;
 use sdk::{Direction, Medium, StreamSelector};
 use std::process::Stdio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+#[path = "replacement_video_recovery/readiness.rs"]
+mod readiness;
+#[path = "../canonical_native_connections/consultation/groups/replacement/decoded_readiness/audio.rs"]
+mod readiness_audio;
 
 struct Encoder {
+    executable: std::path::PathBuf,
+    executable_sha256: String,
     child: tokio::process::Child,
     input: tokio::process::ChildStdin,
     output: tokio::process::ChildStdout,
@@ -39,7 +45,8 @@ impl Encoder {
             bytes.extend(std::iter::repeat_n(128, plane / 2));
         }
         init::private_write(&raw, &bytes).unwrap();
-        let mut child = tokio::process::Command::new(binary)
+        let executable_sha256 = readiness::file_sha256(&binary);
+        let mut child = tokio::process::Command::new(&binary)
             .arg(raw)
             .arg("12")
             .stdin(Stdio::piped())
@@ -49,6 +56,8 @@ impl Encoder {
             .spawn()
             .unwrap();
         Self {
+            executable: binary,
+            executable_sha256,
             input: child.stdin.take().unwrap(),
             output: child.stdout.take().unwrap(),
             child,
@@ -663,7 +672,9 @@ async fn exercise(mode: u8) {
             .stream_revision
             .unwrap();
         assert_eq!(actual, restored.stream_revision);
-        eprintln!("native executor signed controls: unsubscribe/resubscribe each advance once; same-operation recovery preserves the original revision");
+        eprintln!(
+            "native executor signed controls: unsubscribe/resubscribe each advance once; same-operation recovery preserves the original revision"
+        );
     }
     let source_audio = source.stream_by_id("feedback-camera-voice".parse().unwrap());
     let target_audio = target.stream_by_id("feedback-monitor-voice".parse().unwrap());
@@ -765,6 +776,7 @@ async fn exercise(mode: u8) {
         None
     };
     let root = controller.transition(command.clone()).await.unwrap();
+    let original_cutoff = readiness::original_cutoff(&f, &root);
     phase(&f, &mut controller, &command, 1).await;
     eprintln!("production replacement phase: replacement-allocate");
     let mut replacement = CanonicalClient::open(replacement_config).await.unwrap();
@@ -811,48 +823,51 @@ async fn exercise(mode: u8) {
         handle("replacement-camera"),
         handle("replacement-incoming-camera"),
     );
-    let streams=bindings.iter().map(|b|json!({"id":b["strm_id"],"kind":b["kind"],"direction":match b["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":b["codec"]})).collect::<Vec<_>>();
-    replacement.answer_connection_offer(&callback,serde_json::from_value(json!({"by_participant":p["by_participant"],"substrate":"quic","capabilities":offer["capabilities"],"streams_answered":streams,"substrate_setup":p["substrate_setup"]})).unwrap(),&scope).await.unwrap();
+    let response = replacement.native_replacement_answer(&callback).unwrap();
+    tokio::time::timeout_at(
+        original_cutoff,
+        replacement.answer_connection_offer(&callback, response, &scope),
+    )
+    .await
+    .expect("original replacement expired during exact answer")
+    .unwrap();
     eprintln!("production replacement phase: replacement-resource-capture");
     phase(&f, &mut controller, &command, 5).await;
     let mut io = replacement.claim_native_video_datagrams().unwrap();
-    for sequence in 1..=12u16 {
-        use rvoip_uctp::substrate::{pack, MediaDatagram};
-        io.send(&pack(&MediaDatagram {
-            flags: 0,
-            stream_local_id: voice,
-            seq: u32::from(sequence),
-            payload: rtp(
-                0,
-                sequence,
-                u32::from(sequence) * 160,
-                0x72727272,
-                false,
-                &[0xff; 160],
-            )
-            .into(),
-        }))
-        .unwrap();
-        tokio::time::sleep(Duration::from_millis(20)).await;
-    }
-    eprintln!("production replacement phase: replacement-commit");
-    let done = phase(&f, &mut controller, &command, 7).await;
-    let done = serde_json::to_value(done).unwrap();
+    let done = readiness::activate(
+        &f,
+        &mut controller,
+        &command,
+        &root,
+        &mut replacement,
+        &mut io,
+        &mut encoder,
+        &retained_send,
+        &mut retained_sequence,
+        voice,
+        incoming,
+        original_cutoff,
+    )
+    .await;
     assert_eq!(done["state"], "completed");
     assert_eq!(done["result"]["generation"], 2);
     #[cfg(feature = "test-support")]
     if let Some(probe) = held_registry_probe {
-        assert_eq!(probe.load(std::sync::atomic::Ordering::Acquire), 2,
-            "legacy lookup and expired invocation must refuse while current owned entries survive registry contention");
+        assert_eq!(
+            probe.load(std::sync::atomic::Ordering::Acquire),
+            2,
+            "legacy lookup and expired invocation must refuse while current owned entries survive registry contention"
+        );
     }
 
-    // New replacement receiver starts with an interframe from the unchanged
-    // retained source. Only actual signed history can solicit source recovery.
+    // The test-owned decoder was explicitly retired and reset after a real
+    // private-key/public-interframe continuity proof. Now it receives an
+    // interframe from the unchanged retained source. Only actual signed history can solicit source recovery.
     eprintln!("production replacement phase: replacement-receiver-recovery");
-    let delta = encoder.frame(1, false).await;
+    let delta = encoder.frame(3, false).await;
     assert_eq!(delta[0] & 1, 1);
-    publish(&retained_send, &delta, 1, &mut retained_sequence).await;
-    let (bytes, epoch) = raw_receive(&mut io, 1, incoming).await;
+    publish(&retained_send, &delta, 3, &mut retained_sequence).await;
+    let (bytes, epoch) = raw_receive(&mut io, 3, incoming).await;
     assert_eq!(bytes, delta);
     assert_ne!(epoch.epoch, previous_target_epoch.epoch);
     let hint = retained_send
@@ -861,23 +876,23 @@ async fn exercise(mode: u8) {
         .unwrap();
     assert!(retained_send.video_feedback_is_current(&hint).unwrap());
     let fresh = encoder
-        .frame(2, retained_send.video_feedback_is_current(&hint).unwrap())
+        .frame(4, retained_send.video_feedback_is_current(&hint).unwrap())
         .await;
-    publish(&retained_send, &fresh, 2, &mut retained_sequence).await;
-    let (bytes, same) = raw_receive(&mut io, 2, incoming).await;
+    publish(&retained_send, &fresh, 4, &mut retained_sequence).await;
+    let (bytes, same) = raw_receive(&mut io, 4, incoming).await;
     assert_eq!(same, epoch);
     assert_eq!(bytes, fresh);
-    decode(f.temp.path(), &bytes, 2).await;
+    decode(f.temp.path(), &bytes, 4).await;
     let before_gate_receive = same.clone();
     // In the reverse direction the retained receiver requests a keyframe from
     // the raw generation-two publisher. Pumping receives the physical feedback;
     // the boolean is consumed once immediately before the next fresh encoding.
     eprintln!("production replacement phase: replacement-publisher-recovery");
-    let delta = encoder.frame(3, false).await;
+    let delta = encoder.frame(5, false).await;
     assert_eq!(delta[0] & 1, 1);
     let mut sequence = 0;
-    raw_publish(&io, camera, &delta, 3, &mut sequence);
-    let (bytes, epoch) = receive(&retained_recv, 3).await;
+    raw_publish(&io, camera, &delta, 5, &mut sequence);
+    let (bytes, epoch) = receive(&retained_recv, 5).await;
     assert_eq!(bytes, delta);
     assert_ne!(epoch.epoch, previous_retained_epoch.epoch);
     retained_recv.request_keyframe(options()).await.unwrap();
@@ -886,13 +901,13 @@ async fn exercise(mode: u8) {
     let _ = tokio::time::timeout(Duration::from_millis(50), io.receive()).await;
     let requested = io.take_keyframe_request(camera, 0x74657374).unwrap();
     assert!(requested);
-    let fresh = encoder.frame(4, requested).await;
+    let fresh = encoder.frame(6, requested).await;
     assert!(!io.take_keyframe_request(camera, 0x74657374).unwrap());
-    raw_publish(&io, camera, &fresh, 4, &mut sequence);
-    let (bytes, same) = receive(&retained_recv, 4).await;
+    raw_publish(&io, camera, &fresh, 6, &mut sequence);
+    let (bytes, same) = receive(&retained_recv, 6).await;
     assert_eq!(same, epoch);
     assert_eq!(bytes, fresh);
-    decode(f.temp.path(), &bytes, 4).await;
+    decode(f.temp.path(), &bytes, 6).await;
     if mode == 1 || mode == 5 {
         eprintln!("production replacement phase: signed-hold-resume");
         let revision: u64 = rusqlite::Connection::open(&f.config.database)
@@ -922,10 +937,10 @@ async fn exercise(mode: u8) {
         )
         .await;
         assert_eq!(resumed, held + 1);
-        let delta = encoder.frame(5, false).await;
+        let delta = encoder.frame(7, false).await;
         assert_eq!(delta[0] & 1, 1);
-        publish(&retained_send, &delta, 5, &mut retained_sequence).await;
-        let (bytes, resumed_receive) = raw_receive(&mut io, 5, incoming).await;
+        publish(&retained_send, &delta, 7, &mut retained_sequence).await;
+        let (bytes, resumed_receive) = raw_receive(&mut io, 7, incoming).await;
         assert_eq!(bytes, delta);
         assert_ne!(resumed_receive.epoch, before_gate_receive.epoch);
         let hint = retained_send
@@ -933,30 +948,32 @@ async fn exercise(mode: u8) {
             .await
             .unwrap();
         assert!(retained_send.video_feedback_is_current(&hint).unwrap());
-        let fresh = encoder.frame(6, true).await;
-        publish(&retained_send, &fresh, 6, &mut retained_sequence).await;
-        let (bytes, current) = raw_receive(&mut io, 6, incoming).await;
+        let fresh = encoder.frame(8, true).await;
+        publish(&retained_send, &fresh, 8, &mut retained_sequence).await;
+        let (bytes, current) = raw_receive(&mut io, 8, incoming).await;
         assert_eq!(current, resumed_receive);
         assert_eq!(bytes, fresh);
-        decode(f.temp.path(), &bytes, 6).await;
-        let delta = encoder.frame(7, false).await;
+        decode(f.temp.path(), &bytes, 8).await;
+        let delta = encoder.frame(9, false).await;
         assert_eq!(delta[0] & 1, 1);
-        raw_publish(&io, camera, &delta, 7, &mut sequence);
-        let (bytes, resumed_publish) = receive(&retained_recv, 7).await;
+        raw_publish(&io, camera, &delta, 9, &mut sequence);
+        let (bytes, resumed_publish) = receive(&retained_recv, 9).await;
         assert_eq!(bytes, delta);
         assert_ne!(resumed_publish.epoch, epoch.epoch);
         retained_recv.request_keyframe(options()).await.unwrap();
         let _ = tokio::time::timeout(Duration::from_millis(50), io.receive()).await;
         let requested = io.take_keyframe_request(camera, 0x74657374).unwrap();
         assert!(requested);
-        let fresh = encoder.frame(8, requested).await;
+        let fresh = encoder.frame(10, requested).await;
         assert!(!io.take_keyframe_request(camera, 0x74657374).unwrap());
-        raw_publish(&io, camera, &fresh, 8, &mut sequence);
-        let (bytes, current) = receive(&retained_recv, 8).await;
+        raw_publish(&io, camera, &fresh, 10, &mut sequence);
+        let (bytes, current) = receive(&retained_recv, 10).await;
         assert_eq!(current, resumed_publish);
         assert_eq!(bytes, fresh);
-        decode(f.temp.path(), &bytes, 8).await;
-        eprintln!("production replacement gate proof: signed generation2 hold/resume, fresh epoch and independent VP8 decode in both directions at original RTP18000 and24000");
+        decode(f.temp.path(), &bytes, 10).await;
+        eprintln!(
+            "production replacement gate proof: signed generation2 hold/resume, fresh epoch and independent VP8 decode in both directions at original RTP24000 and30000"
+        );
     }
     if mode == 2 {
         eprintln!("production replacement phase: signed-codec-resource-adoption");
@@ -994,22 +1011,24 @@ async fn exercise(mode: u8) {
             .unwrap();
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
-        let fresh = encoder.frame(5, true).await;
-        publish(&retained_send, &fresh, 5, &mut retained_sequence).await;
-        let (bytes, _) = raw_receive(&mut io, 5, incoming).await;
+        let fresh = encoder.frame(7, true).await;
+        publish(&retained_send, &fresh, 7, &mut retained_sequence).await;
+        let (bytes, _) = raw_receive(&mut io, 7, incoming).await;
         assert_eq!(bytes, fresh);
-        decode(f.temp.path(), &bytes, 5).await;
+        decode(f.temp.path(), &bytes, 7).await;
         retained_recv.request_keyframe(options()).await.unwrap();
         let _ = tokio::time::timeout(Duration::from_millis(50), io.receive()).await;
         let requested = io.take_keyframe_request(camera, 0x74657374).unwrap();
         assert!(requested);
-        let fresh = encoder.frame(6, requested).await;
+        let fresh = encoder.frame(8, requested).await;
         assert!(!io.take_keyframe_request(camera, 0x74657374).unwrap());
-        raw_publish(&io, camera, &fresh, 6, &mut sequence);
-        let (bytes, _) = receive(&retained_recv, 6).await;
+        raw_publish(&io, camera, &fresh, 8, &mut sequence);
+        let (bytes, _) = receive(&retained_recv, 8).await;
         assert_eq!(bytes, fresh);
-        decode(f.temp.path(), &bytes, 6).await;
-        eprintln!("production replacement codec proof: actual generation2 signed codec commit, new PCMA handle/generation, retained video allocations, post-commit video decode original RTP15000/18000 and one-use current feedback");
+        decode(f.temp.path(), &bytes, 8).await;
+        eprintln!(
+            "production replacement codec proof: actual generation2 signed codec commit, new PCMA handle/generation, retained video allocations, post-commit video decode original RTP21000/24000 and one-use current feedback"
+        );
     }
     encoder.close().await;
     replacement.shutdown().await.unwrap();
@@ -1019,8 +1038,11 @@ async fn exercise(mode: u8) {
     f.server.shutdown().await.unwrap();
     #[cfg(feature = "test-support")]
     if let Some(probe) = start_registry_probe {
-        assert_eq!(probe.load(std::sync::atomic::Ordering::Acquire), 2,
-            "initial mute: contended registry refuses the old lookup, exact held owners succeed, expired authority remains refused");
+        assert_eq!(
+            probe.load(std::sync::atomic::Ordering::Acquire),
+            2,
+            "initial mute: contended registry refuses the old lookup, exact held owners succeed, expired authority remains refused"
+        );
     }
     #[cfg(feature = "test-support")]
     if let Some(probe) = preparation_registry_probe {
@@ -1032,9 +1054,20 @@ async fn exercise(mode: u8) {
             bits & 4 != 0,
             bits & 8 != 0
         );
-        eprintln!("original preparation refusal probe: wrong_owner={} missing_owner={} changed_intent={} expired={} initial_capture_busy={}",
-            bits & 16 != 0, bits & 32 != 0, bits & 64 != 0, bits & 128 != 0, bits & 256 != 0);
-        assert_eq!(bits, 511, "original preparation retains exact ownership and current authority under metadata exclusion");
+        eprintln!(
+            "original preparation refusal probe: wrong_owner={} missing_owner={} changed_intent={} expired={} initial_capture_busy={}",
+            bits & 16 != 0,
+            bits & 32 != 0,
+            bits & 64 != 0,
+            bits & 128 != 0,
+            bits & 256 != 0
+        );
+        assert_eq!(
+            bits, 511,
+            "original preparation retains exact ownership and current authority under metadata exclusion"
+        );
     }
-    eprintln!("production replacement: signed generation2, transferred both original video selections, real receiver feedback and fresh libvpx keys independently decoded at original RTP6000 and12000; one-use raw publisher hint; owned peers and encoder joined; no full transport cell qualified");
+    eprintln!(
+        "production replacement: signed generation2, transferred both original video selections, real receiver feedback and fresh libvpx keys independently decoded at original RTP12000 and18000; one-use raw publisher hint; owned peers and encoder joined; no full transport cell qualified"
+    );
 }

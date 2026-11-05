@@ -171,6 +171,13 @@ export class BrowserVideoEpochs {
             this.pending = [];
         }
     }
+    /** Exact installed signed history, never an authorization grant. */
+    currentReceiver(notice) {
+        return (!this.stopped &&
+            this.receiveGate &&
+            this.receiveActive &&
+            this.receiver === notice);
+    }
     admits(value) {
         const n = this.receiver, p = value.packet;
         return (!this.stopped &&

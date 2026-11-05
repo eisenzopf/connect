@@ -31,12 +31,13 @@ export declare class BrowserOpusCodec {
     private readonly pendingDecode;
     constructor(callbacks: CodecCallbacks<AudioData>);
     encode(samples: Float32Array, timestampUs: number): boolean;
-    decode(bytes: Uint8Array, timestampUs: number): boolean;
+    decode(bytes: Uint8Array, timestampUs: number, observe?: (frame: AudioData) => void): boolean;
     private fail;
     close(): void;
 }
 export declare class BrowserVp8Codec {
     private readonly callbacks;
+    private readonly pendingDecode;
     private readonly encoder;
     private readonly decoder;
     private stopped;
@@ -67,7 +68,7 @@ export declare class BrowserVp8Codec {
      * outputs while preserving the caller's original source/receive clocks. */
     resetReceiveHistory(): void;
     requestKeyFrame(): void;
-    decode(frame: Vp8Frame, timestampUs: number): boolean;
+    decode(frame: Vp8Frame, timestampUs: number, observe?: (frame: VideoFrame) => void): boolean;
     private fail;
     close(): void;
 }

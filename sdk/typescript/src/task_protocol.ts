@@ -178,7 +178,9 @@ function source(value: unknown): boolean {
             ["body"],
             ["created_at", "record"],
         ) &&
-        (value.record === undefined || (validContextRecord(value.record) && value.record.uuid === value.source_id)) &&
+        (value.record === undefined ||
+            (validContextRecord(value.record) &&
+                value.record.uuid === value.source_id)) &&
         "created_at" in value &&
         (value.created_at === null || integer(value.created_at)) &&
         ["available", "deleted", "expired", "unavailable"].includes(

@@ -1,3 +1,4 @@
+import { BrowserNativeReadiness, } from "./browser_native_readiness.js";
 import { BrowserVideoOrder, } from "./browser_video_order.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import { BrowserTasks } from "./browser_tasks.js";
@@ -121,12 +122,16 @@ export class BrowserMediaPeer {
             this.routes.get(route.binding.handle) !== route ||
             !!state.controlling ||
             !!state.reconciling ||
-            [...this.transitions.values()].some((t) => t.scope.connid === state.scope.connid));
+            [...this.transitions.values()].some((t) => t.scope.connid === state.scope.connid &&
+                !(state.nativeReadiness &&
+                    t.scope.operation_id ===
+                        state.nativeReadiness.root.operationId)));
     }
     installVideoNotice(route, notice) {
         if (!route.video?.observe(notice))
             return;
         if (notice.role === "receiver") {
+            route.receiveEpoch = notice;
             route.assembler?.clear();
             route.order?.clear();
             route.vp8?.resetReceiveHistory();
@@ -340,6 +345,8 @@ export class BrowserMediaPeer {
         if (this.stopped || this.connections.get(state.scope.connid) !== state)
             return;
         if (state.reconciling ||
+            (state.nativeReadiness?.mayHaveCommitted &&
+                !state.nativeReplacementCompleted) ||
             [...this.transitions.values()].some((t) => t.scope.connid === state.scope.connid)) {
             if (state.pendingServer)
                 return this.die(new ConnectError("backpressure", "Repeated server media negotiation"));
@@ -827,8 +834,33 @@ export class BrowserMediaPeer {
             route.observed.synchronized++;
         else
             route.observed.unsynchronized++;
-        if (route.opus)
-            route.opus.decode(packet.payload, timing.timestampUs);
+        if (route.opus) {
+            const state = this.connections.get(route.binding.connectionId), readiness = state?.nativeReadiness;
+            const identity = {
+                connectionId: route.binding.connectionId,
+                streamId: route.binding.streamId,
+                generation: route.binding.generation,
+                ssrc: packet.ssrc,
+            };
+            route.audioSource = identity;
+            route.opus.decode(packet.payload, timing.timestampUs, readiness?.observing
+                ? (frame) => {
+                    if (this.stopped ||
+                        this.routes.get(route.binding.handle) !== route ||
+                        state?.routes.get(route.binding.streamId) !==
+                            route ||
+                        route.audioSource?.ssrc !== packet.ssrc)
+                        return;
+                    readiness.audioDecoded({
+                        identity,
+                        sequence: packet.sequence,
+                        timestamp: packet.timestamp,
+                        arrived,
+                        samples: frame.numberOfFrames,
+                    });
+                }
+                : undefined);
+        }
         else {
             let complete;
             try {
@@ -858,7 +890,32 @@ export class BrowserMediaPeer {
         for (const { frame, timestampUs } of frames) {
             if (this.stopped || this.routes.get(route.binding.handle) !== route)
                 return;
-            if (route.vp8.decode(frame, timestampUs))
+            const state = this.connections.get(route.binding.connectionId), readiness = state?.nativeReadiness, notice = route.receiveEpoch;
+            const identity = {
+                connectionId: route.binding.connectionId,
+                streamId: route.binding.streamId,
+                generation: route.binding.generation,
+                ssrc: frame.ssrc,
+            };
+            if (route.vp8.decode(frame, timestampUs, readiness?.observing && notice
+                ? (decoded) => {
+                    if (this.stopped ||
+                        this.routes.get(route.binding.handle) !==
+                            route ||
+                        state?.routes.get(route.binding.streamId) !==
+                            route ||
+                        !route.video?.currentReceiver(notice))
+                        return;
+                    readiness.videoDecoded({
+                        identity,
+                        epoch: canonicalJson(notice),
+                        arrived: frame.arrived,
+                        key: frame.key,
+                        width: decoded.displayWidth,
+                        height: decoded.displayHeight,
+                    });
+                }
+                : undefined))
                 route.observed.submitted++;
             else
                 route.observed.skipped++;
@@ -901,7 +958,10 @@ export class BrowserMediaPeer {
             input.conversationId !== root.conversationId ||
             input.sessionId !== root.sessionId ||
             input.connectionId !== root.targetConnectionId ||
-            (input.video !== undefined) !== (input.receiveVideo !== undefined))
+            (input.video !== undefined) !==
+                (input.receiveVideo !== undefined) ||
+            (input.receiveVideo !== undefined &&
+                input.nativeVideoFeedback !== true))
             throw new ConnectError("invalid-request", "Use the original target and explicit directional Video ports");
         let prepare, reject;
         const prepared = new Promise((yes, no) => {
@@ -913,6 +973,8 @@ export class BrowserMediaPeer {
             attempted = true;
         }, {
             root,
+            audio: input.audio,
+            video: input.receiveVideo,
             prepared: prepare,
             committed: (value) => {
                 receipt = value;
@@ -1125,7 +1187,8 @@ export class BrowserMediaPeer {
             }, { ...options, timeoutMs: budget.remaining() }, accepted, attempted, undefined, undefined, replacement);
         }
         catch (error) {
-            this.retire(input.connectionId);
+            if (!state.nativeReadiness?.mayHaveCommitted)
+                this.retire(input.connectionId);
             if (error instanceof ConnectError && error.code === "protocol")
                 this.client.close(error);
             throw error;
@@ -1285,14 +1348,49 @@ export class BrowserMediaPeer {
                 state.prepared = plan;
                 accepted?.();
                 await this.answer(state, frame, operationId, remaining());
-                await started.response;
+                const response = await started.response;
                 if (replacement) {
+                    const answers = response.filter((value) => value.type === "connection.answer");
+                    if (answers.length !== 1)
+                        fail("Native replacement requires one original signed answer");
+                    state.nativeReadiness = new BrowserNativeReadiness(replacement.root, payload, scope, answers[0], frame, started.id, replacement.audio, replacement.video, plan.connectionGeneration);
+                    plan.connectionGeneration =
+                        state.nativeReadiness.targetGeneration;
+                    // Parameter negotiation has joined. The original absolute
+                    // deadline continues in the proof wait; cancellation there
+                    // cannot destroy a target that may already have committed.
+                    clearTimeout(timer);
+                    options.signal?.removeEventListener("abort", abort);
                     // These are the exact signed target parameters, not a
                     // completed movement. Install before waiting so real target
                     // IO can satisfy the server's private readiness phase.
                     this.install(state, plan);
                     replacement.prepared(new BrowserMediaConnection(this, state.scope.connid));
-                    completed = await this.completedReplacement(replacement.root, until, options.signal);
+                    completed = await state.nativeReadiness.finish(this.client, until, () => {
+                        this.requireState(state);
+                        const audio = state.routes.get(replacement.audio), video = replacement.video
+                            ? state.routes.get(replacement.video)
+                            : undefined;
+                        const notice = video?.receiveEpoch;
+                        const current = {
+                            audio: audio?.audioSource,
+                            video: video &&
+                                notice &&
+                                video.video?.currentReceiver(notice)
+                                ? {
+                                    identity: {
+                                        connectionId: video.binding
+                                            .connectionId,
+                                        streamId: video.binding.streamId,
+                                        generation: video.binding.generation,
+                                        ssrc: notice.ssrc,
+                                    },
+                                    epoch: canonicalJson(notice),
+                                }
+                                : undefined,
+                        };
+                        return current;
+                    }, options.signal);
                     const receipt = replacementReceipt(replacement.root, completed);
                     if (state.connectionGeneration !== 0 &&
                         state.connectionGeneration !== receipt.generation)
@@ -1313,6 +1411,7 @@ export class BrowserMediaPeer {
                     for (const stream of state.allowed.values())
                         if (stream.direction !== "sendonly")
                             state.selectedKinds.add(String(stream.kind));
+                    state.nativeReplacementCompleted = true;
                     replacement.committed(receipt);
                 }
                 else {
@@ -1372,10 +1471,11 @@ export class BrowserMediaPeer {
                 state.selectedKinds.add(kind);
         }
         catch (error) {
-            if (!(error instanceof ConnectError) ||
-                (!["refused", "historical-operation"].includes(error.code) &&
-                    !(error.code === "closed" &&
-                        this.connections.get(state.scope.connid) !== state)))
+            if (!state.nativeReadiness?.mayHaveCommitted &&
+                (!(error instanceof ConnectError) ||
+                    (!["refused", "historical-operation"].includes(error.code) &&
+                        !(error.code === "closed" &&
+                            this.connections.get(state.scope.connid) !== state))))
                 this.client.close(error);
             throw error;
         }
@@ -1384,8 +1484,14 @@ export class BrowserMediaPeer {
             options.signal?.removeEventListener("abort", abort);
             this.transitions.delete(operationId);
             state.prepared = undefined;
-            const next = state.pendingServer;
-            state.pendingServer = undefined;
+            // Keep the one already-owned callback while the original target's
+            // public ownership is unresolved. It cannot authorize reconciliation
+            // and must not retire potentially committed media as a side effect.
+            const unresolved = state.nativeReadiness?.mayHaveCommitted &&
+                !state.nativeReplacementCompleted;
+            const next = unresolved ? undefined : state.pendingServer;
+            if (!unresolved)
+                state.pendingServer = undefined;
             if (next &&
                 !this.stopped &&
                 this.connections.get(state.scope.connid) === state)
@@ -1639,10 +1745,15 @@ export class BrowserMediaPeer {
     retireLocalConnection(id) {
         this.retire(id);
     }
+    /** Retain a possibly committed original target until authoritative recovery. */
+    replacementMayHaveCommitted(id) {
+        return (this.connections.get(id)?.nativeReadiness?.mayHaveCommitted ?? false);
+    }
     retire(id) {
         const state = this.connections.get(id);
         if (!state)
             return;
+        state.nativeReadiness?.close();
         for (const route of state.routes.values())
             this.remove(route);
         this.connections.delete(id);
