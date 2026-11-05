@@ -161,11 +161,12 @@ fn target_facts_for_profile(
             .by_participant
             .as_ref()
             .is_some_and(|p| p != &context.participant_id)
-        || intent.offer["substrate"].as_str() != Some(context.target_transport.as_str())
+        || intent.endpoint_transport()? != context.target_transport
         || !matches!(
             context.target_transport,
             connect_protocol::provisioning::EndpointTransport::Quic
                 | connect_protocol::provisioning::EndpointTransport::Webtransport
+                | connect_protocol::provisioning::EndpointTransport::Webrtc
         )
     {
         return Err(Error::forbidden());

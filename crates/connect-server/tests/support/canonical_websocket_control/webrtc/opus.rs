@@ -2,7 +2,7 @@
 use super::*;
 use ::opus::{Application, Bitrate, Channels, Decoder, Encoder};
 
-fn config() -> WebRtcConfig {
+pub(super) fn config() -> WebRtcConfig {
     let mut c = WebRtcConfig::loopback();
     c.capabilities.audio_codecs = vec![CodecInfo::from_name_with_defaults("opus")];
     c.opus_settings.max_average_bitrate_bps = 32000;
@@ -66,7 +66,7 @@ pub(super) fn producer(
     (stop, task)
 }
 
-async fn receiving(
+pub(super) async fn receiving(
     peer: &Arc<RvoipPeerConnection>,
     i: usize,
 ) -> (

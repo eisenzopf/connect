@@ -206,6 +206,14 @@ impl Runtime {
                 .map_err(|_| Error::forbidden())
         }
     }
+    pub(crate) fn media_adapters(&self) -> Vec<Arc<dyn rvoip_core::adapter::ConnectionAdapter>> {
+        let mut adapters: Vec<Arc<dyn rvoip_core::adapter::ConnectionAdapter>> =
+            vec![self.quic_native.clone(), self.webtransport_native.clone()];
+        if let Some(host) = self.webrtc.get() {
+            adapters.push(host.adapter());
+        }
+        adapters
+    }
     pub(crate) fn native_connection_live(&self, id: &rvoip_core::ids::ConnectionId) -> bool {
         use rvoip_core::adapter::ConnectionAdapter;
         self.quic_native.is_connection_live(id)

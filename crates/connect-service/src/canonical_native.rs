@@ -180,7 +180,7 @@ impl NativeOfferRuntimeObservation for Ready {
     }
 }
 pub(crate) struct Absent {
-    pub(crate) natives: [Arc<rvoip_uctp::v2::native::CanonicalNativeAdapter>; 2],
+    pub(crate) natives: Vec<Arc<dyn rvoip_core::adapter::ConnectionAdapter>>,
     pub(crate) id: ConnectionId,
     pub(crate) generation: u64,
 }
@@ -300,6 +300,15 @@ impl Runtime {
         cancellation: Option<tokio_util::sync::CancellationToken>,
     ) -> Result<()> {
         if physical.binding.transport() == rvoip_core::Transport::WebSocket {
+            if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
+                == "connect-replacement-preparation-v1"
+            {
+                let outcome = self
+                    .allocate_native_replacement(a, physical, &credential)
+                    .await;
+                let _ = tx.send(outcome);
+                return Ok(());
+            }
             return Box::pin(self.webrtc_worker(a, physical, credential, tx)).await;
         }
         let native = match self.native_adapter(physical.binding.transport()) {
@@ -396,7 +405,7 @@ impl Runtime {
             // The tracked native worker awaits each bounded Store attempt and
             // retains its exact opaque lease until actual cleanup is settled.
             let store = self.media.store.clone();
-            let natives = self.native_adapters();
+            let natives = self.media_adapters();
             let retired = id.clone();
             let attempt = lease.clone();
             let budget = Duration::from_millis(500);

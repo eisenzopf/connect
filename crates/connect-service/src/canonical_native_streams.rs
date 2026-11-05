@@ -661,7 +661,7 @@ impl Runtime {
                 return;
             }
             let absent = crate::canonical_native::Absent {
-                natives: self.native_adapters(),
+                natives: self.media_adapters(),
                 id,
                 generation: lease.generation(),
             };

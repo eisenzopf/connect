@@ -8,6 +8,8 @@ mod gates;
 mod ice;
 #[path = "opus.rs"]
 mod opus;
+#[path = "replacement.rs"]
+mod replacement;
 use rvoip_core::participant::ParticipantRole;
 use rvoip_core::{adapter::ConnectionAdapter, ids::StreamId, stream::MediaStream};
 use std::sync::atomic::{AtomicU8, Ordering};

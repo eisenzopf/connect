@@ -1,0 +1,226 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs
+@@ -145,7 +145,7 @@
+     }
+ }
+ #[must_use = "drop retires this WebRTC candidate"]
+-pub struct PreparedPeerWebRtcConnection(PreparedPeerNativeConnection);
++pub struct PreparedPeerWebRtcConnection(pub(super) PreparedPeerNativeConnection);
+ impl PreparedPeerWebRtcConnection {
+     pub fn connection_id(&self) -> &ConnectionId {
+         self.0.connection_id()
+@@ -384,7 +384,7 @@
+         )
+         .map(PreparedPeerWebRtcConnection)
+     }
+-    fn prepare_peer_connection_inner(
++    pub(super) fn prepare_peer_connection_inner(
+         self: &Arc<Self>,
+         peer: Arc<PeerAdmission>,
+         principal: &AuthenticatedPrincipal,
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -512,6 +512,44 @@
+         lease: &dyn super::peer_native::PeerNativeAuthorityLease,
+         context: Arc<dyn Any + Send + Sync>,
+     ) -> ControlResult<super::peer_native::PreparedPeerNativeConnection> {
++        self.prepare_peer_device_replacement_inner(
++            preparation,
++            peer,
++            principal,
++            lease,
++            context,
++            false,
++        )
++    }
++    /// Prepare a second, peer-authenticated WebRTC route under the exact owned
++    /// replacement reservation. The original route is untouched until commit.
++    pub fn prepare_peer_webrtc_device_replacement(
++        self: &Arc<Self>,
++        preparation: &Arc<DeviceReplacementPreparation>,
++        peer: Arc<PeerAdmission>,
++        principal: &AuthenticatedPrincipal,
++        lease: &dyn super::peer_native::PeerNativeAuthorityLease,
++        context: Arc<dyn Any + Send + Sync>,
++    ) -> ControlResult<super::peer_native::PreparedPeerWebRtcConnection> {
++        self.prepare_peer_device_replacement_inner(
++            preparation,
++            peer,
++            principal,
++            lease,
++            context,
++            true,
++        )
++        .map(super::peer_native::PreparedPeerWebRtcConnection)
++    }
++    fn prepare_peer_device_replacement_inner(
++        self: &Arc<Self>,
++        preparation: &Arc<DeviceReplacementPreparation>,
++        peer: Arc<PeerAdmission>,
++        principal: &AuthenticatedPrincipal,
++        lease: &dyn super::peer_native::PeerNativeAuthorityLease,
++        context: Arc<dyn Any + Send + Sync>,
++        webrtc: bool,
++    ) -> ControlResult<super::peer_native::PreparedPeerNativeConnection> {
+         preparation.check()?;
+         if !preparation
+             .owner
+@@ -528,7 +566,7 @@
+             return Err(ParticipantControlError::Authority);
+         }
+         let result = self
+-            .prepare_peer_native_connection_inner(
++            .prepare_peer_connection_inner(
+                 peer,
+                 principal,
+                 super::peer_native::PeerNativeIntent {
+@@ -539,6 +577,7 @@
+                 lease,
+                 context,
+                 Some(preparation.nonce),
++                webrtc,
+             )
+             .map_err(|e| match e {
+                 crate::orchestrator::peer_native::PeerNativeError::Authority => {
+@@ -650,7 +689,11 @@
+                     || !life.peer_preparation.as_ref().is_some_and(|s| {
+                         s.matches(&p.runtime.session, &authority.target, &authority.endpoint)
+                     })
+-                    || !adapter.is_peer_native_preparation_current(&p.intent.replacement, &peer)
++                    || !(if adapter.transport() == Transport::WebRtc {
++                        adapter.is_peer_webrtc_preparation_current(&p.intent.replacement, &peer)
++                    } else {
++                        adapter.is_peer_native_preparation_current(&p.intent.replacement, &peer)
++                    })
+                 {
+                     return Err(ParticipantControlError::Authority);
+                 }
+@@ -659,7 +702,10 @@
+             None => {
+                 if matches!(
+                     adapter.transport(),
+-                    Transport::Quic | Transport::WebTransport | Transport::WebSocket
++                    Transport::Quic
++                        | Transport::WebTransport
++                        | Transport::WebSocket
++                        | Transport::WebRtc
+                 ) {
+                     return Err(ParticipantControlError::Authority);
+                 }
+@@ -1488,7 +1534,11 @@
+                     .peer_admission
+                     .as_ref()
+                     .is_some_and(|v| v.belongs_to(peer.incarnation()))
+-                    || !adapter.is_peer_native_preparation_current(&p.intent.replacement, peer)
++                    || !(if adapter.transport() == Transport::WebRtc {
++                        adapter.is_peer_webrtc_preparation_current(&p.intent.replacement, peer)
++                    } else {
++                        adapter.is_peer_native_preparation_current(&p.intent.replacement, peer)
++                    })
+                 {
+                     return Err(ParticipantControlError::Authority);
+                 }
+@@ -1635,7 +1685,7 @@
+         let capabilities = adapter.lifecycle_capabilities();
+         if matches!(
+             adapter.transport(),
+-            Transport::Quic | Transport::WebTransport | Transport::WebSocket
++            Transport::Quic | Transport::WebTransport | Transport::WebSocket | Transport::WebRtc
+         ) || !adapter.supports_device_replacement_preparation()
+             || !capabilities.authoritative_liveness
+             || !capabilities.staged_outbound_activation
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -208,7 +208,11 @@
+                         clean = false;
+                     }
+                 }
+-                if clean { Ok(()) } else { Err(()) }
++                if clean {
++                    Ok(())
++                } else {
++                    Err(())
++                }
+             });
+             async move { task.await.unwrap_or(Err(())) }
+                 .boxed()
+@@ -1208,6 +1212,27 @@
+             prepared: Mutex::new(None),
+         })
+     }
++    pub fn try_confirmed_generation(&self) -> ControlResult<Option<u64>> {
++        let prepared = self.prepared.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
++            std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
++        })?;
++        Ok(prepared.as_ref().and_then(|p| p.committed_generation()))
++    }
++    pub fn try_publish_installed<R>(
++        &self,
++        generation: u64,
++        publish: impl FnOnce() -> R,
++    ) -> ControlResult<R> {
++        let prepared = self.prepared.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
++            std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
++        })?;
++        prepared
++            .as_ref()
++            .ok_or(StreamControlError::NotReady)?
++            .try_publish_installed(generation, publish)
++    }
+ }
+ impl MediaActivation for RtcMediaActivation {
+     fn prepare(
+@@ -1230,6 +1255,51 @@
+         *self.prepared.lock().unwrap_or_else(|p| p.into_inner()) = Some(prepared.clone());
+         Ok(owner)
+     }
++    fn prepare_replacement(
++        &self,
++        prepared: &Arc<PreparedMediaObservation>,
++        current: MediaOwner,
++        source: &MediaOwner,
++        pending: &rvoip_core::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<MediaOwner> {
++        let controller = self
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let backend = self
++            .backend
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if !prepared.belongs_to(&controller) || !backend.confirms(prepared.bindings()) {
++            return Err(StreamControlError::NotReady);
++        }
++        // The replacement proof validates source, target and generation. An
++        // ordinary generation-one activation cannot authorize this candidate.
++        let owner = prepared.activate_replacement_resources(current, source, pending)?;
++        *self.prepared.lock().unwrap_or_else(|p| p.into_inner()) = Some(prepared.clone());
++        Ok(owner)
++    }
++    fn current_replacement(
++        &self,
++        current: MediaOwner,
++        source: &MediaOwner,
++        pending: &rvoip_core::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<MediaOwner> {
++        let backend = self
++            .backend
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let prepared = self
++            .prepared
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .clone()
++            .ok_or(StreamControlError::NotReady)?;
++        if !backend.confirms(prepared.bindings()) {
++            return Err(StreamControlError::NotReady);
++        }
++        prepared.current_replacement_resources(current, source, pending)
++    }
+     fn current(&self, current: MediaOwner) -> ControlResult<MediaOwner> {
+         let backend = self
+             .backend

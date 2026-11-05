@@ -280,7 +280,7 @@ impl Runtime {
             let receipt = started.receipt.clone();
             let capture = capture.clone();
             let absent = crate::canonical_native::Absent {
-                natives: self.native_adapters(),
+                natives: self.media_adapters(),
                 id: id.clone(),
                 generation: root.handle.prepared_binding().generation(),
             };
@@ -311,7 +311,7 @@ impl Runtime {
             let capture = capture.clone();
             let origin = origin.clone();
             let absent = crate::canonical_native::Absent {
-                natives: self.native_adapters(),
+                natives: self.media_adapters(),
                 id: id.clone(),
                 generation: origin.generation(),
             };
@@ -369,7 +369,7 @@ impl Runtime {
             let store = self.media.store.clone();
             let origin = origin.clone();
             let absent = crate::canonical_native::Absent {
-                natives: self.native_adapters(),
+                natives: self.media_adapters(),
                 id: id.clone(),
                 generation: origin.generation(),
             };

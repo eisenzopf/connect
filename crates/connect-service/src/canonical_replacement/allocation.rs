@@ -16,6 +16,7 @@ use std::sync::Weak;
 pub(super) struct AllocatedReplacement {
     pub receipt: Arc<connect_store::NativeReplacementAllocated>,
     pub physical: Weak<Physical>,
+    pub(super) webrtc: Option<Arc<rvoip_webrtc::canonical::WebRtcPhysicalBinding>>,
     pub(super) intent: connect_protocol::connection_control::OfferIntent,
     pub(super) recorded: AtomicBool,
     pub(super) failed_start:
@@ -115,10 +116,17 @@ impl Runtime {
             })
         })
         .await?;
-        if physical.binding.media().is_none()
-            || crate::canonical_runtime::core_transport(&read.source().context().target_transport)?
-                != physical.binding.transport()
-        {
+        let rtc = read.source().context().target_transport
+            == connect_protocol::provisioning::EndpointTransport::Webrtc;
+        if if rtc {
+            physical.binding.transport() != rvoip_core::Transport::WebSocket
+                || self.webrtc.get().is_none()
+        } else {
+            physical.binding.media().is_none()
+                || crate::canonical_runtime::core_transport(
+                    &read.source().context().target_transport,
+                )? != physical.binding.transport()
+        } {
             return Err(Error::new(
                 "unsupported-media-profile",
                 "Replacement target transport differs from the negotiated physical media transport",
@@ -185,8 +193,43 @@ impl Runtime {
             return Err(Error::forbidden());
         }
         // One durable begin; never retry either Core allocation or retain.
-        let allocated=self.core.prepare_peer_native_device_replacement(&saved.handle,peer,a.principal(),&target,physical.binding.clone())
-            .and_then(|prepared|prepared.retain(a.principal(),&target).map_err(|_|rvoip_core::orchestrator::participant_control::ParticipantControlError::Authority));
+        let webrtc = if rtc {
+            match self
+                .webrtc
+                .get()
+                .ok_or_else(Error::forbidden)
+                .and_then(|host| host.reserve_physical(&peer, physical.lifetime.child_token()))
+            {
+                Ok(binding) => Some(binding),
+                Err(error) => {
+                    // Capacity refusal follows the original durable begin. Keep
+                    // that attempt attributable and cancel only this target; a
+                    // fresh offer must not silently retry the allocation effect.
+                    drop(target);
+                    saved.handle.cancel();
+                    let store = self.media.store.clone();
+                    let a = a.clone();
+                    store_call(move || {
+                        store.native_replacement_allocation_uncertain_with_peer(attempt, proof(&a)?)
+                    })
+                    .await?;
+                    return Err(error);
+                }
+            }
+        } else {
+            None
+        };
+        let allocated = if let Some(binding) = &webrtc {
+            self.core.prepare_peer_webrtc_device_replacement(
+                &saved.handle, peer, a.principal(), &target, binding.clone())
+                .and_then(|prepared| prepared.retain(a.principal(), &target)
+                    .map_err(|_| rvoip_core::orchestrator::participant_control::ParticipantControlError::Authority))
+        } else {
+            self.core.prepare_peer_native_device_replacement(
+                &saved.handle, peer, a.principal(), &target, physical.binding.clone())
+                .and_then(|prepared| prepared.retain(a.principal(), &target)
+                    .map_err(|_| rvoip_core::orchestrator::participant_control::ParticipantControlError::Authority))
+        };
         let valid = allocated.is_ok()
             && target._read.current()
             && self.native_connection_live(&saved.handle.intent().replacement)
@@ -218,6 +261,7 @@ impl Runtime {
         let allocated = Arc::new(AllocatedReplacement {
             receipt,
             physical: Arc::downgrade(&physical),
+            webrtc,
             intent,
             recorded: AtomicBool::new(false),
             started: std::sync::Mutex::new(None),
