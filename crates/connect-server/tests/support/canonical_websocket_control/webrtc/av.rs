@@ -84,13 +84,25 @@ async fn receive(peer: &Arc<RvoipPeerConnection>, i: usize) -> Received {
     for _ in 0..2 {
         let remote = tokio::time::timeout(Duration::from_secs(5), peer.recv_remote_track())
             .await
-            .unwrap()
-            .unwrap();
+            .unwrap_or_else(|error| {
+                panic!(
+                    "RTC AV receiver {i}: remote-track wait failed: {error}; audio_present={}, video_present={}",
+                    audio.is_some(),
+                    video.is_some()
+                )
+            })
+            .unwrap_or_else(|| panic!("RTC AV receiver {i}: remote-track owner closed"));
         let is_video = remote
             .kind()
             .await
             .to_string()
             .eq_ignore_ascii_case("video");
+        tracing::debug!(
+            target: "connect_server::gate6_rtc_receiver_trace",
+            receiver_index = i,
+            is_video,
+            "Original RTC AV remote track discovered"
+        );
         let stream = if is_video {
             assert!(video.is_none());
             from_tracks(

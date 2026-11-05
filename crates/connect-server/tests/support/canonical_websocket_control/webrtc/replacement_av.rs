@@ -157,6 +157,12 @@ async fn full_replacement(algorithm: &str) {
     assert_eq!(blue[0] & 1, 0);
     let directory = fixtures.join(format!("replacement-{algorithm}-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir(&directory).unwrap();
+    tracing::debug!(
+        target: "connect_server::gate6_rtc_receiver_trace",
+        algorithm,
+        fixture_directory = %directory.display(),
+        "Original synthetic RTC AV fixture created"
+    );
     let f = configured_end_scope(algorithm, 8, None, true).await;
     let host = SignalingHost::new(config(), 3).unwrap();
     f.server
