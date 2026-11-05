@@ -1,0 +1,87 @@
+{
+  "format": "connect/g6-058-blocker-progress/1",
+  "updated": "2026-11-05T23:01:56+00:00",
+  "run_status": "SDK source/API fixes and composite native-adapter correction are implemented. Browser/model tests pass103/103 and Rust SDK API compilation passes. Normal-release replacement runtime verification is next. No full matrix run is active; v192 counts are unchanged.",
+  "blockers": [
+    {
+      "id": "B01",
+      "title": "SDK native activation result",
+      "status": "Implemented \u2014 awaiting runtime",
+      "change": "Rust and browser accept only the existing typed activation proof, bound to operation/target/generation/revision and outer record; malformed and unknown fields still reject.",
+      "evidence": "TypeScript build and103 Node/browser tests pass with0 skipped. Rust SDK tests API compilation passes (release cfg,opt0). Signed native runtime verification remains required.",
+      "next": "Valid ready/stopped; reject malformed, foreign and missing proofs."
+    },
+    {
+      "id": "B02",
+      "title": "Post-Core audio continuation",
+      "status": "Investigating",
+      "change": "Trace original ingress \u2192 PCM \u2192 target selection \u2192 encoder \u2192 writer; fix first failing boundary.",
+      "evidence": "Private readiness decoded480 samples; paused public target received0 packets. Diagnostics included in1355f591.",
+      "next": "Unpaused and paused duplex audio, then writer/revocation/retirement/expiry cases."
+    },
+    {
+      "id": "B03",
+      "title": "Unpaused target disappears",
+      "status": "Implemented \u2014 awaiting runtime",
+      "change": "Forward native cursor capability through the actual composite NativeMedia adapter. Backend supports it; wrapper currently inherits false and mislabels native activation unsupported.",
+      "evidence": "Production NativeMedia wrapper now forwards the original RTP backend capability via recorded patch/source-lock. Fresh dependency preparation verifies exact patched bytes. Retained release diagnostic shows the prior post-Core capture conflict.",
+      "next": "Two live routes and Completed/ready after the exact capability correction; paused audio remains a separate required check."
+    },
+    {
+      "id": "B04",
+      "title": "Private-successor return binding",
+      "status": "Implemented \u2014 awaiting runtime",
+      "change": "Fresh schema117 accepts exact latest matching-parent primary substitution; original history/audience stay immutable.",
+      "evidence": "1355f591; Store tests API compile and SQL creation/view preflight pass; no runtime pass yet.",
+      "next": "26 selected Store/schema controls, including forged/stale/current-authority refusals."
+    },
+    {
+      "id": "B05",
+      "title": "Audio/video probe demultiplexing",
+      "status": "Implementing",
+      "change": "Validate negotiated video identity and exact activation-cut membership before separating video from audio.",
+      "evidence": "Observed stream-local handle3 in audio probe expecting handle1. Persisted draft remains unreviewed.",
+      "next": "Genuine AV; unknown/wrong context rejects; private video earns no public/audio credit."
+    },
+    {
+      "id": "B06",
+      "title": "Opus cadence session fixture",
+      "status": "Implemented \u2014 awaiting runtime",
+      "change": "Negotiate Opus in both original Session invitation and acceptance; physical PCMU prerequisites unchanged.",
+      "evidence": "1355f591; server API compilation passes. Earlier signed501 was a fixture negotiation failure.",
+      "next": "Four signed G711/Opus emission and continuity cases plus capability-refusal control."
+    },
+    {
+      "id": "B07",
+      "title": "Required-nullable protocol field",
+      "status": "Verified \u2014 component scope",
+      "change": "Restore required explicit-null active speaker semantics and preserve them through regeneration.",
+      "evidence": "feee630f /1355f591:13 normal-release Rust controls and4 Python regeneration controls pass.",
+      "next": "Full matrix still required; these component passes do not qualify a cell."
+    },
+    {
+      "id": "B08",
+      "title": "Native cut test ownership and gates",
+      "status": "Implemented \u2014 awaiting runtime",
+      "change": "Observe exact private delivery ticket; distinguish publication mute from receive hold.",
+      "evidence": "1355f591; corrected Core tests compile. Original3 runtime failures preserved.",
+      "next": "All10 native-cut controls, unchanged deadlines and cleanup assertions."
+    },
+    {
+      "id": "B09",
+      "title": "Cleanup and resource reclamation",
+      "status": "Awaiting fresh matrix",
+      "change": "Retest current cleanup before making further changes to already corrected ownership paths.",
+      "evidence": "Old matrix:30 cleanup failures. New interrupted run:3 selected cleanup/cold-open controls pass.",
+      "next": "Per-cell original owner/child/capture cleanup and resource budgets."
+    },
+    {
+      "id": "B10",
+      "title": "Interrupted local ARM run",
+      "status": "Recovered \u2014 fresh run required",
+      "change": "Preserve interrupted results, use same ARM VM, start a fresh candidate run with durable ownership.",
+      "evidence": "VM recovered;182 passed/21 failed completed component cases. Interrupted aggregate is unqualified.",
+      "next": "Fresh committed candidate; all32 cells and432 verdicts, including required Mac scope."
+    }
+  ]
+}

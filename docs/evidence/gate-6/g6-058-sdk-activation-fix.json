@@ -1,0 +1,34 @@
+{
+  "format": "connect/g6-058-sdk-activation-fix/1",
+  "base_revision": "1355f5919d775f83e043c5c23f679300c1a25bbb",
+  "source_files": {
+    "crates/connect-client/src/sdk/movements.rs": "b343c4635792667c643b6d19c118f2bded711a4a1e0b86700329d0a82325946d",
+    "crates/connect-client/src/sdk/consultations.rs": "5166a72bbf33420d1f8dbbd40b9b53a23d622307559e8fee4f69caa0d156c5cc",
+    "sdk/typescript/src/browser_sdk_movements.ts": "a6dc81b63823b6a3120219400492189238f64543247a2bebbd5ea85a16498cd9",
+    "sdk/typescript/src/browser_sdk_consultations.ts": "1b59e6652f7602aaf81620775006dcb0dd7a37d9b2c7562a2194f22b6b5d0740",
+    "sdk/tests/fixtures/native_move_activation.json": "45ef298f27f2bab9256b7afe1a795c6fa5064df953d8007715f9bc983cecf4bc",
+    "sdk/tests/native_move_activation.test.mjs": "20aeb6e9337d0a9f4973dbb13b09ac84fecdf57c98e9c15c59a0cc901d2f0677"
+  },
+  "browser_verification": {
+    "command": "npm run build --prefix sdk/typescript; node --test sdk/tests/native_move_activation.test.mjs sdk/tests/browser_native_activation.test.mjs sdk/tests/browser_sdk_movements.test.mjs",
+    "build_exit_code": 0,
+    "test_exit_code": 0,
+    "passed": 103,
+    "failed": 0,
+    "skipped": 0,
+    "scope": "typed parsers, mock original-operation recovery and native membership models; no signed transport/matrix qualification"
+  },
+  "Rust_API": {
+    "exit_code": 0,
+    "log_sha256": "9448e4b6ffcb66b6e3a877e77760cb7ccdac1b6c73f450d5d017e0c294549d28",
+    "profile": "release cfg,opt0",
+    "runtime_cases": 0
+  },
+  "native_composite": {
+    "path": "crates/uctp/rvoip-uctp/src/staged_data.rs",
+    "patch_sha256": "983abdff244e8c2ee74950b42506755cf5281cbea38722387589c4310190650b",
+    "prepared_result_sha256": "eabd522dae5a66eeb0e4ba4582d76a044879f0aefc5ad6f4c0f3d2e9fb8523a4",
+    "runtime_status": "pending"
+  },
+  "matrix_qualified": false
+}

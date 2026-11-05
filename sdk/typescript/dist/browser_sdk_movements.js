@@ -1,5 +1,6 @@
 import { replacementVideo, } from "./replacement_video.js";
 import { fields } from "./browser_sdk_sessions.js";
+import { nativeCut } from "./browser_native_activation.js";
 import { canonicalJson, jsonObject, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
 export const movementCommand = (value) => ["session.handoff", "connection.replace"].includes(value);
@@ -192,6 +193,7 @@ export function movementCompletion(value, key, bad) {
                 "readiness",
                 "activation_state",
                 "physical_readiness",
+                "native_activation",
             ]),
     ], bad);
     const lists = [
@@ -310,6 +312,7 @@ export function movementCompletion(value, key, bad) {
             ? value.endpoint_id !== context.target.id
             : value.connection_id !== context.target.id))
         return bad();
+    movementActivation(value, key, bad);
     return {
         ...topology,
         kind: "replacement",
@@ -323,4 +326,81 @@ export function movementCompletion(value, key, bad) {
             deviceId: value.device_id,
         },
     };
+}
+// Historical metadata only; negotiated physical readers still validate exact
+// incarnation/handle bindings before assigning actual packet membership.
+function movementActivation(value, key, bad) {
+    if (!("activation_state" in value)) {
+        if ("native_activation" in value)
+            bad();
+        return;
+    }
+    if (!("native_activation" in value))
+        return bad();
+    const v = value.native_activation;
+    if (v === null && value.activation_state === "stopped")
+        return;
+    if (!jsonObject(v) || !jsonObject(value.physical_readiness))
+        return bad();
+    fields(v, [
+        "profile",
+        "operation_record_id",
+        "operation_id",
+        "source_connection_id",
+        "target_connection_id",
+        "target_generation",
+        "stream_revision",
+        "audience",
+    ], bad);
+    if (v.profile !== "connect/native-public-sequence-cut/1" ||
+        !identifier(v.operation_record_id) ||
+        v.operation_id !== key.operationId ||
+        v.source_connection_id !== key.scope.connectionId ||
+        v.source_connection_id !== value.replaces ||
+        v.target_connection_id !== value.connection_id ||
+        v.source_connection_id === v.target_connection_id ||
+        v.target_generation !== value.generation ||
+        !positive(v.stream_revision) ||
+        v.stream_revision <= 2 ||
+        v.stream_revision !== value.physical_readiness.stream_revision ||
+        !jsonObject(v.audience))
+        return bad();
+    const audience = v.audience;
+    if (audience.scope === "private-consultation") {
+        fields(audience, ["scope", "original_operation"], bad);
+        if (!identifier(audience.original_operation))
+            bad();
+    }
+    else if (audience.scope === "unsupported") {
+        fields(audience, ["scope", "reason"], bad);
+        if (audience.reason !== "non-native-adapter")
+            bad();
+    }
+    else {
+        fields(audience, ["scope", "streams"], bad);
+        if (audience.scope !== "public" ||
+            !Array.isArray(audience.streams) ||
+            audience.streams.length < 1 ||
+            audience.streams.length > 32 ||
+            !Array.isArray(value.physical_readiness.streams))
+            return bad();
+        const ids = new Set(), handles = new Set(), physical = new Set();
+        for (const valueCut of audience.streams) {
+            let cut;
+            try {
+                cut = nativeCut(valueCut);
+            }
+            catch {
+                return bad();
+            }
+            if (!value.physical_readiness.streams.includes(cut.stream_id) ||
+                ids.has(cut.stream_id) ||
+                handles.has(cut.stream_local_id) ||
+                physical.has(cut.physical_incarnation))
+                return bad();
+            ids.add(cut.stream_id);
+            handles.add(cut.stream_local_id);
+            physical.add(cut.physical_incarnation);
+        }
+    }
 }

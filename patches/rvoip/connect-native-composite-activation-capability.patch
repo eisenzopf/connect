@@ -1,0 +1,12 @@
+--- a/crates/uctp/rvoip-uctp/src/staged_data.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_data.rs
+@@ -694,6 +694,9 @@
+ }
+ #[async_trait]
+ impl StagedMediaAdapter for NativeMedia {
++    fn native_sequence_cursors(&self) -> bool {
++        self.rtp.as_ref().is_some_and(|backend| backend.native_sequence_cursors())
++    }
+     async fn prepare(
+         &self,
+         ports: Vec<PortPreparation>,

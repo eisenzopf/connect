@@ -120,6 +120,13 @@ pub(super) fn validate_observation(
     {
         return Err(bad());
     }
+    if key.command == "connection.replace"
+        && value["state"] == "completed"
+        && !value["result"]["native_activation"].is_null()
+        && value["result"]["native_activation"]["operation_record_id"] != value["record_id"]
+    {
+        return Err(bad());
+    }
     Ok(())
 }
 #[derive(Deserialize)]

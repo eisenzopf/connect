@@ -63,6 +63,14 @@ export function transitionObservation(value, key, expected, bad) {
             value.record_id !== key.continuation.record_id))
         bad();
     if (value.state === "completed") {
+        if (key.command === "connection.replace" &&
+            jsonObject(value.result) &&
+            value.result.native_activation !== null &&
+            value.result.native_activation !== undefined &&
+            (!jsonObject(value.result.native_activation) ||
+                value.result.native_activation.operation_record_id !==
+                    value.record_id))
+            bad();
         if (movementCommand(key.command))
             movementCompletion(value.result, key, bad);
         else

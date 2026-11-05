@@ -1,7 +1,13 @@
 {
-  "retained_connection_ids": ["remote"],
-  "admitted_connection_ids": ["candidate"],
-  "retired_connection_ids": ["source"],
+  "retained_connection_ids": [
+    "remote"
+  ],
+  "admitted_connection_ids": [
+    "candidate"
+  ],
+  "retired_connection_ids": [
+    "source"
+  ],
   "session_revision": 4,
   "conversation_revision": null,
   "connection_id": "candidate",
@@ -12,6 +18,46 @@
   "endpoint_id": "endpoint_new",
   "device_id": "device_new",
   "activation_state": "ready",
-  "readiness": {"streams": ["voice", "camera", "incoming-camera"], "stream_revision": 4, "participant_revision": 4},
-  "physical_readiness": {"streams": ["voice", "camera", "incoming-camera"], "stream_revision": 4, "participant_revision": 4}
+  "readiness": {
+    "streams": [
+      "voice",
+      "camera",
+      "incoming-camera"
+    ],
+    "stream_revision": 4,
+    "participant_revision": 4
+  },
+  "physical_readiness": {
+    "streams": [
+      "voice",
+      "camera",
+      "incoming-camera"
+    ],
+    "stream_revision": 4,
+    "participant_revision": 4
+  },
+  "native_activation": {
+    "profile": "connect/native-public-sequence-cut/1",
+    "operation_record_id": "record_original",
+    "operation_id": "original",
+    "source_connection_id": "source",
+    "target_connection_id": "candidate",
+    "target_generation": 2,
+    "stream_revision": 4,
+    "audience": {
+      "scope": "public",
+      "streams": [
+        {
+          "stream_id": "voice",
+          "stream_local_id": 1,
+          "stream_generation": 1,
+          "physical_incarnation": "00000000000000000000000000000001",
+          "sequence_space": "native-outer-u32",
+          "public_sequence_floor": 4,
+          "cursor_ordinal": 4,
+          "submission_observed": false
+        }
+      ]
+    }
+  }
 }

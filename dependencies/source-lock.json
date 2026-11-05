@@ -1774,6 +1774,11 @@
       "path": "patches/rvoip/connect-native-cut-test-semantics.patch",
       "sha256": "893705089c93c9a1cdb5a81be4e5efe9dfcc5efabf543926badf764eca546c0b",
       "source": "Private coordinated v212 candidate; component verification pending. No production authority or timing relaxation."
+    },
+    {
+      "path": "patches/rvoip/connect-native-composite-activation-capability.patch",
+      "sha256": "983abdff244e8c2ee74950b42506755cf5281cbea38722387589c4310190650b",
+      "source": "G6-058 forward original StagedRtpMedia native sequence-cursor capability through the production NativeMedia composite. Preserve Data/unsupported behavior; exact native activation and physical-reader validation remain required. Retained release diagnostic identifies post-Core capture conflict; normal-runtime verification pending."
     }
   ]
 }

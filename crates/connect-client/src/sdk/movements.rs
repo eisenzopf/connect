@@ -217,6 +217,7 @@ fn movement(value: &Value, key: &OperationKey) -> Result<WireMove> {
             "readiness",
             "activation_state",
             "physical_readiness",
+            "native_activation",
         ],
     )?;
     if key.command != "connection.replace" {
@@ -250,6 +251,7 @@ fn movement(value: &Value, key: &OperationKey) -> Result<WireMove> {
     if !activation_valid {
         return Err(bad(key, true));
     }
+    validate_native_activation(value, &w, key)?;
     validate_topology(&w.topology, key, stopped.then_some(&w.connection_id))?;
     if !positive(w.generation)
         || !positive(w.membership_epoch)
@@ -261,6 +263,55 @@ fn movement(value: &Value, key: &OperationKey) -> Result<WireMove> {
         return Err(bad(key, true));
     }
     Ok(w)
+}
+// This validates historical result metadata. The physical reader independently
+// matches negotiated incarnation/handles before using any sequence membership.
+fn validate_native_activation(value: &Value, w: &WireMove, key: &OperationKey) -> Result<()> {
+    let proof = value.get("native_activation");
+    if w.activation_state.is_none() {
+        return if proof.is_none() {
+            Ok(())
+        } else {
+            Err(bad(key, true))
+        };
+    }
+    let proof = proof.ok_or_else(|| bad(key, true))?;
+    if proof.is_null() && w.activation_state == Some(MoveActivationState::Stopped) {
+        return Ok(());
+    }
+    let boundary: connect_protocol::replacement_activation::NativeActivationBoundary =
+        serde_json::from_value(proof.clone()).map_err(|_| bad(key, true))?;
+    boundary.validate().map_err(|_| bad(key, true))?;
+    if boundary.operation_id != key.operation_id.as_str()
+        || Some(boundary.source_connection_id.as_str())
+            != key.scope.connection_id.as_ref().map(|id| id.as_str())
+        || boundary.source_connection_id != w.replaces.as_str()
+        || boundary.target_connection_id != w.connection_id.as_str()
+        || boundary.target_generation != w.generation
+        || w.physical_readiness
+            .as_ref()
+            .and_then(|r| r["stream_revision"].as_u64())
+            != Some(boundary.stream_revision)
+    {
+        return Err(bad(key, true));
+    }
+    if let connect_protocol::replacement_activation::NativeActivationAudience::Public { streams } =
+        &boundary.audience
+    {
+        let actual = w
+            .physical_readiness
+            .as_ref()
+            .and_then(|r| r["streams"].as_array())
+            .ok_or_else(|| bad(key, true))?;
+        if streams.iter().any(|s| {
+            !actual
+                .iter()
+                .any(|id| id.as_str() == Some(s.stream_id.as_str()))
+        }) {
+            return Err(bad(key, true));
+        }
+    }
+    Ok(())
 }
 pub(super) fn valid_continuation(
     command: &str,
@@ -601,6 +652,86 @@ impl Connection {
 mod activation_tests {
     use super::*;
     #[test]
+    fn native_activation_proof_is_required_bound_and_never_a_media_permission() {
+        let ready: Value = serde_json::from_str(include_str!(
+            "../../../../sdk/tests/fixtures/native_move_activation.json"
+        ))
+        .unwrap();
+        let key = OperationKey {
+            operation_id: "original".parse().unwrap(),
+            command: "connection.replace".into(),
+            scope: OperationScope {
+                conversation_id: Some("conversation".parse().unwrap()),
+                session_id: Some("session".parse().unwrap()),
+                connection_id: Some("source".parse().unwrap()),
+            },
+        };
+        movement(&ready, &key).unwrap();
+        for (path, replacement) in [
+            ("/native_activation", Value::Null),
+            ("/native_activation/operation_id", json!("foreign")),
+            ("/native_activation/source_connection_id", json!("foreign")),
+            ("/native_activation/target_connection_id", json!("foreign")),
+            ("/native_activation/target_generation", json!(3)),
+            ("/native_activation/stream_revision", json!(5)),
+            ("/native_activation/profile", json!("unknown")),
+            (
+                "/native_activation/audience/streams/0/stream_id",
+                json!("foreign"),
+            ),
+            (
+                "/native_activation/audience/streams/0/physical_incarnation",
+                json!("0".repeat(32)),
+            ),
+            (
+                "/native_activation/audience/streams/0/public_sequence_floor",
+                json!(5),
+            ),
+            (
+                "/native_activation/audience/streams/0/submission_observed",
+                json!(true),
+            ),
+            ("/native_activation/audience/streams", json!([])),
+        ] {
+            let mut changed = ready.clone();
+            *changed.pointer_mut(path).unwrap() = replacement;
+            assert!(movement(&changed, &key).is_err(), "{path}");
+        }
+        let mut missing = ready.clone();
+        missing.as_object_mut().unwrap().remove("native_activation");
+        assert!(movement(&missing, &key).is_err());
+        let mut unknown = ready.clone();
+        unknown["native_activation"]["permission"] = json!(true);
+        assert!(movement(&unknown, &key).is_err());
+        let mut duplicate = ready.clone();
+        let cuts = duplicate["native_activation"]["audience"]["streams"]
+            .as_array_mut()
+            .unwrap();
+        cuts.push(cuts[0].clone());
+        assert!(movement(&duplicate, &key).is_err());
+        let mut stopped = ready.clone();
+        stopped["activation_state"] = json!("stopped");
+        stopped["readiness"] = Value::Null;
+        stopped["retired_connection_ids"] = json!(["source", "candidate"]);
+        movement(&stopped, &key).unwrap();
+        stopped["native_activation"] = Value::Null;
+        movement(&stopped, &key).unwrap();
+        stopped.as_object_mut().unwrap().remove("native_activation");
+        assert!(movement(&stopped, &key).is_err());
+        for audience in [
+            json!({"scope":"private-consultation","original_operation":"parent"}),
+            json!({"scope":"unsupported","reason":"non-native-adapter"}),
+        ] {
+            let mut value = ready.clone();
+            value["native_activation"]["audience"] = audience;
+            movement(&value, &key).unwrap();
+        }
+        let mut observed = json!({"state":"completed","command_type":"connection.replace","record_id":"record_original","expected_revision":3,"result":ready});
+        consultations::validate_observation(&observed, &key, None).unwrap();
+        observed["record_id"] = json!("foreign");
+        assert!(consultations::validate_observation(&observed, &key, None).is_err());
+    }
+    #[test]
     fn native_activation_completion_preserves_ready_stopped_and_refuses_contradictions() {
         let ready: Value = serde_json::from_str(include_str!(
             "../../../../sdk/tests/fixtures/native_move_activation.json"
@@ -631,7 +762,11 @@ mod activation_tests {
             assert_eq!(movement(v, &key).unwrap().activation_state, Some(state));
         }
         let mut telephone = ready.clone();
-        for field in ["activation_state", "physical_readiness"] {
+        for field in [
+            "activation_state",
+            "physical_readiness",
+            "native_activation",
+        ] {
             telephone.as_object_mut().unwrap().remove(field);
         }
         assert_eq!(movement(&telephone, &key).unwrap().activation_state, None);
