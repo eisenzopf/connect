@@ -67,8 +67,9 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
            report.get("selected_transport_verified") is True, "browser_observation.admission.checks" if browser else "checks")
     record("one-service-contract-and-original-operation-recovery", bool(checks),
            "original-browser-operation-reference-recovers-same-conversation" in checks if browser else
-           "public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery" in producer_checks,
-           "browser_observation.admission.checks" if browser else "checks")
+           {"independent-device-explicitly-activates-original-config-after-original-sdk-owner-joins",
+            "independent-device-recovers-original-create-and-history-after-original-helper-close"} <= set(checks),
+           "browser_observation.admission.checks" if browser else "conversation_control.checks")
     membership = {"participant-add-update-remove-rejoin-and-current-addressed-history"} if browser else {
         "scoped-native-conversation-and-nonmember-current-access-refusal",
         "four-active-participants-and-addition-does-not-expand-older-message-audience",
@@ -77,7 +78,7 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
     record("participant-add-update-remove-and-current-audiences", bool(checks), membership <= set(checks), "admission.checks")
     upgrade = {"two-concurrent-accepted-sessions-upgraded-to-audio-video-and-unoffered-screen-refused"} if browser else {
         "two-current-accepted-session-intents-coexist-with-one-main-session",
-        "additive-session-capability-intent-and-unoffered-video-refusal-without-state-change"}
+        "additive-session-capability-intent-and-unoffered-screen-refusal-without-state-change"}
     record("session-upgrade-and-current-capability-refusal", bool(checks), upgrade <= set(checks), "admission.checks")
     programme = observation.get("programme", {}) if browser else report.get("movement", {})
     moves = programme.get("moves", [])
