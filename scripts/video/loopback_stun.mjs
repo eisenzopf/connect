@@ -1,8 +1,20 @@
 /** Owned RFC5389 Binding fixture. Reflects the source; never proxies traffic. */
 import dgram from 'node:dgram';
+import {isIPv4} from 'node:net';
+import {networkInterfaces} from 'node:os';
 
-export async function openLoopbackStun(bindIp='127.0.0.1') {
-    if(!['127.0.0.1','10.203.0.2'].includes(bindIp))throw Error('Owned local or matrix namespace address required');
+export function validateOwnedStunAddress(bindIp,fixtureAddresses,localAddresses) {
+    if(!isIPv4(bindIp)||!Array.isArray(fixtureAddresses)||fixtureAddresses.length>2||
+        !fixtureAddresses.every(isIPv4)||!Array.isArray(localAddresses))throw Error('Owned IPv4 fixture address required');
+    const [a,b]=bindIp.split('.').map(Number),privateIp=a===10||a===192&&b===168||a===172&&b>=16&&b<=31;
+    const declared=['127.0.0.1','10.203.0.2'].includes(bindIp)||privateIp&&fixtureAddresses.includes(bindIp);
+    if(!declared||!localAddresses.includes(bindIp))throw Error('Owned local or declared private fixture address required');
+}
+
+export async function openLoopbackStun(bindIp='127.0.0.1',fixtureAddresses=[]) {
+    const localAddresses=Object.values(networkInterfaces()).flatMap(values=>values??[])
+        .filter(value=>value.family==='IPv4').map(value=>value.address);
+    validateOwnedStunAddress(bindIp,fixtureAddresses,localAddresses);
     const socket=dgram.createSocket('udp4');
     const stats={received:0,answered:0,malformed:0,send_errors:0,original_socket_joined:false};
     let closing,stopped=false;

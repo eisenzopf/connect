@@ -75,7 +75,7 @@
       }
     }
   },
-  "full_matrix": "v191 complete all32 attempts at4f2e26a1:219passed/82failed/131blocked requirements,0qualified. No current matrix process. Post-run fixture fixes verified in42Python+11Node component checks; runtime rerun pending.",
+  "full_matrix": "v191 complete all32 attempts at4f2e26a1:219passed/82failed/131blocked requirements,0qualified. No current matrix process. Post-run fixture fixes verified in43Python+13Node component checks; runtime rerun pending.",
   "adapter": {
     "host": "owned Ubuntu24 ARM64 VM",
     "passed": 5,
@@ -115,11 +115,25 @@
       "Use actual canvas frame-request capability; automatic30fps capture when absent, preserving source clock/identity/ownership",
       "Load only pinned Linux Firefox NSS bundle dependencies; preserve Mac importer, NSS version and normal TLS checks",
       "Enable existing bounded native replacement phase events and terminal audio counters; keep SQL/per-packet/helper timing traces off",
-      "Keep known native-target-stopped compensation code in sanitized operation failure observations"
+      "Keep known native-target-stopped compensation code in sanitized operation failure observations",
+      "Keep Mac executable overrides out of Linux-client launches and admit fixture-declared private STUN binds only on observed local IPv4 interfaces"
     ],
     "verification": {
-      "python_tests_passed": 42,
-      "node_tests_passed": 11,
+      "scope": "Affected fixture/control boundary checks only; no complete matrix run or browser/media qualification",
+      "python_tests_passed": 43,
+      "node_tests_passed": 13,
+      "python_log_sha256": "d47c81ecde989406c5001ac01e8867808cbcf1a2134c0d793a7fe323fabccd20",
+      "node_log_sha256": "49bcbba1d3bf41a039cb33e0fa39f3eba50359cd8af30f8dd9729aa3521b3433",
+      "fixture_source_sha256": {
+        "scripts/lib/browser_matrix_sources.mjs": "f064eaa484c181245954e6ed9bd18d2958a9c922ff267769c64170704073ee75",
+        "scripts/lib/mac_linux_fixture.py": "3d2a291e4f4c347066a427a2bc9f76f628145f94fad8f30405e3156dc2c0a9bb",
+        "scripts/lib/transport_failure.mjs": "7cf7e803a58b6978a132289477eebf8caf98388a769027324bba6882c45fa381",
+        "scripts/lib/transport_namespace.py": "f829ed686059090e7abff6a1f006e20df85d8d39b4654a72493dec3b5ea234cd",
+        "scripts/run-gate6-transport-matrix.py": "e20cabadfd192535e71615b9d55a8acdfd62ab813aa8adc3ad8ead21effb3d37",
+        "scripts/video/browser_profile.py": "e4b72e362e851d4289dc10c63d36aa2578ff351d32eacbbe169a7e00ce65d1a1",
+        "scripts/video/loopback_stun.mjs": "f2c06c984e1db3fcffb96b46c4a82b3cca6eb85c0bf999fb17f826736d2fb858",
+        "scripts/video/browser_matrix_admission.mjs": "8dad9c55397b9a0bb01611f29ee962e2157a7941a932c616332e42d316482b3f"
+      },
       "exact_original_fixture_negative_controls": 2
     },
     "runtime_passes_claimed": 0,

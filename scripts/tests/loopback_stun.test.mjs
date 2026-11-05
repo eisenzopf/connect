@@ -2,7 +2,21 @@ import assert from 'node:assert/strict';
 import dgram from 'node:dgram';
 import {randomBytes} from 'node:crypto';
 import {test} from 'node:test';
-import {openLoopbackStun} from '../video/loopback_stun.mjs';
+import {openLoopbackStun,validateOwnedStunAddress} from '../video/loopback_stun.mjs';
+
+test('STUN binds only observed local interfaces declared by the private matrix fixture',()=>{
+    for(const address of ['127.0.0.1','10.203.0.2'])
+        assert.doesNotThrow(()=>validateOwnedStunAddress(address,[],[address]));
+    assert.doesNotThrow(()=>validateOwnedStunAddress('192.168.5.1',['192.168.1.104','192.168.5.1'],['192.168.5.1']));
+    for(const address of ['10.1.2.3','172.16.1.2','172.31.255.1'])
+        assert.doesNotThrow(()=>validateOwnedStunAddress(address,[address],[address]));
+    for(const [address,declared,local] of [
+        ['192.168.5.1',[],['192.168.5.1']],
+        ['192.168.1.104',['192.168.1.104','192.168.5.1'],['192.168.5.1']],
+        ['10.203.0.2',[],['127.0.0.1']],
+        ...['0.0.0.0','8.8.8.8','172.32.0.1','224.0.0.1','169.254.1.1','::1','localhost'].map(value=>[value,[value],[value]]),
+    ])assert.throws(()=>validateOwnedStunAddress(address,declared,local));
+});
 
 test('owned STUN refuses malformed data, reflects the original UDP transaction and joins its socket',async()=>{
     const fixture=await openLoopbackStun(),client=dgram.createSocket('udp4');let replies=0;

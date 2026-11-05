@@ -24,6 +24,18 @@ class FullMatrix(unittest.TestCase):
         return configure_execution(inventory(ROOT, "a" * 40),
             dict(server=host, execution_blockers=[], browsers={}), "full")
 
+    def test_browser_overrides_belong_to_actual_client_host_not_remote_mac_server(self):
+        for host in ("macos-arm64", "ubuntu24-arm64"):
+            args = SimpleNamespace(chrome=Path("/host-specific/chrome"), firefox=Path("/host-specific/firefox"))
+            expected = ["--chrome", str(args.chrome), "--firefox", str(args.firefox)]
+            for cell in self.configured(host)["cells"]:
+                if cell["server"] != host or cell["transport"] == "native-quic":
+                    continue
+                with self.subTest(cell=cell["id"]):
+                    remote_mac = host == "macos-arm64" and cell["network"] == "remote-profile-fixture"
+                    self.assertEqual(driver.browser_runtime_arguments(cell, args), [] if remote_mac else expected)
+                    self.assertEqual(driver.browser_runtime_arguments(cell, SimpleNamespace(chrome=None, firefox=None)), [])
+
     def test_every_transport_and_network_gets_a_real_executor_on_its_host(self):
         all_ids = set()
         for host in ("macos-arm64", "ubuntu24-arm64"):

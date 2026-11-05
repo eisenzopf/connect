@@ -123,9 +123,9 @@ try{
         report.trust={normal_profile_ca_import:true,root_sha256:result.root_sha256,browser_version:result.version};
     });
     stage='current-browser-authentication';
-    // Local scope uses an owned Binding reflector so the browser can supply
-    // actual IP candidates while retaining its ordinary mDNS/privacy policy.
-    stun=await openLoopbackStun(new URL(spec.origin).hostname);spec.rtcConfiguration={iceServers:[{urls:stun.url}]};
+    // Bind only the actual client interface already authenticated by the
+    // fixture certificate, retaining ordinary browser mDNS/privacy policy.
+    stun=await openLoopbackStun(new URL(spec.origin).hostname,fixtureAddresses);spec.rtcConfiguration={iceServers:[{urls:stun.url}]};
     unavailable=await matrixUnavailableTransports();spec.unavailableEndpoints=unavailable.endpoints;
     page=await owner.browser.newPage();
     await page.addInitScript(installPeerDiagnostics);

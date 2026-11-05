@@ -220,7 +220,9 @@ Run requires matching clean commits on the Mac and `/workspace` in the existing
 `connect-gate6` ARM VM. The coordinator starts both original host workers; do not
 launch them separately. It uses the exact installed ARM browser image recorded
 in the coordinator. Optional `--chrome` and `--firefox` paths select the Mac's
-frozen browser binaries. Each fixture verifies the actual browser version.
+frozen browser binaries. Mac executable overrides are not forwarded to Linux
+clients; those clients use their pinned Linux bundle. Each fixture verifies the
+actual browser version.
 
 Every run includes all 32 configurations. Partial `--stage` values are accepted
 only with `--phase probe`, which executes no workload. Run prepares dependencies

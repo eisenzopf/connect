@@ -41,6 +41,16 @@ def command_version(command):
         return None
 
 
+def browser_runtime_arguments(cell, args):
+    # Worker overrides were probed on the worker's host. A Mac server's remote
+    # browser runs in the ARM Linux guest and uses its pinned Linux defaults;
+    # forwarding a Mac .app path cannot select a guest executable.
+    if cell["server"] == "macos-arm64" and cell["network"] == "remote-profile-fixture":
+        return []
+    return [value for name in ("chrome", "firefox") if getattr(args, name)
+            for value in ("--" + name, str(getattr(args, name)))]
+
+
 def probe(chrome=None, firefox=None, browser_image=None):
     system, machine = platform.system(), platform.machine()
     if (system, machine) == ("Darwin", "arm64"):
@@ -260,10 +270,7 @@ def main():
                             "--signing", cell["signing"], "--network", cell["network"], "--output", str(directory)]
                 if args.browser_image:
                     sys.argv += ["--image", args.browser_image]
-                if args.chrome:
-                    sys.argv += ["--chrome", str(args.chrome)]
-                if args.firefox:
-                    sys.argv += ["--firefox", str(args.firefox)]
+                sys.argv += browser_runtime_arguments(cell, args)
                 try:
                     code = module.main()
                 finally:
