@@ -1,6 +1,6 @@
 # Guarded audio mixer
 
-G6-020 remains in progress. `Orchestrator::enable_staged_participant_control`
+`Orchestrator::enable_staged_participant_control`
 connects the general Participant Session controller to the guarded audio ports
 registered by a physical native adapter. It requires the exact `MediaPolicy`
 instance used by those ports, plus the current `ParticipantPolicy`. Native QUIC
@@ -24,6 +24,25 @@ of dynamic RTP payload numbers. Each connection owns its codecs and resamplers;
 stereo Opus is downmixed and expanded at the boundary. Ingress work, pending
 samples, live packet age, and egress queues are bounded. Congestion drops live
 audio rather than growing an unbounded backlog.
+
+G6-058 adds a bounded FIFO for target admission contention. Each receiver may
+retain at most ten original 20 ms mixed PCM quanta; an existing tick attempts
+at most two FIFO admissions to catch up, stopping that receiver immediately
+when current admission is busy. Other receivers continue independently. The
+retained intent holds source/target ports, generations, selection and original
+capture coordinates, with no policy guard retained between attempts. Fresh
+source and target authorization is required before encoding and again at
+delivery. Egress capacity is reserved before encoding.
+
+Every original ingress, collection, source/target grant, credential and 200 ms
+media-age bound travels with the PCM and can only become earlier. A failed
+attempt that observes a shorter bound cannot replace it with a later grant.
+No new input is needed to recover an eligible original. Expiry, queue overflow,
+changed subscriptions or generations, permanent denial and shutdown remain
+explicit drops; retained audio never gains synthetic samples or repaired RTP
+timestamps. The [85 focused ARM Linux checks](../evidence/gate-6/core-audio-target-retention-focused.json)
+verify this recovery and refusal behavior. Full transport and AV qualification
+remain separate.
 
 Source publication and each target's permission to hear that source are checked
 with current owned media leases. Mixed queued output retains every contributing
@@ -60,4 +79,4 @@ readiness, the trusted participant API, and decoded RTP. They do not install
 Connect production policy, public offer/answer/ready or confirmation/presence
 workflows. General subscriptions, reliable application data, SIP/WebRTC guarded
 admission, browser behavior, the G6-038 durable general Session projection,
-remote/provider profiles and Gate 6 acceptance remain outside this slice.
+remote/provider profiles and Gate 6 acceptance remain outside the original mixer slice.

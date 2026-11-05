@@ -1679,6 +1679,11 @@
       "path": "patches/rvoip/gate6-directional-webrtc-replacement-ports.patch",
       "sha256": "63381271ffe4586493f299939aa51fc0759035f73de023b45f4c08c1bf892c76",
       "source": "One WebRTC video m-line supports distinct complementary logical publication and receive ports without duplicate physical track readers"
+    },
+    {
+      "path": "patches/rvoip/gate6-original-target-audio-retention.patch",
+      "sha256": "0a11066157b25bf2e6755bd5199b0778e2ecbd9a1baf9387540cb0f146db42ac",
+      "source": "G6-058 actual ARM target-only PCM loss: retain at most ten original20ms mixed quanta per receiver across temporary admission contention; fresh source/target authority on each attempt with no readers held while waiting. Carry every original ingress/collect/credential deadline through decoded segments and pending target; later grants only narrow. Actual85focused mixer/ingress/expiry tests pass. No synthetic samples, timestamp repair, wire fields or relaxed budgets."
     }
   ]
 }

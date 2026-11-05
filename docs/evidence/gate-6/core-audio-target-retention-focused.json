@@ -1,6 +1,6 @@
 {
   "format": "connect/core-audio-target-retention-focused/1",
-  "scope": "Actual local Ubuntu24.04 ARM64 focused Core tests from a private upstream candidate. No host upstream integration, full transport, AV or complete-cell qualification.",
+  "scope": "Actual local Ubuntu24.04 ARM64 focused Core tests from a private upstream candidate. Host upstream integration now reproduces all nine tested file hashes through recorded patch/source-lock preparation. Full transport, AV and complete-cell qualification remain pending.",
   "candidate_patch_sha256": "0a11066157b25bf2e6755bd5199b0778e2ecbd9a1baf9387540cb0f146db42ac",
   "original_source_lock_sha256": "4418ed32f97be4e8678d4940d41baad22c3f0432f34996d44d983c74a9fb8d0f",
   "binary": {
@@ -41,8 +41,53 @@
     "Queue limits, generation/subscription changes, revocation, pause/resume, shutdown, independent recipients and actual expiry are checked."
   ],
   "remaining": [
-    "Integrate reproducible upstream patch and source-lock digests after original Mac RTC build/test source guard releases.",
     "Separately classify exact planning/readiness lock exclusion as MetadataBusy; current85tests do not qualify that future delta.",
     "Residual synthetic input/codec failures, video quality, actual idle restoration and all32 transport configurations remain unresolved."
-  ]
+  ],
+  "host_integration": {
+    "patch": "patches/rvoip/gate6-original-target-audio-retention.patch",
+    "patch_sha256": "0a11066157b25bf2e6755bd5199b0778e2ecbd9a1baf9387540cb0f146db42ac",
+    "source_lock_sha256": "9d87d392c85b15bf080caf7a372062698addf08da9212e6945289f6750cff6e8",
+    "candidate_files": [
+      {
+        "path": "crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs",
+        "candidate_sha256": "911d2309977bf28d91c11df00be9ad7c497a42e8b7954600c259d384ffec5e20"
+      },
+      {
+        "path": "crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs",
+        "candidate_sha256": "bc918b577b6e3c8535083a944c6af6fdded2ed41d286c6af4566e17c2bda6a18"
+      },
+      {
+        "path": "crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs",
+        "candidate_sha256": "a6c8eb59a663b54bad9303693ac5548153c71b92048a8f077744b7698bc197a5"
+      },
+      {
+        "path": "crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs",
+        "candidate_sha256": "847e65c4aac86539338fce538a940d5f8714fee2c7dc1a78a31903cdbfadcf8b"
+      },
+      {
+        "path": "crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/target_contention/original_deadlines.rs",
+        "candidate_sha256": "1d21b068fdded19e6624fa03415b649970763d037fc9f0d79be5011ed49ddf49"
+      },
+      {
+        "path": "crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/target_contention/recovery.rs",
+        "candidate_sha256": "f77719eac01a440e15e2fcfb930de8a8b2382307634312b926101537d1799e38"
+      },
+      {
+        "path": "crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/target_contention.rs",
+        "candidate_sha256": "e2a34c180fc8a00e22c1b124fa60187a219f4e199c11d730c2ab9b22db2f3d87"
+      },
+      {
+        "path": "crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs",
+        "candidate_sha256": "db3447c83331be870a839b6f2b046661e619358d544a37d7f4be15de3b71160f"
+      },
+      {
+        "path": "crates/foundation/rvoip-core/src/staged_streams.rs",
+        "candidate_sha256": "9d9e280105b252e9a9516fe8fa6666458fec64b003fbd191e7ceec84f6db2d4d"
+      }
+    ],
+    "other_patched_files_unchanged": true,
+    "prepare_log_sha256": "c5d9da11ecc763ec128cfb1853c6e2beac92ea19c24998fca7e76abf12030777",
+    "integration_manifest_sha256": "e2635e347718676ad3007f7d8451f06aa01a9a7e46bc9aca87c8f916338dd206"
+  }
 }

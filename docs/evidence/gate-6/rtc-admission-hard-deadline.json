@@ -1,0 +1,38 @@
+{
+  "format": "connect/rtc-replacement-admission-deadline/1",
+  "scope": "Integrated service candidate had one actual failing deadline regression; exact corrected module now passes seven focused component tests. Full rebuilt service/server and all32 transport qualification remain pending.",
+  "problem": "Tokio timer-wheel readiness can lag an already expired monotonic instant. The ready branch allowed current metadata to start or finish after the original deadline.",
+  "fix": "Keep cancellation/ownership cleanup and transient-only fresh-read retries; explicitly check monotonic now against unchanged original deadline before invoking metadata and before returning a grant.",
+  "negative": {
+    "scope": "Actual optimized connect-service test binary",
+    "passed": 5,
+    "failed": 1,
+    "test": "original_expired_deadline_cannot_start_or_renew_admission",
+    "log_sha256": "4ad48c92d68cf1e1feca291f44def31c3d9b9e2dd372e108c16ffd76016d0fa3",
+    "binary_sha256": "aa3576f5617fb9ae319daa3e4943406b031ca3a3dbb8ffa94eca11c598c11cbb",
+    "original_groups_joined": true
+  },
+  "positive": {
+    "scope": "Exact updated admission module compiled against actual prepared dependencies; focused deadline behavior only. Full service/server and matrix verification remain pending.",
+    "passed": 7,
+    "failed": 0,
+    "source_sha256": "a0a4de84cc2a8bdd5ce7c9c16228053bf577c6ad8a5c7623c7bee4aedad4469a",
+    "binary_sha256": "2cf50a88d65b31f0715134e6da81847f0e73d928bccd00ed09a0089747b7cd53",
+    "log_sha256": "86577e9f80bbc623d0c9d701a51254e7cd2786cb2821236f7ee63a1403d7873f",
+    "original_groups_joined": true,
+    "tests": [
+      "admission::tests::a_reader_finishing_at_the_original_deadline_is_not_admitted",
+      "admission::tests::busy_resource_read_drops_partial_authority_before_fresh_admission",
+      "admission::tests::cancellation_joins_and_discards_the_original_pending_reader",
+      "admission::tests::current_revocation_after_contention_is_not_retried",
+      "admission::tests::original_expired_deadline_cannot_start_or_renew_admission",
+      "admission::tests::permanent_refusal_is_never_retried",
+      "admission::tests::synchronous_metadata_finishing_after_the_deadline_cannot_lend_a_reader"
+    ]
+  },
+  "remaining": [
+    "Rebuild combined production candidate after remaining upstream/Core batch integration.",
+    "Run three actual signed WebRTC service replacement regressions, then the full32 local ARM matrix."
+  ],
+  "matrix_qualified": false
+}

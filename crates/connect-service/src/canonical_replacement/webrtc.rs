@@ -1,5 +1,7 @@
 //! One RTC replacement owner, from the original signed SDP through adoption.
 //! No originating reader survives ICE/DTLS/RTP waits or the active lifetime.
+mod admission;
+
 use super::*;
 use super::{
     allocation::AllocatedReplacement,
@@ -554,29 +556,65 @@ impl Runtime {
             _=tokio::time::sleep_until(deadline)=>return Err(Error::new("timeout","RTC replacement resource deadline")),
             result=adapter.wait_initial_media(id,deadline,physical.lifetime.child_token())=>result.map_err(denied)?,
         }
-        let store = self.media.store.clone();
-        let origin = source.origin.clone();
         let until = deadline.min(Instant::now() + Duration::from_secs(2));
-        let (proof, read) = store_call(move || {
-            let wait =
-                connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
-            let proof = store.resume_webrtc_replacement_start_authority(&origin, &wait)?;
-            let read = store.native_replacement_start_read_under(&origin, &proof)?;
-            Ok((Arc::new(proof), Arc::new(read)))
-        })
-        .await?;
-        let entries = self.media.replacement_preparation_entries(read.source())?;
-        let (_, plan) = crate::canonical_media::offer_plan(
-            read.target(),
-            &crate::canonical_native::base_profile()?,
-            &source.policy.principal,
+        let wait =
+            connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
+        let _cancel_wait = wait.cancel_on_drop();
+        let root_cancelled = root.handle.cancellation();
+        let (proof, read, entries) = admission::read(
+            until,
+            &wait,
+            async {
+                tokio::select! { biased;
+                    _ = self.stop.cancelled() => {},
+                    _ = physical.lifetime.cancelled() => {},
+                    _ = root_cancelled.cancelled() => {},
+                    _ = driver.closed() => {},
+                }
+            },
+            || async {
+                // Retry only fresh metadata after the original SDP/physical
+                // start. Each failed observation drops its grant and registry
+                // entries before another attempt; no Core effect runs here.
+                let store = self.media.store.clone();
+                let origin = source.origin.clone();
+                let wait = wait.clone();
+                let (proof, read) = store_call(move || {
+                    let proof = store.resume_webrtc_replacement_start_authority(&origin, &wait)?;
+                    let read = store.native_replacement_start_read_under(&origin, &proof)?;
+                    Ok((Arc::new(proof), Arc::new(read)))
+                })
+                .await?;
+                if !adapter.is_connection_live(id)
+                    || allocated
+                        .physical
+                        .upgrade()
+                        .is_none_or(|current| !Arc::ptr_eq(&current, physical))
+                {
+                    return Err(Error::forbidden());
+                }
+                let entries = self.media.replacement_preparation_entries(read.source())?;
+                let (_, plan) = crate::canonical_media::offer_plan(
+                    read.target(),
+                    &crate::canonical_native::base_profile()?,
+                    &source.policy.principal,
+                )
+                .map_err(denied)?;
+                if plan.selected() != source.policy.plan.selected()
+                    || plan.rejected() != source.policy.plan.rejected()
+                {
+                    return Err(Error::forbidden());
+                }
+                Ok((proof, read, entries))
+            },
         )
-        .map_err(denied)?;
-        if plan.selected() != source.policy.plan.selected()
-            || plan.rejected() != source.policy.plan.rejected()
-        {
-            return Err(Error::forbidden());
-        }
+        .await
+        .map_err(|error| {
+            tracing::debug!(operation_record=%source.origin.operation_record_id(),
+                stage="fresh-resource-admission",code=%error.code,
+                "RTC replacement resource metadata refused");
+            error
+        })?;
         let peer = owned.peer.as_ref().ok_or_else(Error::forbidden)?.clone();
         let invocation = Arc::new(StartInvocation {
             policy: source.policy.clone(),

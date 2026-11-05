@@ -1,0 +1,2253 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+@@ -234,6 +234,7 @@
+                 source: port.clone(),
+                 ticket,
+                 admitted_at,
++                audio_deadline: Some(deadline),
+                 consumer: Some(stamp),
+                 scene,
+                 custody: PacketCustody::default(),
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -0,0 +1,508 @@
++//! Original target PCM survives temporary admission contention, never authority.
++use super::super::audio_subscriptions::SubscriptionStamp;
++use super::*;
++use rvoip_core_traits::peer_switch::PeerDeliveryGuard;
++
++const MAX_PENDING_QUANTA: usize = 10;
++const MAX_RECOVERY_ATTEMPTS: usize = 2;
++
++struct PendingSource {
++    origin: Contribution,
++    admitted_at: Instant,
++}
++
++pub(super) struct PendingAudioQuantum {
++    samples: Vec<i16>,
++    clocks: Vec<ClockPoint>,
++    sources: Vec<PendingSource>,
++    target: Arc<Port>,
++    target_ticket: PeerRouteTicket,
++    target_consumer: Option<ConsumerStamp>,
++    target_scene: Option<scene_consumer::SceneStamp>,
++    subscription: SubscriptionStamp,
++    admitted_at: Instant,
++    deadline: tokio::time::Instant,
++    fallback_timestamp: u32,
++    deferred: bool,
++}
++
++// Transient guards exist only inside one synchronous attempt. Neither a
++// pending quantum nor its queued output owns this type across a wait.
++struct CurrentTarget {
++    _leases: Vec<Box<dyn MediaAuthorityLease>>,
++    _admissions: Vec<audio_consumer::MediaAdmission>,
++    _subscriptions: Vec<PeerDeliveryGuard>,
++}
++
++impl PendingAudioQuantum {
++    pub(super) fn capture(
++        member: &mut AudioMember,
++        inputs: &HashMap<ConnectionId, (ParticipantId, Vec<Segment>)>,
++        rate: u32,
++    ) -> Option<Self> {
++        let subscription = member.subscriptions.stamp();
++        let target_ticket = member.ticket.clone();
++        let target_consumer = Some(member.stamp.clone());
++        let target_scene = member.controller.current_scene_stamp().ok()?;
++        let mut total = vec![0i32; (rate / 50) as usize];
++        let mut clocks = Vec::new();
++        let mut sources = Vec::<PendingSource>::new();
++        let mut oldest = Instant::now();
++        let mut bound = tokio::time::Instant::now() + Duration::from_millis(200);
++        for (participant, segments) in inputs.values() {
++            if participant == &member.participant {
++                continue;
++            }
++            for segment in segments {
++                if segment.admitted_at < member.target_started.max(subscription.started) {
++                    member.observations.note(
++                        AudioStage::TargetBeforeStart,
++                        None,
++                        segment.samples.len(),
++                    );
++                    continue;
++                }
++                if tokio::time::Instant::now() >= segment.deadline {
++                    member.observations.note(
++                        AudioStage::TargetExpired,
++                        None,
++                        segment.samples.len(),
++                    );
++                    continue;
++                }
++                let Some(source) = segment.origin.source.owner.upgrade() else {
++                    member
++                        .observations
++                        .note(AudioStage::SourceGone, None, segment.samples.len());
++                    continue;
++                };
++                let Ok(_selection) =
++                    subscription.begin(&source, &segment.origin.descriptor.logical_id)
++                else {
++                    member.observations.note(
++                        AudioStage::SubscriptionRefused,
++                        None,
++                        segment.samples.len(),
++                    );
++                    continue;
++                };
++                // This is privately retained selection intent. Publication still
++                // requires every exact source and target grant below, and again
++                // in QueuedMedia. No target grant is inferred from selection.
++                for (index, sample) in segment.samples.iter().enumerate() {
++                    total[segment.offset + index] += i32::from(*sample);
++                }
++                clocks.push(segment.clock.clone());
++                oldest = oldest.min(segment.admitted_at);
++                bound = bound.min(segment.deadline);
++                if let Some(existing) = sources
++                    .iter_mut()
++                    .find(|old| Arc::ptr_eq(&old.origin.source, &segment.origin.source))
++                {
++                    existing.admitted_at = existing.admitted_at.min(segment.admitted_at);
++                } else {
++                    sources.push(PendingSource {
++                        origin: segment.origin.clone(),
++                        admitted_at: segment.admitted_at,
++                    });
++                }
++            }
++        }
++        if sources.is_empty() {
++            member.observations.note(AudioStage::EmptyOutput, None, 0);
++            return None;
++        }
++        // The original target credential bound applies even if its first policy
++        // callback is busy. Rotation or a later grant can only shorten it.
++        bound = StreamController::command_deadline(
++            &member.controller.credential_snapshot().principal,
++            bound.min(tokio::time::Instant::from_std(
++                oldest + Duration::from_millis(200),
++            )),
++        );
++        for source in &mut sources {
++            source.origin.admission_deadline = Some(bound);
++        }
++        let quantum = Self {
++            samples: total
++                .into_iter()
++                .map(|sample| sample.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16)
++                .collect(),
++            clocks,
++            sources,
++            target: member.port.clone(),
++            target_ticket,
++            target_consumer,
++            target_scene,
++            subscription,
++            admitted_at: oldest,
++            deadline: bound,
++            fallback_timestamp: member
++                .ticks
++                .wrapping_mul(u64::from(member.codecs.info.clock_rate_hz / 50))
++                as u32,
++            deferred: false,
++        };
++        quantum
++            .current(&member.controller, &member.port)
++            .then_some(quantum)
++    }
++
++    fn current(&self, target: &Arc<StreamController>, port: &Arc<Port>) -> bool {
++        !target.shutdown.is_cancelled()
++            && Arc::ptr_eq(port, &self.target)
++            && self
++                .target
++                .owner
++                .upgrade()
++                .is_some_and(|owner| Arc::ptr_eq(&owner, target))
++            && self.target_ticket.is_current()
++            && self
++                .target_consumer
++                .as_ref()
++                .is_none_or(|stamp| stamp.active_at(self.admitted_at))
++            && self
++                .target_scene
++                .as_ref()
++                .is_none_or(|stamp| stamp.active_at(self.admitted_at))
++            && self.subscription.is_current()
++            && self.sources.iter().all(|source| {
++                source.origin.ticket.is_current()
++                    && source
++                        .origin
++                        .consumer
++                        .as_ref()
++                        .is_none_or(|stamp| stamp.active_at(source.admitted_at))
++                    && source
++                        .origin
++                        .scene
++                        .as_ref()
++                        .is_none_or(|stamp| stamp.active_at(source.admitted_at))
++                    && source
++                        .origin
++                        .source
++                        .owner
++                        .upgrade()
++                        .is_some_and(|owner| !owner.shutdown.is_cancelled())
++            })
++    }
++
++    fn admit(
++        &mut self,
++        target: &Arc<StreamController>,
++        phase: &mut AudioStage,
++    ) -> ControlResult<CurrentTarget> {
++        if tokio::time::Instant::now() >= self.deadline {
++            return Err(StreamControlError::Deadline);
++        }
++        if !self.current(target, &self.target) {
++            return Err(StreamControlError::Cancelled);
++        }
++        self.subscription.require_target(target)?;
++        let mut current = CurrentTarget {
++            _leases: Vec::new(),
++            _admissions: Vec::new(),
++            _subscriptions: Vec::new(),
++        };
++        for source in &self.sources {
++            let provenance = &source.origin;
++            let owner = provenance
++                .source
++                .owner
++                .upgrade()
++                .ok_or(StreamControlError::Cancelled)?;
++            if owner.conversation != target.conversation
++                || owner.session != target.session
++                || !Arc::ptr_eq(&owner.policy, &target.policy)
++            {
++                return Err(StreamControlError::Authority);
++            }
++            current._subscriptions.push(
++                self.subscription
++                    .begin(&owner, &provenance.descriptor.logical_id)?,
++            );
++            *phase = AudioStage::TargetPendingSourceDeferred;
++            let (lease, admission, bound) = owner.admit_retained_source_with_deadline(
++                &provenance.source,
++                &provenance.ticket,
++                provenance.consumer.as_ref(),
++                provenance.scene.as_ref(),
++                &provenance.custody,
++                Some(&mut self.deadline),
++            )?;
++            self.deadline = self.deadline.min(bound);
++            current._leases.push(lease);
++            current._admissions.push(admission);
++            *phase = AudioStage::TargetDeferred;
++            let (lease, admission, bound) = target.admit_with_deadline(
++                &self.target,
++                &self.target_ticket,
++                true,
++                Some(&provenance.descriptor),
++                ConsumerCheck::Retained(self.target_consumer.as_ref()),
++                None,
++                scene_consumer::SceneCheck::retained_receive(
++                    self.target_scene.as_ref(),
++                    provenance.scene.as_ref(),
++                    source.admitted_at,
++                ),
++                None,
++                None,
++                current
++                    ._leases
++                    .last()
++                    .and_then(|lease| lease.packet_context()),
++                Some(&mut self.deadline),
++            )?;
++            self.deadline = self.deadline.min(bound);
++            current._leases.push(lease);
++            current._admissions.push(admission);
++        }
++        if tokio::time::Instant::now() >= self.deadline || !self.current(target, &self.target) {
++            return Err(StreamControlError::Deadline);
++        }
++        Ok(current)
++    }
++}
++
++impl AudioMember {
++    pub(super) fn prune_target_pending(&mut self) {
++        let mut retained = VecDeque::new();
++        while let Some(quantum) = self.target_pending.pop_front() {
++            let stage = if tokio::time::Instant::now() >= quantum.deadline {
++                Some(AudioStage::TargetPendingExpired)
++            } else if !quantum.current(&self.controller, &self.port) {
++                Some(AudioStage::TargetPendingRefused)
++            } else {
++                None
++            };
++            if let Some(stage) = stage {
++                self.observations.note(
++                    stage,
++                    Some(quantum.fallback_timestamp),
++                    quantum.samples.len(),
++                );
++            } else {
++                retained.push_back(quantum);
++            }
++        }
++        self.target_pending = retained;
++    }
++
++    pub(super) fn retain_target_quantum(&mut self, quantum: PendingAudioQuantum) {
++        if self.target_pending.len() >= MAX_PENDING_QUANTA {
++            self.observations.note(
++                AudioStage::TargetPendingFull,
++                Some(quantum.fallback_timestamp),
++                quantum.samples.len(),
++            );
++            return;
++        }
++        self.target_pending.push_back(quantum);
++    }
++
++    pub(super) fn prepare_target_outputs(
++        &mut self,
++        rate: u32,
++    ) -> Vec<(mpsc::OwnedPermit<QueuedMedia>, QueuedMedia)> {
++        let mut outputs = Vec::new();
++        // Two attempts provide bounded catch-up under continuous input. A busy
++        // original immediately stops this recipient; no retry spin or wait.
++        for _ in 0..MAX_RECOVERY_ATTEMPTS {
++            let Some(mut quantum) = self.target_pending.pop_front() else {
++                break;
++            };
++            let permit = match quantum.target.egress.clone().try_reserve_owned() {
++                Ok(permit) => permit,
++                Err(_) => {
++                    self.observations.note(
++                        AudioStage::OutputFull,
++                        Some(quantum.fallback_timestamp),
++                        quantum.samples.len(),
++                    );
++                    self.target_pending.push_front(quantum);
++                    break;
++                }
++            };
++            let mut phase = AudioStage::TargetPendingSourceDeferred;
++            let current = match quantum.admit(&self.controller, &mut phase) {
++                Ok(current) => current,
++                Err(StreamControlError::NotReady)
++                    if tokio::time::Instant::now() < quantum.deadline
++                        && quantum.current(&self.controller, &self.port) =>
++                {
++                    self.observations.note(
++                        phase,
++                        Some(quantum.fallback_timestamp),
++                        quantum.samples.len(),
++                    );
++                    if !quantum.deferred {
++                        self.observations.note(
++                            AudioStage::TargetRetained,
++                            Some(quantum.fallback_timestamp),
++                            quantum.samples.len(),
++                        );
++                        quantum.deferred = true;
++                    }
++                    self.target_pending.push_front(quantum);
++                    break;
++                }
++                Err(problem) => {
++                    self.observations.note(
++                        if matches!(problem, StreamControlError::Deadline) {
++                            AudioStage::TargetPendingExpired
++                        } else {
++                            AudioStage::TargetPendingRefused
++                        },
++                        Some(quantum.fallback_timestamp),
++                        quantum.samples.len(),
++                    );
++                    // A permanent refusal ends this retained programme. A
++                    // later permission restoration must not resurrect unseen
++                    // older copies behind the refused FIFO head.
++                    self.target_pending.clear();
++                    break;
++                }
++            };
++            let deferred = quantum.deferred;
++            let timestamp = quantum.fallback_timestamp;
++            let samples = quantum.samples.len();
++            let queued = self.encode_pending(quantum, rate);
++            drop(current);
++            if let Some(queued) = queued {
++                if deferred {
++                    self.observations
++                        .note(AudioStage::TargetRecovered, Some(timestamp), samples);
++                }
++                outputs.push((permit, queued));
++            }
++        }
++        outputs
++    }
++}
++
++impl AudioMember {
++    fn encode_pending(&mut self, quantum: PendingAudioQuantum, rate: u32) -> Option<QueuedMedia> {
++        let PendingAudioQuantum {
++            samples,
++            clocks,
++            sources,
++            target,
++            target_ticket,
++            target_consumer,
++            target_scene,
++            subscription,
++            admitted_at: oldest,
++            deadline: bound,
++            fallback_timestamp,
++            deferred: _,
++        } = quantum;
++        let size = (rate / 50) as usize;
++        let provenance = sources
++            .into_iter()
++            .map(|mut source| {
++                source.origin.admission_deadline = Some(
++                    source
++                        .origin
++                        .admission_deadline
++                        .map_or(bound, |old| old.min(bound)),
++                );
++                source.origin
++            })
++            .collect::<Vec<_>>();
++        let changed = self
++            .previous_subscription
++            .as_ref()
++            .is_none_or(|old| !old.is_current())
++            || self.previous_sources.len() != provenance.len()
++            || self.previous_sources.iter().any(|old| {
++                !old.ticket.is_current()
++                    || old
++                        .consumer
++                        .as_ref()
++                        .is_some_and(|stamp| !stamp.is_current())
++                    || !provenance
++                        .iter()
++                        .any(|new| Arc::ptr_eq(&old.source, &new.source))
++            });
++        if changed {
++            let Some(pt) = self
++                .port
++                .state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .payload_type
++            else {
++                return None;
++            };
++            let Ok(codecs) = Codecs::new(&self.port.binding.negotiated.format, pt, rate) else {
++                return None;
++            };
++            self.codecs.encoder = codecs.encoder;
++            self.codecs.from_mix = codecs.from_mix;
++        }
++        if tokio::time::Instant::now() >= bound {
++            self.observations
++                .note(AudioStage::OutputExpired, None, samples.len());
++            return None;
++        }
++        let timestamp = fallback_timestamp;
++        // Empty input ticks do not discard contiguous source PCM. Preserve
++        // its original RTP progression; genuine input gaps, trimmed PCM and
++        // missed executor quanta still advance by the actual skipped media.
++        let timestamp = source_timestamp(
++            &clocks,
++            rate,
++            self.codecs.info.clock_rate_hz,
++            timestamp,
++            &mut self.source_timeline,
++        );
++        let Ok(mut frame) = self.codecs.encode(samples, timestamp) else {
++            self.observations
++                .note(AudioStage::EncodeRefused, Some(timestamp), 0);
++            return None;
++        };
++        let route = self.clock_route.predicate();
++        let clock_ticket = target_ticket.clone();
++        let clock_consumer = target_consumer.clone();
++        let clock_subscription = subscription.clone();
++        frame.source_clock = mixed_clock(
++            clocks,
++            rate,
++            self.codecs.info.clock_rate_hz,
++            timestamp,
++            self.clock_source,
++            Arc::new(move || {
++                route()
++                    && clock_ticket.is_current()
++                    && clock_consumer
++                        .as_ref()
++                        .is_none_or(ConsumerStamp::is_current)
++                    && clock_subscription.is_current()
++            }),
++        );
++        frame.stream_id = self.port.binding.transport_id.clone();
++        if tokio::time::Instant::now() >= bound {
++            self.observations
++                .note(AudioStage::OutputExpired, Some(timestamp), size);
++            return None;
++        }
++        self.previous_subscription = Some(subscription.clone());
++        self.previous_sources = provenance.clone();
++        tracing::trace!(target: "rvoip_core::audio_path", target = %self.controller.connection,
++            age_us = oldest.elapsed().as_micros() as u64, "Guarded audio queued");
++        Some(QueuedMedia {
++            frame,
++            data: None,
++            local: None,
++            sources: provenance,
++            target,
++            target_ticket,
++            target_consumer,
++            target_scene,
++            subscription: Some(subscription),
++            direct: None,
++            admitted_at: oldest,
++        })
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -4,9 +4,12 @@
+ use crate::capability::CodecInfo;
+ use crate::ids::ParticipantId;
+ use rvoip_media_core::{
+-    codec::factory::CodecFactory, processing::format::resampler::Resampler, AudioFrame,
++    AudioFrame, codec::factory::CodecFactory, processing::format::resampler::Resampler,
+ };
+ use std::collections::{HashMap, VecDeque};
++
++mod pending_target;
++use pending_target::PendingAudioQuantum;
+ 
+ pub(super) struct DecodedAudio {
+     pub(super) samples: Vec<i16>,
+@@ -385,7 +388,6 @@
+     samples: VecDeque<i16>,
+ }
+ struct Segment {
+-    lease_index: usize,
+     offset: usize,
+     samples: Vec<i16>,
+     clock: ClockPoint,
+@@ -423,8 +425,14 @@
+         OutputExpired,
+         EncodeRefused,
+         OutputFull,
++        TargetRetained,
++        TargetRecovered,
++        TargetPendingExpired,
++        TargetPendingRefused,
++        TargetPendingFull,
++        TargetPendingSourceDeferred,
+     }
+-    const NAMES: [&str; 24] = [
++    const NAMES: [&str; 30] = [
+         "refresh-refused",
+         "refresh-reset",
+         "collect-expired",
+@@ -449,6 +457,12 @@
+         "output-expired",
+         "encode-refused",
+         "output-full",
++        "target-retained",
++        "target-recovered",
++        "target-pending-expired",
++        "target-pending-refused",
++        "target-pending-full",
++        "target-pending-source-deferred",
+     ];
+     #[derive(Clone, Copy, Default)]
+     struct Counter {
+@@ -459,13 +473,13 @@
+     }
+     pub(super) struct Observations {
+         started: Instant,
+-        counters: [Counter; 24],
++        counters: [Counter; 30],
+     }
+     impl Default for Observations {
+         fn default() -> Self {
+             Self {
+                 started: Instant::now(),
+-                counters: [Counter::default(); 24],
++                counters: [Counter::default(); 30],
+             }
+         }
+     }
+@@ -510,6 +524,7 @@
+     waiting: Option<MediaPacket>,
+     codecs: Codecs,
+     pending: VecDeque<Chunk>,
++    target_pending: VecDeque<PendingAudioQuantum>,
+     next_input_timestamp: Option<u32>,
+     ticks: u64,
+     target_started: Instant,
+@@ -525,6 +540,7 @@
+ }
+ impl AudioMember {
+     pub(crate) fn activate(&mut self, speaks: bool) {
++        self.target_pending.clear();
+         self.consumer.activate(speaks);
+         self.stamp = self.consumer.stamp();
+         self.target_started = self.stamp.started;
+@@ -581,6 +597,7 @@
+             self.stamp = stamp;
+             self.codecs = codecs;
+             self.pending.clear();
++            self.target_pending.clear();
+             self.next_input_timestamp = None;
+             self.waiting = None;
+             self.previous_sources.clear();
+@@ -595,14 +612,18 @@
+     }
+     fn collect(&mut self) {
+         for _ in 0..16 {
+-            let packet = match self.waiting.take() {
++            let mut packet = match self.waiting.take() {
+                 Some(packet) => packet,
+                 None => match self.input.try_recv() {
+                     Ok(packet) => packet,
+                     Err(_) => break,
+                 },
+             };
+-            if packet.admitted_at.elapsed() > Duration::from_millis(200) {
++            if packet.admitted_at.elapsed() > Duration::from_millis(200)
++                || packet
++                    .audio_deadline
++                    .is_some_and(|until| tokio::time::Instant::now() >= until)
++            {
+                 self.observations.note(
+                     AudioStage::CollectExpired,
+                     Some(packet.frame.timestamp_rtp),
+@@ -610,13 +631,23 @@
+                 );
+                 continue;
+             }
+-            let (_lease, _admission, deadline) = match self.controller.admit_retained_source(
++            let age_bound =
++                tokio::time::Instant::from_std(packet.admitted_at + Duration::from_millis(200));
++            let mut bound = packet
++                .audio_deadline
++                .map_or(age_bound, |old| old.min(age_bound));
++            let attempt = self.controller.admit_retained_source_with_deadline(
+                 &packet.source,
+                 &packet.ticket,
+                 packet.consumer.as_ref(),
+                 packet.scene.as_ref(),
+                 &packet.custody,
+-            ) {
++                Some(&mut bound),
++            );
++            // A refused attempt may already have observed a shorter grant.
++            // The original packet keeps that numeric minimum, never its reader.
++            packet.audio_deadline = Some(bound);
++            let (_lease, _admission, deadline) = match attempt {
+                 Ok(admitted) => admitted,
+                 Err(StreamControlError::NotReady)
+                     if packet.ticket.is_current()
+@@ -658,6 +689,8 @@
+                 );
+                 continue;
+             };
++            let deadline = deadline.min(bound);
++            packet.audio_deadline = Some(deadline);
+             if tokio::time::Instant::now() >= deadline {
+                 self.observations.note(
+                     AudioStage::DecodeExpired,
+@@ -825,7 +858,12 @@
+             let Some(chunk) = self.pending.front_mut() else {
+                 break;
+             };
+-            if chunk.packet.admitted_at.elapsed() > Duration::from_millis(200) {
++            if chunk.packet.admitted_at.elapsed() > Duration::from_millis(200)
++                || chunk
++                    .packet
++                    .audio_deadline
++                    .is_some_and(|until| tokio::time::Instant::now() >= until)
++            {
+                 self.observations.note(
+                     AudioStage::TakeExpired,
+                     Some(chunk.packet.frame.timestamp_rtp),
+@@ -834,13 +872,23 @@
+                 self.pending.pop_front();
+                 continue;
+             }
+-            let (lease, admission, deadline) = match self.controller.admit_retained_source(
++            let age_bound = tokio::time::Instant::from_std(
++                chunk.packet.admitted_at + Duration::from_millis(200),
++            );
++            let mut bound = chunk
++                .packet
++                .audio_deadline
++                .map_or(age_bound, |old| old.min(age_bound));
++            let attempt = self.controller.admit_retained_source_with_deadline(
+                 &chunk.packet.source,
+                 &chunk.packet.ticket,
+                 chunk.packet.consumer.as_ref(),
+                 chunk.packet.scene.as_ref(),
+                 &chunk.packet.custody,
+-            ) {
++                Some(&mut bound),
++            );
++            chunk.packet.audio_deadline = Some(bound);
++            let (lease, admission, deadline) = match attempt {
+                 Ok(admitted) => admitted,
+                 Err(StreamControlError::NotReady)
+                     if chunk.packet.ticket.is_current()
+@@ -873,6 +921,8 @@
+                     continue;
+                 }
+             };
++            let deadline = deadline.min(bound);
++            chunk.packet.audio_deadline = Some(deadline);
+             let descriptor = MediaSource {
+                 conversation: self.controller.conversation.clone(),
+                 session: self.controller.session.clone(),
+@@ -896,7 +946,6 @@
+             chunk.consumed += amount;
+             let samples = chunk.samples.drain(..amount).collect();
+             segments.push(Segment {
+-                lease_index: leases.len(),
+                 offset,
+                 samples,
+                 clock,
+@@ -907,7 +956,7 @@
+                     scene: chunk.packet.scene.clone(),
+                     custody: chunk.packet.custody.clone(),
+                     descriptor,
+-                    admission_deadline: None,
++                    admission_deadline: Some(deadline),
+                 },
+                 admitted_at: chunk.packet.admitted_at,
+                 deadline,
+@@ -1006,6 +1055,7 @@
+             waiting: None,
+             codecs,
+             pending: VecDeque::new(),
++            target_pending: VecDeque::new(),
+             next_input_timestamp: None,
+             ticks: 0,
+             previous_sources: Vec::new(),
+@@ -1052,6 +1102,7 @@
+                     member.pending.iter().map(|c| c.samples.len()).sum(),
+                 );
+                 member.pending.clear();
++                member.target_pending.clear();
+                 member.waiting = None;
+                 continue;
+             }
+@@ -1063,228 +1114,27 @@
+             }
+             inputs.insert(id.clone(), (member.participant.clone(), segments));
+         }
+-        let mut subscription_guards = Vec::new();
+-        let mut outputs = Vec::with_capacity(members.len());
++        // Selected original PCM is metadata-owned before the source quantum
++        // disappears. No source/target grant or delivery guard enters this FIFO.
+         for member in members.values_mut() {
+-            let subscription = member.subscriptions.stamp();
+-            let mut total = vec![0i32; (self.rate / 50) as usize];
+-            let mut provenance = Vec::new();
+-            let mut clocks = Vec::new();
+-            let mut oldest = Instant::now();
+-            let target_ticket = member.port.ticket();
+-            let mut target_consumer = None;
+-            let mut target_scene = None;
+-            let mut bound = tokio::time::Instant::now() + Duration::from_millis(200);
+-            for (participant, segments) in inputs.values() {
+-                if participant == &member.participant {
+-                    continue;
+-                }
+-                for segment in segments {
+-                    if segment.admitted_at < member.target_started.max(subscription.started) {
+-                        member.observations.note(
+-                            AudioStage::TargetBeforeStart,
+-                            None,
+-                            segment.samples.len(),
+-                        );
+-                        continue;
+-                    }
+-                    if tokio::time::Instant::now() >= segment.deadline {
+-                        member.observations.note(
+-                            AudioStage::TargetExpired,
+-                            None,
+-                            segment.samples.len(),
+-                        );
+-                        continue;
+-                    }
+-                    let Some(source) = segment.origin.source.owner.upgrade() else {
+-                        member.observations.note(
+-                            AudioStage::SourceGone,
+-                            None,
+-                            segment.samples.len(),
+-                        );
+-                        continue;
+-                    };
+-                    let Ok(subscription_guard) =
+-                        subscription.begin(&source, &segment.origin.descriptor.logical_id)
+-                    else {
+-                        member.observations.note(
+-                            AudioStage::SubscriptionRefused,
+-                            None,
+-                            segment.samples.len(),
+-                        );
+-                        continue;
+-                    };
+-                    let Ok((lease, admission, deadline)) = member.controller.admit_packet(
+-                        &member.port,
+-                        &target_ticket,
+-                        true,
+-                        Some(&segment.origin.descriptor),
+-                        ConsumerCheck::Current,
+-                        None,
+-                        scene_consumer::SceneCheck::receive(
+-                            segment.origin.scene.as_ref(),
+-                            segment.admitted_at,
+-                        ),
+-                        leases[segment.lease_index].packet_context(),
+-                    ).map_err(|problem| {
+-                        member.observations.note(if matches!(&problem, StreamControlError::NotReady) { AudioStage::TargetDeferred } else { AudioStage::TargetRefused }, None, segment.samples.len());
+-                        tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
+-                            target = %member.controller.connection, stage = "mixer-target", ?problem,
+-                            "Guarded audio delivery refused");
+-                        problem
+-                    }) else {
+-                        continue;
+-                    };
+-                    subscription_guards.push(subscription_guard);
+-                    target_consumer = admission.consumer.clone();
+-                    target_scene = admission.scene.clone();
+-                    bound = bound.min(deadline).min(segment.deadline);
+-                    for (index, sample) in segment.samples.iter().enumerate() {
+-                        total[segment.offset + index] += i32::from(*sample);
+-                    }
+-                    clocks.push(segment.clock.clone());
+-                    oldest = oldest.min(segment.admitted_at);
+-                    // All retained source guards stay live through this tick,
+-                    // so one current port/scene generation covers its chunks.
+-                    if !provenance
+-                        .iter()
+-                        .any(|old: &Contribution| Arc::ptr_eq(&old.source, &segment.origin.source))
+-                    {
+-                        provenance.push(segment.origin.clone());
+-                    }
+-                    leases.push(lease);
+-                    admissions.push(admission);
+-                }
++            member.prune_target_pending();
++            if let Some(quantum) = PendingAudioQuantum::capture(member, &inputs, self.rate) {
++                member.retain_target_quantum(quantum);
+             }
+-            if provenance.is_empty() {
+-                member.observations.note(AudioStage::EmptyOutput, None, 0);
+-                member.previous_sources.clear();
+-                continue;
+-            }
+-            let changed = member
+-                .previous_subscription
+-                .as_ref()
+-                .is_none_or(|old| !old.is_current())
+-                || member.previous_sources.len() != provenance.len()
+-                || member.previous_sources.iter().any(|old| {
+-                    !old.ticket.is_current()
+-                        || old
+-                            .consumer
+-                            .as_ref()
+-                            .is_some_and(|stamp| !stamp.is_current())
+-                        || !provenance
+-                            .iter()
+-                            .any(|new| Arc::ptr_eq(&old.source, &new.source))
+-                });
+-            if changed {
+-                let Some(pt) = member
+-                    .port
+-                    .state
+-                    .lock()
+-                    .unwrap_or_else(|p| p.into_inner())
+-                    .payload_type
+-                else {
+-                    continue;
+-                };
+-                let Ok(codecs) = Codecs::new(&member.port.binding.negotiated.format, pt, self.rate)
+-                else {
+-                    continue;
+-                };
+-                member.codecs.encoder = codecs.encoder;
+-                member.codecs.from_mix = codecs.from_mix;
+-            }
+-            if tokio::time::Instant::now() >= bound {
+-                member
+-                    .observations
+-                    .note(AudioStage::OutputExpired, None, total.len());
+-                continue;
+-            }
+-            let timestamp = (member
+-                .ticks
+-                .wrapping_mul(u64::from(member.codecs.info.clock_rate_hz / 50)))
+-                as u32;
+-            // Empty input ticks do not discard contiguous source PCM. Preserve
+-            // its original RTP progression; genuine input gaps, trimmed PCM and
+-            // missed executor quanta still advance by the actual skipped media.
+-            let timestamp = source_timestamp(
+-                &clocks,
+-                self.rate,
+-                member.codecs.info.clock_rate_hz,
+-                timestamp,
+-                &mut member.source_timeline,
+-            );
+-            let Ok(mut frame) = member.codecs.encode(
+-                total
+-                    .into_iter()
+-                    .map(|sample| sample.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16)
+-                    .collect(),
+-                timestamp,
+-            ) else {
+-                member
+-                    .observations
+-                    .note(AudioStage::EncodeRefused, Some(timestamp), 0);
+-                continue;
+-            };
+-            let route = member.clock_route.predicate();
+-            let clock_ticket = target_ticket.clone();
+-            let clock_consumer = target_consumer.clone();
+-            let clock_subscription = subscription.clone();
+-            frame.source_clock = mixed_clock(
+-                clocks,
+-                self.rate,
+-                member.codecs.info.clock_rate_hz,
+-                timestamp,
+-                member.clock_source,
+-                Arc::new(move || {
+-                    route()
+-                        && clock_ticket.is_current()
+-                        && clock_consumer
+-                            .as_ref()
+-                            .is_none_or(ConsumerStamp::is_current)
+-                        && clock_subscription.is_current()
+-                }),
+-            );
+-            frame.stream_id = member.port.binding.transport_id.clone();
+-            if tokio::time::Instant::now() >= bound {
+-                member
+-                    .observations
+-                    .note(AudioStage::OutputExpired, Some(timestamp), size);
+-                continue;
+-            }
+-            member.previous_subscription = Some(subscription.clone());
+-            member.previous_sources = provenance.clone();
+-            tracing::trace!(target: "rvoip_core::audio_path", target = %member.controller.connection,
+-                age_us = oldest.elapsed().as_micros() as u64, "Guarded audio queued");
+-            outputs.push((
+-                &mut member.observations,
+-                member.port.egress.clone(),
+-                QueuedMedia {
+-                    frame,
+-                    data: None,
+-                    local: None,
+-                    sources: provenance,
+-                    target: member.port.clone(),
+-                    target_ticket,
+-                    target_consumer,
+-                    target_scene,
+-                    subscription: Some(subscription),
+-                    direct: None,
+-                    admitted_at: oldest,
+-                },
+-            ));
+         }
+-        // Queues hold original frames and provenance, never these readers.
+-        // Wake consumers only after this producer interval closes; delivery
+-        // still reacquires its own exact current authority and original age.
+-        drop(subscription_guards);
++        // End the producer interval before any target recovery acquires fresh
++        // source/target authority. A refusal never waits while retaining readers.
+         drop(admissions);
+         drop(leases);
+-        for (observations, output, queued) in outputs {
+-            let timestamp = queued.frame.timestamp_rtp;
+-            if output.try_send(queued).is_err() {
+-                observations.note(AudioStage::OutputFull, Some(timestamp), size);
+-            }
++        let mut outputs = Vec::new();
++        for member in members.values_mut() {
++            outputs.extend(member.prepare_target_outputs(self.rate));
+         }
++        // Each prepared output already dropped its transient readers. Reserving
++        // bounded egress capacity never publishes media before those drops.
++        for (permit, queued) in outputs {
++            permit.send(queued);
++        }
+     }
+ }
+ 
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -219,6 +219,8 @@
+                 source: self.port.0.clone(),
+                 ticket: self.ticket.clone(),
+                 admitted_at: self.received_at,
++                audio_deadline: (self.port.0.kind() == StreamKind::Audio)
++                    .then_some(deadline.min(self.deadline)),
+                 consumer: admission.consumer.clone(),
+                 scene: admission.scene.clone(),
+                 custody: if self.port.0.kind() == StreamKind::Audio {
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/target_contention/original_deadlines.rs
+@@ -0,0 +1,141 @@
++//! Earlier original numeric bounds must survive a later, longer fresh grant.
++use super::*;
++
++const ANCHOR: u64 = 100u64 << 32;
++
++fn short_once(probe: &Probe) {
++    probe.grant_until.lock().unwrap().insert(
++        "a".into(),
++        chrono::Utc::now() + chrono::Duration::milliseconds(60),
++    );
++    // The real policy lease returned by this one read retains the shorter
++    // expiry. Every subsequent fresh read genuinely gets the longer grant.
++    probe
++        .clear_source_grant_after_read
++        .store(true, Ordering::Release);
++}
++
++fn publish_long_original(s: &Scene, owned_ingress: bool) {
++    let clock = source_clock(800, 8000, 8000, ANCHOR, Arc::new(AtomicBool::new(true)));
++    if !owned_ingress {
++        s.publish_clocked_ms(0, 1800, 8000, 40, Some(clock));
++        return;
++    }
++    let port = s.port(0);
++    let mut encoder =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap();
++    let payload = encoder
++        .encode(&rvoip_media_core::AudioFrame {
++            samples: vec![1800; 320],
++            sample_rate: 8000,
++            channels: 1,
++            duration: Duration::from_millis(40),
++            timestamp: 8000,
++        })
++        .unwrap();
++    let frame = MediaFrame {
++        stream_id: port.binding().transport_id.clone(),
++        kind: StreamKind::Audio,
++        payload: payload.into(),
++        timestamp_rtp: 8000,
++        source_clock: None,
++        captured_at: chrono::Utc::now(),
++        payload_type: Some(0),
++    };
++    let mut original = port
++        .retain_original_ingress(frame, Instant::now())
++        .unwrap()
++        .unwrap();
++    original
++        .try_publish_clocked(|current| {
++            let mut clock = clock;
++            clock.is_current = current;
++            Some(clock)
++        })
++        .unwrap();
++    assert!(matches!(
++        original.try_publish_clocked(|_| None),
++        Err(StreamControlError::Cancelled)
++    ));
++}
++
++async fn exercise(short_at_collect: bool, owned_ingress: bool) {
++    let (s, target, probe) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    let blocked = target.clone().write_owned().await;
++    let started = Instant::now();
++    if !short_at_collect {
++        short_once(&probe);
++    }
++    publish_long_original(&s, owned_ingress);
++    if short_at_collect {
++        short_once(&probe);
++    }
++    // Both actual original halves pass through collect, decoded Chunk and
++    // separate take calls. Carol proves decoding/mixing/source admission live.
++    for half in 0..2 {
++        s.mixer.tick();
++        decoded(
++            carol.try_recv().unwrap(),
++            &expected_pcm(1800),
++            ntp_ms(ANCHOR, half * 20),
++        )
++        .await;
++        assert!(bob.try_recv().is_err());
++        drop(
++            s.policy
++                .0
++                .try_write()
++                .expect("waiting PCM retained authority"),
++        );
++    }
++    assert!(!probe.clear_source_grant_after_read.load(Ordering::Acquire));
++    assert!(!probe.grant_until.lock().unwrap().contains_key("a"));
++    assert!(probe.refused_with_source_context.load(Ordering::Acquire) >= 2);
++    tokio::time::sleep(Duration::from_millis(80)).await;
++    assert!(
++        started.elapsed() < Duration::from_millis(180),
++        "fixture did not isolate shorter grant from 200ms media age"
++    );
++    drop(blocked);
++    s.mixer.tick();
++    assert!(
++        bob.try_recv().is_err(),
++        "a later grant renewed an earlier ingress/collect deadline"
++    );
++    // New original media remains usable under the fresh longer grant.
++    s.publish_clocked_ms(
++        0,
++        2600,
++        8320,
++        20,
++        Some(source_clock(
++            800,
++            8000,
++            8000,
++            ANCHOR,
++            Arc::new(AtomicBool::new(true)),
++        )),
++    );
++    s.mixer.tick();
++    for queued in [bob.try_recv().unwrap(), carol.try_recv().unwrap()] {
++        decoded(queued, &expected_pcm(2600), ntp_ms(ANCHOR, 40)).await;
++    }
++    s.mixer.tick();
++    assert!(bob.try_recv().is_err() && carol.try_recv().is_err());
++    drop(s.policy.0.try_write().unwrap());
++}
++
++#[tokio::test]
++async fn original_ingress_grant_bound_survives_longer_collect_take_and_target_grants() {
++    for owned_ingress in [false, true] {
++        exercise(false, owned_ingress).await;
++    }
++}
++
++#[tokio::test]
++async fn decoded_collect_grant_bound_survives_longer_take_and_target_grants() {
++    exercise(true, false).await;
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/target_contention/recovery.rs
+@@ -0,0 +1,471 @@
++use super::*;
++use crate::staged_streams::audio_subscriptions::{AudioSubscription, AudioSubscriptionChange};
++
++const ANCHOR: u64 = 100u64 << 32;
++
++fn value(index: usize) -> i16 {
++    1200 + (index as i16) * 100
++}
++fn publish(s: &Scene, index: usize) {
++    s.publish_clocked_ms(
++        0,
++        value(index),
++        8000 + index as u32 * 160,
++        20,
++        Some(source_clock(
++            700,
++            8000,
++            8000,
++            ANCHOR,
++            Arc::new(AtomicBool::new(true)),
++        )),
++    );
++}
++async fn original(queued: QueuedMedia, index: usize) -> u32 {
++    decoded(
++        queued,
++        &expected_pcm(value(index)),
++        ntp_ms(ANCHOR, index as u64 * 20),
++    )
++    .await
++}
++fn assert_no_reader(s: &Scene) {
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("pending receiver retained a policy reader"),
++    );
++}
++
++#[tokio::test]
++async fn repeated_target_contention_catches_up_continuous_original_audio_without_drift() {
++    let (s, target, probe) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    let mut blocked = None;
++    let mut received = 0;
++    let mut previous = None;
++    for index in 0..36 {
++        if index % 9 == 0 {
++            blocked = Some(target.clone().write_owned().await);
++        }
++        if index % 9 == 2 {
++            drop(blocked.take());
++        }
++        publish(&s, index);
++        s.mixer.tick();
++        original(
++            carol.try_recv().expect("unblocked recipient stalled"),
++            index,
++        )
++        .await;
++        while let Ok(queued) = bob.try_recv() {
++            let stamp = original(queued, received).await;
++            if let Some(old) = previous {
++                assert_eq!(stamp.wrapping_sub(old), 160);
++            }
++            previous = Some(stamp);
++            received += 1;
++        }
++        if index % 9 >= 3 {
++            assert_eq!(
++                received,
++                index + 1,
++                "one-per-tick recovery left a permanent backlog"
++            );
++        }
++        assert_no_reader(&s);
++        assert!(carol.try_recv().is_err());
++    }
++    assert_eq!(received, 36);
++    assert!(probe.target_refused.load(Ordering::Acquire) >= 8);
++    s.mixer.tick();
++    assert!(bob.try_recv().is_err() && carol.try_recv().is_err());
++}
++
++#[tokio::test]
++async fn pending_source_or_target_revocation_discards_old_programme_without_revival() {
++    for revoked in ["alice", "bob"] {
++        let (s, target, _) = scene().await;
++        let mut bob = s.port(1).take_egress().unwrap();
++        let mut carol = s.port(2).take_egress().unwrap();
++        let blocked = target.clone().write_owned().await;
++        for index in 0..3 {
++            publish(&s, index);
++            s.mixer.tick();
++            original(carol.try_recv().unwrap(), index).await;
++        }
++        s.policy
++            .0
++            .try_write()
++            .unwrap()
++            .revoked
++            .insert(revoked.into());
++        drop(blocked);
++        s.mixer.tick();
++        assert!(bob.try_recv().is_err());
++        s.policy.0.try_write().unwrap().revoked.clear();
++        for _ in 0..3 {
++            s.mixer.tick();
++        }
++        assert!(
++            bob.try_recv().is_err(),
++            "permission restoration revived old audio"
++        );
++        publish(&s, 3);
++        s.mixer.tick();
++        original(bob.try_recv().unwrap(), 3).await;
++        original(carol.try_recv().unwrap(), 3).await;
++        assert_no_reader(&s);
++    }
++}
++
++#[tokio::test]
++async fn pending_original_source_and_target_credential_expiry_cannot_be_extended_by_rotation() {
++    for index in [0, 1] {
++        let (s, target, _) = scene().await;
++        let mut bob = s.port(1).take_egress().unwrap();
++        let mut carol = s.port(2).take_egress().unwrap();
++        let controller = &s.controllers[index];
++        let original_principal = controller.credential_snapshot().principal;
++        let mut expiring = original_principal.as_ref().clone();
++        expiring.expires_at = Some(chrono::Utc::now() + chrono::Duration::milliseconds(60));
++        {
++            let mut credential = controller.credential.lock().unwrap();
++            credential.principal = Arc::new(expiring);
++            credential.revision += 1;
++        }
++        let blocked = target.clone().write_owned().await;
++        let started = Instant::now();
++        publish(&s, 0);
++        s.mixer.tick();
++        original(carol.try_recv().unwrap(), 0).await;
++        {
++            let mut credential = controller.credential.lock().unwrap();
++            credential.principal = original_principal;
++            credential.revision += 1;
++        }
++        tokio::time::sleep(Duration::from_millis(80)).await;
++        assert!(
++            started.elapsed() < Duration::from_millis(180),
++            "fixture exceeded the independent original media-age budget"
++        );
++        drop(blocked);
++        s.mixer.tick();
++        assert!(
++            bob.try_recv().is_err(),
++            "credential rotation extended an original deadline"
++        );
++        publish(&s, 1);
++        s.mixer.tick();
++        original(bob.try_recv().unwrap(), 1).await;
++        original(carol.try_recv().unwrap(), 1).await;
++        assert_no_reader(&s);
++    }
++}
++
++#[tokio::test]
++async fn pending_observed_source_grant_expiry_is_not_replaced_by_a_later_grant() {
++    let (s, target, probe) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    probe.grant_until.lock().unwrap().insert(
++        "a".into(),
++        chrono::Utc::now() + chrono::Duration::milliseconds(60),
++    );
++    let blocked = target.clone().write_owned().await;
++    let started = Instant::now();
++    publish(&s, 0);
++    s.mixer.tick();
++    original(carol.try_recv().unwrap(), 0).await;
++    probe.grant_until.lock().unwrap().clear();
++    tokio::time::sleep(Duration::from_millis(80)).await;
++    assert!(started.elapsed() < Duration::from_millis(180));
++    drop(blocked);
++    s.mixer.tick();
++    assert!(
++        bob.try_recv().is_err(),
++        "a renewed source grant extended retained PCM"
++    );
++    publish(&s, 1);
++    s.mixer.tick();
++    original(bob.try_recv().unwrap(), 1).await;
++    original(carol.try_recv().unwrap(), 1).await;
++}
++
++#[tokio::test]
++async fn pending_target_grant_expiry_survives_a_later_contributor_admission_refusal() {
++    let (s, target, probe) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    s.mixer
++        .role_targets(&[s.controllers[2].connection.clone()])
++        .pop()
++        .unwrap()
++        .prepare_role(deadline(), CancellationToken::new())
++        .await
++        .unwrap()
++        .commit(true);
++    s.mixer.tick();
++    probe.grant_until.lock().unwrap().insert(
++        "b".into(),
++        chrono::Utc::now() + chrono::Duration::milliseconds(60),
++    );
++    // The first source receives a real short-lived target grant. The second
++    // encounters the actual held target-only writer, after that expiry was seen.
++    let grants_before = probe.target_granted.load(Ordering::Acquire);
++    probe.first_target_free.store(1, Ordering::Release);
++    let blocked = target.clone().write_owned().await;
++    let started = Instant::now();
++    s.publish(0, 1800);
++    s.publish(2, 2600);
++    s.mixer.tick();
++    heard(carol.try_recv().unwrap(), 1800).await;
++    assert_eq!(
++        probe.target_granted.load(Ordering::Acquire),
++        grants_before + 1
++    );
++    assert!(probe.target_refused.load(Ordering::Acquire) > 0);
++    assert!(bob.try_recv().is_err());
++    probe.grant_until.lock().unwrap().clear();
++    tokio::time::sleep(Duration::from_millis(80)).await;
++    assert!(started.elapsed() < Duration::from_millis(180));
++    drop(blocked);
++    s.mixer.tick();
++    assert!(
++        bob.try_recv().is_err(),
++        "partial target admission forgot its earlier expiry"
++    );
++    s.publish(0, 3000);
++    s.mixer.tick();
++    heard(bob.try_recv().unwrap(), 3000).await;
++    assert_no_reader(&s);
++}
++
++#[tokio::test]
++async fn pending_original_media_age_expires_without_new_source_input() {
++    let (s, target, _) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    let blocked = target.clone().write_owned().await;
++    publish(&s, 0);
++    s.mixer.tick();
++    original(carol.try_recv().unwrap(), 0).await;
++    assert_no_reader(&s);
++    tokio::time::sleep(Duration::from_millis(210)).await;
++    drop(blocked);
++    s.mixer.tick();
++    assert!(
++        bob.try_recv().is_err(),
++        "expired original survived the 200ms bound"
++    );
++    publish(&s, 1);
++    s.mixer.tick();
++    original(bob.try_recv().unwrap(), 1).await;
++    original(carol.try_recv().unwrap(), 1).await;
++}
++
++#[tokio::test]
++async fn pending_queue_keeps_at_most_ten_original_quanta_and_reports_real_timestamp_gaps() {
++    let (s, target, _) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    let blocked = target.clone().write_owned().await;
++    let started = Instant::now();
++    for index in 0..13 {
++        publish(&s, index);
++        s.mixer.tick();
++        original(carol.try_recv().unwrap(), index).await;
++        assert!(bob.try_recv().is_err());
++        assert_no_reader(&s);
++    }
++    assert!(started.elapsed() < Duration::from_millis(100));
++    drop(blocked);
++    let mut received = 0;
++    let mut last = 0;
++    for _ in 0..6 {
++        s.mixer.tick();
++        let mut batch = 0;
++        while let Ok(queued) = bob.try_recv() {
++            assert!(received < 10, "retained more than ten pending quanta");
++            last = original(queued, received).await;
++            received += 1;
++            batch += 1;
++        }
++        assert!(
++            batch <= 2,
++            "recovery exceeded its per-recipient tick budget"
++        );
++        assert!(carol.try_recv().is_err());
++    }
++    assert_eq!(received, 10);
++    publish(&s, 13);
++    s.mixer.tick();
++    let fresh = original(bob.try_recv().unwrap(), 13).await;
++    assert_eq!(
++        fresh.wrapping_sub(last),
++        4 * 160,
++        "discarded queue pressure was retimed or concealed"
++    );
++    original(carol.try_recv().unwrap(), 13).await;
++    assert_no_reader(&s);
++}
++
++#[tokio::test]
++async fn pending_source_or_target_stream_replacement_never_inherits_old_pcm() {
++    for index in [0, 1] {
++        let (s, target, _) = scene().await;
++        let mut bob = s.port(1).take_egress().unwrap();
++        let mut carol = s.port(2).take_egress().unwrap();
++        let blocked = target.clone().write_owned().await;
++        publish(&s, 0);
++        s.mixer.tick();
++        original(carol.try_recv().unwrap(), 0).await;
++        let c = &s.controllers[index];
++        c.change(
++            c.revision(),
++            &[desired(Medium::Audio)],
++            &[desired(Medium::Audio).logical_id].into_iter().collect(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++        .unwrap();
++        if index == 1 {
++            bob = s.port(1).take_egress().unwrap();
++        }
++        drop(blocked);
++        s.mixer.tick();
++        assert!(
++            bob.try_recv().is_err(),
++            "new stream generation inherited old PCM"
++        );
++        publish(&s, 1);
++        s.mixer.tick();
++        original(bob.try_recv().unwrap(), 1).await;
++        original(carol.try_recv().unwrap(), 1).await;
++        assert_no_reader(&s);
++    }
++}
++
++#[tokio::test]
++async fn pending_source_or_target_pause_resume_does_not_revive_old_epoch() {
++    for index in [0, 1] {
++        let (s, target, _) = scene().await;
++        let mut bob = s.port(1).take_egress().unwrap();
++        let mut carol = s.port(2).take_egress().unwrap();
++        let blocked = target.clone().write_owned().await;
++        publish(&s, 0);
++        s.mixer.tick();
++        original(carol.try_recv().unwrap(), 0).await;
++        let c = &s.controllers[index];
++        let logical = desired(Medium::Audio).logical_id;
++        c.set_paused(&logical, c.revision(), true, deadline())
++            .await
++            .unwrap();
++        c.set_paused(&logical, c.revision(), false, deadline())
++            .await
++            .unwrap();
++        drop(blocked);
++        s.mixer.tick();
++        assert!(
++            bob.try_recv().is_err(),
++            "pause/resume revived old pending PCM"
++        );
++        publish(&s, 1);
++        s.mixer.tick();
++        original(bob.try_recv().unwrap(), 1).await;
++        original(carol.try_recv().unwrap(), 1).await;
++        assert_no_reader(&s);
++    }
++}
++
++#[tokio::test]
++async fn pending_subscription_clear_and_same_selector_restore_invalidates_original() {
++    let (s, target, _) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    let blocked = target.clone().write_owned().await;
++    publish(&s, 0);
++    s.mixer.tick();
++    original(carol.try_recv().unwrap(), 0).await;
++    // Release only the fixture's admission writer. Do not tick: the old PCM
++    // remains pending while both real subscription changes commit.
++    drop(blocked);
++    let c = &s.controllers[1];
++    for change in [
++        AudioSubscriptionChange::Clear,
++        AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Participant(
++            s.controllers[0].origin_member.participant().clone(),
++        )]),
++    ] {
++        s.mixer
++            .change_subscriptions(
++                &c.connection,
++                c.revision(),
++                change,
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++            .unwrap();
++    }
++    s.mixer.tick();
++    assert!(
++        bob.try_recv().is_err(),
++        "restored selector revived an older programme"
++    );
++    publish(&s, 1);
++    s.mixer.tick();
++    original(bob.try_recv().unwrap(), 1).await;
++    original(carol.try_recv().unwrap(), 1).await;
++    assert_no_reader(&s);
++}
++
++#[tokio::test]
++async fn pending_source_or_target_shutdown_releases_original_and_preserves_other_recipient() {
++    for index in [0, 1] {
++        let (s, target, _) = scene().await;
++        let mut bob = s.port(1).take_egress().unwrap();
++        let mut carol = s.port(2).take_egress().unwrap();
++        let blocked = target.clone().write_owned().await;
++        publish(&s, 0);
++        s.mixer.tick();
++        original(carol.try_recv().unwrap(), 0).await;
++        s.controllers[index].shutdown.cancel();
++        drop(blocked);
++        s.mixer.tick();
++        assert!(bob.try_recv().is_err());
++        if index == 1 {
++            publish(&s, 1);
++            s.mixer.tick();
++            original(carol.try_recv().unwrap(), 1).await;
++        }
++        assert_no_reader(&s);
++    }
++}
++
++#[tokio::test]
++async fn pending_egress_capacity_keeps_the_same_original_without_idle_authority() {
++    let (s, _target, _) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    let mut full = Vec::new();
++    while let Ok(permit) = s.port(1).0.egress.clone().try_reserve_owned() {
++        full.push(permit);
++    }
++    assert!(!full.is_empty());
++    publish(&s, 0);
++    s.mixer.tick();
++    original(carol.try_recv().unwrap(), 0).await;
++    assert!(bob.try_recv().is_err());
++    assert_no_reader(&s);
++    drop(full);
++    s.mixer.tick();
++    original(bob.try_recv().unwrap(), 0).await;
++    s.mixer.tick();
++    assert!(bob.try_recv().is_err() && carol.try_recv().is_err());
++    assert_no_reader(&s);
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/target_contention.rs
+@@ -0,0 +1,385 @@
++//! A target-only busy reader must not erase already decoded original PCM.
++//! The independent receiver proves source admission and actual mixing succeeded.
++use super::*;
++use std::any::Any;
++
++#[derive(Default)]
++struct Probe {
++    source_admitted: AtomicUsize,
++    source_refused: AtomicUsize,
++    target_refused: AtomicUsize,
++    refused_with_source_context: AtomicUsize,
++    grant_until: Mutex<HashMap<String, chrono::DateTime<chrono::Utc>>>,
++    first_target_free: AtomicUsize,
++    target_granted: AtomicUsize,
++    clear_source_grant_after_read: AtomicBool,
++}
++struct SourceContext {
++    domain: Arc<()>,
++    source: ConnectionId,
++}
++struct SourceLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    context: SourceContext,
++}
++impl MediaAuthorityLease for SourceLease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        self.inner.expires_at()
++    }
++    fn packet_context(&self) -> Option<&(dyn Any + Send + Sync)> {
++        Some(&self.context)
++    }
++}
++struct TargetLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    _read: Option<OwnedRwLockReadGuard<()>>,
++}
++impl MediaAuthorityLease for TargetLease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        self.inner.expires_at()
++    }
++}
++struct TargetPolicy {
++    inner: Arc<Policy>,
++    domain: Arc<()>,
++    target: Arc<RwLock<()>>,
++    probe: Arc<Probe>,
++}
++struct ExpiringLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    expiry: Option<chrono::DateTime<chrono::Utc>>,
++}
++impl MediaAuthorityLease for ExpiringLease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        match (self.inner.expires_at(), self.expiry) {
++            (Some(a), Some(b)) => Some(a.min(b)),
++            (a, b) => a.or(b),
++        }
++    }
++    fn packet_context(&self) -> Option<&(dyn Any + Send + Sync)> {
++        self.inner.packet_context()
++    }
++}
++impl TargetPolicy {
++    fn bounded_current(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let inner = self.inner.current(scope)?;
++        let expiry = {
++            let mut grants = self.probe.grant_until.lock().unwrap();
++            let expiry = grants.get(scope.connection.as_str()).copied();
++            if scope.connection.as_str() == "a"
++                && expiry.is_some()
++                && self
++                    .probe
++                    .clear_source_grant_after_read
++                    .swap(false, Ordering::AcqRel)
++            {
++                grants.remove("a");
++            }
++            expiry
++        };
++        Ok(Box::new(ExpiringLease { inner, expiry }))
++    }
++    fn receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source_context: bool,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        // The fixture still performs its ordinary current membership, route
++        // and credential checks. Only Bob's separate immediate read is busy.
++        let inner = self.bounded_current(scope)?;
++        if scope.connection.as_str() != "b" {
++            return Ok(inner);
++        }
++        if self
++            .probe
++            .first_target_free
++            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |left| {
++                left.checked_sub(1)
++            })
++            .is_ok()
++        {
++            self.probe.target_granted.fetch_add(1, Ordering::AcqRel);
++            return Ok(Box::new(TargetLease { inner, _read: None }));
++        }
++        let read = self.target.clone().try_read_owned().map_err(|_| {
++            self.probe.target_refused.fetch_add(1, Ordering::AcqRel);
++            if source_context {
++                self.probe
++                    .refused_with_source_context
++                    .fetch_add(1, Ordering::AcqRel);
++            }
++            StreamControlError::NotReady
++        })?;
++        self.probe.target_granted.fetch_add(1, Ordering::AcqRel);
++        Ok(Box::new(TargetLease {
++            inner,
++            _read: Some(read),
++        }))
++    }
++}
++impl MediaPolicy for TargetPolicy {
++    fn current_participant_receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.inner.current_participant_receive(scope, source)
++    }
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if matches!(scope.purpose, MediaPurpose::Receive { .. }) {
++            return self.receive(scope, false);
++        }
++        if scope.connection.as_str() == "a" && matches!(scope.purpose, MediaPurpose::Publish) {
++            let inner = self.bounded_current(scope).map_err(|error| {
++                self.probe.source_refused.fetch_add(1, Ordering::AcqRel);
++                error
++            })?;
++            self.probe.source_admitted.fetch_add(1, Ordering::AcqRel);
++            return Ok(Box::new(SourceLease {
++                inner,
++                context: SourceContext {
++                    domain: self.domain.clone(),
++                    source: scope.connection.clone(),
++                },
++            }));
++        }
++        self.inner.current(scope)
++    }
++    fn current_packet(
++        &self,
++        scope: &MediaScope<'_>,
++        context: &(dyn Any + Send + Sync),
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let context = context
++            .downcast_ref::<SourceContext>()
++            .ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&self.domain, &context.domain) {
++            return Err(StreamControlError::Authority);
++        }
++        match scope.purpose {
++            MediaPurpose::Receive { source } if source.connection == context.source => {
++                self.receive(scope, true)
++            }
++            MediaPurpose::Publish if *scope.connection == context.source => self.current(scope),
++            _ => Err(StreamControlError::Authority),
++        }
++    }
++}
++async fn scene() -> (Scene, Arc<RwLock<()>>, Arc<Probe>) {
++    let target = Arc::new(RwLock::new(()));
++    let probe = Arc::new(Probe::default());
++    let policy_target = target.clone();
++    let policy_probe = probe.clone();
++    let s = Scene::new_inner(
++        &[
++            ("a", "alice", audio(), 0),
++            ("b", "bob", audio(), 0),
++            ("c", "carol", audio(), 0),
++        ],
++        8000,
++        Some(Box::new(move |inner| {
++            Arc::new(TargetPolicy {
++                inner,
++                domain: Arc::new(()),
++                target: policy_target,
++                probe: policy_probe,
++            })
++        })),
++    )
++    .await;
++    s.bind(0, true).await;
++    s.bind(1, false).await;
++    s.bind(2, false).await;
++    (s, target, probe)
++}
++fn expected_pcm(value: i16) -> Vec<i16> {
++    // Derive the original wire quantum through a separate negotiated codec,
++    // then decode independently. No mixer buffer or implementation counter is
++    // used as the expected audio, and every output sample is compared.
++    let mut encoder =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap();
++    let payload = encoder
++        .encode(&rvoip_media_core::AudioFrame {
++            samples: vec![value; 160],
++            sample_rate: 8000,
++            channels: 1,
++            duration: Duration::from_millis(20),
++            timestamp: 0,
++        })
++        .unwrap();
++    let mut decoder =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap();
++    decoder.decode(&payload).unwrap().samples
++}
++async fn decoded(queue: QueuedMedia, expected: &[i16], capture: u64) -> u32 {
++    let frame = mixed_frame(queue).await; // actual current-authorization egress
++    let mut decoder =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap();
++    let actual = decoder.decode(&frame.payload).unwrap();
++    assert_eq!(
++        actual.samples.as_slice(),
++        expected,
++        "decoded original PCM changed or was replaced with concealment/silence"
++    );
++    assert_eq!(actual.samples.len(), 160);
++    let clock = frame
++        .source_clock
++        .expect("original capture clock disappeared");
++    assert!(clock.supported && (clock.is_current)());
++    same_ntp(
++        clock
++            .anchor
++            .expect("original capture anchor disappeared")
++            .ntp_time,
++        capture,
++    );
++    frame.timestamp_rtp
++}
++
++#[tokio::test]
++async fn unblocked_target_control_decodes_the_original_quantum_in_both_receivers() {
++    let (s, _target, probe) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    let live = Arc::new(AtomicBool::new(true));
++    let anchor = 100u64 << 32;
++    s.publish_clocked_ms(
++        0,
++        1800,
++        8000,
++        20,
++        Some(source_clock(501, 8000, 8000, anchor, live)),
++    );
++    s.mixer.tick();
++    let expected = expected_pcm(1800);
++    decoded(bob.try_recv().unwrap(), &expected, anchor).await;
++    decoded(carol.try_recv().unwrap(), &expected, anchor).await;
++    assert!(probe.source_admitted.load(Ordering::Acquire) > 0);
++    assert_eq!(probe.source_refused.load(Ordering::Acquire), 0);
++    assert_eq!(probe.target_refused.load(Ordering::Acquire), 0);
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("completed output kept a policy reader"),
++    );
++    s.mixer.tick();
++    assert!(bob.try_recv().is_err() && carol.try_recv().is_err());
++}
++
++#[tokio::test]
++async fn target_not_ready_preserves_original_pcm_once_without_stalling_other_recipient() {
++    let (s, target, probe) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    let blocked = target.clone().write_owned().await;
++    let live = Arc::new(AtomicBool::new(true));
++    let anchor = 100u64 << 32;
++    let clock = source_clock(502, 8000, 8000, anchor, live);
++    let first = expected_pcm(1800);
++    let second = expected_pcm(-2600);
++
++    // Source admission remains successful. Bob's Receive read is excluded only
++    // when Core processes the actual taken/decoded source contribution; Carol
++    // receiving it proves this was not a source/codec/startup failure.
++    s.publish_clocked_ms(0, 1800, 8000, 20, Some(clock.clone()));
++    s.mixer.tick();
++    assert!(
++        bob.try_recv().is_err(),
++        "target output crossed an unavailable current admission"
++    );
++    let carol_first = decoded(
++        carol.try_recv().expect("live recipient stalled"),
++        &first,
++        anchor,
++    )
++    .await;
++    assert!(probe.source_admitted.load(Ordering::Acquire) > 0);
++    assert_eq!(probe.source_refused.load(Ordering::Acquire), 0);
++    assert!(
++        probe.refused_with_source_context.load(Ordering::Acquire) > 0,
++        "fixture did not reach target admission with an admitted source"
++    );
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("deferred target retained a producer policy reader"),
++    );
++
++    s.publish_clocked_ms(0, -2600, 8160, 20, Some(clock));
++    s.mixer.tick();
++    assert!(bob.try_recv().is_err());
++    let carol_second = decoded(
++        carol
++            .try_recv()
++            .expect("live recipient lost the next quantum"),
++        &second,
++        ntp_ms(anchor, 20),
++    )
++    .await;
++    assert_eq!(carol_second.wrapping_sub(carol_first), 160);
++    assert_eq!(probe.source_refused.load(Ordering::Acquire), 0);
++    assert!(probe.refused_with_source_context.load(Ordering::Acquire) >= 2);
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("pending original PCM held a policy reader across ticks"),
++    );
++
++    drop(blocked);
++    // No source republish. Only original retained media can satisfy recovery.
++    s.mixer.tick();
++    let recovered = tokio::time::timeout(Duration::from_millis(50), bob.recv())
++        .await
++        .expect("target-only temporary admission lost the first original PCM quantum")
++        .expect("original target owner unexpectedly closed");
++    let bob_first = decoded(recovered, &first, anchor).await;
++    s.mixer.tick();
++    let recovered = tokio::time::timeout(Duration::from_millis(50), bob.recv())
++        .await
++        .expect("target-only temporary admission lost the second original PCM quantum")
++        .expect("original target owner unexpectedly closed");
++    let bob_second = decoded(recovered, &second, ntp_ms(anchor, 20)).await;
++    assert_eq!(
++        bob_second.wrapping_sub(bob_first),
++        160,
++        "recovery retimed or overtook original audio"
++    );
++    assert!(
++        carol.try_recv().is_err(),
++        "recovery replayed audio to the unblocked recipient"
++    );
++    s.mixer.tick();
++    assert!(
++        bob.try_recv().is_err(),
++        "target replayed an original quantum twice"
++    );
++    assert!(carol.try_recv().is_err());
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("recovered output retained idle authority"),
++    );
++}
++
++mod recovery;
++
++mod original_deadlines;
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -316,9 +316,11 @@
+             .await?;
+         Ok::<_, StreamControlError>(candidate)
+     });
+-    assert!(tokio::time::timeout(Duration::from_millis(25), &mut drain)
+-        .await
+-        .is_err());
++    assert!(
++        tokio::time::timeout(Duration::from_millis(25), &mut drain)
++            .await
++            .is_err()
++    );
+     release.notify_one();
+     sent.await.unwrap().unwrap();
+     let candidate = drain.await.unwrap().unwrap();
+@@ -346,10 +348,12 @@
+     s.mixer.tick();
+     let queued = out.try_recv().unwrap();
+     s.policy.0.write().await.revoked.insert("bob".into());
+-    assert!(queued
+-        .deliver(|_| async { panic!("revoked contributor reached local IO") })
+-        .await
+-        .is_err());
++    assert!(
++        queued
++            .deliver(|_| async { panic!("revoked contributor reached local IO") })
++            .await
++            .is_err()
++    );
+     s.publish(0, 1000);
+     s.mixer.tick();
+     heard(out.try_recv().unwrap(), 1000).await;
+@@ -357,10 +361,12 @@
+     s.mixer.tick();
+     let queued = out.try_recv().unwrap();
+     s.policy.0.write().await.private = true;
+-    assert!(queued
+-        .deliver(|_| async { panic!("private audience reached local IO") })
+-        .await
+-        .is_err());
++    assert!(
++        queued
++            .deliver(|_| async { panic!("private audience reached local IO") })
++            .await
++            .is_err()
++    );
+     s.publish(0, 1000);
+     s.mixer.tick();
+     assert!(out.try_recv().is_err());
+@@ -404,16 +410,20 @@
+             .prepare_role(deadline(), CancellationToken::new())
+             .await
+     });
+-    assert!(tokio::time::timeout(Duration::from_millis(25), &mut role)
+-        .await
+-        .is_err());
++    assert!(
++        tokio::time::timeout(Duration::from_millis(25), &mut role)
++            .await
++            .is_err()
++    );
+     release.notify_one();
+     sent.await.unwrap().unwrap();
+     role.await.unwrap().unwrap().commit(false);
+-    assert!(pending
+-        .deliver(|_| async { panic!("old voice delivered after role commit") })
+-        .await
+-        .is_err());
++    assert!(
++        pending
++            .deliver(|_| async { panic!("old voice delivered after role commit") })
++            .await
++            .is_err()
++    );
+     assert!(s.port(0).try_publish(&frame(&s.port(0), 320)).is_err());
+     let consumer = s
+         .mixer
+@@ -496,10 +506,12 @@
+         old.binding().negotiated.requested.logical_id,
+         s.port(0).binding().negotiated.requested.logical_id
+     );
+-    assert!(old_queue
+-        .deliver(|_| async { panic!("old port mixed output survived replacement") })
+-        .await
+-        .is_err());
++    assert!(
++        old_queue
++            .deliver(|_| async { panic!("old port mixed output survived replacement") })
++            .await
++            .is_err()
++    );
+     s.mixer.tick();
+     s.publish(0, 1000);
+     s.mixer.tick();
+@@ -702,10 +714,12 @@
+     c.set_paused(&logical, c.revision(), true, deadline())
+         .await
+         .unwrap();
+-    assert!(queued
+-        .deliver(|_| async { panic!("pre-pause voice delivered") })
+-        .await
+-        .is_err());
++    assert!(
++        queued
++            .deliver(|_| async { panic!("pre-pause voice delivered") })
++            .await
++            .is_err()
++    );
+     s.mixer.tick();
+     assert!(out.try_recv().is_err());
+     c.set_paused(&logical, c.revision(), false, deadline())
+@@ -785,22 +799,26 @@
+     s.mixer.clear();
+     assert!(s.port(0).try_publish(&frame(&s.port(0), 0)).is_err());
+     let revision = s.controllers[0].revision();
+-    assert!(s.controllers[0]
+-        .change(
+-            revision,
+-            &[desired(Medium::Audio)],
+-            &BTreeSet::new(),
+-            deadline(),
+-            CancellationToken::new()
+-        )
+-        .await
+-        .is_err());
++    assert!(
++        s.controllers[0]
++            .change(
++                revision,
++                &[desired(Medium::Audio)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new()
++            )
++            .await
++            .is_err()
++    );
+     assert_eq!(revision, s.controllers[0].revision());
+ }
+ 
+ mod subscriptions;
+ 
+ mod source_contention;
++
++mod target_contention;
+ 
+ mod packet_context;
+ 
+@@ -1540,9 +1558,12 @@
+         .unwrap()
+         .commit(false);
+     assert!(!current());
+-    assert!(port
+-        .with_current_ingress_clock(|_| panic!("clock report admitted from listening-only source"))
+-        .is_err());
++    assert!(
++        port.with_current_ingress_clock(|_| panic!(
++            "clock report admitted from listening-only source"
++        ))
++        .is_err()
++    );
+     consumer
+         .prepare_role(deadline(), CancellationToken::new())
+         .await
+@@ -1551,9 +1572,10 @@
+     assert!(!current(), "old clock revived after role recovery");
+     assert!(port.with_current_ingress_clock(|c| c()).unwrap());
+     s.policy.0.write().await.revoked.insert("alice".into());
+-    assert!(port
+-        .with_current_ingress_clock(|_| panic!("revoked clock report admitted"))
+-        .is_err());
++    assert!(
++        port.with_current_ingress_clock(|_| panic!("revoked clock report admitted"))
++            .is_err()
++    );
+     drop(
+         s.policy
+             .0
+@@ -1597,11 +1619,12 @@
+     let mixed = mixed_frame(out.try_recv().unwrap()).await;
+     assert_eq!(mixed.source_clock.unwrap().source_id, 42);
+     s.policy.0.write().await.revoked.insert("alice".into());
+-    assert!(port
+-        .try_publish_clocked(&frame, |_| panic!(
++    assert!(
++        port.try_publish_clocked(&frame, |_| panic!(
+             "clock attached before current authorization"
+         ))
+-        .is_err());
++        .is_err()
++    );
+ }
+ 
+ mod tick_publication;
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -16,12 +16,12 @@
+     collections::{BTreeMap, BTreeSet},
+     future::Future,
+     sync::{
+-        atomic::{AtomicU32, Ordering},
+         Arc, Mutex, Weak,
++        atomic::{AtomicU32, Ordering},
+     },
+     time::{Duration, Instant},
+ };
+-use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
++use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc};
+ use tokio_util::sync::CancellationToken;
+ 
+ #[derive(Debug, thiserror::Error)]
+@@ -905,6 +905,7 @@
+                 source: self.0.clone(),
+                 ticket,
+                 admitted_at: received_at.unwrap_or_else(Instant::now),
++                audio_deadline: (self.0.kind() == StreamKind::Audio).then_some(deadline),
+                 consumer: admission.consumer.clone(),
+                 scene: admission.scene.clone(),
+                 custody: if self.0.kind() == StreamKind::Audio {
+@@ -1001,6 +1002,9 @@
+     source: Arc<Port>,
+     ticket: PeerRouteTicket,
+     admitted_at: Instant,
++    // Numeric custody only: decoded audio cannot renew a shorter original
++    // ingress or already-observed source grant while waiting for a recipient.
++    audio_deadline: Option<tokio::time::Instant>,
+     consumer: Option<audio_consumer::ConsumerStamp>,
+     scene: Option<scene_consumer::SceneStamp>,
+     custody: PacketCustody,
+@@ -3618,7 +3622,7 @@
+ pub use video_feedback::VideoFeedbackRoute;
+ 
+ mod video_repair;
+-pub use video_repair::{VideoRepair, MAX_VIDEO_REPAIRS};
++pub use video_repair::{MAX_VIDEO_REPAIRS, VideoRepair};
+ 
+ mod transport_update;
+ pub use transport_update::TransportUpdateSlot;
