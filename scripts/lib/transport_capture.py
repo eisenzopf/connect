@@ -117,6 +117,21 @@ class NativeCapture:
         assert self.path.is_file() and self.path.stat().st_mode & 0o077 == 0
         assert digest(binary) == self.binary_sha256
 
+    def start_observed(self):
+        """Retain a failed capture attempt without suppressing other checks.
+
+        The original capture owner is joined immediately on startup failure.
+        finish() then returns the same negative observation throughout cleanup.
+        The caller still requires observed=True for complete-cell acceptance.
+        """
+        try:
+            self.start()
+        except (AssertionError, OSError, ValueError, subprocess.SubprocessError) as error:
+            report = self.finish()
+            report.update(environment_failure=True, startup_failure=type(error).__name__)
+            return report
+        return None
+
     def finish(self):
         if self.report is not None:
             return self.report

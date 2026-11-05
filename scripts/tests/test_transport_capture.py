@@ -4,9 +4,12 @@ import struct
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+import os
+import subprocess
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lib.transport_capture import inspect_pcap
+from lib.transport_capture import NativeCapture, inspect_pcap
 
 
 def packet(source, target, payload=b"synthetic-ciphertext", *, address=b"\x7f\x00\x00\x01", destination=b"\x7f\x00\x00\x01", protocol=17):
@@ -105,6 +108,29 @@ class CaptureBoundary(unittest.TestCase):
         self.path.write_bytes(pcap([*packets, packet(4433, 50123, address=client, destination=server)]))
         with self.assertRaisesRegex(AssertionError, "foreign-address"):
             inspect_pcap(self.path, 4433, "10.203.0.1", "10.203.0.2")
+
+    def test_unavailable_capture_is_retained_without_raising_or_fabricating_success(self):
+        capture = NativeCapture(self.path.parent / "capture", 4433, os.environ.copy())
+        with patch.object(capture, "start", side_effect=PermissionError("fixture capture denied")):
+            failure = capture.start_observed()
+        self.assertFalse(failure["observed"])
+        self.assertTrue(failure["environment_failure"])
+        self.assertEqual(failure["startup_failure"], "PermissionError")
+        self.assertIs(capture.finish(), failure)
+
+    def test_failed_capture_start_joins_its_original_process_before_continuing(self):
+        capture = NativeCapture(self.path.parent / "capture", 4433, os.environ.copy())
+        owner = subprocess.Popen([sys.executable, "-c", "import time;time.sleep(30)"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            start_new_session=True)
+        self.addCleanup(lambda: owner.poll() is None and (owner.kill(), owner.wait()))
+        capture.process = owner
+        with patch.object(capture, "start", side_effect=AssertionError("capture-not-ready")):
+            failure = capture.start_observed()
+        self.assertIsNotNone(owner.poll())
+        self.assertTrue(failure["original_joined"])
+        self.assertFalse(failure["observed"])
+        self.assertIs(capture.finish(), failure)
 
 
 if __name__ == "__main__":

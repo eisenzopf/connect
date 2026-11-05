@@ -53,7 +53,7 @@ def probe(chrome=None, firefox=None, browser_image=None):
         raise ValueError("Only owner's local Mac/Ubuntu ARM execution is supported")
     versions = {name: command_version([name, flag]) for name, flag in (
         ("rustc", "--version"), ("node", "--version"), ("ffmpeg", "-version"), ("tcpdump", "--version"))}
-    blockers = ["missing-tool-" + name for name in ("cargo", "rustc", "node", "npm", "ffmpeg", "tcpdump", "cc", "pkg-config")
+    blockers = ["missing-tool-" + name for name in ("cargo", "rustc", "node", "npm", "ffmpeg", "cc", "pkg-config")
                 if shutil.which(name) is None]
     media_libraries = {name: command_version(["pkg-config", "--modversion", name])
                        for name in ("opus", "vpx", "openssl")}
@@ -66,6 +66,9 @@ def probe(chrome=None, firefox=None, browser_image=None):
     free = shutil.disk_usage(ROOT).free
     if free < 5 * 1024**3:
         blockers.append("less-than-five-GiB-workload-scratch-space")
+    # Capture is independently required, but its absence must not prevent
+    # authenticated control, movement and decoded-media observations.
+    capture_blockers = [] if shutil.which("tcpdump") else ["missing-tool-tcpdump"]
     capture_permissions = None
     if system == "Darwin":
         devices = list(Path("/dev").glob("bpf[0-9]*"))
@@ -74,7 +77,7 @@ def probe(chrome=None, firefox=None, browser_image=None):
                                    device_count=len(devices), accessible_device_count=accessible,
                                    capture_started=False)
         if not accessible:
-            blockers.append("macos-bpf-capture-permission-unavailable")
+            capture_blockers.append("macos-bpf-capture-permission-unavailable")
     expected = load_contract(ROOT)["expected_browsers_by_client_platform"][server]
     linux_chrome = Path("/ms-playwright/chromium-1248/chrome-linux-arm64/chrome")
     if not linux_chrome.is_file():
@@ -109,6 +112,7 @@ def probe(chrome=None, firefox=None, browser_image=None):
                 browsers=browsers, scratch_free_bytes=free, execution_blockers=blockers,
                 browser_runtime_image_id=verified_image,
                 capture_permission_observation=capture_permissions,
+                capture_blockers=capture_blockers,
                 owned_systemd_vm=(system == "Linux" and os.getuid() != 0
                     and Path("/run/systemd/system").is_dir()
                     and os.environ.get("CONNECT_GATE6_OWNED_LINUX_VM") == "connect-gate6"),

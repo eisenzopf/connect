@@ -504,7 +504,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         server_ip="127.0.0.1" if namespace is None else namespace.server_ip,
                         peer_ip="127.0.0.1" if namespace is None else namespace.client_ip,
                         media_workload=media_workload)
-                    capture.start()
+                    capture_failure = capture.start_observed()
+                    if capture_failure is not None:
+                        report["packet_capture"] = capture_failure
             if conversation:
                 phase = "public-sdk-conversation-control"
                 config_directory = PRIVATE / "sdk-configs"

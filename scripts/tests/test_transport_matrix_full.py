@@ -5,6 +5,8 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -76,7 +78,7 @@ class FullMatrix(unittest.TestCase):
 
     def test_environment_block_is_not_a_failed_or_executed_behavior_check(self):
         matrix = configure_execution(inventory(ROOT, "a" * 40),
-            dict(server="ubuntu24-arm64", execution_blockers=["missing-tool-tcpdump"], browsers={}), "full")
+            dict(server="ubuntu24-arm64", execution_blockers=["missing-tool-cargo"], browsers={}), "full")
         with tempfile.TemporaryDirectory() as temp:
             driver.execute_selected(matrix, [c["id"] for c in matrix["cells"]], Path(temp),
                                     lambda _: self.fail("Blocked environment launched a workload"))
@@ -84,6 +86,34 @@ class FullMatrix(unittest.TestCase):
         self.assertEqual(summary["cells"]["blocked"], 16)
         self.assertEqual(summary["checks"]["failed"], 0)
         self.assertTrue(all(not c["execution"]["attempted"] for c in matrix["cells"]))
+
+    def test_missing_macos_capture_does_not_gate_independent_requirements(self):
+        def version(command):
+            return {"rustc": "rustc 1.97.1 (fixture)", "node": "v22.16.0"}.get(command[0], "1.0")
+        with patch.object(driver.platform, "system", return_value="Darwin"), \
+                patch.object(driver.platform, "machine", return_value="arm64"), \
+                patch.object(driver, "command_version", side_effect=version), \
+                patch.object(driver.shutil, "which", side_effect=lambda name: None if name == "tcpdump" else "/fixture/" + name), \
+                patch.object(driver.shutil, "disk_usage", return_value=SimpleNamespace(free=10 * 1024**3)), \
+                patch.object(driver.os, "access", return_value=False):
+            environment = driver.probe()
+        self.assertEqual(environment["execution_blockers"], [])
+        self.assertEqual(environment["capture_blockers"],
+                         ["missing-tool-tcpdump", "macos-bpf-capture-permission-unavailable"])
+        matrix = configure_execution(inventory(ROOT, "a" * 40), environment, "full")
+        self.assertEqual(sum(c["execution"]["runnable"] for c in matrix["cells"]), 16)
+        cell = next(c for c in matrix["cells"] if c["execution"]["runnable"])
+        report = dict(source_revision="a" * 40, host=dict(platform=cell["server"]),
+            network_profile="local", signing_algorithm=cell["signing"],
+            source_inputs_unchanged=True, sdk_dist_inputs_unchanged=True, executables_unchanged=True,
+            packet_capture=dict(observed=False, environment_failure=True, failure="PermissionError"),
+            conversation_control=dict(actual_connection_workload_observed=True,
+                maximum_active_members_observed=4, concurrent_session_intents_observed=2))
+        evaluate_cell(cell, report, "b" * 64, environment=environment, revision="a" * 40)
+        self.assertEqual(cell["check_results"]["declared-concurrent-workload"]["status"], "passed")
+        self.assertEqual(cell["check_results"]["actual-private-packet-capture"]["status"], "failed")
+        self.assertEqual(cell["check_results"]["actual-private-packet-capture"]["category"], "environment")
+        self.assertEqual(cell["status"], "failed")
 
 
 if __name__ == "__main__":
