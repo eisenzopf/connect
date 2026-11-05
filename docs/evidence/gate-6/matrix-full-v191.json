@@ -1,0 +1,3917 @@
+{
+  "format": "connect/g6-058-full-run-evidence/1",
+  "source_revision": "4f2e26a1f300ae35ee497c83e4a8c6bc71cd5ac4",
+  "summary": {
+    "cells": {
+      "passed": 0,
+      "failed": 32,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0,
+      "incomplete": 0
+    },
+    "required_cells": 32,
+    "required_checks": 432,
+    "checks": {
+      "passed": 219,
+      "failed": 82,
+      "blocked": 131,
+      "not-run": 0,
+      "running": 0
+    }
+  },
+  "non_av_required_checks": 400,
+  "non_av_summary": {
+    "passed": 219,
+    "failed": 65,
+    "blocked": 116
+  },
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "execution_scope": "All32 original configuration attempts completed on the owner Mac Studio and existing Ubuntu24.04 ARM64 VM. Every required verdict evaluated; blocked prerequisites are not executed behavior proof. G6-054 and named remote/provider qualification remain separate.",
+  "original_matrix_sha256": "4195b04647e622b2918c632e61319b55afb874b34ef6960ec9edcafc98a18a0b",
+  "worker_exit_codes": {
+    "macos-arm64": 1,
+    "ubuntu24-arm64": 1
+  },
+  "original_attempts": 32,
+  "storage_interruption": false,
+  "observed_failure_counts": {
+    "independently-decoded-duplex-media-and-profile-budgets": 17,
+    "owned-drain-and-resource-reclamation": 30,
+    "device-replacement-and-old-owner-retirement": 6,
+    "declared-concurrent-workload": 10,
+    "identified-candidate-client-server-versions": 4,
+    "actual-private-packet-capture": 14,
+    "one-service-contract-and-original-operation-recovery": 1
+  },
+  "post_run_fixture_work": {
+    "scope": "Post-run fixture and diagnostic corrections only; actual matrix behavior not rerun yet",
+    "fixes": [
+      "Create missing mapped guest source parent before exclusive source-leaf preparation",
+      "Use actual canvas frame-request capability; automatic30fps capture when absent, preserving source clock/identity/ownership",
+      "Load only pinned Linux Firefox NSS bundle dependencies; preserve Mac importer, NSS version and normal TLS checks",
+      "Enable existing bounded native replacement phase events and terminal audio counters; keep SQL/per-packet/helper timing traces off",
+      "Keep known native-target-stopped compensation code in sanitized operation failure observations"
+    ],
+    "verification": {
+      "python_tests_passed": 42,
+      "node_tests_passed": 11,
+      "exact_original_fixture_negative_controls": 2
+    },
+    "runtime_passes_claimed": 0,
+    "production_Rust_changed": false,
+    "prepared_dependencies_changed": false
+  },
+  "cells": [
+    {
+      "id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "current_trust_verified"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "conversation_control.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "movement"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "conversation_control"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "native_av_decoded"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "9dad967853cebe0067f97bc7fafa6d2fa9cd70fa08e217f31db8b172123eb6ee",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "current_trust_verified"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "conversation_control.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "movement"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "conversation_control"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "native_av_decoded"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "e16e098d4d1d924587f71a9f869f2aec163f81d5de132deaecb183b73cc03b7e",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ff42ac9269f5db66a563c29ae62f82765520a5e70896b91a6ba5889a1dc935f4",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fe17834ad2643c0c046eb14f83367992f512a7a6c68959731821b8f16c2ba55a",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "browser_observation.programme"
+          },
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ba11b13336cf547e2c0b728654c572b8cef0ae48b464fadba723c9c47b98da6b",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "browser_observation.programme"
+          },
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "1af1a828bcef77d75e59528cef869b9e1cfaf71e67a16e023ecb85ca3eaa1ecc",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "browser_observation"
+          },
+          "category": "behavior"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "ae931e5aef4a7e4ae9e35f056862f31db5295c437116e761688c92923b6708ac",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "browser_observation"
+          },
+          "category": "behavior"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3b650aa5d6098ac79a5aeefddc85a9ab1d65dc2c598dd7354d94099be5234fc7",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+        "exit_code": 1,
+        "failure_phase": "synthetic-native-arm-client-opus-vp8-source-preparation",
+        "failure_kind": "RuntimeError"
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "runtime_versions"
+          },
+          "reason": "candidate-or-integrity-mismatch",
+          "category": "integrity"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "current_trust_verified"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "conversation_control.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "movement"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "conversation_control"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "native_av_decoded"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "8cbf424a29bc6934b8f3d58bfff3f9b51bdb596e6032e7d2282187d3258abe63",
+            "section": "idle_resources"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+        "exit_code": 1,
+        "failure_phase": "synthetic-native-arm-client-opus-vp8-source-preparation",
+        "failure_kind": "RuntimeError"
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "runtime_versions"
+          },
+          "reason": "candidate-or-integrity-mismatch",
+          "category": "integrity"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "current_trust_verified"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "conversation_control.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "movement"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "conversation_control"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "native_av_decoded"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "54f73c0e910fa13d27e40ef494cff9698fdfef8d8efacbff682ac19f28bde8d9",
+            "section": "idle_resources"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "browser_observation"
+          },
+          "category": "behavior"
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "behavior"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "browser_observation"
+          },
+          "category": "behavior"
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "behavior"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "browser_observation"
+          },
+          "category": "behavior"
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "behavior"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "browser_observation"
+          },
+          "category": "behavior"
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "behavior"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": "FileNotFoundError"
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required",
+          "category": "behavior"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "behavior"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": "FileNotFoundError"
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required",
+          "category": "behavior"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "behavior"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "current_trust_verified"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "conversation_control.checks"
+          },
+          "category": "behavior"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "movement"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "conversation_control"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "native_av_decoded"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "de2307d069e4e3f13ce6b3b487e6b0c7eaab5b593985a3383acd05ceb68bb49e",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "current_trust_verified"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "conversation_control.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "movement"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "conversation_control"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "native_av_decoded"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "562ee3fca7969a854ae49e2edebdfd6e84abb8f1391debd00c8a28a96b71336d",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "2da386039cef6a4145afea7f936c3249892fa84efcaab39704e1dbbc00595d44",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "81bf9d5d24edd263e2dc9d6df6cad11b358d25986915ca2f71cbc4d48e236907",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "browser_observation.programme"
+          },
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "59070468608790790aa80cd9d1b11a6e32e86575b247a9b1861089d86cdbb700",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "browser_observation.programme"
+          },
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "936bc6710af0d45ea5cc23e0218d269459f43d2e99088828858da87796f5aad5",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "browser_observation"
+          },
+          "category": "behavior"
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "behavior"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "browser_observation"
+          },
+          "category": "behavior"
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "behavior"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "current_trust_verified"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "conversation_control.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "movement"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "conversation_control"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "native_av_decoded"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "f2bca547cb5fb27a64fa426e8ace5329676e732d10100ae9389099b0406f79b0",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "current_trust_verified"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "conversation_control.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "movement"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "conversation_control"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "packet_capture"
+          }
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "native_av_decoded"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "0653da4e17f6bc20a0e86a520cc29848ec7988773db4ed8ca1812895985be1a5",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "environment"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "environment"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "browser_observation.programme"
+          },
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "environment"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "browser_observation.programme"
+          },
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "browser_observation"
+          }
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "environment"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "browser_observation.decoded_media"
+          },
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "current_authority"
+          },
+          "reason": "every-current-authority-subcase-required"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "browser_observation"
+          },
+          "category": "behavior"
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "environment"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "component": {
+        "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "check_results": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "runtime_versions"
+          },
+          "reason": "exact-client-and-server-versions-required"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "browser_observation.tls_trust"
+          }
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "browser_observation.admission.checks"
+          }
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "admission.checks"
+          }
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "admission.checks"
+          }
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "browser_observation.programme"
+          }
+        },
+        "declared-concurrent-workload": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "browser_observation"
+          },
+          "category": "behavior"
+        },
+        "actual-private-packet-capture": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "packet_capture"
+          },
+          "reason": "ValueError",
+          "category": "environment"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "browser_observation.decoded_media"
+          }
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "blocked",
+          "reason": "every-current-authority-subcase-required",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "current_authority"
+          }
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "idle_resources"
+          },
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "browser_observation.selection"
+          }
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "blocked",
+          "reason": "prerequisite-did-not-produce-observation",
+          "category": "dependency",
+          "evidence": {
+            "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+            "section": "browser_observation.selection"
+          }
+        }
+      }
+    }
+  ]
+}

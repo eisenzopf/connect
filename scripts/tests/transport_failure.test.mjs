@@ -27,3 +27,10 @@ test("curation performs no operation methods or recovery calls", () => {
     assert.deepEqual(value, { original_recorded_observation: { state: "interrupted", revision: 2 } });
     assert.equal(invoked, 0);
 });
+
+test("the verified native target-stop code remains visible without private operation fields", () => {
+    const value = operationFailure({ observation: { state: "failed", revision: 14,
+        key: { operationId: "private-original-operation" }, problem: { code: "native-target-stopped", message: "private-description" } } });
+    assert.deepEqual(value, { original_recorded_observation: { state: "failed", revision: 14, problem_code: "native-target-stopped" } });
+    assert.ok(!JSON.stringify(value).includes("private"));
+});

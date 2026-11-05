@@ -3,13 +3,16 @@ import {test} from 'node:test';
 import {browserMatrixSources,matrixSourceFrame} from '../lib/browser_matrix_sources.mjs';
 
 // Ownership/clock boundary fixtures only, not browser decoding or media proof.
-async function fixture(run) {
+async function fixture(run,{manualFrameRequest=true}={}) {
     const keys=['AudioContext','MediaStream','document','performance','setInterval','clearInterval','setTimeout','clearTimeout'];
     const originals=keys.map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]);
-    const intervals=new Set(),timeouts=new Set(),tracks=[],gains=[];let audio,clock=0;
+    const intervals=new Set(),timeouts=new Set(),tracks=[],gains=[],canvasCaptures=[];let audio,clock=0;
     class Track {
         readyState='live';requests=0;
-        constructor(kind){this.kind=kind;tracks.push(this);}
+        constructor(kind){
+            this.kind=kind;tracks.push(this);
+            if(kind==='video'&&!manualFrameRequest)this.requestFrame=undefined;
+        }
         clone(){return new Track(this.kind);}
         stop(){this.readyState='ended';}
         requestFrame(){this.requests++;}
@@ -31,7 +34,8 @@ async function fixture(run) {
     }
     const values={AudioContext:Audio,MediaStream:Stream,performance:{now:()=>clock},
         document:{createElement:()=>({getContext:()=>({fillRect(){}}),captureStream:fps=>{
-            assert.equal(fps,0);return new Stream([new Track('video')]);}})},
+            assert.ok(fps===0||!manualFrameRequest&&fps===30);
+            const track=new Track('video');canvasCaptures.push({fps,track});return new Stream([track]);}})},
         setInterval:fn=>{intervals.add(fn);return fn;},clearInterval:fn=>intervals.delete(fn),
         setTimeout:fn=>{timeouts.add(fn);return fn;},clearTimeout:fn=>timeouts.delete(fn)};
     for(const [key,value] of Object.entries(values))Object.defineProperty(globalThis,key,{configurable:true,value});
@@ -44,7 +48,7 @@ async function fixture(run) {
     }});
     try{
         owner=await browserMatrixSources();
-        await run({owner,route,connection,captures,tracks,gains,audio,
+        await run({owner,route,connection,captures,tracks,gains,audio,canvasCaptures,
             tick:(time,sourceTime)=>{clock=time;audio.currentTime=sourceTime;for(const fn of [...intervals])fn();},
             timers:()=>({intervals:intervals.size,timeouts:timeouts.size})});
     }finally{
@@ -62,6 +66,8 @@ test('matrix source pulses retain fixed 100ms duration and a fixed 62s endpoint'
 test('two device moves retain source masters, identity and the original programme clock',()=>fixture(async f=>{
     for(let index=0;index<6;index++)await f.owner.start({route:f.route(index),connection:f.connection('original-'+index),options:{}});
     const masters=f.owner.sources.map(source=>source.stream.getTracks()),programme=f.owner.beginProgramme();
+    assert.ok(f.owner.observation().sources.every(source=>source.canvas_capture_mode==='manual-frame-request'));
+    assert.deepEqual(f.canvasCaptures.map(value=>value.fps),Array(6).fill(0));
     assert.equal(programme.deadlineMs-programme.originMs,62000);assert.ok(Object.isFrozen(programme));
     assert.deepEqual(f.gains.slice(1),Array(5).fill(f.gains[0]));
     f.tick(programme.originMs,programme.audioOriginSeconds);
@@ -82,6 +88,37 @@ test('two device moves retain source masters, identity and the original programm
     await f.owner.close();assert.ok(f.tracks.every(track=>track.readyState==='ended'));assert.equal(f.audio.closed,1);
     assert.deepEqual(f.timers(),{intervals:0,timeouts:0});
 }));
+
+test('canvas tracks without requestFrame use automatic capture and retain the original source across moves',()=>fixture(async f=>{
+    for(let index=0;index<6;index++)await f.owner.start({route:f.route(index),connection:f.connection('original-'+index),options:{}});
+    assert.deepEqual(f.canvasCaptures.map(value=>value.fps),Array.from({length:6},()=>[0,30]).flat());
+    assert.ok(f.canvasCaptures.filter(value=>value.fps===0).every(value=>value.track.readyState==='ended'));
+    const masters=f.owner.sources.map(source=>source.stream.getTracks());
+    assert.ok(masters.flat().every(track=>track.readyState==='live'));
+    assert.ok(f.owner.observation().sources.every(source=>source.canvas_capture_mode==='automatic-canvas-capture-30fps'));
+    const programme=f.owner.beginProgramme();
+    assert.equal(programme.deadlineMs-programme.originMs,62000);
+    f.tick(programme.originMs,programme.audioOriginSeconds);
+    f.tick(programme.originMs,programme.audioOriginSeconds);
+    f.owner.retireConnection('original-0');
+    await f.owner.start({route:f.route(0),connection:f.connection('switch'),options:{}});
+    f.tick(programme.originMs+15000,programme.audioOriginSeconds+15);
+    f.owner.retireConnection('switch');
+    await f.owner.start({route:f.route(0),connection:f.connection('return'),options:{}});
+    f.tick(programme.originMs+40000,programme.audioOriginSeconds+40);
+    assert.strictEqual(f.owner.observation().programme,programme);
+    assert.deepEqual(f.owner.sources.map(source=>source.stream.getTracks()),masters);
+    assert.equal(f.canvasCaptures.length,12);
+    for(const source of f.owner.observation().sources){
+        assert.equal(source.programme_draws,3);assert.equal(source.last_programme_frame,1200);
+        assert.equal(source.skipped_programme_frames,1198);
+    }
+    f.tick(programme.deadlineMs,programme.audioOriginSeconds+40);
+    assert.equal(f.owner.observation().source_terminal,true);
+    assert.ok(f.tracks.every(track=>track.readyState==='ended'));
+    assert.ok(f.captures.every(capture=>capture.closed));
+    assert.deepEqual(f.timers(),{intervals:0,timeouts:0});
+},{manualFrameRequest:false}));
 test('a stalled source audio clock cannot extend the original monotonic terminal',()=>fixture(async f=>{
     for(let index=0;index<6;index++)await f.owner.start({route:f.route(index),connection:f.connection('original-'+index),options:{}});
     const programme=f.owner.beginProgramme();

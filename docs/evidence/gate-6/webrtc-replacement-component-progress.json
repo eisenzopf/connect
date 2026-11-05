@@ -75,7 +75,7 @@
       }
     }
   },
-  "full_matrix": "v190 interrupted by ARM VM root ENOSPC: 24 configurations returned evidence, 8 lack terminal evidence; 146 checks passed, 51 failed, 235 blocked after confirmed-exit interpretation; 0/32 qualified. v191 is next.",
+  "full_matrix": "v191 complete all32 attempts at4f2e26a1:219passed/82failed/131blocked requirements,0qualified. No current matrix process. Post-run fixture fixes verified in42Python+11Node component checks; runtime rerun pending.",
   "adapter": {
     "host": "owned Ubuntu24 ARM64 VM",
     "passed": 5,
@@ -107,5 +107,23 @@
     },
     "production_library_changed": false,
     "full_matrix_rerun": "pending next complete all-32 attempt"
+  },
+  "v191_followup": {
+    "scope": "Post-run fixture and diagnostic corrections only; actual matrix behavior not rerun yet",
+    "fixes": [
+      "Create missing mapped guest source parent before exclusive source-leaf preparation",
+      "Use actual canvas frame-request capability; automatic30fps capture when absent, preserving source clock/identity/ownership",
+      "Load only pinned Linux Firefox NSS bundle dependencies; preserve Mac importer, NSS version and normal TLS checks",
+      "Enable existing bounded native replacement phase events and terminal audio counters; keep SQL/per-packet/helper timing traces off",
+      "Keep known native-target-stopped compensation code in sanitized operation failure observations"
+    ],
+    "verification": {
+      "python_tests_passed": 42,
+      "node_tests_passed": 11,
+      "exact_original_fixture_negative_controls": 2
+    },
+    "runtime_passes_claimed": 0,
+    "production_Rust_changed": false,
+    "prepared_dependencies_changed": false
   }
 }

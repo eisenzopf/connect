@@ -7,6 +7,7 @@ import sys
 import tarfile
 import tempfile
 import tomllib
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -67,6 +68,49 @@ class MacLinuxPlumbing(unittest.TestCase):
         self.assertAlmostEqual(fixture.host_time(499.5),999.6)
         for when in (501,469,float("nan")):
             with self.assertRaises(ValueError):fixture.host_time(when)
+
+    def test_native_sources_create_mapped_parent_without_reusing_leaf_or_rewriting_manifest(self):
+        fixture=MacLinuxFixture(self.root,self.root/"owner",{})
+        fixture.remote_root=self.root/"guest";fixture.remote_root.mkdir(mode=0o700)
+        output=self.root/".local/matrix/cells/macos-arm64/remote/native-quic/EdDSA/private/media/av-sources"
+        target=fixture.mapped(output)
+        self.assertFalse(target.parent.exists())
+        manifest=b'{\n  "format":"synthetic-source-custody", "sources": []\n}\n'
+        preparation=[];owned=[]
+        def prepare(path):
+            preparation.append(path)
+            self.assertEqual(path,target)
+            self.assertTrue(path.parent.is_dir(),"Guest artifact parents must exist before source preparation")
+            path.mkdir(mode=0o700)
+            (path/"manifest.json").write_bytes(manifest)
+            return json.loads(manifest)
+        def call(command,**kwargs):
+            if command[:2]==["python3","-c"]:
+                return json.dumps({"total":20*1024**3,"used":1024**3,"free":19*1024**3}).encode()
+            self.assertEqual(command,["cat",target/"manifest.json"])
+            return (target/"manifest.json").read_bytes()
+        def owned_call(command,*,timeout):
+            self.assertEqual(command[:2],["python3","-c"]);self.assertEqual(timeout,1200)
+            self.assertEqual(command[3:],[fixture.remote_root,target]);owned.append(command)
+            # Execute only the generated preparation glue with an in-memory
+            # codec producer. No VM, subprocess, encoder or source workload.
+            with patch.dict(sys.modules,{"lib.transport_av":SimpleNamespace(prepare=prepare)}), \
+                    patch.object(sys,"argv",["-c",*map(str,command[3:])]), \
+                    patch.object(sys,"path",list(sys.path)),patch.object(sys,"stdout",io.StringIO()) as out:
+                exec(command[2],{"__name__":"__main__"})
+                return out.getvalue().encode()
+        fixture.call=call;fixture.owned_call=owned_call
+        self.assertEqual(fixture.prepare_sources(output),json.loads(manifest))
+        self.assertEqual(preparation,[target]);self.assertEqual(len(owned),1)
+        self.assertEqual((output/"manifest.json").read_bytes(),manifest)
+        self.assertEqual((target/"manifest.json").read_bytes(),manifest)
+        self.assertEqual(target.stat().st_mode&0o777,0o700)
+        # A second preparation must fail before replacing either original
+        # manifest; creating parents must not make the source leaf reusable.
+        with self.assertRaises(FileExistsError):
+            fixture.prepare_sources(output)
+        self.assertEqual((output/"manifest.json").read_bytes(),manifest)
+        self.assertEqual((target/"manifest.json").read_bytes(),manifest)
 
     def test_revoke_bridge_preserves_original_request_and_refuses_response_change(self):
         output=self.root/"probe";output.mkdir();request={"kind":"revoke","operation_id":"original-revoke"}

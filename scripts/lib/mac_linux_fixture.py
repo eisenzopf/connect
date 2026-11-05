@@ -306,7 +306,11 @@ print(json.dumps(result))"""
         code = """import json,sys;from pathlib import Path
 sys.path.insert(0,str(Path(sys.argv[1])/'scripts'))
 from lib.transport_av import prepare
-print(json.dumps(prepare(Path(sys.argv[2]))))"""
+target=Path(sys.argv[2])
+# The new guest root has source code, not the host's nested artifact parents.
+# Keep prepare's exclusive leaf creation: an earlier source run cannot be reused.
+target.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+print(json.dumps(prepare(target)))"""
         value = json.loads(self.owned_call(["python3", "-c", code, self.remote_root, target], timeout=1200))
         directory.mkdir(mode=0o700, parents=True, exist_ok=False)
         (directory / "manifest.json").write_text(json.dumps(value, indent=2) + "\n")

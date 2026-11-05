@@ -14,6 +14,22 @@ export function matrixSourceFrame(elapsedMs) {
     return {frame,pulse:ordinal>=0&&frame<pulses[ordinal]+3,ordinal:ordinal>=0?ordinal:null};
 }
 
+function originalCanvasCapture(canvas) {
+    const requested=canvas.captureStream(0),video=requested.getVideoTracks()[0];
+    if(typeof video?.requestFrame==='function')return {video,
+        requestFrame:()=>video.requestFrame(),mode:'manual-frame-request'};
+    // A zero-rate track cannot deliver later draws without requestFrame().
+    // Retire that probe before creating the bounded automatic capture. The
+    // source clock still draws only the current 30fps coordinate once.
+    requested.getTracks().forEach(track=>track.stop());
+    const automatic=canvas.captureStream(30),automaticVideo=automatic.getVideoTracks()[0];
+    if(!automaticVideo||automaticVideo.readyState!=='live'){
+        automatic.getTracks().forEach(track=>track.stop());
+        throw Error('Owned live canvas video track unavailable');
+    }
+    return {video:automaticVideo,requestFrame:()=>{},mode:'automatic-canvas-capture-30fps'};
+}
+
 /** Original source masters survive capture retirement during device roundtrips.
  * Each Connection owns track clones; the six masters and fixed clock stay here.
  * Generated input observations never qualify decoded receive quality. */
@@ -51,13 +67,14 @@ export async function browserMatrixSources() {
             if(!record){
                 if(programme)throw Error('All original sources must exist before the programme');
                 const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
+                const canvasCapture=originalCanvasCapture(canvas);
                 const paint=canvas.getContext('2d'),oscillator=audio.createOscillator(),gain=audio.createGain();
                 const destination=audio.createMediaStreamDestination();destination.channelCount=1;
                 oscillator.frequency.value=440+220*role;gain.gain.value=.05;
                 oscillator.connect(gain);gain.connect(destination);oscillator.start();
-                const video=canvas.captureStream(0).getVideoTracks()[0];
                 record={index:route.index,sourceId:role,draws:0,oscillator,gain,destination,canvas,
-                    stream:new MediaStream([...destination.stream.getAudioTracks(),video]),capture:undefined,timer:undefined,
+                    stream:new MediaStream([...destination.stream.getAudioTracks(),canvasCapture.video]),capture:undefined,timer:undefined,
+                    canvasCaptureMode:canvasCapture.mode,
                     attachments:[],programmeDraws:0,lastProgrammeFrame:null,skippedProgrammeFrames:0,
                     maximumDrawGapMs:0,lastDrawMs:null,pulseOrdinals:[],lastPulseOrdinal:null};
                 sources.push(record);
@@ -84,7 +101,7 @@ export async function browserMatrixSources() {
                     });
                     if(pulse){paint.fillStyle='white';paint.fillRect(0,0,640,360);}
                     if(pulse&&record.lastPulseOrdinal!==ordinal){record.lastPulseOrdinal=ordinal;record.pulseOrdinals.push(ordinal);}
-                    record.draws++;video.requestFrame();
+                    record.draws++;canvasCapture.requestFrame();
                 };
                 record.draw=draw;draw();record.timer=setInterval(draw,1000/30);
             }
@@ -134,6 +151,7 @@ export async function browserMatrixSources() {
         observation:()=>({real_time_audio_state:audio.state,programme:programme??null,source_terminal:terminal,cleanup_failures:cleanupFailures,
             source_audio_elapsed_ms:programme?(audio.currentTime-programme.audioOriginSeconds)*1000:null,
             sources:sources.map(source=>({index:source.index,source_id:source.sourceId,draws:source.draws,
+                canvas_capture_mode:source.canvasCaptureMode,
                 capture_started:Boolean(source.capture),programme_draws:source.programmeDraws,
                 skipped_programme_frames:source.skippedProgrammeFrames,maximum_draw_gap_ms:source.maximumDrawGapMs,
                 pulse_ordinals:[...source.pulseOrdinals],last_programme_frame:source.lastProgrammeFrame,

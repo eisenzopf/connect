@@ -3,7 +3,7 @@
 const states = new Set(["accepted", "preparing", "ready", "committing", "completed", "failed", "cancelled", "unknown", "interrupted"]);
 const codes = new Set(["authority-busy", "forbidden", "unavailable", "storage", "storage-error", "storage_error", "conflict",
     "operation_conflict", "deadline", "timeout", "not-ready", "not_ready", "unsupported", "unsupported_feature",
-    "invalid-request", "invalid_request", "payload-too-large", "request_too_large", "cancelled"]);
+    "invalid-request", "invalid_request", "payload-too-large", "request_too_large", "cancelled", "native-target-stopped"]);
 export function operationFailure(error) {
     const result = {};
     if (Number.isSafeInteger(error?.problem?.code) && error.problem.code >= 100 && error.problem.code <= 599)

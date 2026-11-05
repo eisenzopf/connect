@@ -56,6 +56,23 @@ class NamespaceBoundary(unittest.TestCase):
         self.assertIn("--property=NoNewPrivileges=yes", command)
         self.assertFalse(any("secret" in value or "API_KEY" in value or "VAPI" in value for value in command))
 
+    def test_original_commit_diagnostic_profile_is_forwarded_without_account_environment(self):
+        self.owner.created = True
+        base = "info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug"
+        selected = base + ",connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug"
+        command = self.owner.server_command("/owned/connect", "/private/server.toml", dict(self.env, RUST_LOG=selected))
+        self.assertIn("--setenv=RUST_LOG=" + selected, command)
+        self.assertFalse(any("secret" in value or "API_KEY" in value or "VAPI" in value for value in command))
+        self.assertNotIn("CONNECT_SDK_HELPER_TIMING", " ".join(command))
+
+    def test_commit_diagnostics_cannot_enable_unbounded_packet_or_sql_tracing(self):
+        self.owner.created = True
+        base = "info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug"
+        commit = base + ",connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug"
+        for suffix in [",connect_service::canonical_packet=trace", ",connect_store::sql_custody=trace", ",private-token=trace"]:
+            with self.subTest(suffix=suffix), self.assertRaises(AssertionError):
+                self.owner.server_command("/owned/connect", "/private/server.toml", dict(self.env, RUST_LOG=commit + suffix))
+
     def test_names_are_fresh_bounded_kernel_identifiers(self):
         second = NativeNamespace(self.root / ".local/another", self.root, {})
         self.assertNotEqual(self.owner.name, second.name)

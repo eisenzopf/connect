@@ -16,12 +16,31 @@ LINUX_CHROME_VERSION = '156.0.8078.4'
 NSS_VERSION = '3.130'
 
 
+def load_firefox_nss(runtime):
+    """Load NSS from the designated Firefox bundle, without host-library fallback."""
+    if sys.platform == 'darwin':
+        extension = 'dylib'
+        dependencies = ('libmozglue.dylib',)
+    elif sys.platform == 'linux':
+        extension = 'so'
+        # The pinned Linux ARM Firefox archive has no libmozglue.so. Its NSS
+        # libraries have no origin RPATH, so bind their dependencies and the
+        # private software-token module to this same bundle before NSS_Init.
+        dependencies = (
+            'libnspr4.so', 'libplc4.so', 'libplds4.so', 'libnssutil3.so',
+            'libmozsqlite3.so', 'libfreeblpriv3.so', 'libsoftokn3.so',
+        )
+    else:
+        raise ValueError('Use a verified macOS or Linux qualification profile')
+    owned = [ctypes.CDLL(str(runtime / name), mode=ctypes.RTLD_GLOBAL)
+             for name in dependencies]
+    return ctypes.CDLL(str(runtime / ('libnss3.' + extension))), owned
+
+
 def import_firefox_root(runtime, profile, certificate):
     """Use the bundled NSS public API; no app, Keychain or existing profile edit."""
     c = ctypes
-    extension = 'dylib' if sys.platform == 'darwin' else 'so'
-    c.CDLL(str(runtime / ('libmozglue.' + extension)), mode=c.RTLD_GLOBAL)
-    nss = c.CDLL(str(runtime / ('libnss3.' + extension)))
+    nss, bundled_libraries = load_firefox_nss(runtime)
 
     class Item(c.Structure):
         _fields_ = [('type', c.c_int), ('data', c.POINTER(c.c_ubyte)), ('len', c.c_uint)]
