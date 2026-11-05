@@ -1,0 +1,44 @@
+{
+  "format": "connect/webrtc-replacement-component-progress/1",
+  "task": "G6-058",
+  "source_commit": "632cf98f66a9ebc749dca7e59dec30ff639829e3",
+  "scope": "Component verification only. No full transport configuration or actual end-to-end WebRTC handoff qualified.",
+  "core": {
+    "host": "owned Ubuntu24 ARM64 VM",
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0,
+    "filter": "replacement_preroll_",
+    "binary": "rvoip_core-77d7a92a92c7b105",
+    "profile": "test, no debug information",
+    "log_sha256": "8260c79298155ffdb9cee200413f844b2404db1396d0fb3d344c4aafcd54613b",
+    "clauses": [
+      "old-route continuity and exact private sources",
+      "queued and active cancellation fences",
+      "unsubscribe and re-subscribe invalidation",
+      "source and target port generations",
+      "compound switch drains private writes",
+      "closing preparation preserves committed target"
+    ]
+  },
+  "sdk": {
+    "passed": 227,
+    "failed": 0,
+    "skipped": 0,
+    "host": "Mac Studio arm64",
+    "scope": "signed client fixtures and mocked RTC/decoder objects",
+    "log_sha256": "bc102e3b363c37facab64351c8697774f39ef1d154d5457c8daf872bdad0f6f0",
+    "files": {
+      "sdk/typescript/src/browser_webrtc_replacement.ts": "cdec7074e47bc4b62ddf077f933792cc5ecddfa61279e227295e86abc5d109f2",
+      "sdk/typescript/src/browser_webrtc_readiness.ts": "5b010f0aeb68b07fca60f16b2bc18bc2706da768f40d8661251bf409d8bb147b",
+      "sdk/tests/browser_webrtc_replacement.test.mjs": "8368737924213a98cdb8fcf78773dac986dec80d2228f6571734decad835b9f1",
+      "sdk/tests/browser_sdk_webrtc_replacement.test.mjs": "deac0192acaef3b111a0926f0037776ff35369a7802fe47e9521b5012ac311ac",
+      "sdk/tests/browser_webrtc_readiness.test.mjs": "bfd7e54bea0696b7975df42131bfe4941528e054c9c66a6ffeeb8a115c4a0f09",
+      "sdk/tests/browser_webrtc_signaling.test.mjs": "9424a88ba9b3304f72f2ba9865d6e0b6ef332683e6af7842219465e1cd72a6ed"
+    }
+  },
+  "firefox_smoke": "docs/evidence/gate-6/firefox-original-programme.json",
+  "linux_runtime": "docs/evidence/gate-6/browser-arm-runtime-v190.json",
+  "integrated_arm_server": "compiling; positive actual media verification pending",
+  "full_matrix": "latest completed v189, 0/32 qualified; next full run pending"
+}

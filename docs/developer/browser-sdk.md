@@ -47,14 +47,16 @@ start explicit capture on `connection` immediately, using clones of the original
 continuing source tracks, then await `completion` for the original movement
 receipt. Negotiated target parameters permit private readiness IO; they do not
 mean the move has completed. The shared preparation/completion deadline is not
-extended when capture begins. Lost responses are not resubmitted or reconnected;
-recover the original operation reference.
+extended when capture begins. Lost allocation or media responses require
+original-operation recovery; the SDK does not allocate another target or
+reconnect to start a new movement.
 
 The advanced `BrowserMediaPeer.beginReplacementConnection` exposes the same
 separation as `prepared` and `completed` promises. Completion checks the original
 record, scope, target Device/Endpoint, retained/retired Connections and negotiated
-stream identities before updating the local generation/revision. A failed or
-timed-out preparation retires its local codecs and capture owners. A completed
+stream identities before updating the local generation/revision. Before WebRTC
+readiness is submitted, failed preparation retires its local codecs and capture
+owners. A completed
 but stopped target is a refusal with its original receipt still recoverable.
 For WebRTC, preparation creates a second peer connection while the original
 keeps playing. The target starts its own capture and privately receives media;
@@ -63,8 +65,11 @@ decoder must be observed before the signed readiness phase. This phase retains
 the same original operation, nonce, generations and stream identities. Only
 confirmed movement completion transfers local ownership. Losing the readiness
 reply leaves the possibly committed target alive while the SDK reads the
-original operation. Existing candidate Connection adoption still refuses before
-submission.
+original operation. A temporary readiness refusal or uncertain delivery permits
+bounded replay of the exact frozen readiness observation only after a fresh
+status read proves the same preparation is still pending. Readiness replies are
+acknowledgements; the final receipt always comes from the original operation.
+Existing candidate Connection adoption still refuses before submission.
 
 The WebRTC implementation has passed TypeScript compilation and 227 focused
 SDK cases using signed client boundaries and mocked browser media objects.
