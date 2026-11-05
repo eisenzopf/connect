@@ -2413,7 +2413,8 @@ export class BrowserConversation {
 export class BrowserSession {
     readonly connections = {
         /** Target-owned physical preparation for an existing endpoint move.
-         * Start capture on the returned Connection while completion is pending.
+         * Start capture and render the returned Connection while completion is
+         * pending. WebRTC completion requires decoded replacement audio/video.
          * The completion promise observes the original move, never a new offer
          * root. Existing candidate-Connection moves require separate adoption. */
         prepareReplacement: async (
@@ -2457,8 +2458,6 @@ export class BrowserSession {
                 s = current(this.client),
                 peer = s.peer,
                 epoch = s.owner.status.physicalEpoch;
-            if (peer.controlTransport !== "webtransport")
-                throw new BrowserSdkError("unsupported", "not-submitted", key);
             const operation = new BrowserOperation(
                 this.client,
                 key,
@@ -2491,43 +2490,92 @@ export class BrowserSession {
             const reservation = {};
             s.pending.set(connectionId, reservation);
             let begun:
-                | ReturnType<BrowserMediaPeer["beginReplacementConnection"]>
+                | {
+                      prepared: Promise<
+                          BrowserMediaConnection | BrowserRtcConnection
+                      >;
+                      completed: Promise<
+                          import("./browser_replacement.js").BrowserReplacementReceipt
+                      >;
+                      readonly submissionAttempted: boolean;
+                      owner?: BrowserRtcConnection;
+                  }
                 | undefined;
             try {
-                begun = s
-                    .nativePeer()
-                    .beginReplacementConnection(
-                        {
-                            conversationId: this.conversationId,
-                            sessionId: this.id,
-                            connectionId,
-                            operationId: key.operationId,
-                            audio,
-                            video: video?.send,
-                            receiveVideo: video?.receive,
-                            nativeVideoFeedback: s.nativeVideoFeedback,
-                        },
-                        {
-                            recordId: snapshot.recordId!,
-                            operationId: key.operationId,
-                            conversationId: this.conversationId,
-                            sessionId: this.id,
-                            sourceConnectionId: key.scope.connectionId!,
-                            retainedConnectionId:
-                                context.retained_connection_id,
-                            targetConnectionId: connectionId,
-                            endpointId: context.target.id,
-                            deviceId: peer.deviceId,
-                        },
+                const low = {
+                    conversationId: this.conversationId,
+                    sessionId: this.id,
+                    connectionId,
+                    operationId: key.operationId,
+                    audio,
+                    video: video?.send,
+                    receiveVideo: video?.receive,
+                    nativeVideoFeedback: s.nativeVideoFeedback,
+                };
+                const root = {
+                    recordId: snapshot.recordId!,
+                    operationId: key.operationId,
+                    conversationId: this.conversationId,
+                    sessionId: this.id,
+                    sourceConnectionId: key.scope.connectionId!,
+                    retainedConnectionId: context.retained_connection_id,
+                    targetConnectionId: connectionId,
+                    endpointId: context.target.id,
+                    deviceId: peer.deviceId,
+                };
+                if (peer.controlTransport === "websocket") {
+                    const currentSnapshot = await s.snapshot(
+                        this.conversationId,
+                        budget.options() as BrowserSdkRequestOptions,
+                    );
+                    s.observe(peer, epoch);
+                    const participant =
+                        currentSnapshot.conversation.participants.find(
+                            (value) =>
+                                value.identityId === s.actor && value.active,
+                        );
+                    const appearance = participant
+                        ? currentSnapshot.appearances.get(
+                              this.id + ":" + participant.id,
+                          )
+                        : undefined;
+                    if (
+                        !participant ||
+                        !appearance ||
+                        appearance.state !== "present" ||
+                        appearance.membership_epoch !==
+                            participant.membershipEpoch
+                    )
+                        throw new BrowserSdkError(
+                            "application",
+                            "not-submitted",
+                            key,
+                        );
+                    begun = BrowserRtcConnection.beginReplacement(
+                        peer,
+                        low,
+                        participant.id,
+                        s.rtcConfiguration,
+                        root,
                         budget.options(),
                     );
+                } else {
+                    begun = s
+                        .nativePeer()
+                        .beginReplacementConnection(
+                            low,
+                            root,
+                            budget.options(),
+                        );
+                }
                 const local = {
                     cid: this.conversationId,
                     sid: this.id,
                     epoch,
                     ready: begun.prepared,
+                    rtc: begun.owner,
                     offerOperation: key.operationId,
-                    generation: 1,
+                    generation: 0,
                     audio,
                     video: video?.send,
                 };
@@ -2552,10 +2600,17 @@ export class BrowserSession {
                             return result;
                         })
                         .catch((error) => {
-                            if (s.local.get(connectionId) === local) {
-                                s.mediaPeer?.retireLocalConnection(
-                                    connectionId,
-                                );
+                            if (
+                                s.local.get(connectionId) === local &&
+                                !local.rtc?.replacementMayHaveCommitted
+                            ) {
+                                if (local.rtc) {
+                                    local.rtc.close();
+                                    s.cleanup.track(local.rtc.shutdown(), true);
+                                } else
+                                    s.mediaPeer?.retireLocalConnection(
+                                        connectionId,
+                                    );
                                 s.local.delete(connectionId);
                             }
                             throw translated(error, "uncertain", key);
@@ -2564,6 +2619,7 @@ export class BrowserSession {
                 void completion.catch(() => {});
                 const prepared = await begun.prepared;
                 prepared.onClose(() => {
+                    if (local.rtc) s.cleanup.track(local.rtc.shutdown(), true);
                     if (s.local.get(connectionId) === local)
                         s.local.delete(connectionId);
                 });

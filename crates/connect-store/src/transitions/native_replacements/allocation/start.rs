@@ -6,6 +6,7 @@ pub use audience::NativeReplacementAudienceCapture;
 mod commit;
 mod phase;
 mod projection;
+mod webrtc;
 use crate::{AuthorityGuardSet, AuthorityScope, PeerConnectionProjection};
 pub use commit::{
     NativeReplacementCommitAttempt, NativeReplacementCommitNotSubmitted,
@@ -14,6 +15,7 @@ pub use commit::{
 pub use phase::{
     NativeReplacementMediaAttempt, NativeReplacementMediaCapture, NativeReplacementMediaPhase,
 };
+pub use webrtc::NativeReplacementStartOrigin;
 
 pub struct NativeReplacementStartRead {
     source: NativeReplacementPreparationRead,

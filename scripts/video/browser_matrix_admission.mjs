@@ -79,6 +79,7 @@ try{
             else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_pipeline.mjs')file=path.join(root,'scripts/lib/browser_matrix_pipeline.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_audio_input.mjs')file=path.join(root,'scripts/lib/browser_matrix_audio_input.mjs');
+            else if(url.pathname==='/_matrix/browser_matrix_rtc_observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_rtc_observation.mjs');
             else if(url.pathname==='/_matrix/observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_observation.mjs');
             else if(url.pathname==='/video/audio_envelope.mjs')file=path.join(root,'scripts/video/audio_envelope.mjs');
             else if(url.pathname==='/_matrix/programme.mjs')file=path.join(root,'scripts/lib/browser_matrix_programme.mjs');
@@ -136,10 +137,24 @@ try{
         // the private browser log before the public SDK classifies it. No wire
         // bodies, credentials, retries or altered promise outcomes.
         const {BrowserMediaPeer}=await import('/sdk/browser_media.js');
+        const {BrowserRtcConnection}=await import('/sdk/browser_sdk_webrtc.js');
         const retiredPeers=new Set(),originalShutdown=BrowserMediaPeer.prototype.shutdown;
         BrowserMediaPeer.prototype.shutdown=function(...args){
             if(!retiredPeers.has(this)&&retiredPeers.size>=7)throw Error('Bounded original media owners');
             retiredPeers.add(this);return originalShutdown.apply(this,args);
+        };
+        const rtcRetirements=new Map(),originalRtcShutdown=BrowserRtcConnection.prototype.shutdown;
+        BrowserRtcConnection.prototype.shutdown=function(...args){
+            let receipt=rtcRetirements.get(this);
+            if(!receipt){
+                if(rtcRetirements.size>=10)throw Error('Bounded original RTC owners');
+                receipt={owner:this,pending:0,failed:false};rtcRetirements.set(this,receipt);
+            }
+            receipt.pending++;
+            let original;
+            try{original=originalRtcShutdown.apply(this,args);}catch(error){receipt.pending--;receipt.failed=true;throw error;}
+            void original.then(()=>{receipt.pending--;},()=>{receipt.pending--;receipt.failed=true;});
+            return original;
         };
         const beginReplacement=BrowserMediaPeer.prototype.beginReplacementConnection;
         BrowserMediaPeer.prototype.beginReplacementConnection=function(...args){
@@ -199,7 +214,8 @@ try{
             if(spec.stage==='quality'){
                 const {browserMatrixObservation}=await import('/_matrix/observation.mjs');
                 const {BrowserMediaRenderer}=await import('/sdk/browser_media_renderer.js');
-                observer=browserMatrixObservation(BrowserMediaRenderer,plan,BrowserMediaPeer);
+                observer=browserMatrixObservation(BrowserMediaRenderer,plan,selected==='webtransport'?BrowserMediaPeer:null,
+                    selected==='wss-webrtc'?BrowserRtcConnection:null);
             }
             state=await browserMatrixAdmission({actors,plan,state,selectedTransport:selected,journal:event=>window.matrixJournal(event),
                 startMedia:input=>sources.start(input),afterControl:async state=>{
@@ -219,7 +235,7 @@ try{
             if(spec.stage!=='admission'){
                 window.matrixPhase='four-move-programme';
                 await browserMatrixProgramme({state,actors,plan,sources,journal:event=>window.matrixJournal(event),
-                    keepalive,report:programmeReport,observer});
+                    keepalive,report:programmeReport,observer,selectedTransport:selected});
                 await keepalive.close();
             }
             window.matrixPhase='original-retirement';
@@ -232,17 +248,25 @@ try{
                 const renderer=await observer.close();await sources.close();
                 const source=sources.observation();
                 const peers=[...retiredPeers].map(peer=>peer.diagnostics);
+                const rtc=[...rtcRetirements.values()].map(receipt=>({original_shutdown_joined:receipt.pending===0&&!receipt.failed,
+                    ...receipt.owner.diagnostics}));
+                const transportOwnersJoined=selected==='webtransport'
+                    ?peers.length>=4&&peers.every(p=>p.activeBindings===0&&p.queuedPackets===0&&p.queuedBytes===0)
+                    :rtc.length>=6&&rtc.every(p=>p.original_shutdown_joined&&p.closed&&p.peerConnectionState==='closed'
+                        &&p.remoteTracks===0&&p.liveRemoteTracks===0&&!p.captureActive&&!p.renderActive);
                 const localOwnersJoined=renderer.joined&&source.source_terminal&&source.real_time_audio_state==='closed'
                     &&source.sources.every(s=>!s.original_master_tracks_live&&s.attachments.every(a=>a.retired))
-                    &&peers.length>=4&&peers.every(p=>p.activeBindings===0&&p.queuedPackets===0&&p.queuedBytes===0);
+                    &&transportOwnersJoined;
                 const completedMs=performance.now()-programmeReport.terminal_ms;
                 retirement.passed&&=completedMs<=5000&&localOwnersJoined;
                 retirement.allLocalOwnersElapsedMs=completedMs;
                 window.matrixPhase='ten-second-idle-observation';
                 const measured=await window.matrixResources('retired');
                 idleResources={passed:measured.passed&&localOwnersJoined,localOwnersJoined,renderer,
-                    media_peers:peers.length,active_bindings:peers.reduce((n,p)=>n+p.activeBindings,0),
-                    queued_packets:peers.reduce((n,p)=>n+p.queuedPackets,0),queued_bytes:peers.reduce((n,p)=>n+p.queuedBytes,0)};
+                    ...(selected==='webtransport'?{media_peers:peers.length,active_bindings:peers.reduce((n,p)=>n+p.activeBindings,0),
+                        queued_packets:peers.reduce((n,p)=>n+p.queuedPackets,0),queued_bytes:peers.reduce((n,p)=>n+p.queuedBytes,0)}:
+                        {rtc_owners:rtc,media_peers:rtc.length,active_bindings:rtc.filter(p=>!p.closed).length,
+                            queue_observation:'RTC has no SDK datagram queues; original RTCPeerConnections must be closed and shutdown joined'})};
             }
             return {passed:retirement.passed&&selection.passed&&currentAuthority.passed&&(spec.stage==='admission'||programmeReport.passed)&&(!observer||programmeReport.decoded_media.passed)&&(!idleResources||idleResources.passed),
                 ...(observer?{decoded_media:programmeReport.decoded_media,
@@ -259,7 +283,9 @@ try{
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
                 programme:programmeReport,keepalive:keepalive?.observation(),selection,current_authority:currentAuthority,original_client_closes:closes.map(value=>value.status)};
-        } finally {await keepalive?.close().catch(()=>{});await observer?.close();await sources?.close();BrowserMediaPeer.prototype.shutdown=originalShutdown;}
+        } finally {await keepalive?.close().catch(()=>{});await observer?.close();await sources?.close();
+            BrowserMediaPeer.prototype.shutdown=originalShutdown;BrowserMediaPeer.prototype.beginReplacementConnection=beginReplacement;
+            BrowserRtcConnection.prototype.shutdown=originalRtcShutdown;}
     },{spec,selected});
     Object.assign(report,result);report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
     stage='browser-retirement';

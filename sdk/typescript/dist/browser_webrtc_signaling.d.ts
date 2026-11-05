@@ -1,3 +1,5 @@
+import { type WebRtcDecodedReadiness } from "./browser_webrtc_replacement.js";
+import type { BrowserReplacementRoot } from "./browser_replacement.js";
 import { type WebRtcIceRestartReceipt } from "./browser_webrtc_restart.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { type JsonObject } from "./uctp_json.js";
@@ -11,6 +13,7 @@ export interface WebRtcSignalingOptions {
     participantId: string;
     capabilities: JsonObject;
     purpose?: "handoff-preparation";
+    replacement?: BrowserReplacementRoot;
     streams: ReadonlyArray<{
         id: string;
         kind: "audio" | "video" | "screen" | "data";
@@ -41,6 +44,7 @@ export declare class CanonicalWebRtcSignaling {
     private readonly scope;
     private readonly template;
     private readonly relayOnly;
+    private readonly replacement?;
     private attempted;
     private stopped;
     private failure?;
@@ -70,6 +74,9 @@ export declare class CanonicalWebRtcSignaling {
     private drain;
     /** One complete-ICE offer. No automatic retry, fallback, redial or message send. */
     offer(options?: RequestOptions): Promise<void>;
+    get replacementMayHaveCommitted(): boolean;
+    get replacementChallenge(): import("./browser_webrtc_replacement.js").WebRtcReplacementChallenge | undefined;
+    completeReplacement(evidence: WebRtcDecodedReadiness, options: RequestOptions): Promise<import("./browser_replacement.js").BrowserReplacementReceipt>;
     private gatheringCleanup?;
     private gather;
     private die;

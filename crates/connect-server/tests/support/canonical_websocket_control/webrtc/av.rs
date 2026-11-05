@@ -1,5 +1,7 @@
 //! Signed WSS/Store/Core audio+video. Explicit fixture/decoder lane; no camera.
 use super::*;
+#[path = "replacement_av.rs"]
+mod replacement_av;
 use rvoip_core::stream::MediaFrame;
 use rvoip_webrtc::media::{from_tracks, WebRtcMediaStream};
 use std::path::{Path, PathBuf};

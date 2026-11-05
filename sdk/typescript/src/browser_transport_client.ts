@@ -619,12 +619,23 @@ export class BrowserTransportClient {
             );
         const client = this.client,
             epoch = this.epoch;
-        const frames = await client.request(
-            "operation.get",
-            { operation_id: operationId },
-            scope,
-            options,
-        );
+        const frames = await (command === "connection.replace" &&
+        client.controlTransport === "websocket" &&
+        scope.cid &&
+        scope.sid &&
+        scope.connid
+            ? client.requestReplacementContinuation(
+                  "operation.get",
+                  { operation_id: operationId },
+                  scope,
+                  options,
+              )
+            : client.request(
+                  "operation.get",
+                  { operation_id: operationId },
+                  scope,
+                  options,
+              ));
         this.observed(client, epoch);
         const records = frames.filter((f) => f.type === "operation.updated"),
             frame = records[0];

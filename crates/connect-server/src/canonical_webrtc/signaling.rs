@@ -72,6 +72,12 @@ impl Host for SignalingHost {
             .map_err(|_| Error::new("busy", "Canonical WebRTC peers at capacity"))?;
         Ok(WebRtcPhysicalBinding::with_capacity(peer, physical, permit))
     }
+    fn start_replacement(
+        &self,
+        preparation: connect_service::canonical_webrtc::ReplacementPreparation,
+    ) -> Result<Arc<dyn connect_service::canonical_webrtc::ReplacementAttempt>> {
+        super::replacement::start(preparation, self.config.clone())
+    }
     fn start(&self, p: Preparation) -> Arc<dyn Attempt> {
         Arc::new(Owned(
             Peer::start_scoped(
@@ -115,33 +121,72 @@ impl Attempt for Owned {
 }
 
 fn unsupported() -> Error {
-    Error::new("unsupported-media-profile", "Canonical WebRTC logical streams and negotiated SDP must match the configured duplex audio/VP8 profile")
+    Error::new(
+        "unsupported-media-profile",
+        "Canonical WebRTC logical streams and negotiated SDP must match the configured duplex audio/VP8 profile",
+    )
 }
 
 /// Validate the original logical/SDP shape before observing an engine answer.
 /// SDP alone cannot opt an audio-only host into AV or admit extra Core media.
-fn validate_offer(offer: &serde_json::Value, av: bool) -> Result<()> {
+pub(super) fn validate_offer(offer: &serde_json::Value, av: bool) -> Result<()> {
     let streams = offer["streams_offered"]
         .as_array()
         .ok_or_else(unsupported)?;
-    if streams.len() != if av { 2 } else { 1 } {
+    let split =
+        av && matches!(
+            offer["replacement_preparation"]["profile"].as_str(),
+            Some(
+                "connect-replacement-preparation-v1"
+                    | "connect-replacement-media-v1"
+                    | "connect-replacement-ready-v1"
+            )
+        ) && streams.len() == 3;
+    if streams.len()
+        != if av {
+            if split {
+                3
+            } else {
+                2
+            }
+        } else {
+            1
+        }
+    {
         return Err(unsupported());
     }
     let mut kinds = std::collections::BTreeSet::new();
     let mut ids = std::collections::BTreeSet::new();
+    let mut audio = 0;
+    let mut video_directions = std::collections::BTreeSet::new();
     for stream in streams {
         let kind = stream["kind"].as_str().ok_or_else(unsupported)?;
         let id = stream["id"].as_str().ok_or_else(unsupported)?;
-        if id.is_empty()
-            || !ids.insert(id)
-            || !kinds.insert(kind)
-            || (kind != "audio" && !(av && matches!(kind, "video" | "screen")))
-            || stream["direction"] != "sendrecv"
-        {
+        let direction = stream["direction"].as_str().ok_or_else(unsupported)?;
+        if id.is_empty() || !ids.insert(id) {
             return Err(unsupported());
         }
+        match kind {
+            "audio" if direction == "sendrecv" => {
+                audio += 1;
+            }
+            "video" | "screen" if av => {
+                if (split && !matches!(direction, "sendonly" | "recvonly"))
+                    || (!split && direction != "sendrecv")
+                    || !video_directions.insert(direction)
+                {
+                    return Err(unsupported());
+                }
+            }
+            _ => return Err(unsupported()),
+        }
+        kinds.insert(kind);
     }
-    if !kinds.contains("audio") || (av && kinds.contains("video") == kinds.contains("screen")) {
+    if audio != 1
+        || !kinds.contains("audio")
+        || (av && kinds.contains("video") == kinds.contains("screen"))
+        || (split && video_directions != std::collections::BTreeSet::from(["sendonly", "recvonly"]))
+    {
         return Err(unsupported());
     }
     let physical = kinds
@@ -201,7 +246,7 @@ fn direction(
 
 /// The response carries original logical IDs and the exact actual negotiated PT,
 /// codec and local SDP. It grants no media readiness or implicit subscription.
-fn selected_answer(
+pub(super) fn selected_answer(
     participant: &str,
     offer: &serde_json::Value,
     answer: &str,
@@ -248,8 +293,14 @@ fn selected_answer(
             }
             _ => return Err(unsupported()),
         };
+        let direction = match stream["direction"].as_str() {
+            Some("sendonly") => "recvonly",
+            Some("recvonly") => "sendonly",
+            Some("sendrecv") => "sendrecv",
+            _ => return Err(unsupported()),
+        };
         selected.push(
-            json!({"id":stream["id"],"kind":stream["kind"],"direction":"sendrecv","codec":codec}),
+            json!({"id":stream["id"],"kind":stream["kind"],"direction":direction,"codec":codec}),
         );
     }
     let mut capabilities = json!({"audio_codecs":[{"name":codec.name,"params":{"sample_rate":codec.clock_rate_hz,"channels":codec.channels}}],"max_streams_per_connection":selected.len()});
@@ -296,6 +347,43 @@ mod screen_profile_tests {
             answer["streams_answered"][1]["codec"]["params"]["payload_type"],
             96
         );
+    }
+    #[test]
+    fn replacement_maps_two_directional_video_ids_to_one_actual_sdp_mline() {
+        let mut original = offer();
+        original["replacement_preparation"] = json!({"profile":"connect-replacement-media-v1","operation_record_id":"replacement-original"});
+        original["streams_offered"][1] = json!({"id":"new-camera-send","kind":"video","direction":"sendonly","codec_preferences":["vp8"]});
+        original["streams_offered"].as_array_mut().unwrap().push(json!({"id":"new-camera-receive","kind":"video","direction":"recvonly","codec_preferences":["vp8"]}));
+        validate_offer(&original, true).unwrap();
+        let answer = selected_answer(
+            "actor",
+            &original,
+            original["substrate_setup"]["sdp"].as_str().unwrap(),
+            true,
+        )
+        .unwrap();
+        let answer = serde_json::to_value(answer).unwrap();
+        assert_eq!(answer["streams_answered"][1]["id"], "new-camera-send");
+        assert_eq!(answer["streams_answered"][1]["direction"], "recvonly");
+        assert_eq!(answer["streams_answered"][2]["id"], "new-camera-receive");
+        assert_eq!(answer["streams_answered"][2]["direction"], "sendonly");
+        assert_eq!(answer["capabilities"]["max_streams_per_connection"], 3);
+        assert_eq!(
+            answer["streams_answered"][1]["codec"],
+            answer["streams_answered"][2]["codec"]
+        );
+        let mut duplicate = original.clone();
+        duplicate["streams_offered"][2]["direction"] = json!("sendonly");
+        assert!(validate_offer(&duplicate, true).is_err());
+        let mut unscoped = original.clone();
+        unscoped
+            .as_object_mut()
+            .unwrap()
+            .remove("replacement_preparation");
+        assert!(validate_offer(&unscoped, true).is_err());
+        let mut crossed = original;
+        crossed["streams_offered"][2]["kind"] = json!("screen");
+        assert!(validate_offer(&crossed, true).is_err());
     }
     #[test]
     fn screen_does_not_admit_camera_plus_screen_or_an_audio_only_host() {

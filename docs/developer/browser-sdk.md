@@ -36,7 +36,7 @@ expired local authentication and propagates current server authorization
 refusals. Cancellation or a response timeout retires the original physical
 peer through the existing control owner's cleanup rules.
 
-For an endpoint-targeted WebTransport device move, persist the controller's
+For an endpoint-targeted WebTransport or WSS/WebRTC device move, persist the controller's
 original `connection.replace` reference and its video mappings first. On the
 target Device, `session.connections.prepareReplacement({operation: move.reference,
 audio: targetAudioId, video: {send: targetVideoId, receive: targetVideoReceiverId}},
@@ -56,11 +56,20 @@ record, scope, target Device/Endpoint, retained/retired Connections and negotiat
 stream identities before updating the local generation/revision. A failed or
 timed-out preparation retires its local codecs and capture owners. A completed
 but stopped target is a refusal with its original receipt still recoverable.
-The typed physical target path currently rejects WebRTC and existing candidate
-Connection adoption before submission; their production integration remains
-open. Eleven new local state-machine and signed SDK boundary cases cover this
-increment. Actual browser movement and complete matrix qualification have not
-yet run against it.
+For WebRTC, preparation creates a second peer connection while the original
+keeps playing. The target starts its own capture and privately receives media;
+usable decoded audio and, when receiving video, a decoded frame from the fresh
+decoder must be observed before the signed readiness phase. This phase retains
+the same original operation, nonce, generations and stream identities. Only
+confirmed movement completion transfers local ownership. Losing the readiness
+reply leaves the possibly committed target alive while the SDK reads the
+original operation. Existing candidate Connection adoption still refuses before
+submission.
+
+The WebRTC implementation has passed TypeScript compilation and 210 focused
+SDK cases using signed client boundaries and mocked browser media objects.
+These checks do not qualify real WebRTC media or the transport matrix. The
+integrated local ARM Linux handoff regression and full matrix remain pending.
 
 ```ts
 import {

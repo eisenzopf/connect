@@ -29,7 +29,7 @@ export function browserMatrixKeepalive(actors) {
 /** Real six-source, two-Session programme and four original device moves.
  * Independent decoded receive/capture/expiry/idle proof is still required by
  * the full cell verifier; source draws and completed moves cannot stand in. */
-export async function browserMatrixProgramme({state,actors,plan,sources,journal,keepalive,report,observer}) {
+export async function browserMatrixProgramme({state,actors,plan,sources,journal,keepalive,report,observer,selectedTransport}) {
     check(plan.programmeMs===62000&&plan.moves.length===4,'Approved fixed programme and four moves required');
     let decoderStartupFailure;
     if(observer){try{await observer.initial(state,{timeoutMs:8000});}
@@ -46,7 +46,7 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
     const current=plan.routes.map(route=>{
         const peers=plan.routes.filter(other=>other.session===route.session),index=peers.indexOf(route);
         return {connection:state.connections[route.index],role:route.role,video:route.video,
-            receiveVideo:peers[(index+peers.length-1)%peers.length].video};
+            receiveVideo:selectedTransport==='wss-webrtc'?route.video:peers[(index+peers.length-1)%peers.length].video};
     });
     async function move(intent){
         const route=plan.routes[intent.source],before=current[intent.source],target=actors[intent.targetRole];

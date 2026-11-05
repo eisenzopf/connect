@@ -19,6 +19,7 @@ pub use addressing::{
     Addressing as CanonicalWebRtcAddressing, IcePolicy as CanonicalIcePolicy,
     IceService as CanonicalIceService,
 };
+mod replacement;
 mod signaling;
 pub use signaling::SignalingHost;
 struct ReadContext {
@@ -142,7 +143,7 @@ impl Peer {
                 State::Closed(result) => {
                     return result.and_then(|_| {
                         Err(Error::new("closed", "WebRTC peer closed before answer"))
-                    })
+                    });
                 }
                 _ => {}
             }
@@ -168,7 +169,7 @@ impl Peer {
                 State::Closed(result) => {
                     return result.and_then(|_| {
                         Err(Error::new("closed", "WebRTC peer closed before connection"))
-                    })
+                    });
                 }
                 _ => {}
             }
@@ -287,7 +288,7 @@ fn original_sdp(
                 return Err(Error::new(
                     "unsupported-media-profile",
                     "WebRTC SDP media kind is unsupported",
-                ))
+                ));
             }
         };
         *actual.entry(kind).or_default() += 1;

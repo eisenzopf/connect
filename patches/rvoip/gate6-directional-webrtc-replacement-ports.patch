@@ -1,0 +1,225 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -446,14 +446,41 @@
+         _ => Err(StreamControlError::Unsupported),
+     }
+ }
+-fn validate_rtp_slots(media: impl IntoIterator<Item = Medium>) -> ControlResult<()> {
+-    let mut kinds = std::collections::BTreeSet::new();
+-    for medium in media {
+-        if !kinds.insert(rtp_medium(medium)?) {
+-            return Err(StreamControlError::Unsupported);
++fn validate_rtp_slots(
++    media: impl IntoIterator<Item = (Medium, StreamDirection)>,
++) -> ControlResult<()> {
++    // A replacement may name its video publication and receive selection
++    // separately while retaining one physical sendrecv video m-line. Each
++    // physical direction still has exactly one logical owner. Audio remains
++    // one duplex-or-directional logical port, as in the ordinary profile.
++    let mut slots = std::collections::BTreeMap::new();
++    for (medium, direction) in media {
++        let physical = rtp_medium(medium)?;
++        let receive = direction != StreamDirection::Send;
++        let send = direction != StreamDirection::Receive;
++        match slots.entry(physical) {
++            std::collections::btree_map::Entry::Vacant(slot) => {
++                slot.insert((medium, receive, send));
++            }
++            std::collections::btree_map::Entry::Occupied(mut slot) => {
++                let (kind, received, sent) = *slot.get();
++                if physical == Medium::Audio
++                    || kind != medium
++                    || received && receive
++                    || sent && send
++                {
++                    return Err(StreamControlError::Unsupported);
++                }
++                slot.insert((medium, received || receive, sent || send));
++            }
+         }
+     }
+     Ok(())
++}
++fn receives_rtp(binding: &ReadyMediaBinding, physical: Medium) -> bool {
++    binding.source_ready
++        && binding.negotiated.requested.direction != StreamDirection::Send
++        && rtp_medium(binding.negotiated.requested.medium).ok() == Some(physical)
+ }
+ async fn shape(
+     peer: &RvoipPeerConnection,
+@@ -568,14 +595,13 @@
+         deadline: tokio::time::Instant,
+         cancel: CancellationToken,
+     ) -> ControlResult<()> {
+-        if ports.is_empty() || ports.len() > 2 {
++        if ports.is_empty() || ports.len() > 3 {
+             return Err(StreamControlError::Unsupported);
+         }
+-        validate_rtp_slots(
+-            ports
+-                .iter()
+-                .map(|prepared| prepared.port.binding().negotiated.requested.medium),
+-        )?;
++        validate_rtp_slots(ports.iter().map(|prepared| {
++            let request = &prepared.port.binding().negotiated.requested;
++            (request.medium, request.direction)
++        }))?;
+         for prepared in &ports {
+             self.prepare_port(prepared, deadline, &cancel).await?;
+         }
+@@ -752,7 +778,7 @@
+     }
+     for entry in ports.iter() {
+         let io = entry.value();
+-        if rtp_medium(io.binding.negotiated.requested.medium).ok() != Some(source.medium)
++        if !receives_rtp(&io.binding, source.medium)
+             || !io.health.ready.load(Ordering::Acquire)
+             || io.health.stop.is_cancelled()
+             || io
+@@ -1380,14 +1406,140 @@
+         let logical = Medium::Screen;
+         assert_eq!(rtp_medium(logical).unwrap(), Medium::Video);
+         assert_eq!(logical, Medium::Screen);
+-        assert!(validate_rtp_slots([Medium::Audio, logical]).is_ok());
+-        assert!(validate_rtp_slots([Medium::Audio, Medium::Video]).is_ok());
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, StreamDirection::Both),
++                (logical, StreamDirection::Both)
++            ])
++            .is_ok()
++        );
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, StreamDirection::Both),
++                (Medium::Video, StreamDirection::Both)
++            ])
++            .is_ok()
++        );
+     }
+     #[test]
+     fn a_single_video_rtp_slot_cannot_admit_camera_and_screen_or_data() {
+-        assert!(validate_rtp_slots([Medium::Video, Medium::Screen]).is_err());
+-        assert!(validate_rtp_slots([Medium::Screen, Medium::Screen]).is_err());
+-        assert!(validate_rtp_slots([Medium::Audio, Medium::Data]).is_err());
++        assert!(
++            validate_rtp_slots([
++                (Medium::Video, StreamDirection::Both),
++                (Medium::Screen, StreamDirection::Both)
++            ])
++            .is_err()
++        );
++        assert!(
++            validate_rtp_slots([
++                (Medium::Screen, StreamDirection::Both),
++                (Medium::Screen, StreamDirection::Both)
++            ])
++            .is_err()
++        );
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, StreamDirection::Both),
++                (Medium::Data, StreamDirection::Both)
++            ])
++            .is_err()
++        );
+         assert!(rtp_medium(Medium::Data).is_err());
+     }
+-}
++
++    #[test]
++    fn replacement_video_halves_share_one_physical_slot_without_duplicate_direction() {
++        use StreamDirection::{Both, Receive, Send};
++        for (first, second) in [(Receive, Send), (Send, Receive)] {
++            assert!(
++                validate_rtp_slots([
++                    (Medium::Audio, Both),
++                    (Medium::Video, first),
++                    (Medium::Video, second),
++                ])
++                .is_ok()
++            );
++        }
++        for first in [Receive, Send, Both] {
++            for second in [Receive, Send, Both] {
++                let result = validate_rtp_slots([
++                    (Medium::Audio, Both),
++                    (Medium::Video, first),
++                    (Medium::Video, second),
++                ]);
++                let complementary = matches!((first, second), (Receive, Send) | (Send, Receive));
++                assert_eq!(result.is_ok(), complementary, "{first:?} and {second:?}");
++            }
++        }
++    }
++
++    #[test]
++    fn directional_profile_does_not_alias_camera_screen_or_split_audio() {
++        use StreamDirection::{Both, Receive, Send};
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, Both),
++                (Medium::Video, Receive),
++                (Medium::Screen, Send),
++            ])
++            .is_err()
++        );
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, Both),
++                (Medium::Screen, Receive),
++                (Medium::Video, Send),
++            ])
++            .is_err()
++        );
++        assert!(validate_rtp_slots([(Medium::Audio, Receive), (Medium::Audio, Send),]).is_err());
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, Both),
++                (Medium::Video, Receive),
++                (Medium::Video, Send),
++                (Medium::Video, Send),
++            ])
++            .is_err()
++        );
++    }
++
++    #[test]
++    fn received_rtp_is_never_fanned_into_the_receive_selection_egress_queue() {
++        let binding = |direction, medium| ReadyMediaBinding {
++            negotiated: NegotiatedStream {
++                requested: DesiredStream {
++                    logical_id: StreamId::new(),
++                    medium,
++                    direction,
++                },
++                format: MediaFormat::Encoded {
++                    name: "vp8".into(),
++                    clock_rate_hz: 90000,
++                    channels: 0,
++                    fmtp: None,
++                },
++            },
++            transport_id: StreamId::new(),
++            stream_local_id: 1,
++            generation: 1,
++            connection_generation: 1,
++            source_ready: direction != StreamDirection::Send,
++            sink_ready: direction != StreamDirection::Receive,
++        };
++        let publication = binding(StreamDirection::Receive, Medium::Video);
++        let receiver = binding(StreamDirection::Send, Medium::Video);
++        let duplex = binding(StreamDirection::Both, Medium::Video);
++        assert!(receives_rtp(&publication, Medium::Video));
++        assert!(!receives_rtp(&receiver, Medium::Video));
++        assert!(receives_rtp(&duplex, Medium::Video));
++        assert!(!receives_rtp(&publication, Medium::Audio));
++        let mut unavailable = publication.clone();
++        unavailable.source_ready = false;
++        assert!(!receives_rtp(&unavailable, Medium::Video));
++        assert!(receives_rtp(
++            &binding(StreamDirection::Receive, Medium::Screen),
++            Medium::Video
++        ));
++    }
++}

@@ -105,6 +105,7 @@ export class BrowserClient {
     private reader?: ReadableStreamDefaultReader<Uint8Array>;
     private writer?: WritableStreamDefaultWriter<Uint8Array>;
     private readonly pending = new Map<string, Pending>();
+    private readonly abandonedReplacementReplies = new Map<string, number>();
     private readonly seen = new Map<string, number>();
     private events: Envelope[] = [];
     private eventBytes = 0;
@@ -386,6 +387,7 @@ export class BrowserClient {
         work: Promise<T>,
         until: number,
         signal?: AbortSignal,
+        retirePhysical = true,
     ): Promise<T> {
         return new Promise((resolve, reject) => {
             const abort = () => {
@@ -394,7 +396,7 @@ export class BrowserClient {
                     "cancelled",
                     "Browser request cancelled; retain its logical operation ID",
                 );
-                this.close(e);
+                if (retirePhysical) this.close(e);
                 reject(e);
             };
             const timer = setTimeout(
@@ -404,7 +406,7 @@ export class BrowserClient {
                         "timeout",
                         "Browser request deadline; retain its logical operation ID",
                     );
-                    this.close(e);
+                    if (retirePhysical) this.close(e);
                     reject(e);
                 },
                 Math.max(0, until - performance.now()),
@@ -447,6 +449,12 @@ export class BrowserClient {
                         "Server replay or replay window exhausted",
                     );
                 this.seen.set(frame.id, canonicalTimestamp(frame.ts));
+                this.expireReplacementReplies(now);
+                if (
+                    typeof frame.in_reply_to === "string" &&
+                    this.abandonedReplacementReplies.has(frame.in_reply_to)
+                )
+                    continue;
                 const p =
                     typeof frame.in_reply_to === "string"
                         ? this.pending.get(frame.in_reply_to)
@@ -529,6 +537,67 @@ export class BrowserClient {
     ): Promise<Envelope[]> {
         return this.begin(type, payload, scope, options).response;
     }
+    /** Internal original-replacement continuation. A bounded receipt wait may
+     * expire while its media remains usable. Late replies stay tied to the
+     * abandoned request ID; writes and actual physical failures still retire. */
+    requestReplacementContinuation(
+        type: "connection.offer" | "operation.get",
+        payload: JsonObject,
+        scope: Scope,
+        options: RequestOptions & { terminalType?: "connection.answer" },
+    ): Promise<Envelope[]> {
+        const marker = payload.replacement_preparation;
+        if (
+            this.controlTransport !== "websocket" ||
+            ![scope.cid, scope.sid, scope.connid].every(
+                (value) => typeof value === "string" && identifier(value),
+            ) ||
+            (type === "connection.offer"
+                ? !jsonObject(marker) ||
+                  ![
+                      "connect-replacement-preparation-v1",
+                      "connect-replacement-media-v1",
+                      "connect-replacement-ready-v1",
+                  ].includes(String(marker.profile)) ||
+                  typeof marker.operation_record_id !== "string" ||
+                  !identifier(marker.operation_record_id) ||
+                  (marker.profile === "connect-replacement-ready-v1" &&
+                      !jsonObject(marker.readiness)) ||
+                  (options.terminalType !== undefined &&
+                      marker.profile !== "connect-replacement-media-v1") ||
+                  typeof scope.operation_id !== "string" ||
+                  !identifier(scope.operation_id)
+                : type !== "operation.get" ||
+                  typeof payload.operation_id !== "string" ||
+                  !identifier(payload.operation_id))
+        )
+            throw new ConnectError(
+                "invalid-request",
+                "Use a scoped original replacement continuation",
+            );
+        this.expireReplacementReplies(Date.now());
+        if (this.abandonedReplacementReplies.size + this.pending.size >= 64)
+            throw new ConnectError(
+                "backpressure",
+                "Original replacement recovery window exhausted",
+            );
+        const frame = envelope(type, payload, scope);
+        return this.exchange(
+            frame,
+            true,
+            (value) =>
+                value.type === "ack" ||
+                value.type === "error" ||
+                value.type === options.terminalType,
+            options,
+            false,
+            true,
+        );
+    }
+    private expireReplacementReplies(now: number): void {
+        for (const [id, until] of this.abandonedReplacementReplies)
+            if (until <= now) this.abandonedReplacementReplies.delete(id);
+    }
     /** Fresh request ID binds the server's native media parameter exchange. */
     begin(
         type: string,
@@ -600,6 +669,7 @@ export class BrowserClient {
         terminal: Pending["terminal"],
         options: RequestOptions,
         validateCanonical = false,
+        retainMediaOnReplyTimeout = false,
     ): Promise<Envelope[]> {
         this.check();
         const until = performance.now() + this.timeout(options.timeoutMs);
@@ -619,7 +689,13 @@ export class BrowserClient {
             reject = no;
         });
         // Attach before asynchronous signing/writing: close can reject at any await.
-        const result = this.bound(reply, until, options.signal);
+        const result = this.bound(
+            reply,
+            until,
+            options.signal,
+            !retainMediaOnReplyTimeout,
+        );
+        let received = false;
         void result.catch(() => {});
         this.pending.set(frame.id, {
             frames: [],
@@ -632,6 +708,7 @@ export class BrowserClient {
             const write = this.write(frame, signed);
             await this.bound(write, until, options.signal);
             const frames = await result;
+            received = true;
             if (validateCanonical) {
                 try {
                     for (const frame of frames) validateBrowserCanonical(frame);
@@ -682,6 +759,11 @@ export class BrowserClient {
             throw error;
         } finally {
             this.pending.delete(frame.id);
+            if (retainMediaOnReplyTimeout && !received && !this.closed)
+                this.abandonedReplacementReplies.set(
+                    frame.id,
+                    Date.now() + 60000,
+                );
             void result.catch(() => {});
         }
     }
@@ -779,6 +861,7 @@ export class BrowserClient {
                 : new ConnectError("transport", "Browser client failed");
         for (const p of this.pending.values()) p.fail(this.failure);
         this.pending.clear();
+        this.abandonedReplacementReplies.clear();
         this.events = [];
         this.eventBytes = 0;
         this.listeners.clear();

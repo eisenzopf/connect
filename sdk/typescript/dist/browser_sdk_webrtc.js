@@ -1,3 +1,5 @@
+import { observeWebRtcDecodedReadiness } from "./browser_webrtc_readiness.js";
+import { replacementRoot, } from "./browser_replacement.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import { BrowserTasks } from "./browser_tasks.js";
 import { CanonicalWebRtcSignaling } from "./browser_webrtc_signaling.js";
@@ -31,7 +33,7 @@ export class BrowserRtcConnection {
     captureOwner;
     renderOwner;
     peer;
-    constructor(client, input, participantId, configuration) {
+    constructor(client, input, participantId, configuration, replacement) {
         this.client = client;
         this.input = input;
         const video = input.video ?? input.screen;
@@ -43,7 +45,12 @@ export class BrowserRtcConnection {
             typeof RTCRtpSender.getCapabilities !== "function" ||
             !input.audio ||
             (input.screen !== undefined && input.video !== undefined) ||
-            input.data?.length)
+            input.data?.length ||
+            (input.receiveVideo !== undefined &&
+                (!input.video ||
+                    input.screen ||
+                    input.receiveVideo === input.video ||
+                    input.receiveVideo === input.audio)))
             throw unsupported();
         const ice = browserIceConfiguration(configuration.iceServers, configuration.iceTransportPolicy);
         this.peer = new RTCPeerConnection(ice);
@@ -95,7 +102,15 @@ export class BrowserRtcConnection {
                     this.close(new ConnectError("protocol", "Remote track exceeds original Connection scope"));
                     return;
                 }
-                this.remote.set(selected[0], event.track);
+                const receiveId = selected[0] === input.audio
+                    ? selected[0]
+                    : (input.receiveVideo ?? selected[0]);
+                if (this.remote.has(receiveId) &&
+                    this.remote.get(receiveId) !== event.track) {
+                    this.close(new ConnectError("protocol", "Remote track changed the original receive port"));
+                    return;
+                }
+                this.remote.set(receiveId, event.track);
             };
             this.signaling = new CanonicalWebRtcSignaling(client, this.peer, {
                 conversationId: input.conversationId,
@@ -104,6 +119,7 @@ export class BrowserRtcConnection {
                 operationId: input.operationId,
                 expectedRevision: 0,
                 purpose: input.purpose,
+                replacement,
                 participantId,
                 capabilities: {
                     audio_codecs: [
@@ -120,7 +136,11 @@ export class BrowserRtcConnection {
                             },
                         ]
                         : [],
-                    max_streams_per_connection: video ? 2 : 1,
+                    max_streams_per_connection: video
+                        ? input.receiveVideo
+                            ? 3
+                            : 2
+                        : 1,
                     identity_assurance_offered: "identified",
                 },
                 streams: [
@@ -137,7 +157,19 @@ export class BrowserRtcConnection {
                                 kind: input.screen
                                     ? "screen"
                                     : "video",
-                                direction: "sendrecv",
+                                direction: input.receiveVideo
+                                    ? "sendonly"
+                                    : "sendrecv",
+                                codec_preferences: ["vp8"],
+                            },
+                        ]
+                        : []),
+                    ...(input.receiveVideo
+                        ? [
+                            {
+                                id: input.receiveVideo,
+                                kind: "video",
+                                direction: "recvonly",
                                 codec_preferences: ["vp8"],
                             },
                         ]
@@ -197,6 +229,89 @@ export class BrowserRtcConnection {
                 return (owner.signaling?.savedOffer?.submissionAttempted ?? false);
             },
         };
+    }
+    /** Prepare a second physical without retiring the source. Completion needs
+     * this fresh decoder's evidence and the original committed movement receipt. */
+    static beginReplacement(client, input, participantId, configuration, original, options) {
+        const root = replacementRoot(original);
+        if (input.purpose !== undefined ||
+            !input.audio ||
+            input.screen ||
+            input.data?.length ||
+            input.operationId !== root.operationId ||
+            input.conversationId !== root.conversationId ||
+            input.sessionId !== root.sessionId ||
+            input.connectionId !== root.targetConnectionId ||
+            (input.video !== undefined) !== (input.receiveVideo !== undefined))
+            throw new ConnectError("invalid-request", "Use the original target and directional replacement Video ports");
+        const budget = new BrowserDeadline(timeout(options));
+        if (options.signal?.aborted)
+            throw new ConnectError("cancelled", "Replacement cancelled before physical preparation");
+        const owner = new BrowserRtcConnection(client, { ...input }, participantId, configuration, root);
+        const signal = AbortSignal.any([
+            owner.stop.signal,
+            ...(options.signal ? [options.signal] : []),
+        ]);
+        const prepared = owner.tasks.track(owner
+            .signaling.offer({ timeoutMs: budget.remaining(), signal })
+            .then(async () => {
+            owner.check();
+            validateBrowserAnswer(owner.peer.remoteDescription?.sdp ?? "", !!input.video);
+            await owner.connected(budget, signal);
+            owner.check();
+            return owner;
+        })
+            .catch((error) => {
+            owner.close(error instanceof Error ? error : closed());
+            throw error;
+        }));
+        const completed = owner.tasks.track(prepared
+            .then(async () => {
+            const audio = owner.remote.get(input.audio);
+            const video = input.receiveVideo
+                ? owner.remote.get(input.receiveVideo)
+                : undefined;
+            if (!audio || (input.receiveVideo && !video))
+                throw unsupported();
+            const evidence = await observeWebRtcDecodedReadiness(owner.peer, { id: input.audio, track: audio }, video
+                ? { id: input.receiveVideo, track: video }
+                : undefined, budget, signal, (work, cleanup) => owner.tasks.track(work, cleanup));
+            owner.check();
+            return owner.signaling.completeReplacement(evidence, {
+                timeoutMs: budget.remaining(),
+                signal,
+            });
+        })
+            .catch((error) => {
+            // Once ready was submitted, a missing reply can mean the original
+            // move committed. Keep its target alive for original-root recovery.
+            if (!owner.replacementMayHaveCommitted)
+                owner.close(error instanceof Error ? error : closed());
+            throw error;
+        }));
+        void prepared.catch(() => { });
+        void completed.catch(() => { });
+        return {
+            prepared,
+            completed,
+            owner,
+            get submissionAttempted() {
+                return (owner.signaling?.savedOffer?.submissionAttempted ?? false);
+            },
+        };
+    }
+    get diagnostics() {
+        return Object.freeze({
+            closed: this.stopped,
+            peerConnectionState: this.peer.connectionState,
+            remoteTracks: this.remote.size,
+            liveRemoteTracks: [...this.remote.values()].filter((track) => track.readyState === "live").length,
+            captureActive: !!this.captureOwner && !this.captureOwner.closed,
+            renderActive: !!this.renderOwner && !this.renderOwner.diagnostics.closed,
+        });
+    }
+    get replacementMayHaveCommitted() {
+        return this.signaling?.replacementMayHaveCommitted ?? false;
     }
     check() {
         if (this.stopped || this.client.closed)
@@ -589,7 +704,10 @@ export class BrowserRtcConnection {
                 await playAudio(budget);
             }
             for (const [id, canvas] of Object.entries(video)) {
-                if (id !== (this.input.video ?? this.input.screen))
+                if (id !==
+                    (this.input.receiveVideo ??
+                        this.input.video ??
+                        this.input.screen))
                     throw new ConnectError("invalid-request", "Render this Connection's receive Stream");
                 const track = this.remote.get(id);
                 if (!track || track.readyState !== "live")

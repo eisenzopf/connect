@@ -40,6 +40,29 @@ pub struct Preparation {
     pub binding: Arc<WebRtcPhysicalBinding>,
     pub deadline: Instant,
 }
+/// Read-only current attribution for one prepared replacement. The service
+/// supplies this from its original Store attempt, never from caller SDP claims.
+pub struct ReplacementOffer {
+    pub participant_id: String,
+    pub offer: serde_json::Value,
+}
+pub trait ReplacementSource: Send + Sync {
+    fn offer(&self) -> Result<ReplacementOffer>;
+    fn current(&self) -> Result<()>;
+    fn release_invocation(&self);
+}
+pub struct ReplacementPreparation {
+    pub source: Arc<dyn ReplacementSource>,
+    pub physical: CancellationToken,
+    pub binding: Arc<WebRtcPhysicalBinding>,
+    pub deadline: Instant,
+}
+#[async_trait]
+pub trait ReplacementAttempt: Send + Sync {
+    async fn answer(&self, deadline: Instant) -> Result<ConnectionAnswer>;
+    async fn shutdown(&self) -> Result<()>;
+    async fn closed(&self) -> Result<()>;
+}
 #[async_trait]
 pub trait Attempt: Send + Sync {
     fn original_attempt(&self) -> &NativeOfferLease;
@@ -64,6 +87,17 @@ pub trait Host: Send + Sync {
     /// Return an owner even on allocation refusal so the original lease remains
     /// available for attributed cleanup. This must not start another attempt.
     fn start(&self, preparation: Preparation) -> Arc<dyn Attempt>;
+    /// Starts only the physical replacement reserved by its original Core ticket.
+    /// The service retains the non-cloneable Store effect and cleanup custody.
+    fn start_replacement(
+        &self,
+        _preparation: ReplacementPreparation,
+    ) -> Result<Arc<dyn ReplacementAttempt>> {
+        Err(Error::new(
+            "unsupported-media-profile",
+            "WebRTC replacement host is not configured",
+        ))
+    }
 }
 // Freeze the adapter installed in Core even when a trusted host delegates its
 // construction to another component.
@@ -84,6 +118,12 @@ impl Host for Installed {
     }
     fn start(&self, preparation: Preparation) -> Arc<dyn Attempt> {
         self.host.start(preparation)
+    }
+    fn start_replacement(
+        &self,
+        preparation: ReplacementPreparation,
+    ) -> Result<Arc<dyn ReplacementAttempt>> {
+        self.host.start_replacement(preparation)
     }
 }
 impl Service {

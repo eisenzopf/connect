@@ -11,8 +11,8 @@ pub(super) struct StartedReplacement {
     pub policy: Arc<TargetPolicy>,
     pub controller: Arc<StreamController>,
     pub resource_streams: Vec<String>,
-    pub lifecycle: crate::canonical_native_lifecycle::PreparedReplacementLifecycle,
-    intent: connect_protocol::connection_control::OfferIntent,
+    pub lifecycle: super::webrtc::ReplacementLifecycle,
+    pub(super) intent: connect_protocol::connection_control::OfferIntent,
     pub commit: std::sync::Mutex<Option<super::movement::Capture>>,
     pub phases: std::sync::Mutex<Vec<Arc<connect_store::NativeReplacementMediaCapture>>>,
     pub preparation:
@@ -176,10 +176,11 @@ impl Runtime {
             origin: OnceLock::new(),
             preparation_operation: OnceLock::new(),
             data_observer,
+            readiness: None,
         });
         let invocation = Arc::new(StartInvocation {
             policy: policy.clone(),
-            authorized: a.clone(),
+            authority: super::media::StartAuthority::Signed(a.clone()),
             read,
             entries,
             deadline,
@@ -189,7 +190,7 @@ impl Runtime {
             tracing::debug!(target:"connect_service::canonical_replacement",stage="configure","Replacement resource start");
             let controller=native.configure_negotiated_media_with_held(&id,&a,ConversationId::from_string(intent.conversation_id.clone()),scope,self.media.clone(),policy.profile.clone(),policy.data_observer.clone().map(|observer| observer as Arc<dyn rvoip_uctp::v2::native_negotiation::NativeDataObserver>),8,invocation.as_ref()).map_err(|_|Error::forbidden())?;
             let activation=native.native_media_activation(&id,&a).map_err(|_|Error::forbidden())?;
-            policy.activation.set(activation.clone()).map_err(|_|Error::forbidden())?;
+            policy.activation.set(Arc::new(super::media::Activation::Native(activation.clone()))).map_err(|_|Error::forbidden())?;
             // The exact current Store read and peer invocation retain authority
             // while this dormant target answers its signed offer. No role is
             // changed by that network wait; the actual movement reacquires the
@@ -246,7 +247,7 @@ impl Runtime {
             policy,
             controller,
             resource_streams,
-            lifecycle,
+            lifecycle: super::webrtc::ReplacementLifecycle::Native(lifecycle),
             intent,
             commit: Default::default(),
             phases: Default::default(),
@@ -279,7 +280,7 @@ impl Runtime {
             answered: true,
         })
     }
-    async fn record_started_replacement_with_peer(
+    pub(super) async fn record_started_replacement_with_peer(
         &self,
         started: &StartedReplacement,
         a: Arc<AuthorizedEnvelope>,

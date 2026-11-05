@@ -3,12 +3,14 @@ mod allocation;
 pub(crate) mod continuation;
 mod diagnostics;
 mod media;
-pub(crate) use media::TargetPolicy;
+pub(crate) use media::{Activation, TargetPolicy};
 mod movement;
 mod preflight;
 mod preparation;
 mod projection;
+mod readiness;
 mod start;
+mod webrtc;
 use crate::{
     authentication::StoreValidator,
     canonical_consultation::{retry_metadata, store_call},
@@ -201,7 +203,7 @@ impl Runtime {
                 return Err(Error::new(
                     "unsupported-media-profile",
                     "Replacement transport is not configured",
-                ))
+                ));
             }
         };
         if ctx.candidate_connection_id.is_some() {

@@ -32,6 +32,7 @@ class Client {
     onClose(fn){this.lifetimes.add(fn);return()=>this.lifetimes.delete(fn);}
     emit(frame){for(const fn of this.events)fn(frame);}
     end(error=new ConnectError('transport','fixture control loss')){for(const fn of [...this.lifetimes])fn(error);}
+    requestReplacementContinuation(...args){return this.request(...args);}
     async request(...args){this.requests.push(structuredClone(args.slice(0,3)));return this.response();}
 }
 const fixture=()=>{const peer=new Peer(),client=new Client(),input=options();return {peer,client,input,owner:new CanonicalWebRtcSignaling(client,peer,input)};};
@@ -271,4 +272,25 @@ test('independent handoff preparation preserves its exact target-owned marker in
  for(const patch of [{purpose:'forged'},{streams:[{...options().streams[0],kind:'video'}]},{streams:[{...options().streams[0],direction:'recvonly'}]},{streams:[options().streams[0],{...options().streams[0],id:'second'}]}]){
   const client=new Client();assert.throws(()=>new CanonicalWebRtcSignaling(client,new Peer(),{...options(),purpose:'handoff-preparation',...patch}),{code:'invalid-request'});assert.equal(client.requests.length,0);
  }
+});
+
+test('WebRTC replacement carries one complete SDP through original allocation, media and decoded-ready continuations',async()=>{
+ const peer=new Peer(),client=new Client();client.deviceId='device';
+ const root={recordId:'record',operationId:'original-offer',conversationId:'conversation',sessionId:'session',sourceConnectionId:'source',retainedConnectionId:'retained',targetConnectionId:'connection',endpointId:'endpoint',deviceId:'device'};
+ let revision=0;
+ const observed=(connid,state='preparing')=>envelope('operation.updated',{operation_id:root.operationId,record_id:root.recordId,command_type:'connection.replace',revision:++revision,state,native_replacement_prepared:true,...(state==='completed'?{result:{activation_state:'ready',connection_id:'connection',replaces:'source',generation:2,endpoint_id:'endpoint',device_id:'device',retained_connection_ids:['retained'],admitted_connection_ids:['connection'],retired_connection_ids:['source'],readiness:{stream_revision:3,streams:['audio-stream']},physical_readiness:{stream_revision:3,streams:['audio-stream']}}}:{})},{cid:'conversation',sid:'session',connid});
+ client.response=async()=>{
+  const [type,body]=client.requests.at(-1);
+  if(type==='operation.get')return[observed('source')];
+  assert.equal(body.substrate_setup.sdp,sdp);
+  const profile=body.replacement_preparation.profile;
+  if(profile==='connect-replacement-preparation-v1')return[observed('connection')];
+  if(profile==='connect-replacement-ready-v1')return[observed('connection','completed')];
+  assert.equal(profile,'connect-replacement-media-v1');
+  const frame=answer();frame.payload.replacement_preparation={profile,operation_record_id:'record',readiness:{nonce:'nonce',source_generation:1,target_generation:2,stream_revision:2}};return[frame];
+ };
+ const owner=new CanonicalWebRtcSignaling(client,peer,{...options(),replacement:root});
+ await owner.offer({timeoutMs:200});assert.equal(peer.offers,1);assert.equal(peer.remoteDescription.sdp,sdp);assert.equal(client.requests.filter(v=>v[0]==='connection.offer').length,2);assert.equal(owner.replacementMayHaveCommitted,false);
+ const receipt=await owner.completeReplacement({audio:{stream_id:'audio-stream',decoded_samples:960},video:null},{timeoutMs:200});assert.equal(receipt.generation,2);assert.equal(client.requests.filter(v=>v[0]==='connection.offer').length,3);assert.equal(owner.replacementMayHaveCommitted,true);assert.equal(client.closed,0);
+ owner.close();await owner.shutdown();assert.equal(peer.closed,1);
 });

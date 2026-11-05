@@ -26,6 +26,15 @@ Other named API families are linked per route in the inventory. Repeated
 `/v1/operations` references describe different families; they are not a blanket
 claim that retired ordinary communication variants remain supported.
 
+Endpoint movement uses the existing canonical `connection.replace` command and
+original-operation status reads. The [device replacement contract](../../contracts/device-replacement.md)
+also specifies the physical target's WebRTC allocation, SDP and readiness
+continuations over authenticated WSS. These continuations use `connection.offer`
+with distinct replacement profiles and the same original movement record.
+They add no HTTP media endpoint or HTTP readiness proof. The original source
+remains active during preparation; a second peer connection becomes public only
+after current authority, real resource readiness and movement commit succeed.
+
 Enrolled credentials add an admission ceiling across finite application HTTP:
 the actual Origin must equal the enrollment's exact browser Origin, including
 the absence required by native enrollment. Explicit Task bearers retain their

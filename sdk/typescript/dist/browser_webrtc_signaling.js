@@ -1,3 +1,4 @@
+import { BrowserWebRtcReplacement, } from "./browser_webrtc_replacement.js";
 import { BrowserTasks } from "./browser_tasks.js";
 import { BrowserIceRestart, } from "./browser_webrtc_restart.js";
 import { ConnectError } from "./errors.js";
@@ -48,6 +49,7 @@ export class CanonicalWebRtcSignaling {
     scope;
     template;
     relayOnly;
+    replacement;
     attempted = false;
     stopped = false;
     failure;
@@ -107,6 +109,11 @@ export class CanonicalWebRtcSignaling {
                 s.codec_preferences.some((c) => typeof c !== "string" ||
                     !/^[a-zA-Z0-9.+_-]{1,64}$/.test(c))))
             throw new ConnectError("invalid-request", "Explicit WebRTC scope, revision and bounded stream offers required");
+        if (options.replacement) {
+            if (options.purpose !== undefined)
+                throw new ConnectError("invalid-request", "Replacement cannot change the original purpose");
+            this.replacement = new BrowserWebRtcReplacement(client, options.replacement);
+        }
         this.scope = {
             cid: options.conversationId,
             sid: options.sessionId,
@@ -276,9 +283,17 @@ export class CanonicalWebRtcSignaling {
                 ...snapshot(this.template),
                 substrate_setup: { kind: "websocket+webrtc", sdp },
             };
+            if (this.replacement) {
+                await bound(this.replacement.allocate(snapshot(this.original), { ...this.scope }, remaining(), () => {
+                    this.submitted = true;
+                }));
+                this.original = this.replacement.mediaOffer(this.original);
+            }
             // Set before handing bytes to the shared client; failure can be uncertain.
             this.submitted = true;
-            const frames = await bound(this.client.request("connection.offer", snapshot(this.original), { ...this.scope }, { ...remaining(), terminalType: "connection.answer" }));
+            const frames = await bound(this.replacement
+                ? this.client.requestReplacementContinuation("connection.offer", snapshot(this.original), { ...this.scope }, { ...remaining(), terminalType: "connection.answer" })
+                : this.client.request("connection.offer", snapshot(this.original), { ...this.scope }, { ...remaining(), terminalType: "connection.answer" }));
             const answers = frames.filter((f) => f.type === "connection.answer");
             if (answers.length !== 1)
                 throw new ConnectError("unresolved-operation", "WebRTC offer has no new answer; inspect its original operation status");
@@ -286,7 +301,7 @@ export class CanonicalWebRtcSignaling {
             const streams = answer.payload.streams_answered;
             const offered = new Map(this.template.streams_offered.map((s) => [
                 s.id,
-                s.kind,
+                { kind: s.kind, direction: s.direction },
             ]));
             if (!this.matches(answer) ||
                 answer.payload.substrate !== "websocket+webrtc" ||
@@ -301,7 +316,14 @@ export class CanonicalWebRtcSignaling {
                     .size !== streams.length ||
                 streams.some((s) => !jsonObject(s) ||
                     !offered.has(s.id) ||
-                    offered.get(s.id) !== s.kind ||
+                    offered.get(s.id)?.kind !== s.kind ||
+                    s.direction !==
+                        {
+                            sendonly: "recvonly",
+                            recvonly: "sendonly",
+                            sendrecv: "sendrecv",
+                            inactive: "inactive",
+                        }[String(offered.get(s.id)?.direction)] ||
                     ![
                         "sendrecv",
                         "sendonly",
@@ -310,6 +332,7 @@ export class CanonicalWebRtcSignaling {
                     ].includes(String(s.direction)) ||
                     s.codec === undefined))
                 throw protocol("WebRTC answer does not match the original Connection and stream offer");
+            this.replacement?.answer(answer.payload);
             await bound(this.peer.setRemoteDescription({
                 type: "answer",
                 sdp: setup.sdp,
@@ -328,6 +351,18 @@ export class CanonicalWebRtcSignaling {
             options.signal?.removeEventListener("abort", aborted);
             this.rejectWait = undefined;
         }
+    }
+    get replacementMayHaveCommitted() {
+        return this.replacement?.mayHaveCommitted ?? false;
+    }
+    get replacementChallenge() {
+        return this.replacement?.challenge;
+    }
+    completeReplacement(evidence, options) {
+        this.check();
+        if (!this.replacement || !this.remoteApplied)
+            throw new ConnectError("conflict", "Replacement media answer is not applied");
+        return this.tasks.track(this.replacement.complete(evidence, options));
     }
     gatheringCleanup;
     gather() {

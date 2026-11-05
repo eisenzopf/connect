@@ -309,6 +309,20 @@ impl Runtime {
                 let _ = tx.send(outcome);
                 return Ok(());
             }
+            if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
+                == "connect-replacement-media-v1"
+            {
+                return Box::pin(self.webrtc_replacement_worker(a, physical, credential, tx)).await;
+            }
+            if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
+                == "connect-replacement-ready-v1"
+            {
+                let outcome = self
+                    .webrtc_replacement_ready(a, physical, &credential)
+                    .await;
+                let _ = tx.send(outcome);
+                return Ok(());
+            }
             return Box::pin(self.webrtc_worker(a, physical, credential, tx)).await;
         }
         let native = match self.native_adapter(physical.binding.transport()) {

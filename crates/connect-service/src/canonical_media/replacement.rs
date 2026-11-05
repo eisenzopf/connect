@@ -681,7 +681,7 @@ struct InstalledEntry<'a> {
     policy: &'a super::Policy,
     #[cfg(feature = "test-support")]
     record: &'a str,
-    native: &'a rvoip_uctp::v2::native_negotiation::NativeMediaActivation,
+    native: &'a crate::canonical_replacement::Activation,
     generation: u64,
     _activation: std::sync::MutexGuard<'a, Option<Arc<dyn MediaActivation>>>,
     _binding: std::sync::MutexGuard<'a, Option<rvoip_core::relationships::ConnectionBinding>>,

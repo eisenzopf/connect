@@ -410,7 +410,7 @@ impl connect_store::NativeReplacementInstallationObservation for Installed {
     }
 }
 
-fn replacement_video(
+pub(super) fn replacement_video(
     plan: &serde_json::Value,
 ) -> Result<Option<rvoip_core::staged_streams::device_replacement::ReplacementVideoRequest>> {
     use rvoip_core::staged_streams::device_replacement::{

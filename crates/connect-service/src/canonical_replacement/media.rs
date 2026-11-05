@@ -27,15 +27,128 @@ pub(crate) struct TargetPolicy {
     pub profile: Arc<NativeMediaProfile>,
     pub plan: NativeOfferPlan,
     pub root: Weak<PreparedReplacement>,
-    pub activation: OnceLock<Arc<NativeMediaActivation>>,
+    pub activation: OnceLock<Arc<Activation>>,
     pub origin: OnceLock<Arc<NativeReplacementMediaOrigin>>,
     pub preparation_operation: OnceLock<String>,
     pub data_observer: Option<Arc<crate::canonical_media::data_writes::PendingObserver>>,
+    pub(super) readiness: Option<Arc<super::readiness::ReadyGate>>,
+}
+/// Both adapters retain their exact sealed Core resource observation. The enum
+/// only dispatches typed operations; it cannot manufacture readiness or replace
+/// an original activation with another implementation during publication.
+pub(crate) enum Activation {
+    Native(Arc<NativeMediaActivation>),
+    WebRtc(Arc<rvoip_webrtc::canonical::RtcMediaActivation>),
+}
+impl Activation {
+    pub(crate) fn confirmed_generation(&self) -> Option<u64> {
+        MediaActivation::confirmed_generation(self)
+    }
+    pub(crate) fn try_confirmed_generation(&self) -> ControlResult<Option<u64>> {
+        match self {
+            Self::Native(a) => a.try_confirmed_generation(),
+            Self::WebRtc(a) => a.try_confirmed_generation(),
+        }
+    }
+    pub(crate) fn try_publish_installed<R>(
+        &self,
+        generation: u64,
+        publish: impl FnOnce() -> R,
+    ) -> ControlResult<R> {
+        match self {
+            Self::Native(a) => a.try_publish_installed(generation, publish),
+            Self::WebRtc(a) => a.try_publish_installed(generation, publish),
+        }
+    }
+}
+impl MediaActivation for Activation {
+    fn prepare(
+        &self,
+        prepared: &Arc<PreparedMediaObservation>,
+        current: MediaOwner,
+    ) -> ControlResult<MediaOwner> {
+        match self {
+            Self::Native(a) => a.prepare(prepared, current),
+            Self::WebRtc(a) => a.prepare(prepared, current),
+        }
+    }
+    fn current(&self, current: MediaOwner) -> ControlResult<MediaOwner> {
+        match self {
+            Self::Native(a) => a.current(current),
+            Self::WebRtc(a) => a.current(current),
+        }
+    }
+    fn confirmed_generation(&self) -> Option<u64> {
+        match self {
+            Self::Native(a) => a.confirmed_generation(),
+            Self::WebRtc(a) => a.confirmed_generation(),
+        }
+    }
+    fn prepare_replacement(
+        &self,
+        prepared: &Arc<PreparedMediaObservation>,
+        current: MediaOwner,
+        source: &MediaOwner,
+        pending: &PreparedParticipantReplacement,
+    ) -> ControlResult<MediaOwner> {
+        match self {
+            Self::Native(a) => a.prepare_replacement(prepared, current, source, pending),
+            Self::WebRtc(a) => a.prepare_replacement(prepared, current, source, pending),
+        }
+    }
+    fn current_replacement(
+        &self,
+        current: MediaOwner,
+        source: &MediaOwner,
+        pending: &PreparedParticipantReplacement,
+    ) -> ControlResult<MediaOwner> {
+        match self {
+            Self::Native(a) => a.current_replacement(current, source, pending),
+            Self::WebRtc(a) => a.current_replacement(current, source, pending),
+        }
+    }
+}
+#[derive(Clone)]
+pub(super) enum StartAuthority {
+    Signed(Arc<AuthorizedEnvelope>),
+    Resumed {
+        proof: Arc<connect_store::PeerAuthorityGuard>,
+        peer: Arc<rvoip_core::peer_admission::PeerAdmission>,
+        cancel: tokio_util::sync::CancellationToken,
+    },
+}
+impl StartAuthority {
+    fn current(&self, principal: &AuthenticatedPrincipal) -> bool {
+        match self {
+            Self::Signed(a) => {
+                !a.invocation_cancellation().is_cancelled()
+                    && rvoip_core::staged_streams::reliable_data::same_credential(
+                        a.principal(),
+                        principal,
+                    )
+            }
+            Self::Resumed {
+                proof,
+                peer,
+                cancel,
+            } => {
+                proof.current()
+                    && !cancel.is_cancelled()
+                    && peer.validate_principal(principal).is_ok()
+            }
+        }
+    }
+    fn cancellation(&self) -> tokio_util::sync::CancellationToken {
+        match self {
+            Self::Signed(a) => a.invocation_cancellation(),
+            Self::Resumed { cancel, .. } => cancel.clone(),
+        }
+    }
 }
 #[derive(Clone)]
 pub(super) struct StartInvocation {
     pub policy: Arc<TargetPolicy>,
-    pub authorized: Arc<AuthorizedEnvelope>,
+    pub authority: StartAuthority,
     pub read: Arc<NativeReplacementStartRead>,
     pub entries: crate::canonical_media::replacement::ReplacementPreparationEntries,
     pub deadline: tokio::time::Instant,
@@ -195,7 +308,7 @@ impl TargetPolicy {
     fn held_owners(&self, i: &StartInvocation) -> ControlResult<(MediaOwner, MediaOwner)> {
         if !std::ptr::eq(self, Arc::as_ptr(&i.policy))
             || !i.read.current()
-            || i.authorized.invocation_cancellation().is_cancelled()
+            || !i.authority.current(&self.principal)
             || tokio::time::Instant::now() >= i.deadline
         {
             return Err(StreamControlError::Authority);
@@ -274,6 +387,43 @@ impl MediaPolicy for TargetPolicy {
     }
     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         self.scope(scope)?;
+        if let MediaPurpose::Receive { source } = scope.purpose {
+            let gate = self
+                .readiness
+                .as_ref()
+                .ok_or(StreamControlError::NotReady)?;
+            if !gate.permits(source) {
+                return Err(StreamControlError::Authority);
+            }
+            let entries = self.base.scene_entries(scope.session.as_str())?;
+            let origins = entries
+                .values()
+                .map(|entry| entry.origin.clone())
+                .collect::<Vec<_>>();
+            let read = self
+                .base
+                .store
+                .try_native_replacement_scene_read(
+                    self.origin.get().ok_or(StreamControlError::NotReady)?,
+                    &origins,
+                )
+                .map_err(crate::canonical_media::packet_authority_error)?;
+            if !read.current()
+                || !read.permits_receive(scope.connection.as_str(), source.connection.as_str())
+            {
+                return Err(StreamControlError::Authority);
+            }
+            let entry = entries
+                .get(&source.connection)
+                .ok_or(StreamControlError::Authority)?;
+            let source_read = read
+                .existing(source.connection.as_str(), None)
+                .ok_or(StreamControlError::Authority)?;
+            crate::canonical_media::source_matches(source, entry, source_read.target())?;
+            let mut owner = self.current_owner(read.media())?;
+            owner.may_route_source = true;
+            return Ok(Box::new(PrivateReceive { owner, _read: read }));
+        }
         // Resource preparation grants no public speaking/subscription route.
         // Explicit quarantined input/output is installed by a later phase.
         if !matches!(scope.purpose, MediaPurpose::Control) {
@@ -386,8 +536,21 @@ impl MediaPolicy for TargetPolicy {
                 invocation: i.clone(),
                 owner,
             }),
-            i.authorized.invocation_cancellation(),
+            i.authority.cancellation(),
             i.deadline,
         )
+    }
+}
+
+struct PrivateReceive {
+    owner: MediaOwner,
+    _read: connect_store::NativeReplacementSceneRead,
+}
+impl MediaAuthorityLease for PrivateReceive {
+    fn authority(&self) -> &MediaOwner {
+        &self.owner
+    }
+    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+        chrono::DateTime::from_timestamp(self._read.media().source().expires_at(), 0)
     }
 }

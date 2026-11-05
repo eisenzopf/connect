@@ -290,7 +290,8 @@ export declare class BrowserSession {
     readonly receiptConsultationReturn?: BrowserConsultationReturnReceipt | undefined;
     readonly connections: {
         /** Target-owned physical preparation for an existing endpoint move.
-         * Start capture on the returned Connection while completion is pending.
+         * Start capture and render the returned Connection while completion is
+         * pending. WebRTC completion requires decoded replacement audio/video.
          * The completion promise observes the original move, never a new offer
          * root. Existing candidate-Connection moves require separate adoption. */
         prepareReplacement: (input: {

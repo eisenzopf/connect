@@ -1669,6 +1669,16 @@
       "path": "patches/rvoip/gate6-peer-webrtc-replacement-preparation.patch",
       "sha256": "55e2357d53d16ce2ecbc1e8e1a0cde873c7a26fe24f100ea0cb885b6bc933659",
       "source": "Typed peer-authenticated WebRTC replacement reservation and exact Core resource activation; source route retained until managed commit"
+    },
+    {
+      "path": "patches/rvoip/gate6-private-replacement-video-preroll.patch",
+      "sha256": "4a078902855ef4693b1fb9500abe07d287044075a2f60103fa1fb7387a316901",
+      "source": "Receive-only replacement video copy pins original selection and both port generations; private writes drain before commit and cancellation never tears down caller"
+    },
+    {
+      "path": "patches/rvoip/gate6-directional-webrtc-replacement-ports.patch",
+      "sha256": "63381271ffe4586493f299939aa51fc0759035f73de023b45f4c08c1bf892c76",
+      "source": "One WebRTC video m-line supports distinct complementary logical publication and receive ports without duplicate physical track readers"
     }
   ]
 }

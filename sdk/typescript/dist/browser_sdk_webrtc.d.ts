@@ -1,3 +1,4 @@
+import { type BrowserReplacementRoot } from "./browser_replacement.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import type { BrowserConnectionOptions } from "./browser_media.js";
 import type { BrowserCaptureHandle, BrowserRenderHandle } from "./browser_sdk.js";
@@ -38,6 +39,23 @@ export declare class BrowserRtcConnection {
         owner: BrowserRtcConnection;
         readonly submissionAttempted: boolean;
     };
+    /** Prepare a second physical without retiring the source. Completion needs
+     * this fresh decoder's evidence and the original committed movement receipt. */
+    static beginReplacement(client: BrowserClient, input: BrowserConnectionOptions, participantId: string, configuration: BrowserRtcConfiguration, original: BrowserReplacementRoot, options: RequestOptions): {
+        prepared: Promise<BrowserRtcConnection>;
+        completed: Promise<import("./browser_replacement.js").BrowserReplacementReceipt>;
+        owner: BrowserRtcConnection;
+        readonly submissionAttempted: boolean;
+    };
+    get diagnostics(): Readonly<{
+        closed: boolean;
+        peerConnectionState: RTCPeerConnectionState;
+        remoteTracks: number;
+        liveRemoteTracks: number;
+        captureActive: boolean;
+        renderActive: boolean;
+    }>;
+    get replacementMayHaveCommitted(): boolean;
     private check;
     private connected;
     onClose(fn: (error?: Error) => void): () => void;

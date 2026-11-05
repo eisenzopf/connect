@@ -45,6 +45,7 @@ export declare class BrowserClient {
     private reader?;
     private writer?;
     private readonly pending;
+    private readonly abandonedReplacementReplies;
     private readonly seen;
     private events;
     private eventBytes;
@@ -83,6 +84,13 @@ export declare class BrowserClient {
         terminalType?: string;
         validateCanonical?: boolean;
     }): Promise<Envelope[]>;
+    /** Internal original-replacement continuation. A bounded receipt wait may
+     * expire while its media remains usable. Late replies stay tied to the
+     * abandoned request ID; writes and actual physical failures still retire. */
+    requestReplacementContinuation(type: "connection.offer" | "operation.get", payload: JsonObject, scope: Scope, options: RequestOptions & {
+        terminalType?: "connection.answer";
+    }): Promise<Envelope[]>;
+    private expireReplacementReplies;
     /** Fresh request ID binds the server's native media parameter exchange. */
     begin(type: string, payload: JsonObject, scope?: Scope, options?: RequestOptions & {
         terminalType?: string;

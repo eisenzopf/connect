@@ -213,9 +213,7 @@ impl Runtime {
                                 .controller()
                                 .map_err(|_| Error::forbidden())?
                         } else {
-                            self.connection_native_adapter(id)?
-                                .media_controller(id)
-                                .map_err(|_| Error::forbidden())?
+                            self.connection_media_controller(id)?
                         };
                         let (_, revision) = context
                             .commit()
@@ -255,6 +253,40 @@ impl Runtime {
             } else {
                 self.observe_native_audio_audience_commit(id, context.commit())
                     .map_err(|_| Error::forbidden())?;
+            }
+        }
+        if let Some(gate) = &started.policy.readiness {
+            if let Some(request) = super::movement::replacement_video(&root.plan)? {
+                if !request.receivers.is_empty() {
+                    let (_roles, i) = super::projection::read(
+                        &self.role_projection,
+                        &self.stop,
+                        root.deadline
+                            .min(tokio::time::Instant::now() + Duration::from_secs(5)),
+                        || {
+                            self.continuation_read_once(
+                                root,
+                                started,
+                                Phase::Preroll(request.clone(), started.controller.revision()),
+                            )
+                        },
+                    )
+                    .await?;
+                    let preparation = self
+                        .core
+                        .prepare_staged_device_replacement_video_with_held(
+                            &root.handle,
+                            &request,
+                            &i,
+                        )
+                        .map_err(|error| {
+                            tracing::debug!(?error, "RTC private video preparation refused");
+                            Error::forbidden()
+                        })?;
+                    gate.preroll
+                        .set(Arc::new(preparation))
+                        .map_err(|_| Error::forbidden())?;
+                }
             }
         }
         started
@@ -316,6 +348,17 @@ impl Runtime {
                     },
                     (start.elapsed().as_micros() * u128::from(rate) / 1_000_000) as u32,
                 );
+                continue;
+            }
+            // The original endpoint remains public until its new peer has
+            // actually decoded this challenge's audio and first video frame.
+            // The signed report alone cannot bypass Core private route pins.
+            if started
+                .policy
+                .readiness
+                .as_ref()
+                .is_some_and(|gate| !gate.observed())
+            {
                 continue;
             }
             if !duplex_reported {

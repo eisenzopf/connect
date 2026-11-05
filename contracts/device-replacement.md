@@ -362,6 +362,44 @@ possibly begun. Cancellation or authority loss also cleans an already cancelled
 owned preparation; committed replacement handles refuse cancellation. Old source
 media and role remain intact throughout this preparation and cleanup.
 
+## Signed WebRTC target preparation and readiness
+
+WSS/WebRTC endpoint movement shares the original replacement command, durable
+phase effects and candidate reservation above. Allocation uses the typed Core
+peer-WebRTC preparation and the target's actual authenticated physical peer.
+It cannot enter through a generic adapter preparation path. A replay may recover
+the same reservation; it cannot allocate another peer or restart a completed
+phase. Target loss or cancellation retires only the uncommitted candidate.
+
+The target's `connect-replacement-media-v1` offer carries the frozen SDP and
+logical stream intent. One duplex audio port and complementary video send and
+receive ports may share one physical video m-line. Ambiguous duplicate directions
+and simultaneous camera/screen publication refuse. The target's outgoing media
+remains privately muted; a sealed Core preparation permits only the exact
+retained video sources to reach its new decoder. That temporary route is absent
+from public subscriptions and pins both source and target port generations.
+The old public audio/video routes keep running throughout preparation.
+
+After SDP/ICE/DTLS and private media startup, the target signs another
+`connection.offer` with profile `connect-replacement-ready-v1`, the same original
+record and unchanged SDP/stream intent. Its readiness payload includes the
+answer's nonce, source and target generations, stream revision, decoded audio
+samples and, when applicable, decoded video frames/keyframes. A fresh decoder's
+first decoded frame can establish startup when the browser omits its keyframe
+counter; the observation records that method explicitly. The signed observation
+is an endpoint report, not independent proof that an untrusted endpoint decoded
+media. Core separately checks actual resources, current generations, completed
+private IO and current authorization before movement publication.
+
+The service releases the initiating authority interval before waiting on media
+and reacquires current authority for later phases. The original bounded deadline
+does not restart. Lost replies recover the original operation and cannot repeat
+activation. Commit drains private video writes, changes public ownership once,
+then retires the old resources. Closing a private preparation after commit
+cannot cancel the adopted target. Failure cleanup joins owned workers even when
+recording cleanup metadata fails; no stored readiness flag substitutes for a
+current resource observation.
+
 ## Private native continuation
 
 A successful signed resource start queues an owned local continuation. Schema 56

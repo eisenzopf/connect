@@ -8,8 +8,8 @@ pub use start::{
     NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain,
     NativeReplacementCommitted, NativeReplacementMediaAttempt, NativeReplacementMediaCapture,
     NativeReplacementMediaOrigin, NativeReplacementMediaPhase, NativeReplacementMediaRead,
-    NativeReplacementSceneRead, NativeReplacementStartAttempt, NativeReplacementStartRead,
-    NativeReplacementStartUncertain, NativeReplacementStarted,
+    NativeReplacementSceneRead, NativeReplacementStartAttempt, NativeReplacementStartOrigin,
+    NativeReplacementStartRead, NativeReplacementStartUncertain, NativeReplacementStarted,
 };
 
 pub struct NativeReplacementAllocationRead {
@@ -144,7 +144,12 @@ fn target_facts_for_profile(
     let actor = actor_from_connection(c, credential)?;
     actor.require("connection.offer")?;
     let context = prepared.selection.context(store, c)?;
-    if marker.as_object().map(|v| v.len()) != Some(2)
+    if marker.as_object().map(|v| v.len())
+        != Some(if profile == "connect-replacement-ready-v1" {
+            3
+        } else {
+            2
+        })
         || marker["profile"] != profile
         || marker["operation_record_id"] != prepared.record
         || intent.offer.get("private_consultation").is_some()

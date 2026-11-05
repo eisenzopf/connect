@@ -162,3 +162,62 @@ impl StorePeerAuthority {
         Ok(())
     }
 }
+
+/// Bind the exact actual answer and target-specific decoder challenge under the
+/// original replacement start reader; ordinary connection projection cannot
+/// authorize a dormant candidate that has not been adopted into the Session.
+pub(crate) fn bind_replacement_answer(
+    a: &AuthorizedEnvelope,
+    read: &connect_store::NativeReplacementStartRead,
+    plan: &rvoip_uctp::v2::native_negotiation::NativeOfferPlan,
+    payload: &serde_json::Value,
+) -> connect_protocol::Result<()> {
+    let authority = a
+        .authority::<StoreInvocationAuthority>()
+        .ok_or_else(Error::forbidden)?;
+    let grant = authority
+        .guard::<Arc<Grant>>()
+        .ok_or_else(Error::forbidden)?;
+    let PeerCommand::NativeConnectionOffer(intent) = &grant.request.command else {
+        return Err(Error::forbidden());
+    };
+    if crate::canonical_native::intent(a.envelope()).as_ref() != Ok(intent)
+        || a.envelope().id() != grant.invocation_id
+        || !grant.proof.current()
+        || !read.current()
+        || intent.endpoint_transport()? != connect_protocol::provisioning::EndpointTransport::Webrtc
+        || read.target().connection.connection_id != intent.connection_id
+        || read.target().offer != intent.offer
+    {
+        return Err(Error::forbidden());
+    }
+    let marker = &payload["replacement_preparation"];
+    let challenge = &marker["readiness"];
+    if marker["profile"] != "connect-replacement-media-v1"
+        || marker["operation_record_id"]
+            != intent.offer["replacement_preparation"]["operation_record_id"]
+        || challenge["source_generation"].as_u64()
+            != Some(read.source().context().source_generation)
+        || challenge["target_generation"].as_u64() != Some(read.target().connection.generation)
+        || challenge["stream_revision"] != 2
+        || challenge["nonce"]
+            .as_str()
+            .is_none_or(|n| n.is_empty() || n.len() > 128)
+    {
+        return Err(Error::forbidden());
+    }
+    validate(
+        payload,
+        plan,
+        Some(&read.target().connection.participant_id),
+    )?;
+    let mut saved = grant
+        .webrtc_answer
+        .try_lock()
+        .map_err(|_| Error::forbidden())?;
+    if saved.is_some() {
+        return Err(Error::new("conflict", "WebRTC answer already bound"));
+    }
+    *saved = Some(payload.clone());
+    Ok(())
+}

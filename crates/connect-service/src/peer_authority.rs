@@ -54,7 +54,9 @@ mod native_streams;
 mod webrtc;
 pub(crate) use native_streams::bind_plan as bind_native_stream_plan;
 pub(crate) use native_streams::codec as native_stream_codec;
-pub(crate) use webrtc::bind_answer as bind_webrtc_answer;
+pub(crate) use webrtc::{
+    bind_answer as bind_webrtc_answer, bind_replacement_answer as bind_webrtc_replacement_answer,
+};
 /// Explicit composition only. Unsupported commands receive only Identity/key
 /// proof for a bounded rejection, never a resource grant or stock Core fallback.
 pub struct StorePeerAuthority {
