@@ -399,5 +399,6 @@
     "real_capture_validator": true,
     "process_network_effects": "controlled local fakes; no new actual capture qualification"
   },
-  "remaining": "The next full32 run must produce valid original captures. Startup-dependent empty captures need the integrated NSS/STUN/executable fixture corrections; no historical failed capture is promoted."
+  "remaining": "The next full32 run must produce valid original captures. Startup-dependent empty captures need the integrated NSS/STUN/executable fixture corrections; no historical failed capture is promoted.",
+  "qualification_limit": "Original large Linux Chrome pcap packet bodies were not replayed through the validator. Their first failure is proven interface-removal exit; counts and zero drops alone do not prove every downstream protocol/duplex condition. New original full-run captures must pass every unchanged validator."
 }

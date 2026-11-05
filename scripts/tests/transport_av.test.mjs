@@ -6,17 +6,19 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { addLiveVideoFixture } from "./live_video_fixture.mjs";
 import { nativeAv } from "../lib/transport_av.mjs";
+import { assertNativeCounterObservation, OriginalFailureJoinClock } from "./native_av_observation_assertions.mjs";
 
-async function checkFailure(firstSubmissionAccepted, setupFailure = false, withControl = false, cleanupFailure = false) {
+async function checkFailure(context, firstSubmissionAccepted, setupFailure = false, withControl = false, cleanupFailure = false) {
     const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
     const directory = await mkdtemp(join(parent, "transport-av-cancel-"));
     const sources = join(directory, "sources"); await mkdir(sources, { mode: 0o700 });
     const roles = [["one", "two", "three", "four"], ["one", "two"]], plan = {}, connections = [];
     let waiting = 0, waitingFeedback = 0, aborted = 0, clocksPending = 12;
-    let accepted = false;
+    let accepted = false, timing;
     const clock = { ssrc: 4294967295, ntp: 17191887989801992191n, rtp: 4294967290,
         packets: 4294967294, octets: 4294967293, cname: "private-synthetic-clock" };
     const failure = Object.assign(Error("synthetic first-write refusal"), { kind: "authority" });
+    const originalFailure = () => { timing.beginFailure(); return failure; };
     for (const [sid, group] of roles.entries()) for (const role of group) {
         const prefix = sid + "-" + role, index = connections.length;
         for (const medium of ["audio", "video"]) plan[prefix + "-" + medium] = prefix + "-" + medium;
@@ -39,8 +41,8 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
                 accepted = true;
                 return { boundary: "local-media-queue" };
             }
-            throw failure;
-        }, async sendClock() { throw failure; },
+            throw originalFailure();
+        }, async sendClock() { throw originalFailure(); },
         receiveVideoFeedback({ signal }) {
             waitingFeedback++;
             return new Promise((_, reject) => {
@@ -81,14 +83,14 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
         ];
         item.negotiated = negotiated; item.revision = 1;
         item.connection = { id: "connection-" + item.index, async refresh() { return { generation: 1 }; },
-            media: { async refresh() { if (setupFailure && item.index === 1) throw failure; return { sourceClock: true, streamRevision: item.revision, binding: { sessionId: "session-" + item.sid }, streams: item.negotiated }; } },
+            media: { async refresh() { if (setupFailure && item.index === 1) throw originalFailure(); return { sourceClock: true, streamRevision: item.revision, binding: { sessionId: "session-" + item.sid }, streams: item.negotiated }; } },
             streams: { byId() { return { media: stream }; } } };
     }
     try {
-        const started = performance.now();
+        timing = new OriginalFailureJoinClock();
         const observations = [];
         await assert.rejects(nativeAv(connections, roles, sources, join(directory, "received"), plan,
-            observation => { assert.equal(waiting, 0); assert.equal(waitingFeedback, 0); observations.push(observation); }, withControl ? async workload => {
+            observation => { assert.equal(waiting, 0); assert.equal(waitingFeedback, 0); observations.push(observation); timing.joined(); }, withControl ? async workload => {
                 await new Promise(setImmediate);
                 assert.equal(waiting, 12);
                 assert.ok(Number.isSafeInteger(workload.programStartUnixUs));
@@ -96,6 +98,7 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
                 assert.ok(Number.isFinite(workload.startedAt) && workload.startedAt >= 0);
                 assert.ok(workload.routes.every(route => route.generation === 1));
                 assert.notEqual(workload.routes[0].sessionIndex, workload.routes[4].sessionIndex);
+                timing.beginFailure(); // First actual cancellation owned by this control fixture.
                 const joined = await workload.routes[0].stopAndJoin();
                 assert.equal(joined.original_packet_tasks_joined, 5);
                 assert.equal(joined.shared_sdk_closed, false);
@@ -125,14 +128,17 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
                 if (cleanupFailure) {
                     // This is the control failure boundary, before target cleanup
                     // can close a publisher while the control task still joins.
+                    timing.beginFailure();
                     workload.reportFailure?.(failure);
                     for (const fail of [...pendingReads]) fail(cleanupRefusal);
                     await new Promise(setImmediate);
                 }
-                throw failure;
+                throw originalFailure();
             } : undefined), error => error === failure);
         assert.equal(observations.length, 1);
         const observed = observations[0];
+        context.diagnostic(JSON.stringify(timing.assertBound()));
+        assertNativeCounterObservation(observed);
         assert.equal(observed.original_tasks_joined, true);
         assert.equal(observed.fixture_payload_arrays_released, true);
         if (setupFailure) {
@@ -148,9 +154,8 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
             stage: firstSubmissionAccepted ? "clock" : "rtp" });
         assert.equal(observed.routes.length, 6);
         assert.equal(observed.routes.reduce((sum, r) => sum + r.submitted_packets.audio, 0), Number(firstSubmissionAccepted));
-        for (const hidden of ["private-synthetic-clock", "synthetic first-write refusal", "connection-", "ssrc", "ntp", "payload"])
+        for (const hidden of ["private-synthetic-clock", "synthetic first-write refusal", "connection-"])
             assert.equal(JSON.stringify({ ...observed, scope: undefined }).includes(hidden), false);
-        assert.ok(performance.now() - started < 1000);
         assert.equal(waiting, 0); assert.equal(aborted, 12 + Number(withControl));
         let submissions = 0;
         for (const item of connections) {
@@ -184,11 +189,11 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
     } finally { await rm(directory, { recursive: true, force: true }); }
 }
 
-test("first send failure joins all twelve native readers and retains original clocks", () => checkFailure(false));
-test("clock failure retains only the completed original audio queue receipt and joins readers", () => checkFailure(true));
+test("first send failure joins all twelve native readers and retains original clocks", context => checkFailure(context, false));
+test("clock failure retains only the completed original audio queue receipt and joins readers", context => checkFailure(context, true));
 
-test("original media setup failure remains explicit before any source clock or media task starts", () => checkFailure(false, true));
+test("original media setup failure remains explicit before any source clock or media task starts", context => checkFailure(context, false, true));
 
-test("in-workload control retires one Connection, rebinds a captured camera and preserves the shared participant second Session", () => checkFailure(false, false, true));
+test("in-workload control retires one Connection, rebinds a captured camera and preserves the shared participant second Session", context => checkFailure(context, false, false, true));
 
-test("the original control failure survives publisher refusals raised during its joined cleanup", () => checkFailure(false, false, true, true));
+test("the original control failure survives publisher refusals raised during its joined cleanup", context => checkFailure(context, false, false, true, true));
