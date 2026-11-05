@@ -1,4 +1,9 @@
 import { captureAudioNode } from "./browser_audio_source.js";
+import {
+    boundedCanvasVideoCapture,
+    captureVideoCanvas,
+    type CanvasVideoCapture,
+} from "./browser_video_capture.js";
 import { observeWebRtcDecodedReadiness } from "./browser_webrtc_readiness.js";
 import {
     replacementRoot,
@@ -513,9 +518,11 @@ export class BrowserRtcConnection {
             );
         if (this.captureOwner && !this.captureOwner.closed)
             throw new ConnectError("conflict", "Capture already owned");
-        const selected = { ...input, audioNode: undefined },
+        const canvasSource = captureVideoCanvas(input, input.video),
+            selected = { ...input, audioNode: undefined, videoCanvas: undefined },
             audio = !!selected.audio,
             video = selected.video !== undefined;
+        let canvasCapture: CanvasVideoCapture | undefined;
         if (
             (!audio && !video) ||
             (audio && !this.input.audio) ||
@@ -561,6 +568,11 @@ export class BrowserRtcConnection {
             graphDestination = undefined;
             graphContext = undefined;
             document.removeEventListener("visibilitychange", visibility);
+            if (canvasCapture) {
+                streams.delete(canvasCapture.stream);
+                canvasCapture.close();
+                canvasCapture = undefined;
+            }
             for (const stream of streams)
                 for (const track of stream.getTracks()) {
                     track.stop();
@@ -679,7 +691,10 @@ export class BrowserRtcConnection {
                             audio: false,
                         }),
                     );
-                if ((audio && !graphSource) || selected.video === "camera")
+                if (
+                    (audio && !graphSource) ||
+                    (selected.video === "camera" && !canvasSource)
+                )
                     await permission(
                         navigator.mediaDevices.getUserMedia({
                             audio:
@@ -697,7 +712,7 @@ export class BrowserRtcConnection {
                                       }
                                     : false,
                             video:
-                                selected.video === "camera"
+                                selected.video === "camera" && !canvasSource
                                     ? {
                                           width: { ideal: 640, max: 640 },
                                           height: { ideal: 360, max: 360 },
@@ -714,6 +729,14 @@ export class BrowserRtcConnection {
                         }),
                     );
             }
+            if (canvasSource) {
+                canvasCapture = boundedCanvasVideoCapture(
+                    new MediaStream(),
+                    canvasSource,
+                    close,
+                );
+                own(canvasCapture.stream);
+            }
             const tracks = [...streams].flatMap((stream) => stream.getTracks());
             if (
                 tracks.length !== Number(audio) + Number(video) ||
@@ -724,7 +747,7 @@ export class BrowserRtcConnection {
                 tracks.some((t) => t.readyState !== "live")
             )
                 throw unsupported();
-            if (video) {
+            if (video && !canvasCapture) {
                 const stream = [...streams].find(
                     (v) => v.getVideoTracks().length,
                 )!;

@@ -11,6 +11,7 @@ import time
 
 ROLES = ("server", "helper", "browser")
 MAX_PROCESSES = 128
+MAX_TASKS_PER_PROCESS = 4096
 MAX_SAMPLES = 180
 
 
@@ -117,9 +118,29 @@ class ProcessResources:
                 except OSError:
                     resource_unavailable.add(key)
             try:
-                children = (self.proc / str(pid) / "task" / str(pid) / "children").read_text().split()
+                # A Worker-created subprocess belongs to the creating Linux
+                # task's children list, not necessarily the process leader's.
+                # Sample every bounded original task, then recheck the process
+                # start identity before adopting any observed child.
+                children = set()
+                with os.scandir(self.proc / str(pid) / "task") as entries:
+                    tasks = []
+                    for entry in entries:
+                        if entry.name.isdecimal():
+                            tasks.append(entry.name)
+                            if len(tasks) > MAX_TASKS_PER_PROCESS:
+                                raise ValueError("Owned task observation budget exceeded")
+                for task in tasks:
+                    try:
+                        observed = (self.proc / str(pid) / "task" / task / "children").read_text().split()
+                    except FileNotFoundError:
+                        continue  # Original task joined during this sample.
+                    children.update(int(child) for child in observed)
+                    if len(children) > MAX_PROCESSES:
+                        raise ValueError("Owned child observation budget exceeded")
+                if self._stat(pid)["start_ticks"] != started:
+                    continue  # Never adopt children from a reused process ID.
                 for child in children:
-                    child = int(child)
                     child_value = self._stat(child)
                     if child_value["parent"] != pid:
                         continue

@@ -1,0 +1,1118 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -138,7 +138,8 @@
+             admitted_at: oldest,
+             deadline: bound,
+             fallback_timestamp: member
+-                .ticks
++                .fallback_slots
++                .assign(member.ticks)
+                 .wrapping_mul(u64::from(member.codecs.info.clock_rate_hz / 50))
+                 as u32,
+             deferred: false,
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -171,6 +171,24 @@
+     offset: i128,
+     rate: u32,
+ }
++// Per target numeric output slots, not a capture clock or IO authority. Assign
++// only actual nonempty PCM once; retained outputs keep that immutable slot.
++// Forward idle cadence gaps remain visible. A second real recovery quantum gets
++// the next slot, never a duplicate timestamp or a synthetic silent interval.
++#[derive(Default)]
++struct FallbackSlots {
++    last: Option<u64>,
++}
++impl FallbackSlots {
++    fn assign(&mut self, cadence: u64) -> u64 {
++        let slot = match self.last.map(|old| old.wrapping_add(1)) {
++            Some(next) if cadence.wrapping_sub(next) >= (1u64 << 63) => next,
++            _ => cadence,
++        };
++        self.last = Some(slot);
++        slot
++    }
++}
+ struct SourceTimeline {
+     source: u128,
+     generation: u64,
+@@ -410,8 +428,6 @@
+         DecodeExpired,
+         InputDiscontinuity,
+         InputBudget,
+-        BurstTrim,
+-        MissedQuanta,
+         TakeExpired,
+         TakeDeferred,
+         TakeRefused,
+@@ -431,8 +447,11 @@
+         TargetPendingRefused,
+         TargetPendingFull,
+         TargetPendingSourceDeferred,
+-    }
+-    const NAMES: [&str; 30] = [
++        SourceCaptured,
++        SourceRecovered,
++        CadenceSkipped,
++    }
++    const NAMES: [&str; 31] = [
+         "refresh-refused",
+         "refresh-reset",
+         "collect-expired",
+@@ -442,8 +461,6 @@
+         "decode-expired",
+         "input-discontinuity",
+         "input-budget",
+-        "burst-trim",
+-        "missed-quanta",
+         "take-expired",
+         "take-deferred",
+         "take-refused",
+@@ -463,6 +480,9 @@
+         "target-pending-refused",
+         "target-pending-full",
+         "target-pending-source-deferred",
++        "source-captured",
++        "source-recovered",
++        "cadence-skipped",
+     ];
+     #[derive(Clone, Copy, Default)]
+     struct Counter {
+@@ -473,13 +493,13 @@
+     }
+     pub(super) struct Observations {
+         started: Instant,
+-        counters: [Counter; 30],
++        counters: [Counter; 31],
+     }
+     impl Default for Observations {
+         fn default() -> Self {
+             Self {
+                 started: Instant::now(),
+-                counters: [Counter::default(); 30],
++                counters: [Counter::default(); 31],
+             }
+         }
+     }
+@@ -525,6 +545,7 @@
+     codecs: Codecs,
+     pending: VecDeque<Chunk>,
+     target_pending: VecDeque<PendingAudioQuantum>,
++    fallback_slots: FallbackSlots,
+     next_input_timestamp: Option<u32>,
+     ticks: u64,
+     target_started: Instant,
+@@ -779,71 +800,6 @@
+                 consumed,
+                 samples: samples.into(),
+             });
+-        }
+-    }
+-    fn keep_next_original(&mut self) {
+-        // Preserve up to100ms of unplayed contiguous PCM after the existing
+-        // audio reorder wait. Insertion remains bounded to ten chunks/200ms.
+-        // Larger backlogs and a playing long original keep the prior trimming
+-        // rule, so steady fresh input does not sit behind an initial burst.
+-        let partial = self.pending.front().is_some_and(|chunk| chunk.started);
+-        let unplayed = self
+-            .pending
+-            .iter()
+-            .map(|chunk| chunk.samples.len())
+-            .sum::<usize>();
+-        if !partial && unplayed <= self.consumer.mix_rate as usize / 10 {
+-            return;
+-        }
+-        let keep = 2;
+-        let mut discarded = 0u64;
+-        while self.pending.len() > keep {
+-            if let Some(chunk) = self.pending.remove(if partial { 1 } else { 0 }) {
+-                self.observations.note(
+-                    AudioStage::BurstTrim,
+-                    Some(chunk.packet.frame.timestamp_rtp),
+-                    chunk.samples.len(),
+-                );
+-            }
+-            discarded += 1;
+-        }
+-        if discarded > 0 {
+-            tracing::trace!(target: "rvoip_core::audio_path", source = %self.controller.connection,
+-                discarded_chunks = discarded, "Guarded audio pending burst trimmed");
+-        }
+-    }
+-    fn skip_missed_quanta(&mut self, quanta: u64, size: usize) {
+-        let count = self
+-            .pending
+-            .iter()
+-            .map(|chunk| chunk.samples.len())
+-            .sum::<usize>();
+-        // Drop only elapsed quanta, bounded by the existing PCM budget. Always
+-        // keep the newest available quantum: a long idle gap must not consume
+-        // a sole fresh original packet. take() still checks its current source,
+-        // scene, route and original packet age before any output.
+-        let mut skip = quanta
+-            .saturating_sub(1)
+-            .saturating_mul(size as u64)
+-            .min(count.saturating_sub(size) as u64) as usize;
+-        if quanta > 1 {
+-            self.observations.note(
+-                AudioStage::MissedQuanta,
+-                self.pending.front().map(|c| c.packet.frame.timestamp_rtp),
+-                skip,
+-            );
+-        }
+-        while skip > 0 {
+-            let Some(chunk) = self.pending.front_mut() else {
+-                break;
+-            };
+-            let amount = skip.min(chunk.samples.len());
+-            chunk.samples.drain(..amount);
+-            chunk.consumed += amount;
+-            skip -= amount;
+-            if chunk.samples.is_empty() {
+-                self.pending.pop_front();
+-            }
+         }
+     }
+     fn take(
+@@ -994,6 +950,8 @@
+ }
+ pub(crate) struct GuardedAudioMixer {
+     cadence: Mutex<MixerCadence>,
++    #[cfg(test)]
++    test_tick_now: Mutex<Option<Instant>>,
+     rate: u32,
+     pub(super) members: Mutex<HashMap<ConnectionId, AudioMember>>,
+ }
+@@ -1002,6 +960,8 @@
+         Arc::new(Self {
+             rate,
+             cadence: Mutex::new(MixerCadence::default()),
++            #[cfg(test)]
++            test_tick_now: Mutex::new(None),
+             members: Mutex::new(HashMap::new()),
+         })
+     }
+@@ -1056,6 +1016,7 @@
+             codecs,
+             pending: VecDeque::new(),
+             target_pending: VecDeque::new(),
++            fallback_slots: FallbackSlots::default(),
+             next_input_timestamp: None,
+             ticks: 0,
+             previous_sources: Vec::new(),
+@@ -1082,19 +1043,39 @@
+             .unwrap_or_else(|p| p.into_inner())
+             .remove(id);
+     }
++    #[cfg(test)]
++    pub(super) fn observe_tick_for_test(&self, now: Instant, next: Instant) {
++        *self.test_tick_now.lock().unwrap() = Some(now);
++        self.cadence.lock().unwrap().next = Some(next);
++    }
++    #[cfg(test)]
++    pub(super) fn set_slots_for_test(&self, slots: u64) {
++        for member in self.members.lock().unwrap().values_mut() {
++            member.ticks = slots;
++        }
++    }
+     pub(crate) fn tick(&self) {
++        let now = Instant::now();
++        #[cfg(test)]
++        let now = self.test_tick_now.lock().unwrap().take().unwrap_or(now);
+         let mut members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+         let quanta = self
+             .cadence
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+-            .advance(Instant::now());
++            .advance(now);
+         let size = (self.rate / 50) as usize;
+-        let mut leases = Vec::new();
+-        let mut admissions = Vec::new();
+-        let mut inputs = HashMap::new();
++        let mut recovery = HashMap::new();
+         for (id, member) in &mut *members {
+             member.ticks = member.ticks.wrapping_add(quanta);
++            if quanta > 1 {
++                // Lateness is observed, not permission to discard original PCM.
++                member.observations.note(
++                    AudioStage::CadenceSkipped,
++                    member.next_input_timestamp,
++                    0,
++                );
++            }
+             if member.refresh().is_err() {
+                 member.observations.note(
+                     AudioStage::RefreshRefused,
+@@ -1106,32 +1087,63 @@
+                 member.waiting = None;
+                 continue;
+             }
++            // A fresh initial burst retains its ordinary first quantum. Later
++            // wakes repay actual retained source work, at most one extra round.
++            let delayed = quanta > 1 || member.waiting.is_some() || !member.pending.is_empty();
+             member.collect();
+-            member.skip_missed_quanta(quanta, size);
+-            let segments = member.take(size, &mut leases, &mut admissions);
+-            if !segments.is_empty() {
+-                member.keep_next_original();
+-            }
+-            inputs.insert(id.clone(), (member.participant.clone(), segments));
+-        }
+-        // Selected original PCM is metadata-owned before the source quantum
+-        // disappears. No source/target grant or delivery guard enters this FIFO.
++            recovery.insert(id.clone(), delayed);
++        }
++        for round in 0..2 {
++            let mut leases = Vec::new();
++            let mut admissions = Vec::new();
++            let mut inputs = HashMap::new();
++            for (id, member) in &mut *members {
++                if !recovery.contains_key(id) || (round != 0 && !recovery[id]) {
++                    continue;
++                }
++                let segments = member.take(size, &mut leases, &mut admissions);
++                let captured = segments
++                    .iter()
++                    .map(|segment| segment.samples.len())
++                    .sum::<usize>();
++                if captured != size {
++                    // A busy or incomplete original never spins in this wake.
++                    recovery.insert(id.clone(), false);
++                }
++                if captured != 0 {
++                    member.observations.note(
++                        if round == 0 {
++                            AudioStage::SourceCaptured
++                        } else {
++                            AudioStage::SourceRecovered
++                        },
++                        segments
++                            .first()
++                            .and_then(|segment| segment.clock.position.map(|p| p.rtp)),
++                        captured,
++                    );
++                    inputs.insert(id.clone(), (member.participant.clone(), segments));
++                }
++            }
++            if inputs.is_empty() {
++                break;
++            }
++            for member in members.values_mut() {
++                member.prune_target_pending();
++                if let Some(quantum) = PendingAudioQuantum::capture(member, &inputs, self.rate) {
++                    member.retain_target_quantum(quantum);
++                }
++            }
++            // Only owned PCM/provenance crosses rounds. No current authority or
++            // delivery guard survives while the next source is admitted.
++            drop(admissions);
++            drop(leases);
++        }
++        let mut outputs = Vec::new();
+         for member in members.values_mut() {
+             member.prune_target_pending();
+-            if let Some(quantum) = PendingAudioQuantum::capture(member, &inputs, self.rate) {
+-                member.retain_target_quantum(quantum);
+-            }
+-        }
+-        // End the producer interval before any target recovery acquires fresh
+-        // source/target authority. A refusal never waits while retaining readers.
+-        drop(admissions);
+-        drop(leases);
+-        let mut outputs = Vec::new();
+-        for member in members.values_mut() {
+             outputs.extend(member.prepare_target_outputs(self.rate));
+         }
+-        // Each prepared output already dropped its transient readers. Reserving
+-        // bounded egress capacity never publishes media before those drops.
+         for (permit, queued) in outputs {
+             permit.send(queued);
+         }
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene/tick_summary.rs
+@@ -0,0 +1,97 @@
++//! Fixed numeric lifecycle summaries; no packet log, payload or authority.
++use super::*;
++#[derive(Default)]
++struct Distribution {
++    count: u64,
++    total_us: u64,
++    maximum_us: u64,
++    over_20ms: u64,
++    over_200ms: u64,
++    first_over_20ms_at_us: Option<u64>,
++    last_over_20ms_at_us: Option<u64>,
++}
++fn micros(duration: Duration) -> u64 {
++    duration.as_micros().min(u128::from(u64::MAX)) as u64
++}
++impl Distribution {
++    fn record(&mut self, duration: Duration, at: Duration) {
++        let us = micros(duration);
++        self.count = self.count.saturating_add(1);
++        self.total_us = self.total_us.saturating_add(us);
++        self.maximum_us = self.maximum_us.max(us);
++        if us > 20_000 {
++            self.over_20ms = self.over_20ms.saturating_add(1);
++            self.first_over_20ms_at_us.get_or_insert(micros(at));
++            self.last_over_20ms_at_us = Some(micros(at));
++        }
++        self.over_200ms = self.over_200ms.saturating_add(u64::from(us > 200_000));
++    }
++}
++pub(super) struct TickSummary {
++    started: Instant,
++    created_unix_us: i64,
++    previous_wake: Option<Instant>,
++    stages: [Distribution; 6],
++}
++impl Default for TickSummary {
++    fn default() -> Self {
++        Self {
++            started: Instant::now(),
++            created_unix_us: chrono::Utc::now().timestamp_micros(),
++            previous_wake: None,
++            stages: std::array::from_fn(|_| Distribution::default()),
++        }
++    }
++}
++impl TickSummary {
++    pub(super) fn record(
++        &mut self,
++        woke: Instant,
++        acquired: Instant,
++        audio: Instant,
++        direct: Instant,
++        ended: Instant,
++    ) {
++        let at = woke.saturating_duration_since(self.started);
++        if let Some(previous) = self.previous_wake.replace(woke) {
++            self.stages[0].record(woke.saturating_duration_since(previous), at);
++        }
++        for (index, duration) in [
++            acquired.saturating_duration_since(woke),
++            ended.saturating_duration_since(acquired),
++            audio.saturating_duration_since(acquired),
++            direct.saturating_duration_since(audio),
++            ended.saturating_duration_since(direct),
++        ]
++        .into_iter()
++        .enumerate()
++        {
++            self.stages[index + 1].record(duration, at);
++        }
++    }
++    pub(super) fn emit(&self, scene: u128, session: &SessionId) {
++        for (stage, value) in [
++            "wake-gap",
++            "members-lock-wait",
++            "members-lock-held",
++            "adopt-metadata",
++            "audio",
++            "direct",
++        ]
++        .into_iter()
++        .zip(&self.stages)
++        {
++            if value.count == 0 {
++                continue;
++            }
++            tracing::debug!(target: "rvoip_core::scene_summary", scene = %scene, %session, stage,
++                created_unix_us = self.created_unix_us,
++                lifetime_us = micros(self.started.elapsed()), count = value.count,
++                total_us = value.total_us, maximum_us = value.maximum_us,
++                over_20ms = value.over_20ms, over_200ms = value.over_200ms,
++                first_over_20ms_at_us = ?value.first_over_20ms_at_us,
++                last_over_20ms_at_us = ?value.last_over_20ms_at_us,
++                "Guarded media scene terminal timing summary");
++        }
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -5,6 +5,8 @@
+ use super::*;
+ use rvoip_core_traits::peer_switch::PeerQuiescenceGuard;
+ use std::collections::HashMap;
++mod tick_summary;
++use tick_summary::TickSummary;
+ 
+ struct Destination {
+     owner: Weak<StreamController>,
+@@ -169,6 +171,7 @@
+     // Any committed audience or member change bounds delayed physical input.
+     pub(super) disclosure_changed_at: Mutex<std::time::Instant>,
+     audio: Arc<GuardedAudioMixer>,
++    tick_summary: Mutex<TickSummary>,
+ }
+ impl GuardedMediaScene {
+     pub(crate) fn new(
+@@ -179,6 +182,7 @@
+     ) -> Arc<Self> {
+         Arc::new(Self {
+             id: uuid::Uuid::new_v4().as_u128(),
++            tick_summary: Mutex::new(TickSummary::default()),
+             audio: GuardedAudioMixer::new(rate),
+             conversation,
+             session,
+@@ -532,8 +536,18 @@
+             .change_direct_subscriptions(expected, change, deadline, cancel, held)
+             .await
+     }
++    #[cfg(test)]
++    pub(super) fn observe_audio_tick_for_test(&self, now: Instant, next: Instant) {
++        self.audio.observe_tick_for_test(now, next);
++    }
++    #[cfg(test)]
++    pub(super) fn set_audio_slots_for_test(&self, slots: u64) {
++        self.audio.set_slots_for_test(slots);
++    }
+     pub(crate) fn tick(&self) {
++        let woke = Instant::now();
+         let mut members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        let acquired = Instant::now();
+         let controllers = members
+             .values()
+             .map(|m| m.controller.clone())
+@@ -595,7 +609,9 @@
+                 }
+             }
+         }
++        let audio_started = Instant::now();
+         self.audio.tick();
++        let direct_started = Instant::now();
+         for member in members.values_mut() {
+             for (logical, input) in &mut member.inputs {
+                 for _ in 0..32 {
+@@ -736,6 +752,21 @@
+                 }
+             }
+         }
++        drop(members);
++        let ended = Instant::now();
++        self.tick_summary
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .record(woke, acquired, audio_started, direct_started, ended);
++    }
++}
++
++impl Drop for GuardedMediaScene {
++    fn drop(&mut self) {
++        self.tick_summary
++            .get_mut()
++            .unwrap_or_else(|p| p.into_inner())
++            .emit(self.id, &self.session);
+     }
+ }
+ 
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/late_source_catchup.rs
+@@ -0,0 +1,429 @@
++//! Actual codec/route witnesses for late source capture, not synthetic outputs.
++use super::*;
++const BASE: u64 = 200u64 << 32;
++fn cadence(s: &Scene, quanta: u64) {
++    let now = Instant::now();
++    s.mixer
++        .observe_audio_tick_for_test(now, now - Duration::from_millis((quanta - 1) * 20));
++}
++fn publish(s: &Scene, index: usize, ordinal: u32, value: i16, known: bool) {
++    s.publish_clocked_ms(
++        index,
++        value,
++        ordinal.wrapping_mul(160),
++        20,
++        known.then(|| {
++            source_clock(
++                900 + index as u128,
++                8000,
++                0,
++                BASE,
++                Arc::new(std::sync::atomic::AtomicBool::new(true)),
++            )
++        }),
++    );
++}
++async fn frame_value(queued: QueuedMedia, value: i16, ordinal: Option<u32>) -> MediaFrame {
++    let frame = mixed_frame(queued).await;
++    let mut decoder =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap();
++    let decoded = decoder.decode(&frame.payload).unwrap();
++    assert_eq!(decoded.samples.len(), 160);
++    assert!(
++        (i32::from(decoded.samples[80]) - i32::from(value)).abs() < 350,
++        "exact original PCM lost: expected {value}, got {}",
++        decoded.samples[80]
++    );
++    if let Some(ordinal) = ordinal {
++        let clock = frame
++            .source_clock
++            .as_ref()
++            .expect("original source clock lost");
++        assert!(clock.supported && (clock.is_current)());
++        same_ntp(
++            clock.anchor.unwrap().ntp_time,
++            ntp_ms(BASE, u64::from(ordinal) * 20),
++        );
++    }
++    frame
++}
++async fn pair() -> Scene {
++    let s = Scene::new(&four()[..2], 8000).await;
++    s.bind(0, true).await;
++    s.bind(1, false).await;
++    s
++}
++#[tokio::test]
++async fn late_source_catchup_unblocked_original_control() {
++    let s = pair().await;
++    let mut out = s.port(1).take_egress().unwrap();
++    for n in 0..3 {
++        publish(&s, 0, n, 1000 + n as i16 * 2000, true);
++        cadence(&s, 1);
++        s.mixer.tick();
++        frame_value(out.try_recv().unwrap(), 1000 + n as i16 * 2000, Some(n)).await;
++        assert!(out.try_recv().is_err());
++        drop(s.policy.0.try_write().expect("current reader retained"));
++    }
++}
++#[tokio::test]
++async fn late_source_catchup_late_wake_keeps_each_original_quantum() {
++    let s = pair().await;
++    let mut out = s.port(1).take_egress().unwrap();
++    for n in 0..3 {
++        publish(&s, 0, n, 1000 + n as i16 * 2000, true);
++    }
++    cadence(&s, 3);
++    s.mixer.tick();
++    // On unchanged production this receives ordinal2/value5000: the two
++    // original, current, young quanta were discarded before target capture.
++    frame_value(
++        out.try_recv().expect("first original absent"),
++        1000,
++        Some(0),
++    )
++    .await;
++    frame_value(
++        out.try_recv().expect("bounded second round absent"),
++        3000,
++        Some(1),
++    )
++    .await;
++    assert!(
++        out.try_recv().is_err(),
++        "more than two source rounds escaped"
++    );
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("late capture retained authority"),
++    );
++    cadence(&s, 1);
++    s.mixer.tick();
++    frame_value(out.try_recv().unwrap(), 5000, Some(2)).await;
++    assert!(out.try_recv().is_err());
++    cadence(&s, 1);
++    s.mixer.tick();
++    assert!(out.try_recv().is_err());
++}
++#[tokio::test]
++async fn late_source_catchup_seven_originals_survive_sub_budget_burst() {
++    let s = pair().await;
++    let mut out = s.port(1).take_egress().unwrap();
++    for n in 0..7 {
++        publish(&s, 0, n, 1000 + n as i16 * 1000, true);
++    }
++    let mut next = 0;
++    for _ in 0..7 {
++        cadence(&s, 1);
++        s.mixer.tick();
++        let mut per_wake = 0;
++        while let Ok(queued) = out.try_recv() {
++            frame_value(queued, 1000 + next as i16 * 1000, Some(next)).await;
++            next += 1;
++            per_wake += 1;
++        }
++        assert!(per_wake <= 2);
++        drop(s.policy.0.try_write().expect("burst retained authority"));
++    }
++    assert_eq!(next, 7, "sub-budget original PCM was trimmed");
++}
++struct Busy {
++    inner: Arc<Policy>,
++    mode: Arc<AtomicUsize>,
++}
++impl MediaPolicy for Busy {
++    fn current_participant_receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.inner.current_participant_receive(scope, source)
++    }
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let mode = self.mode.load(Ordering::Acquire);
++        if (mode == 1
++            && scope.connection.as_str() == "a"
++            && matches!(scope.purpose, MediaPurpose::Publish))
++            || (mode == 2
++                && scope.connection.as_str() == "c"
++                && matches!(scope.purpose, MediaPurpose::Receive { .. }))
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        self.inner.current(scope)
++    }
++}
++async fn room() -> (Scene, Arc<AtomicUsize>) {
++    let mode = Arc::new(AtomicUsize::new(0));
++    let saved = mode.clone();
++    let s = Scene::new_inner(
++        &[
++            ("a", "alice", audio(), 0),
++            ("b", "bob", audio(), 0),
++            ("c", "carol", audio(), 0),
++            ("d", "dave", audio(), 0),
++        ],
++        8000,
++        Some(Box::new(move |inner| Arc::new(Busy { inner, mode: saved }))),
++    )
++    .await;
++    for i in 0..4 {
++        s.bind(i, i < 2).await;
++    }
++    (s, mode)
++}
++#[tokio::test]
++async fn late_source_catchup_mixed_older_source_does_not_shift_healthy_sibling() {
++    use crate::staged_streams::audio_subscriptions::{AudioSubscription, AudioSubscriptionChange};
++    let (s, mode) = room().await;
++    let controller = &s.controllers[3];
++    for change in [
++        AudioSubscriptionChange::Clear,
++        AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Participant(
++            s.controllers[1].origin_member.participant().clone(),
++        )]),
++    ] {
++        s.mixer
++            .change_subscriptions(
++                &controller.connection,
++                controller.revision(),
++                change,
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++            .unwrap();
++    }
++    let mut mixed = s.port(2).take_egress().unwrap();
++    let mut healthy = s.port(3).take_egress().unwrap();
++    let mut last_healthy = None;
++    for n in 0..3 {
++        mode.store(0, Ordering::Release);
++        publish(&s, 0, n, 2000 + n as i16 * 2000, true);
++        publish(&s, 1, n, 1000, false);
++        mode.store(1, Ordering::Release);
++        cadence(&s, 1);
++        s.mixer.tick();
++        frame_value(mixed.try_recv().unwrap(), 1000, None).await;
++        let f = frame_value(healthy.try_recv().unwrap(), 1000, None).await;
++        if let Some(previous) = last_healthy {
++            assert_eq!(f.timestamp_rtp.wrapping_sub(previous), 160);
++        }
++        last_healthy = Some(f.timestamp_rtp);
++        assert!(mixed.try_recv().is_err() && healthy.try_recv().is_err());
++        drop(
++            s.policy
++                .0
++                .try_write()
++                .expect("source refusal retained authority"),
++        );
++    }
++    mode.store(0, Ordering::Release);
++    publish(&s, 1, 3, 1000, false);
++    cadence(&s, 1);
++    s.mixer.tick();
++    let older_mix = frame_value(mixed.try_recv().unwrap(), 3000, None).await;
++    let clock = older_mix.source_clock.as_ref().unwrap();
++    assert!(
++        !clock.supported && clock.anchor.is_none(),
++        "mixed capture alignment was fabricated"
++    );
++    let next = frame_value(mixed.try_recv().unwrap(), 4000, Some(1)).await;
++    assert_eq!(
++        next.timestamp_rtp.wrapping_sub(older_mix.timestamp_rtp),
++        160
++    );
++    let sibling = frame_value(healthy.try_recv().unwrap(), 1000, None).await;
++    assert_eq!(
++        sibling.timestamp_rtp.wrapping_sub(last_healthy.unwrap()),
++        160
++    );
++    assert!(mixed.try_recv().is_err() && healthy.try_recv().is_err());
++    cadence(&s, 1);
++    s.mixer.tick();
++    frame_value(mixed.try_recv().unwrap(), 6000, Some(2)).await;
++    assert!(
++        healthy.try_recv().is_err(),
++        "healthy source was duplicated for another source debt"
++    );
++    drop(s.policy.0.try_write().expect("recovery retained authority"));
++}
++#[tokio::test]
++async fn late_source_catchup_assigned_expiry_hole_is_not_compacted() {
++    let (s, mode) = room().await;
++    let mut out = s.port(2).take_egress().unwrap();
++    publish(&s, 0, 0, 1000, false);
++    cadence(&s, 1);
++    s.mixer.tick();
++    let first = frame_value(out.try_recv().unwrap(), 1000, None).await;
++    publish(&s, 0, 1, 3000, false);
++    mode.store(2, Ordering::Release);
++    cadence(&s, 1);
++    s.mixer.tick();
++    assert!(out.try_recv().is_err());
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("pending original held authority"),
++    );
++    tokio::time::sleep(Duration::from_millis(210)).await;
++    mode.store(0, Ordering::Release);
++    publish(&s, 0, 2, 7000, false);
++    cadence(&s, 1);
++    s.mixer.tick();
++    let after = frame_value(out.try_recv().unwrap(), 7000, None).await;
++    assert_eq!(
++        after.timestamp_rtp.wrapping_sub(first.timestamp_rtp),
++        320,
++        "an assigned expired output slot was compacted"
++    );
++    assert!(out.try_recv().is_err());
++}
++#[tokio::test]
++async fn late_source_catchup_unknown_clock_slots_wrap_without_duplicate_rtp() {
++    let s = pair().await;
++    let mut out = s.port(1).take_egress().unwrap();
++    s.mixer
++        .set_audio_slots_for_test(u64::from(u32::MAX / 160) - 3);
++    for n in 0..3 {
++        publish(&s, 0, n, 1000 + n as i16 * 2000, false);
++    }
++    cadence(&s, 3);
++    s.mixer.tick();
++    let a = frame_value(out.try_recv().unwrap(), 1000, None).await;
++    let b = frame_value(out.try_recv().unwrap(), 3000, None).await;
++    assert!(a.source_clock.is_none() && b.source_clock.is_none());
++    assert_eq!(b.timestamp_rtp.wrapping_sub(a.timestamp_rtp), 160);
++    assert!(
++        b.timestamp_rtp < a.timestamp_rtp,
++        "fixture did not cross RTP wrap"
++    );
++    cadence(&s, 1);
++    s.mixer.tick();
++    let c = frame_value(out.try_recv().unwrap(), 5000, None).await;
++    assert_eq!(c.timestamp_rtp.wrapping_sub(b.timestamp_rtp), 160);
++    cadence(&s, 4);
++    s.mixer.tick();
++    assert!(out.try_recv().is_err());
++    publish(&s, 0, 3, 7000, false);
++    cadence(&s, 1);
++    s.mixer.tick();
++    let fresh = frame_value(out.try_recv().unwrap(), 7000, None).await;
++    assert_eq!(
++        fresh.timestamp_rtp.wrapping_sub(c.timestamp_rtp),
++        4 * 160,
++        "an empty forward cadence gap was compacted"
++    );
++}
++#[tokio::test]
++async fn late_source_catchup_supported_wrap_resampling_keeps_original_capture_positions() {
++    let opus = MediaFormat::Encoded {
++        name: "opus".into(),
++        clock_rate_hz: 48000,
++        channels: 1,
++        fmtp: None,
++    };
++    let s = Scene::new(
++        &[("a", "alice", audio(), 0), ("b", "bob", opus, 111)],
++        48000,
++    )
++    .await;
++    s.bind(0, true).await;
++    s.bind(1, false).await;
++    let mut out = s.port(1).take_egress().unwrap();
++    let wire = u32::MAX - 79;
++    for n in 0..3 {
++        s.publish_clocked_ms(
++            0,
++            3000,
++            wire.wrapping_add(n * 160),
++            20,
++            Some(source_clock(
++                950,
++                8000,
++                wire,
++                BASE,
++                Arc::new(std::sync::atomic::AtomicBool::new(true)),
++            )),
++        );
++    }
++    cadence(&s, 3);
++    s.mixer.tick();
++    let mut decoder =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(111, Some(48000), Some(1))
++            .unwrap();
++    let mut previous = None;
++    for n in 0..3 {
++        if n == 2 {
++            cadence(&s, 1);
++            s.mixer.tick();
++        }
++        let frame = mixed_frame(out.try_recv().expect("resampled original lost")).await;
++        assert_eq!(decoder.decode(&frame.payload).unwrap().samples.len(), 960);
++        if let Some(old) = previous {
++            assert_eq!(frame.timestamp_rtp.wrapping_sub(old), 960);
++        }
++        previous = Some(frame.timestamp_rtp);
++        let clock = frame.source_clock.as_ref().unwrap();
++        assert!(clock.supported && (clock.is_current)());
++        assert_eq!((clock.source_id, clock.generation), (950, 7));
++        assert_eq!(clock.anchor.unwrap().clock_rate, 48000);
++        same_ntp(clock.anchor.unwrap().ntp_time, ntp_ms(BASE, n * 20));
++    }
++    assert!(out.try_recv().is_err());
++}
++
++#[tokio::test]
++async fn late_source_catchup_repeated_source_contention_clears_continuous_debt_and_tail() {
++    let (s, mode) = room().await;
++    let mut primary = s.port(2).take_egress().unwrap();
++    let mut sibling = s.port(3).take_egress().unwrap();
++    let mut received = 0u32;
++    let mut last = None;
++    for n in 0..36u32 {
++        mode.store(0, Ordering::Release);
++        publish(&s, 0, n, 1000 + (n % 6) as i16 * 1000, true);
++        mode.store(usize::from(n % 9 < 2), Ordering::Release);
++        cadence(&s, if n % 9 == 2 { 3 } else { 1 });
++        s.mixer.tick();
++        let mut count = 0;
++        while let Ok(queued) = primary.try_recv() {
++            let value = 1000 + (received % 6) as i16 * 1000;
++            let frame = frame_value(queued, value, Some(received)).await;
++            frame_value(
++                sibling.try_recv().expect("independent recipient stalled"),
++                value,
++                Some(received),
++            )
++            .await;
++            if let Some(previous) = last {
++                assert_eq!(frame.timestamp_rtp.wrapping_sub(previous), 160);
++            }
++            last = Some(frame.timestamp_rtp);
++            received += 1;
++            count += 1;
++        }
++        assert!(count <= 2 && sibling.try_recv().is_err());
++        if n % 9 >= 3 {
++            assert_eq!(received, n + 1, "permanent source recovery backlog");
++        }
++        drop(
++            s.policy
++                .0
++                .try_write()
++                .expect("deferred source retained current authority"),
++        );
++    }
++    assert_eq!(received, 36);
++    cadence(&s, 1);
++    s.mixer.tick();
++    assert!(
++        primary.try_recv().is_err() && sibling.try_recv().is_err(),
++        "tail repeated"
++    );
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -984,7 +984,7 @@
+ }
+ 
+ #[tokio::test]
+-async fn guarded_mixer_missed_ticks_catch_up_without_delayed_original_playback() {
++async fn guarded_mixer_missed_ticks_recover_originals_inside_unchanged_age_bound() {
+     for (rate, start) in [(8000, 0u32), (48000, u32::MAX - 79)] {
+         let s = Scene::new(&four()[..2], rate).await;
+         s.bind(0, true).await;
+@@ -1002,71 +1002,67 @@
+                 .try_write()
+                 .expect("idle mixer retained source authority"),
+         );
+-        // The next call represents the current60ms quantum. Two scheduled
+-        //20ms quanta were missed; they cannot become delayed playout.
+         tokio::time::sleep(Duration::from_millis(65)).await;
+         s.mixer.tick();
+-        heard_labeled(
+-            out.try_recv().unwrap(),
+-            7000,
+-            "missed mixer ticks left original PCM behind the current quantum",
+-        )
+-        .await;
+-        s.mixer.tick();
+-        assert!(out.try_recv().is_err(), "missed audio replayed later");
+-        // A gap with no queued audio must not discard the sole fresh input.
++        heard(out.try_recv().unwrap(), 2000).await;
++        heard(out.try_recv().unwrap(), 4000).await;
++        assert!(out.try_recv().is_err(), "unbounded source recovery");
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 7000).await;
++        s.mixer.tick();
++        assert!(out.try_recv().is_err(), "original repeated");
+         tokio::time::sleep(Duration::from_millis(65)).await;
+         s.publish_at(0, 4000, start.wrapping_add(640));
+         s.mixer.tick();
+         heard(out.try_recv().unwrap(), 4000).await;
+-        s.mixer.tick();
+-        assert!(out.try_recv().is_err(), "fresh recovery audio repeated");
++        assert!(out.try_recv().is_err());
+         assert_eq!(budget, s.controllers[0].stream_open_budget());
+     }
+ }
+ 
+ #[tokio::test]
+-async fn guarded_mixer_initial_burst_does_not_delay_fresh_originals_under_steady_ticks() {
++async fn guarded_mixer_initial_burst_drains_without_permanent_continuous_backlog() {
+     for (rate, start) in [(8000, 0u32), (48000, u32::MAX - 79)] {
+         let s = Scene::new(&four()[..2], rate).await;
+         s.bind(0, true).await;
+         s.bind(1, true).await;
+         let mut out = s.port(1).take_egress().unwrap();
+-        let budget = s.controllers[0].stream_open_budget();
+-        // An initial contiguous burst fills the existing200ms input bound.
+-        // Thereafter one fresh20ms original arrives for each nominal tick.
+-        // No missed server tick exists for the cadence correction to recover.
+         for offset in 0..10 {
+             s.publish_at(0, 1000, start.wrapping_add(offset * 160));
+         }
+-        s.mixer.tick();
+-        heard(out.try_recv().unwrap(), 1000).await;
+-        for offset in 10..13 {
+-            s.publish_at(0, 7000, start.wrapping_add(offset * 160));
++        let mut received = 0;
++        for tick in 0..15 {
++            if tick != 0 {
++                s.publish_at(0, 7000, start.wrapping_add((tick + 9) * 160));
++            }
+             s.mixer.tick();
+-            let packet = out.try_recv().unwrap();
+-            packet.deliver(|_| async { Ok(()) }).await.unwrap();
++            let mut count = 0;
++            while let Ok(packet) = out.try_recv() {
++                heard(packet, if received < 10 { 1000 } else { 7000 }).await;
++                received += 1;
++                count += 1;
++            }
++            assert!(count <= 2);
++            if tick >= 9 {
++                assert_eq!(
++                    received,
++                    tick + 10,
++                    "continuous input retained permanent debt"
++                );
++            }
++            drop(
++                s.policy
++                    .0
++                    .try_write()
++                    .expect("source recovery retained authority"),
++            );
+         }
+-        s.publish_at(0, 7000, start.wrapping_add(13 * 160));
+-        s.mixer.tick();
+-        heard_labeled(
+-            out.try_recv().unwrap(),
+-            7000,
+-            "steady mixer retained old burst PCM ahead of fresh originals",
+-        )
+-        .await;
+-        drop(
+-            s.policy
+-                .0
+-                .try_write()
+-                .expect("queued PCM retained idle authority"),
+-        );
+-        assert_eq!(budget, s.controllers[0].stream_open_budget());
+-    }
+-}
+-
+-#[tokio::test]
+-async fn guarded_mixer_playing_long_original_keeps_its_remainder_and_latest_future_packet() {
++        assert_eq!(received, 24);
++    }
++}
++
++#[tokio::test]
++async fn guarded_mixer_playing_long_original_preserves_every_current_future_packet() {
+     for rate in [8000, 48000] {
+         let s = Scene::new(&four()[..2], rate).await;
+         s.bind(0, true).await;
+@@ -1077,9 +1073,9 @@
+         s.publish_at(0, 3000, 800);
+         s.publish_at(0, 5000, 960);
+         s.publish_at(0, 7000, 1120);
+-        for _ in 0..5 {
++        for expected in [1000, 1000, 1000, 1000, 1000, 3000, 5000, 7000] {
+             s.mixer.tick();
+-            heard(out.try_recv().unwrap(), 1000).await;
++            heard(out.try_recv().unwrap(), expected).await;
+             drop(
+                 s.policy
+                     .0
+@@ -1088,12 +1084,7 @@
+             );
+         }
+         s.mixer.tick();
+-        heard(out.try_recv().unwrap(), 7000).await;
+-        s.mixer.tick();
+-        assert!(
+-            out.try_recv().is_err(),
+-            "trimmed future originals replayed later"
+-        );
++        assert!(out.try_recv().is_err(), "original repeated");
+         assert_eq!(budget, s.controllers[0].stream_open_budget());
+     }
+ }
+@@ -1308,7 +1299,7 @@
+     }
+ }
+ #[tokio::test]
+-async fn guarded_mixer_clock_tracks_discarded_initial_pcm_and_missed_quanta() {
++async fn guarded_mixer_clock_tracks_required_budget_trim_and_preserved_late_originals() {
+     let s = Scene::new(&four()[..2], 8000).await;
+     s.bind(0, true).await;
+     s.bind(1, false).await;
+@@ -1330,7 +1321,10 @@
+     let next = mixed_frame(out.try_recv().unwrap()).await;
+     let b = next.source_clock.unwrap().anchor.unwrap();
+     let output_quanta = next.timestamp_rtp.wrapping_sub(first.timestamp_rtp) / 160;
+-    assert!(output_quanta >= 3, "stall did not skip nominal quanta");
++    assert_eq!(
++        output_quanta, 1,
++        "late original RTP progression was changed"
++    );
+     same_ntp(
+         b.ntp_time,
+         ntp_ms(100u64 << 32, 100 + u64::from(output_quanta) * 20),
+@@ -1630,3 +1624,5 @@
+ mod tick_publication;
+ 
+ mod lookahead;
++
++mod late_source_catchup;

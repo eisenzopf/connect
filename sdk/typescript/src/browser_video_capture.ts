@@ -10,8 +10,48 @@ const unsupported = () =>
         "Canvas capture must retain bounded dimensions and original native frames",
     );
 
+/** An explicit canvas source is never inferred from an arbitrary supplied track.
+ * Validate before taking track ownership or requesting a device permission. */
+export function captureVideoCanvas(
+    options: {
+        videoCanvas?: HTMLCanvasElement;
+        videoDeviceId?: string;
+        stream?: MediaStream;
+    },
+    source: "camera" | "screen" | undefined,
+): HTMLCanvasElement | undefined {
+    if (options.videoCanvas === undefined) return;
+    if (
+        source !== "camera" ||
+        options.videoDeviceId !== undefined ||
+        (options.stream && options.stream.getVideoTracks().length !== 0)
+    )
+        throw new ConnectError(
+            "invalid-request",
+            "Canvas input selects camera video without a device or supplied video track",
+        );
+    validateCanvas(options.videoCanvas);
+    return options.videoCanvas;
+}
+
+function validateCanvas(canvas: HTMLCanvasElement): void {
+    if (
+        typeof HTMLCanvasElement !== "function" ||
+        !(canvas instanceof HTMLCanvasElement) ||
+        !Number.isInteger(canvas.width) ||
+        canvas.width < 1 ||
+        canvas.width > 640 ||
+        !Number.isInteger(canvas.height) ||
+        canvas.height < 1 ||
+        canvas.height > 360 ||
+        typeof canvas.captureStream !== "function" ||
+        typeof MutationObserver !== "function"
+    )
+        throw unsupported();
+}
+
 /** Capture original canvas changes without adding another sampling clock.
- * The original sender owns the30fps output bound before signaling. No scaling,
+ * The original RTC sender or WT encoder owns the 30fps output bound. No scaling,
  * frame rewriting, timestamp offset or claim about decoded playback is added.
  */
 export function boundedCanvasVideoCapture(
@@ -19,24 +59,9 @@ export function boundedCanvasVideoCapture(
     canvas: HTMLCanvasElement,
     fail: (error: Error) => void,
 ): CanvasVideoCapture {
-    if (
-        typeof HTMLCanvasElement !== "function" ||
-        !(canvas instanceof HTMLCanvasElement)
-    )
-        throw unsupported();
+    validateCanvas(canvas);
     const width = canvas.width,
         height = canvas.height;
-    if (
-        !Number.isInteger(width) ||
-        width < 1 ||
-        width > 640 ||
-        !Number.isInteger(height) ||
-        height < 1 ||
-        height > 360 ||
-        typeof canvas.captureStream !== "function" ||
-        typeof MutationObserver !== "function"
-    )
-        throw unsupported();
     let owned: MediaStream | undefined,
         observer: MutationObserver | undefined,
         closed = false;

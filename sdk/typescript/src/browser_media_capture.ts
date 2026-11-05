@@ -8,6 +8,11 @@ import {
     type BrowserCaptureDevices,
 } from "./browser_capture.js";
 import { ConnectError } from "./errors.js";
+import {
+    boundedCanvasVideoCapture,
+    captureVideoCanvas,
+    type CanvasVideoCapture,
+} from "./browser_video_capture.js";
 
 export interface BrowserMediaCaptureOptions extends BrowserCaptureDevices {
     audioStreamId?: string;
@@ -17,6 +22,8 @@ export interface BrowserMediaCaptureOptions extends BrowserCaptureDevices {
     stream?: MediaStream;
     /** Borrows output zero of a caller-owned running 48 kHz AudioContext node. Supplied streams may contain only video. */
     audioNode?: AudioNode;
+    /** Borrows fixed-size canvas changes; selects camera video without a device or supplied video track. */
+    videoCanvas?: HTMLCanvasElement;
     timeoutMs?: number;
     signal?: AbortSignal;
     state?: (state: "active" | "paused" | "closed", error?: Error) => void;
@@ -68,6 +75,7 @@ export class BrowserMediaCapture {
     private worklet?: AudioWorkletNode;
     private silent?: GainNode;
     private video?: HTMLVideoElement;
+    private canvasCapture?: CanvasVideoCapture;
     private callback?: number;
     private timer?: ReturnType<typeof setTimeout>;
     private stopOwner?: () => void;
@@ -139,7 +147,11 @@ export class BrowserMediaCapture {
                     "Capture must use this Connection's negotiated sender Streams",
                 );
         }
-        const sourceNode = captureAudioNode(options, !!audio);
+        const sourceNode = captureAudioNode(options, !!audio),
+            sourceCanvas = captureVideoCanvas(
+                options,
+                video ? (options.videoSource ?? "camera") : undefined,
+            );
         const devices = captureDevices(options, !!video, !!options.stream);
         if (
             options.videoSource === "screen" &&
@@ -155,7 +167,7 @@ export class BrowserMediaCapture {
             (video && !support.videoFrames) ||
             (!options.stream &&
                 ((audio && !sourceNode && !support.microphone) ||
-                    (video &&
+                    (video && !sourceCanvas &&
                         !(options.videoSource === "screen"
                             ? support.screen
                             : support.camera))))
@@ -166,7 +178,7 @@ export class BrowserMediaCapture {
             );
         const capture = new BrowserMediaCapture(
             connection,
-            { ...options, audioNode: undefined },
+            { ...options, audioNode: undefined, videoCanvas: undefined },
             timeout,
         );
         try {
@@ -188,7 +200,8 @@ export class BrowserMediaCapture {
                             audio: false,
                         }),
                     );
-                const camera = video && options.videoSource !== "screen";
+                const camera =
+                    video && options.videoSource !== "screen" && !sourceCanvas;
                 if ((audio && !sourceNode) || camera)
                     await capture.permission(
                         navigator.mediaDevices.getUserMedia({
@@ -222,6 +235,14 @@ export class BrowserMediaCapture {
                                 : false,
                         }),
                     );
+            }
+            if (sourceCanvas) {
+                capture.canvasCapture = boundedCanvasVideoCapture(
+                    new MediaStream(),
+                    sourceCanvas,
+                    (error) => capture.close(error),
+                );
+                capture.own(capture.canvasCapture.stream);
             }
             const tracks = [...capture.streams].flatMap((s) => s.getTracks());
             if (
@@ -623,6 +644,11 @@ export class BrowserMediaCapture {
         for (const [track, handler] of this.ended)
             track.removeEventListener("ended", handler);
         this.ended.clear();
+        if (this.canvasCapture) {
+            this.streams.delete(this.canvasCapture.stream);
+            this.canvasCapture.close();
+            this.canvasCapture = undefined;
+        }
         for (const stream of this.streams)
             for (const track of stream.getTracks()) track.stop();
         this.streams.clear();

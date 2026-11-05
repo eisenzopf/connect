@@ -1709,6 +1709,16 @@
       "path": "patches/rvoip/connect-canonical-webrtc-original-binding-cleanup.patch",
       "sha256": "720ad7cb6aae93f403bc579a86786e9c79f359853546b85af8434e02f0d81fcd",
       "source": "G6-058 exact original WebRTC cleanup captures adapter and binding identity, rejoins original physical errors and Core-owned terminal acknowledgment, and avoids the service two-lookup retirement race. Terminal admission/receipt precede exact route removal and quota release; cancellation/replay never substitutes absence or creates an adapter task. Fourteen focused controls are drafted, not compiled or executed; v194 typed attribution remains unproven."
+    },
+    {
+      "path": "patches/rvoip/gate6-original-audio-source-continuity.patch",
+      "sha256": "2cc816e6e7f3c76fb3bceaf312d89f1b6ad7c54e10e0afee879baa1af8edf55e",
+      "source": "G6-058 bounded recovery of valid original source PCM below unchanged age/queue limits: at most two real capture rounds, immutable per-target unsupported-clock slots and bounded scene timing summaries. Source clocks, grants, ten-chunk/200ms limits and target delivery attempts preserved. Eight new codec/mixed/expiry/wrap controls and updated loss expectations are uncompiled and unexecuted; no matrix qualification."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-subscription-post-ready-metadata.patch",
+      "sha256": "1a714eb9b870c9462c60d6483dcc37e586efe390f39e1fb3cbb1b561f5876965",
+      "source": "G6-058 original resource-changing subscription retries only effect-free final routing metadata contention after endpoint preparation, retaining its original candidate, allocation, quiescence, cancellation and absolute deadline. Actual IO/model commit remain once; real Capacity and permanent refusals are preserved. Seven private focused controls drafted and unexecuted; v192 causal attribution remains unproven."
     }
   ]
 }

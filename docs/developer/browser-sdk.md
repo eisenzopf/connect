@@ -306,6 +306,44 @@ server-side permission or media ownership.
 records the isolated six-source programme and ownership checks; it does not
 qualify a transport-matrix cell.
 
+### Caller-owned canvases
+
+`BrowserCaptureInput.videoCanvas` explicitly borrows a real `HTMLCanvasElement`
+with fixed intrinsic dimensions from 1–640 by 1–360. Select `video: "camera"`.
+The SDK creates one native canvas capture track and resize watcher for this
+Connection; an existing device track cannot claim this source mode. Do not
+combine the canvas with `videoDeviceId`, screen capture, or a supplied video
+track. An optional owned stream may supply audio only. With both `audioNode`
+and `videoCanvas`, the optional stream must be empty.
+
+```ts
+const capture = await connection.capture({
+    audio: true,
+    audioNode: applicationMixOutput,
+    video: "camera",
+    videoCanvas: applicationCanvas,
+}, { timeoutMs: 5000, signal: captureCancellation.signal });
+// Close this Connection's derived track and graph edge. The application keeps
+// its canvas, draw clock, source node and AudioContext for another capture.
+capture.close();
+```
+
+Canvas frames retain their native capture timing. The SDK adds no redraw,
+requestFrame timer, timestamp rewrite or fallback decoder. RTC retains the
+original 30fps/1Mbps sender bounds established before signaling; WT uses its
+existing 640×360 VP8 encoder, original capture-clock mapping and rolling
+30-accepted-frame-per-second limit. Canvas capture-rate metadata is not
+invented when the browser omits it. A resize, ended track, cancellation or
+Connection retirement closes the owned capture and watcher. Prepared and
+original Connections may capture the same caller canvas concurrently; closing
+one cannot close the other or alter the canvas. Ordinary device and arbitrary
+supplied-track capture retain their existing strict constraints.
+
+`BrowserMediaCaptureOptions.videoCanvas` supplies the same explicit canvas to
+lower-level negotiated WT capture. This option changes no HTTP, OpenAPI or
+UCTP payload and grants no server authority. Actual decoding, handoff quality,
+frame age and cleanup remain separately measured requirements.
+
 `connection.end(input, mutation)` returns the original observable Operation;
 observing its completed receipt retires local media owners while preserving
 other Connections and the control client. Physical retirement also closes

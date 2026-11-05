@@ -1,5 +1,7 @@
 import { fileSha256 } from "./lib/transport_file_hash.mjs";
 import { nativeMatrixLifecycle } from "./lib/native_matrix_lifecycle.mjs";
+import { nativeProgrammeBridge } from "./lib/native_programme_bridge.mjs";
+import { NATIVE_PROGRAMME_PROFILE } from "./lib/native_programme_profile.mjs";
 import { waitForProgrammeOffset } from "./lib/transport_programme_clock.mjs";
 import { liveVideoProgramFromManifest } from "./lib/transport_live_video_program.mjs";
 // Actual public Node SDK/native helper scenario. No Store or provider IO.
@@ -31,6 +33,11 @@ const privateRoot = await realpath(join(root, ".local"));
 assert.ok((await realpath(inputPath)).startsWith(privateRoot + "/") && output.startsWith(privateRoot + "/"));
 assert.equal((await stat(inputPath)).mode & 0o077, 0);
 const input = JSON.parse(await readFile(inputPath, "utf8"));
+const programmeWorker = nativeProgrammeBridge();
+if (programmeWorker) {
+    assert.equal(input.matrix_programme_profile, NATIVE_PROGRAMME_PROFILE);
+    assert.ok(mediaWorkload && input.matrix_resource_directory);
+} else assert.notEqual(input.matrix_programme_profile, NATIVE_PROGRAMME_PROFILE);
 const matrixLifecycle = mediaWorkload && input.matrix_resource_directory
     ? nativeMatrixLifecycle(input.matrix_resource_directory) : undefined;
 assert.equal(input.format, "connect/transport-conversation-input/1");
@@ -74,7 +81,8 @@ const clients = new Map();
 const observedHelpers = new Set();
 const dataFailures = new WeakMap();
 const ownerNativeMessageIds = [];
-const report = { format: mediaWorkload ? "connect/transport-conversation-control/2" : "connect/transport-conversation-control/1", passed: false, checks: [],
+const report = { format: programmeWorker ? "connect/transport-conversation-control/3" : mediaWorkload ? "connect/transport-conversation-control/2" : "connect/transport-conversation-control/1", passed: false, checks: [],
+    ...(programmeWorker ? {programme_profile: NATIVE_PROGRAMME_PROFILE, programme_owner: programmeWorker.owner} : {}),
     source_revision: input.source_revision, binary_sha256: input.binary_sha256, server_binary_sha256: input.server_binary_sha256 ?? input.binary_sha256, signing_algorithm: input.signing_algorithm, history_page_counts: [],
     physical_peer_sha256: mediaWorkload ? input.physical_peer_sha256 : null,
     node: process.version, host: nativeHost(), network_profile: input.network_profile, plan_sha256: hash(await readFile(join(privateDirectory, "plan.json"))),
@@ -568,9 +576,16 @@ try {
     if (matrixLifecycle) {
         const observed = await matrixLifecycle.retired({observedHelpers: observedHelpers.size,
             helpersJoined: report.all_observed_helpers_joined, closeFailed: report.helper_close_failed === true});
-        report.retirement = observed.retirement;
-        report.native_idle_observation = observed.idle_observer;
-        report.passed = Boolean(report.passed && observed.retirement.passed && observed.idle_observer.passed);
+        if (observed.worker_parent_idle_required) {
+            // Provisional programme/helper cleanup; only the original parent can
+            // attest this Worker's actual exit and the unchanged T+10 observer.
+            report.programme_cleanup = observed.retirement;
+            report.passed = Boolean(report.passed && observed.retirement.passed);
+        } else {
+            report.retirement = observed.retirement;
+            report.native_idle_observation = observed.idle_observer;
+            report.passed = Boolean(report.passed && observed.retirement.passed && observed.idle_observer.passed);
+        }
     }
     for (const [role, actor] of Object.entries(input.actors))
         if (hash(await readFile(actor.config)) !== report.sdk_config_hashes[role]) report.passed = false;
@@ -579,4 +594,6 @@ try {
     await writeFile(output, encode(report), { flag: "wx", mode: 0o600 });
 }
 process.stdout.write(JSON.stringify({ conversation_control_passed: report.passed, checks: report.checks.length, cell_qualified: false }) + "\n");
-if (!report.passed) process.exitCode = 1;
+// A sealed programme failure remains a failed verdict, not a Worker crash.
+// The original parent derives its CLI exit from the final merged report.
+if (!report.passed && !programmeWorker) process.exitCode = 1;

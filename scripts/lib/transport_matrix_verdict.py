@@ -24,6 +24,7 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
     from .transport_matrix_execution import browser_selection_verified
     from .matrix_idle import idle_verdict
     from .native_matrix_idle import native_idle_verdict
+    from .native_programme_profile import PROFILE
     from .native_matrix_authority import authority_verdict
 
     if not re.fullmatch(r"[0-9a-f]{64}", report_sha256):
@@ -115,7 +116,10 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
     retirement = observation.get("retirement", {})
     record("owned-drain-and-resource-reclamation", bool(idle),
            (idle_verdict(idle) if browser else native_idle_verdict(idle)) and retirement.get("passed") is True
-           and (browser or len(report.get("servers", [])) == 2)
+           and (browser or (len(report.get("servers", [])) == 2
+               and observation.get("programme_profile") == PROFILE
+               and observation.get("programme_worker") == idle.get("retirement", {}).get("programme_worker")
+               and retirement == idle.get("retirement")))
            and all(s.get("original_joined") is True for s in report.get("servers", [])),
            "idle_resources")
     if browser:

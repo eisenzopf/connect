@@ -27,6 +27,24 @@ and creates no synchronous validation subprocess. Each exchange checks current
 authorization; reads are neither cached nor retried. Mutations continue to use
 `raw.validate` and `raw.request` with their captured original logical intent.
 
+Canonical browser capture accepts explicit caller-owned sources:
+
+```ts
+const capture = await connection.capture({
+  audio: true,
+  audioNode: applicationMixOutput, // running real-time 48 kHz AudioContext
+  video: "camera",
+  videoCanvas: applicationCanvas, // fixed intrinsic size, at most 640 × 360
+}, { timeoutMs: 5000, signal });
+capture.close(); // retires only this Connection's derived tracks/graph edges
+```
+
+The application keeps its original canvas, draw clock, AudioNode and context.
+The canvas cannot be combined with a camera device ID, screen capture or a
+supplied video track. Both transport paths retain their existing 30fps, codec,
+deadline and capture ownership bounds. Ordinary camera and supplied-track
+capture remain separate explicit inputs.
+
 Source and API documentation: https://github.com/eisenzopf/connect
 
 MIT licensed; see LICENSE.

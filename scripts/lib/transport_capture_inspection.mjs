@@ -19,7 +19,7 @@ export function verifyInspectedDataReceipt(observation, receipt) {
     assert.equal(observation.data_exchange_receipt_sha256, dataReceiptDigest(receipt));
 }
 
-if (!isMainThread) {
+if (!isMainThread && workerData?.profile === "connect/replacement-capture-inspection/1") {
     const { path, maximumBytes, maximumPackets } = workerData;
     const file = await open(path, "r");
     let bytes;
@@ -55,10 +55,10 @@ if (!isMainThread) {
 // Keep the result private until the exact worker exits successfully. Even
 // timeout/error paths join their worker before rejecting the original call.
 export async function inspectReplacementCapture(path, maximumBytes, maximumPackets) {
-    assert.ok(isMainThread && typeof path === "string");
+    assert.ok(typeof path === "string");
     assert.ok(Number.isSafeInteger(maximumBytes) && maximumBytes > 0 && maximumBytes <= 80 * 1024 * 1024);
     assert.ok(Number.isSafeInteger(maximumPackets) && maximumPackets >= 0 && maximumPackets <= 16000);
-    const worker = new Worker(new URL(import.meta.url), { workerData: { path, maximumBytes, maximumPackets } });
+    const worker = new Worker(new URL(import.meta.url), { workerData: { profile: "connect/replacement-capture-inspection/1", path, maximumBytes, maximumPackets } });
     let value, failure;
     worker.on("message", message => { value = message; });
     worker.on("error", error => { failure = error; });

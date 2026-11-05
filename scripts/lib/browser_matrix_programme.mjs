@@ -102,7 +102,8 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             const result={operation_id:intent.operation,source:before.connection.id,target:moved.connection.id,
                 source_index:route.index,ordinal:intent.ordinal,scheduled_start_ms:intent.scheduledStartMs,
                 actual_start_ms:began-original.originMs,completed_ms:performance.now()-original.originMs,
-                original_capture_closed:true,source_master_continues:source.stream.getTracks().every(track=>track.readyState==='live')};
+                original_capture_closed:true,source_master_kind:'caller-owned-audio-node+caller-owned-canvas',
+                source_master_continues:source.ownerLive()};
             check(result.source_master_continues,'Movement cannot restart or retire the original master');
             report.moves.push(result);await journal({kind:'move-completed',...result});
         }catch(error){

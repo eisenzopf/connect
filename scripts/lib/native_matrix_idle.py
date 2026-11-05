@@ -19,6 +19,7 @@ from .matrix_macos_resources import MacProcessResources
 from .matrix_owner_diagnostics import idle_owner_diagnostics
 from .operational_process_resources import ProcessResources
 from .native_matrix_process import NativeOwner, publish
+from .native_programme_profile import original_worker_owner, worker_join_verified
 
 ROLES = ("server", "helper")
 FIELDS = ("live_processes", "sampled_threads", "sampled_open_descriptors", "sampled_rss_bytes")
@@ -53,7 +54,7 @@ def restoration(baseline, sample):
 
 def native_idle_verdict(report):
     try:
-        if report["format"] != "connect/native-matrix-idle-observation/1" or report["policy"] != POLICY:
+        if report["format"] != "connect/native-matrix-idle-observation/2" or report["policy"] != POLICY:
             return False
         baseline, samples, terminal = report["baseline"], report["samples"], report["terminal_monotonic_seconds"]
         if (not 4 <= len(samples) <= 340 or type(terminal) not in (int, float)
@@ -68,6 +69,12 @@ def native_idle_verdict(report):
                 or restoration(baseline, baseline) or restoration(baseline, final)):
             return False
         retirement = report["retirement"]
+        owner, original_terminal = report["programme_owner"], report["original_terminal_monotonic_seconds"]
+        if (not original_worker_owner(owner)
+                or not owner["started_monotonic_seconds"] <= report["original_baseline_monotonic_seconds"] < original_terminal
+                or retirement.get("original_terminal_monotonic_seconds") != original_terminal
+                or not worker_join_verified(retirement.get("programme_worker"), owner, original_terminal)):
+            return False
         if (retirement.get("passed") is not True or retirement.get("original_helpers_joined") is not True
                 or retirement.get("original_clients_closed") is not True
                 or type(retirement.get("observed_helpers")) is not int or retirement["observed_helpers"] < 1
@@ -101,6 +108,7 @@ class NativeMatrixIdle:
         self.directory, self.sampler, self.health, self.clock = Path(directory), sampler, health, clock
         self.samples, self.baselines = [], []
         self.baseline = self.terminal = self.retirement = self.result = None
+        self.programme_owner = self.original_baseline = self.original_terminal = None
         self.next_sample = self.next_process = 0
         self.failure = None
 
@@ -126,12 +134,14 @@ class NativeMatrixIdle:
         if path.is_symlink() or path.stat().st_size > 4096:
             raise ValueError("Original native resource request bound")
         value = json.loads(path.read_text())
-        expected = {"phase", "monotonic_seconds"} | ({"retirement"} if phase == "retired" else set())
+        expected = {"phase", "monotonic_seconds", "programme_owner"} | ({"retirement"} if phase == "retired" else set())
         when = value.get("monotonic_seconds")
         if (set(value) != expected or value["phase"] != phase or type(when) not in (int, float)
                 or not math.isfinite(when) or not 0 <= self.clock() - when < 30):
             raise ValueError("Original same-kernel native resource request required")
-        return value
+        if not original_worker_owner(value.get("programme_owner")):
+            raise ValueError("Original programme Worker identity required")
+        return dict(value, original_monotonic_seconds=when)
 
     def respond(self, phase, passed):
         path = self.directory / ("resources-" + phase + "-response.json")
@@ -156,7 +166,12 @@ class NativeMatrixIdle:
         now = self.clock()
         if self.baseline is None:
             if not self.baselines:
-                if self.request("baseline") is not None:
+                request = self.request("baseline")
+                if request is not None:
+                    self.programme_owner = request["programme_owner"]
+                    self.original_baseline = request["original_monotonic_seconds"]
+                    if self.programme_owner["started_monotonic_seconds"] > self.original_baseline:
+                        raise ValueError("Original Worker must exist before baseline")
                     self.baselines.append(self.take("baseline"))
             elif now - self.baselines[0]["monotonic_seconds"] >= 1:
                 self.baselines.append(self.take("baseline"))
@@ -172,7 +187,10 @@ class NativeMatrixIdle:
         if self.terminal is None:
             request = self.request("terminal")
             if request is not None:
+                if request["programme_owner"] != self.programme_owner:
+                    raise ValueError("Original programme Worker changed at terminal")
                 self.terminal = request["monotonic_seconds"]
+                self.original_terminal = request["original_monotonic_seconds"]
                 self.respond("terminal", True)
                 self.next_sample = 0
             elif now >= self.next_process:
@@ -184,6 +202,8 @@ class NativeMatrixIdle:
         if self.retirement is None:
             request = self.request("retired")
             if request is not None:
+                if request["programme_owner"] != self.programme_owner:
+                    raise ValueError("Original programme Worker changed at retirement")
                 self.retirement = request["retirement"]
         if self.result is not None:
             if self.retirement is not None:
@@ -194,8 +214,10 @@ class NativeMatrixIdle:
         if now >= self.terminal + POLICY["idle_seconds"]:
             final = self.take("idle-final")
             failures = restoration(self.baseline, final)
-            self.result = dict(format="connect/native-matrix-idle-observation/1", policy=POLICY,
+            self.result = dict(format="connect/native-matrix-idle-observation/2", policy=POLICY,
                 passed=False, terminal_monotonic_seconds=self.terminal,
+                programme_owner=self.programme_owner, original_baseline_monotonic_seconds=self.original_baseline,
+                original_terminal_monotonic_seconds=self.original_terminal,
                 observed_seconds=self.clock() - self.terminal, baseline=self.baseline,
                 baseline_samples=self.baselines, samples=self.samples, retirement=self.retirement or {},
                 final_failures=failures, process_summary=self.sampler.summary(),
@@ -206,7 +228,7 @@ class NativeMatrixIdle:
                 self.respond("retired", self.result["passed"])
 
     def finish(self):
-        result = self.result or dict(format="connect/native-matrix-idle-observation/1", policy=POLICY,
+        result = self.result or dict(format="connect/native-matrix-idle-observation/2", policy=POLICY,
             passed=False, failure=self.failure or "original-native-idle-observation-incomplete",
             samples=self.samples, cell_qualified=False)
         if self.failure:
@@ -225,7 +247,11 @@ def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, 
     code, failure = None, None
     cleanup = dict(original_supervisor_joined=False, original_workers_joined=False, forced=False)
     try:
-        owner = NativeOwner(command, directory / "owner", log, cwd=cwd, env=env, wrap=wrap)
+        # Place the captured original deadline inside the ordinary supervised
+        # command: a namespace's explicit env -i must not discard it. `env`
+        # execs Node in that same original child PID; no second controller.
+        owned_command = ["env", "CONNECT_NATIVE_PROGRAMME_DEADLINE_MONOTONIC_SECONDS=" + str(cutoff), *command]
+        owner = NativeOwner(owned_command, directory / "owner", log, cwd=cwd, env=env, wrap=wrap)
         while owner.identity() is None:
             if time.monotonic() >= min(cutoff, began + 5) or not owner.alive():
                 raise ValueError("Original native supervisor did not start")
@@ -259,7 +285,7 @@ def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, 
     finally:
         if owner is not None:
             cleanup = owner.close()
-        observation = idle.finish() if idle else dict(format="connect/native-matrix-idle-observation/1",
+        observation = idle.finish() if idle else dict(format="connect/native-matrix-idle-observation/2",
             policy=POLICY, passed=False, failure=failure or "native-idle-observer-not-started")
         measured = sampler.summary() if sampler else None
         complete = (failure is None and cleanup["original_supervisor_joined"] and cleanup["original_workers_joined"]
@@ -268,6 +294,6 @@ def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, 
         profile = dict(format="connect/native-workload-process-profile/1", elapsed_seconds=time.monotonic() - began,
             sample_count=measured["sample_count"] if measured else 0, groups=measured["groups"] if measured else {},
             **cleanup, failure=failure, collection_complete=bool(complete), resource_reclamation_qualified=False,
-            scope="Original native workload process observations; the separate idle report recomputes resource restoration.", cell_qualified=False)
+            scope="Original native workload process observations including the original Node parent and its programme Worker; the separate idle report requires the exact natural Worker join and recomputes resource restoration.", cell_qualified=False)
         (directory / "process-resources.json").write_text(json.dumps(profile, indent=2) + "\n")
     return code, profile, observation

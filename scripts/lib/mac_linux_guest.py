@@ -255,7 +255,10 @@ def run(root):
                     capture = NativeCapture(output / "packet-capture", env=os.environ.copy(),
                         media_workload=True, mac_linux_guest=True, **observed_capture)
                     capture.start_observed()
-            owned = subprocess.Popen(config["command"], cwd=root, env=os.environ.copy(),
+            command_env = os.environ.copy()
+            if config.get("role") == "helper":
+                command_env["CONNECT_NATIVE_PROGRAMME_DEADLINE_MONOTONIC_SECONDS"] = str(started + config["timeout_seconds"])
+            owned = subprocess.Popen(config["command"], cwd=root, env=command_env,
                 stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
             state["original_pid"] = owned.pid
             state["original_start_ticks"] = stat_fields(Path(f"/proc/{owned.pid}/stat").read_text())["start_ticks"]

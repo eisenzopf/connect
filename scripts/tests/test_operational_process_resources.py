@@ -53,6 +53,19 @@ class ProcessBoundary(unittest.TestCase):
         text=json.dumps(sample.summary())
         self.assertNotIn("secret",text);self.assertNotIn("private name",text);self.assertNotIn(str(self.proc),text)
 
+    def test_nonleader_worker_task_children_remain_in_original_helper_group(self):
+        task = self.proc / "200/task/207"; task.mkdir(); (task / "children").write_text("201")
+        self.write(201, 200, 200, 4, 5, 7)
+        sampler = self.sampler(); value = sampler.sample()["groups"]["helper"]
+        self.assertEqual(value["live_processes"], 2)
+        self.assertEqual(value["sampled_rss_bytes"], 10 * 4096)
+        self.assertTrue(any(key[0] == 201 for key in sampler.known))
+        # A nonleader's stale PID entry cannot borrow a different current parent.
+        self.write(201, 100, 100, 99, 900, 900)
+        value = sampler.sample()["groups"]["helper"]
+        self.assertEqual(value["live_processes"], 1)
+        self.assertFalse((201, 99) in sampler.known)
+
     def test_reused_root_pid_cannot_adopt_unrelated_descendants(self):
         sample=self.sampler();sample.sample()
         self.write(300,0,300,99,900,900,"301")

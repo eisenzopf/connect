@@ -579,7 +579,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     client_ip=remote.client_ip if remote is not None else None if namespace is None else namespace.client_ip,
                     media_source_directory=str(PRIVATE / "av-sources") if media_workload else None,
                     media_output_directory=str(PRIVATE / "av-received") if media_workload else None,
-                    matrix_resource_directory=str(PRIVATE / "process-profile") if media_workload else None), indent=2) + "\n").encode())
+                    matrix_resource_directory=str(PRIVATE / "process-profile") if media_workload else None,
+                    matrix_programme_profile="connect/native-programme-worker/1" if media_workload else None,
+                    matrix_programme_budget_seconds=300 if media_workload else None), indent=2) + "\n").encode())
                 sdk_inputs = runpy.run_path(str(ROOT / "scripts/check-gate-6-transports.py"))["sdk_inputs"]
                 sdk_before = sdk_inputs()
                 report["sdk_dist_inputs"] = sdk_before
@@ -598,7 +600,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         source_revision=report["source_revision"], signing_algorithm=signing_algorithm,
                         network_profile=network_profile,
                         wrap=None if namespace is None else namespace.client_command, **authority_options)
-                command = ["node", "scripts/check-transport-conversation.mjs", str(input_path), str(OUTPUT / "conversation.json")]
+                command = ["node", "scripts/run-native-programme-worker.mjs" if media_workload else "scripts/check-transport-conversation.mjs", str(input_path), str(OUTPUT / "conversation.json")]
                 if media_workload:
                     command.append("--media-workload")
                 elif data_workload:
@@ -664,7 +666,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     report["conversation_report_sha256"] = digest(OUTPUT / "conversation.json")
                 observed = json.loads((OUTPUT / "conversation.json").read_text())
                 report["conversation_control"] = {key: observed.get(key) for key in (
-                    "passed", "checks", "all_observed_helpers_joined", "workload_mode",
+                    "passed", "checks", "all_observed_helpers_joined", "workload_mode", "programme_profile", "programme_worker",
                     "maximum_active_members_observed", "concurrent_session_intents_observed",
                     "actual_connection_workload_observed", "actual_topology_verified", "retirement")}
                 report["movement"] = observed.get("device_movement", {})

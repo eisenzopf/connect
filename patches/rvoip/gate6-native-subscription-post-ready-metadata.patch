@@ -1,0 +1,807 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -16,12 +16,12 @@
+     collections::{BTreeMap, BTreeSet},
+     future::Future,
+     sync::{
++        atomic::{AtomicU32, Ordering},
+         Arc, Mutex, Weak,
+-        atomic::{AtomicU32, Ordering},
+     },
+     time::{Duration, Instant},
+ };
+-use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc};
++use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
+ use tokio_util::sync::CancellationToken;
+ 
+ #[derive(Debug, thiserror::Error)]
+@@ -2959,124 +2959,206 @@
+             let guard = tokio::select! {biased;_=cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
+             quiesced.push(guard);
+         }
+-        let members = routes.as_ref().map(|routes| {
+-            routes
+-                .scene()
+-                .members
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
+-        });
+-        let member = if let Some(members) = members.as_ref() {
+-            let target = members
+-                .get(&self.connection)
+-                .ok_or(StreamControlError::NotReady)?;
+-            if !Arc::ptr_eq(&target.controller, self) {
+-                return Err(MediaTransitionError::Conflict.into());
+-            }
+-            Some((&**members, target))
+-        } else {
+-            None
+-        };
+-        {
+-            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+-            let bindings = selected
+-                .iter()
+-                .map(|p| p.port.0.binding.clone())
+-                .collect::<Vec<_>>();
+-            let prepared = if state.model.is_initial_preparation() {
+-                if bindings.is_empty()
+-                    || selected.iter().any(|p| {
+-                        let port = p.port.0.state.lock().unwrap_or_else(|p| p.into_inner());
+-                        !port.ready || port.status != PortStatus::Prepared
+-                    })
+-                {
+-                    return Err(StreamControlError::NotReady);
++        // The endpoint has already confirmed this exact prepared candidate.
++        // Retry only effect-free routing metadata validation, never adapter IO,
++        // handle allocation, offer/answer, quiescence, or the model commit.
++        let commit_started = tokio::time::Instant::now();
++        let mut metadata_turns = 0u32;
++        loop {
++            let committed =
++                (|| -> std::result::Result<(), media_subscriptions::PreparedCommitError> {
++                    if cancellation.is_cancelled()
++                        || control_cancel.is_cancelled()
++                        || self.shutdown.is_cancelled()
++                    {
++                        return Err(StreamControlError::Cancelled.into());
++                    }
++                    if tokio::time::Instant::now() >= deadline {
++                        return Err(StreamControlError::Deadline.into());
++                    }
++                    self.check_credential_snapshot(&credential)?;
++                    if let Some(control) = &control {
++                        control.valid()?;
++                    }
++                    let members = routes.as_ref().map(|routes| {
++                        routes
++                            .scene()
++                            .members
++                            .lock()
++                            .unwrap_or_else(|p| p.into_inner())
++                    });
++                    let member = if let Some(members) = members.as_ref() {
++                        let target = members
++                            .get(&self.connection)
++                            .ok_or(StreamControlError::NotReady)?;
++                        if !Arc::ptr_eq(&target.controller, self) {
++                            return Err(MediaTransitionError::Conflict.into());
++                        }
++                        Some((&**members, target))
++                    } else {
++                        None
++                    };
++                    {
++                        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++                        let bindings = selected
++                            .iter()
++                            .map(|p| p.port.0.binding.clone())
++                            .collect::<Vec<_>>();
++                        let prepared = if state.model.is_initial_preparation() {
++                            if bindings.is_empty()
++                                || selected.iter().any(|p| {
++                                    let port =
++                                        p.port.0.state.lock().unwrap_or_else(|p| p.into_inner());
++                                    !port.ready || port.status != PortStatus::Prepared
++                                })
++                            {
++                                return Err(StreamControlError::NotReady.into());
++                            }
++                            Some(PreparedMediaObservation::new(
++                                self,
++                                expected,
++                                bindings.clone(),
++                                candidate.cancellation.clone(),
++                            ))
++                        } else {
++                            None
++                        };
++                        let scope = self.scope(&credential.principal, MediaPurpose::Control);
++                        let lease = match (control.as_ref(), prepared.as_ref()) {
++                            (Some(control), Some(prepared)) => {
++                                ControlRead::Held(control.prepared(prepared)?)
++                            }
++                            _ => control_read(self.policy.as_ref(), &scope, control.as_ref())?,
++                        };
++                        let auth = lease.authority();
++                        Self::check(&scope, auth)?;
++                        if state.closed
++                            || cancellation.is_cancelled()
++                            || self.shutdown.is_cancelled()
++                        {
++                            return Err(StreamControlError::Cancelled.into());
++                        }
++                        if tokio::time::Instant::now() >= deadline {
++                            return Err(StreamControlError::Deadline.into());
++                        }
++                        if selected.iter().any(|p| {
++                            let s = p.port.0.state.lock().unwrap_or_else(|p| p.into_inner());
++                            !s.ready
++                                || (p.is_new && s.status != PortStatus::Prepared)
++                                || (!p.is_new
++                                    && !matches!(s.status, PortStatus::Active | PortStatus::Paused))
++                        }) {
++                            return Err(StreamControlError::NotReady.into());
++                        }
++                        let mut route_commit = routes
++                            .as_ref()
++                            .map(|routes| {
++                                routes.lock(
++                                    self,
++                                    &state,
++                                    &scope,
++                                    auth,
++                                    control.as_ref(),
++                                    member,
++                                    &bindings,
++                                )
++                            })
++                            .transpose()
++                            .map_err(
++                                media_subscriptions::PreparedCommitError::routing_validation,
++                            )?;
++                        let mut audio_commit =
++                            audio_selection.as_ref().map(|p| p.lock()).transpose()?;
++                        state.model.commit(
++                            &auth.current(),
++                            candidate.ticket.as_ref().unwrap(),
++                            &bindings,
++                            Instant::now(),
++                        )?;
++                        for port in &candidate.ports {
++                            let mut status = port.state.lock().unwrap_or_else(|p| p.into_inner());
++                            let ticket = port.ticket();
++                            assert!(
++                                ticket.commit_from(&port.baseline),
++                                "private staged port generation changed outside controller"
++                            );
++                            status.status = PortStatus::Active;
++                        }
++                        for old in &removed {
++                            old.retire();
++                        }
++                        state.active = selected
++                            .iter()
++                            .map(|p| {
++                                (
++                                    p.port.0.binding.negotiated.requested.logical_id.clone(),
++                                    p.port.0.clone(),
++                                )
++                            })
++                            .collect();
++                        if let (Some(selection), Some(guard)) =
++                            (&audio_selection, audio_commit.as_mut())
++                        {
++                            selection.commit(guard);
++                        }
++                        if let Some(prepared) = prepared {
++                            prepared.commit();
++                            state.initial_observation = Some(prepared);
++                        }
++                        if let (Some(routes), Some(commit)) = (&routes, route_commit.as_mut()) {
++                            commit.commit(routes);
++                        }
++                        candidate.committed = true;
++                    }
++                    Ok(())
++                })();
++            match committed {
++                Ok(()) => {
++                    if routes.is_some() {
++                        tracing::debug!(target: "rvoip_core::prepared_subscription_commit",
++                            connection = %self.connection, expected_revision = expected,
++                            stage = "atomic-commit", metadata_turns,
++                            elapsed_us = commit_started.elapsed().as_micros() as u64,
++                            prepared_ports = selected.len(), outcome = "committed",
++                            "Original prepared subscription commit finished");
++                    }
++                    break;
+                 }
+-                Some(PreparedMediaObservation::new(
+-                    self,
+-                    expected,
+-                    bindings.clone(),
+-                    candidate.cancellation.clone(),
+-                ))
+-            } else {
+-                None
+-            };
+-            let scope = self.scope(&credential.principal, MediaPurpose::Control);
+-            let lease = match (control.as_ref(), prepared.as_ref()) {
+-                (Some(control), Some(prepared)) => ControlRead::Held(control.prepared(prepared)?),
+-                _ => control_read(self.policy.as_ref(), &scope, control.as_ref())?,
+-            };
+-            let auth = lease.authority();
+-            Self::check(&scope, auth)?;
+-            if state.closed || cancellation.is_cancelled() || self.shutdown.is_cancelled() {
+-                return Err(StreamControlError::Cancelled);
+-            }
+-            if tokio::time::Instant::now() >= deadline {
+-                return Err(StreamControlError::Deadline);
+-            }
+-            if selected.iter().any(|p| {
+-                let s = p.port.0.state.lock().unwrap_or_else(|p| p.into_inner());
+-                !s.ready
+-                    || (p.is_new && s.status != PortStatus::Prepared)
+-                    || (!p.is_new && !matches!(s.status, PortStatus::Active | PortStatus::Paused))
+-            }) {
+-                return Err(StreamControlError::NotReady);
+-            }
+-            let mut route_commit = routes
+-                .as_ref()
+-                .map(|routes| {
+-                    routes.lock(
+-                        self,
+-                        &state,
+-                        &scope,
+-                        auth,
+-                        control.as_ref(),
+-                        member,
+-                        &bindings,
++                Err(media_subscriptions::PreparedCommitError::MetadataBusy) => {
++                    metadata_turns = metadata_turns.saturating_add(1);
++                    // The closure released every scene/state/source authority
++                    // guard. Keep only the original candidate and quiescence
++                    // custody, with the unchanged cancellation/deadline budget.
++                    if let Err(error) = media_subscriptions::metadata_wait(
++                        self.shutdown.clone(),
++                        cancellation.clone(),
++                        control_cancel.clone(),
++                        deadline,
+                     )
+-                })
+-                .transpose()?;
+-            let mut audio_commit = audio_selection.as_ref().map(|p| p.lock()).transpose()?;
+-            state.model.commit(
+-                &auth.current(),
+-                candidate.ticket.as_ref().unwrap(),
+-                &bindings,
+-                Instant::now(),
+-            )?;
+-            for port in &candidate.ports {
+-                let mut status = port.state.lock().unwrap_or_else(|p| p.into_inner());
+-                let ticket = port.ticket();
+-                assert!(
+-                    ticket.commit_from(&port.baseline),
+-                    "private staged port generation changed outside controller"
+-                );
+-                status.status = PortStatus::Active;
+-            }
+-            for old in &removed {
+-                old.retire();
+-            }
+-            state.active = selected
+-                .iter()
+-                .map(|p| {
+-                    (
+-                        p.port.0.binding.negotiated.requested.logical_id.clone(),
+-                        p.port.0.clone(),
+-                    )
+-                })
+-                .collect();
+-            if let (Some(selection), Some(guard)) = (&audio_selection, audio_commit.as_mut()) {
+-                selection.commit(guard);
+-            }
+-            if let Some(prepared) = prepared {
+-                prepared.commit();
+-                state.initial_observation = Some(prepared);
+-            }
+-            if let (Some(routes), Some(commit)) = (&routes, route_commit.as_mut()) {
+-                commit.commit(routes);
+-            }
+-            candidate.committed = true;
+-        }
+-        drop(members);
++                    .await
++                    {
++                        tracing::debug!(target: "rvoip_core::prepared_subscription_commit",
++                            connection = %self.connection, expected_revision = expected,
++                            stage = "routing-metadata-wait", metadata_turns, ?error,
++                            elapsed_us = commit_started.elapsed().as_micros() as u64,
++                            prepared_ports = selected.len(), outcome = "refused",
++                            "Original prepared subscription commit finished");
++                        return Err(error);
++                    }
++                }
++                Err(media_subscriptions::PreparedCommitError::Refused(error)) => {
++                    if routes.is_some() {
++                        tracing::debug!(target: "rvoip_core::prepared_subscription_commit",
++                            connection = %self.connection, expected_revision = expected,
++                            stage = "current-commit-validation", metadata_turns, ?error,
++                            elapsed_us = commit_started.elapsed().as_micros() as u64,
++                            prepared_ports = selected.len(), outcome = "refused",
++                            "Original prepared subscription commit finished");
++                    }
++                    return Err(error);
++                }
++            }
++        }
+         drop(quiesced);
+         self.notify_selection_change();
+         Ok(())
+@@ -3656,7 +3738,7 @@
+ pub use video_feedback::VideoFeedbackRoute;
+ 
+ mod video_repair;
+-pub use video_repair::{MAX_VIDEO_REPAIRS, VideoRepair};
++pub use video_repair::{VideoRepair, MAX_VIDEO_REPAIRS};
+ 
+ mod transport_update;
+ pub use transport_update::TransportUpdateSlot;
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
+@@ -382,6 +382,35 @@
+     }
+ }
+ 
++/// Only a failed read-only prepared-routing validation can request another
++/// metadata turn. This type cannot carry an engine/adapter/capacity error into
++/// the retry arm, and the actual graph commit never returns MetadataBusy.
++#[derive(Debug)]
++pub(super) enum PreparedCommitError {
++    MetadataBusy,
++    Refused(StreamControlError),
++}
++impl PreparedCommitError {
++    pub(super) fn routing_validation(error: StreamControlError) -> Self {
++        match error {
++            StreamControlError::Backpressure | StreamControlError::MetadataBusy => {
++                Self::MetadataBusy
++            }
++            error => Self::Refused(error),
++        }
++    }
++}
++impl From<StreamControlError> for PreparedCommitError {
++    fn from(error: StreamControlError) -> Self {
++        Self::Refused(error)
++    }
++}
++impl From<MediaTransitionError> for PreparedCommitError {
++    fn from(error: MediaTransitionError) -> Self {
++        Self::Refused(error.into())
++    }
++}
++
+ /// Staged alongside the real media candidate. Owns no publication permission;
+ /// validation uses that candidate's actual held operation at prepare and commit.
+ pub(super) struct PreparedRoutes {
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -266,6 +266,7 @@
+     }
+ }
+ struct Adapter {
++    prepare_calls: AtomicUsize,
+     ports: Mutex<BTreeMap<StreamId, AdapterMediaPort>>,
+     mode: AtomicUsize,
+     audio_pt: AtomicUsize,
+@@ -277,6 +278,7 @@
+ impl Adapter {
+     fn new() -> Arc<Self> {
+         Arc::new(Self {
++            prepare_calls: AtomicUsize::new(0),
+             ports: Mutex::new(BTreeMap::new()),
+             mode: AtomicUsize::new(0),
+             audio_pt: AtomicUsize::new(0),
+@@ -303,6 +305,7 @@
+         _: tokio::time::Instant,
+         _: CancellationToken,
+     ) -> ControlResult<()> {
++        self.prepare_calls.fetch_add(1, Ordering::AcqRel);
+         let mode = self.mode.load(Ordering::Acquire);
+         for preparation in ports {
+             if preparation.is_new {
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -2042,3 +2042,5 @@
+ async fn resource_subscription_metadata_collision_rechecks_current_source_authorization() {
+     resource_subscription_metadata_case("revoke").await;
+ }
++
++mod prepared_commit;
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1204,9 +1204,35 @@
+         let expected = plan.selection.expected_revision();
+         let revision = if plan.resources {
+             let guard = broker.begin_subscriptions(a.clone(), expected, plan.media)?;
+-            match core.change_staged_media_and_subscriptions_with_held(&route.session,id,expected,guard.plan().selected(),&std::collections::BTreeSet::new(),plan.selection.routing(),deadline,a.invocation_cancellation(),held).await {
+-                Ok(())=>{guard.committed();flow.confirmed(expected+1,a.envelope().id());expected+1},
+-                Err(e)=>return Err(match e {rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(e)=>guard.error(e),e=>core_error(e)}),
++            match core
++                .change_staged_media_and_subscriptions_with_held(
++                    &route.session,
++                    id,
++                    expected,
++                    guard.plan().selected(),
++                    &std::collections::BTreeSet::new(),
++                    plan.selection.routing(),
++                    deadline,
++                    a.invocation_cancellation(),
++                    held,
++                )
++                .await
++            {
++                Ok(()) => {
++                    guard.committed();
++                    flow.confirmed(expected + 1, a.envelope().id());
++                    expected + 1
++                }
++                Err(error) => {
++                    tracing::debug!(target: "rvoip_uctp::native_subscription_commit",
++                        connection = %id, operation = a.envelope().scope(super::Scope::Operation),
++                        stage = "resource-change", expected_revision = expected, ?error,
++                        "Original subscription engine refused before outcome capture");
++                    return Err(match error {
++                        rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(error) => guard.error(error),
++                        error => core_error(error),
++                    });
++                }
+             }
+         } else {
+             // Hold the same negotiation slot across a route-only transaction.
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/prepared_commit.rs
+@@ -0,0 +1,342 @@
++//! Real source-state exclusion after the original adapter has made its new
++//! Data port ready. No synthetic clock, ready receipt, graph commit or rerun.
++use super::*;
++use std::{future::Future, pin::Pin, task::Poll};
++
++async fn poll_once<F: Future>(mut future: Pin<&mut F>) -> Poll<F::Output> {
++    std::future::poll_fn(|cx| Poll::Ready(future.as_mut().poll(cx))).await
++}
++
++async fn data_candidate() -> (Scene, Arc<HeldPolicy>, Arc<Held>) {
++    let (scene, policy) =
++        held_scene_with_source(&[Medium::Audio, Medium::Data], &[Medium::Audio]).await;
++    apply(
++        &scene,
++        MediaSubscriptionChange {
++            selection: None,
++            audio: Some(AudioSubscriptionChange::Subscribe(vec![
++                AudioSubscription::Stream(MediaStreamRef {
++                    connection: scene.f.a.connection.clone(),
++                    logical: desired(Medium::Audio).logical_id,
++                }),
++            ])),
++            direct: None,
++        },
++    )
++    .await
++    .unwrap();
++    let mut selected = scene
++        .f
++        .b
++        .active_bindings()
++        .into_iter()
++        .map(|binding| binding.negotiated)
++        .collect::<Vec<_>>();
++    let mut data = scene.f.aa.port(Medium::Data).binding().negotiated.clone();
++    data.requested.direction = StreamDirection::Send;
++    selected.push(data);
++    let held = Arc::new(Held {
++        domain: scene.f.policy.clone(),
++        guard: Arc::new(scene.f.policy.0.clone().read_owned().await),
++        target: scene.f.b.connection.clone(),
++        expected: scene.f.b.revision(),
++        change: MediaSubscriptionChange {
++            selection: None,
++            audio: None,
++            direct: Some(DirectSubscriptionChange::Subscribe(vec![
++                DirectSubscription::new(
++                    &scene.f.a,
++                    desired(Medium::Data).logical_id.clone(),
++                    desired(Medium::Data).logical_id,
++                ),
++            ])),
++        },
++        selected: Some(selected),
++    });
++    (scene, policy, held)
++}
++
++async fn original_audio(scene: &Scene, output: &mut mpsc::Receiver<QueuedMedia>, sequence: u32) {
++    scene.publish(Medium::Audio, sequence);
++    scene.scene.tick();
++    assert_audio(outgoing(output).await).await;
++}
++
++async fn joined(scene: &Scene) {
++    assert_eq!(
++        scene.f.b.shutdown(deadline()).await,
++        0,
++        "original target cleanup must join"
++    );
++    assert_eq!(
++        scene.f.a.shutdown(deadline()).await,
++        0,
++        "original source cleanup must join"
++    );
++    assert_eq!(scene.f.ba.outstanding.load(Ordering::Acquire), 0);
++    assert_eq!(scene.f.aa.outstanding.load(Ordering::Acquire), 0);
++}
++
++async fn after_ready(mode: &str) {
++    let (scene, policy, held) = data_candidate().await;
++    let original = scene.f.b.active_bindings()[0].clone();
++    let mut audio_output = scene.f.ba.port(Medium::Audio).take_egress().unwrap();
++    original_audio(&scene, &mut audio_output, 811).await;
++    let budget = scene.f.b.stream_open_budget();
++    let calls = scene.f.ba.prepare_calls.load(Ordering::Acquire);
++    let cancel = CancellationToken::new();
++    let until = if mode == "deadline" {
++        tokio::time::Instant::now() + Duration::from_millis(40)
++    } else {
++        deadline()
++    };
++    scene.f.ba.mode.store(1, Ordering::Release);
++    let replace = BTreeSet::new();
++    let mut update = Box::pin(scene.f.b.change_selected_and_subscriptions(
++        held.expected,
++        held.selected.as_ref().unwrap(),
++        &replace,
++        scene.scene.clone(),
++        &held.change,
++        until,
++        cancel.clone(),
++        Arc::new(held.clone()),
++    ));
++    assert!(
++        poll_once(update.as_mut()).await.is_pending(),
++        "the original adapter must await its one release"
++    );
++    tokio::time::timeout(Duration::from_millis(100), scene.f.ba.entered.notified())
++        .await
++        .unwrap();
++    assert_eq!(scene.f.ba.prepare_calls.load(Ordering::Acquire), calls + 1);
++    let prepared = scene.f.ba.port(Medium::Data);
++    assert_eq!(prepared.status(), PortStatus::Prepared);
++    assert!(
++        prepared.0.state.lock().unwrap().ready,
++        "the original adapter actually made this port ready"
++    );
++    let binding = prepared.binding().clone();
++    let mut output = prepared.take_egress().unwrap();
++    let source_state = scene.f.a.state.lock().unwrap();
++    scene.f.ba.release.notify_one();
++    // This poll resumes the same adapter call and reaches the failed source
++    // try_lock synchronously. BEFORE returns Ready(Err(Backpressure)) here;
++    // AFTER yields only the original bounded metadata wait.
++    let observed = poll_once(update.as_mut()).await;
++    assert!(
++        observed.is_pending(),
++        "post-ready source exclusion must retain the original candidate, got {observed:?}"
++    );
++    assert_eq!(scene.f.b.revision(), held.expected);
++    assert_eq!(scene.f.b.active_bindings().len(), 1);
++    assert_eq!(scene.f.b.stream_open_budget(), (budget.0 + 1, budget.1));
++    assert_eq!(scene.f.ba.prepare_calls.load(Ordering::Acquire), calls + 1);
++    assert!(
++        output.try_recv().is_err(),
++        "private preparation must not publish Data"
++    );
++    assert!(
++        scene.scene.members.try_lock().is_ok(),
++        "metadata wait must release scene custody"
++    );
++    assert!(
++        scene.f.b.state.try_lock().is_ok(),
++        "metadata wait must release target metadata"
++    );
++
++    let outcome = match mode {
++        "recover" => {
++            drop(source_state);
++            tokio::time::timeout_at(until, &mut update).await.unwrap()
++        }
++        "cancel" => {
++            cancel.cancel();
++            let result = tokio::time::timeout(Duration::from_millis(100), &mut update)
++                .await
++                .unwrap();
++            drop(source_state);
++            result
++        }
++        "deadline" => {
++            let result = tokio::time::timeout(Duration::from_millis(200), &mut update)
++                .await
++                .unwrap();
++            drop(source_state);
++            result
++        }
++        "revoke" => {
++            policy.collision.denied.store(true, Ordering::Release);
++            drop(source_state);
++            tokio::time::timeout_at(until, &mut update).await.unwrap()
++        }
++        "poison" => {
++            drop(source_state);
++            let source = scene.f.a.clone();
++            assert!(std::thread::spawn(move || {
++                let _guard = source.state.lock().unwrap();
++                panic!("controlled original source metadata poison after endpoint readiness");
++            })
++            .join()
++            .is_err());
++            tokio::time::timeout_at(until, &mut update).await.unwrap()
++        }
++        "drop" => {
++            drop(update);
++            drop(source_state);
++            assert_eq!(scene.f.b.revision(), held.expected);
++            assert_eq!(prepared.status(), PortStatus::Retired);
++            assert_eq!(scene.f.ba.prepare_calls.load(Ordering::Acquire), calls + 1);
++            original_audio(&scene, &mut audio_output, 813).await;
++            drop(held);
++            joined(&scene).await;
++            return;
++        }
++        _ => panic!("unknown fixture mode"),
++    };
++    drop(update);
++    assert_eq!(
++        scene.f.ba.prepare_calls.load(Ordering::Acquire),
++        calls + 1,
++        "no adapter preparation or peer confirmation replay"
++    );
++    assert_eq!(
++        scene.f.b.stream_open_budget(),
++        (budget.0 + 1, budget.1),
++        "cancellation never refunds the original attempted open"
++    );
++    // Only the new Data route participates in this transaction. Exercise the
++    // unchanged, currently authorized original audio route after the same
++    // candidate either commits or rolls back. A poisoned source is a separate
++    // permanent-refusal control and cannot promise subsequent media usability.
++    if mode != "poison" {
++        original_audio(&scene, &mut audio_output, 813).await;
++    }
++    if mode == "recover" {
++        outcome.unwrap();
++        assert_eq!(scene.f.b.revision(), held.expected + 1);
++        let current = scene.f.b.active_bindings();
++        assert_eq!(current.len(), 2);
++        assert!(current
++            .iter()
++            .any(|port| port.transport_id == binding.transport_id
++                && port.stream_local_id == binding.stream_local_id
++                && port.generation == binding.generation));
++        scene.publish(Medium::Data, 812);
++        scene.scene.tick();
++        outgoing(&mut output)
++            .await
++            .deliver(|frame| async move {
++                assert_eq!(frame.timestamp_rtp, 812);
++                assert_eq!(frame.payload.as_ref(), b"{\"sequence\":812}");
++                Ok(())
++            })
++            .await
++            .unwrap();
++        assert!(
++            output.try_recv().is_err(),
++            "the original Data frame is delivered once"
++        );
++    } else {
++        assert!(
++            match mode {
++                "cancel" => matches!(outcome, Err(StreamControlError::Cancelled)),
++                "deadline" => matches!(outcome, Err(StreamControlError::Deadline)),
++                "revoke" => matches!(outcome, Err(StreamControlError::Authority)),
++                "poison" => matches!(
++                    outcome,
++                    Err(StreamControlError::Model(MediaTransitionError::Conflict))
++                ),
++                _ => false,
++            },
++            "current original refusal must be preserved: {outcome:?}"
++        );
++        assert_eq!(scene.f.b.revision(), held.expected);
++        assert_eq!(scene.f.b.active_bindings().len(), 1);
++        assert_eq!(prepared.status(), PortStatus::Retired);
++        assert!(
++            output.try_recv().is_err(),
++            "failed preparation must not publish Data"
++        );
++    }
++    assert!(
++        scene
++            .f
++            .b
++            .active_bindings()
++            .iter()
++            .any(|port| port.transport_id == original.transport_id
++                && port.stream_local_id == original.stream_local_id
++                && port.generation == original.generation),
++        "original working audio allocation must survive the new Data transaction"
++    );
++    drop(held);
++    joined(&scene).await;
++}
++
++#[tokio::test]
++async fn resource_subscription_post_ready_contention_retains_original_candidate() {
++    after_ready("recover").await;
++}
++#[tokio::test]
++async fn resource_subscription_post_ready_contention_preserves_cancellation() {
++    after_ready("cancel").await;
++}
++#[tokio::test]
++async fn resource_subscription_post_ready_contention_preserves_deadline() {
++    after_ready("deadline").await;
++}
++#[tokio::test]
++async fn resource_subscription_post_ready_contention_revalidates_source_authority() {
++    after_ready("revoke").await;
++}
++#[tokio::test]
++async fn resource_subscription_post_ready_source_poison_is_not_retried() {
++    after_ready("poison").await;
++}
++#[tokio::test]
++async fn resource_subscription_post_ready_observer_drop_retires_original_candidate() {
++    after_ready("drop").await;
++}
++#[tokio::test]
++async fn resource_subscription_real_capacity_is_not_metadata_retry() {
++    let (scene, _, held) = data_candidate().await;
++    let calls = scene.f.ba.prepare_calls.load(Ordering::Acquire);
++    let budget = scene.f.b.stream_open_budget();
++    let available = scene.f.b.slots.available_permits() as u32;
++    let occupied = scene
++        .f
++        .b
++        .slots
++        .clone()
++        .try_acquire_many_owned(available)
++        .unwrap();
++    let replace = BTreeSet::new();
++    let mut update = Box::pin(scene.f.b.change_selected_and_subscriptions(
++        held.expected,
++        held.selected.as_ref().unwrap(),
++        &replace,
++        scene.scene.clone(),
++        &held.change,
++        deadline(),
++        CancellationToken::new(),
++        Arc::new(held.clone()),
++    ));
++    let observed = poll_once(update.as_mut()).await;
++    assert!(
++        matches!(
++            observed,
++            Poll::Ready(Err(StreamControlError::Model(
++                MediaTransitionError::Capacity
++            )))
++        ),
++        "real allocation exhaustion must be returned immediately, got {observed:?}"
++    );
++    drop(update);
++    assert_eq!(scene.f.ba.prepare_calls.load(Ordering::Acquire), calls);
++    assert_eq!(scene.f.b.revision(), held.expected);
++    assert_eq!(scene.f.b.stream_open_budget(), budget);
++    drop(occupied);
++    drop(held);
++    joined(&scene).await;
++}

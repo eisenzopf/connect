@@ -1,0 +1,57 @@
+{
+  "format": "connect/g6-058-coordinated-integration-progress/1",
+  "task": "G6-058",
+  "status": "partial-batch-applied-runtime-unverified",
+  "basis_revision": "58820330a85fc486b43e4b9334d95e089e9483a3",
+  "recorded_at": "2026-11-05T14:40:59.635337+00:00",
+  "source_lock_sha256": "1439d82bab30d31bd0101b96c9750768303174f3eca60931c85fb67149423735",
+  "prepared_files_verified": 528,
+  "reviewed_upstream_results_verified": 12,
+  "applied": [
+    "valid original PCM retention within unchanged bounds",
+    "typed effect-free post-prepare subscription metadata retry",
+    "explicit caller-owned canonical canvas capture",
+    "owned native programme Worker with natural join and independent quality verdict",
+    "isolated Firefox loopback ICE fixture",
+    "explicit non-CA native QUIC server leaf fixture"
+  ],
+  "pending": [
+    "current public target/source continuation and projection boundary",
+    "native private decoded audio/video readiness before retirement",
+    "packet observer lifetime and bounded concurrent physical admission",
+    "review of narrow WebRTC startup metadata retry",
+    "causal server thread/RSS retention diagnosis"
+  ],
+  "verification": {
+    "dependency_preparation_exit_code": 0,
+    "repository_format_check_exit_code": 0,
+    "javascript_python_syntax_checked_files": 27,
+    "rust_typescript_builds_executed": 0,
+    "runtime_tests_executed": 0,
+    "new_matrix_cells_qualified": 0
+  },
+  "latest_runtime_matrix": {
+    "run": "v192",
+    "verdicts": {
+      "passed": 312,
+      "failed": 72,
+      "blocked": 48
+    },
+    "fully_qualified_cells": 0,
+    "required_cells": 32,
+    "required_verdicts": 432,
+    "sha256": "a8b87d0fe0c5821661d7859a3b593c25c3a0cb8fa7f01ee751d769b286106264"
+  },
+  "constraints": [
+    "All known gaps remain in one batch; all32/all432 after complete integration and focused checks",
+    "Mac Studio and local Ubuntu24 ARM64 only",
+    "No source clock, decoded quality, authority, age, deadline or idle threshold changes",
+    "Recorded upstream patches; old prepared tree retained intact; no direct .deps editing",
+    "G6-054 remains deferred; Gate6 incomplete"
+  ],
+  "private_receipts": [
+    ".local/gate-6/known-gap-integration-v197/integration-receipt.json",
+    ".local/gate-6/known-gap-integration-v197/worker-integration-receipt.json",
+    ".local/gate-6/known-gap-integration-v197/static-audit.json"
+  ]
+}

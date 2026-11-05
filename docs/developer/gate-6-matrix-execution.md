@@ -13,15 +13,16 @@ occurred. See [v192 evidence](../evidence/gate-6/matrix-full-v192.json).
 
 The current [correction batch](../evidence/gate-6/g6-058-post-v192-correction-plan.json)
 addresses original PCM loss, target activation ordering, typed metadata retry,
-observer resource lifetime and fixture gaps. The Firefox loopback ICE and native
-QUIC leaf-certificate fixes are applied and syntax checked. Original audio
-retention, subscription metadata retry and explicit canvas capture remain private
-candidates. Activation, observer lifetime and Node programme ownership are still
-being implemented. A narrow WebRTC startup metadata draft preserves the exact
-original attempt; private readiness and server resource growth still need causal
-evidence. None of this new work has a runtime pass. Preserve every original age,
-authority, media quality and idle limit; no inherited cell qualification or
-threshold adjustment.
+observer resource lifetime and fixture gaps. Audio retention, subscription retry,
+explicit canvas capture, the owned native programme Worker and both fixture
+corrections are applied. Fresh dependency preparation verifies 528 upstream file
+hashes; repository formatting and JavaScript/Python syntax checks pass. No new
+Rust/TypeScript build or runtime test has run. See
+[integration evidence](../evidence/gate-6/g6-058-coordinated-integration-progress.json).
+Activation, native private decoded readiness and observer admission remain under
+integration. WebRTC startup metadata and server resource attribution are still
+under review. Preserve every original age, authority, quality and idle limit;
+no inherited cell qualification or threshold adjustment.
 
 The previous coordinated v196 library batch passes37candidate checks plus a
 separate passing baseline control and expected pre-fix failure. All3actual
@@ -53,16 +54,63 @@ ARM VM root was expanded to 64 GiB. Check current free space before launch;
 previous free-space readings are historical observations. Mac BPF capture
 access was restored and remains a runtime preflight observation.
 
+## Native programme worker operating profile
+
+The next candidate uses `connect/native-programme-worker/1`: the original Node
+parent and Python supervisor remain alive throughout baseline, programme and
+original T+10 idle observation. One genuine Worker, created before baseline,
+owns all SDK clients, native helpers, encoders, sources and full programme
+report. The parent owns bounded metadata and forwards owned Worker stdout and
+stderr synchronously to its existing ordinary log descriptors. It opens no
+controller transport or child during the programme or idle interval.
+
+The Worker announces the original `process.hrtime.bigint()` terminal before
+closing clients. It then seals its private work report, closes its control port
+and exits naturally. The parent requires that exact Worker exit and stdio join,
+original helper-close facts and verified report digest before requesting idle
+retirement. It reads/merges the full report only after the original T+10
+observation. Both layers inherit the existing supervisor's absolute deadline;
+there is no new deadline at Worker creation, exit or retirement. Cross-host
+observations retain raw guest clock coordinates alongside the existing bounded
+host-clock translation. Worker.threadId is explicitly a logical Node ID, not an
+OS thread ID.
+
+Native idle report `/2` and conversation report `/3` require this original
+Worker receipt. Missing, forced, late, failed, unsealed, mismatched or unjoined
+owners cannot qualify. Linux descendant sampling includes non-leader task
+children with original process/start-identity checks. Native media, operation
+IDs, source clocks and all resource limits remain unchanged. This explicit
+hosting profile does not reclassify older results and makes no RSS restoration
+guarantee; process-global runtime/allocator resources remain measured.
+
+
 ## Browser source operating profile
 
 The next candidate declares `capture_input_mode:
-"caller-owned-audio-node+owned-video-track"` in its source evidence and
-`audioCaptureMode: "caller-owned-audio-node"` in the original programme record.
+"caller-owned-audio-node+caller-owned-canvas"` in its source evidence and
+`audioCaptureMode: "caller-owned-audio-node"` and
+`videoCaptureMode: "caller-owned-canvas"` in the original programme record.
 Each original synthetic GainNode is passed through the public SDK capture
 input. WT uses its existing worklet in the source context; RTC owns a
 same-context destination track. Capture retirement removes only that physical
 edge. The source owner keeps the original clock and closes the source context
 after all physical captures retire.
+
+Each original canvas is now passed explicitly through the canonical public
+`videoCanvas` input. The SDK owns its derived native canvas track and resize
+watcher per Connection; the fixture keeps the canvas and original 30fps draw
+clock across movements. There are no unused master MediaStreamTracks or source
+MediaStreamDestination nodes. Source-owner evidence records the actual running
+context, fixed canvas dimensions, original timer, oscillator retirement and
+physical capture attachments. Idle requires that original context to be closed,
+every source timer stopped and every physical capture retired. Generated source
+liveness remains separate from decoded quality and server resource evidence.
+
+This canvas producer mode replaces v192's arbitrary supplied canvas-track mode,
+which Firefox158 rejects at `applyConstraints`. It does not reinterpret v192
+failures. The planned actual Firefox component must demonstrate original
+constraint rejection, successful decoded capture through the explicit source,
+and negative/cleanup controls before the next full32 qualification attempt.
 
 This is an explicit producer change from the v191 cross-context synthetic
 MediaStream capture bridge. It does not revise any retained result. The

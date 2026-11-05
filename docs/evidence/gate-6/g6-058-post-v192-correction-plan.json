@@ -7,12 +7,12 @@
   "active_source_changes_applied": true,
   "new_runtime_tests_executed": 0,
   "new_matrix_cells_qualified": 0,
-  "batch_policy": "Address all nine known boundaries in one coordinated batch using the three existing agents and Root. Two reviewed fixture fixes are applied; three reviewed library candidates remain private. Activation, observer lifetime and runtime ownership remain in implementation. A further narrow WebRTC startup metadata draft is under review; private readiness and server resource growth still need causal evidence. Complete focused checks before one clean all-32/all-432 matrix run on local ARM resources. No new runtime result is claimed.",
+  "batch_policy": "Address all nine known boundaries together. Six workstreams have applied changes, with runtime-resource attribution still incomplete. Current target/source continuation, native private decoded readiness and observer admission remain under integration. Startup metadata draft is under review. Focused checks and one clean all32/all432 local ARM matrix follow complete integration; no new runtime pass is claimed.",
   "items": [
     {
       "id": "prepared-subscription-metadata",
       "kind": "library",
-      "status": "private-implementation-unexecuted",
+      "status": "applied-static-checks-only-runtime-unverified",
       "finding": "Resource-changing subscription has one-shot final route metadata validation after adapter readiness; temporary contention can become Capacity and leave the same operation unknown.",
       "fix": "Retry only typed effect-free metadata contention, keeping the original candidate, preparation, quiescence and absolute deadline.",
       "proof": "Seven drafted controls, including exact before-compatible held-metadata witness and unchanged original audio; no runtime pass yet.",
@@ -22,7 +22,7 @@
     {
       "id": "original-pcm-retention",
       "kind": "library",
-      "status": "private-implementation-unexecuted",
+      "status": "applied-static-checks-only-runtime-unverified",
       "finding": "Late mixer cadence and backlog trimming can discard valid original PCM below the existing age/queue bounds, before target retention can help.",
       "fix": "At most two real capture rounds per wake with original source clocks/ages/current grants and explicit per-target unsupported-clock slot accounting.",
       "proof": "Eight real-codec controls drafted, including before-compatible loss witnesses, mixed sources, expiry holes, RTP wrap and resampling. No runtime pass yet.",
@@ -52,10 +52,10 @@
     {
       "id": "framework-idle-lifetimes",
       "kind": "runtime-hosting",
-      "status": "private-worker-implementation-in-progress-server-causation-incomplete",
+      "status": "programme-worker-applied-server-causation-incomplete",
       "finding": "Node retains a loop-owned emergency descriptor after child streams; server threads are consistent with blocking-pool growth while background scans continue. Anonymous RSS growth remains unexplained.",
-      "fix": "Implement an owned Node programme Worker with natural exit, sealed report and original process/terminal/aggregate measurements. Include children spawned by non-leader Linux threads in original process ownership. Add bounded task attribution before changing server worker behavior.",
-      "proof": "No prewarming, GC, internal FD removal, baseline subtraction, keepalive fitting or allowance. Worker exit does not guarantee whole-process RSS or global thread-pool restoration.",
+      "fix": "Owned programme Worker now carries SDK/helpers/encoders/sources and full report; its natural exit, stdio and helper joins precede original T+10, with full report loaded afterward. A sealed quality failure remains false and does not masquerade as a Worker crash. Server task/allocator attribution remains separate.",
+      "proof": "V1 plus reviewed V2 correction applied with required idle/2 and conversation/3 receipts; syntax-only checks pass. No actual Worker, FD, heap or matrix proof yet. No prewarming, GC, allowance or keepalive fitting.",
       "reference": ".local/gate-6/packet-observer-idle-proposal/proposal.html",
       "title": "Runtime resources"
     },
@@ -82,7 +82,7 @@
     {
       "id": "firefox-remote-capture",
       "kind": "library",
-      "status": "private-implementation-unexecuted",
+      "status": "applied-static-checks-only-runtime-unverified",
       "finding": "Remote Firefox reaches ICE/DTLS connected before public capture fails. Its canvas track does not implement generic camera applyConstraints or report frameRate; the canonical capture path requires both.",
       "fix": "Reuse the existing explicit caller-owned canvas capture implementation through the canonical SDK. Keep generic camera constraints strict, bounded encoding and original source clocks; require truthful source ownership and cleanup observations.",
       "proof": "Fourteen guarded private files include nine ownership/negative cases and source-programme regressions. No build or runtime pass yet; actual pinned Firefox decoded capture and all existing media/TLS thresholds remain required.",
@@ -108,5 +108,7 @@
     "Recorded upstream patches/source-lock and freshly prepared sources before builds",
     "Exact before-fail/after-pass evidence before broad claims; publication separate"
   ],
-  "applied_scope": "Two fixture changes only: isolated Firefox loopback ICE preference and explicit non-CA QUIC server leaf. Syntax checked; no new runtime test or matrix qualification."
+  "applied_scope": "Audio retention, subscription metadata retry, explicit canvas capture, v2 programme Worker and both fixture corrections applied. Dependency preparation/format/syntax checked; no Rust/TypeScript build or runtime test yet.",
+  "integration_evidence": "g6-058-coordinated-integration-progress.json",
+  "source_lock_sha256": "1439d82bab30d31bd0101b96c9750768303174f3eca60931c85fb67149423735"
 }

@@ -18,25 +18,9 @@ export function matrixSourceFrame(elapsedMs) {
     return {frame,pulse:ordinal>=0&&frame<pulses[ordinal]+3,ordinal:ordinal>=0?ordinal:null};
 }
 
-function originalCanvasCapture(canvas) {
-    const requested=canvas.captureStream(0),video=requested.getVideoTracks()[0];
-    if(typeof video?.requestFrame==='function')return {video,
-        requestFrame:()=>video.requestFrame(),mode:'manual-frame-request'};
-    // A zero-rate track cannot deliver later draws without requestFrame().
-    // Retire that probe before creating the bounded automatic capture. The
-    // source clock still draws only the current 30fps coordinate once.
-    requested.getTracks().forEach(track=>track.stop());
-    const automatic=canvas.captureStream(30),automaticVideo=automatic.getVideoTracks()[0];
-    if(!automaticVideo||automaticVideo.readyState!=='live'){
-        automatic.getTracks().forEach(track=>track.stop());
-        throw Error('Owned live canvas video track unavailable');
-    }
-    return {video:automaticVideo,requestFrame:()=>{},mode:'automatic-canvas-capture-30fps'};
-}
-
-/** Original source masters survive capture retirement during device roundtrips.
- * Each Connection owns track clones; the six masters and fixed clock stay here.
- * Generated input observations never qualify decoded receive quality. */
+/** Caller-owned graph/canvas sources survive per-Connection capture retirement.
+ * The SDK creates and retires each derived track. The original six sources and
+ * fixed clock stay here; generated input never qualifies decoded quality. */
 export async function browserMatrixSources() {
     const audio=new AudioContext({sampleRate:48000});
     try{await audio.resume();if(audio.state!=='running')throw Error('Owned real-time audio output did not start');}
@@ -48,13 +32,13 @@ export async function browserMatrixSources() {
         const binding=bindings.get(connectionId);if(!binding)return;
         bindings.delete(connectionId);binding.retired=true;
         try{binding.capture?.close();}catch{cleanupFailures++;}
-        finally{binding.stream.getTracks().forEach(track=>track.stop());}
     };
     const stopSources=()=>{
         if(terminal)return;terminal=true;clearTimeout(terminalTimer);
         for(const connectionId of [...bindings.keys()])retireConnection(connectionId);
         for(const source of sources){
-            clearInterval(source.timer);source.stream.getTracks().forEach(track=>track.stop());
+            clearInterval(source.timer);source.timer=undefined;
+            source.retired=true;
             source.oscillator.stop();source.oscillator.disconnect();source.gain.disconnect();
         }
     };
@@ -71,16 +55,19 @@ export async function browserMatrixSources() {
             if(!record){
                 if(programme)throw Error('All original sources must exist before the programme');
                 const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
-                const canvasCapture=originalCanvasCapture(canvas);
                 const paint=canvas.getContext('2d'),oscillator=audio.createOscillator(),gain=audio.createGain();
-                const destination=audio.createMediaStreamDestination();destination.channelCount=1;
+                if(!paint)throw Error('Original canvas source context unavailable');
                 oscillator.frequency.value=440+220*role;gain.gain.value=matrixAudioProfile.lowPeak;
-                oscillator.connect(gain);gain.connect(destination);oscillator.start();
-                record={index:route.index,sourceId:role,draws:0,oscillator,gain,destination,canvas,
-                    stream:new MediaStream([...destination.stream.getAudioTracks(),canvasCapture.video]),capture:undefined,timer:undefined,
-                    canvasCaptureMode:canvasCapture.mode,
+                oscillator.connect(gain);oscillator.start();
+                record={index:route.index,sourceId:role,draws:0,oscillator,gain,canvas,
+                    capture:undefined,timer:undefined,retired:false,oscillatorEnded:false,
+                    canvasCaptureMode:'sdk-owned-native-canvas-per-connection',
                     attachments:[],programmeDraws:0,lastProgrammeFrame:null,skippedProgrammeFrames:0,
                     maximumDrawGapMs:0,lastDrawMs:null,pulseOrdinals:[],lastPulseOrdinal:null};
+                oscillator.onended=()=>{record.oscillatorEnded=true;};
+                record.ownerLive=()=>!stopped&&!terminal&&!record.retired&&!record.oscillatorEnded
+                    &&audio.state==='running'&&record.timer!==undefined
+                    &&record.canvas.width===640&&record.canvas.height===360;
                 sources.push(record);
                 const draw=()=>{
                     if(stopped||terminal)return;
@@ -105,17 +92,16 @@ export async function browserMatrixSources() {
                     });
                     if(pulse){paint.fillStyle='white';paint.fillRect(0,0,640,360);}
                     if(pulse&&record.lastPulseOrdinal!==ordinal){record.lastPulseOrdinal=ordinal;record.pulseOrdinals.push(ordinal);}
-                    record.draws++;canvasCapture.requestFrame();
+                    record.draws++;
                 };
                 record.draw=draw;draw();record.timer=setInterval(draw,1000/30);
             }
-            const stream=new MediaStream(record.stream.getVideoTracks().map(track=>track.clone()));
-            const binding={connectionId:connection.id,stream,capture:undefined,retired:false};
+            const binding={connectionId:connection.id,capture:undefined,retired:false};
             bindings.set(connection.id,binding);record.attachments.push(binding);
             try{
-                binding.capture=await connection.capture({audio:true,audioNode:record.gain,video:'camera',stream},options);
+                binding.capture=await connection.capture({audio:true,audioNode:record.gain,video:'camera',videoCanvas:record.canvas},options);
                 if(stopped||terminal||bindings.get(connection.id)!==binding){
-                    binding.capture.close();stream.getTracks().forEach(track=>track.stop());
+                    binding.capture.close();
                     throw Error('Source retired during capture admission');
                 }
                 record.capture=binding.capture;
@@ -124,13 +110,13 @@ export async function browserMatrixSources() {
         retireConnection,
         beginProgramme() {
             if(stopped||terminal||programme||audio.state!=='running'||sources.length!==6||sources.some(source=>
-                !source.attachments.some(binding=>!binding.retired&&binding.capture&&!binding.capture.closed)))
+                !source.ownerLive()||!source.attachments.some(binding=>!binding.retired&&binding.capture&&!binding.capture.closed)))
                 throw Error('One running original programme requires six actual original captures');
             // Capture these coordinates once; never rebase after movement or
             // stalled audio. The monotonic terminal remains fixed either way.
             const audioOriginSeconds=audio.currentTime+.1,originMs=performance.now()+100;
             programme=Object.freeze({audioOriginSeconds,originMs,deadlineMs:originMs+durationMs,durationMs,
-                markerProgram,sourcePulseMs:100,audioCaptureMode:'caller-owned-audio-node',audioPeakLow:matrixAudioProfile.lowPeak,audioPeakHigh:matrixAudioProfile.highPeak});
+                markerProgram,sourcePulseMs:100,audioCaptureMode:'caller-owned-audio-node',videoCaptureMode:'caller-owned-canvas',audioPeakLow:matrixAudioProfile.lowPeak,audioPeakHigh:matrixAudioProfile.highPeak});
             for(const source of sources){
                 // AudioContext advances in quanta. Poll the unchanged 30fps
                 // source coordinate frequently enough to observe each frame;
@@ -152,14 +138,15 @@ export async function browserMatrixSources() {
                 if(cleanupFailures)throw Error('Source capture cleanup failed');
             })();
         },
-        observation:()=>({capture_input_mode:'caller-owned-audio-node+owned-video-track',audio_context_ownership:'original-source-owner',real_time_audio_state:audio.state,programme:programme??null,source_terminal:terminal,cleanup_failures:cleanupFailures,
+        observation:()=>({capture_input_mode:'caller-owned-audio-node+caller-owned-canvas',video_track_ownership:'sdk-per-connection',audio_context_ownership:'original-source-owner',real_time_audio_state:audio.state,programme:programme??null,source_terminal:terminal,cleanup_failures:cleanupFailures,
             source_audio_elapsed_ms:programme?(audio.currentTime-programme.audioOriginSeconds)*1000:null,
             sources:sources.map(source=>({index:source.index,source_id:source.sourceId,draws:source.draws,
                 canvas_capture_mode:source.canvasCaptureMode,
                 capture_started:Boolean(source.capture),programme_draws:source.programmeDraws,
                 skipped_programme_frames:source.skippedProgrammeFrames,maximum_draw_gap_ms:source.maximumDrawGapMs,
                 pulse_ordinals:[...source.pulseOrdinals],last_programme_frame:source.lastProgrammeFrame,
-                original_master_tracks_live:source.stream.getTracks().every(track=>track.readyState==='live'),
+                original_source_owner_live:source.ownerLive(),original_source_timer_active:source.timer!==undefined,
+                original_source_retired:source.retired,original_oscillator_ended:source.oscillatorEnded,
                 attachments:source.attachments.map(binding=>({connection_id:binding.connectionId,retired:binding.retired,
                     capture_started:Boolean(binding.capture)}))})),
             scope:'Generated source and capture ownership only. No decoded receive, movement or profile-quality pass.'}),

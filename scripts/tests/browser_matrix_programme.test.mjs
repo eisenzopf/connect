@@ -15,7 +15,7 @@ async function fixture({invalidReceipt=false,oldRefusal=false}={}){
  plan.routes[4].role='other-1';plan.routes[5].role='other-2';
  for(const [ordinal,at]of [[0,15000],[1,40000]])for(const index of [0,4])plan.moves.push({source:index,ordinal,scheduledStartMs:at,
   targetRole:ordinal===0?'target':plan.routes[index].role,operation:`move-${index}-${ordinal}`,audio:`move-audio-${index}-${ordinal}`,video:`move-video-${index}-${ordinal}`,receiveVideo:`move-receive-${index}-${ordinal}`});
- const sources={sources:plan.routes.map(route=>({index:route.index,stream:{getTracks:()=>[{readyState:'live'}]},attachments:[]})),
+ const sources={sources:plan.routes.map(route=>({index:route.index,ownerLive:()=>true,attachments:[]})),
   beginProgramme:()=>({originMs:0,deadlineMs:62000}),async start({route,connection}){this.sources[route.index].attachments.push({connectionId:connection.id,capture:{closed:false}});},
   retireConnection(){},observation:()=>({})};
  const makeConnection=(id,index)=>({id,streams:{byId:id=>({id})},render:async()=>({close(){},finished:Promise.resolve()}),

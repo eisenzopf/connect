@@ -633,7 +633,10 @@ impl Runtime {
                     }
                 },
                 Err(error) => {
-                    tracing::debug!(?error, "Native stream engine outcome remains uncertain");
+                    tracing::debug!(?error, operation_record = %lease.record_id(),
+                        operation = a.envelope().scope(Scope::Operation),
+                        connection = %id, command = a.envelope().kind(),
+                        "Native stream engine outcome remains uncertain");
                     let result = store.native_stream_attempt_uncertain(&lease).map(|record| {
                         crate::canonical_native::Reply {
                             record,

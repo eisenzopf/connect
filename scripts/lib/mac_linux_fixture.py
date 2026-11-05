@@ -358,10 +358,13 @@ print(json.dumps(prepare(target)))"""
                 if path.is_symlink() or path.stat().st_size > 4096:
                     raise ValueError("Bounded original guest resource request required")
                 value = json.loads(path.read_text())
-                keys = {"phase", "monotonic_seconds"} | ({"retirement"} if phase == "retired" else set())
-                if set(value) != keys or value["phase"] != phase:
-                    raise ValueError("Original guest resource phase differs")
-                return dict(value, monotonic_seconds=remote.host_time(value["monotonic_seconds"]))
+                from .native_programme_profile import original_worker_owner
+                keys = {"phase", "monotonic_seconds", "programme_owner"} | ({"retirement"} if phase == "retired" else set())
+                if (set(value) != keys or value["phase"] != phase
+                        or not original_worker_owner(value.get("programme_owner"))):
+                    raise ValueError("Original guest resource phase or programme Worker differs")
+                return dict(value, original_monotonic_seconds=value["monotonic_seconds"],
+                    monotonic_seconds=remote.host_time(value["monotonic_seconds"]))
         directory = Path(directory)
         directory.mkdir(mode=0o700, parents=True, exist_ok=True)
         owned = self.launch(command, directory, log, timeout=budget, role="helper", capture=capture)

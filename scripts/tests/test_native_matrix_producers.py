@@ -15,6 +15,7 @@ from lib.native_matrix_authority import authority_verdict
 from lib.native_matrix_idle import NativeMatrixIdle, native_idle_verdict, restoration
 from lib.native_matrix_process import NativeOwner
 from lib.native_process_owner import live_workers
+from lib.native_programme_profile import PROFILE
 from lib.transport_matrix import inventory
 from lib.transport_matrix_execution import configure_execution, full_run_preflight
 from lib.transport_matrix_verdict import evaluate_cell
@@ -30,13 +31,26 @@ def sample(at, stage):
         groups={"server": dict(group), "helper": dict(group)})
 
 
-def retirement():
-    return dict(passed=True, observed_helpers=8, original_helpers_joined=True, original_clients_closed=True,
+def programme_owner():
+    return dict(profile=PROFILE, original_node_pid=42, logical_worker_thread_id=1,
+        created_monotonic_seconds=.1, started_monotonic_seconds=.2, original_global_deadline_monotonic_seconds=300)
+
+
+def worker_receipt(terminal=20):
+    return dict(owner=programme_owner(), original_terminal_monotonic_seconds=terminal,
+        original_exit_observed=True, exit_code=0, forced=False, exit_monotonic_seconds=terminal+.2,
+        joined_monotonic_seconds=terminal+.25, stdio_joined=True, report_digest_verified=True,
+        report_sha256="a"*64, report_bytes=1000, failure=None)
+
+
+def retirement(terminal=20):
+    return dict(original_terminal_monotonic_seconds=terminal, programme_worker=worker_receipt(terminal), passed=True, observed_helpers=8, original_helpers_joined=True, original_clients_closed=True,
         all_local_owners_elapsed_ms=250)
 
 
 def idle_result():
-    return dict(format="connect/native-matrix-idle-observation/1", policy=copy.deepcopy(POLICY),
+    return dict(format="connect/native-matrix-idle-observation/2", policy=copy.deepcopy(POLICY),
+        programme_owner=programme_owner(), original_baseline_monotonic_seconds=1, original_terminal_monotonic_seconds=20,
         terminal_monotonic_seconds=20, baseline=sample(2, "baseline"), retirement=retirement(),
         samples=[sample(1, "baseline"), sample(2, "baseline"), sample(28, "idle"), sample(29, "idle"), sample(30.01, "idle-final")])
 
@@ -82,13 +96,13 @@ class NativeMatrixProducers(unittest.TestCase):
             def health():health_reads.append(clock[0]);return sample(clock[0], "health")["usage"]
             monitor=NativeMatrixIdle(path,sampler,health,clock=lambda:clock[0])
             def boundary(phase,**extra):
-                (path/f"resources-{phase}.json").write_text(json.dumps(dict(phase=phase,monotonic_seconds=clock[0],**extra)))
+                (path/f"resources-{phase}.json").write_text(json.dumps(dict(phase=phase,monotonic_seconds=clock[0],programme_owner=programme_owner(),**extra)))
             boundary("baseline");monitor.poll();clock[0]=2;monitor.poll()
             self.assertTrue(json.loads((path/"resources-baseline-response.json").read_text())["passed"])
             for at in (3,4,5):clock[0]=at;monitor.poll()
             self.assertEqual(health_reads,[1,2], "Media sampling must not add authority reads")
             clock[0]=10;boundary("terminal");monitor.poll()
-            clock[0]=10.2;boundary("retired",retirement=retirement());monitor.poll()
+            clock[0]=10.2;boundary("retired",retirement=retirement(10));monitor.poll()
             for at in (11.1,12.1,13.1,14.1,15.1,16.1,17.1,18.1,19.1,20.01):clock[0]=at;monitor.poll()
             observed=monitor.finish()
             self.assertTrue(observed["passed"])
@@ -103,12 +117,29 @@ class NativeMatrixProducers(unittest.TestCase):
             monitor=NativeMatrixIdle(path,Sampler(),lambda:sample(1,"h")["usage"],clock=lambda:clock[0])
             for phase,at in (("baseline",1),("terminal",3),("retired",4)):
                 clock[0]=at
-                (path/f"resources-{phase}.json").write_text(json.dumps(dict(phase=phase,monotonic_seconds=at,
+                (path/f"resources-{phase}.json").write_text(json.dumps(dict(phase=phase,monotonic_seconds=at,programme_owner=programme_owner(),
                     **({"retirement":retirement()} if phase=="retired" else {}))))
                 monitor.poll()
                 if phase=="baseline":clock[0]=2;monitor.poll()
                 self.assertFalse(json.loads((path/f"resources-{phase}-response.json").read_text())["passed"])
             self.assertFalse(monitor.finish()["passed"])
+
+    def test_worker_join_is_required_and_original_clock_cannot_be_rebased(self):
+        for field, changed in (("original_exit_observed", False), ("forced", True), ("exit_code", 1),
+                               ("stdio_joined", False), ("report_digest_verified", False),
+                               ("report_sha256", "not-a-digest"), ("joined_monotonic_seconds", 30.001),
+                               ("original_terminal_monotonic_seconds", 21), ("failure", "worker-error")):
+            value = idle_result(); value["retirement"]["programme_worker"][field] = changed
+            self.assertFalse(native_idle_verdict(value), field)
+        for field in ("original_helpers_joined", "original_clients_closed"):
+            value = idle_result(); value["retirement"][field] = False
+            self.assertFalse(native_idle_verdict(value), field)
+        value = idle_result(); value["format"] = "connect/native-matrix-idle-observation/1"
+        self.assertFalse(native_idle_verdict(value), "Old profile cannot qualify")
+        value = idle_result(); value["programme_owner"]["started_monotonic_seconds"] = 3
+        self.assertFalse(native_idle_verdict(value), "Worker must exist before baseline")
+        value = idle_result(); value["retirement"]["programme_worker"]["owner"]["logical_worker_thread_id"] = 2
+        self.assertFalse(native_idle_verdict(value), "Another worker is not the original")
 
     def test_authority_requires_current_original_native_refusal_not_an_aggregate_green_flag(self):
         for kind in ("expiry","revocation"):
@@ -145,7 +176,7 @@ class NativeMatrixProducers(unittest.TestCase):
         cell=next(c for c in matrix["cells"] if c["execution"]["runnable"] and c["transport"]=="native-quic" and c["network"]=="local")
         report=dict(passed=False,source_revision="a"*40,host=dict(platform=cell["server"]),network_profile="local",
             signing_algorithm=cell["signing"],source_inputs_unchanged=True,sdk_dist_inputs_unchanged=True,executables_unchanged=True,
-            conversation_control=dict(passed=False,retirement=retirement()),native_av_decoded=dict(passed=False),
+            conversation_control=dict(passed=False,retirement=retirement(),programme_profile=PROFILE,programme_worker=worker_receipt()),native_av_decoded=dict(passed=False),
             current_authority={"expiry":authority_result("expiry"),"revocation":authority_result("revocation"),"conflict":{"passed":True}},
             idle_resources=idle_result(),servers=[dict(original_joined=True)]*2)
         evaluate_cell(cell,report,"b"*64,environment=matrix["execution_environment"],revision="a"*40)

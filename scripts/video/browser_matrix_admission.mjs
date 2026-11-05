@@ -274,7 +274,8 @@ try{
                     :rtc.length>=6&&rtc.every(p=>p.original_shutdown_joined&&p.closed&&p.peerConnectionState==='closed'
                         &&p.remoteTracks===0&&p.liveRemoteTracks===0&&!p.captureActive&&!p.renderActive);
                 const localOwnersJoined=renderer.joined&&source.source_terminal&&source.real_time_audio_state==='closed'
-                    &&source.sources.every(s=>!s.original_master_tracks_live&&s.attachments.every(a=>a.retired))
+                    &&source.sources.every(s=>s.original_source_owner_live===false&&s.original_source_timer_active===false
+                        &&s.original_source_retired===true&&s.attachments.every(a=>a.retired))
                     &&transportOwnersJoined;
                 const completedMs=performance.now()-programmeReport.terminal_ms;
                 retirement.passed&&=completedMs<=5000&&localOwnersJoined;
