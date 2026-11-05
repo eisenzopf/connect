@@ -377,7 +377,7 @@ async fn full_replacement(algorithm: &str) {
         assert_eq!(host.adapter().route_count(), 3);
     }
     original_av(&mut a, &mut b, &red, &blue, &directory, "waiting-for-ready").await;
-    command(&mut target_peer, renew(ready)).await;
+    command(&mut target_peer, renew(ready.clone())).await;
     let done = completed(&f, &target_config, operation).await;
     assert_eq!(done.record_id, prepared.record_id);
     assert_eq!(done.result.as_ref().unwrap()["generation"], 2);
@@ -424,6 +424,32 @@ async fn full_replacement(algorithm: &str) {
         ("retired".into(), 2)
     );
     assert_eq!(connection_state(&f, &candidate).1, 2);
+    // Delivery uncertainty must recover the SAME original result. Repeating
+    // the exact signed observation may acknowledge it, but creates no second
+    // allocation, readiness capture or movement. Full results are read through
+    // operation.get because the ready acknowledgment is intentionally scoped.
+    command(&mut target_peer, renew(ready.clone())).await;
+    let recovered = record(&f, &target_config, operation);
+    assert_eq!(recovered.record_id, done.record_id);
+    assert_eq!(recovered.state, OperationState::Completed);
+    assert_eq!(recovered.result, done.result);
+    assert_eq!(recovered.effects, done.effects);
+    assert_eq!(host.adapter().total_allocations(), 3);
+    assert_eq!(host.adapter().route_count(), 2);
+    let mut changed_observation = renew(ready.clone());
+    changed_observation["payload"]["replacement_preparation"]["readiness"]["audio"]
+        ["decoded_samples"] = json!(decoded_samples + 960);
+    refused(&mut target_peer, changed_observation, "conflict", 409).await;
+    let mut changed_nonce = renew(ready.clone());
+    changed_nonce["payload"]["replacement_preparation"]["readiness"]["nonce"] =
+        json!("another-target-nonce");
+    refused(&mut target_peer, changed_nonce, "forbidden", 403).await;
+    command(&mut target_peer, renew(ready)).await;
+    let unchanged = record(&f, &target_config, operation);
+    assert_eq!(unchanged.result, done.result);
+    assert_eq!(unchanged.effects, done.effects);
+    assert_eq!(host.adapter().route_count(), 2);
+    assert_eq!(host.adapter().total_allocations(), 3);
     drain(&mut b);
     drain(&mut c);
     opus::tone(&mut b.audio, 660.0, false).await;
