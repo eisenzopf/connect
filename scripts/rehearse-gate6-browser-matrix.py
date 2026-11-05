@@ -247,7 +247,8 @@ def main():
             websocket=dict(bind=f"{server_ip}:{wss}", mount_path="/connect", allowed_origins=[origin], advertised_url=f"wss://{server_ip}:{wss}/connect"),
             webrtc=dict(profile="opus-vp8", max_peers=min(32, server_config["limits"]["connections"]),
                 addressing=dict(bind_ip=server_ip, port_start=media_start, port_end=media_start+63, ice_policy="all", ice_services=[])),
-            https=[dict(bind=f"127.0.0.1:{application}", surface="application", allowed_origins=[origin])])
+            https=[dict(bind=f"{server_ip}:{application}", surface="application",
+                        public_origin=f"https://{server_ip}:{application}", allowed_origins=[origin])])
         (initial / "server.toml").write_bytes(toml_bytes(server_config))
         (initial / "operator.toml").write_bytes(toml_bytes(operator))
         start_server("seed-server", initial / "server.toml", f"127.0.0.1:{http}")
