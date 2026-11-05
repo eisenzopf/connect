@@ -7,6 +7,7 @@
   "active_source_changes_applied": false,
   "new_runtime_tests_executed": 0,
   "new_matrix_cells_qualified": 0,
+  "batch_policy": "Address all nine known boundaries in one coordinated batch using the three existing agents and Root. Five private candidates are ready for verification; activation, observer lifetime and runtime ownership remain in implementation, and WebRTC move authority still needs a controlled diagnosis. Complete focused checks before one clean all-32/all-432 matrix run on local ARM resources. No new runtime result is claimed.",
   "items": [
     {
       "id": "prepared-subscription-metadata",
@@ -31,10 +32,10 @@
     {
       "id": "public-target-activation",
       "kind": "library",
-      "status": "reviewed-design-not-implemented",
+      "status": "private-implementation-in-progress",
       "finding": "Core can retire the original route before the ordinary target authority is active; current target preparation policy refuses a committed root during projection.",
       "fix": "Preinstall inactive exact continuation, then require actual current Core binding plus fresh current Store admission until ordinary activation is verifiably active.",
-      "proof": "Actual signed paused-projection, revocation/cancellation/generation/crash/replay witnesses required.",
+      "proof": "Paired target/source current admission and native video gate activation are included in the private implementation review. Actual signed paused-projection, revocation/cancellation/generation/crash/replay witnesses remain required.",
       "reference": ".local/gate-6/native-media-continuity-proposal/README.txt",
       "title": "Target activation"
     },
@@ -44,16 +45,16 @@
       "status": "private-implementation-in-progress",
       "finding": "Four added server descriptors match original WAL paths across independent native cases; fixed Store packet readers retain them after physical owners end.",
       "fix": "Physical resource scopes plus complete-observation leases, generation-safe fixed slots and close outside all foreign guards in existing owned custody.",
-      "proof": "Exact original WAL-descriptor before/after and acquisition/drain/reopen/cache/authority races pending; this alone does not prove RSS restoration.",
+      "proof": "Eleven drafted regressions include a real server WAL-descriptor witness, complete-observation drain, reopen, cache and authority races. They are uncompiled and unexecuted; this alone does not prove RSS restoration.",
       "reference": ".local/gate-6/packet-observer-idle-proposal/proposal.html",
       "title": "Packet observer lifetime"
     },
     {
       "id": "framework-idle-lifetimes",
       "kind": "runtime-hosting",
-      "status": "architecture-reviewed-causation-incomplete",
+      "status": "private-worker-implementation-in-progress-server-causation-incomplete",
       "finding": "Node retains a loop-owned emergency descriptor after child streams; server threads are consistent with blocking-pool growth while background scans continue. Anonymous RSS growth remains unexplained.",
-      "fix": "Review an actually owned Node programme Worker with natural exit and original process/terminal/aggregate measurements. Add bounded task attribution before changing server worker behavior.",
+      "fix": "Implement an owned Node programme Worker with natural exit, sealed report and original process/terminal/aggregate measurements. Include children spawned by non-leader Linux threads in original process ownership. Add bounded task attribution before changing server worker behavior.",
       "proof": "No prewarming, GC, internal FD removal, baseline subtraction, keepalive fitting or allowance. Worker exit does not guarantee whole-process RSS or global thread-pool restoration.",
       "reference": ".local/gate-6/packet-observer-idle-proposal/proposal.html",
       "title": "Runtime resources"
@@ -80,19 +81,19 @@
     },
     {
       "id": "firefox-remote-capture",
-      "kind": "unresolved-boundary",
-      "status": "investigating",
-      "finding": "Remote Firefox reaches ICE/DTLS connected then fails public capture with an application error; local loopback preference cannot explain it.",
-      "fix": "Identify exact public capture API/parameter incompatibility and retain the underlying bounded error stage.",
-      "proof": "All actual source/capture/decoded thresholds and normal TLS remain required.",
-      "reference": ".local/gate-6/full-matrix-v192/completed-cell-diagnostics/",
+      "kind": "library",
+      "status": "private-implementation-unexecuted",
+      "finding": "Remote Firefox reaches ICE/DTLS connected before public capture fails. Its canvas track does not implement generic camera applyConstraints or report frameRate; the canonical capture path requires both.",
+      "fix": "Reuse the existing explicit caller-owned canvas capture implementation through the canonical SDK. Keep generic camera constraints strict, bounded encoding and original source clocks; require truthful source ownership and cleanup observations.",
+      "proof": "Fourteen guarded private files include nine ownership/negative cases and source-programme regressions. No build or runtime pass yet; actual pinned Firefox decoded capture and all existing media/TLS thresholds remain required.",
+      "reference": ".local/gate-6/firefox-canonical-canvas-candidate/apply-manifest.json",
       "title": "Firefox capture"
     },
     {
       "id": "rtc-movement-authority",
       "kind": "unresolved-boundary",
       "status": "investigating",
-      "finding": "Chrome WebRTC movements report original-operation deadlines or503 authority_unavailable in full workloads, although focused signed AV cases pass.",
+      "finding": "Chrome WebRTC movements report original-operation deadlines or503 authority_unavailable in full workloads, although focused signed AV cases pass. One retained Mac case reaches private preparation/readiness contention without public commit; the other failed source has no attach trace. Post-commit activation alone does not explain both.",
       "fix": "Correlate original operation, current authority and preparation/commit/activation stages before choosing a change.",
       "proof": "Do not retry unknown effects or infer this is the same metadata/activation defect without a controlled witness.",
       "reference": ".local/gate-6/full-matrix-v192/completed-cell-diagnostics/",
