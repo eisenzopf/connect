@@ -4,27 +4,32 @@ The 32-cell matrix is the acceptance framework for G6-058. A failure in one
 cell must not postpone attempts in other executable cells. Workloads run on the
 owner's Mac Studio and local Ubuntu24.04 ARM64 guest. G6-054 remains deferred.
 
-The [current 32-cell table](g6-058-matrix-status.html) links the actual attempts
-and prerequisites. The first Linux ES256 attempt stopped on a read-only
-`stream.subscribe` deadline during the movement programme; original owners
-joined. This is distinct from the earlier EdDSA quality failure. The Mac has
-both frozen browser versions available, but its BPF capture devices currently
-require permission before the complete captured workload can run.
+The [current 32-cell table](g6-058-matrix-status.html) links actual attempts and
+prerequisites. The latest attempt, v190, stopped when the ARM VM's 20 GiB root
+filesystem filled. Twenty-four configurations returned component results;
+eight lack terminal evidence. Both original workers exited. The original raw
+snapshot is retained, including its stale running row. The confirmed-exit
+interpretation records 146 passed, 51 failed and 235 blocked checks, with zero
+qualified configurations. See [v190 evidence](../evidence/gate-6/matrix-full-v190.json).
 
-`scripts/run-gate6-transport-matrix.py` connects the existing native media
-workload to exact matrix cell IDs. It retains all 32 rows, saves each original
-attempt before and after execution, continues after a failed cell, and merges
-reports from the two local server platforms. It rejects stale candidates,
-changed contracts, duplicate host reports and native evidence assigned to a
-browser or another signing cohort. Raw output stays under ignored `.local/`.
+`scripts/run-gate6-transport-matrix.py --phase run` starts the complete two-host
+coordinator from the Mac Studio. Every run schedules all 32 configurations and
+evaluates all 432 required checks. Each host continues after an individual
+failure, and the coordinator merges their original reports. It rejects stale
+candidates, changed contracts, duplicate host reports and evidence assigned to
+another platform, transport or signing cohort. Raw output stays under ignored
+`.local/`. Per-cell selection and partial execution stages are not accepted.
 
-A native workload success is **incomplete**, not a complete-cell pass. Its
-expiry/conflict and ten-second idle observations still need to be connected to
-the complete-cell verifier. Every required check remains visible. Browser
-workloads and Mac-server/Linux-client full workloads still need integration;
-installed browsers and earlier narrow browser results do not fill those rows.
+Native/browser, Mac-server/Linux-client, capture, current-authority and
+ten-second idle producers are integrated. Their focused checks prove harness
+boundaries, not runtime qualification. A configuration passes only after every
+required observation satisfies the full contract. The next complete attempt
+uses the corrected native expiry projection and exited-worker final reporting.
+The owner-approved cache cleanup recovered 66.9 GiB internally; the existing
+ARM VM root was expanded to 64 GiB and reports 44 GiB free. Mac BPF capture
+access was restored and remains a runtime preflight observation.
 
-## Latest decoded-media measurements
+## Historical decoded-media investigations
 
 Attempt v163 (`b03fcc00`) connects ten-second idle observations to the same
 original local ARM WT EdDSA workload. Four new verifier cases pass on ARM Linux.
@@ -190,8 +195,9 @@ no matrix cell or Gate task was promoted.
    Independently validate every required check, capture, decode and profile
    budget before qualifying any cell. Do not inherit a requirement from another
    platform, transport, signing cohort or source revision.
-6. Use matrix failures to choose focused corrections, then rerun affected cells.
-   Close G6-058 only when all 32 cells satisfy the complete contract.
+6. Use matrix failures to choose focused corrections and validate those fixes.
+   Then rerun all 32 configurations in one fresh complete attempt. Close G6-058
+   only when all 32 satisfy the complete contract.
 
 ## Commands
 
@@ -202,8 +208,7 @@ python3 scripts/run-gate6-transport-matrix.py --phase probe \
   --output .local/gate-6/matrix-candidate/host-probe
 
 python3 scripts/run-gate6-transport-matrix.py --phase run \
-  --cell G6-058/ubuntu24-arm64/local/native-quic/ES256 \
-  --output .local/gate-6/matrix-candidate/linux-es256
+  --output .local/gate-6/full-matrix-next
 
 python3 scripts/run-gate6-transport-matrix.py --phase merge \
   --host-report .local/gate-6/matrix-candidate/mac/matrix.json \
@@ -211,19 +216,26 @@ python3 scripts/run-gate6-transport-matrix.py --phase merge \
   --output .local/gate-6/matrix-candidate/combined
 ```
 
-Multiple `--cell` arguments run sequentially; a failure does not stop later
-cells. Selection is explicit, so no earlier passing suite is silently rerun.
-Run prepares dependencies and builds the current TypeScript SDK before the
-guarded workload. Existing native producers retain actual capture and original
-process ownership. Build/test sources must stay unchanged until the original
-controller terminates. `state.json` records its PID; verify that actual process
-when checking a running job. A stale state file alone does not prove liveness.
+Run requires matching clean commits on the Mac and `/workspace` in the existing
+`connect-gate6` ARM VM. The coordinator starts both original host workers; do not
+launch them separately. It uses the exact installed ARM browser image recorded
+in the coordinator. Optional `--chrome` and `--firefox` paths select the Mac's
+frozen browser binaries. Each fixture verifies the actual browser version.
+
+Every run includes all 32 configurations. Partial `--stage` values are accepted
+only with `--phase probe`, which executes no workload. Run prepares dependencies
+and builds the current TypeScript SDK before the guarded workloads. Producers
+retain actual capture and original process ownership. Build/test sources must
+stay unchanged until the original controller terminates. `state.json` records
+its PID; verify that actual process when checking a running job. A stale state
+file alone does not prove liveness.
 
 Probe and merge exit zero only for a successfully generated ledger. Run exits
-nonzero while complete-cell qualification is unavailable, even if its native
-component passes. Inspect `cells[].execution.component.passed` for the component
-outcome and `cells[].execution.blockers` for prerequisites. No command here
-dispatches GitHub Actions or provisions cloud resources.
+nonzero until the complete matrix qualifies. Inspect `cells[].check_results`
+for each required verdict and `cells[].execution.component` for the original
+component report binding. An exited worker's unfinished rows are blocked
+without manufacturing attempts or behavior evidence. No command here dispatches
+GitHub Actions or provisions cloud resources.
 
 ## Browser programme implementation
 
@@ -256,7 +268,7 @@ The first [systemd/namespace Remote EdDSA result](../evidence/gate-6/matrix-nati
 
 The independent [Remote ES256 workload](../evidence/gate-6/matrix-native-remote-es256.json) also completed all four moves/control checks and original cleanup, but all six quality routes failed. The current progress ledger records three attempted cells across their identified revisions, with zero qualified. No further native rerun is justified merely by these failures; continue browser launcher/media integration.
 
-## Execute actual Chrome admission
+## Historical Chrome admission implementation
 
 The production fixture/owned launcher is now `scripts/rehearse-gate6-browser-matrix.py`.
 It initializes a new CLI instance, creates a normal CA/leaf pair, configures WT,
@@ -267,14 +279,13 @@ subsequent browser authentication is a separate observation. An untrusted fresh
 Chrome profile must refuse the CA before another fresh profile imports it.
 The actual browser then uses the public BrowserSdkClient to run admission.
 
-On the local Ubuntu ARM host, with the existing exact ARM browser image:
+Admission is now part of every full run. To inspect only its historical stage
+wiring on the local Ubuntu ARM host without executing a workload:
 
 ```sh
-python3 scripts/run-gate6-transport-matrix.py --phase run --stage admission \
-  --browser-image sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b \
-  --cell G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA \
-  --cell G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256 \
-  --output .local/gate-6/browser-matrix-candidate
+python3 scripts/run-gate6-transport-matrix.py --phase probe --stage admission \
+  --browser-image sha256:2856c7b7ae4eea13ba0fb4a5605b4f182557f0b1842f45efebd2c03ea66e9e6c \
+  --output .local/gate-6/browser-admission-wiring-probe
 ```
 
 `chrome-wss-webrtc` selects the independent WSS/RTC admission path. This stage
