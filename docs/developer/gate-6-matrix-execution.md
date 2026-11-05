@@ -5,12 +5,21 @@ cell must not postpone attempts in other executable cells. Workloads run on the
 owner's Mac Studio and local Ubuntu24.04 ARM64 guest. G6-054 remains deferred.
 
 The [current 32-cell table](g6-058-matrix-status.html) links actual attempts and
-prerequisites. The latest attempt, v190, stopped when the ARM VM's 20 GiB root
-filesystem filled. Twenty-four configurations returned component results;
-eight lack terminal evidence. Both original workers exited. The original raw
-snapshot is retained, including its stale running row. The confirmed-exit
-interpretation records 146 passed, 51 failed and 235 blocked checks, with zero
-qualified configurations. See [v190 evidence](../evidence/gate-6/matrix-full-v190.json).
+prerequisites. The latest complete attempt, v191, attempted all32 configurations
+and recorded all432 verdicts:219passed,82failed and131blocked, with zero qualified
+configurations. Both original workers exited. Storage exhaustion did not recur.
+See [v191 evidence](../evidence/gate-6/matrix-full-v191.json).
+
+The coordinated v196 library batch now passes37candidate checks plus a separate
+passing baseline control and qualified expected pre-fix failure. All3actual
+signed server cases pass, including both AV signing modes and final shutdown.
+Original groups and the ARM guardian join naturally; source guards and pinned
+fixtures remain unchanged. See [terminal custody evidence](../evidence/gate-6/owned-terminal-cleanup-candidate.json)
+and [signed server evidence](../evidence/gate-6/signed-server-batch-progress.json).
+These focused results do not qualify cells. Next is full32/all432 attempt v192
+from one clean identical host/VM revision; its [live ledger](../../.local/gate-6/full-matrix-v192/status.html)
+records execution after launch. Keep all tracked files, prepared dependencies
+and runner inputs unchanged until both original workers join.
 
 `scripts/run-gate6-transport-matrix.py --phase run` starts the complete two-host
 coordinator from the Mac Studio. Every run schedules all 32 configurations and
@@ -24,9 +33,10 @@ Native/browser, Mac-server/Linux-client, capture, current-authority and
 ten-second idle producers are integrated. Their focused checks prove harness
 boundaries, not runtime qualification. A configuration passes only after every
 required observation satisfies the full contract. The next complete attempt
-uses the corrected native expiry projection and exited-worker final reporting.
+uses the coordinated library, source, capture and lifecycle corrections.
 The owner-approved cache cleanup recovered 66.9 GiB internally; the existing
-ARM VM root was expanded to 64 GiB and reports 44 GiB free. Mac BPF capture
+ARM VM root was expanded to 64 GiB. Check current free space before launch;
+previous free-space readings are historical observations. Mac BPF capture
 access was restored and remains a runtime preflight observation.
 
 ## Browser source operating profile
@@ -50,6 +60,9 @@ The graph-input feature and component checks do not qualify a transport cell;
 the complete next 32-cell run must provide current decoded and lifecycle proof.
 
 ## Historical decoded-media investigations
+
+The following entries retain the state and pending actions at each historical
+attempt. Current completion and next execution are stated above.
 
 Attempt v163 (`b03fcc00`) connects ten-second idle observations to the same
 original local ARM WT EdDSA workload. Four new verifier cases pass on ARM Linux.

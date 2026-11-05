@@ -1,7 +1,7 @@
 {
   "format": "connect/signed-server-batch-progress/1",
-  "status": "failed",
-  "scope": "Local macOS ARM focused signed server replacement checks; no transport cell or gate qualification. Original binary binds integrated Core audio retention, MetadataBusy classification and RTC admission deadline fixes. Pending RTC original-ingress and retired-queue fixes are absent.",
+  "status": "current-coordinated-candidate-passed",
+  "scope": "Local macOS ARM focused signed server replacement checks. Current v196 includes coordinated terminal custody, exact binding cleanup, original RTC ingress, private preparation audio and retired-queue fixes. Historical failed/ignored attempts remain below; no transport cell or gate qualification.",
   "qualified_cell": false,
   "qualified_gate": false,
   "original_binary_sha256": "2a1dfddf10cedce18d697768db48cf4b63d9ade29f3cb1c31d9f608ba67efc94",
@@ -44,7 +44,7 @@
     ],
     "private_receipt_sha256": "7abd6eae06919cfeee71d4e417efc68bac720f7e301e5799482fc1b00253d5be"
   },
-  "next": "Finish coordinated Core-owned terminal acknowledgment and original-binding cleanup, test actual failure/cancel/error controls, then the prepared v196 signed candidate and all32 full matrix.",
+  "next": "Commit scoped evidence, synchronize one clean exact candidate to the local ARM VM, then run all32 full matrix configurations/all432 verdicts.",
   "private_preparation_candidate": {
     "status": "actual-es256-media-readiness-passed-shutdown-still-failed",
     "source_mechanism": "The preparation loop previously generated local neutral audio only until Core had existential duplex proof, then waited for the signed decoder report. The signed AV receiver needs three actual 960-sample packets before submitting that report; stopping the producer can cause a circular wait.",
@@ -137,6 +137,65 @@
       "The earlier EdDSA remote-track timeout remains failed; its intermittent absence in this diagnostic is not a code fix.",
       "The exact v194 initiating cleanup stage is still unproven: old logs give cleanup-unconfirmed but omit per-stage error context.",
       "No current-source, transport-cell, quality or full matrix pass is inferred."
+    ]
+  },
+  "coordinated_candidate_v196": {
+    "source_revision": "76bf8461d66d4e812a157ecc5544108a018bdb33",
+    "source_lock_sha256": "0c49cfee5df49310f61f0236199b99d9da7d0ec45e906f514f4591a88b808298",
+    "actual_tests": 3,
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0,
+    "binary_sha256": "d70524c2c69ffd44463ebec0ed1be39538f8e3c6bbeb1ea3f5dda987ab576179",
+    "different_from_v194_binary": true,
+    "same_as_focused_companion_binary": true,
+    "source_unchanged": true,
+    "pinned_ffmpeg_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+    "pinned_synthetic_vp8_sha256": {
+      "red": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+      "blue": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+    },
+    "all_original_groups_joined_without_force": true,
+    "receipt_sha256": "1a262bf5da76874cd3165565c9ad667adf996ac5935526807f404e91025549fe",
+    "results": [
+      {
+        "name": "canonical_websocket_control::webrtc::subscriptions::replacement::signed_webrtc_replacement_reserves_once_preserves_decoded_old_audio_and_cancels_target",
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_replacement_waits_for_decoded_target_before_retiring_original_eddsa",
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_replacement_waits_for_decoded_target_before_retiring_original_es256",
+        "exit_code": 0,
+        "passed": true
+      }
+    ],
+    "logs": [
+      {
+        "case": "server-0",
+        "sha256": "7270b0d050d39b17ac9acf32aa08ff8db02ad5ed9317351293833d8931538aca"
+      },
+      {
+        "case": "server-1",
+        "sha256": "a1ae5330d7eed98a5f995b32f2ce564a18d9dbb0ee8f9e148aa4beba1f36ff9a"
+      },
+      {
+        "case": "server-2",
+        "sha256": "c2ed81ca6d610421c3275d9a82a5f2d9d85dd1af34e919b50a61824aa057911f"
+      }
+    ],
+    "proven_scope": [
+      "Signed reservation/retry preserves original logical operation and original decoded audio; candidate cancellation joins.",
+      "EdDSA and ES256 cases retain original AV while requiring actual decoded private target audio/video, refuse invalid readiness, commit ownership once and recover original operation.",
+      "Both exact AV cases complete original physical retirement and final service shutdown within unchanged bounds."
+    ],
+    "limits": [
+      "Focused synthetic signed server behavior is not full-duration matrix quality or browser/device handoff qualification.",
+      "Historical v194 EdDSA track timeout remains recorded; no broad reliability claim."
     ]
   }
 }
