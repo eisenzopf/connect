@@ -49,7 +49,7 @@
       "phase": "original replacement preparation before target allocation or movement",
       "diagnosed_cause": "Service held preparation whitelist still excluded Webrtc; Core returned Unsupported after original effect began",
       "fix_commit": "7253a6dbde1c118e89b4d735cadbf74b358e4c50",
-      "focused_retest": "building local ARM test profile; final matrix remains release profile"
+      "focused_retest": "Completed test-profile build at7253a6db:0passed,3failed; preparation now reaches target allocation/media. Target fixture scopes corrected in complete batch; real media validation remains pending."
     },
     "private_log_sha256": {
       "second-results.json": "db52cfeac1d933aa37fb5270e6655f325b47e41075f576d040ad7ea997806430",
@@ -57,6 +57,22 @@
       "av-eddsa-second.log": "47af94fe371407a0aa9f29441fd75947229f8f979ec1b1d6ea68c62e7e978138",
       "av-es256-second.log": "1cbe0c1be1d989c166e203d3d2d466d424b9672c833995c0d28b6f59f3d924f1",
       "av-prepare-diagnostic.log": "2cb899938baf5db67505173cf78fc5621c46de59166779b98b09d6474661efea"
+    },
+    "test_profile_followup": {
+      "source_commit": "7253a6dbde1c118e89b4d735cadbf74b358e4c50",
+      "compile_seconds": 1042.291,
+      "passed": 0,
+      "failed": 3,
+      "allocation": "Target lacked connection.replace for operation.get",
+      "av_es256": "Target lacked stream.subscribe for private preroll; later decoder timeout",
+      "av_eddsa": "503 authority_unavailable at media preparation; cause not proven",
+      "fix_scope": "Only test target scope corrected to match actual matrix actors; signed target original-operation reads added",
+      "private_log_sha256": {
+        "third-debug-results.json": "34e81abc27eba70884e2e463dd09b4acb148f61a773f9b4ac6b4b3144a8ed3f1",
+        "allocation-third-debug.log": "0e0eddc222857322bc92343a5d32bfa5265da764f9eccc9bb3c3535433f12ba9",
+        "av-eddsa-third-debug.log": "6bc24cf3992be0135cef2ead99e355e7dcb90c24e2d373f25ce0d91cba2f9cf6",
+        "av-es256-third-debug.log": "584ab909b59e11ca11c2ab6af44d734b216c9f7841d493c38b4bac04d2bc400c"
+      }
     }
   },
   "full_matrix": "latest completed v189, 0/32 qualified; next full run pending",
@@ -71,5 +87,6 @@
     ],
     "scope": "logical port directions, screen boundaries and no receive-egress fanout; no real handoff qualification",
     "log_sha256": "bac4475052636bbe83d562b8e69b6f8568881be315bc728ad5a887c397c2a111"
-  }
+  },
+  "full_harness_batch": "docs/evidence/gate-6/complete-harness-batch-v190.json"
 }

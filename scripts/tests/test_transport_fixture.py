@@ -64,6 +64,18 @@ class FixtureBoundary(unittest.TestCase):
         path.chmod(0o600)
         self.parameters["seed_manifest_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
 
+    def test_mac_server_remote_requires_actual_native_arm_client_without_emulation(self):
+        self.parameters["cell_id"] = "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA"
+        self.parameters["topology"].update(kind="macos-linux-guest", server_platform="macos-arm64",
+            client_platform="ubuntu24-arm64", client_emulated=False, native_endpoint="192.168.1.104:4433")
+        self.server.update(network_profile="remote", bind="192.168.1.104:4433")
+        self.operator.update(network_profile="remote", endpoint="192.168.1.104:4433")
+        self.save()
+        self.assertEqual(inspect_seed(self.root, self.seed, self.parameters)["cell"]["status"], "not-run")
+        self.parameters["topology"]["client_emulated"] = True
+        with self.assertRaisesRegex(FixtureError, "fixture-topology"):
+            inspect_seed(self.root, self.seed, self.parameters)
+
     def test_private_seed_inspection_preserves_trust_and_does_not_admit_runtime(self):
         plan = inspect_seed(self.root, self.seed, self.parameters)
         self.assertEqual(plan["server"]["signing_key_expires_at"], self.end)

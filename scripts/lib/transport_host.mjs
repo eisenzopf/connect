@@ -118,3 +118,35 @@ export async function observeRemoteTopology(server, helpers, endpoint, expectedB
         server_namespace_sha256: hash(serverNamespace), client_namespace_sha256: hash(clientNamespace),
         server_executable_sha256: expectedBinary };
 }
+
+export async function observeMacLinuxTopology(proof, helpers, endpoint, expectedBinary, clientIp, sourceRevision, serverBinary) {
+    const host = nativeHost();
+    assert.equal(host.platform, "ubuntu24-arm64");
+    assert.equal(proof.kind, "macos-linux-guest");
+    assert.equal(proof.server_platform, "macos-arm64");
+    assert.equal(proof.source_revision, sourceRevision);
+    assert.equal(proof.server_binary_sha256, serverBinary);
+    assert.equal(proof.server_endpoint, endpoint);
+    assert.equal(proof.server_owned_udp_bind_observed, true);
+    assert.equal(proof.client_ip, clientIp);
+    assert.equal((await readFile("/proc/sys/kernel/random/boot_id", "utf8")).trim(), proof.guest_boot_id);
+    const [serverIp, port] = endpoint.split(":");
+    assert.ok(Number.isInteger(Number(port)) && Number(port) >= 1 && Number(port) <= 65535);
+    const route = JSON.parse(execFileSync("ip", ["-j", "route", "get", serverIp], { encoding: "utf8", timeout: 5000 }))[0];
+    assert.equal(route.prefsrc, clientIp);
+    assert.notEqual(serverIp, clientIp);
+    const namespace = await readlink(`/proc/${process.pid}/ns/net`);
+    assert.equal(helpers.size, 5);
+    for (const pid of helpers) {
+        assert.equal(await executableHash(pid), expectedBinary);
+        assert.equal((await stat(`/proc/${pid}`)).uid, process.getuid());
+        assert.equal(await readlink(`/proc/${pid}/ns/net`), namespace);
+    }
+    const interfaces = networkInterfaces()[route.dev];
+    assert.ok(interfaces.some(value => value.family === "IPv4" && value.address === clientIp && !value.internal));
+    return { host, kind: "macos-linux-guest", client_emulated: false,
+        helpers_in_client_namespace: helpers.size, ordinary_user_helpers_verified: true,
+        actual_guest_route_observed: true, client_namespace_sha256: hash(namespace),
+        client_executable_sha256: expectedBinary, server_executable_sha256: serverBinary,
+        server_observation: proof, server_observation_sha256: hash(Buffer.from(JSON.stringify(proof))) };
+}

@@ -20,6 +20,7 @@ import sys
 import traceback
 
 from lib.transport_matrix import digest, inventory, load_contract
+from lib.vm_workload_lease import GuardedVmWorkloadLease
 from lib.transport_matrix_execution import configure_execution, full_run_preflight, merge_hosts, record_browser_result, record_native_result, select_cells
 from lib.transport_matrix_verdict import evaluate_cell, blocked, summarize
 
@@ -133,8 +134,14 @@ def execute_selected(matrix, ids, output, execute):
         cell["status"] = "running"
         cell["reason"] = "original-required-workload-running"
         save(output / "matrix.json", matrix)
+        lease = GuardedVmWorkloadLease() if platform.system() == "Linux" else contextlib.nullcontext()
+        entered = False
         try:
+            lease.__enter__()
+            entered = True
             report, report_sha256, code = execute(cell)
+            if hasattr(lease, "complete"):
+                lease.complete(report)
             if full:
                 failure = report.get("failure") or {}
                 cell["execution"].update(attempted=True, component=dict(report_sha256=report_sha256,
@@ -165,9 +172,13 @@ def execute_selected(matrix, ids, output, execute):
             cell["execution"]["attempted"] = True
             raise
         finally:
+            if entered:
+                lease.__exit__(None, None, None)
             if full:
                 summarize(matrix)
             save(output / "matrix.json", matrix)
+            if getattr(lease, "blocked", False):
+                raise RuntimeError("Original ARM VM cleanup unconfirmed; workload lease retained")
     return matrix
 
 

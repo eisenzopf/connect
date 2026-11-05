@@ -60,7 +60,7 @@ def run_native_authority(*, root, directory, instance, admin, binary, env, execu
         case = directory / kind
         case.mkdir(mode=0o700)
         owner = None
-        value = dict(passed=False, executed=False, kind=kind)
+        value = dict(passed=False, executed=False, launcher_attempted=False, kind=kind)
         issued_before = None
         try:
             # Remote source/config staging must happen before the short-lived

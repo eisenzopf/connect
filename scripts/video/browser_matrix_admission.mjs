@@ -44,9 +44,16 @@ assert.equal(version.status,0);assert.equal(version.stdout.trim(),spec.expectedB
 const binaryFile=await fs.open(binary,'r'),header=Buffer.alloc(64);
 try{assert.equal((await binaryFile.read(header,0,64,0)).bytesRead,64);}finally{await binaryFile.close();}
 if(process.platform==='linux'){assert.equal(header.subarray(0,6).toString('hex'),'7f454c460201');assert.equal(header.readUInt16LE(18),183);}
+const fixtureAddresses=spec.fixtureAddresses;
+assert.ok(Array.isArray(fixtureAddresses)&&fixtureAddresses.length>=1&&fixtureAddresses.length<=2);
+for(const address of fixtureAddresses){
+    const parts=address.split('.').map(Number);assert.equal(parts.length,4);assert.ok(parts.every(v=>Number.isInteger(v)&&v>=0&&v<=255));
+    assert.ok(address==='127.0.0.1'||parts[0]===10||parts[0]===192&&parts[1]===168||parts[0]===172&&parts[1]>=16&&parts[1]<=31);
+    assert.ok(leaf.checkIP(address),'Fixture TLS SAN must authenticate each actual host');
+}
 for(const value of [spec.origin,spec.endpoints.webtransport,spec.endpoints['wss-webrtc']]){
     const url=new URL(value);
-    assert.ok(['https:','wss:'].includes(url.protocol)&&['127.0.0.1','10.203.0.1','10.203.0.2'].includes(url.hostname)&&url.port&&!url.username&&!url.password&&!url.search&&!url.hash);
+    assert.ok(['https:','wss:'].includes(url.protocol)&&fixtureAddresses.includes(url.hostname)&&url.port&&!url.username&&!url.password&&!url.search&&!url.hash);
 }
 for(const actor of Object.values(spec.actors)){
     assert.equal(actor.signing.algorithm,spec.signingAlgorithm);assert.equal(actor.server.algorithm,spec.signingAlgorithm);
@@ -57,6 +64,7 @@ for(const actor of Object.values(spec.actors)){
 }
 const report={format:'connect/browser-matrix-admission-observation/1',source_revision:spec.sourceRevision,
     transport:spec.transport,stage:spec.stage,signing_algorithm:spec.signingAlgorithm,browser:version.stdout.trim(),
+    client_runtime:{platform:process.platform==='linux'?'ubuntu24-arm64':'macos-arm64',architecture:process.arch,node:process.version},
     passed:false,cell_qualified:false,task_complete:false,full_media_programme_executed:false,
     scope:'Actual isolated Chrome/public browser-SDK admission only. HTTPS/WSS use configured CA trust; WT uses its explicitly supplied fresh short-lived certificate SHA256 through the standard API. No full media/four-move/expiry/idle/fallback or complete-cell qualification.',
     tls_trust:{https_wss:'isolated-profile-CA',webtransport:spec.transport==='chrome-webtransport'?'explicit-fresh-certificate-sha256':null,

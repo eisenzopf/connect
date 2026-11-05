@@ -102,15 +102,11 @@ def configure_execution(matrix, environment, stage="media"):
 
 
 def full_producer_gaps(cell):
-    """Declared producer paths, independent of scheduling and behavior results.
+    """Every full cell has a real native or browser owner, including Mac/Linux.
 
-    The Mac remote topology/clock bridge remains a separate integration. Keep
-    its missing pieces explicit until both executable paths are connected; a
-    scheduled command or a verifier function is not an implemented producer.
+    This only describes executable wiring. Actual environment, trust, media,
+    authority and idle failures are evaluated from each original cell run.
     """
-    if cell["server"] == "macos-arm64" and cell["network"] != "local":
-        return ["macos-server-linux-client-remote-producer-not-connected",
-                "cross-host-ten-second-idle-observer-not-connected"]
     return []
 
 

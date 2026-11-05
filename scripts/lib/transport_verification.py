@@ -202,8 +202,10 @@ def verify_rehearsal(report, component, members):
     require(raw is not None and hashlib.sha256(raw).hexdigest() == report["conversation_report_sha256"], "conversation-report-binding-mismatch")
     child = decode(raw)
     require(child["format"] in {"connect/transport-conversation-control/1", "connect/transport-conversation-control/2"}, "wrong-conversation-format")
-    for field in ("source_revision", "binary_sha256", "signing_algorithm"):
+    for field in ("source_revision", "signing_algorithm"):
         require(child[field] == report[field], "conversation-runtime-binding-mismatch")
+    require(child["binary_sha256"] == report.get("client_binary_sha256", report["binary_sha256"]), "actual-client-executable-binding-mismatch")
+    require(child.get("server_binary_sha256", child["binary_sha256"]) == report["binary_sha256"], "actual-server-executable-binding-mismatch")
     for field in ("cell_qualified", "task_complete", "whole_gate_qualified"):
         require(child[field] is False, "component-cannot-promote-cell")
     require(type(child["passed"]) is bool, "conversation-result-required")
@@ -340,11 +342,20 @@ def verify(path, expected_sha256, revision, component, target, signing, network,
         require(materialized["cell_id"] == "G6-058/" + target + "/" + network + "/native-quic/" + signing,
             "wrong-materialized-cell")
         if network != "local" and report["passed"]:
-            owned = report["network_namespace"]
-            require(owned["passed"] is True and owned["forced_cleanup"] is False and owned["systemd_servers_verified"] == 2 and
-                owned["original_namespace_removed"] is True and owned["original_veth_removed"] is True and
-                owned["remaining_client_processes"] == 0 and not owned["failures"] and
-                all(v.get("managed_by_systemd") is True for v in report["servers"]), "remote-owned-runtime-or-cleanup-missing")
+            if target == "macos-arm64":
+                owner, server = report["remote_client_owner"], report["server_after_guest"]
+                require(owner["passed"] is True and owner["original_joined"] is True and owner["forced"] is False
+                    and owner["guest"]["original_joined"] is True and owner["client_inputs_unchanged"] is True
+                    and server["server_platform"] == target and server["server_owned_udp_bind_observed"] is True
+                    and server["server_binary_sha256"] == report["binary_sha256"] and server["source_revision"] == revision
+                    and report["client_binary_sha256"] != report["binary_sha256"]
+                    and report["remote_binaries_unchanged"] is True, "remote-mac-linux-original-ownership-missing")
+            else:
+                owned = report["network_namespace"]
+                require(owned["passed"] is True and owned["forced_cleanup"] is False and owned["systemd_servers_verified"] == 2 and
+                    owned["original_namespace_removed"] is True and owned["original_veth_removed"] is True and
+                    owned["remaining_client_processes"] == 0 and not owned["failures"] and
+                    all(v.get("managed_by_systemd") is True for v in report["servers"]), "remote-owned-runtime-or-cleanup-missing")
         outcomes = verify_rehearsal(report, component, members)
         binary = report["binary_sha256"]
     require(re.fullmatch(r"[0-9a-f]{64}", binary) is not None, "runtime-binary-digest-missing")

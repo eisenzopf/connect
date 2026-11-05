@@ -5,12 +5,18 @@ use connect_protocol::transitions::{EffectState, TransitionCommand, TransitionIn
 
 async fn target(f: &Fixture) -> (CanonicalClientConfig, String) {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
+    let mut scope = Scope::collaboration(vec!["*".into()]);
+    // Recovery requires the original movement scope, and receiving retained
+    // media requires the target's own current subscription permission.
+    scope
+        .operations
+        .extend(["connection.replace".into(), "stream.subscribe".into()]);
     let issued = f
         .server
         .store
         .issue(
             &f.client.identity_id,
-            Scope::collaboration(vec!["*".into()]),
+            scope,
             chrono::Utc::now().timestamp() + 600,
         )
         .unwrap();
@@ -40,6 +46,36 @@ async fn target(f: &Fixture) -> (CanonicalClientConfig, String) {
         )
         .unwrap();
     (c, endpoint)
+}
+
+/// The browser SDK observes the original source scope through the signed target
+/// connection. Independent Store assertions cannot substitute for this path.
+pub(super) async fn signed_original_status(target: &mut Peer, cid: &str, operation: &str) -> Value {
+    let mut request = envelope("operation.get", json!({"operation_id":operation}));
+    request["cid"] = json!(cid);
+    request["sid"] = json!("http3-media-session");
+    request["connid"] = json!("rtc-connection-0");
+    let id = target.send(request, true).await;
+    let mut status = None;
+    for _ in 0..128 {
+        let frame = target.read().await;
+        assert_eq!(frame.original()["in_reply_to"], id);
+        assert_eq!(frame.original()["cid"], cid);
+        assert_eq!(frame.original()["sid"], "http3-media-session");
+        assert_eq!(frame.original()["connid"], "rtc-connection-0");
+        match frame.kind() {
+            "operation.updated" => {
+                assert!(status.is_none());
+                let payload = frame.original()["payload"].clone();
+                assert_eq!(payload["operation_id"], operation);
+                assert_eq!(payload["command_type"], "connection.replace");
+                status = Some(payload);
+            }
+            "ack" => return status.expect("target must observe its original replacement"),
+            _ => panic!("unexpected target status reply: {:?}", frame.original()),
+        }
+    }
+    panic!("target original status reply exceeded bound");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -229,6 +265,10 @@ async fn signed_webrtc_replacement_reserves_once_preserves_decoded_old_audio_and
     offer["connid"] = json!(candidate);
     command(&mut target_peer, offer.clone()).await;
     let allocated = record(&f, &target_config, operation);
+    let observed = signed_original_status(&mut target_peer, &cid, operation).await;
+    assert_eq!(observed["record_id"], allocated.record_id);
+    assert_eq!(observed["state"], "preparing");
+    assert!(observed.get("result").is_none());
     assert_eq!(allocated.state, OperationState::Preparing);
     assert!(allocated.result.is_none());
     assert_eq!(
@@ -257,6 +297,10 @@ async fn signed_webrtc_replacement_reserves_once_preserves_decoded_old_audio_and
     // Exact retry reads the same original receipt and cannot reserve again.
     command(&mut target_peer, offer).await;
     assert_eq!(record(&f, &target_config, operation), allocated);
+    assert_eq!(
+        signed_original_status(&mut target_peer, &cid, operation).await,
+        observed
+    );
     assert_eq!(host.adapter().total_allocations(), 3);
     controller
         .request_value(

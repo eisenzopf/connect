@@ -37,6 +37,16 @@ class CaptureBoundary(unittest.TestCase):
         self.path.write_bytes(data)
         return inspect_pcap(self.path, 4433)
 
+    def test_actual_mac_linux_guest_capture_binds_exact_distinct_private_addresses(self):
+        server, client = bytes([192,168,1,104]), bytes([192,168,5,1])
+        self.path.write_bytes(pcap([packet(50123,4433,address=client,destination=server),packet(4433,50123,address=server,destination=client)]))
+        with self.assertRaises(AssertionError):
+            inspect_pcap(self.path,4433,"192.168.1.104","192.168.5.1")
+        value=inspect_pcap(self.path,4433,"192.168.1.104","192.168.5.1",mac_linux_guest=True)
+        self.assertEqual(value["packets"],2)
+        with self.assertRaises(AssertionError):
+            inspect_pcap(self.path,4433,"192.168.1.105","192.168.5.1",mac_linux_guest=True)
+
     def test_both_pcap_byte_orders_count_only_actual_udp_payloads(self):
         for endian in ("<", ">"):
             with self.subTest(endian=endian):

@@ -1,3 +1,4 @@
+import { nativeMatrixLifecycle } from "./lib/native_matrix_lifecycle.mjs";
 import { waitForProgrammeOffset } from "./lib/transport_programme_clock.mjs";
 import { liveVideoProgramFromManifest } from "./lib/transport_live_video_program.mjs";
 // Actual public Node SDK/native helper scenario. No Store or provider IO.
@@ -8,7 +9,7 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
 import { NodeClient, SdkBinaryData } from "../sdk/typescript/dist/index.js";
-import { nativeHost, executableHash, childPids, processExists, observeLocalTopology, observeRemoteTopology } from "./lib/transport_host.mjs";
+import { nativeHost, executableHash, childPids, processExists, observeLocalTopology, observeRemoteTopology, observeMacLinuxTopology } from "./lib/transport_host.mjs";
 import { connectionSnapshots } from "./lib/transport_snapshot.mjs";
 import { nativeAv } from "./lib/transport_av.mjs";
 import { operationFailure } from "./lib/transport_failure.mjs";
@@ -29,9 +30,12 @@ const privateRoot = await realpath(join(root, ".local"));
 assert.ok((await realpath(inputPath)).startsWith(privateRoot + "/") && output.startsWith(privateRoot + "/"));
 assert.equal((await stat(inputPath)).mode & 0o077, 0);
 const input = JSON.parse(await readFile(inputPath, "utf8"));
+const matrixLifecycle = mediaWorkload && input.matrix_resource_directory
+    ? nativeMatrixLifecycle(input.matrix_resource_directory) : undefined;
 assert.equal(input.format, "connect/transport-conversation-input/1");
 assert.ok(["EdDSA", "ES256"].includes(input.signing_algorithm));
-assert.equal(input.server_platform, nativeHost().platform);
+assert.equal(input.client_platform ?? input.server_platform, nativeHost().platform);
+assert.ok(input.server_platform===nativeHost().platform || input.server_platform==="macos-arm64" && input.network_profile==="remote" && input.server_ownership?.kind==="macos-linux-guest");
 assert.ok(["local", "remote"].includes(input.network_profile));
 const mediaRoles = ["participant-1", "participant-2", "participant-3", "participant-4", "replacement-1"];
 const controllerRoles = ["controller-1", "controller-2"];
@@ -70,7 +74,7 @@ const observedHelpers = new Set();
 const dataFailures = new WeakMap();
 const ownerNativeMessageIds = [];
 const report = { format: mediaWorkload ? "connect/transport-conversation-control/2" : "connect/transport-conversation-control/1", passed: false, checks: [],
-    source_revision: input.source_revision, binary_sha256: input.binary_sha256, signing_algorithm: input.signing_algorithm, history_page_counts: [],
+    source_revision: input.source_revision, binary_sha256: input.binary_sha256, server_binary_sha256: input.server_binary_sha256 ?? input.binary_sha256, signing_algorithm: input.signing_algorithm, history_page_counts: [],
     physical_peer_sha256: mediaWorkload ? input.physical_peer_sha256 : null,
     node: process.version, host: nativeHost(), network_profile: input.network_profile, plan_sha256: hash(await readFile(join(privateDirectory, "plan.json"))),
     input_sha256: hash(await readFile(inputPath)), sdk_config_hashes: {},
@@ -106,6 +110,7 @@ async function helpers() {
     return live;
 }
 try {
+    if (matrixLifecycle) report.resource_baseline = await matrixLifecycle.baseline();
     for (const [role, actor] of Object.entries(input.actors)) {
         assert.ok((await realpath(actor.config)).startsWith(privateRoot + "/"));
         assert.equal((await stat(actor.config)).mode & 0o077, 0);
@@ -120,7 +125,7 @@ try {
     await helpers(); assert.equal(observedHelpers.size, 5);
     check("five-independent-public-sdk-helpers-bound-to-production-executable");
     if (input.network_profile === "remote") {
-        report.topology = await observeRemoteTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256, input.client_ip);
+        report.topology = await (input.server_ownership?.kind==="macos-linux-guest" ? observeMacLinuxTopology(input.server_ownership, observedHelpers, input.native_endpoint, input.binary_sha256, input.client_ip, input.source_revision, input.server_binary_sha256) : observeRemoteTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256, input.client_ip));
         report.actual_topology_verified = true;
         check("actual-systemd-server-listener-and-distinct-ordinary-user-client-network-namespace-observed");
     }
@@ -339,7 +344,7 @@ try {
         phase = "owned-local-topology-observation";
         report.topology = input.network_profile === "local" ?
             await observeLocalTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256) :
-            await observeRemoteTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256, input.client_ip);
+            await (input.server_ownership?.kind==="macos-linux-guest" ? observeMacLinuxTopology(input.server_ownership, observedHelpers, input.native_endpoint, input.binary_sha256, input.client_ip, input.source_revision, input.server_binary_sha256) : observeRemoteTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256, input.client_ip));
         report.actual_topology_verified = true;
         check(input.network_profile === "local" ? "actual-server-loopback-listener-and-original-helper-network-namespace-observed" : "actual-server-owned-veth-listener-and-distinct-original-client-network-namespace-observed");
         phase = "native-data-original-replay";
@@ -547,6 +552,7 @@ try {
     if (error.name === "AssertionError") report.failure.assertion = { actual: shape(error.actual), expected: shape(error.expected) };
     await writeFile(join(privateDirectory, "failure.log"), String(error.stack), { mode: 0o600 });
 } finally {
+    if (matrixLifecycle) await matrixLifecycle.terminal();
     for (const client of clients.values()) {
         try { await client.close({ timeoutMs: 5000 }); }
         catch { report.passed = false; report.helper_close_failed = true; }
@@ -556,6 +562,13 @@ try {
     }
     report.observed_helpers = observedHelpers.size;
     report.all_observed_helpers_joined = !report.helper_survived && !report.helper_close_failed;
+    if (matrixLifecycle) {
+        const observed = await matrixLifecycle.retired({observedHelpers: observedHelpers.size,
+            helpersJoined: report.all_observed_helpers_joined, closeFailed: report.helper_close_failed === true});
+        report.retirement = observed.retirement;
+        report.native_idle_observation = observed.idle_observer;
+        report.passed = Boolean(report.passed && observed.retirement.passed && observed.idle_observer.passed);
+    }
     for (const [role, actor] of Object.entries(input.actors))
         if (hash(await readFile(actor.config)) !== report.sdk_config_hashes[role]) report.passed = false;
     if (hash(await readFile(input.executable)) !== input.binary_sha256) report.passed = false;

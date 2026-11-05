@@ -22,7 +22,9 @@ from lib.transport_av import prepare as prepare_av, decode_completed as decode_c
 from lib.transport_namespace import NativeNamespace
 from lib.transport_fixture import FixtureError, RELIABLE_PAYLOAD_BYTES, materialize, publish, toml_bytes
 from lib.transport_matrix import digest
-from lib.transport_resources import run_profiled
+from lib.native_matrix_idle import run_native_matrix
+from lib.native_matrix_authority import run_native_authority
+from lib.mac_linux_fixture import MacLinuxFixture, rewrite_paths
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / ".local/gate6-transports"
@@ -87,7 +89,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     host["rust"] = rust
     host["platform"] = server_platform
     assert network_profile in {"local", "remote"}
-    assert network_profile == "local" or server_platform == "ubuntu24-arm64"
+    mac_remote = network_profile == "remote" and server_platform == "macos-arm64"
     network_cell = "local" if network_profile == "local" else "remote-profile-fixture"
     assert os.environ.get("TRANSPORT_NETWORK", network_cell) == network_cell
     assert os.environ.get("TRANSPORT_TARGET", server_platform) == server_platform
@@ -105,7 +107,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             LIBOPUS_NO_PKG="1", CMAKE_POLICY_VERSION_MINIMUM="3.5")
     report = dict(format="connect/transport-fixture-rehearsal/1", source_revision=subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), passed=False, checks=[], commands=[],
-        servers=[], signing_algorithm=signing_algorithm, network_profile=network_profile, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
+        servers=[], native_programme_started=False, signing_algorithm=signing_algorithm, network_profile=network_profile, host=host, task_complete=False, matrix_qualified=False, cell_qualified=False, whole_gate_qualified=False,
         scope="Native macOS-arm64 or Ubuntu24.04 ARM64 production CLI configuration and public Node SDK native stages. Optional data workload holds six actual data Connections across four participants/two Sessions, transfers six64KiB payloads, observes the owned UDP listener and actual client/server topology and requires private packet capture. Optional media workload adds six Opus/VP8 sources with an independently decoded 60-second native component. Paired AV-sync, live upgrade/replacement media ownership, browser, complete remote transport cells, SIP, TURN and model/provider execution remain unqualified. All complete matrix cells remain unqualified.")
     report["arm64_component_only"] = arm64_component
     report["native_replacement_metadata_trace_requested"] = native_replacement_metadata_trace
@@ -129,6 +131,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     sdk_before = None
     capture = None
     namespace = None
+    remote = None
     server_pid = None
     media_sources = None
     try:
@@ -138,7 +141,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         source_path = OUTPUT / "source-inputs.json"
         source_path.write_text(json.dumps(before, sort_keys=True) + "\n")
         report.update(source_inputs_sha256=digest(source_path), source_count=len(before))
-        if media_workload:
+        if media_workload and not mac_remote:
             phase = "synthetic-opus-vp8-source-preparation"
             media_sources = prepare_av(PRIVATE / "av-sources")
             report["native_av_source_manifest_sha256"] = digest(PRIVATE / "av-sources/manifest.json")
@@ -166,7 +169,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             server_binary_sha256=report["binary_sha256"])
         binary = PRIVATE / "connect"
         seal_executable(targets[0], binary, report["binary_sha256"], pool=PRIVATE / "sealed")
-        if media_workload:
+        if media_workload and not mac_remote:
             phase = "compile-independent-physical-media-peer"
             peer_log = PRIVATE / "peer-compile.log"
             code = bounded(["cargo", "build", "--release", "--locked", "--message-format=json",
@@ -189,7 +192,21 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             peer = PRIVATE / "physical-media-peer"
             seal_executable(peers[0], peer, report["peer_binary_sha256"], pool=PRIVATE / "sealed")
 
-        if network_profile == "remote":
+        if mac_remote:
+            phase = "owned-mac-linux-client-setup"
+            remote = MacLinuxFixture(ROOT, PRIVATE / "remote-owner", env)
+            report["actual_topology"] = remote.start(report["source_revision"], image=False)
+            runtime = remote.compile_native(media=media_workload)
+            report["client_binary_sha256"] = remote.client_binary_sha256
+            report["runtime_versions"].update(client_platform="ubuntu24-arm64", client_binary_sha256=remote.client_binary_sha256,
+                client_node=runtime["node"], client_rust=runtime["rust"])
+            if media_workload:
+                report["peer_binary_sha256"] = remote.peer_binary_sha256
+                phase = "synthetic-native-arm-client-opus-vp8-source-preparation"
+                media_sources = remote.prepare_sources(PRIVATE / "av-sources")
+                report["client_source_storage"] = json.loads((PRIVATE / "remote-owner/source-storage.json").read_text())
+                report["native_av_source_manifest_sha256"] = digest(PRIVATE / "av-sources/manifest.json")
+        elif network_profile == "remote":
             phase = "owned-remote-network-setup"
             namespace = NativeNamespace(PRIVATE / "network", ROOT, env)
             namespace.start()
@@ -202,8 +219,11 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             source_path.write_bytes(b"" if data is None else json.dumps(data).encode())
             with source_path.open("rb") as incoming, path.open("wb") as out, (PRIVATE / (name + ".stderr")).open("wb") as errors:
                 command = [str(binary), *map(str, arguments)]
-                if namespace is not None and arguments[0] == "request":
-                    command = namespace.client_command(command)
+                if arguments[0] == "request":
+                    if remote is not None:
+                        command = remote.native_command(command)
+                    elif namespace is not None:
+                        command = namespace.client_command(command)
                 child = subprocess.Popen(command, cwd=ROOT, env=env,
                     stdin=incoming, stdout=out, stderr=errors, start_new_session=True)
                 joined = False
@@ -322,6 +342,23 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         report["workload_message_limits"] = dict(initialized_message_bytes=initialized_message_bytes,
             configured_message_bytes=server_config["limits"]["message_bytes"],
             required_decoded_payload_bytes=RELIABLE_PAYLOAD_BYTES)
+        if remote is not None:
+            tls = PRIVATE / "native-remote-tls"
+            tls.mkdir(mode=0o700)
+            commands = [
+                ["openssl", "req", "-new", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256", "-nodes", "-x509", "-days", "1",
+                 "-subj", "/CN=" + remote.server_ip, "-addext", "subjectAltName=IP:" + remote.server_ip,
+                 "-addext", "extendedKeyUsage=serverAuth", "-keyout", tls / "private.pem", "-out", tls / "certificate.pem"],
+                ["openssl", "x509", "-in", tls / "certificate.pem", "-outform", "DER", "-out", state / "certificate.der"],
+                ["openssl", "pkcs8", "-topk8", "-nocrypt", "-in", tls / "private.pem", "-outform", "DER", "-out", state / "private-key.der"],
+            ]
+            with (tls / "generation.log").open("xb") as log:
+                for command in commands:
+                    subprocess.run(list(map(str, command)), stdout=log, stderr=log, check=True, timeout=30, env=env)
+            server_config.update(network_profile="remote", bind=f"{remote.server_ip}:{native}")
+            operator_config = tomllib.loads((state / "operator.toml").read_text())
+            operator_config.update(network_profile="remote", endpoint=f"{remote.server_ip}:{native}", server_name=remote.server_ip)
+            (state / "operator.toml").write_bytes(toml_bytes(operator_config))
         if namespace is not None:
             server_config.update(network_profile="remote", bind=f"{namespace.server_ip}:{native}")
             operator_config = tomllib.loads((state / "operator.toml").read_text())
@@ -344,7 +381,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         parameters = dict(cell_id=identity_prefix + server_platform + "/" + network_cell + "/native-quic/" + signing_algorithm,
             candidate_source_revision=report["source_revision"], candidate_binary_sha256=report["binary_sha256"],
             seed_manifest_sha256=digest(seed / "manifest.json"), browser_origin=None,
-            topology=dict(kind="local-loopback" if namespace is None else "ubuntu-netns", server_platform=server_platform, client_platform=server_platform,
+            topology=dict(kind="macos-linux-guest" if remote is not None else "local-loopback" if namespace is None else "ubuntu-netns", server_platform=server_platform, client_platform="ubuntu24-arm64" if remote is not None else server_platform,
                 client_emulated=False, native_endpoint=original_operator["endpoint"], server_name=original_operator["server_name"]))
         phase = "materialize"
         summary = materialize(ROOT, seed, output, parameters, binary, env, arm64_component=arm64_component)
@@ -497,7 +534,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     participant_self_verification_refused=True,
                     private_plan_sha256=digest(plan_path), public_administration_only=True)
                 report["checks"].append("native-endpoints-remain-unverified-until-trusted-backend-signed-control-proof-and-original-verification")
-                if host_capture:
+                if host_capture and remote is None:
                     phase = "owned-native-packet-capture-start"
                     capture = NativeCapture(PRIVATE / "packet-capture", native, env,
                         interface=None if namespace is None else namespace.interface,
@@ -531,17 +568,35 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                             media_endpoint_id=media_endpoints.get(name))
                 input_path = PRIVATE / "conversation-input.json"
                 publish(input_path, (json.dumps(dict(format="connect/transport-conversation-input/1", actors=configured_actors,
-                    executable=str(binary), binary_sha256=report["binary_sha256"], source_revision=report["source_revision"],
-                    physical_peer_executable=str(peer) if media_workload else None,
+                    executable=str(binary) if remote is None else remote.client_binary, binary_sha256=report.get("client_binary_sha256", report["binary_sha256"]), source_revision=report["source_revision"],
+                    server_binary_sha256=report["binary_sha256"], client_platform="ubuntu24-arm64" if remote is not None else server_platform,
+                    server_ownership=None if remote is None else remote.server_proof(server_pid, binary, report["binary_sha256"], native),
+                    physical_peer_executable=(str(peer) if remote is None else remote.peer_binary) if media_workload else None,
                     physical_peer_sha256=report.get("peer_binary_sha256"),
                     server_pid=server_pid, native_endpoint=original_operator["endpoint"], signing_algorithm=signing_algorithm,
                     server_platform=server_platform, network_profile=network_profile,
-                    client_ip=None if namespace is None else namespace.client_ip,
+                    client_ip=remote.client_ip if remote is not None else None if namespace is None else namespace.client_ip,
                     media_source_directory=str(PRIVATE / "av-sources") if media_workload else None,
-                    media_output_directory=str(PRIVATE / "av-received") if media_workload else None), indent=2) + "\n").encode())
+                    media_output_directory=str(PRIVATE / "av-received") if media_workload else None,
+                    matrix_resource_directory=str(PRIVATE / "process-profile") if media_workload else None), indent=2) + "\n").encode())
                 sdk_inputs = runpy.run_path(str(ROOT / "scripts/check-gate-6-transports.py"))["sdk_inputs"]
                 sdk_before = sdk_inputs()
                 report["sdk_dist_inputs"] = sdk_before
+                if media_workload:
+                    # Independent current-authority cases run before AV. A media
+                    # failure must not prevent expiry/revocation from executing.
+                    authority_options = {}
+                    if remote is not None:
+                        from lib.native_matrix_remote_authority import RemoteNativeAuthorityFactory
+                        authority_options = dict(owner_factory=RemoteNativeAuthorityFactory(remote),
+                            client_executable=remote.client_binary, client_binary_sha256=remote.client_binary_sha256,
+                            client_platform="ubuntu24-arm64")
+                    report["current_authority"] = run_native_authority(root=ROOT,
+                        directory=PRIVATE / "current-authority", instance=output,
+                        admin=state / "operator.application.toml", binary=binary, env=env, execute=run,
+                        source_revision=report["source_revision"], signing_algorithm=signing_algorithm,
+                        network_profile=network_profile,
+                        wrap=None if namespace is None else namespace.client_command, **authority_options)
                 command = ["node", "scripts/check-transport-conversation.mjs", str(input_path), str(OUTPUT / "conversation.json")]
                 if media_workload:
                     command.append("--media-workload")
@@ -557,18 +612,41 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     report["native_media_diagnostics_before"] = health["data"]["readiness"]["media"]
                     assert isinstance(report["native_media_diagnostics_before"], dict)
                     phase = "public-sdk-conversation-control"
-                if media_workload and namespace is None and platform.system() == "Linux":
-                    code, resources = run_profiled(command, PRIVATE / "conversation-control.log", env, 300,
-                        server_pid=server_pid, directory=PRIVATE / "process-profile", cwd=ROOT)
+                report["native_programme_started"] = True
+                if media_workload:
+                    administrative = tomllib.loads((state / "operator.application.toml").read_text())
+                    if remote is not None:
+                        remote.stage_paths([ROOT / "sdk/typescript/dist"])
+                        for actor in configured_actors.values():
+                            remote.stage_native_config(Path(actor["config"]))
+                            remote.stage_native_config(Path(actor["native_config"]))
+                        remote.stage_json(input_path, json.loads(input_path.read_text()))
+                        remote.call(["mkdir", "-p", remote.mapped(OUTPUT)])
+                        guest_command = rewrite_paths(command, ROOT, remote.remote_root)
+                        capture_config = dict(server_port=native, interface=remote.topology["guest"]["route"]["dev"],
+                            server_ip=remote.server_ip, peer_ip=remote.client_ip) if host_capture else None
+                        code, resources, idle = remote.run_native_programme(guest_command,
+                            PRIVATE / "conversation-control.log", directory=PRIVATE / "process-profile", server_pid=server_pid,
+                            endpoint=f"http://127.0.0.1:{http}/v1/operations", credential=administrative["credential"], capture=capture_config)
+                        for directory in (OUTPUT, PRIVATE / "conversation-control", PRIVATE / "av-received"):
+                            remote.collect_directory(directory)
+                        report["remote_client_owner"] = remote.close(release_lease=False)
+                        report["server_after_guest"] = remote.server_proof(server_pid, binary, report["binary_sha256"], native)
+                        capture_path = PRIVATE / "process-profile/native-capture-observation.json"
+                        if capture_path.exists():
+                            report["packet_capture"] = json.loads(capture_path.read_text())
+                    else:
+                        code, resources, idle = run_native_matrix(command,
+                            PRIVATE / "conversation-control.log", env, 300, server_pid=server_pid,
+                            directory=PRIVATE / "process-profile", cwd=ROOT,
+                            endpoint=f"http://127.0.0.1:{http}/v1/operations", credential=administrative["credential"],
+                            wrap=None if namespace is None else namespace.client_command)
                     report["native_process_profile"] = resources
                     report["native_process_profile_sha256"] = digest(PRIVATE / "process-profile/process-resources.json")
+                    report["idle_resources"] = idle
                 else:
-                    code = (bounded(command, PRIVATE / "conversation-control.log", env, 300 if media_workload else 180) if namespace is None else
-                        namespace.run_client(command, PRIVATE / "conversation-control.log", 300 if media_workload else 180))
-                    if media_workload:
-                        report["native_process_profile"] = dict(executed=False,
-                            reason="local-linux-native-process-collector-not-selected",
-                            resource_reclamation_qualified=False, cell_qualified=False)
+                    code = (bounded(command, PRIVATE / "conversation-control.log", env, 180) if namespace is None else
+                        namespace.run_client(command, PRIVATE / "conversation-control.log", 180))
                 report["conversation_exit_code"] = code
                 if media_workload:
                     try:
@@ -587,12 +665,12 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 report["conversation_control"] = {key: observed.get(key) for key in (
                     "passed", "checks", "all_observed_helpers_joined", "workload_mode",
                     "maximum_active_members_observed", "concurrent_session_intents_observed",
-                    "actual_connection_workload_observed", "actual_topology_verified")}
+                    "actual_connection_workload_observed", "actual_topology_verified", "retirement")}
                 report["movement"] = observed.get("device_movement", {})
                 if not report["movement"] and observed.get("native_av_observation"):
                     report["movement"] = dict(passed=False, moves=[], failure=observed.get("failure", {}))
-                report["current_authority"] = dict(conflict=dict(passed=
-                    "membership-update-original-replay-changed-intent-and-stale-revision-guards" in observed.get("checks", [])))
+                report.setdefault("current_authority", {})["conflict"] = dict(passed=
+                    "membership-update-original-replay-changed-intent-and-stale-revision-guards" in observed.get("checks", []))
                 # A later control/recovery failure must not discard the already
                 # completed native media observation. Preserve both results.
                 decoded = None
@@ -605,15 +683,15 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         (PRIVATE / "native-av-decoder-failure.log").write_text(traceback.format_exc())
                         report["native_av_decoder_failure"] = dict(name=type(decode_error).__name__,
                             line=traceback.extract_tb(decode_error.__traceback__)[-1].lineno)
-                if media_workload and namespace is None and platform.system() == "Linux":
+                if media_workload:
                     assert report["native_process_profile"]["collection_complete"]
                 if media_workload:
                     assert "native_media_diagnostics_after_failure" not in report
                 assert code == 0
                 assert observed["passed"] and observed["all_observed_helpers_joined"]
                 assert observed["maximum_active_members_observed"] == 4 and observed["concurrent_session_intents_observed"] == 2
-                assert observed["signing_algorithm"] == signing_algorithm and observed["host"]["platform"] == server_platform
-                assert observed["source_revision"] == report["source_revision"] and observed["binary_sha256"] == report["binary_sha256"]
+                assert observed["signing_algorithm"] == signing_algorithm and observed["host"]["platform"] == ("ubuntu24-arm64" if remote is not None else server_platform)
+                assert observed["source_revision"] == report["source_revision"] and observed["binary_sha256"] == report.get("client_binary_sha256", report["binary_sha256"]) and observed["server_binary_sha256"] == report["binary_sha256"]
                 if data_workload:
                     assert observed["actual_connection_workload_observed"] and observed["actual_topology_verified"]
                     workload = observed["data_workload"]
@@ -623,6 +701,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 if media_workload:
                     phase = "independent-native-opus-vp8-decode"
                     assert decoded is not None and decoded["passed"]
+                    assert all(report["current_authority"][kind]["passed"] for kind in ("expiry", "revocation", "conflict"))
+                    assert report["idle_resources"]["passed"]
                     report["checks"].append("six-native-opus-vp8-routes-have-independently-decoded-source-identity-and-moving-360p-content")
                 report["checks"].append("public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery")
                 before_revocation = {name: rooms(name + "-before-revocation", Path(records[name]["config"])) for name in sorted(before_revocation)}
@@ -644,6 +724,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             assert report["packet_capture"]["counts"]["to_server_udp_bytes"] >= 6 * 65536
             assert report["packet_capture"]["counts"]["from_server_udp_bytes"] >= 6 * 65536
             report["checks"].append("private-owned-" + ("loopback" if namespace is None else "veth") + "-packet-capture-validates-both-native-directions-with-zero-kernel-drops-and-original-owner-join")
+        if remote is not None and host_capture:
+            assert report.get("packet_capture", {}).get("observed") is True
         stop()
         if namespace is not None:
             report["network_namespace"] = namespace.close()
@@ -660,6 +742,14 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         if isinstance(error, FixtureError):
             report["failure"]["code"] = str(error)
     finally:
+        if remote is not None:
+            try:
+                report["remote_client_owner"] = remote.close()
+                report["remote_binaries_unchanged"] = remote.verify_binaries()
+                report["passed"] = bool(report["passed"] and report["remote_client_owner"]["passed"] and report["remote_binaries_unchanged"])
+            except Exception:
+                report["remote_client_owner"] = dict(passed=False, failure="original-guest-owner-or-binary-unconfirmed")
+                report["passed"] = False
         if capture is not None:
             report["packet_capture"] = capture.finish()
             report["passed"] = bool(report["passed"] and report["packet_capture"]["observed"])
@@ -736,7 +826,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             report["native_custodian_terminal_observations"] = custodians[:32]
         report["source_inputs_unchanged"] = before is not None and source() == before
         report["executables_unchanged"] = (binary is not None and digest(binary) == report["binary_sha256"]
-            and (not media_workload or peer is not None and digest(peer) == report["peer_binary_sha256"]))
+            and (remote is not None and report.get("remote_binaries_unchanged") is True or not media_workload or peer is not None and digest(peer) == report["peer_binary_sha256"]))
         if sdk_before is not None:
             report["sdk_dist_inputs_unchanged"] = sdk_inputs() == sdk_before
             report["passed"] = bool(report["passed"] and report["sdk_dist_inputs_unchanged"])

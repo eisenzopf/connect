@@ -9,12 +9,18 @@ use connect_protocol::{
 
 async fn target_av(f: &Fixture) -> (CanonicalClientConfig, String) {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
+    let mut scope = Scope::collaboration(vec!["*".into()]);
+    // A separate signed device retains the same ordinary movement/read scope
+    // as the matrix actors, plus its own permission to receive selected media.
+    scope
+        .operations
+        .extend(["connection.replace".into(), "stream.subscribe".into()]);
     let issued = f
         .server
         .store
         .issue(
             &f.client.identity_id,
-            Scope::collaboration(vec!["*".into()]),
+            scope,
             chrono::Utc::now().timestamp() + 600,
         )
         .unwrap();
@@ -306,6 +312,11 @@ async fn full_replacement(algorithm: &str) {
     );
     allocation["connid"] = json!(candidate);
     command(&mut target_peer, allocation.clone()).await;
+    let status =
+        super::super::replacement::signed_original_status(&mut target_peer, &cid, operation).await;
+    assert_eq!(status["record_id"], prepared.record_id);
+    assert_eq!(status["state"], "preparing");
+    assert!(status.get("result").is_none());
     assert_eq!(host.adapter().route_count(), 3);
     assert_eq!(host.adapter().total_allocations(), 3);
     assert_eq!(host.available_slots(), 0);
@@ -430,6 +441,11 @@ async fn full_replacement(algorithm: &str) {
     // operation.get because the ready acknowledgment is intentionally scoped.
     command(&mut target_peer, renew(ready.clone())).await;
     let recovered = record(&f, &target_config, operation);
+    let observed =
+        super::super::replacement::signed_original_status(&mut target_peer, &cid, operation).await;
+    assert_eq!(observed["record_id"], done.record_id);
+    assert_eq!(observed["state"], "completed");
+    assert_eq!(observed.get("result"), done.result.as_ref());
     assert_eq!(recovered.record_id, done.record_id);
     assert_eq!(recovered.state, OperationState::Completed);
     assert_eq!(recovered.result, done.result);
@@ -446,6 +462,10 @@ async fn full_replacement(algorithm: &str) {
     refused(&mut target_peer, changed_nonce, "forbidden", 403).await;
     command(&mut target_peer, renew(ready)).await;
     let unchanged = record(&f, &target_config, operation);
+    assert_eq!(
+        super::super::replacement::signed_original_status(&mut target_peer, &cid, operation).await,
+        observed
+    );
     assert_eq!(unchanged.result, done.result);
     assert_eq!(unchanged.effects, done.effects);
     assert_eq!(host.adapter().route_count(), 2);

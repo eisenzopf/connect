@@ -1,0 +1,57 @@
+{
+  "format": "connect/g6-058-complete-harness-batch/1",
+  "task": "G6-058",
+  "observed_at": "2026-11-05T04:24:58.260627+00:00",
+  "scope": "Complete producer wiring and combined harness regressions. No transport configuration qualified by these checks.",
+  "full_matrix_cells": 32,
+  "required_check_verdicts": 432,
+  "declared_missing_producers": [],
+  "coverage": [
+    "eight Mac server / ARM Linux client rows",
+    "normal TLS using actual host and guest endpoint identities",
+    "native expiry and revocation with original operation recovery",
+    "native and browser cross-host ten-second idle observation",
+    "guest-owned packet capture for all eight Mac remote rows",
+    "shared ARM VM workload ownership until confirmed original joins",
+    "local ARM Firefox runtime and long-programme polling"
+  ],
+  "validation": {
+    "python": {
+      "passed": 106,
+      "failed": 0,
+      "log_sha256": "763f5dfd6adc72a8f3cbbc1fbdb853bd7b5ca3af236d3a3c85df7da103a96f57"
+    },
+    "node": {
+      "passed": 66,
+      "failed": 0,
+      "skipped": 0,
+      "log_sha256": "6c42425de0cea58fb1a21d80899c3c8ee4ae2cc671149c11c8abf54d5c7416c4"
+    },
+    "format": "scripts/format.sh completed",
+    "invocation_note": "First Python invocation omitted the established tests import directory; corrected invocation passed without a source change."
+  },
+  "source_files": {
+    "scripts/check-transport-conversation.mjs": "6d3bfc247fa1aafef794346273a5470d8a20f1b81b98b538148168307b3dcf6f",
+    "scripts/check-transport-fixtures.py": "0e576763855368f657842f0bb0559d15c8f00e3aebece7b54a5e57dbbbc67983",
+    "scripts/lib/mac_linux_fixture.py": "f70e27552ab8b2544b7438221db486d5b98f91a6f3303c0ea194c05b37c73870",
+    "scripts/lib/mac_linux_guest.py": "2a71de9f49d9e8142ec7934686a6ff3e8a0eca457d733126e71069e7246cdbba",
+    "scripts/lib/matrix_browser_capture.py": "584abee7d0dd8fa90f2ba4a14b4a3aae8c841697a81a777400e8ff14e49638d6",
+    "scripts/lib/matrix_idle.py": "061ffef5beba06c223ea5e59e1883a48e4443ef988ba9719ef1a9e21af7a276d",
+    "scripts/lib/native_matrix_authority.py": "96539416f795beb51a6a13da8f379ac8953c4112a30a21338ac760a9ee0a931f",
+    "scripts/lib/transport_capture.py": "17be9053dcb7730c8cb61fe9aa69b18822f15a5c8946a4ec2360c5d575203de4",
+    "scripts/lib/transport_fixture.py": "5f4fb55bf45d03cac43378374e57cc0b4b28c23bd12f72361105449a2938d9ff",
+    "scripts/lib/transport_host.mjs": "7dbfdc5bd514a205501220eff6de8136bc6d5af50ab06f8a5c6d2d0428ad3db6",
+    "scripts/lib/transport_matrix_coordinator.py": "690a99f99faceb0aee2b98ff9eebe896f469da85039bf454f885ea67d3c5da70",
+    "scripts/lib/transport_matrix_execution.py": "44f078aa8c80f1093ed7300c3fd2c2020fa17aaf45e373b3abfd2d0fe93bb5bc",
+    "scripts/lib/transport_verification.py": "d2b02b464ce8b11dcd08ec9e14cefc46373fe9e476182b74db2f260c5b7ec688",
+    "scripts/lib/vm_workload_lease.py": "d2dddf3d96047a30bf05f80d5c545e4f0c9e906887f8cfb5c0498a7800e051ab",
+    "scripts/rehearse-gate6-browser-matrix.py": "7c03988a8ae0e4072c6af76ab0a7d5900642623c4f8e6e094a185b8b9a79f15b",
+    "scripts/run-gate6-transport-matrix.py": "eb55430091a1d1299744c79479b26f9e5f488ac837072a822b0a14f43ac0e84c",
+    "scripts/tests/test_mac_linux_fixture.py": "7348b87626314ea5e1fc22aa2e150dacd1a90977971ea11d93b229dc7a9bbacd",
+    "scripts/tests/test_transport_capture.py": "57076a12c03ddc5a6039f541e1f7bb9bfb692bb38bd87cff6d458368199b67f5",
+    "scripts/tests/test_transport_fixture.py": "b0f2a9df9b1c2e16c39c82eb49293e44fbc66d50351a376c9eca2728dec1db30",
+    "scripts/video/browser_matrix_admission.mjs": "1307792f0d0609320cf29661e8ee3af6166a26a205b6bf2532f106fd8ff582ca"
+  },
+  "runtime_validation": "pending full 32-cell run on local Mac Studio and Ubuntu24 ARM VM",
+  "known_environment_requirement": "Mac-local packet capture requires current access to /dev/bpf devices; access requested"
+}

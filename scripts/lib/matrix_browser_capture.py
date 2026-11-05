@@ -39,7 +39,7 @@ class BrowserCapture:
         if self.report is not None:
             return self.report
         self.report = dict(format="connect/browser-private-packet-capture/1", transport=self.transport,
-            observed=False, original_joined=False, raw_capture_private=True, filter=self.filter)
+            observed=False, original_joined=False, owner_created=self.process is not None, raw_capture_private=True, filter=self.filter)
         try:
             if self.process is None:
                 raise ValueError("Capture was not started")

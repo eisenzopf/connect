@@ -1,5 +1,6 @@
 """Owned Linux-loopback packet capture for a single synthetic native fixture."""
 import hashlib
+import ipaddress
 import os
 from pathlib import Path
 import platform
@@ -16,11 +17,12 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def inspect_pcap(path, server_port, server_ip="127.0.0.1", peer_ip="127.0.0.1", *, media_workload=False):
+def inspect_pcap(path, server_port, server_ip="127.0.0.1", peer_ip="127.0.0.1", *, media_workload=False, mac_linux_guest=False):
     """Validate every captured Ethernet/IPv4/UDP record, without emitting bodies."""
     assert type(media_workload) is bool
     assert type(server_port) is int and 1 <= server_port <= 65535
-    assert (server_ip, peer_ip) in {("127.0.0.1", "127.0.0.1"), ("10.203.0.1", "10.203.0.2")}
+    assert type(mac_linux_guest) is bool
+    assert (mac_linux_guest and server_ip != peer_ip and all(ipaddress.ip_address(ip).is_private and not ipaddress.ip_address(ip).is_loopback for ip in (server_ip, peer_ip))) or (server_ip, peer_ip) in {("127.0.0.1", "127.0.0.1"), ("10.203.0.1", "10.203.0.2")}
     server_address, peer_address = socket.inet_aton(server_ip), socket.inet_aton(peer_ip)
     packet_limit = 200000 if media_workload else 8192
     maximum_bytes = (256 if media_workload else 64) * 1024 * 1024
@@ -72,9 +74,10 @@ def inspect_pcap(path, server_port, server_ip="127.0.0.1", peer_ip="127.0.0.1", 
 
 class NativeCapture:
     """The caller owns this process and must finish it on success and failure."""
-    def __init__(self, directory, server_port, env, *, interface=None, server_ip="127.0.0.1", peer_ip="127.0.0.1", media_workload=False):
+    def __init__(self, directory, server_port, env, *, interface=None, server_ip="127.0.0.1", peer_ip="127.0.0.1", media_workload=False, mac_linux_guest=False):
         assert type(media_workload) is bool
         self.media_workload = media_workload
+        self.mac_linux_guest = mac_linux_guest
         self.packet_limit = 200000 if media_workload else 8192
         self.directory = directory
         self.port = server_port
@@ -94,6 +97,9 @@ class NativeCapture:
         if self.interface is None:
             assert self.server_ip == self.peer_ip == "127.0.0.1"
             self.interface = "lo" if platform.system() == "Linux" else "lo0"
+        elif self.mac_linux_guest:
+            assert platform.system() == "Linux" and re.fullmatch(r"(?:eth|en)[a-z0-9]{1,12}", self.interface)
+            assert self.server_ip != self.peer_ip and all(ipaddress.ip_address(ip).is_private and not ipaddress.ip_address(ip).is_loopback for ip in (self.server_ip,self.peer_ip))
         else:
             assert platform.system() == "Linux" and re.fullmatch(r"g6th[0-9a-f]{10}", self.interface)
             assert (self.server_ip, self.peer_ip) == ("10.203.0.1", "10.203.0.2")
@@ -135,7 +141,7 @@ class NativeCapture:
     def finish(self):
         if self.report is not None:
             return self.report
-        report = dict(format="connect/native-private-packet-capture/1", observed=False,
+        report = dict(format="connect/native-private-packet-capture/1", observed=False, owner_created=self.process is not None,
             original_joined=False, forced=False, scope="Actual owned native fixture UDP capture only; ciphertext is not decoded media and does not qualify a full transport cell.")
         self.report = report
         try:
@@ -163,7 +169,7 @@ class NativeCapture:
             captured = re.search(r"(?m)^(\d+) packets captured$", raw)
             dropped = re.search(r"(?m)^(\d+) packets dropped by kernel$", raw)
             assert captured and dropped and int(dropped[1]) == 0, "capture-loss-or-incomplete-status"
-            counts = inspect_pcap(self.path, self.port, self.server_ip, self.peer_ip, media_workload=self.media_workload)
+            counts = inspect_pcap(self.path, self.port, self.server_ip, self.peer_ip, media_workload=self.media_workload, mac_linux_guest=self.mac_linux_guest)
             assert counts["packets"] < self.packet_limit, "capture-packet-limit-reached"
             assert counts["packets"] == int(captured[1]), "capture-count-disagreement"
             link_type = counts.pop("link_type")

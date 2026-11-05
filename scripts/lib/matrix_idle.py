@@ -82,11 +82,11 @@ def idle_verdict(report):
 
 
 class MatrixIdle:
-    def __init__(self, directory, server_pid, browser_pid, endpoint, credential):
+    def __init__(self, directory, server_pid, browser_pid, endpoint, credential, *, sampler=None):
         self.directory = Path(directory)
         self.endpoint, self.credential = endpoint, credential
         collector = MacProcessResources if sys.platform == "darwin" else ProcessResources
-        self.sampler = collector(dict(server=server_pid, browser=browser_pid),
+        self.sampler = sampler or collector(dict(server=server_pid, browser=browser_pid),
             roles=("server", "browser"), open_resources=True, max_samples=300)
         self.samples, self.baselines = [], []
         self.terminal = None

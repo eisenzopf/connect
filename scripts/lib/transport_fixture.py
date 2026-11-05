@@ -202,7 +202,7 @@ def inspect_seed(root, seed, parameters, *, arm64_component=False):
     if (topology["kind"] != kind or topology["server_platform"] != cell["server"]
             or topology["client_platform"] != cell["expected_client_platform"]
             or type(topology["client_emulated"]) is not bool
-            or topology["client_emulated"] != (kind == "macos-linux-guest")):
+            or topology["client_emulated"] is not False):
         raise FixtureError("fixture-topology")
     if topology["native_endpoint"] != operator.get("endpoint") or topology["server_name"] != operator.get("server_name"):
         raise FixtureError("fixture-provisioned-contact")

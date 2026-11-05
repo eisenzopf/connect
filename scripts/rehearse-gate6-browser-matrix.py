@@ -30,6 +30,7 @@ from lib.transport_matrix import digest
 from lib.matrix_browser_capture import BrowserCapture
 from lib.matrix_idle import MatrixIdle
 from lib.matrix_authority import MatrixAuthority
+from lib.mac_linux_fixture import MacLinuxFixture, MacLinuxIdle
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -105,7 +106,7 @@ def main():
         network_profile=args.network,
         signing_algorithm=args.signing, transport=args.transport, browser_image_id=args.image,
         passed=False, cell_qualified=False, task_complete=False, whole_gate_qualified=False,
-        full_media_programme_executed=False, commands=[], servers=[],
+        full_media_programme_executed=False, commands=[], servers=[], browser_owner_started=False,
         scope="Actual fresh production CLI/normal TLS/enrolled browser-SDK " + args.stage + " component. Independent decoded media/capture/fallback/expiry/idle remain required.")
     state = dict(stage="preparing", controller_pid=os.getpid(), source_revision=revision,
                  cell_id=cell_id, source_guard_active=False)
@@ -117,6 +118,7 @@ def main():
     capture = None
     idle = None
     network_name = None
+    remote = None
     server_ip = client_ip = "127.0.0.1"
     interface = "lo" if linux else "lo0"
     cidfile = private / "browser-container-id"
@@ -171,16 +173,21 @@ def main():
         if args.network != "local":
             phase = "owned-remote-browser-topology"
             if not linux:
-                raise RuntimeError("Mac-to-Linux browser topology requires remote browser owner")
-            network_name = "connect-g658-" + uuid.uuid4().hex[:12]
-            network_id = command("client-network", ["docker", "network", "create", "--internal",
-                "--subnet", "10.203.0.0/29", "--gateway", "10.203.0.1", network_name]).decode().strip()
-            assert re.fullmatch(r"[0-9a-f]{64}", network_id)
-            server_ip, client_ip, interface = "10.203.0.1", "10.203.0.2", "br-" + network_id[:12]
-            network = json.loads(command("inspect-client-network", ["docker", "network", "inspect", network_name]))[0]
-            assert network["Id"] == network_id and network["Internal"] is True
-            report["actual_topology"] = dict(kind="ubuntu-netns", internal_docker_network=True,
-                client_platform="ubuntu24-arm64", server_platform=server_platform, client_emulated=False)
+                remote = MacLinuxFixture(ROOT, private / "remote-owner", env)
+                report["actual_topology"] = remote.start(revision, image=args.image)
+                args.image = remote.image
+                report["browser_image_id"] = remote.image
+                server_ip, client_ip, interface = remote.server_ip, remote.client_ip, "lo0"
+            else:
+                network_name = "connect-g658-" + uuid.uuid4().hex[:12]
+                network_id = command("client-network", ["docker", "network", "create", "--internal",
+                    "--subnet", "10.203.0.0/29", "--gateway", "10.203.0.1", network_name]).decode().strip()
+                assert re.fullmatch(r"[0-9a-f]{64}", network_id)
+                server_ip, client_ip, interface = "10.203.0.1", "10.203.0.2", "br-" + network_id[:12]
+                network = json.loads(command("inspect-client-network", ["docker", "network", "inspect", network_name]))[0]
+                assert network["Id"] == network_id and network["Internal"] is True
+                report["actual_topology"] = dict(kind="ubuntu-netns", internal_docker_network=True,
+                    client_platform="ubuntu24-arm64", server_platform=server_platform, client_emulated=False)
         else:
             report["actual_topology"] = dict(kind="local-loopback", server_platform=server_platform,
                 client_platform=server_platform, client_emulated=False)
@@ -228,7 +235,7 @@ def main():
             "-keyout", tls / "root-key.pem", "-out", tls / "root.pem"])
         command("leaf-request", ["openssl", "req", "-new", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256",
             "-nodes", "-subj", "/CN=localhost", "-keyout", tls / "leaf-key.pem", "-out", tls / "leaf.csr"])
-        (tls / "leaf.ext").write_text("basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost,IP:127.0.0.1,IP:10.203.0.1,IP:10.203.0.2\n")
+        (tls / "leaf.ext").write_text("basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost,IP:127.0.0.1,IP:" + server_ip + ",IP:" + client_ip + "\n")
         command("signed-leaf", ["openssl", "x509", "-req", "-in", tls / "leaf.csr", "-CA", tls / "root.pem",
             "-CAkey", tls / "root-key.pem", "-CAcreateserial", "-days", "1", "-sha256", "-extfile", tls / "leaf.ext", "-out", tls / "leaf.pem"])
         command("leaf-der", ["openssl", "x509", "-in", tls / "leaf.pem", "-outform", "DER", "-out", initial / "certificate.der"])
@@ -259,7 +266,7 @@ def main():
         cli("stopped-backup", ["backup", "--server-config", initial / "server.toml", "--config", initial / "operator.toml", "--output", seed])
         parameters = dict(cell_id=cell_id, candidate_source_revision=revision, candidate_binary_sha256=report["binary_sha256"],
             seed_manifest_sha256=digest(seed / "manifest.json"), browser_origin=origin,
-            topology=dict(kind="local-loopback" if args.network == "local" else "ubuntu-netns", server_platform=server_platform, client_platform=server_platform,
+            topology=dict(kind=report["actual_topology"]["kind"], server_platform=server_platform, client_platform=report["client_platform"],
                           client_emulated=False, native_endpoint=operator["endpoint"], server_name=operator["server_name"]))
         report["materialization"] = materialize(ROOT, seed, instance, parameters, executable, env)
         start_server("materialized-server", instance / "server.toml", f"127.0.0.1:{http}")
@@ -303,11 +310,16 @@ def main():
         audio_mount.mkdir(mode=0o700, exist_ok=True)
         assert not audio_mount.is_symlink() and not any(audio_mount.iterdir())
         browser_input = browser_output / "input.json"
+        client_runtime = runtime_spec(args, linux or remote is not None)
+        if remote is not None:
+            for name in ("browserBinary", "puppeteerModule"):
+                client_runtime[name] = client_runtime[name].replace(str(ROOT), "/workspace")
         publish(browser_input, (json.dumps(dict(format="connect/browser-matrix-admission-input/1", sourceRevision=revision,
             transport=args.transport, signingAlgorithm=args.signing, origin=origin, stage=args.stage,
+            fixtureAddresses=sorted({server_ip, client_ip}),
             endpoints={"webtransport": f"https://{server_ip}:{native}/connect", "wss-webrtc": f"wss://{server_ip}:{wss}/connect"},
             actors=exported, output=str(browser_output),
-            **runtime_spec(args, linux),
+            **client_runtime,
             tls=dict(certificatePem=str(tls / "leaf.pem"), privateKeyPem=str(tls / "leaf-key.pem"), rootDer=str(initial / "browser-root.der"),
                      leafSha256=digest(initial / "certificate.der"), webtransportTrust="certificate-sha256"))) + "\n").encode())
         command_args = ["docker", "run", "--rm", "--cidfile", str(cidfile), "--network", network_name or "host", "--read-only",
@@ -321,11 +333,27 @@ def main():
             "--", "node", "scripts/video/browser_matrix_admission.mjs", str(browser_input)]
         if network_name:
             command_args[command_args.index(args.image):command_args.index(args.image)] = ["--ip", client_ip]
-        if not linux:
+        if remote is not None:
+            remote.stage_paths([ROOT / "sdk/typescript/dist", tls / "leaf.pem", tls / "leaf-key.pem", initial / "browser-root.der"])
+            remote.stage_json(browser_input, json.loads(browser_input.read_text()))
+            remote.call(["mkdir", "-p", str(remote.remote_root / ".local/matrix-browser")])
+            guest_output, guest_input = remote.mapped(browser_output), remote.mapped(browser_input)
+            container = "connect-g658-" + remote.run_id
+            command_args = ["docker", "run", "--rm", "--name", container, "--label", "connect.gate6.owner=" + remote.run_id,
+                "--network", "host", "--read-only", "--user", f"{remote.uid}:{remote.gid}",
+                "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--shm-size", "512m", "--tmpfs", "/tmp:rw,size=512m,mode=1777",
+                "--mount", "type=bind,source=/workspace,target=/workspace,readonly",
+                "--mount", f"type=bind,source={remote.remote_root},target={remote.remote_root},readonly",
+                "--mount", f"type=bind,source={guest_output},target={guest_output}",
+                "--mount", f"type=bind,source={guest_output},target={remote.remote_root}/.local/matrix-browser",
+                "--workdir", str(remote.remote_root), "--env", "HOME=/tmp", "--env", "CONNECT_GATE6_OWNED_BROWSER_CONTAINER=1",
+                remote.image, "python3", "scripts/video/owned_pulse_audio.py", "--output", str(remote.remote_root / ".local/matrix-browser/audio"),
+                "--", "node", "scripts/video/browser_matrix_admission.mjs", str(guest_input)]
+        elif not linux:
             command_args = ["node", "scripts/video/browser_matrix_admission.mjs", str(browser_input)]
         handle = (private / "browser.log").open("xb")
         log_handles.append(handle)
-        if args.stage == "quality":
+        if args.stage == "quality" and remote is None:
             capture = BrowserCapture(private / "packet-capture", interface=interface, server_ip=server_ip,
                 native=native, wss=wss, media_start=media_start, transport=args.transport, env=env)
             try:
@@ -333,13 +361,19 @@ def main():
             except (OSError, RuntimeError):
                 report["packet_capture"] = capture.finish()
                 capture = None
-        browser_owner = subprocess.Popen(command_args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
-                                         stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
+        browser_owner = (remote.launch(command_args, browser_output, private / "guest-supervisor.log", timeout=240, container=container,
+                            capture=dict(kind="browser", interface=remote.topology["guest"]["route"]["dev"], server_ip=server_ip, client_ip=client_ip,
+                                         native=native, wss=wss, media_start=media_start, transport=args.transport) if args.stage == "quality" else None)
+                         if remote is not None else subprocess.Popen(command_args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
+                                         stdout=handle, stderr=subprocess.STDOUT, start_new_session=True))
+        report["browser_owner_started"] = True
         browser_cutoff = time.monotonic() + 240
         while browser_owner.poll() is None:
+            if remote is not None:
+                remote.poll()
             authority.poll()
             if args.stage == "quality":
-                if idle is None and (browser_output / "resources-baseline.json").exists():
+                if idle is None and (browser_output / "resources-baseline.json").exists() and (remote is None or (remote.latest.get("state") or {}).get("resources")):
                     if linux:
                         cid = cidfile.read_text().strip()
                         assert re.fullmatch("[0-9a-f]{64}", cid)
@@ -349,8 +383,9 @@ def main():
                     else:
                         browser_pid = browser_owner.pid
                     credential = tomllib.loads((initial / "operator.application.toml").read_text())["credential"]
-                    idle = MatrixIdle(browser_output, server.pid, browser_pid,
-                        f"http://127.0.0.1:{http}/v1/operations", credential)
+                    idle = (MacLinuxIdle(browser_output, server.pid, remote, f"http://127.0.0.1:{http}/v1/operations", credential)
+                            if remote is not None else MatrixIdle(browser_output, server.pid, browser_pid,
+                        f"http://127.0.0.1:{http}/v1/operations", credential))
                 if idle is not None:
                     idle.poll()
             if time.monotonic() >= browser_cutoff:
@@ -358,23 +393,36 @@ def main():
             time.sleep(.05)
         report["browser_exit_code"] = browser_owner.wait(timeout=1)
         report["browser_owner_joined"] = True
+        if remote is not None:
+            report["remote_client_owner"] = remote.close()
+            report["browser_owner_joined"] = report["remote_client_owner"]["passed"]
+            if args.stage == "quality":
+                report["packet_capture"] = json.loads((browser_output / "browser-capture-observation.json").read_text())
         browser_owner = None
         report["browser_observation"] = json.loads((browser_output / "browser-observation.json").read_text())
         report["browser_observation_sha256"] = digest(browser_output / "browser-observation.json")
-        report["runtime_versions"] = dict(passed=report["browser_observation"].get("browser") == runtime_spec(args, linux)["expectedBrowserVersion"],
-            browser=report["browser_observation"].get("browser"), node=subprocess.check_output(["node", "--version"], text=True).strip(),
+        report["runtime_versions"] = dict(passed=report["browser_observation"].get("browser") == client_runtime["expectedBrowserVersion"],
+            browser=report["browser_observation"].get("browser"), node=report["browser_observation"].get("client_runtime", {}).get("node"),
             rust=subprocess.check_output(["rustc", "--version"], text=True).strip(), server_binary_sha256=report["binary_sha256"],
-            client_platform=report["client_platform"], server_platform=server_platform)
-        report["owned_audio"] = json.loads((browser_output / "audio/summary.json").read_text()) if linux else dict(
+            client_platform=report["browser_observation"].get("client_runtime", {}).get("platform"), server_platform=server_platform)
+        report["runtime_versions"]["passed"] &= report["runtime_versions"]["client_platform"] == report["client_platform"]
+        report["owned_audio"] = json.loads((browser_output / "audio/summary.json").read_text()) if linux or remote is not None else dict(
             passed=True, scope="Native macOS AudioContext owned by the browser renderers; no PulseAudio process", original_process_joined=True)
-        report["passed"] = report["browser_exit_code"] == 0 and report["browser_observation"]["passed"] and report["owned_audio"]["passed"]
+        report["passed"] = report["browser_exit_code"] == 0 and report["browser_observation"]["passed"] and report["owned_audio"]["passed"] and report["browser_owner_joined"]
         if not report["passed"] and report["browser_observation"].get("failure"):
             report["failure"] = dict(phase=phase, browser=report["browser_observation"]["failure"])
     except BaseException as error:
         (private / "failure.log").write_text(traceback.format_exc())
         report["failure"] = dict(phase=phase, name=type(error).__name__, line=traceback.extract_tb(error.__traceback__)[-1].lineno)
     finally:
-        if browser_owner is not None and browser_owner.poll() is None:
+        if remote is not None:
+            try:
+                report["remote_client_owner"] = remote.close()
+                report["passed"] &= report["remote_client_owner"]["passed"]
+            except Exception:
+                report["remote_client_owner"] = dict(passed=False, failure="original-guest-cleanup-unconfirmed")
+                report["passed"] = False
+        if remote is None and browser_owner is not None and browser_owner.poll() is None:
             if cidfile.exists():
                 cid = cidfile.read_text().strip()
                 if re.fullmatch("[0-9a-f]{64}", cid):
@@ -395,6 +443,8 @@ def main():
         elif args.stage == "quality":
             report["idle_resources"] = dict(passed=False, failure="idle-observer-not-started")
             report["passed"] = False
+        if args.stage == "quality":
+            report["passed"] &= report.get("packet_capture", {}).get("observed") is True
         try:
             stop_server()
         except BaseException:
