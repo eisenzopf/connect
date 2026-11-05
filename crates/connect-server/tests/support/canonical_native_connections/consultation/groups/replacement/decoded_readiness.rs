@@ -20,6 +20,9 @@ pub(super) mod cadence;
 mod tests;
 #[path = "decoded_readiness/video.rs"]
 mod video;
+#[path = "decoded_readiness/video_tail.rs"]
+mod video_tail;
+pub(crate) use video_tail::VideoTail;
 
 pub(super) struct Prepared {
     cutoff: Instant,
@@ -114,12 +117,26 @@ pub(super) async fn answer(
 /// Only the original controller reads the original source-scoped operation.
 pub(super) async fn confirm(
     peer: &mut Peer,
+    prepared: Prepared,
+    publisher: Option<VideoSource<'_>>,
+    controller: &mut CanonicalHttpClient,
+    command: &TransitionCommand,
+    root: &OperationRecord,
+) -> NativeReplacementReady {
+    confirm_with_video_tail(peer, prepared, publisher, controller, command, root)
+        .await
+        .0
+}
+
+pub(super) async fn confirm_with_video_tail(
+    peer: &mut Peer,
     mut prepared: Prepared,
     mut publisher: Option<VideoSource<'_>>,
     controller: &mut CanonicalHttpClient,
     command: &TransitionCommand,
     root: &OperationRecord,
-) -> NativeReplacementReady {
+) -> (NativeReplacementReady, Option<VideoTail>) {
+    let first_video_sequence = publisher.as_ref().map(|source| *source.next_sequence);
     assert_eq!(
         prepared.readiness.video().is_some(),
         publisher.is_some(),
@@ -154,6 +171,8 @@ pub(super) async fn confirm(
     let mut input_packets = 0u64;
     let mut audio_packets = 0u64;
     let mut video_packets = 0u64;
+    let mut video_ssrc = None;
+    let mut private_video = Vec::new();
     let observed = timeout_at(prepared.cutoff, async {
         while !prepared.audio.usable() || (publisher.is_some() && frame.is_none()) {
             tokio::select! {
@@ -186,7 +205,7 @@ pub(super) async fn confirm(
                             p.header.timestamp, &p.payload)?;
                         audio_packets += 1;
                     } else if let Some(selected) = prepared.readiness.video() {
-                        if packet.stream_local_id != selected.stream_local_id { continue; }
+                        if packet.stream_local_id != selected.stream_local_id { return Err("unexpected private receiving stream".to_owned()); }
                         let p = NativeVideoPacket::parse(packet.rtp.packet().serialize()
                             .map_err(|e| format!("private RTP image: {e:?}"))?.to_vec())
                             .map_err(|e| e.to_string())?;
@@ -194,14 +213,16 @@ pub(super) async fn confirm(
                             return Err("private VP8 changed the original selected source".to_owned());
                         }
                         video_packets += 1;
-                        if frame.is_none() {
-                            if let Some(actual) = assembler.push(&p).map_err(|e| e.to_string())? {
-                                if actual.keyframe {
-                                    if actual.encoded.as_slice() != include_bytes!("../../../../../fixtures/gate6-vp8-black-640x360.vp8") {
-                                        return Err("private decoded source differs from the selected original programme".to_owned());
-                                    }
-                                    frame = Some(actual);
-                                }
+                        if video_ssrc.is_some_and(|original|original!=p.ssrc) {return Err("private video changed original SSRC".to_owned());}
+                        video_ssrc=Some(p.ssrc);
+                        if private_video.len()>=2048 {return Err("private video observation bound exceeded".to_owned());}
+                        private_video.push((packet.seq,p.timestamp_rtp));
+                        if let Some(actual) = assembler.push(&p).map_err(|e| e.to_string())? {
+                            if !actual.keyframe || actual.encoded.as_slice() != include_bytes!("../../../../../fixtures/gate6-vp8-black-640x360.vp8") {
+                                return Err("private decoded source differs from the selected original programme".to_owned());
+                            }
+                            if frame.is_none() {
+                                frame = Some(actual);
                             }
                         }
                     }
@@ -214,6 +235,21 @@ pub(super) async fn confirm(
         .expect("original replacement expired before actual private decoder input")
         .unwrap();
     assert!(input_packets > 0 && audio_packets >= 3);
+    let video_tail = publisher.as_ref().map(|source| {
+        let first = first_video_sequence.unwrap();
+        let count = source.next_sequence.wrapping_sub(first);
+        assert!(count > 0 && usize::from(count) <= 2048);
+        let timestamps = (0..count)
+            .map(|i| u32::from(first.wrapping_add(i)) * 9000)
+            .collect();
+        VideoTail::new(
+            &prepared.readiness,
+            video_ssrc.unwrap(),
+            timestamps,
+            assembler,
+            private_video,
+        )
+    });
     let video = if let Some(frame) = frame {
         assert!(video_packets > 0 && frame.keyframe);
         // The bounded FFmpeg owner consumes the actual received frame, not the
@@ -289,7 +325,7 @@ pub(super) async fn confirm(
         .await
         .expect("original replacement expired during frozen ready submission");
         let replay_safe = match response {
-            Ok(_) => return ready, // narrow capture ACK, not movement completion
+            Ok(_) => return (ready, video_tail), // narrow capture ACK, not movement completion
             Err(error) => recovery(&error).unwrap_or_else(|| {
                 panic!("actual decoded ready refused without retrying allocation: {error}")
             }),
@@ -322,7 +358,7 @@ pub(super) async fn confirm(
                     current["result"]["generation"],
                     prepared.readiness.target_generation()
                 );
-                return ready;
+                return (ready, video_tail);
             }
             "preparing" | "ready" | "committing" => {}
             other => panic!("original ready recovery refused in state {other}"),

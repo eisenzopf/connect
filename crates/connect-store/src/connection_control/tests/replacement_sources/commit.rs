@@ -4,6 +4,7 @@ use super::{allocation::prepared_target_scene_scoped, custody::cancel};
 use crate::{NativeMediaOrigin, NativeReplacementMediaOrigin, NativeReplacementStarted};
 use connect_protocol::transitions::{EffectState, OperationState};
 use std::sync::Arc;
+mod continuation;
 struct Movement {
     f: Fixture,
     key: String,

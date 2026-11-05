@@ -548,6 +548,16 @@ async fn probe_sequences(
     name: &str,
     capture: bool,
 ) -> Vec<NativeProbeSequence> {
+    probe_sequences_with_video(peers, source, allowed, name, capture, None).await
+}
+async fn probe_sequences_with_video(
+    peers: &mut [Peer],
+    source: usize,
+    allowed: &[usize],
+    name: &str,
+    capture: bool,
+    mut video: Option<(usize, &mut replacement::decoded_readiness::VideoTail)>,
+) -> Vec<NativeProbeSequence> {
     use rvoip_uctp::substrate::{
         pack_rtp_datagram, unpack_rtp_datagram, RtpDatagram, RtpMediaPayload,
     };
@@ -639,7 +649,21 @@ async fn probe_sequences(
                 sent_packets += 1;
             }
             Event::Packet(i, bytes) => {
-                let packet = unpack_rtp_datagram(&bytes.unwrap()).unwrap();
+                let bytes = bytes.unwrap();
+                let packet = unpack_rtp_datagram(&bytes).unwrap();
+                if packet.stream_local_id != peers[i].handle {
+                    let (receiver, tail) = video
+                        .as_mut()
+                        .expect("unnegotiated non-audio stream in audio probe");
+                    assert_eq!(i, *receiver, "video reached a different physical reader");
+                    assert!(
+                        tail.packets() + original_sequences.len() < 2048,
+                        "bounded combined audio/video observation"
+                    );
+                    tail.observe(&bytes)
+                        .expect("video must match the original negotiated reader and source");
+                    continue;
+                }
                 assert_eq!(packet.stream_local_id, peers[i].handle);
                 received_packets[i] += 1;
                 if capture {

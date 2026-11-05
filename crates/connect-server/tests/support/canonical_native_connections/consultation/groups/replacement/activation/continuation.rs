@@ -114,6 +114,7 @@ pub(in super::super) async fn paused(
     video: Option<(u16, u16, u16, u16)>,
     original_video_sequence: &mut u16,
     pause: connect_service::canonical_media_projection_fixture::ReplacementProjectionPause,
+    mut preparation_video_tail: Option<&mut decoded_readiness::VideoTail>,
 ) -> (bool, Vec<std::sync::Weak<dyn std::any::Any + Send + Sync>>) {
     tokio::time::timeout(Duration::from_secs(5), pause.entered())
         .await
@@ -183,12 +184,13 @@ pub(in super::super) async fn paused(
     // Qualified BEFORE witness: the original live generation moved while the
     // journal has no Ready. Exact marked PCM must reach both actual endpoints.
     let original_preparation = peers[2].client.native_replacement_readiness().unwrap();
-    let public_before_projection = probe_sequences(
+    let public_before_projection = probe_sequences_with_video(
         peers,
         0,
         &[2],
         "paused-original-move-retained-to-target",
         true,
+        preparation_video_tail.as_deref_mut().map(|tail| (2, tail)),
     )
     .await;
     assert!(
@@ -198,7 +200,15 @@ pub(in super::super) async fn paused(
             .count()
             > 10
     );
-    probe(peers, 2, &[0], "paused-original-move-target-to-retained").await;
+    probe_sequences_with_video(
+        peers,
+        2,
+        &[0],
+        "paused-original-move-target-to-retained",
+        false,
+        preparation_video_tail.as_deref_mut().map(|tail| (2, tail)),
+    )
+    .await;
     if matches!(case, Case::Video) {
         let (original_publisher, replacement_publisher, retained_receiver, replacement_receiver) =
             video.expect("actual declared video transfer");
@@ -335,6 +345,12 @@ pub(in super::super) async fn paused(
         let boundary = original_preparation
             .activation_from_completed(&serde_json::to_value(&completed).unwrap())
             .unwrap();
+        if let Some(tail) = preparation_video_tail.as_deref_mut() {
+            let (private, public) = tail.finish(&boundary).expect(
+                "every buffered video fragment must match the final original activation cut",
+            );
+            eprintln!("original negotiated video demultiplexed: private_packets={private} public_membership_packets={public}; no audio or decoded public-video credit");
+        }
         let connect_protocol::replacement_activation::NativeActivationAudience::Public { streams } =
             boundary.audience
         else {

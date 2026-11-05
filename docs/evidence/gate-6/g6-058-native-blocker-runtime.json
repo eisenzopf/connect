@@ -1,0 +1,41 @@
+{
+  "format": "connect/g6-058-native-blocker-runtime/1",
+  "source_revision": "43b1276a0626a1c0eb2d4a83c8ee24182e94c913",
+  "binary_sha256": "5f6332dbc18b5ad17876e0dec12c385ae7044b07070010d76e9b5be389e754d2",
+  "profile": {
+    "opt_level": "3",
+    "debuginfo": 0,
+    "debug_assertions": false,
+    "overflow_checks": false,
+    "test": true
+  },
+  "unpaused": {
+    "case": "production_unpaused_replacement_continuation_fixture_control",
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "exit_code": 0,
+    "original_process_joined": true,
+    "log_sha256": "45cab4bd87962172ee769bfba43b60013a145a2f0990524452de02e6ae51bc79",
+    "scope": "Actual generation2 and generation3 activation, duplex marked PCM, old-key independence and fixture cleanup."
+  },
+  "paused": {
+    "case": "production_paused_replacement_projection_keeps_original_duplex",
+    "passed": 0,
+    "failed": 1,
+    "ignored": 0,
+    "exit_code": 101,
+    "log_sha256": "a67a894f448786a1e089c4ecbddca261050972a84e27fbbf13935b7393b36d75",
+    "diagnostic_snapshot_sha256": "742cf9d79eb344c9901e0477d4563ae18f2017a247b9238f384da944d521c671",
+    "missed_observations": 0,
+    "actual_marked_ingress_packets": 100,
+    "actual_decoded_mix_samples": 96000,
+    "target_marked_capture_events": 100,
+    "target_captured_mix_samples": 96000,
+    "target_store_authority_refusals": 100,
+    "target_encoded_packets": 0,
+    "conclusion": "Marked audio reaches and decodes at source, then reaches target capture. Fresh target Store admission refuses authority before encoder/writer; exact pending-facts cause still under investigation."
+  },
+  "matrix_qualified": false,
+  "whole_run_complete": false
+}

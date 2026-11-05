@@ -1,55 +1,55 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-05T23:01:56+00:00",
-  "run_status": "SDK source/API fixes and composite native-adapter correction are implemented. Browser/model tests pass103/103 and Rust SDK API compilation passes. Normal-release replacement runtime verification is next. No full matrix run is active; v192 counts are unchanged.",
+  "updated": "2026-11-05T15:51:14-08:00",
+  "run_status": "Current ARM regression run:43 passed,1 failed across44 completed checks; final service capability check compiling. All10 native-cut controls pass. Full matrix v192 totals remain unchanged.",
   "blockers": [
     {
       "id": "B01",
       "title": "SDK native activation result",
-      "status": "Implemented \u2014 awaiting runtime",
+      "status": "Verified \u2014 parser regressions",
       "change": "Rust and browser accept only the existing typed activation proof, bound to operation/target/generation/revision and outer record; malformed and unknown fields still reject.",
-      "evidence": "TypeScript build and103 Node/browser tests pass with0 skipped. Rust SDK tests API compilation passes (release cfg,opt0). Signed native runtime verification remains required.",
-      "next": "Valid ready/stopped; reject malformed, foreign and missing proofs."
+      "evidence": "43b1276a: normal-release ARM Rust parser tests2/2, browser/Node models103/103 and Python helper1/1 pass. Valid native activation, stopped/null history and malformed/foreign proof refusals covered.",
+      "next": "Full signed native/browser matrix verifies end-to-end producer/SDK behavior; keep raw proof validation and original operation recovery."
     },
     {
       "id": "B02",
       "title": "Post-Core audio continuation",
-      "status": "Investigating",
-      "change": "Trace original ingress \u2192 PCM \u2192 target selection \u2192 encoder \u2192 writer; fix first failing boundary.",
-      "evidence": "Private readiness decoded480 samples; paused public target received0 packets. Diagnostics included in1355f591.",
-      "next": "Unpaused and paused duplex audio, then writer/revocation/retirement/expiry cases."
+      "status": "Investigating \u2014 Store admission isolated",
+      "change": "Correct the pending-target current-authority boundary after Core commit and before SQL projection; preserve all current actor/key/epoch/recipient checks and live Core publication.",
+      "evidence": "Release diagnostic:100 marked packets decoded into96000 mix samples;100 target captures;100 Store Authority refusals;0 encoder/writer packets;0 missed observations.",
+      "next": "Identify exact failing pending-facts condition; test original commit only plus wrong-root, revocation, expiry and private-floor refusals; rerun paused controls."
     },
     {
       "id": "B03",
       "title": "Unpaused target disappears",
-      "status": "Implemented \u2014 awaiting runtime",
+      "status": "Verified \u2014 native runtime",
       "change": "Forward native cursor capability through the actual composite NativeMedia adapter. Backend supports it; wrapper currently inherits false and mislabels native activation unsupported.",
-      "evidence": "Production NativeMedia wrapper now forwards the original RTP backend capability via recorded patch/source-lock. Fresh dependency preparation verifies exact patched bytes. Retained release diagnostic shows the prior post-Core capture conflict.",
-      "next": "Two live routes and Completed/ready after the exact capability correction; paused audio remains a separate required check."
+      "evidence": "43b1276a, release opt3: original unpaused control passes1/1,0 ignored; actual generations2/3 activate, both audio directions and old-key independence work, cleanup passes. See g6-058-native-blocker-runtime.json.",
+      "next": "Preserve this control while fixing paused metadata continuation; fresh full matrix still required."
     },
     {
       "id": "B04",
       "title": "Private-successor return binding",
-      "status": "Implemented \u2014 awaiting runtime",
+      "status": "Verified \u2014 Store regressions",
       "change": "Fresh schema117 accepts exact latest matching-parent primary substitution; original history/audience stay immutable.",
-      "evidence": "1355f591; Store tests API compile and SQL creation/view preflight pass; no runtime pass yet.",
-      "next": "26 selected Store/schema controls, including forged/stale/current-authority refusals."
+      "evidence": "43b1276a, normal-release ARM:26/26 selected Store/schema checks pass,0 ignored; matching parent, repeated generation, malformed/stale context, current authority and recorded departure covered.",
+      "next": "Keep Store controls green; confirm actual private replacement/return and resource cleanup in the full matrix."
     },
     {
       "id": "B05",
       "title": "Audio/video probe demultiplexing",
-      "status": "Implementing",
-      "change": "Validate negotiated video identity and exact activation-cut membership before separating video from audio.",
-      "evidence": "Observed stream-local handle3 in audio probe expecting handle1. Persisted draft remains unreviewed.",
-      "next": "Genuine AV; unknown/wrong context rejects; private video earns no public/audio credit."
+      "status": "Implemented \u2014 API check passed; runtime pending",
+      "change": "Demultiplex the original signed physical video reader, selected payload, observed SSRC and actually sent source frames. Validate every fragment against the final SDK-verified cut; preserve audio assertions.",
+      "evidence": "New demultiplexing source and two model/refusal tests compile via cargo check. This is API verification only; no model or physical AV runtime pass claimed.",
+      "next": "Run both model/refusal controls and actual paused AV transfer on normal-release ARM. Private tails earn no public/audio credit."
     },
     {
       "id": "B06",
       "title": "Opus cadence session fixture",
-      "status": "Implemented \u2014 awaiting runtime",
+      "status": "Verified \u2014 native cadence runtime",
       "change": "Negotiate Opus in both original Session invitation and acceptance; physical PCMU prerequisites unchanged.",
-      "evidence": "1355f591; server API compilation passes. Earlier signed501 was a fixture negotiation failure.",
-      "next": "Four signed G711/Opus emission and continuity cases plus capability-refusal control."
+      "evidence": "43b1276a, normal-release ARM:all4 signed G711/Opus emission/contiguity cases pass,0 ignored. Prior signed501 fixture negotiation blocker resolved.",
+      "next": "Retain capability-refusal check and complete transport matrix; no cadence, frame-count or deadline changes."
     },
     {
       "id": "B07",
@@ -62,10 +62,10 @@
     {
       "id": "B08",
       "title": "Native cut test ownership and gates",
-      "status": "Implemented \u2014 awaiting runtime",
+      "status": "Verified \u2014 Core regression runtime",
       "change": "Observe exact private delivery ticket; distinguish publication mute from receive hold.",
-      "evidence": "1355f591; corrected Core tests compile. Original3 runtime failures preserved.",
-      "next": "All10 native-cut controls, unchanged deadlines and cleanup assertions."
+      "evidence": "43b1276a, normal-release ARM:all10 native-cut controls pass,0 ignored. Exact ticket ownership, publication mute, receive hold and cursor/feedback lifetime coverage.",
+      "next": "Preserve these controls in the fresh full transport matrix."
     },
     {
       "id": "B09",

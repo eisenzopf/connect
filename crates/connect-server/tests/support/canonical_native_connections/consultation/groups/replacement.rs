@@ -1027,14 +1027,14 @@ async fn exercise_replacement_with_av_transfer(
             } else {
                 None
             };
-            let _frozen_decoded_ready = {
+            let (_frozen_decoded_ready, mut preparation_video_tail) = {
                 let (retained, rest) = peers.split_at_mut(1);
                 let publisher = transfer_video.then(|| decoded_readiness::VideoSource {
                     client: &retained[0].client,
                     handle: source_video_handle.unwrap(),
                     next_sequence: &mut original_video_sequence,
                 });
-                decoded_readiness::confirm(
+                decoded_readiness::confirm_with_video_tail(
                     &mut rest[1],
                     decoded_preparation.take().unwrap(),
                     publisher,
@@ -1114,6 +1114,7 @@ async fn exercise_replacement_with_av_transfer(
                     }),
                     &mut original_video_sequence,
                     pause,
+                    preparation_video_tail.as_mut(),
                 )
                 .await;
                 continuation_owners = owners;
