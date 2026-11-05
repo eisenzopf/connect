@@ -104,6 +104,7 @@ fn member(
     .map_err(|_| StreamControlError::Authority)
 }
 pub(crate) struct Leg {
+    pub _packet_observers: connect_store::PacketObserverScope,
     pub self_ref: Weak<Leg>,
     pub runtime: Weak<Runtime>,
     pub signal: Arc<InitialTelephoneSignaling>,

@@ -104,8 +104,9 @@ fn replacement_start_has_separate_once_only_effect_and_fresh_provisional_generat
     drop(command_sql);
     assert_eq!(f.count("connections"), 2);
     drop(media);
+    let observation = f.store.packet_connections.observe().unwrap();
     let observers: Vec<_> = (0..crate::packet_observation::OBSERVERS)
-        .map(|_| f.store.try_packet_connection().unwrap())
+        .map(|_| f.store.try_packet_connection(&observation).unwrap())
         .collect();
     assert_eq!(
         f.store
@@ -645,8 +646,9 @@ fn replacement_full_scene_read_uses_one_complete_interval_for_target_and_existin
         "Scene ownership must not add subscription permission"
     );
     drop(scene);
+    let observation = f.store.packet_connections.observe().unwrap();
     let observers: Vec<_> = (0..crate::packet_observation::OBSERVERS)
-        .map(|_| f.store.try_packet_connection().unwrap())
+        .map(|_| f.store.try_packet_connection(&observation).unwrap())
         .collect();
     assert_eq!(
         f.store

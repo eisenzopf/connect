@@ -26,6 +26,7 @@ use connect_protocol::{
     Limits, Operation,
 };
 struct Fixture {
+    packet_scope: Option<crate::PacketObserverScope>,
     _dir: tempfile::TempDir,
     admin: String,
     store: Store,
@@ -182,7 +183,9 @@ impl Fixture {
                 )
                 .unwrap();
         }
+        let packet_scope = Some(store.retain_packet_observers().unwrap());
         Self {
+            packet_scope,
             _dir: dir,
             admin,
             store,

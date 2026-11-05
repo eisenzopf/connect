@@ -7,6 +7,7 @@ mod gateways;
 mod packet_observers;
 mod signal;
 struct Fixture {
+    packet_scope: Option<crate::PacketObserverScope>,
     _dir: tempfile::TempDir,
     store: Store,
     ids: Vec<String>,
@@ -97,7 +98,9 @@ impl Fixture {
             sip_authority: "127.0.0.1:5099".into(),
             timeout_seconds: 30,
         };
+        let packet_scope = Some(store.retain_packet_observers().unwrap());
         Self {
+            packet_scope,
             _dir: dir,
             store,
             ids,

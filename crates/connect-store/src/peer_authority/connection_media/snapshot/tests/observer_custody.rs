@@ -9,25 +9,25 @@ fn an_earlier_observer_becoming_free_cannot_replace_the_original_snapshot_observ
             .map(|observer| observer.lock().unwrap())
             .collect();
         let captured = std::cell::Cell::new(None);
+        let address = std::cell::Cell::new(0);
         let calls = std::cell::Cell::new(0);
         let result = acquire_with(
             &f.store,
             |c, stamp| {
                 captured.set(Some(stamp.connection));
+                address.set(c as *const Connection as usize);
                 calls.set(calls.get() + 1);
                 f.derive(c)
             },
             |c| {
-                assert_eq!(Some(c as *const Connection as usize), captured.get());
+                assert_eq!(c as *const Connection as usize, address.get());
+                assert_eq!(captured.get().unwrap().slot_index(), selected);
                 Ok(())
             },
             |scopes| {
                 // The original SQL mutex has ended before actual file admission.
                 let original = f.store.packet_connections[selected].try_lock().unwrap();
-                assert_eq!(
-                    Some(&*original as *const Connection as usize),
-                    captured.get()
-                );
+                assert_eq!((&**original as *const Connection as usize), address.get());
                 drop(original);
                 // These now-free observers are not interchangeable with the
                 // selected connection's data_version and total_changes counters.

@@ -1,5 +1,7 @@
 //! SQL-versioned metadata; fresh admission or exact active file custody.
 use super::*;
+use crate::installation_ownership::PacketConnectionGuard;
+use crate::packet_observation::{Observation, ObserverId};
 use std::sync::Mutex;
 type ErasedMetadata = dyn std::any::Any + Send + Sync;
 pub(super) type MetadataToken = Arc<ErasedMetadata>;
@@ -13,7 +15,7 @@ pub(super) fn metadata(origin: &NativeMediaOrigin) -> Result<&Metadata> {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct Version {
-    connection: usize,
+    connection: ObserverId,
     external: i64,
     schema: i64,
     changes: u64,
@@ -27,12 +29,12 @@ impl Version {
         } == self
     }
 }
-fn version(c: &Connection) -> Result<Version> {
+fn version(c: &Connection, observer: ObserverId) -> Result<Version> {
     let external = c
         .query_row("PRAGMA data_version", [], |row| row.get(0))
         .map_err(|_| Error::storage())?;
     Ok(Version {
-        connection: c as *const Connection as usize,
+        connection: observer,
         external,
         schema: c
             .query_row("PRAGMA schema_version", [], |row| row.get(0))
@@ -47,7 +49,7 @@ fn version(c: &Connection) -> Result<Version> {
 // context with post-transition execution and manufacture a definitive refusal.
 // Such an observation grants no IO and is not proof of physical retirement.
 fn current_refusal<T>(c: &Connection, before: Version, result: Result<T>) -> Result<T> {
-    if result.is_err() && version(c)? != before {
+    if result.is_err() && version(c, before.connection)? != before {
         if let Err(error) = &result {
             tracing::debug!(target: "connect_store::canonical_snapshot", code = %error.code,
                 reason = %error.message, "Refused packet resolution crossed a snapshot boundary");
@@ -114,14 +116,16 @@ pub(super) fn peek_map<T, U>(
     source: Option<&MetadataToken>,
     project: impl FnOnce(&T) -> U,
 ) -> Result<Option<U>> {
-    let c = store.try_packet_connection()?;
-    let before = version(&c)?;
-    let observed = memo.0.try_lock().ok().and_then(|slot| {
+    let observation = store.packet_connections.observe()?;
+    let c = store.try_packet_connection(&observation)?;
+    let before = version(&c, c.id())?;
+    let observed = memo.0.try_lock().ok().and_then(|mut slot| {
+        slot.retain(|entry| observation.current(entry.version.connection));
         slot.iter()
             .find(|entry| entry.matches(before, source))
             .map(|entry| project(&entry.facts))
     });
-    if version(&c)? != before {
+    if version(&c, c.id())? != before {
         return Err(Error::new("authority-busy", "Observation metadata changed"));
     }
     Ok(observed)
@@ -158,6 +162,10 @@ fn cached_with<T: Clone>(
     mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
     finish: impl FnOnce(&Connection, &T) -> Result<()>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    let observation = store.packet_connections.observe()?;
+    if let Ok(mut entries) = memo.0.try_lock() {
+        entries.retain(|entry| observation.current(entry.version.connection));
+    }
     let mut captured = None;
     let mut capture = |c: &Connection, version: Version| {
         if let Ok(entry) = memo.0.try_lock() {
@@ -183,15 +191,17 @@ fn cached_with<T: Clone>(
         // this reader and one SQL interval, rederiving on any stamp mismatch.
         // Only complete current scope coverage permits sealing; otherwise drop
         // SQL and the disposable reader before normal derivation/admission.
-        let previous = memo
-            .0
-            .try_lock()
-            .ok()
-            .and_then(|slot| slot.iter().find(|entry| entry.same_source(source)).cloned());
+        let previous = memo.0.try_lock().ok().and_then(|slot| {
+            slot.iter()
+                .find(|entry| {
+                    observation.current(entry.version.connection) && entry.same_source(source)
+                })
+                .cloned()
+        });
         if let Some(previous) = previous {
             if let Ok(reader) = store.try_acquire_authority(&previous.scopes) {
-                let c = store.try_packet_connection()?;
-                let before = version(&c)?;
+                let c = store.try_packet_connection(&observation)?;
+                let before = version(&c, c.id())?;
                 // A commit or policy-clock edge invalidates facts, not
                 // necessarily the scope set. Releasing this valid fresh reader
                 // and SQL merely to acquire the same scopes again creates a
@@ -216,14 +226,16 @@ fn cached_with<T: Clone>(
     let result = match optimistic {
         Some(result) => result,
         None => match held {
-            Some(held) => acquire_under(
+            Some(held) => acquire_under_at(
                 store,
+                &observation,
                 &mut capture,
                 finish.take().ok_or_else(Error::storage)?,
                 held,
             ),
-            None => acquire_with_facts(
+            None => acquire_with_facts_at(
                 store,
+                &observation,
                 &mut capture,
                 finish.take().ok_or_else(Error::storage)?,
                 |scopes| store.try_acquire_authority(scopes),
@@ -239,10 +251,11 @@ fn cached_with<T: Clone>(
             // Drop dead original sources and superseded versions for this
             // observer. Retained facts own no reader or grant.
             slot.retain(|previous| {
-                previous
-                    .source
-                    .as_ref()
-                    .is_none_or(|source| source.strong_count() > 0)
+                observation.current(previous.version.connection)
+                    && previous
+                        .source
+                        .as_ref()
+                        .is_none_or(|source| source.strong_count() > 0)
                     && (previous.version.connection != entry.version.connection
                         || previous.version == entry.version)
             });
@@ -322,7 +335,7 @@ impl Store {
                 // Bound pure metadata reconstruction. A second clock edge can
                 // revalidate once more; no SQL/schema change can be retried.
                 for _ in 0..3 {
-                    let before = version(c)?;
+                    let before = version(c, stamp.connection)?;
                     if !stamp.same_database(before) {
                         return Err(Error::new(
                             "authority-busy",
@@ -338,7 +351,7 @@ impl Store {
                         fresh = Some(current);
                         stamp = seen;
                     }
-                    if version(c)? != stamp {
+                    if version(c, stamp.connection)? != stamp {
                         refresh = true;
                         continue;
                     }
@@ -348,7 +361,7 @@ impl Store {
                         held.clone(),
                         expires.get(),
                     );
-                    let after = version(c)?;
+                    let after = version(c, stamp.connection)?;
                     if after == stamp {
                         projection = Some(value?);
                         return Ok(());
@@ -430,13 +443,23 @@ fn acquire_with<T>(
 
 fn acquire_with_facts<T>(
     store: &Store,
+    derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection, &T) -> Result<()>,
+    admit: impl FnOnce(&[AuthorityScope]) -> Result<Arc<AuthorityGuardSet>>,
+) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    let observation = store.packet_connections.observe()?;
+    acquire_with_facts_at(store, &observation, derive, finish, admit)
+}
+fn acquire_with_facts_at<T>(
+    store: &Store,
+    observation: &Observation,
     mut derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
     finish: impl FnOnce(&Connection, &T) -> Result<()>,
     admit: impl FnOnce(&[AuthorityScope]) -> Result<Arc<AuthorityGuardSet>>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let (before, facts, scopes) = {
-        let c = store.try_packet_connection()?;
-        let before = version(&c)?;
+        let c = store.try_packet_connection(observation)?;
+        let before = version(&c, c.id())?;
         let (facts, scopes) = current_refusal(&c, before, derive(&c, before))?;
         (before, facts, scopes)
     };
@@ -446,7 +469,7 @@ fn acquire_with_facts<T>(
     // Releasing SQL does not discard the original observer's identity. A free
     // earlier slot has unrelated counters and cannot validate this capture.
     // A busy original slot still refuses immediately and releases the reader.
-    let c = store.try_packet_connection_for(before.connection)?;
+    let c = store.try_packet_connection_for(observation, before.connection)?;
     seal(store, &c, before, facts, scopes, held, &mut derive, finish)
 }
 
@@ -465,12 +488,22 @@ pub(super) fn current_under<T>(
 
 fn acquire_under<T>(
     store: &Store,
+    derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection, &T) -> Result<()>,
+    held: &Arc<AuthorityGuardSet>,
+) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    let observation = store.packet_connections.observe()?;
+    acquire_under_at(store, &observation, derive, finish, held)
+}
+fn acquire_under_at<T>(
+    store: &Store,
+    observation: &Observation,
     mut derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
     finish: impl FnOnce(&Connection, &T) -> Result<()>,
     held: &Arc<AuthorityGuardSet>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
-    let c = store.try_packet_connection()?;
-    let before = version(&c)?;
+    let c = store.try_packet_connection(observation)?;
+    let before = version(&c, c.id())?;
     let (facts, scopes) = current_refusal(&c, before, derive(&c, before))?;
     if !store.authority_covers(held, &scopes) {
         return Err(Error::forbidden());
@@ -489,7 +522,7 @@ fn acquire_under<T>(
 
 fn seal<T>(
     store: &Store,
-    c: &Connection,
+    c: &PacketConnectionGuard<'_>,
     before: Version,
     mut facts: T,
     mut scopes: Vec<AuthorityScope>,
@@ -497,7 +530,7 @@ fn seal<T>(
     derive: &mut impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
     finish: impl FnOnce(&Connection, &T) -> Result<()>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
-    let after = version(c)?;
+    let after = version(c, c.id())?;
     if (Version {
         second: before.second,
         ..after
@@ -512,7 +545,7 @@ fn seal<T>(
         // Revalidate a clock edge under this already-owned reader. No second
         // file admission behind a queued writer and no original expiry extension.
         (facts, scopes) = current_refusal(c, after, derive(c, after))?;
-        if version(c)? != after {
+        if version(c, c.id())? != after {
             return Err(Error::new(
                 "authority-busy",
                 "Current packet state changed during clock revalidation",

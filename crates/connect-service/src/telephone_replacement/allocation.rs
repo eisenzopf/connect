@@ -12,6 +12,7 @@ use rvoip_sip::{SipDeviceReplacementContext, SipDeviceReplacementSignal};
 use std::sync::{Mutex, OnceLock};
 
 pub(crate) struct Allocated {
+    _packet_observers: connect_store::PacketObserverScope,
     pub context: Arc<SipDeviceReplacementContext>,
     pub receipt: Arc<TelephoneReplacementAllocated>,
     pub route: Arc<TelephoneReplacementRoute>,
@@ -30,6 +31,16 @@ impl Runtime {
         root: &Arc<PreparedReplacement>,
         route: Arc<TelephoneReplacementRoute>,
     ) -> Result<Arc<Allocated>> {
+        // The previous preparation invocation has released its file interval.
+        // Acquire resource custody before role/leg registries or current reads;
+        // this actual SIP target must survive its original native source ending.
+        let store = self.media.store.clone();
+        let observer_stop = root.handle.cancellation();
+        let observer_deadline = root.deadline.into_std();
+        let packet_observers = store_call(move || {
+            store.retain_packet_observers_until(observer_deadline, || observer_stop.is_cancelled())
+        })
+        .await?;
         let _roles = self.role_projection.lock().await;
         let previous = { root.telephone.lock().map_err(|_| Error::storage())?.clone() };
         if let Some(previous) = previous {
@@ -120,6 +131,7 @@ impl Runtime {
             }
         };
         let allocated = Arc::new(Allocated {
+            _packet_observers: packet_observers,
             context,
             receipt,
             route,

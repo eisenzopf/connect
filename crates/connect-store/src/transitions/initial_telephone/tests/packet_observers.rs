@@ -99,3 +99,34 @@ fn cached_initial_sip_facts_do_not_cross_the_original_runtime_epoch() {
         "forbidden"
     );
 }
+
+#[test]
+fn reopened_observer_generation_cannot_reuse_withdrawn_initial_sip_permission() {
+    let mut f = Fixture::new();
+    let media = answered(&f);
+    drop(
+        f.store
+            .try_initial_telephone_media_read(media.clone())
+            .unwrap(),
+    );
+    drop(f.packet_scope.take());
+    assert!(f.store.reap_idle_packet_observers().unwrap());
+    f.store
+        .revoke(&f.store.revalidate(&f.keys[0]).unwrap(), &f.keys[1])
+        .unwrap();
+    f.packet_scope = Some(f.store.retain_packet_observers().unwrap());
+    let command = f.store.connection().unwrap();
+    assert_eq!(
+        f.store
+            .try_initial_telephone_media_read(media)
+            .unwrap_err()
+            .code,
+        Error::unauthorized().code,
+        "reopened SQL counters and retained facts cannot restore revoked authority"
+    );
+    drop(command);
+    assert!(
+        f.store.revalidate(&f.keys[0]).is_ok(),
+        "ordinary current administration remains independent"
+    );
+}

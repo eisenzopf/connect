@@ -163,6 +163,9 @@ async fn run(runtime: Weak<Runtime>, store: Arc<Store>, stop: CancellationToken)
                 if recover { recovery = tokio::time::Instant::now(); }
                 let db = store.clone();
                 let scan = tokio::task::spawn_blocking(move || {
+                    // Existing owned scan, before taking any SQL/file guards.
+                    // Lease Drop only queued this exact original close batch.
+                    db.reap_idle_packet_observers()?;
                     if recover { db.recover_native_streams(64)?; }
                     db.reconcile_session_codec_jobs(db.limits().connections.min(64))?;
                     db.pending_session_codec_targets(db.limits().connections.min(32))

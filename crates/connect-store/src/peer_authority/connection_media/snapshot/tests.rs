@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 mod hints;
 mod observer_cache;
 mod observer_custody;
+mod observer_retirement;
 mod owned;
 
 #[test]
@@ -351,6 +352,7 @@ fn optimistic_metadata_uses_only_fresh_scope_coverage_after_a_version_change() {
 }
 
 struct Fixture {
+    packet_scope: Option<crate::PacketObserverScope>,
     _dir: tempfile::TempDir,
     store: Arc<Store>,
     read: AuthorityScope,
@@ -449,7 +451,9 @@ impl Fixture {
                  INSERT INTO packet_snapshot_test VALUES(1);",
             )
             .unwrap();
+        let packet_scope = Some(store.retain_packet_observers().unwrap());
         Self {
+            packet_scope,
             _dir: dir,
             store,
             read: AuthorityScope::identity("packet-test", AuthorityMode::Read).unwrap(),
@@ -794,18 +798,10 @@ fn packet_metadata_memo_invalidates_external_own_clock_connection_and_source_cha
         );
         // SQLite data_version/total_changes counters are connection-local; equal
         // counters from a different Connection can never validate this entry.
-        assert_eq!(
-            cached(
-                &Store::open_administration(f.store.path(), connect_protocol::Limits::default())
-                    .unwrap(),
-                &memo,
-                None,
-                derive
-            )
-            .unwrap()
-            .0,
-            3
-        );
+        let other = Store::open_administration(f.store.path(), connect_protocol::Limits::default())
+            .unwrap();
+        let _other_packet_scope = other.retain_packet_observers().unwrap();
+        assert_eq!(cached(&other, &memo, None, derive).unwrap().0, 3);
         if crate::now() != second {
             continue;
         }
@@ -943,17 +939,15 @@ fn packet_snapshot_releases_sql_for_current_mutation_and_rejects_mixed_capture()
     assert_eq!(acquire(&f.store, |c| f.derive(c)).unwrap().0, 7);
 }
 
-fn occupy_packet_sql(store: &Store) -> Vec<crate::installation_ownership::ConnectionGuard<'_>> {
-    let mut held = Vec::new();
-    while let Ok(reader) = store.try_packet_connection() {
-        held.push(reader);
-        assert!(held.len() <= 4, "packet SQL observer capacity exceeded");
-    }
-    assert_eq!(
-        held.len(),
-        4,
-        "all bounded observers must be available before saturation"
-    );
+fn occupy_packet_sql(
+    store: &Store,
+) -> Vec<std::sync::MutexGuard<'_, crate::packet_observation::Slot>> {
+    let held: Vec<_> = store
+        .packet_connections
+        .iter()
+        .map(|slot| slot.try_lock().unwrap())
+        .collect();
+    assert_eq!(held.len(), 4, "all original bounded slots are occupied");
     held
 }
 

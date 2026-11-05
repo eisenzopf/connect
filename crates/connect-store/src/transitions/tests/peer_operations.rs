@@ -73,7 +73,9 @@ fn packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release()
         .unwrap();
     let two = rows::by_record(&c, &second).unwrap().record;
     drop(c);
-    let observer = f.store.try_packet_connection().unwrap();
+    let _physical_scope = f.store.retain_packet_observers().unwrap();
+    let observation = f.store.packet_connections.observe().unwrap();
+    let observer = f.store.try_packet_connection(&observation).unwrap();
     let started = Instant::now();
     for _ in 0..100 {
         assert_eq!(

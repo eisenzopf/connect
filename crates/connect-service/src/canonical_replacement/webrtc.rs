@@ -186,6 +186,14 @@ impl Runtime {
         let mut owned = Owned::default();
         let result =
             Box::pin(self.webrtc_replacement_start(&a, &physical, &credential, &mut owned)).await;
+        if let Err(error) = &result {
+            tracing::debug!(target: "connect_service::canonical_replacement",
+                operation_id = ?owned.root.as_ref().map(|root| &root.handle.intent().operation_id),
+                stage = "initial-signaling", code = %error.code,
+                original_start_attempt_owned = owned.attempt.is_some(),
+                original_driver_owned = owned.driver.is_some(),
+                "RTC replacement original signaling refused");
+        }
         let succeeded = result.is_ok();
         let handler_finished = a.invocation_cancellation();
         let _ = tx.send(result);
@@ -495,10 +503,40 @@ impl Runtime {
         owned.deadline = Some(deadline);
         owned.intent = Some(intent.clone());
         let read = Arc::new(read);
-        let origin = self.media.store.native_replacement_start_origin(
-            owned.attempt.as_ref().ok_or_else(Error::storage)?,
-            &read,
-        )?;
+        // The once-only start attempt already exists. Temporary primary SQL
+        // exclusion can only repeat this provenance read, never begin/start,
+        // reservation, SDP or driver IO. Keep the same held read and cutoff.
+        let until = deadline.min(Instant::now() + Duration::from_secs(5));
+        let wait =
+            connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
+        let _cancel_origin_wait = wait.cancel_on_drop();
+        let root_cancelled = root.handle.cancellation();
+        let original_attempt = owned.attempt.as_ref().ok_or_else(Error::storage)?;
+        let origin = admission::read_busy(
+            until,
+            &wait,
+            async {
+                tokio::select! { biased;
+                    _ = self.stop.cancelled() => {},
+                    _ = physical.lifetime.cancelled() => {},
+                    _ = root_cancelled.cancelled() => {},
+                }
+            },
+            || {
+                std::future::ready(
+                    self.media
+                        .store
+                        .native_replacement_start_origin(original_attempt, &read),
+                )
+            },
+        )
+        .await
+        .map_err(|error| {
+            tracing::debug!(target: "connect_service::canonical_replacement",
+                operation_record = record, stage = "start-origin", code = %error.code,
+                "RTC replacement original metadata refused");
+            error
+        })?;
         let source = Arc::new(Source {
             runtime: Arc::downgrade(self),
             policy: policy.clone(),
@@ -555,10 +593,38 @@ impl Runtime {
         let reply =
             crate::canonical::reply(a.envelope(), "connection.answer", payload).map_err(denied)?;
         a.answer_offer(reply, deadline).await.map_err(denied)?;
-        let record = self
-            .media
-            .store
-            .native_replacement_start_record_with_peer(&source.origin, proof(a)?)?;
+        // The answer has already been delivered. Reobserve only its scoped
+        // original operation metadata; never repeat answer delivery or IO.
+        let until = deadline.min(Instant::now() + Duration::from_secs(5));
+        let wait =
+            connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
+        let _cancel_record_wait = wait.cancel_on_drop();
+        let record = admission::read_busy(
+            until,
+            &wait,
+            async {
+                tokio::select! { biased;
+                    _ = self.stop.cancelled() => {},
+                    _ = physical.lifetime.cancelled() => {},
+                    _ = root_cancelled.cancelled() => {},
+                    _ = driver.closed() => {},
+                }
+            },
+            || {
+                std::future::ready(proof(a).and_then(|proof| {
+                    self.media
+                        .store
+                        .native_replacement_start_record_with_peer(&source.origin, proof)
+                }))
+            },
+        )
+        .await
+        .map_err(|error| {
+            tracing::debug!(target: "connect_service::canonical_replacement",
+                operation_record = record, stage = "post-answer-record", code = %error.code,
+                "RTC replacement original metadata refused");
+            error
+        })?;
         drop(invocation);
         drop(read);
         Ok(Reply {

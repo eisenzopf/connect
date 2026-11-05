@@ -507,6 +507,18 @@ impl Service {
                 incomplete = true;
                 tracing::debug!(target: "connect_service::canonical_runtime_drain", stage = "core-lifecycle", ?error, retained_tasks = runtime.core.connection_lifecycle_task_count(), "Original lifecycle drain remains incomplete");
             }
+            // The periodic owner has joined and original physical/query users
+            // are drained. At most four read-only closes, no query, no held
+            // registry/authority guard, no detached or cancellable child task.
+            // This synchronous final poll uses the SAME original cutoff; late
+            // completion is a failed drain, never a renewed cleanup budget.
+            if tokio::time::Instant::now() >= deadline
+                || !matches!(self.store.reap_idle_packet_observers(), Ok(true))
+                || tokio::time::Instant::now() > deadline
+            {
+                incomplete = true;
+                tracing::debug!(target: "connect_service::canonical_runtime_drain", stage = "packet-observers", "Original observer retirement remains incomplete");
+            }
         }
         if incomplete {
             Err(Error::new(

@@ -138,7 +138,13 @@ impl PhysicalHandlerFactory for Factory {
             .get()
             .map(|runtime| runtime.physical(context))
             .transpose()
-            .map_err(|_| DispatchError::Capacity)?;
+            .map_err(|error| {
+                if error.code == "cancelled" {
+                    DispatchError::Closed
+                } else {
+                    DispatchError::Capacity
+                }
+            })?;
         let handler: Arc<dyn rvoip_uctp::v2::auth_dispatch::AuthenticatedHandler> =
             Arc::new(crate::CanonicalHandler {
                 physical: physical.clone(),

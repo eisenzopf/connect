@@ -14,15 +14,15 @@ occurred. See [v192 evidence](../evidence/gate-6/matrix-full-v192.json).
 The current [correction batch](../evidence/gate-6/g6-058-post-v192-correction-plan.json)
 addresses original PCM loss, target activation ordering, typed metadata retry,
 observer resource lifetime and fixture gaps. Audio retention, subscription retry,
-explicit canvas capture, the owned native programme Worker and both fixture
-corrections are applied. Fresh dependency preparation verifies 528 upstream file
-hashes; repository formatting and JavaScript/Python syntax checks pass. No new
-Rust/TypeScript build or runtime test has run. See
-[integration evidence](../evidence/gate-6/g6-058-coordinated-integration-progress.json).
-Activation, native private decoded readiness and observer admission remain under
-integration. WebRTC startup metadata and server resource attribution are still
-under review. Preserve every original age, authority, quality and idle limit;
-no inherited cell qualification or threshold adjustment.
+explicit canvas capture, programme-worker ownership, physical observer lifetime,
+busy-only startup metadata and both fixture corrections are applied. Fresh
+preparation verifies528 upstream hashes and20 reviewed candidate file results;
+repository formatting and JavaScript/Python syntax checks pass. No new build or
+runtime test has run. See [integration evidence](../evidence/gate-6/g6-058-coordinated-integration-progress.json).
+Current target/source continuation and native private decoded readiness are still
+being implemented. Server thread/RSS attribution remains incomplete. Preserve
+every original age, authority, quality and idle limit; no inherited cell
+qualification or threshold adjustment.
 
 The previous coordinated v196 library batch passes37candidate checks plus a
 separate passing baseline control and expected pre-fix failure. All3actual

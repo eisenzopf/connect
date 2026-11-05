@@ -21,6 +21,7 @@ fn packet_metadata_hint_peek_owns_no_reader_and_invalidates_sql_source_and_conne
     );
     let other =
         Store::open_administration(f.store.path(), connect_protocol::Limits::default()).unwrap();
+    let _other_packet_scope = other.retain_packet_observers().unwrap();
     assert_eq!(peek_map(&other, &memo, None, |v| *v).unwrap(), None);
     f.store
         .connection()

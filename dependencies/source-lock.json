@@ -1719,6 +1719,11 @@
       "path": "patches/rvoip/gate6-native-subscription-post-ready-metadata.patch",
       "sha256": "1a714eb9b870c9462c60d6483dcc37e586efe390f39e1fb3cbb1b561f5876965",
       "source": "G6-058 original resource-changing subscription retries only effect-free final routing metadata contention after endpoint preparation, retaining its original candidate, allocation, quiescence, cancellation and absolute deadline. Actual IO/model commit remain once; real Capacity and permanent refusals are preserved. Seven private focused controls drafted and unexecuted; v192 causal attribution remains unproven."
+    },
+    {
+      "path": "patches/rvoip/connect-packet-observer-admission-cutoff.patch",
+      "sha256": "ea1f1cca60291caa9a85eb9e1216b9576f405dacd862e9eca652f6b56c9bf539",
+      "source": "G6-058 packet observer physical custody: carry the original driver authentication cutoff through synchronous effect-free resource admission and peer authentication, without timeout renewal. Constructor call sites and focused deadline tests are updated. Private candidate is not compiled or executed; no matrix qualification."
     }
   ]
 }

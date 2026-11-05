@@ -1,6 +1,8 @@
 //! Disposable Core views use durable Session IDs and the dispatcher's real peer.
 mod audience_metadata;
 mod control_work;
+#[cfg(test)]
+mod packet_observers;
 use crate::StoreInvocationAuthority;
 pub(crate) use audience_metadata::capture_audience_metadata;
 use connect_protocol::{Error, Result};
@@ -331,6 +333,7 @@ impl Runtime {
     }
 }
 pub(crate) struct Physical {
+    _packet_observers: connect_store::PacketObserverScope,
     pub(crate) browser_origin: Option<String>,
     pub(crate) lifecycle: rvoip_uctp::v2::native_lifecycle::NativeLifecycleMux,
     pub(crate) capabilities: Arc<crate::canonical_capability_delivery::Queue>,
@@ -343,8 +346,12 @@ pub(crate) struct Physical {
     pub(crate) binding: Arc<NativePhysicalBinding>,
 }
 impl Physical {
-    pub(crate) fn new(context: NativeTransportContext) -> Arc<Self> {
+    pub(crate) fn new(
+        context: NativeTransportContext,
+        packet_observers: connect_store::PacketObserverScope,
+    ) -> Arc<Self> {
         Arc::new(Self {
+            _packet_observers: packet_observers,
             browser_origin: context.browser_origin().map(str::to_owned),
             lifetime: context.lifetime.clone(),
             binding: NativePhysicalBinding::new(context),
@@ -404,6 +411,13 @@ impl PeerSessionAuthorityLease for Lease {
 }
 impl Runtime {
     pub(crate) fn physical(&self, context: NativeTransportContext) -> Result<Arc<Physical>> {
+        // Cold SQLite opens and any prior close run before either registry lock.
+        let packet_observers = self
+            .media
+            .store
+            .retain_packet_observers_until(context.admission_deadline.into_std(), || {
+                context.lifetime.is_cancelled() || self.stop.is_cancelled()
+            })?;
         let mut closed = self
             .host_configuration_closed
             .lock()
@@ -417,7 +431,7 @@ impl Runtime {
                 "Canonical physical capacity exhausted",
             ));
         }
-        let owner = Physical::new(context);
+        let owner = Physical::new(context, packet_observers);
         physical.push(Arc::downgrade(&owner));
         Ok(owner)
     }

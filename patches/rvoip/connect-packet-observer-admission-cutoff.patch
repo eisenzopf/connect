@@ -1,0 +1,289 @@
+--- a/crates/uctp/rvoip-quic/src/canonical.rs
++++ b/crates/uctp/rvoip-quic/src/canonical.rs
+@@ -40,9 +40,14 @@
+                 if alpn.as_deref() != Some(RAW_QUIC_ALPN) {
+                     return Err(DispatchError::Unsupported);
+                 }
++                let deadline = tokio::time::Instant::now() + AUTHENTICATION_TIMEOUT;
++                let peer = profile
++                    .peer(PeerTransport::Quic, &contact, cancel.clone())?
++                    .with_original_authentication_deadline(deadline);
+                 let mut context = NativeTransportContext::new(
+                     PeerTransport::Quic,
+                     cancel.clone(),
++                    deadline,
+                     connection.clone(),
+                 );
+                 let mut media_reader = if connection
+@@ -62,8 +67,6 @@
+                         as futures::future::BoxFuture<'static, Result<(), DispatchError>>
+                 };
+                 let handler = profile.physical_handler(context)?;
+-                let deadline = tokio::time::Instant::now() + AUTHENTICATION_TIMEOUT;
+-                let peer = profile.peer(PeerTransport::Quic, &contact, cancel.clone())?;
+                 let (mut writer, reader) = tokio::select! {
+                     biased;
+                     _=cancel.cancelled()=>return Err(DispatchError::Closed),
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -316,6 +316,12 @@
+     retirement: Option<RetirementRecord>,
+ }
+ impl CanonicalPeer {
++    /// Keep a driver's already-running authentication interval. This can only
++    /// narrow the peer's initial deadline; it cannot renew authentication time.
++    pub fn with_original_authentication_deadline(mut self, deadline: Instant) -> Self {
++        self.auth_deadline = self.auth_deadline.min(deadline);
++        self
++    }
+     pub fn new(config: Arc<PeerConfig>, parent: CancellationToken) -> Result<Self, DispatchError> {
+         Self::with_replay_capacity(config, parent, ReplayFence::DEFAULT_CAPACITY)
+     }
+--- a/crates/uctp/rvoip-uctp/src/v2/server.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/server.rs
+@@ -28,6 +28,9 @@
+ pub struct NativeTransportContext {
+     pub transport: PeerTransport,
+     pub lifetime: CancellationToken,
++    /// Original driver authentication cutoff, including TLS/profile upgrade.
++    /// Resource admission may narrow this interval but must never renew it.
++    pub admission_deadline: tokio::time::Instant,
+     native: Arc<dyn std::any::Any + Send + Sync>,
+     media: Option<Arc<super::native_media::NativePeerMedia>>,
+     browser_origin: Option<String>,
+@@ -36,11 +39,13 @@
+     pub fn new<T: std::any::Any + Send + Sync>(
+         transport: PeerTransport,
+         lifetime: CancellationToken,
++        admission_deadline: tokio::time::Instant,
+         native: T,
+     ) -> Self {
+         Self {
+             transport,
+             lifetime,
++            admission_deadline,
+             native: Arc::new(native),
+             media: None,
+             browser_origin: None,
+@@ -131,13 +136,21 @@
+         &self,
+         context: NativeTransportContext,
+     ) -> Result<Arc<dyn AuthenticatedHandler>, DispatchError> {
+-        if context.lifetime.is_cancelled() {
++        if context.lifetime.is_cancelled()
++            || tokio::time::Instant::now() >= context.admission_deadline
++        {
+             return Err(DispatchError::Closed);
+         }
+-        match &self.handlers {
++        let lifetime = context.lifetime.clone();
++        let deadline = context.admission_deadline;
++        let handler = match &self.handlers {
+             Some(factory) => factory.handler(context),
+             None => Ok(self.handler.clone()),
+-        }
++        }?;
++        if lifetime.is_cancelled() || tokio::time::Instant::now() >= deadline {
++            return Err(DispatchError::Closed);
++        }
++        Ok(handler)
+     }
+     pub fn with_reachability(
+         mut self,
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -949,11 +949,14 @@
+     let reader = media.reader().unwrap();
+     assert!(media.is_live());
+     assert!(media.reader().is_err());
+-    assert!(
+-        NativeTransportContext::new(PeerTransport::WebTransport, CancellationToken::new(), ())
+-            .with_media(media.clone())
+-            .is_err()
+-    );
++    assert!(NativeTransportContext::new(
++        PeerTransport::WebTransport,
++        CancellationToken::new(),
++        tokio::time::Instant::now() + rvoip_uctp::v2::auth_peer::AUTHENTICATION_TIMEOUT,
++        ()
++    )
++    .with_media(media.clone())
++    .is_err());
+     let reservation = media.router().reserve().unwrap();
+     drop(reader);
+     assert!(!media.is_live());
+--- a/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
+@@ -88,6 +88,7 @@
+     NativePhysicalBinding::new(NativeTransportContext::new(
+         peer_kind(kind),
+         CancellationToken::new(),
++        tokio::time::Instant::now() + rvoip_uctp::v2::auth_peer::AUTHENTICATION_TIMEOUT,
+         (),
+     ))
+ }
+@@ -642,6 +643,7 @@
+     let s = NativePhysicalBinding::new(NativeTransportContext::new(
+         peer_kind(kind),
+         parent.clone(),
++        tokio::time::Instant::now() + rvoip_uctp::v2::auth_peer::AUTHENTICATION_TIMEOUT,
+         (),
+     ));
+     let i = intent(&f, kind);
+--- a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+@@ -36,6 +36,103 @@
+ 
+ fn deadline() -> Instant {
+     Instant::now() + Duration::from_secs(3)
++}
++
++#[tokio::test]
++async fn original_driver_authentication_deadline_cannot_be_restarted_after_resource_admission() {
++    let fixture = Fixture::new();
++    let handler = Handler::default();
++    let mut expired = CanonicalPeer::new(fixture.config.clone(), CancellationToken::new())
++        .unwrap()
++        .with_original_authentication_deadline(Instant::now() - Duration::from_millis(1))
++        .with_original_authentication_deadline(Instant::now() + Duration::from_secs(60));
++    assert!(matches!(
++        expired
++            .handle(&serde_json::to_vec(&hello()).unwrap(), &handler, deadline())
++            .await,
++        Err(DispatchError::Closed)
++    ));
++    let mut current = CanonicalPeer::new(fixture.config.clone(), CancellationToken::new())
++        .unwrap()
++        .with_original_authentication_deadline(deadline());
++    assert!(current
++        .handle(&serde_json::to_vec(&hello()).unwrap(), &handler, deadline())
++        .await
++        .is_ok());
++}
++
++#[test]
++fn physical_factory_discards_late_or_cancelled_original_handler() {
++    use rvoip_uctp::v2::{
++        reachability::PeerTransport,
++        server::{CanonicalProfile, NativeTransportContext, PhysicalHandlerFactory},
++    };
++    struct Factory {
++        calls: Arc<AtomicUsize>,
++        cancel: bool,
++        made: Arc<std::sync::Mutex<Option<std::sync::Weak<Handler>>>>,
++    }
++    impl PhysicalHandlerFactory for Factory {
++        fn handler(
++            &self,
++            context: NativeTransportContext,
++        ) -> Result<Arc<dyn AuthenticatedHandler>, DispatchError> {
++            self.calls.fetch_add(1, Ordering::SeqCst);
++            if self.cancel {
++                context.lifetime.cancel();
++            } else {
++                while Instant::now() < context.admission_deadline {
++                    std::thread::yield_now();
++                }
++            }
++            let handler = Arc::new(Handler::default());
++            *self.made.lock().unwrap() = Some(Arc::downgrade(&handler));
++            Ok(handler)
++        }
++    }
++    for cancel in [false, true] {
++        let fixture = Fixture::new();
++        let calls = Arc::new(AtomicUsize::new(0));
++        let made = Arc::new(std::sync::Mutex::new(None));
++        let profile = CanonicalProfile::new(fixture.config, Arc::new(Handler::default()), 4)
++            .unwrap()
++            .with_physical_handlers(Arc::new(Factory {
++                calls: calls.clone(),
++                cancel,
++                made: made.clone(),
++            }));
++        let context = NativeTransportContext::new(
++            PeerTransport::Quic,
++            CancellationToken::new(),
++            Instant::now() - Duration::from_millis(1),
++            (),
++        );
++        assert!(matches!(
++            profile.physical_handler(context),
++            Err(DispatchError::Closed)
++        ));
++        assert_eq!(
++            calls.load(Ordering::SeqCst),
++            0,
++            "already expired admission reached the factory"
++        );
++        let original = CancellationToken::new();
++        let context = NativeTransportContext::new(
++            PeerTransport::Quic,
++            original,
++            Instant::now() + Duration::from_millis(5),
++            (),
++        );
++        assert!(matches!(
++            profile.physical_handler(context),
++            Err(DispatchError::Closed)
++        ));
++        assert_eq!(calls.load(Ordering::SeqCst), 1);
++        assert!(
++            made.lock().unwrap().as_ref().unwrap().upgrade().is_none(),
++            "late original handler resource was retained"
++        );
++    }
+ }
+ fn envelope(kind: &str, payload: Value) -> Value {
+     json!({"v":2,"type":kind,"id":format!("env_{}",uuid::Uuid::new_v4().simple()),"ts":Utc::now(),"payload":payload})
+--- a/crates/uctp/rvoip-websocket/src/canonical.rs
++++ b/crates/uctp/rvoip-websocket/src/canonical.rs
+@@ -45,7 +45,9 @@
+                 let cancel = cancel.child_token();
+                 let _physical_lifetime = cancel.clone().drop_guard();
+                 let deadline = tokio::time::Instant::now() + AUTHENTICATION_TIMEOUT;
+-                let peer = profile.peer(PeerTransport::WebSocket, &contact, cancel.clone())?;
++                let peer = profile
++                    .peer(PeerTransport::WebSocket, &contact, cancel.clone())?
++                    .with_original_authentication_deadline(deadline);
+                 let upgrade = async move {
+                     let accepted_origin = Arc::new(std::sync::OnceLock::new());
+                     let captured = accepted_origin.clone();
+@@ -110,9 +112,13 @@
+                     _=cancel.cancelled()=>return Err(DispatchError::Closed),
+                     result=tokio::time::timeout_at(deadline,upgrade)=>result.map_err(|_|DispatchError::Closed)??,
+                 };
+-                let context =
+-                    NativeTransportContext::new(PeerTransport::WebSocket, cancel.clone(), ())
+-                        .with_browser_origin(origin)?;
++                let context = NativeTransportContext::new(
++                    PeerTransport::WebSocket,
++                    cancel.clone(),
++                    deadline,
++                    (),
++                )
++                .with_browser_origin(origin)?;
+                 let handler = profile.physical_handler(context)?;
+                 let (writer, reader) = websocket.split();
+                 let reader = futures::stream::unfold(reader, |mut reader| async move {
+--- a/crates/uctp/rvoip-webtransport/src/canonical.rs
++++ b/crates/uctp/rvoip-webtransport/src/canonical.rs
+@@ -51,7 +51,9 @@
+                     return Err(DispatchError::Unsupported);
+                 }
+                 let deadline = tokio::time::Instant::now() + AUTHENTICATION_TIMEOUT;
+-                let peer = profile.peer(PeerTransport::WebTransport, &contact, cancel.clone())?;
++                let peer = profile
++                    .peer(PeerTransport::WebTransport, &contact, cancel.clone())?
++                    .with_original_authentication_deadline(deadline);
+                 let upgrade = async {
+                     let request = web_transport_quinn::Request::accept(connection)
+                         .await
+@@ -97,6 +99,7 @@
+                 let mut context = NativeTransportContext::new(
+                     PeerTransport::WebTransport,
+                     cancel.clone(),
++                    deadline,
+                     _session.clone(),
+                 )
+                 .with_browser_origin(origin)?;

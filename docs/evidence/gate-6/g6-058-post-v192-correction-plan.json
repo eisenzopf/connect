@@ -7,7 +7,7 @@
   "active_source_changes_applied": true,
   "new_runtime_tests_executed": 0,
   "new_matrix_cells_qualified": 0,
-  "batch_policy": "Address all nine known boundaries together. Six workstreams have applied changes, with runtime-resource attribution still incomplete. Current target/source continuation, native private decoded readiness and observer admission remain under integration. Startup metadata draft is under review. Focused checks and one clean all32/all432 local ARM matrix follow complete integration; no new runtime pass is claimed.",
+  "batch_policy": "All nine known boundaries remain one coordinated batch. Current target/source continuation and native private decoded readiness are still being implemented; server resource attribution remains incomplete. No component or cell is newly runtime-qualified. Focused checks and one clean all32/all432 local ARM matrix follow complete integration.",
   "items": [
     {
       "id": "prepared-subscription-metadata",
@@ -42,10 +42,10 @@
     {
       "id": "packet-observer-lifetime",
       "kind": "library",
-      "status": "private-implementation-in-progress",
+      "status": "applied-static-checks-only-runtime-unverified",
       "finding": "Four added server descriptors match original WAL paths across independent native cases; fixed Store packet readers retain them after physical owners end.",
       "fix": "Physical resource scopes plus complete-observation leases, generation-safe fixed slots and close outside all foreign guards in existing owned custody.",
-      "proof": "Eleven drafted regressions include a real server WAL-descriptor witness, complete-observation drain, reopen, cache and authority races. They are uncompiled and unexecuted; this alone does not prove RSS restoration.",
+      "proof": "Scoped readers and original-cutoff admission applied, with 19 new drafted cases and34existing controls. Same public live-server WAL witness and two baseline controls are ready for before/after execution. None compiled or run; no RSS claim.",
       "reference": ".local/gate-6/packet-observer-idle-proposal/proposal.html",
       "title": "Packet observer lifetime"
     },
@@ -92,10 +92,10 @@
     {
       "id": "rtc-movement-authority",
       "kind": "unresolved-boundary",
-      "status": "private-startup-metadata-draft-private-readiness-unresolved",
+      "status": "startup-metadata-applied-private-readiness-in-progress",
       "finding": "Original terminal Store records narrow one Mac failure to a once-only start effect left unknown before SDP answer; the other source has confirmed start/attach/activation but no readiness or public commit. Startup provenance and post-answer record lookup each use one-shot immediate primary SQL reads.",
-      "fix": "Draft bounded re-observation of only authority-busy at those two pure metadata reads, retaining exact original attempt, validation, cancellation and deadline; never repeat begin/start, answer delivery or driver IO. Diagnose private readiness separately.",
-      "proof": "Private two-file draft and three helper controls remain uncompiled/unexecuted. Original phases constrain the boundary but do not prove the exact historical503 call site. Actual signed and complete matrix proofs remain required.",
+      "fix": "Applied bounded authority-busy re-observation at original provenance and post-answer metadata reads, retaining exact attempt, current validation, cancellation and cutoff. Begin/start, SDP, answer delivery and driver IO are never repeated. Private decoded readiness remains separate.",
+      "proof": "Three new helper controls and existing admission controls remain uncompiled/unexecuted. The source fix and original Store phases do not prove the precise historical503 call site; actual signed and full-matrix proof remains required.",
       "reference": ".local/gate-6/webrtc-start-metadata-candidate/apply-manifest.json",
       "title": "WebRTC move authority"
     }
@@ -108,7 +108,7 @@
     "Recorded upstream patches/source-lock and freshly prepared sources before builds",
     "Exact before-fail/after-pass evidence before broad claims; publication separate"
   ],
-  "applied_scope": "Audio retention, subscription metadata retry, explicit canvas capture, v2 programme Worker and both fixture corrections applied. Dependency preparation/format/syntax checked; no Rust/TypeScript build or runtime test yet.",
+  "applied_scope": "Audio retention, subscription metadata retry, explicit canvas capture, v2 programme Worker, physical observer lifetime, busy-only startup metadata and both fixture corrections applied. Fresh dependency/format/syntax checks only; no build/runtime test yet.",
   "integration_evidence": "g6-058-coordinated-integration-progress.json",
-  "source_lock_sha256": "1439d82bab30d31bd0101b96c9750768303174f3eca60931c85fb67149423735"
+  "source_lock_sha256": "cf291eca04bc1a8495df51f2137f1e1fd95c4131c493c48bab277e3fabbe25e2"
 }

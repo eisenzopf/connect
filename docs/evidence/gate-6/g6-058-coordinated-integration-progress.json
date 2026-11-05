@@ -2,25 +2,26 @@
   "format": "connect/g6-058-coordinated-integration-progress/1",
   "task": "G6-058",
   "status": "partial-batch-applied-runtime-unverified",
-  "basis_revision": "58820330a85fc486b43e4b9334d95e089e9483a3",
-  "recorded_at": "2026-11-05T14:40:59.635337+00:00",
-  "source_lock_sha256": "1439d82bab30d31bd0101b96c9750768303174f3eca60931c85fb67149423735",
+  "basis_revision": "de73711e7e35d6bd43dba450ecb21ccda06b77ed",
+  "recorded_at": "2026-11-05T14:59:15.824162+00:00",
+  "source_lock_sha256": "cf291eca04bc1a8495df51f2137f1e1fd95c4131c493c48bab277e3fabbe25e2",
   "prepared_files_verified": 528,
-  "reviewed_upstream_results_verified": 12,
+  "reviewed_upstream_results_verified": 20,
   "applied": [
     "valid original PCM retention within unchanged bounds",
     "typed effect-free post-prepare subscription metadata retry",
     "explicit caller-owned canonical canvas capture",
     "owned native programme Worker with natural join and independent quality verdict",
     "isolated Firefox loopback ICE fixture",
-    "explicit non-CA native QUIC server leaf fixture"
+    "explicit non-CA native QUIC server leaf fixture",
+    "physical packet-observer lifetime, generation-safe reseal and original-cutoff concurrent admission",
+    "busy-only original WebRTC startup provenance and post-answer metadata re-observation"
   ],
   "pending": [
     "current public target/source continuation and projection boundary",
     "native private decoded audio/video readiness before retirement",
-    "packet observer lifetime and bounded concurrent physical admission",
-    "review of narrow WebRTC startup metadata retry",
-    "causal server thread/RSS retention diagnosis"
+    "causal server thread/RSS retention diagnosis",
+    "complete-batch builds, exact before/after regressions and full32/all432 runtime verification"
   ],
   "verification": {
     "dependency_preparation_exit_code": 0,
@@ -52,6 +53,9 @@
   "private_receipts": [
     ".local/gate-6/known-gap-integration-v197/integration-receipt.json",
     ".local/gate-6/known-gap-integration-v197/worker-integration-receipt.json",
-    ".local/gate-6/known-gap-integration-v197/static-audit.json"
+    ".local/gate-6/known-gap-integration-v197/static-audit.json",
+    ".local/gate-6/known-gap-integration-v197/observer-integration-receipt.json",
+    ".local/gate-6/known-gap-integration-v197/start-metadata-integration-receipt.json",
+    ".local/gate-6/known-gap-integration-v197/observer-startup-static-audit.json"
   ]
 }

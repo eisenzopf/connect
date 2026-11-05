@@ -91,6 +91,7 @@ pub use transitions::{
 mod authority_admission;
 mod authority_fences;
 mod packet_observation;
+pub use packet_observation::PacketObserverScope;
 mod peer_authority;
 mod peer_credentials;
 mod session_observation;
@@ -223,7 +224,7 @@ pub struct Store {
         std::sync::OnceLock<std::sync::Arc<dyn records::RecordContextProjector>>,
     connection: Mutex<Connection>,
     // Bounded read-only WAL observers; never command transactions or grants.
-    packet_connections: Vec<Mutex<Connection>>,
+    packet_connections: packet_observation::Observers,
     session_readers: session_observation::Readers,
     pub(crate) limits: Limits,
     path: PathBuf,
@@ -590,7 +591,7 @@ impl Store {
             private_initial_telephone_origins: Default::default(),
             initial_telephone_gateways: Default::default(),
             connection: Mutex::new(connection),
-            packet_connections: packet_observation::open(path)?,
+            packet_connections: packet_observation::Observers::new(path)?,
             session_readers: session_observation::Readers::open(path)?,
             limits,
             path: path.into(),
@@ -682,7 +683,7 @@ impl Store {
             private_initial_telephone_origins: Default::default(),
             initial_telephone_gateways: Default::default(),
             connection: Mutex::new(connection),
-            packet_connections: packet_observation::open(path)?,
+            packet_connections: packet_observation::Observers::new(path)?,
             session_readers: session_observation::Readers::open(path)?,
             limits,
             path: path.into(),

@@ -162,8 +162,9 @@ fn current_media_refuses_sql_contention_and_foreign_store_without_wait_or_side_e
     let primary = f.store.connection().unwrap();
     assert!(f.store.try_native_media_read(&origin, None).is_ok());
     drop(primary);
+    let observation = f.store.packet_connections.observe().unwrap();
     let mut observers = Vec::new();
-    while let Ok(reader) = f.store.try_packet_connection() {
+    while let Ok(reader) = f.store.try_packet_connection(&observation) {
         observers.push(reader);
     }
     assert_eq!(observers.len(), 4, "occupy every bounded packet observer");

@@ -38,7 +38,10 @@ fn changed_facts_with_covered_scopes_keep_one_fresh_admission() {
     }
 }
 
-fn occupy_except(f: &Fixture, selected: usize) -> Vec<std::sync::MutexGuard<'_, Connection>> {
+fn occupy_except(
+    f: &Fixture,
+    selected: usize,
+) -> Vec<std::sync::MutexGuard<'_, crate::packet_observation::Slot>> {
     f.store
         .packet_connections
         .iter()

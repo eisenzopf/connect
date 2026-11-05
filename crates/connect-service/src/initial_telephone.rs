@@ -346,11 +346,20 @@ impl Runner {
                 return Ok(());
             }
         };
-        let sid = SessionId::from_string(origin.source().session_id.clone());
+        // The allocation read above has ended; open/close observer resources
+        // outside its SQL/file interval and before publishing any Core leg.
         let deadline = tokio::time::Instant::now()
             + Duration::from_secs(
                 (origin.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,
             );
+        let store = runtime.media.store.clone();
+        let observer_stop = cancel.clone();
+        let packet_observers = crate::canonical_consultation::store_call(move || {
+            store
+                .retain_packet_observers_until(deadline.into_std(), || observer_stop.is_cancelled())
+        })
+        .await?;
+        let sid = SessionId::from_string(origin.source().session_id.clone());
         let writer = Arc::new(write::InviteAuthority {
             runtime: Arc::downgrade(&runtime),
             signal: OnceLock::new(),
@@ -401,6 +410,7 @@ impl Runner {
             .set(signal.clone())
             .map_err(|_| Error::forbidden())?;
         let leg = Arc::new_cyclic(|weak| policy::Leg {
+            _packet_observers: packet_observers,
             self_ref: weak.clone(),
             runtime: Arc::downgrade(&runtime),
             signal: signal.clone(),

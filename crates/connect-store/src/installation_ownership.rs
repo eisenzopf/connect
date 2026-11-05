@@ -246,6 +246,27 @@ pub(crate) struct ConnectionGuard<'a> {
     // Declared last: tracing happens after SQLite and installation proof drop.
     _timing: Option<SqlCustodyTiming>,
 }
+pub(crate) struct PacketConnectionGuard<'a> {
+    connection: crate::packet_observation::Guard<'a>,
+    _owner: Option<Arc<InstallationOwnership>>,
+    _timing: Option<SqlCustodyTiming>,
+}
+impl PacketConnectionGuard<'_> {
+    pub(crate) fn id(&self) -> crate::packet_observation::ObserverId {
+        self.connection.id()
+    }
+}
+impl Deref for PacketConnectionGuard<'_> {
+    type Target = rusqlite::Connection;
+    fn deref(&self) -> &Self::Target {
+        &self.connection
+    }
+}
+impl DerefMut for PacketConnectionGuard<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.connection
+    }
+}
 struct SqlCustodyTiming {
     started: std::time::Instant,
     caller: &'static std::panic::Location<'static>,
@@ -302,54 +323,100 @@ impl Store {
         Ok(held())
     }
 
-    /// Immediate current SQL observation without queuing behind command SQL or
-    /// another packet observer. WAL exposes committed authoritative state; each
-    /// connection's data_version invalidates metadata on primary/external writes.
-    /// The caller must still acquire and seal its complete authority interval.
-    #[track_caller]
-    pub(crate) fn try_packet_connection(&self) -> Result<ConnectionGuard<'_>> {
-        self.packet_connection(None)
-    }
-    /// Reacquire the exact observer used by an earlier capture after releasing
-    /// SQL for file admission. Its counters are connection-local; availability
-    /// of another observer cannot make that connection interchangeable.
-    #[track_caller]
-    pub(crate) fn try_packet_connection_for(&self, original: usize) -> Result<ConnectionGuard<'_>> {
-        self.packet_connection(Some(original))
-    }
-    #[track_caller]
-    fn packet_connection(&self, original: Option<usize>) -> Result<ConnectionGuard<'_>> {
+    /// Original physical resource custody, never a permission. Invoke from
+    /// trusted adapter composition outside all SQL/authority/registry guards.
+    pub fn retain_packet_observers(&self) -> Result<crate::PacketObserverScope> {
         let owner = self.runtime_ownership.permit(&self.path)?;
-        for observer in &self.packet_connections {
-            let connection = match observer.try_lock() {
-                Ok(connection) => connection,
-                Err(std::sync::TryLockError::WouldBlock) => continue,
-                Err(std::sync::TryLockError::Poisoned(_)) => return Err(Error::storage()),
-            };
-            if original.is_some_and(|original| {
-                original != &*connection as *const rusqlite::Connection as usize
-            }) {
-                continue;
-            }
-            if let Some(owner) = &owner {
-                owner.check(&self.path)?;
-            }
-            return Ok(ConnectionGuard {
-                connection,
-                _owner: owner,
-                // Observers permanently use a zero SQLite busy timeout.
-                immediate: false,
-                _timing: SqlCustodyTiming::capture(),
-            });
+        if let Some(owner) = &owner {
+            owner.check(&self.path)?;
         }
-        Err(Error::new(
-            "authority-busy",
-            if original.is_some() {
-                "Original packet observer is busy during snapshot reseal"
+        let scope = self.packet_connections.scope()?;
+        if let Some(owner) = &owner {
+            owner.check(&self.path)?;
+        }
+        Ok(scope)
+    }
+    /// Effect-free physical admission, bounded by its original transport or
+    /// operation cutoff. Never call under SQL, file-authority or registry guards.
+    /// All current observer operations and opens/closes are synchronous: this
+    /// coordination cannot depend on an async custodian polling this executor.
+    pub fn retain_packet_observers_until(
+        &self,
+        deadline: std::time::Instant,
+        cancelled: impl Fn() -> bool,
+    ) -> Result<crate::PacketObserverScope> {
+        let check = || {
+            if cancelled() || std::time::Instant::now() >= deadline {
+                Err(Error::new(
+                    "cancelled",
+                    "Original physical observer admission ended",
+                ))
             } else {
-                "All current packet observers are busy"
-            },
-        ))
+                Ok(())
+            }
+        };
+        loop {
+            check()?;
+            match self.retain_packet_observers() {
+                Ok(scope) => {
+                    // A cancelled/late opener drops only its resource lease;
+                    // another live owner keeps its original shared generation.
+                    if let Err(error) = check() {
+                        drop(scope);
+                        let _ = self.reap_idle_packet_observers();
+                        return Err(error);
+                    }
+                    return Ok(scope);
+                }
+                Err(error) if error.code == "authority-busy" => {
+                    check()?;
+                    // No mutex/file/SQL guard survives this bounded pause. The
+                    // next attempt drives a pending close itself if necessary.
+                    std::thread::sleep(
+                        std::time::Duration::from_millis(2)
+                            .min(deadline.saturating_duration_since(std::time::Instant::now())),
+                    );
+                }
+                Err(error) => return Err(error),
+            }
+        }
+    }
+    /// Drive the exact queued idle batch from an existing owned blocking
+    /// custodian, with no caller SQL/file-authority/registry guard retained.
+    pub fn reap_idle_packet_observers(&self) -> Result<bool> {
+        self.packet_connections.reap()
+    }
+    #[track_caller]
+    pub(crate) fn try_packet_connection<'a>(
+        &'a self,
+        observation: &'a crate::packet_observation::Observation,
+    ) -> Result<PacketConnectionGuard<'a>> {
+        self.packet_connection(observation, None)
+    }
+    #[track_caller]
+    pub(crate) fn try_packet_connection_for<'a>(
+        &'a self,
+        observation: &'a crate::packet_observation::Observation,
+        original: crate::packet_observation::ObserverId,
+    ) -> Result<PacketConnectionGuard<'a>> {
+        self.packet_connection(observation, Some(original))
+    }
+    #[track_caller]
+    fn packet_connection<'a>(
+        &'a self,
+        observation: &'a crate::packet_observation::Observation,
+        original: Option<crate::packet_observation::ObserverId>,
+    ) -> Result<PacketConnectionGuard<'a>> {
+        let owner = self.runtime_ownership.permit(&self.path)?;
+        let connection = self.packet_connections.connection(observation, original)?;
+        if let Some(owner) = &owner {
+            owner.check(&self.path)?;
+        }
+        Ok(PacketConnectionGuard {
+            connection,
+            _owner: owner,
+            _timing: SqlCustodyTiming::capture(),
+        })
     }
     /// Register one bounded component hint, never an authorization grant.
     pub fn register_runtime_retirement(
