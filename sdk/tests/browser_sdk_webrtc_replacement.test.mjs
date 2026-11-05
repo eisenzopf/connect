@@ -27,7 +27,7 @@ async function scenario(run,{mode='complete',timeout=250}={}) {
  const document=Object.assign(new EventTarget(),{visibilityState:'visible',createElement(){return{muted:false,srcObject:null,async play(){},pause(){}};}});
  const values={RTCPeerConnection:Peer,RTCRtpSender:{getCapabilities:()=>({codecs:[{mimeType:'audio/opus',clockRate:48000,channels:2}]})},MediaStream:Stream,AudioContext:Context,AudioWorkletNode:Worklet,document};
  for(const[name,value]of Object.entries(values)){saved.set(name,Object.getOwnPropertyDescriptor(globalThis,name));Object.defineProperty(globalThis,name,{configurable:true,writable:true,value});}
- let committed=false,revision=0,lateReply;
+ let committed=false,revision=0,readyAttempts=0,lateReply;
  const record=(state)=>({operation_id:'move',record_id:'record',command_type:'connection.replace',revision:++revision,state,native_replacement_prepared:true,...(state==='completed'?{result:{activation_state:'ready',connection_id:'target',replaces:'source',generation:2,endpoint_id:'endpoint',device_id:'wss_device',retained_connection_ids:['retained'],admitted_connection_ids:['target'],retired_connection_ids:['source'],readiness:{stream_revision:3,streams:['audio']},physical_readiness:{stream_revision:3,streams:['audio']}}}:{})});
  try{await fixture(async f=>{
   const client=await BrowserClient.open(f.options);let source,target;
@@ -45,9 +45,11 @@ async function scenario(run,{mode='complete',timeout=250}={}) {
   if(profile==='connect-replacement-preparation-v1')return mode==='lost-allocation'?true:reply('operation.updated',record('preparing'));
   if(profile==='connect-replacement-media-v1'&&mode==='lost-media')return true;
   if(profile==='connect-replacement-ready-v1'){
+   readyAttempts++;
+   if(mode==='transient-ready'&&readyAttempts===1)return reply('error',{code:503,category:'storage',reason:'storage_unavailable'});
    committed=true;await peer.emit('connection.end',{},undefined,{cid:'room',sid:'session',connid:'source'});
    if(mode==='lost-ready'){lateReply=()=>peer.emit('connection.end',{},frame.id,{cid:'room',sid:'session',connid:'target'});return true;}
-   return reply('operation.updated',record('completed'));
+   const acknowledgement=record('completed');delete acknowledgement.result;return reply('operation.updated',acknowledgement);
   }
   return reply('connection.answer',{substrate:'websocket+webrtc',substrate_setup:{kind:'websocket+webrtc',sdp},capabilities:{audio_codecs:[{name:'opus',params:{sample_rate:48000,channels:1}}]},streams_answered:[{id:frame.connid==='source'?'source-audio':'audio',kind:'audio',direction:'sendrecv',codec:{name:'opus',params:{sample_rate:48000,channels:1}}}],...(profile?{replacement_preparation:{profile:'connect-replacement-media-v1',operation_record_id:'record',readiness:{nonce:'nonce',source_generation:1,target_generation:2,stream_revision:2}}}: {})});
  }});}finally{for(const[name,descriptor]of saved){if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}}
@@ -61,7 +63,7 @@ test('target decoded readiness failure retires the target and leaves the origina
  await f.target.prepared;await assert.rejects(f.target.completed,{code:'timeout'});assert.equal(f.target.owner.diagnostics.closed,true);assert.equal(f.source.owner.diagnostics.peerConnectionState,'connected');assert.equal(f.source.owner.diagnostics.liveRemoteTracks,1);assert.equal(f.client.closed,false);assert.ok(f.contexts.every(c=>c.closed));assert.ok(f.worklets.every(w=>w.port.closed));
 },{timeout:70}));
 test('lost ready reply after commit preserves the target and recovers status under the original operation',()=>scenario(async f=>{
- await f.target.prepared;await f.decoded();await assert.rejects(f.target.completed,{code:'timeout'});assert.equal(f.source.owner.diagnostics.closed,true);assert.equal(f.target.owner.diagnostics.peerConnectionState,'connected');assert.equal(f.target.owner.replacementMayHaveCommitted,true);
+ await f.target.prepared;await f.decoded();const receipt=await f.target.completed;assert.equal(receipt.generation,2);assert.equal(f.source.owner.diagnostics.closed,true);assert.equal(f.target.owner.diagnostics.peerConnectionState,'connected');assert.equal(f.target.owner.replacementMayHaveCommitted,true);
  await f.lateReply();await tick();assert.equal(f.target.owner.diagnostics.peerConnectionState,'connected');
  const status=await f.client.operationStatus('room','move',{timeoutMs:200});assert.equal(status.state,'completed');assert.equal(f.f.sent.filter(v=>v.payload.replacement_preparation?.profile==='connect-replacement-ready-v1').length,1);assert.equal(f.client.closed,false);
 },{mode:'lost-ready',timeout:90}));
@@ -80,3 +82,10 @@ test('unanswered original replacement reads retain a bounded late-reply window w
   assert.throws(()=>client.requestReplacementContinuation('operation.get',{operation_id:'move'},{cid:'room',sid:'session',connid:'source'},{timeoutMs:40}),{code:'backpressure'});assert.equal(client.closed,false);
  } finally {await client.shutdown();}
 },{handler:async({frame})=>frame.type==='operation.get'}));
+
+test('signed temporary readiness refusal recovers with identical proof under the original target and operation',()=>scenario(async f=>{
+ await f.target.prepared;await f.decoded();const receipt=await f.target.completed;assert.equal(receipt.generation,2);
+ const offers=f.f.sent.filter(v=>v.payload.replacement_preparation?.profile==='connect-replacement-ready-v1');assert.equal(offers.length,2);assert.deepEqual(offers[0].payload,offers[1].payload);
+ for(const offer of offers){assert.equal(offer.connid,'target');assert.equal(offer.operation_id,'move');assert.equal(offer.expected_revision,0);}
+ const index=f.f.sent.indexOf(offers[1]);assert.equal(f.f.sent[index-1].type,'operation.get');assert.equal(f.f.sent[index-1].connid,'source');assert.equal(f.peers.length,2);assert.equal(f.source.owner.diagnostics.closed,true);assert.equal(f.target.owner.diagnostics.peerConnectionState,'connected');assert.equal(f.client.closed,false);
+},{mode:'transient-ready',timeout:500}));

@@ -45,3 +45,12 @@ test('fresh decoder frame fallback records absent keyframe counter instead of in
  const work=f.begin();await f.started();f.stats.audio.totalSamplesReceived=960;f.pcm();delete f.stats.video.keyFramesDecoded;delete f.stats.video.framesDecoded;f.frame();
  const evidence=await work;assert.deepEqual(evidence.video,{stream_id:'receive',decoded_frames:1,decoded_keyframes:null,decoder_startup:'fresh-peer-first-decoded-frame'});
 },{video:true}));
+
+test('RTC readiness preserves coherent decoder counters when frames decode between rendered callbacks',()=>fixture(async f=>{
+ const work=f.begin();await f.started();f.stats.audio.totalSamplesReceived=960;f.pcm();f.stats.video.framesDecoded=5;f.stats.video.keyFramesDecoded=2;f.frame();
+ const evidence=await work;assert.deepEqual(evidence.video,{stream_id:'receive',decoded_frames:5,decoded_keyframes:2,decoder_startup:'fresh-peer-first-decoded-frame'});
+},{video:true}));
+test('RTC readiness waits rather than reports contradictory decoder counters',()=>fixture(async f=>{
+ const work=f.begin();let done=false;void work.then(()=>done=true);await f.started();f.stats.audio.totalSamplesReceived=960;f.pcm();f.stats.video.framesDecoded=1;f.stats.video.keyFramesDecoded=2;f.frame();await new Promise(resolve=>setTimeout(resolve,30));assert.equal(done,false);
+ f.stats.video.framesDecoded=3;const evidence=await work;assert.equal(evidence.video.decoded_frames,3);assert.equal(evidence.video.decoded_keyframes,2);
+},{video:true}));

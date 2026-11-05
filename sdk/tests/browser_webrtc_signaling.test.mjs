@@ -277,15 +277,15 @@ test('independent handoff preparation preserves its exact target-owned marker in
 test('WebRTC replacement carries one complete SDP through original allocation, media and decoded-ready continuations',async()=>{
  const peer=new Peer(),client=new Client();client.deviceId='device';
  const root={recordId:'record',operationId:'original-offer',conversationId:'conversation',sessionId:'session',sourceConnectionId:'source',retainedConnectionId:'retained',targetConnectionId:'connection',endpointId:'endpoint',deviceId:'device'};
- let revision=0;
+ let revision=0,committed=false;
  const observed=(connid,state='preparing')=>envelope('operation.updated',{operation_id:root.operationId,record_id:root.recordId,command_type:'connection.replace',revision:++revision,state,native_replacement_prepared:true,...(state==='completed'?{result:{activation_state:'ready',connection_id:'connection',replaces:'source',generation:2,endpoint_id:'endpoint',device_id:'device',retained_connection_ids:['retained'],admitted_connection_ids:['connection'],retired_connection_ids:['source'],readiness:{stream_revision:3,streams:['audio-stream']},physical_readiness:{stream_revision:3,streams:['audio-stream']}}}:{})},{cid:'conversation',sid:'session',connid});
  client.response=async()=>{
   const [type,body]=client.requests.at(-1);
-  if(type==='operation.get')return[observed('source')];
+  if(type==='operation.get')return[observed('source',committed?'completed':'preparing')];
   assert.equal(body.substrate_setup.sdp,sdp);
   const profile=body.replacement_preparation.profile;
   if(profile==='connect-replacement-preparation-v1')return[observed('connection')];
-  if(profile==='connect-replacement-ready-v1')return[observed('connection','completed')];
+  if(profile==='connect-replacement-ready-v1'){committed=true;const acknowledgement=observed('connection','completed');delete acknowledgement.payload.result;return[acknowledgement];}
   assert.equal(profile,'connect-replacement-media-v1');
   const frame=answer();frame.payload.replacement_preparation={profile,operation_record_id:'record',readiness:{nonce:'nonce',source_generation:1,target_generation:2,stream_revision:2}};return[frame];
  };

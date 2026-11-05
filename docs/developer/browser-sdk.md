@@ -66,7 +66,7 @@ reply leaves the possibly committed target alive while the SDK reads the
 original operation. Existing candidate Connection adoption still refuses before
 submission.
 
-The WebRTC implementation has passed TypeScript compilation and 210 focused
+The WebRTC implementation has passed TypeScript compilation and 227 focused
 SDK cases using signed client boundaries and mocked browser media objects.
 These checks do not qualify real WebRTC media or the transport matrix. The
 integrated local ARM Linux handoff regression and full matrix remain pending.

@@ -201,7 +201,12 @@ export async function observeWebRtcDecodedReadiness(
                 decodedAudio >= 960 &&
                 (!video ||
                     (frameCount > 0 &&
-                        (decodedKeyframes === null || decodedKeyframes > 0)))
+                        (decodedKeyframes === null ||
+                            (decodedKeyframes > 0 &&
+                                decodedKeyframes <=
+                                    (decodedVideo > 0
+                                        ? decodedVideo
+                                        : frameCount)))))
             ) {
                 return Object.freeze({
                     audio: Object.freeze({
@@ -212,9 +217,7 @@ export async function observeWebRtcDecodedReadiness(
                         ? Object.freeze({
                               stream_id: video.id,
                               decoded_frames:
-                                  decodedVideo > 0
-                                      ? Math.min(frameCount, decodedVideo)
-                                      : frameCount,
+                                  decodedVideo > 0 ? decodedVideo : frameCount,
                               decoded_keyframes: decodedKeyframes,
                               decoder_startup:
                                   "fresh-peer-first-decoded-frame" as const,

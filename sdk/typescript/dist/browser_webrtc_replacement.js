@@ -6,6 +6,19 @@ import { identifier } from "./uctp_wire.js";
 const protocol = (message) => new ConnectError("protocol", message);
 const copy = (value) => parseCanonicalJson(new TextEncoder().encode(canonicalJson(value)));
 const positive = (value) => typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+const recoverableReadinessFailure = (error) => {
+    if (!(error instanceof ConnectError))
+        return false;
+    if (error.code === "timeout" || error.code === "transport")
+        return true;
+    const problem = error.problem;
+    return (error.code === "refused" &&
+        problem?.code === 503 &&
+        ((problem.category === "authorization" &&
+            problem.reason === "authority_unavailable") ||
+            (problem.category === "storage" &&
+                problem.reason === "storage_unavailable")));
+};
 /** One target's original replacement phases. A readiness assertion is a signed
  * observation of this fresh decoder, never a new replacement mutation. */
 export class BrowserWebRtcReplacement {
@@ -148,7 +161,9 @@ export class BrowserWebRtcReplacement {
                     evidence.video.decoder_startup !==
                         "fresh-peer-first-decoded-frame" ||
                     (evidence.video.decoded_keyframes !== null &&
-                        !positive(evidence.video.decoded_keyframes))))
+                        (!positive(evidence.video.decoded_keyframes) ||
+                            evidence.video.decoded_keyframes >
+                                evidence.video.decoded_frames))))
             throw protocol("Decoded readiness does not name the frozen target receive streams");
         const budget = new BrowserDeadline(options.timeoutMs ?? 10000);
         this.readyOffer = {
@@ -163,30 +178,53 @@ export class BrowserWebRtcReplacement {
                 },
             },
         };
-        // Mark before sending: lost response cannot cause a fresh ready effect.
+        // The server captures this exact observation once. Recovery can replay
+        // these frozen bytes only after a fresh original-root read still says
+        // preparing; no new readiness observation or logical effect is created.
         this.readyAttempted = true;
-        let value;
-        try {
-            const frames = await this.client.requestReplacementContinuation("connection.offer", copy(this.readyOffer), { ...this.originalScope }, { ...options, timeoutMs: budget.remaining() });
-            value = this.observe(replacementFrame(root, frames, root.targetConnectionId));
-        }
-        catch (error) {
-            // Recovery reads the original journal. It never replays the ready
-            // mutation or drops the target merely because its reply was lost.
+        let attempts = 0, replayNeeded = false, nextReplayAt = 0;
+        const ioOptions = () => ({
+            ...options,
+            // Leave time in the original budget for authoritative recovery.
+            timeoutMs: Math.min(1000, Math.max(1, Math.floor(budget.remaining() / 2))),
+        });
+        const delay = () => budget.run(() => new Promise((resolve) => setTimeout(resolve, Math.min(20, budget.remaining()))), options.signal);
+        const sendReady = async () => {
             if (options.signal?.aborted)
-                throw error;
+                throw new ConnectError("cancelled", "Original replacement wait cancelled");
+            attempts++;
             try {
-                budget.remaining();
+                const frames = await this.client.requestReplacementContinuation("connection.offer", copy(this.readyOffer), { ...this.originalScope }, ioOptions());
+                // Ready acknowledgements deliberately omit the final result.
+                // Even a completed acknowledgement requires operation.get.
+                this.observe(replacementFrame(root, frames, root.targetConnectionId));
+                replayNeeded = false;
             }
-            catch {
-                throw error;
+            catch (error) {
+                if (options.signal?.aborted ||
+                    this.client.closed ||
+                    !recoverableReadinessFailure(error))
+                    throw error;
+                replayNeeded = true;
+                nextReplayAt =
+                    performance.now() +
+                        Math.min(1000, 50 * 2 ** (attempts - 1));
             }
-            value = await this.status({
-                ...options,
-                timeoutMs: budget.remaining(),
-            });
-        }
+        };
+        await sendReady();
         for (;;) {
+            let value;
+            try {
+                value = await this.status(ioOptions());
+            }
+            catch (error) {
+                if (options.signal?.aborted ||
+                    this.client.closed ||
+                    !recoverableReadinessFailure(error))
+                    throw error;
+                await delay();
+                continue;
+            }
             if (value.state === "completed") {
                 const receipt = replacementReceipt(root, value);
                 const result = value.result;
@@ -214,11 +252,16 @@ export class BrowserWebRtcReplacement {
                 "interrupted",
             ].includes(String(value.state)))
                 throw protocol("Invalid original WebRTC replacement state");
-            await budget.run(() => new Promise((resolve) => setTimeout(resolve, Math.min(20, budget.remaining()))), options.signal);
-            value = await this.status({
-                ...options,
-                timeoutMs: budget.remaining(),
-            });
+            if (replayNeeded &&
+                attempts < 8 &&
+                performance.now() >= nextReplayAt &&
+                value.state === "preparing" &&
+                value.native_replacement_prepared === true) {
+                await sendReady();
+            }
+            else {
+                await delay();
+            }
         }
     }
 }
