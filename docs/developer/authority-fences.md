@@ -57,6 +57,28 @@ are unsupported during service operation. These locks coordinate matching Store
 writers; they do not constrain a privileged filesystem owner or arbitrary SQL.
 Linux behavior is not qualified by these macOS fixtures.
 
+## Current candidate descriptor ownership
+
+The current candidate closes a scope's kernel description when its final owner
+releases it; only live readers share descriptors. No idle open-file pool or
+background eviction timer remains. The manager retains at most128 filename
+identities as metadata. A remembered missing path or different inode refuses,
+and every new description still validates its current path, privacy and access.
+Waited metadata acquisition uses the same original deadline/cancellation owner;
+immediate admission remains immediate. The [current descriptor component](../evidence/gate-6/authority-idle-descriptor-lifetime.json)
+passes54local macOS ARM Store tests, with two controlled child entrypoints ignored
+at the top-level harness and exercised through their parents. Full transport and
+server/helper idle-resource verification remains pending; the historical
+foundation evidence above does not qualify this new change.
+
+This metadata is not a historical incarnation oracle: after every process closes
+all descriptions of an idle file, its inode number can be recycled. An old inode
+with a live description cannot recycle, so this limit does not remove a live
+kernel authority interval. It grants no permission and bypasses no current Store
+credential, membership or admission check. Manual lock-file removal during
+operation and privileged filesystem-owner tampering remain unsupported, as above.
+No nonce format, new authority cache or timestamp-uniqueness claim is introduced.
+
 Identity credential issuance/revocation, provisioning (including key/Device
 retirement) and membership writers acquire their affected write scopes before
 entering SQLite and reauthorize inside the transaction. Membership mutations also

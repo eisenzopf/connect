@@ -139,5 +139,20 @@
     "runtime_passes_claimed": 0,
     "production_Rust_changed": false,
     "prepared_dependencies_changed": false
+  },
+  "v191_runtime_components": {
+    "firefox_NSS": "actual ARM before-fail/after-pass with pinned bundled NSS3.130",
+    "guest_STUN": "actual ARM original refusal and corrected one-transaction/owned-socket join",
+    "evidence": "docs/evidence/gate-6/fixture-bootstrap-runtime-components.json"
+  },
+  "authority_descriptor_lifetime": {
+    "host_tests_passed": 54,
+    "evidence": "docs/evidence/gate-6/authority-idle-descriptor-lifetime.json",
+    "full_matrix_verified": false
+  },
+  "core_audio_target_contention": {
+    "original_mechanism_reproduced": true,
+    "production_fix_verified": false,
+    "evidence": "docs/evidence/gate-6/core-audio-target-admission-negative.json"
   }
 }

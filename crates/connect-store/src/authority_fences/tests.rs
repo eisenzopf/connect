@@ -239,7 +239,7 @@ fn namespace_privacy_symlink_alias_hardlink_refusal_and_foreign_guard_are_enforc
     assert!(!Store::blob_directory_for(&alias).exists());
     assert!(same.authority_covers(&guard, &[f.scope(AuthorityMode::Read)]));
     // This branch runs on case-insensitive fixture volumes; a spelling alias
-    // must share the descriptor cache as well as the kernel lock namespace.
+    // must share the live-reader registry as well as the kernel lock namespace.
     let case_alias = f.dir.path().join("STATE.SQLITE3");
     if case_alias.exists() {
         let same = Store::open_administration(&case_alias, Limits::default()).unwrap();
@@ -828,3 +828,6 @@ fn immediate_sql_refuses_mutex_and_database_contention_and_restores_timeout() {
 mod admissions;
 #[cfg(unix)]
 mod resource_preparation;
+
+#[cfg(unix)]
+mod identity_wait;

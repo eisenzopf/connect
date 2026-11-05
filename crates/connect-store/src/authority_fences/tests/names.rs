@@ -63,7 +63,8 @@ fn cached_names_still_check_fresh_file_privacy_and_reject_symlinks() {
         "authority-unavailable"
     );
     fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
-    fs::remove_file(&path).unwrap();
+    let saved = f.store.authority.directory.join("saved-admission");
+    fs::rename(&path, &saved).unwrap();
     let target = f.dir.path().join("substitute");
     File::create(&target).unwrap();
     symlink(&target, &path).unwrap();
@@ -74,6 +75,7 @@ fn cached_names_still_check_fresh_file_privacy_and_reject_symlinks() {
             .code,
         "authority-unavailable"
     );
-    fs::remove_file(path).unwrap();
+    fs::remove_file(&path).unwrap();
+    fs::rename(saved, &path).unwrap();
     assert!(f.store.try_acquire_authority(&[scope]).is_ok());
 }

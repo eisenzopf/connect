@@ -1,0 +1,88 @@
+{
+  "format": "connect/fixture-bootstrap-runtime-components/1",
+  "scope": "Actual existing local Ubuntu24.04 ARM64 NSS-import and private STUN components only; no browser programme, media, providers or matrix cells",
+  "nss": {
+    "passed": true,
+    "original_result_sha256": "72d777f478748f6851b56f574cac16a7a7dc0b3ff08589dbcf7635c2b959d2e5",
+    "source_revision": "4f2e26a1f300ae35ee497c83e4a8c6bc71cd5ac4",
+    "scripts": {
+      "original-browser-profile.py": "b6a32c5b209a345278de0a905ea5368ff6f575636b3fa42fa6ad3b5d861950bf",
+      "patched-browser-profile.py": "e4b72e362e851d4289dc10c63d36aa2578ff351d32eacbbe169a7e00ce65d1a1"
+    },
+    "nss_version": "3.130",
+    "synthetic_ca_der_sha256": "23589129d9473bf901d96182901d61d04bc93cdc7cf7606eb5835324367160f3",
+    "fresh_private_profiles": true,
+    "original_import_exit": 1,
+    "patched_import_exit": 0,
+    "bundled_libraries": [
+      {
+        "name": "libnssutil3.so",
+        "sha256": "804f3c84e9285571de7b457d72a72a5ec99d6094ad66760d7391d51ca8a80b83",
+        "official_archive_digest_matches": true
+      },
+      {
+        "name": "libsoftokn3.so",
+        "sha256": "d8200e3001dc20e156cbbe9571a368ff0d7a1859ad2520b1b30ba4d309f87401",
+        "official_archive_digest_matches": true
+      },
+      {
+        "name": "libnss3.so",
+        "sha256": "08af7dbb85136f7649f8acb974c96f9ee902ed027364eb5dc22b7ab02f3b60b0",
+        "official_archive_digest_matches": true
+      },
+      {
+        "name": "libmozsqlite3.so",
+        "sha256": "1c577d3eaee0fc3f77ec06dd379521b06752606b71058966d32882bfd50d18e8",
+        "official_archive_digest_matches": true
+      },
+      {
+        "name": "libplc4.so",
+        "sha256": "8eb38b38387e1bc8a3e8c2ab8c0d153e3d0a684cab2d971624af6c662884a2a8",
+        "official_archive_digest_matches": true
+      },
+      {
+        "name": "libnspr4.so",
+        "sha256": "239355bc67ca66b8deef5fd68e4040601bd8bb65e47e10beca9248f4078028c8",
+        "official_archive_digest_matches": true
+      },
+      {
+        "name": "libfreeblpriv3.so",
+        "sha256": "dbf01c0fe3e057e704eab5cd312d4618e1a7934b880e478971b2f88459d1b33d",
+        "official_archive_digest_matches": true
+      },
+      {
+        "name": "libplds4.so",
+        "sha256": "a3c0d7f542e2e47349ebe2b6ebf97e5586b1e787e9516263be395c4587b7c503",
+        "official_archive_digest_matches": true
+      }
+    ],
+    "all_original_processes_joined": true,
+    "forced_cleanup": false,
+    "tracked_VM_source_unchanged": true
+  },
+  "stun": {
+    "passed": true,
+    "original_result_sha256": "f999d95fe86a44ecbe3a081e4f31edb7b919737f91f895c19412a54734954678",
+    "original_observation_sha256": "69495af50bf8be0ca54db4d192a33b1b04b8c73b13a5286176640a375f297a68",
+    "original_guard_refused_actual_guest": true,
+    "undeclared_and_nonlocal_addresses_refused": true,
+    "one_original_transaction_reflected": true,
+    "original_transaction_id_preserved": true,
+    "malformed": 0,
+    "send_errors": 0,
+    "both_original_sockets_joined": true,
+    "UDP_resources_at_natural_before_exit": 0,
+    "all_original_processes_joined": true,
+    "forced_cleanup": false,
+    "tracked_VM_source_unchanged": true,
+    "prior_component_attempt": {
+      "exit_code": 1,
+      "failure": "Immediate UDPWrap snapshot before natural close phase; original raw result retained.",
+      "raw_evidence_retained": true,
+      "correction": "Observe libuv quiescence at natural beforeExit after actual socket close callbacks; no STUN module, timeout, delay or matrix threshold change"
+    }
+  },
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

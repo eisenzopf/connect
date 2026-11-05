@@ -1,0 +1,52 @@
+{
+  "format": "connect/authority-idle-descriptor-component/1",
+  "source_base_revision": "35a537b9e25b06a909962d56cc784fde7c8697c7",
+  "scope": "Actual local macOS ARM64 Store authority tests, including isolated real descriptor lifetime and cross-process parent regressions; no full transport cell qualification",
+  "passed": true,
+  "tests_passed": 54,
+  "tests_failed": 0,
+  "ignored_parent_entrypoints": [
+    "authority_fences::tests::admissions::idle_descriptor_process",
+    "authority_fences::tests::process_worker"
+  ],
+  "child_entrypoints_exercised_by_parents": true,
+  "sealed_binary_sha256": "7cf1ce53f1edd991c5b1d292ea656b141d8795304f626a355b35f4732d2db672",
+  "test_log_sha256": "651d64fc73c206ccac9b94a67830ab784ab3426bb0bc586a4ffec74ab227efeb",
+  "source_files": [
+    {
+      "path": "crates/connect-store/src/authority_fences.rs",
+      "sha256": "f14013462d388aae75d6f69e3b0d81286363500b87e66a7ffebe8fac30848c9d"
+    },
+    {
+      "path": "crates/connect-store/src/authority_fences/tests/admissions.rs",
+      "sha256": "0394313029a82ee98e1e3c829b1513ca59604e99aa621e9684645fda098607e4"
+    },
+    {
+      "path": "crates/connect-store/src/authority_fences/tests/names.rs",
+      "sha256": "3d7fe3d33b28a1753d8c12d994b5239df427d34113f14aae52b2f50be8bc76c7"
+    },
+    {
+      "path": "crates/connect-store/src/authority_fences/tests.rs",
+      "sha256": "5e9217f4b5a4c24598f2c0bf73af01446021872615e1e2a9d8d3712a2316f017"
+    },
+    {
+      "path": "crates/connect-store/src/authority_fences/tests/identity_wait.rs",
+      "sha256": "a818d5a62527d74c722ebb09c84abea9220f5be74aaf5ce7ad3ef57547f31282"
+    }
+  ],
+  "verified": [
+    "Final actual scope descriptors close while Store manager remains alive",
+    "Live shared readers retain kernel ownership until final release",
+    "Current path/privacy/inode/link/access/ACL refusal",
+    "Independent scopes and queued-writer exclusion",
+    "Partial admission, cancellation and deadline cleanup",
+    "Original waited metadata deadline/cancellation preserved at lookup and publication"
+  ],
+  "design_limit": "Bounded device/inode metadata is not a historical incarnation oracle after all file descriptions close and the filesystem recycles an inode. Manual lock-file removal/privileged filesystem tampering during operation remains unsupported; current Store authorization and live kernel exclusion are unchanged.",
+  "audit_note": "Auditor incorrectly required all56 listed entries to be top-level passes; two intentionally ignored child entrypoints are launched by their parent tests.",
+  "actual_test_process_exit_code": 0,
+  "tests_replayed": false,
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

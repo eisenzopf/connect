@@ -3927,5 +3927,14 @@
         }
       }
     }
-  ]
+  ],
+  "post_run_runtime_components": "docs/evidence/gate-6/fixture-bootstrap-runtime-components.json",
+  "post_run_library_work": {
+    "authority_descriptor_lifetime": "docs/evidence/gate-6/authority-idle-descriptor-lifetime.json",
+    "authority_host_tests_passed": 54,
+    "controlled_child_entrypoints_ignored_at_top_level": 2,
+    "core_audio_negative_control": "docs/evidence/gate-6/core-audio-target-admission-negative.json",
+    "upstream_audio_fix": "private implementation in progress; no passing post-fix result yet",
+    "full_matrix_rerun": "pending matching candidate"
+  }
 }

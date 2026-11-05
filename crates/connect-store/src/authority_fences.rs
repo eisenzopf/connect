@@ -18,8 +18,7 @@ use std::{
 };
 
 const MAX_SCOPES: usize = 1024;
-const MAX_IDLE_LOCK_FILES: usize = 128;
-const MAX_IDLE_PER_NAME: usize = 2;
+const MAX_FILE_IDENTITIES: usize = 128;
 const MAX_WAIT: Duration = Duration::from_secs(30);
 pub(crate) const DEFAULT_WAIT: Duration = Duration::from_secs(2);
 pub(crate) fn validate_path(path: &Path) -> Result<PathBuf> {
@@ -185,89 +184,34 @@ enum Held {
         _admission: LockFile,
     },
 }
-#[derive(Default)]
-struct IdleLockFiles {
-    files: BTreeMap<String, IdleLockFilesForName>,
-    count: usize,
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct LockFileIdentity {
+    device: u64,
+    inode: u64,
 }
-struct IdleLockFilesForName {
-    files: Vec<File>,
-    // Replacement order only; this timestamp never grants or extends access.
-    last_returned: Instant,
+#[cfg(test)]
+type FileIdentityProbe = Arc<dyn Fn(&str, u8) + Send + Sync>;
+
+struct RememberedLockFile {
+    identity: LockFileIdentity,
+    // Eviction order only. This is neither a descriptor nor an authority grant.
+    last_opened: Instant,
 }
-// Exclusive checkout of an open description. Only an explicitly unlocked file
-// may return to the bounded pool; no authority or permission is cached there.
+// One owned open description. The final owner unlocks and closes it immediately;
+// only live readers may share it through the weak reader registry.
 struct LockFile {
-    file: Option<File>,
-    name: String,
-    manager: Weak<Manager>,
+    file: File,
 }
 impl LockFile {
     fn file(&self) -> &File {
-        self.file.as_ref().expect("live lock-file checkout")
+        &self.file
     }
 }
 impl Drop for LockFile {
     fn drop(&mut self) {
-        let Some(file) = self.file.take() else { return };
-        if FileExt::unlock(&file).is_err() {
-            return;
-        }
-        let Some(manager) = self.manager.upgrade() else {
-            return;
-        };
-        let Ok(mut idle) = manager.idle_files.try_lock() else {
-            return;
-        };
-        if idle
-            .files
-            .get(&self.name)
-            .is_some_and(|entry| entry.files.len() >= MAX_IDLE_PER_NAME)
-        {
-            return;
-        }
-        // A cold bootstrap must not pin the initial namespace forever. Evict
-        // only an idle, unlocked description, and close it outside the map lock.
-        let evicted = if idle.count >= MAX_IDLE_LOCK_FILES {
-            let Some(oldest) = idle
-                .files
-                .iter()
-                .min_by_key(|(_, entry)| entry.last_returned)
-                .map(|(name, _)| name.clone())
-            else {
-                return;
-            };
-            let Some(entry) = idle.files.get_mut(&oldest) else {
-                return;
-            };
-            let Some(file) = entry.files.pop() else {
-                return;
-            };
-            idle.count -= 1;
-            if idle
-                .files
-                .get(&oldest)
-                .is_some_and(|entry| entry.files.is_empty())
-            {
-                idle.files.remove(&oldest);
-            }
-            Some(file)
-        } else {
-            None
-        };
-        let now = Instant::now();
-        let entry = idle
-            .files
-            .entry(self.name.clone())
-            .or_insert_with(|| IdleLockFilesForName {
-                files: Vec::new(),
-                last_returned: now,
-            });
-        entry.files.push(file);
-        entry.last_returned = now;
-        idle.count += 1;
-        drop(idle);
-        drop(evicted);
+        // The File field closes even if explicit unlock fails. No idle owner,
+        // background task or later request is needed to release this descriptor.
+        let _ = FileExt::unlock(&self.file);
     }
 }
 pub struct AuthorityGuardSet {
@@ -338,7 +282,10 @@ pub(crate) struct Manager {
     // Bounded namespace metadata only: never a file, lock, reader or grant.
     names: Mutex<BTreeMap<(Kind, String), String>>,
     readers: Mutex<BTreeMap<String, Weak<LockFile>>>,
-    idle_files: Mutex<IdleLockFiles>,
+    // Bounded inode knowledge preserves path-replacement refusal without FDs.
+    file_identities: Mutex<BTreeMap<String, RememberedLockFile>>,
+    #[cfg(test)]
+    file_identity_probe: Mutex<Option<FileIdentityProbe>>,
     #[cfg(test)]
     admission_attempts: std::sync::atomic::AtomicU64,
 }
@@ -390,7 +337,9 @@ impl Manager {
             fingerprint,
             names: Mutex::new(BTreeMap::new()),
             readers: Mutex::new(BTreeMap::new()),
-            idle_files: Mutex::new(IdleLockFiles::default()),
+            file_identities: Mutex::new(BTreeMap::new()),
+            #[cfg(test)]
+            file_identity_probe: Mutex::new(None),
             #[cfg(test)]
             admission_attempts: std::sync::atomic::AtomicU64::new(0),
         });
@@ -464,12 +413,12 @@ impl Manager {
             diagnostic.stage = "scope-name";
             let name = self.name(key)?;
             diagnostic.stage = "open-admission";
-            let admission = self.lock_file(&format!("{name}.admission"))?;
+            let admission = self.lock_file_with_wait(&format!("{name}.admission"), wait)?;
             diagnostic.stage = "lock-admission";
             lock_admission(admission.file(), *mode, wait)?;
             if *mode == AuthorityMode::Write {
                 diagnostic.stage = "open-resource";
-                let resource = self.file(&format!("{name}.resource"))?;
+                let resource = self.file_with_wait(&format!("{name}.resource"), wait)?;
                 diagnostic.stage = "lock-resource";
                 lock_with(&resource, wait)?;
                 held.push(Held::Write {
@@ -478,8 +427,9 @@ impl Manager {
                 });
             } else {
                 diagnostic.stage = "read-resource";
-                let resource = self
-                    .read_resource(&name, wait, || self.lock_file(&format!("{name}.resource")))?;
+                let resource = self.read_resource(&name, wait, || {
+                    self.lock_file_with_wait(&format!("{name}.resource"), wait)
+                })?;
                 drop(admission);
                 held.push(Held::Read {
                     _resource: resource,
@@ -557,7 +507,7 @@ impl Manager {
                         return Err(Error::new(
                             "authority-busy",
                             "Current authority reader registry is busy",
-                        ))
+                        ));
                     }
                 },
                 Err(std::sync::TryLockError::Poisoned(_)) => return Err(Error::storage()),
@@ -585,78 +535,191 @@ impl Manager {
         }
         Ok(name)
     }
+    #[cfg(test)]
+    fn observe_file_identity(&self, name: &str, stage: u8) {
+        let probe = self.file_identity_probe.lock().unwrap().clone();
+        if let Some(probe) = probe {
+            // Test observation never runs under the inode-metadata map mutex.
+            // 0/1 mark lookup/publication; 2/3 mark their actual contention.
+            probe(name, stage);
+        }
+    }
+    fn identity_registry(
+        &self,
+        wait: Option<&AuthorityWait>,
+        _name: &str,
+        _stage: u8,
+    ) -> Result<std::sync::MutexGuard<'_, BTreeMap<String, RememberedLockFile>>> {
+        #[cfg(test)]
+        self.observe_file_identity(_name, _stage);
+        loop {
+            if let Some(wait) = wait {
+                wait.check()?;
+            }
+            match self.file_identities.try_lock() {
+                Ok(identities) => {
+                    if let Some(wait) = wait {
+                        wait.check()?;
+                    }
+                    return Ok(identities);
+                }
+                Err(std::sync::TryLockError::WouldBlock) => {
+                    #[cfg(test)]
+                    self.observe_file_identity(_name, _stage + 2);
+                    match wait {
+                        Some(wait) => wait.pause()?,
+                        None => return Err(authority_busy()),
+                    }
+                }
+                Err(std::sync::TryLockError::Poisoned(_)) => return Err(Error::storage()),
+            }
+        }
+    }
+    #[cfg(test)]
     fn file(&self, name: &str) -> Result<File> {
+        self.file_with_wait(name, None)
+    }
+    fn file_with_wait(&self, name: &str, wait: Option<&AuthorityWait>) -> Result<File> {
+        // Retain only immutable inode metadata across opens. Never keep this
+        // mutex across filesystem IO, kernel admission or another scope.
+        let remembered = self
+            .identity_registry(wait, name, 0)?
+            .get(name)
+            .map(|entry| entry.identity);
         let path = self.directory.join(name);
-        if let Ok(meta) = fs::symlink_metadata(&path) {
-            if meta.file_type().is_symlink() || !meta.is_file() {
-                return Err(Error::new("authority-unavailable", "Unsafe authority file"));
+        let before = match fs::symlink_metadata(&path) {
+            Ok(meta) => Some(self.lock_file_identity(&meta)?),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound && remembered.is_none() => {
+                None
             }
-        }
-        let mut options = OpenOptions::new();
-        options.read(true).write(true).create(true).truncate(false);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o600);
-        }
-        let file = options.open(path).map_err(|_| Error::storage())?;
-        private(
-            &file.metadata().map_err(|_| Error::storage())?,
-            self.fingerprint.2,
-        )?;
-        Ok(file)
-    }
-    fn lock_file(self: &Arc<Self>, name: &str) -> Result<LockFile> {
-        let cached = self.idle_files.try_lock().ok().and_then(|mut idle| {
-            let file = idle.files.get_mut(name)?.files.pop()?;
-            idle.count -= 1;
-            if idle
-                .files
-                .get(name)
-                .is_some_and(|entry| entry.files.is_empty())
-            {
-                idle.files.remove(name);
-            }
-            Some(file)
-        });
-        let file = match cached {
-            Some(file) => {
-                self.validate_cached_lock_file(name, &file)?;
-                file
-            }
-            None => self.file(name)?,
-        };
-        Ok(LockFile {
-            file: Some(file),
-            name: name.into(),
-            manager: Arc::downgrade(self),
-        })
-    }
-    fn validate_cached_lock_file(&self, name: &str, file: &File) -> Result<()> {
-        let location = self.directory.join(name);
-        let path = fs::symlink_metadata(&location)
-            .map_err(|_| Error::new("authority-unavailable", "Authority file changed"))?;
-        let descriptor = file.metadata().map_err(|_| Error::storage())?;
-        if path.file_type().is_symlink() || !path.is_file() || !descriptor.is_file() {
-            return Err(Error::new("authority-unavailable", "Unsafe authority file"));
-        }
-        private(&path, self.fingerprint.2)?;
-        private(&descriptor, self.fingerprint.2)?;
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::MetadataExt;
-            if path.dev() != descriptor.dev()
-                || path.ino() != descriptor.ino()
-                || path.mode() & 0o600 != 0o600
-                || descriptor.mode() & 0o600 != 0o600
-            {
+            Err(_) => {
                 return Err(Error::new(
                     "authority-unavailable",
                     "Authority file changed",
                 ));
             }
-            // Reusing an open description must still respect current effective
-            // access, including ACL changes that mode/owner checks cannot see.
+        };
+        if remembered.is_some_and(|identity| Some(identity) != before) {
+            return Err(Error::new(
+                "authority-unavailable",
+                "Authority file changed",
+            ));
+        }
+        let expected = remembered.or(before);
+        let mut options = OpenOptions::new();
+        options
+            .read(true)
+            .write(true)
+            .create(expected.is_none())
+            .truncate(false);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options
+                .mode(0o600)
+                .custom_flags(rustix::fs::OFlags::NOFOLLOW.bits() as i32);
+        }
+        let file = options.open(&path).map_err(|error| match error.kind() {
+            std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::NotFound => {
+                Error::new("authority-unavailable", "Authority file unavailable")
+            }
+            _ => Error::storage(),
+        })?;
+        let identity = self.validate_lock_file(name, &file, expected)?;
+        // A concurrent open may have published while filesystem validation ran.
+        // Compare rather than overwrite its observed namespace identity.
+        let mut identities = self.identity_registry(wait, name, 1)?;
+        if identities
+            .get(name)
+            .is_some_and(|entry| entry.identity != identity)
+        {
+            return Err(Error::new(
+                "authority-unavailable",
+                "Authority file changed",
+            ));
+        }
+        if !identities.contains_key(name) && identities.len() >= MAX_FILE_IDENTITIES {
+            if let Some(oldest) = identities
+                .iter()
+                .min_by_key(|(_, entry)| entry.last_opened)
+                .map(|(name, _)| name.clone())
+            {
+                identities.remove(&oldest);
+            }
+        }
+        identities.insert(
+            name.into(),
+            RememberedLockFile {
+                identity,
+                last_opened: Instant::now(),
+            },
+        );
+        drop(identities);
+        Ok(file)
+    }
+    #[cfg(test)]
+    fn lock_file(self: &Arc<Self>, name: &str) -> Result<LockFile> {
+        self.lock_file_with_wait(name, None)
+    }
+    fn lock_file_with_wait(
+        self: &Arc<Self>,
+        name: &str,
+        wait: Option<&AuthorityWait>,
+    ) -> Result<LockFile> {
+        Ok(LockFile {
+            file: self.file_with_wait(name, wait)?,
+        })
+    }
+    fn lock_file_identity(&self, meta: &fs::Metadata) -> Result<LockFileIdentity> {
+        if meta.file_type().is_symlink() || !meta.is_file() {
+            return Err(Error::new("authority-unavailable", "Unsafe authority file"));
+        }
+        private(meta, self.fingerprint.2)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            if meta.mode() & 0o600 != 0o600 {
+                return Err(Error::new(
+                    "authority-unavailable",
+                    "Authority access changed",
+                ));
+            }
+            Ok(LockFileIdentity {
+                device: meta.dev(),
+                inode: meta.ino(),
+            })
+        }
+        #[cfg(not(unix))]
+        {
+            Err(Error::new(
+                "unsupported-platform",
+                "Authority fences require the qualified Unix profile",
+            ))
+        }
+    }
+    fn validate_lock_file(
+        &self,
+        name: &str,
+        file: &File,
+        expected: Option<LockFileIdentity>,
+    ) -> Result<LockFileIdentity> {
+        let location = self.directory.join(name);
+        let path = fs::symlink_metadata(&location)
+            .map_err(|_| Error::new("authority-unavailable", "Authority file changed"))?;
+        let descriptor = file.metadata().map_err(|_| Error::storage())?;
+        let identity = self.lock_file_identity(&descriptor)?;
+        if self.lock_file_identity(&path)? != identity
+            || expected.is_some_and(|previous| previous != identity)
+        {
+            return Err(Error::new(
+                "authority-unavailable",
+                "Authority file changed",
+            ));
+        }
+        #[cfg(unix)]
+        {
+            // Preserve current effective access, including ACL changes which
+            // private owner/mode checks alone cannot detect.
             use rustix::fs::{accessat, Access, AtFlags, CWD};
             accessat(
                 CWD,
@@ -666,7 +729,7 @@ impl Manager {
             )
             .map_err(|_| Error::new("authority-unavailable", "Authority access changed"))?;
         }
-        Ok(())
+        Ok(identity)
     }
 }
 fn authority_busy() -> Error {
@@ -674,7 +737,7 @@ fn authority_busy() -> Error {
 }
 // Readers only exclude a reserved writer during this short admission phase.
 // Writers still reserve the gate exclusively before waiting on the resource;
-// once reserved, they exclude every subsequent reader, including cache hits.
+// once reserved, they exclude every subsequent reader, including readers sharing a live resource.
 fn lock_admission(file: &File, mode: AuthorityMode, wait: Option<&AuthorityWait>) -> Result<()> {
     if mode == AuthorityMode::Write {
         return lock_with(file, wait);

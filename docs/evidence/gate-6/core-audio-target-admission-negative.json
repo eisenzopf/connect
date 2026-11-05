@@ -1,0 +1,38 @@
+{
+  "format": "connect/core-audio-target-admission-negative/1",
+  "scope": "Actual isolated ARM Core decoder/mixer/encoder regression against unchanged production code plus test-only overlay",
+  "mechanism_reproduced": true,
+  "production_fixed": false,
+  "source_revision": "4f2e26a1f300ae35ee497c83e4a8c6bc71cd5ac4",
+  "source_lock_sha256": "4418ed32f97be4e8678d4940d41baad22c3f0432f34996d44d983c74a9fb8d0f",
+  "test_overlay_sha256": "97b1adfa570f7332250994da8c4612ed10e2578b3f5c4040d2425dab65e03442",
+  "test_overlay_manifest_sha256": "a290e09ea72a47976947687aa0e9c7db37ebc8c17012ecd3a4f95cd05a75b99d",
+  "sealed_binary": {
+    "bytes": 22414600,
+    "retained": "/workspace/.local/gate-6/audio-target-admission-diagnosis/arm-negative-control-20261105-01/sealed-core-test-binary",
+    "sha256": "a21c5115504890f4757a74ef96dd639902addc3d97f1d94bf3facb3b7879cf7d"
+  },
+  "positive_controls": [
+    "unblocked target audio",
+    "existing queued-writer drain"
+  ],
+  "positive_control_exit_codes": [
+    0,
+    0
+  ],
+  "target_only_contention_exit_code": 101,
+  "expected_failure_assertion": "target-only temporary admission lost the first original PCM quantum",
+  "receipt_sha256": "540de4b8afa76dd810b580bed1086b304050377b3a7d21eaff39e3014cd71ed0",
+  "logs": {
+    "unblocked-control.log": "47a2d5978b6bff0a000851d203487455fb0a6c913e5b1fb3371d00bc8c5143a9",
+    "existing-writer-drain.log": "21a5aca4665389c9d6693efbadf4e28a382779eeaf676c75f21b4e1c18f5b388",
+    "target-contention-negative-control.log": "e49ecef9b8573a1108d03699f814e78628f10d013281c18024abe3d68e494904"
+  },
+  "pre_fix_sources_retained": true,
+  "all_original_children_joined": true,
+  "original_VM_workload_lease_released": true,
+  "source_interpretation": "A temporarily blocked target loses already consumed original PCM while source admission and another recipient remain usable. This demonstrates the code mechanism; it does not attribute every historical AV failure to it.",
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
