@@ -422,14 +422,18 @@ def main():
             except Exception:
                 report["remote_client_owner"] = dict(passed=False, failure="original-guest-cleanup-unconfirmed")
                 report["passed"] = False
-        if remote is None and browser_owner is not None and browser_owner.poll() is None:
-            if cidfile.exists():
-                cid = cidfile.read_text().strip()
-                if re.fullmatch("[0-9a-f]{64}", cid):
-                    subprocess.run(["docker", "stop", "--time", "5", cid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
-            browser_owner.wait(timeout=10)
-            report["browser_forced_cleanup"] = True
-            report["passed"] = False
+        if remote is None and browser_owner is not None:
+            if browser_owner.poll() is None:
+                if cidfile.exists():
+                    cid = cidfile.read_text().strip()
+                    if re.fullmatch("[0-9a-f]{64}", cid):
+                        subprocess.run(["docker", "stop", "--time", "5", cid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+                report["browser_forced_cleanup"] = True
+                report["passed"] = False
+            report["browser_exit_code"] = browser_owner.wait(timeout=10)
+            # A failed programme can still return its original process custody.
+            # Record the real join even when it exited before this cleanup ran.
+            report["browser_owner_joined"] = True
         if network_name is not None:
             cleanup = subprocess.run(["docker", "network", "rm", network_name], capture_output=True, timeout=15)
             report["client_network_removed"] = cleanup.returncode == 0
