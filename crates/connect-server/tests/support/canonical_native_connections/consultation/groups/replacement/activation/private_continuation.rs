@@ -2,12 +2,16 @@
 //! These controls deliberately fail if the existing signed private replacement
 //! cannot reach the actual move or cannot retain its ordinary private audience.
 use super::*;
+#[path = "private_continuation/publication_retirement.rs"]
+mod publication_retirement;
 
 #[derive(Clone, Copy)]
 enum Case {
     OriginalPrivate,
     OrdinaryReplacement,
     PausedReplacement,
+    RevokedPartnerAfterCommit,
+    RevokedRemoteAfterCommit,
 }
 
 #[tokio::test]
@@ -172,6 +176,20 @@ async fn exercise(case: Case) {
         )
         .unwrap();
     drop(db);
+    let old_owners = if matches!(
+        case,
+        Case::RevokedPartnerAfterCommit | Case::RevokedRemoteAfterCommit
+    ) {
+        publication_retirement::observe(
+            &f,
+            &old_core,
+            "old",
+            tokio::time::Instant::now() + Duration::from_secs(2),
+        )
+        .await
+    } else {
+        Vec::new()
+    };
     let mut grant = Scope::collaboration(vec!["*".into()]);
     grant.operations.extend([
         "connection.replace".into(),
@@ -264,7 +282,10 @@ async fn exercise(case: Case) {
         callback.original()
     );
     let decoder = decoded_readiness::answer(&mut client, &callback, &scope, cutoff).await;
-    let pause = if matches!(case, Case::PausedReplacement) {
+    let pause = if matches!(
+        case,
+        Case::PausedReplacement | Case::RevokedPartnerAfterCommit | Case::RevokedRemoteAfterCommit
+    ) {
         Some(
             f.server
                 .service
@@ -285,6 +306,30 @@ async fn exercise(case: Case) {
         sequence: 1,
         live: true,
     });
+    if matches!(
+        case,
+        Case::RevokedPartnerAfterCommit | Case::RevokedRemoteAfterCommit
+    ) {
+        publication_retirement::finish(
+            f,
+            peers,
+            group,
+            controller,
+            command,
+            key.id,
+            prepared,
+            candidate,
+            old_core,
+            target_core,
+            cutoff,
+            pause.unwrap(),
+            old_owners,
+            decoder,
+            case,
+        )
+        .await;
+        return;
+    }
     let frozen = decoded_readiness::confirm(
         &mut peers[3],
         decoder,

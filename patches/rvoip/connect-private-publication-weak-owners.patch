@@ -1,0 +1,189 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -426,6 +426,23 @@
+             .get(session)
+             .map(|e| Arc::clone(e.value()))
+             .ok_or_else(|| RvoipError::InvalidState("participant control is not enabled").into())
++    }
++
++    /// Test-only weak observations of the exact current staged member. This
++    /// grants no media authority and retains no controller, port, or codec.
++    #[cfg(feature = "test-support")]
++    pub fn staged_media_weak_owners_for_test(
++        &self,
++        session: &SessionId,
++        connection: &ConnectionId,
++    ) -> ControlResult<Vec<(&'static str, std::sync::Weak<dyn Any + Send + Sync>)>> {
++        let runtime = self.participant_runtime(session)?;
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        Ok(scene.weak_media_owners_for_test(connection)?)
+     }
+ 
+     /// Trusted process-internal routing; public callers retain their durable
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -440,6 +440,12 @@
+                 return None;
+             };
+             self.codecs.encoder = codecs.encoder;
++            // Move the observation tag with this exact replacement encoder;
++            // retaining the old tag would misidentify a different codec.
++            #[cfg(feature = "test-support")]
++            {
++                self.codecs.encoder_lifetime = codecs.encoder_lifetime;
++            }
+             self.codecs.from_mix = codecs.from_mix;
+         }
+         if tokio::time::Instant::now() >= bound {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -19,7 +19,13 @@
+ pub(super) struct Codecs {
+     info: CodecInfo,
+     decoder: Box<dyn rvoip_media_core::codec::audio::common::AudioCodec>,
++    // Declaration order is intentional: this tag dies only after the actual
++    // decoder has dropped. No tag escapes as a strong owner.
++    #[cfg(feature = "test-support")]
++    decoder_lifetime: Arc<()>,
+     encoder: Box<dyn rvoip_media_core::codec::audio::common::AudioCodec>,
++    #[cfg(feature = "test-support")]
++    encoder_lifetime: Arc<()>,
+     to_mix: Option<Resampler>,
+     from_mix: Option<Resampler>,
+ }
+@@ -94,10 +100,20 @@
+                 payload_type: Some(payload_type),
+             },
+             decoder,
++            #[cfg(feature = "test-support")]
++            decoder_lifetime: Arc::new(()),
+             encoder,
++            #[cfg(feature = "test-support")]
++            encoder_lifetime: Arc::new(()),
+             to_mix: resample(*clock_rate_hz, mix_rate)?,
+             from_mix: resample(mix_rate, *clock_rate_hz)?,
+         })
++    }
++    #[cfg(feature = "test-support")]
++    pub(super) fn weak_codec_owners_for_test(&self) -> [Weak<dyn Any + Send + Sync>; 2] {
++        let decoder: Arc<dyn Any + Send + Sync> = self.decoder_lifetime.clone();
++        let encoder: Arc<dyn Any + Send + Sync> = self.encoder_lifetime.clone();
++        [Arc::downgrade(&decoder), Arc::downgrade(&encoder)]
+     }
+     pub(super) fn decode(&mut self, frame: &MediaFrame) -> ControlResult<DecodedAudio> {
+         let decoded = self
+@@ -956,6 +972,20 @@
+     pub(super) members: Mutex<HashMap<ConnectionId, AudioMember>>,
+ }
+ impl GuardedAudioMixer {
++    #[cfg(feature = "test-support")]
++    pub(super) fn weak_codec_owners_for_test(
++        &self,
++        connection: &ConnectionId,
++    ) -> ControlResult<[Weak<dyn Any + Send + Sync>; 2]> {
++        let members = self.members.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
++            std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
++        })?;
++        let member = members
++            .get(connection)
++            .ok_or(StreamControlError::NotReady)?;
++        Ok(member.codecs.weak_codec_owners_for_test())
++    }
+     pub(crate) fn new(rate: u32) -> Arc<Self> {
+         Arc::new(Self {
+             rate,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -174,6 +174,28 @@
+     tick_summary: Mutex<TickSummary>,
+ }
+ impl GuardedMediaScene {
++    #[cfg(feature = "test-support")]
++    pub(crate) fn weak_media_owners_for_test(
++        &self,
++        connection: &ConnectionId,
++    ) -> ControlResult<Vec<(&'static str, Weak<dyn Any + Send + Sync>)>> {
++        let controller = {
++            let members = self.members.try_lock().map_err(|error| match error {
++                std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
++                std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
++            })?;
++            members
++                .get(connection)
++                .map(|member| member.controller.clone())
++                .ok_or(StreamControlError::NotReady)?
++        };
++        // Never nest the scene, controller, preparation, or mixer locks.
++        let mut owners = controller.weak_media_owners_for_test()?;
++        let [decoder, encoder] = self.audio.weak_codec_owners_for_test(connection)?;
++        owners.push(("mixer-decoder", decoder));
++        owners.push(("mixer-encoder", encoder));
++        Ok(owners)
++    }
+     pub(crate) fn new(
+         conversation: ConversationId,
+         session: SessionId,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/test_support.rs b/crates/foundation/rvoip-core/src/staged_streams/test_support.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/test_support.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/test_support.rs
+@@ -55,3 +55,51 @@
+         self.0.clear();
+     }
+ }
++
++impl StreamController {
++    /// Weak observations of actual selected owners, never grants or retained
++    /// receivers. A concurrent metadata mutation is explicitly retryable.
++    pub(crate) fn weak_media_owners_for_test(
++        self: &Arc<Self>,
++    ) -> ControlResult<Vec<(&'static str, Weak<dyn Any + Send + Sync>)>> {
++        let erased: Arc<dyn Any + Send + Sync> = self.clone();
++        let mut owners = vec![("controller", Arc::downgrade(&erased))];
++        drop(erased);
++        {
++            let state = self.state.try_lock().map_err(|error| match error {
++                std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
++                std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
++            })?;
++            for port in state.all.values() {
++                let erased: Arc<dyn Any + Send + Sync> = port.clone();
++                owners.push(("port", Arc::downgrade(&erased)));
++            }
++        }
++        let preparation = {
++            let slot = self
++                .audio_preparation
++                .try_lock()
++                .map_err(|error| match error {
++                    std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
++                    std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
++                })?;
++            slot.as_ref().and_then(Weak::upgrade)
++        };
++        if let Some(preparation) = preparation {
++            let erased: Arc<dyn Any + Send + Sync> = preparation.clone();
++            owners.push(("preparation", Arc::downgrade(&erased)));
++            drop(erased);
++            let codecs = preparation
++                .decoder
++                .try_lock()
++                .map_err(|error| match error {
++                    std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
++                    std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
++                })?;
++            let [decoder, encoder] = codecs.weak_codec_owners_for_test();
++            owners.push(("preparation-decoder", decoder));
++            owners.push(("preparation-encoder", encoder));
++        }
++        Ok(owners)
++    }
++}

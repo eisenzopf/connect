@@ -110,7 +110,7 @@
   ],
   "applied_scope": "Audio/subscription/canvas/Worker/observer/startup/TLS/ICE corrections plus paired current continuation, native decoded readiness, exact same-source decoder epoch promotion, original20ms preparation sample cadence and adapted signed/decoder fixtures. Static checks pass; latest broad typecheck exposed two fixture API/ownership errors, now corrected. No new runtime pass. Browser native decoded proof/custody now applied and TypeScript build/full formatting pass; four new/changed Node test files parse, but no runtime test has run.",
   "integration_evidence": "g6-058-coordinated-integration-progress.json",
-  "source_lock_sha256": "779f0b64e62f6058868643c547bd6f22fe5674f0407dbb3a2f95e18464d247ff",
+  "source_lock_sha256": "1348dbfcaadb2e52d2d471e50c673ab508f6f8d42d641e0a06fddccbefa1805e",
   "integration_findings": [
     {
       "id": "preparation-audio-cadence",
@@ -139,7 +139,7 @@
       "status": "applied-prepared-static-only-runtime-unverified",
       "finding": "Private floor history captures original physical primary; Core replacement consumes the original restorable audience handle. Store aliases alone cannot retain current private duplex and return.",
       "fix": "Actual-commit-derived exact successor restoration handle and fresh parent-bound current Store lineage, preserving original consultation/audience/programmes. No public fallback or history rewrite.",
-      "proof": "Actual Core successor plus current immutable parent-bound Store lineage applied from guarded candidate;5 Core,13 Store,4 existing controls and3 signed ancestry cases require execution. Fresh dependency preparation532files/39reviewed results and formatting/reference checks pass.",
+      "proof": "Actual Core successor/current immutable Store lineage and5Core/13Store controls are integrated. Two signed post-Core private-only revocation/stopped-outcome/live-server Weak controls are wired alongside3existing signed private cases. Workspace API/type check passes with compiler optimization0/release cfg; production-profile builds and all runtime behavior remain unverified.",
       "reference": ".local/gate-6/private-replacement-successor-candidate/apply-manifest.json"
     },
     {

@@ -1,12 +1,12 @@
 {
   "format": "connect/g6-058-coordinated-integration-progress/1",
   "task": "G6-058",
-  "status": "private-successor-integrated-wiring-corrected-native-cut-draft-pending",
+  "status": "private-retirement-and-cadence-wired-integrated-typecheck-passed-native-cut-private",
   "basis_revision": "d5b6f04ece02eb19dc3a687e1f69891e9be77f8f",
-  "recorded_at": "2026-11-05T18:07:41.670744+00:00",
-  "source_lock_sha256": "779f0b64e62f6058868643c547bd6f22fe5674f0407dbb3a2f95e18464d247ff",
+  "recorded_at": "2026-11-05T18:32:55.424786+00:00",
+  "source_lock_sha256": "1348dbfcaadb2e52d2d471e50c673ab508f6f8d42d641e0a06fddccbefa1805e",
   "prepared_files_verified": 532,
-  "reviewed_upstream_results_verified": 39,
+  "reviewed_upstream_results_verified": 40,
   "applied": [
     "valid original PCM retention within unchanged bounds",
     "typed effect-free post-prepare subscription metadata retry",
@@ -28,7 +28,8 @@
     "private ancestry fixtures require established completed consultation and exact signed return, preserving journal replay effects",
     "browser native signed challenge and actual matched WebCodecs output proof, immutable retry, source-transition status-only resolution and bounded queued-reconciliation custody",
     "actual same-commit native private-primary restoration successor, current parent-bound physical lineage, original expiry ceiling and current-primary return routing",
-    "four actual signed G711/Opus preparation cadence cases: six decoded original packets, unchanged original routes/cutoff and deferred verdict after original joins"
+    "four actual signed G711/Opus preparation cadence cases: six decoded original packets, unchanged original routes/cutoff and deferred verdict after original joins",
+    "two signed post-Core private partner/held-remote revocation cases and cfg(test-support)-only exact controller/Port/selected-codec Weak proof while canonical server stays live"
   ],
   "pending": [
     "exact public native activation boundary and original packet lineage through SDK/oracle are in private implementation",
@@ -39,30 +40,34 @@
     "dependency_preparation_exit_code": 0,
     "repository_format_check_exit_code": 0,
     "javascript_python_syntax_checked_files": 27,
-    "rust_typescript_builds_executed": 8,
+    "rust_typescript_builds_executed": 12,
     "runtime_tests_executed": 0,
     "new_matrix_cells_qualified": 0,
-    "rust_typecheck_attempts": 6,
-    "rust_typecheck_passed": false,
+    "rust_typecheck_attempts": 7,
+    "rust_typecheck_passed": true,
     "typecheck_findings": [
       "Removed manifest video field migrated to invalid unsupported live-media declaration, preserving refusal/no-persistence assertions",
       "Scoped application health explicitly asserts absent installation-wide operational observations",
       "Physical retirement test corrected Option predicate from is_ok_and to is_some_and"
     ],
-    "corrected_source_rechecked": false,
+    "corrected_source_rechecked": true,
     "new_batch_syntax_json_checks": 13,
     "new_batch_builds_executed": 5,
     "new_batch_runtime_tests_executed": 0,
     "latest_typecheck": {
-      "exit_code": 101,
+      "exit_code": 0,
+      "original_cargo_pid": 45648,
       "original_jobs_joined": true,
-      "tracked_source_hashes_verified": 5594,
-      "prepared_file_hashes_verified": 532,
-      "failures": [
-        "Two signed private replay assertions compared Option<Identifier> with authoritative String; corrected to require Some(exact record ID), preserving result and Store effects assertions"
-      ],
-      "followup_source_rechecked": false,
-      "runtime_tests_executed": 0
+      "tracked_and_new_files_verified": 5598,
+      "prepared_files_verified": 532,
+      "changed_inputs": [],
+      "runtime_tests_executed": 0,
+      "production_profile_qualified": false,
+      "scope": "Non-runtime release-cfg API/type preflight with compiler optimization0 only; does not qualify production profile or any test",
+      "ended_at": "2026-11-05T18:31:38.145263+00:00",
+      "optimization": 0,
+      "cfg": "release",
+      "affected_scope": "All five workspace crates and tests, including current cadence/private successor/retirement fixtures; native activation cut remains private and not included"
     },
     "typescript_build_attempts": 3,
     "typescript_build_exit_codes": [
@@ -84,10 +89,14 @@
     },
     "baseline_compile_only": {
       "run_id": "post-v192-baseline-compile-v2",
-      "status": "original-independent-server-compile-running",
+      "status": "original-joined-with-one-core-compile-failure-and-retained-server-success",
       "core_compile_exit_code": 101,
-      "core_failure": "New prepared_commit test module requires explicit path; same before/final path-only patch applied, actual test body unchanged",
-      "server_compile_joined": false,
+      "core_failure": "Explicit prepared_commit module-path correction is recorded/prepared; corrected Core-only compile driver reviewed but not launched",
+      "server_compile_exit_code": 0,
+      "server_binary_sha256": "128e04ef9d1ef63ec4ec91995ab5ec41d4acb2c916fbbc1da184163496bc381a",
+      "server_binary_bytes": 232736584,
+      "server_inventory_sha256": "0ea03717eff6e039f96ff36349af88a013255a21256f9101ce5ef2fc6e76d01b",
+      "original_worker_guardian_joined_released": true,
       "runtime_tests_executed": 0,
       "previous_materialization_failure_preserved": true,
       "materialization_fix_synthetic_git_tests_passed": 3
@@ -97,6 +106,13 @@
       "candidate_manifest_sha256": "d2fce3cc01e52d9fd47276559653b0bb52273ea5a8b2686e695e48b3a3dd2dc8",
       "repository_format_check_exit_code": 0,
       "before_production_rollback_applied": false,
+      "runtime_tests_executed": 0
+    },
+    "private_retirement_controls": {
+      "cases_wired": 2,
+      "required_existing_private_controls": 3,
+      "candidate_manifest_sha256": "8ae4cd94d2bb5dbaf09b6893d707e3861a75b3547734f366bd180a92b49a2a8c",
+      "ownership_scope": "Exact selected controller/Ports/codec Weak owners; no RSS attribution",
       "runtime_tests_executed": 0
     }
   },
@@ -147,6 +163,8 @@
     ".local/gate-6/coordinated-private-v200/integrated-typecheck-receipt.json",
     ".local/gate-6/coordinated-private-v200/baseline-materialization-tests.json",
     ".local/gate-6/coordinated-wiring-v201/integration-receipt.json",
-    ".local/gate-6/coordinated-cadence-witness-v202/integration-receipt.json"
+    ".local/gate-6/coordinated-cadence-witness-v202/integration-receipt.json",
+    ".local/gate-6/coordinated-private-retirement-v203/integration-receipt.json",
+    ".local/gate-6/coordinated-private-retirement-v203/fast-typecheck-receipt.json"
   ]
 }

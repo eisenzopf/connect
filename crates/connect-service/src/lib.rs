@@ -212,6 +212,36 @@ impl Service {
             .ok_or_else(Error::forbidden)?;
         Ok(session)
     }
+    /// Observe exact staged controller/ports/codec lifetime without retaining
+    /// any strong media owner. The canonical server stays live in these tests.
+    #[cfg(feature = "test-support")]
+    pub fn canonical_staged_media_weak_owners_for_test(
+        &self,
+        session_id: &str,
+        runtime_connection_id: &str,
+    ) -> Result<
+        Vec<(
+            &'static str,
+            std::sync::Weak<dyn std::any::Any + Send + Sync>,
+        )>,
+    > {
+        use rvoip_core::orchestrator::participant_control::ParticipantControlError;
+        use rvoip_core::staged_streams::StreamControlError;
+        let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
+        runtime
+            .core
+            .staged_media_weak_owners_for_test(
+                &rvoip_core::ids::SessionId::from_string(session_id),
+                &rvoip_core::ids::ConnectionId::from_string(runtime_connection_id),
+            )
+            .map_err(|error| match error {
+                ParticipantControlError::Media(StreamControlError::MetadataBusy) => {
+                    Error::new("authority-busy", "The original media metadata is busy")
+                }
+                _ => Error::forbidden(),
+            })
+    }
+
     /// Hold only the actual role coordinator for an isolated scheduler-delay
     /// fixture. This grants no authority and does not hold a packet IO fence.
     #[cfg(feature = "test-support")]
