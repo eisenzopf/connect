@@ -102,3 +102,21 @@ class MacProcessResources:
         sample = dict(elapsed_seconds=time.monotonic() - self.started, groups=groups)
         self.samples.append(sample)
         return sample
+
+    def summary(self):
+        """Summarize retained original observations without sampling again."""
+        return dict(
+            scope="Numeric libproc observations of the declared original macOS process trees. RSS sums may double-count shared pages; short-lived descendants between samples can be missed. No command lines, environment, names, keys, paths or media.",
+            sample_count=len(self.samples),
+            groups={role: dict(
+                peak_sampled_rss_bytes=max((s["groups"][role]["sampled_rss_bytes"] for s in self.samples), default=None),
+                observed_cpu_seconds=max((s["groups"][role]["observed_cpu_seconds"] for s in self.samples), default=None),
+                peak_live_processes=max((s["groups"][role]["live_processes"] for s in self.samples), default=None),
+                unavailable_samples=sum(s["groups"][role]["unavailable_processes"] > 0 for s in self.samples),
+                peak_sampled_open_descriptors=max((s["groups"][role]["sampled_open_descriptors"] for s in self.samples
+                    if s["groups"][role]["sampled_open_descriptors"] is not None), default=None),
+                peak_sampled_threads=max((s["groups"][role]["sampled_threads"] for s in self.samples), default=None),
+                open_resource_unavailable_samples=sum(s["groups"][role]["open_resource_unavailable_processes"] > 0
+                    for s in self.samples),
+            ) for role in self.roles},
+            samples=self.samples)
