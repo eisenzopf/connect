@@ -1,0 +1,266 @@
+"""Bounded numeric attribution for already-owned idle processes.
+
+These snapshots are descriptive and never enter an idle verdict. They run only
+after original baseline/final counters have been taken. Numeric OS reads and an
+optional owned vmmap summary do not sample a stack, alter an allocator, or call
+the server.
+"""
+import ctypes
+from decimal import Decimal
+import hashlib
+import os
+from pathlib import Path
+import re
+import struct
+import subprocess
+import time
+
+from .operational_process_resources import stat_fields
+
+MAX_THREADS = 256
+MAX_DESCRIPTORS = 4096
+MAX_KNOWN = 512
+MAX_LIVE = 16
+MAX_SECONDS = .05
+MEMORY_FIELDS = {"Rss", "Pss", "Shared_Clean", "Shared_Dirty", "Private_Clean", "Private_Dirty",
+    "Anonymous", "LazyFree", "Swap", "VmRSS", "RssAnon", "RssFile", "RssShmem", "VmData", "VmStk", "VmSwap"}
+FD_KINDS = {0: "atalk", 1: "vnode", 2: "socket", 3: "shared-memory", 4: "semaphore", 5: "kqueue",
+    6: "pipe", 7: "fsevents", 9: "netpolicy", 10: "channel", 11: "nexus"}
+
+
+class ObservationDeadline(ValueError):
+    pass
+
+
+def bounded_bytes(path, maximum):
+    with Path(path).open("rb") as source:
+        value = source.read(maximum + 1)
+    if len(value) > maximum:
+        raise ValueError("Original diagnostic file bound")
+    return value
+
+
+def thread_name(value):
+    # Both Tokio async and blocking workers can have this name; this is an
+    # observed label, not evidence identifying which pool owns the thread.
+    value = value.split(b"\0", 1)[0].strip()
+    return dict(name_sha256=hashlib.sha256(value).hexdigest(),
+        recognized_label="tokio-runtime-worker" if value in {b"tokio-runtime-worker", b"tokio-runtime-w"} else "other")
+
+
+def memory_fields(raw):
+    output = {}
+    for line in raw.decode("ascii", errors="replace").splitlines():
+        match = re.fullmatch(r"([A-Za-z_]+):\s+([0-9]+) kB", line)
+        if match and match[1] in MEMORY_FIELDS:
+            output[match[1] + "_bytes"] = int(match[2]) * 1024
+    return output
+
+
+def vmmap_summary(raw):
+    """Keep the tool's actual category labels; writable is not private heap."""
+    result = {}
+    size = r"([0-9]+(?:\.[0-9]+)?)([KMGT]?)"
+    def amount(match):
+        return int(Decimal(match[1]) * (1024 ** {"": 0, "K": 1, "M": 2, "G": 3, "T": 4}[match[2]]))
+    for line in raw.decode("utf8", errors="replace").splitlines():
+        for prefix, category in [("ReadOnly portion of Libraries:", "readonly_libraries"), ("Writable regions:", "writable_regions")]:
+            if line.startswith(prefix):
+                for field in ("Total", "resident", "written", "swapped_out", "unallocated"):
+                    match = re.search(r"\b" + field + "=" + size + r"(?=[ (]|$)", line)
+                    if match:
+                        result[category + "_" + field.lower() + "_bytes"] = amount(match)
+        match = re.fullmatch(r"Physical footprint:\s+" + size, line)
+        if match:
+            result["physical_footprint_bytes"] = amount(match)
+    return dict(numeric_categories=result, private_heap_bytes=None, anonymous_bytes=None,
+        limitation="Writable/library summaries do not attribute live objects, private heap or every file-backed mapping.")
+
+
+def mac_vmmap(sampler, pid, birth, directory, stage):
+    """One owned, same-UID summary probe; no privilege or allocator operation."""
+    if directory is None or not Path("/usr/bin/vmmap").is_file():
+        return dict(state="unavailable", reason="bounded-vmmap-not-configured-or-installed")
+    # SDK proc_bsdinfo pbi_uid; do not attempt a task-port probe of another UID.
+    identity = sampler.read(pid, 3, 136)
+    if len(identity) != 136 or struct.unpack_from("=I", identity, 20)[0] != os.getuid():
+        return dict(state="unavailable", reason="original-same-uid-process-required")
+    if sampler.identity(pid)["start"] != birth:
+        return dict(state="unavailable", reason="original-process-changed")
+    directory = Path(directory)
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if directory.is_symlink() or directory.stat().st_uid != os.getuid() or directory.stat().st_mode & 0o077:
+        raise ValueError("Original private diagnostics directory required")
+    name = "vmmap-" + str(pid) + "-" + str(time.monotonic_ns()) + ".private.txt"
+    path = directory / name
+    observed = dict(state="unavailable", stage=stage, timeout_seconds=.5, artifact=name)
+    started = time.monotonic()
+    with path.open("xb") as log:
+        path.chmod(0o600)
+        owner = subprocess.Popen(["/usr/bin/vmmap", "-summary", str(pid)], stdin=subprocess.DEVNULL,
+            stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        forced = False
+        try:
+            code = owner.wait(timeout=.5)
+        except subprocess.TimeoutExpired:
+            forced = True
+            owner.kill()
+            code = owner.wait()  # Reap the original probe; no replacement work.
+        observed.update(original_probe_pid=owner.pid, original_probe_joined=True, probe_forced=forced,
+            exit_code=code, elapsed_ms=(time.monotonic() - started) * 1000)
+    if path.stat().st_size > 262144:
+        observed["reason"] = "original-summary-output-bound"
+        return observed
+    raw = path.read_bytes()
+    observed["artifact_sha256"] = hashlib.sha256(raw).hexdigest()
+    if sampler.identity(pid)["start"] != birth:
+        observed["reason"] = "original-process-changed"
+    elif code != 0:
+        observed["reason"] = "original-probe-timeout" if forced else "summary-unavailable-without-extra-privilege"
+    else:
+        parsed = vmmap_summary(raw)
+        observed.update(parsed, state="partial" if parsed["numeric_categories"] else "unavailable",
+            reason="bounded-summary-categories" if parsed["numeric_categories"] else "unrecognized-summary-categories")
+    return observed
+
+
+def linux_process(sampler, pid, started, check):
+    original = sampler._stat(pid)
+    if original["start_ticks"] != started or original["state"] in {"Z", "X"}:
+        return None
+    base = sampler.proc / str(pid)
+    result = dict(pid=pid, start_ticks=started, state=original["state"], threads=[])
+    with os.scandir(base / "task") as entries:
+        for entry in entries:
+            check()
+            if len(result["threads"]) >= MAX_THREADS:
+                raise ValueError("Original thread diagnostic bound")
+            tid = int(entry.name)
+            try:
+                value = stat_fields(bounded_bytes(Path(entry.path) / "stat", 8192).decode())
+                thread = dict(tid=tid, start_ticks=value["start_ticks"], state=value["state"], cpu_ticks=value["cpu_ticks"],
+                    **thread_name(bounded_bytes(Path(entry.path) / "comm", 256)))
+                wait = bounded_bytes(Path(entry.path) / "wchan", 256).decode().strip()
+                thread["wait_channel"] = wait if re.fullmatch(r"[A-Za-z0-9_]{1,128}", wait) else "unavailable"
+                result["threads"].append(thread)
+            except FileNotFoundError:
+                result["retired_during_observation"] = result.get("retired_during_observation", 0) + 1
+    result["descriptors"] = []
+    with os.scandir(base / "fd") as entries:
+        for entry in entries:
+            check()
+            if len(result["descriptors"]) >= MAX_DESCRIPTORS:
+                raise ValueError("Original descriptor diagnostic bound")
+            try:
+                value = os.readlink(entry.path)
+            except FileNotFoundError:
+                continue
+            kind = "socket" if value.startswith("socket:[") else "pipe" if value.startswith("pipe:[") else "anonymous-inode" if value.startswith("anon_inode:") else "file"
+            result["descriptors"].append(dict(fd=int(entry.name), kind=kind,
+                object_sha256=hashlib.sha256(value.encode()).hexdigest()))
+    for name in ["status", "smaps_rollup"]:
+        check()
+        try:
+            result[name] = dict(state="available", **memory_fields(bounded_bytes(base / name, 65536)))
+        except OSError as error:
+            result[name] = dict(state="unavailable", error=type(error).__name__)
+    if sampler._stat(pid)["start_ticks"] != started:
+        raise ValueError("Original process identity changed during diagnostics")
+    result["threads"].sort(key=lambda value: value["tid"])
+    result["descriptors"].sort(key=lambda value: value["fd"])
+    return result
+
+
+def mac_process(sampler, pid, started, check):
+    if sampler.identity(pid)["start"] != started:
+        return None
+    task = sampler.read(pid, 4, 96)
+    if len(task) != 96:
+        raise ValueError("Original macOS task diagnostic shape")
+    result = dict(pid=pid, start=list(started), virtual_bytes=struct.unpack_from("=Q", task, 0)[0],
+        resident_bytes=struct.unpack_from("=Q", task, 8)[0], threads=[], descriptors=[])
+    raw = sampler.read(pid, 6, (MAX_THREADS + 1) * 8)  # PROC_PIDLISTTHREADS
+    if len(raw) % 8 or len(raw) > MAX_THREADS * 8:
+        raise ValueError("Original macOS thread diagnostic bound")
+    for (tid,) in struct.iter_unpack("=Q", raw):
+        check()
+        buffer = ctypes.create_string_buffer(112)  # SDK struct proc_threadinfo
+        # PROC_PIDLISTTHREADS returns the handles consumed by
+        # PROC_PIDTHREADINFO (not PROC_PIDTHREADID64INFO).
+        length = sampler.lib.proc_pidinfo(pid, 5, tid, buffer, len(buffer))
+        if length <= 0:
+            result["retired_or_unavailable_threads"] = result.get("retired_or_unavailable_threads", 0) + 1
+            continue
+        if length != 112:
+            raise ValueError("Original macOS thread diagnostic shape")
+        value = buffer.raw
+        result["threads"].append(dict(thread_handle=tid, user_ns=struct.unpack_from("=Q", value, 0)[0],
+            system_ns=struct.unpack_from("=Q", value, 8)[0], run_state=struct.unpack_from("=i", value, 24)[0],
+            sleep_seconds=struct.unpack_from("=i", value, 32)[0], **thread_name(value[48:112])))
+    raw = sampler.read(pid, 1, (MAX_DESCRIPTORS + 1) * 8)
+    if len(raw) % 8 or len(raw) > MAX_DESCRIPTORS * 8:
+        raise ValueError("Original macOS descriptor diagnostic bound")
+    result["descriptors"] = [dict(fd=fd, kind=FD_KINDS.get(kind, "other"), numeric_kind=kind)
+        for fd, kind in struct.iter_unpack("=iI", raw)]
+    if sampler.identity(pid)["start"] != started:
+        raise ValueError("Original process identity changed during diagnostics")
+    result["threads"].sort(key=lambda value: value["thread_handle"])
+    result["descriptors"].sort(key=lambda value: value["fd"])
+    return result
+
+
+def idle_owner_diagnostics(sampler, *, roles=("server",), clock=time.monotonic, directory=None, stage=None):
+    started = clock()
+    report = dict(format="connect/idle-owner-diagnostics/1", state="unavailable", processes=[],
+        requested_roles=list(roles), observed_at_monotonic_seconds=started, descriptive_only=True,
+        limits=dict(seconds=MAX_SECONDS, live_processes=MAX_LIVE, threads_per_process=MAX_THREADS,
+            descriptors_per_process=MAX_DESCRIPTORS, optional_vmmap_seconds=.5))
+    # A Mac-server/Linux-client composite already owns the original Mac
+    # collector. Never interpret a guest PID in the Mac namespace.
+    if hasattr(sampler, "server"):
+        sampler = sampler.server
+        report["unavailable_roles"] = [role for role in roles if role != "server"]
+        roles = tuple(role for role in roles if role == "server")
+    def check():
+        if clock() - started > MAX_SECONDS:
+            raise ObservationDeadline("Original diagnostic time bound")
+    try:
+        if not hasattr(sampler, "known") or not hasattr(sampler, "roots"):
+            raise ValueError("Original process identities unavailable")
+        known = [(key, role) for key, role in sampler.known.items() if role in roles]
+        if len(known) > MAX_KNOWN:
+            raise ValueError("Original diagnostic identity bound")
+        report["roots"] = {role: list(sampler.roots[role]) for role in roles}
+        for (pid, birth), role in known:
+            check()
+            try:
+                observed = mac_process(sampler, pid, birth, check) if hasattr(sampler, "lib") else linux_process(sampler, pid, birth, check)
+            except ProcessLookupError:
+                observed = None
+            except FileNotFoundError:
+                observed = None
+            if observed is not None:
+                if len(report["processes"]) >= MAX_LIVE:
+                    raise ValueError("Original live diagnostic process bound")
+                report["processes"].append(dict(role=role, **observed))
+        check()
+        report["original_root_states"] = {role: "observed" if any(
+            value["role"] == role and value["pid"] == sampler.roots[role][0]
+            for value in report["processes"]) else "retired-or-reused" for role in roles}
+        report["state"] = "available" if not report.get("unavailable_roles") and all(value == "observed" for value in report["original_root_states"].values()) else "partial"
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        report["state"] = "partial" if report["processes"] else "unavailable"
+        report["error"] = type(error).__name__
+    report["numeric_elapsed_ms"] = report["elapsed_ms"] = (clock() - started) * 1000
+    # The bounded task-port tool is separate from the 50ms numeric syscall
+    # budget. It targets only the original Mac server, after counters and the
+    # sampling deadline are fixed. No pause, GC or allocator action is requested.
+    if hasattr(sampler, "lib") and stage in {"baseline", "idle-final"}:
+        for value in report["processes"]:
+            if value["role"] == "server" and value["pid"] == sampler.roots["server"][0]:
+                try:
+                    value["vmmap_summary"] = mac_vmmap(sampler, value["pid"], tuple(value["start"]), directory, stage)
+                except (OSError, ValueError, subprocess.SubprocessError) as error:
+                    value["vmmap_summary"] = dict(state="unavailable", error=type(error).__name__)
+        report["elapsed_ms"] = (clock() - started) * 1000
+    return report

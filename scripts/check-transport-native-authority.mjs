@@ -1,4 +1,5 @@
 // One isolated public Node SDK credential boundary, driven by the native cell.
+import {fileSha256} from "./lib/transport_file_hash.mjs";
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile,writeFile,stat,realpath} from 'node:fs/promises';
@@ -16,7 +17,7 @@ assert.equal(input.format,'connect/native-matrix-authority-input/1');
 assert.equal((await stat(inputPath)).mode&0o077,0);
 assert.equal(dirname(output),directory);
 assert.equal(await realpath(inputPath),inputPath);
-assert.equal(hash(await readFile(input.executable)),input.binary_sha256);
+assert.equal(await fileSha256(input.executable),input.binary_sha256);
 const configHash=hash(await readFile(input.config)),helpers=new Set();
 const observeHelpers=async()=>{
     for(const pid of childPids(process.pid)){
@@ -49,7 +50,7 @@ result.observed_helpers=helpers.size;result.host=nativeHost();
 result.source_revision=input.source_revision;result.binary_sha256=input.binary_sha256;
 result.signing_algorithm=input.signing_algorithm;result.network_profile=input.network_profile;
 result.original_config_unchanged=hash(await readFile(input.config))===configHash;
-result.executable_unchanged=hash(await readFile(input.executable))===input.binary_sha256;
+result.executable_unchanged=await fileSha256(input.executable)===input.binary_sha256;
 try{result.original_reference_sha256=hash(await readFile(join(directory,'original-operation.json')));}catch{}
 result.passed&&=result.original_config_unchanged&&result.executable_unchanged;
 await writeFile(output,JSON.stringify(result,null,2)+'\n',{flag:'wx',mode:0o600});

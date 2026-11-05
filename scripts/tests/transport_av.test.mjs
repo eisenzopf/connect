@@ -12,7 +12,7 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
     const directory = await mkdtemp(join(parent, "transport-av-cancel-"));
     const sources = join(directory, "sources"); await mkdir(sources, { mode: 0o700 });
     const roles = [["one", "two", "three", "four"], ["one", "two"]], plan = {}, connections = [];
-    let waiting = 0, aborted = 0, clocksPending = 12;
+    let waiting = 0, waitingFeedback = 0, aborted = 0, clocksPending = 12;
     let accepted = false;
     const clock = { ssrc: 4294967295, ntp: 17191887989801992191n, rtp: 4294967290,
         packets: 4294967294, octets: 4294967293, cname: "private-synthetic-clock" };
@@ -41,6 +41,17 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
             }
             throw failure;
         }, async sendClock() { throw failure; },
+        receiveVideoFeedback({ signal }) {
+            waitingFeedback++;
+            return new Promise((_, reject) => {
+                const abort = () => {
+                    waitingFeedback--; signal.removeEventListener("abort", abort);
+                    reject(Object.assign(Error("feedback owner stopped"), { kind: "cancelled", certainty: "read-only" }));
+                };
+                if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true });
+            });
+        },
+        async consumeVideoFeedback() { assert.fail("No feedback hint was issued by this fixture"); },
         receivePacket({ signal }) {
             if (clocksPending-- > 0) return Promise.resolve({ kind: "clock", report: clock });
             waiting++;
@@ -63,8 +74,10 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
         const peer = connections.find(v => v.sid === item.sid && v.role === previous);
         const negotiated = [
             { id: plan[item.prefix + "-audio"], medium: "audio", direction: "sendrecv", streamLocalId: 1, codec: { name: "opus", params: { payload_type: 111 } } },
-            { id: plan[item.prefix + "-video"], medium: "video", direction: "sendonly", streamLocalId: 2, codec: { name: "vp8", params: { payload_type: 96 } } },
-            { id: plan[peer.prefix + "-video"], medium: "video", direction: "recvonly", streamLocalId: 3, codec: { name: "vp8", params: { payload_type: 96 } } },
+            { id: plan[item.prefix + "-video"], medium: "video", direction: "sendonly", streamLocalId: 2,
+                videoFeedback: { profile: "rtcp-pli-epoch/1" }, codec: { name: "vp8", params: { payload_type: 96 } } },
+            { id: plan[peer.prefix + "-video"], medium: "video", direction: "recvonly", streamLocalId: 3,
+                videoFeedback: { profile: "rtcp-pli-epoch/1" }, codec: { name: "vp8", params: { payload_type: 96 } } },
         ];
         item.negotiated = negotiated; item.revision = 1;
         item.connection = { id: "connection-" + item.index, async refresh() { return { generation: 1 }; },
@@ -75,7 +88,7 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
         const started = performance.now();
         const observations = [];
         await assert.rejects(nativeAv(connections, roles, sources, join(directory, "received"), plan,
-            observation => { assert.equal(waiting, 0); observations.push(observation); }, withControl ? async workload => {
+            observation => { assert.equal(waiting, 0); assert.equal(waitingFeedback, 0); observations.push(observation); }, withControl ? async workload => {
                 await new Promise(setImmediate);
                 assert.equal(waiting, 12);
                 assert.ok(Number.isSafeInteger(workload.programStartUnixUs));
@@ -84,7 +97,7 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
                 assert.ok(workload.routes.every(route => route.generation === 1));
                 assert.notEqual(workload.routes[0].sessionIndex, workload.routes[4].sessionIndex);
                 const joined = await workload.routes[0].stopAndJoin();
-                assert.equal(joined.original_packet_tasks_joined, 4);
+                assert.equal(joined.original_packet_tasks_joined, 5);
                 assert.equal(joined.shared_sdk_closed, false);
                 assert.equal(workload.signal.aborted, false);
                 assert.equal(waiting, 10); assert.equal(aborted, 2);
@@ -97,6 +110,7 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
                         target.revision = 2;
                         target.negotiated = target.negotiated.filter(s => s.direction !== "recvonly").concat({
                             id: "new-camera", medium: "video", direction: "recvonly", streamLocalId: 4,
+                            videoFeedback: { profile: "rtcp-pli-epoch/1" },
                             codec: { name: "vp8", params: { payload_type: 96 } },
                         });
                         return { snapshot: { state: "completed" }, value: { connection: target.connection,
@@ -120,6 +134,7 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
         assert.equal(observations.length, 1);
         const observed = observations[0];
         assert.equal(observed.original_tasks_joined, true);
+        assert.equal(observed.fixture_payload_arrays_released, true);
         if (setupFailure) {
             assert.deepEqual(observed.failure, { route_index: 1, medium: null, direction: "setup", stage: "media-refresh" });
             assert.equal(observed.original_tasks_started, 0); assert.equal(observed.prepared_routes, 1);
@@ -127,7 +142,7 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
             assert.equal(JSON.stringify(observed).includes("synthetic first-write refusal"), false);
             return;
         }
-        assert.equal(observed.original_tasks_started, 24);
+        assert.equal(observed.original_tasks_started, 30);
         assert.deepEqual(observed.failure, withControl ? { route_index: null, medium: null,
             direction: "control", stage: "during-workload" } : { route_index: 0, medium: "audio", direction: "send",
             stage: firstSubmissionAccepted ? "clock" : "rtp" });
@@ -140,6 +155,11 @@ async function checkFailure(firstSubmissionAccepted, setupFailure = false, withC
         let submissions = 0;
         for (const item of connections) {
             const result = JSON.parse(await readFile(join(directory, "received", "received-" + item.index + ".json"), "utf8"));
+            const counters = observed.routes[item.index];
+            assert.equal(counters.received_audio, result.audio.length);
+            assert.equal(counters.received_video, result.video.length);
+            assert.deepEqual(counters.received_clocks, result.received_clocks);
+            assert.deepEqual(counters.submitted_packets, result.submitted_packets);
             assert.equal(result.audio.length, 0); assert.equal(result.video.length, 0);
             assert.equal(result.video_reader.completed_switches, Number(withControl && item.index === 1));
             submissions += result.submitted_audio.length;

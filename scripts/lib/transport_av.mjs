@@ -30,6 +30,11 @@ async function fileSha(path, size) {
 const pause = ms => new Promise(done => setTimeout(done, Math.max(0, ms)));
 const ntp = milliseconds => (BigInt(Math.floor(milliseconds / 1000) + 2208988800) << 32n) |
     BigInt(Math.floor((milliseconds % 1000) * 2 ** 32 / 1000));
+const payloadArrays = route => [route.input.audio, route.input.video, route.audio, route.video,
+    route.submittedAudio, route.clockReports.audio, route.clockReports.video];
+// Call only after the original readers, senders, control work and encoders join.
+// Clear the arrays themselves so a retained fixture closure cannot keep payloads.
+function releasePayloadArrays(route) { for (const array of payloadArrays(route)) array.length = 0; }
 
 export async function nativeAv(connections, rolesBySession, sourceDirectory, outputDirectory, plan, observe = () => {}, during) {
     assert.equal(connections.length, 6);
@@ -69,7 +74,12 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             assert.equal(sha(raw), manifest.sources[index].input_sha256);
             const input = JSON.parse(raw);
             assert.equal(input.audio.length, 3100); assert.equal(input.video.length, 1860);
-            const route = { index, item, peerIndex: connections.indexOf(peer), input,
+            const sourceVideoFrames = input.video.length;
+            // The live encoder reads original I420 frames. These pre-encoded
+            // reference payloads only supplied a validated schedule length;
+            // retaining six copies for the programme serves no live consumer.
+            input.video.length = 0;
+            const route = { index, item, peerIndex: connections.indexOf(peer), input, sourceVideoFrames,
                 generation: snapshot.generation,
                 feedbackSelected: Boolean(ownVideo.videoFeedback),
                 audioSender: sender(ownAudio, "opus"), videoSender: sender(ownVideo, "vp8"),
@@ -89,7 +99,9 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         await Promise.all(routes.map(async route => {
             if (route.videoEncoder) route.encoderJoin = await route.videoEncoder.stopAndJoin();
         }));
+        for (const route of routes) releasePayloadArrays(route);
         observe({ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
+            fixture_payload_arrays_released: routes.every(route => payloadArrays(route).every(array => array.length === 0)),
             original_tasks_started: 0, elapsed_ms: monotonicNow() - setupStarted,
             failure: { route_index: setupRoute, medium: null, direction: "setup", stage: setupStage },
             prepared_routes: routes.length, routes: [],
@@ -100,7 +112,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
     const controller = new AbortController(), programClock = startProgrammeClock(),
         start = Number(BigInt(programClock.origin_ns)) / 1e6, unixStart = Date.now();
     const end = start + 62000, tasks = [], packetTasks = []; let error, workFailure;
-    let controlResult, controlTask;
+    let controlResult, controlTask, routeResults;
     for (const route of routes) {
         route.owner = new ConnectionMediaOwner(controller.signal);
         const peer = connections[route.peerIndex];
@@ -120,11 +132,12 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         }
     }
     async function sendingFrames(route, medium) {
-        const video = medium === "video", entries = route.input[medium], sender = video ? route.videoSender : route.audioSender,
+        const video = medium === "video", entries = video ? undefined : route.input.audio,
+            frameCount = video ? route.sourceVideoFrames : entries.length, sender = video ? route.videoSender : route.audioSender,
             stream = video ? route.sendVideo : route.sendAudio;
         let forceKeyframe = true;
         let lastClock = -Infinity, submitted = { ssrc: 0, packets: 0, octets: 0 };
-        for (let index = 0; index < entries.length && !route.owner.signal.aborted; index++) {
+        for (let index = 0; index < frameCount && !route.owner.signal.aborted; index++) {
             const elapsed = video ? index * 1000 / 30 : index * 20;
             await pause(start + elapsed - monotonicNow());
             if (route.owner.signal.aborted) return;
@@ -322,7 +335,14 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         await Promise.all(routes.map(async route => {
             route.encoderJoin = await route.videoEncoder.stopAndJoin();
         }));
-        for (const route of routes) await writeFile(join(outputDirectory, "received-" + route.index + ".json"), JSON.stringify({
+        // Snapshot counters before clearing persisted captures. These small
+        // values cannot retain a recording through the caller's report.
+        routeResults = routes.map(route => ({ index: route.index, peer_index: route.peerIndex,
+            received_audio: route.audio.length, received_video: route.video.length,
+            submitted_packets: { ...route.sent }, received_clocks: { ...route.clocks },
+            gap_packets: route.gaps, late_send_frames: route.lateSendFrames }));
+        for (const route of routes) {
+            await writeFile(join(outputDirectory, "received-" + route.index + ".json"), JSON.stringify({
             format: "connect/native-av-received/1", index: route.index, peer_index: route.peerIndex, audio: route.audio, video: route.video,
             connection_id: route.item.connection.id, generation: route.generation, session_index: route.item.sid,
             original_audio_stream_id: plan[route.item.prefix + "-audio"],
@@ -333,20 +353,22 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             video_feedback: route.videoFeedback ? { received: route.videoFeedback.received,
                 consumed: route.videoFeedback.consumed, expired: route.videoFeedback.expired } : null,
             program_clock: programClock, unix_start_ms: unixStart, observed_seconds: (monotonicNow() - start) / 1000,
-        }) + "\n", { flag: "wx", mode: 0o600 });
+            }) + "\n", { flag: "wx", mode: 0o600 });
+            // Successful persistence retains every original packet, submitted
+            // timestamp and clock before its in-memory copy is released.
+            releasePayloadArrays(route);
+        }
         observe({ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
+            fixture_payload_arrays_released: routes.every(route => payloadArrays(route).every(array => array.length === 0)),
             encoder_processes_joined: routes.filter(route => route.encoderJoin?.joined).length,
             original_tasks_started: routes.reduce((n, r) => n + 4 + Number(Boolean(r.videoFeedback)), 0), control_task_started: Boolean(during), elapsed_ms: monotonicNow() - start, failure: workFailure ?? null,
-            routes: routes.map(route => ({ index: route.index, received_audio: route.audio.length,
-                received_video: route.video.length, submitted_packets: { ...route.sent },
-                received_clocks: { ...route.clocks }, gap_packets: route.gaps, late_send_frames: route.lateSendFrames })),
+            routes: routeResults.map(({ peer_index, ...counters }) => counters),
             scope: "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification." });
     }
     if (error) throw error;
     return { connections: 6, participants: 4, sessions: 2, source_manifest_sha256: sha(await readFile(join(sourceDirectory, "manifest.json"))),
         original_receive_tasks_joined: true, seconds: 62, warmup_seconds: 2, observation_seconds: 60,
-        routes: routes.map(r => ({ index: r.index, peer_index: r.peerIndex, received_audio: r.audio.length, received_video: r.video.length,
-            gap_packets: r.gaps, late_send_frames: r.lateSendFrames, received_clocks: r.clocks, submitted_packets: r.sent })),
+        routes: routeResults,
         ...(during ? { control_workload: controlResult } : {}),
         scope: "Real public SDK native RTP and source-clock transport only. Independent decoder and profile checks are separate; no full-cell qualification." };
 }

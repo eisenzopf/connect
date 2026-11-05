@@ -1,0 +1,51 @@
+{
+  "format": "connect/g6-058-batch-focused-verification/1",
+  "scope": "Focused fixture and observer regressions only; no complete configuration or matrix promotion.",
+  "parent_commit": "b59949b35d188b9475edeee0ab10d630ecb796a6",
+  "node_checks_passed": 44,
+  "python_checks_passed": 10,
+  "failed": 0,
+  "checks": [
+    {
+      "log": ".local/gate-6/post-v191-fixture-verification/batch-ownership-node.log",
+      "sha256": "0f71a54cabdfff80b8e4029a76c1e15002046053c4078b38fb2a71c4bc59300f",
+      "passed": 31
+    },
+    {
+      "log": ".local/gate-6/post-v191-fixture-verification/batch-host-authority-node.log",
+      "sha256": "a104ff65ea7eecc2291c8a99d88c2a2a480867efd396a7c006e60aa0051a53aa",
+      "passed": 10
+    },
+    {
+      "log": ".local/gate-6/post-v191-fixture-verification/batch-observer-node.log",
+      "sha256": "7ec59882f44ab105c85adf6433e7c030c471a53962f166673adf6421864ec4e7",
+      "passed": 3
+    },
+    {
+      "log": ".local/gate-6/post-v191-fixture-verification/batch-idle-diagnostics-python.log",
+      "sha256": "3f3f3304ca08cbefa0be379efcc861313b5d5c3eaedad20509a59f96173e50b4",
+      "passed": 10
+    }
+  ],
+  "source_sha256": {
+    "scripts/check-transport-conversation.mjs": "1f636aa7a96936bddb51f5467b9c4c06a05a4a670a862f3591394aa9bf0faa1b",
+    "scripts/check-transport-native-authority.mjs": "a013641965635ae9032c48b8d7c9dfb26b381e9387628157216104c6de10538a",
+    "scripts/lib/transport_av.mjs": "412765bd1780961ddc81966c898c94e90ec5c837750ffba4a3c16b8246296929",
+    "scripts/lib/transport_host.mjs": "7e57d3b849ee42963b104783cd19ae007b82697dbe1a0b12c3ea4af143c330a0",
+    "scripts/lib/transport_replacement_target.mjs": "2ec86e4f8f4ba6084b645eff9e1aa407180b83f1e0fe641d1cb8b22f1c9ac523",
+    "scripts/lib/transport_file_hash.mjs": "e529aaa07e6cae0dca3d0d64b2a9566aeb7cc68c0f3de7e7be4ca52b28814aba",
+    "scripts/lib/transport_movement_capture_owner.mjs": "b8193a078f4695154fb8ed265af4ea1d166db2a92b485db53076fec468b4e996",
+    "scripts/lib/browser_matrix_programme.mjs": "4f93078c3f30f2ac3f57d0af72a5abc950343b38e1487068743ef2e393114e84",
+    "scripts/lib/matrix_idle.py": "71723e9855d57eabea4756a3554c1f8bdca93b2bee53c9e78e4352b859e4d285",
+    "scripts/lib/native_matrix_idle.py": "fb9fd0060190d2d8b0eb761af390ebe8a51cb7a08a43cd554607acc51349e9a2",
+    "scripts/lib/matrix_owner_diagnostics.py": "05bfbfe10f29fadf08d708bbc74855d25a8fc3a9e9850df62ebec36487535fb9"
+  },
+  "remaining_verification": [
+    "Actual native AV and live encoder checks pending CPU reservation release.",
+    "RTC admission module Rust and actual server replacement regressions pending.",
+    "Core audio retention production candidate is private and under focused verification.",
+    "Synthetic audio marker correction and remaining video failure attribution pending.",
+    "Whole server/helper idle restoration and next all32 run remain unverified."
+  ],
+  "metric_policy": "Existing numeric baselines, original clocks, thresholds, cleanup budgets and v191 verdicts are unchanged."
+}

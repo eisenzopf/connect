@@ -1,3 +1,4 @@
+import { fileSha256 } from "./lib/transport_file_hash.mjs";
 import { nativeMatrixLifecycle } from "./lib/native_matrix_lifecycle.mjs";
 import { waitForProgrammeOffset } from "./lib/transport_programme_clock.mjs";
 import { liveVideoProgramFromManifest } from "./lib/transport_live_video_program.mjs";
@@ -16,7 +17,7 @@ import { operationFailure } from "./lib/transport_failure.mjs";
 import { liveSessionUpgrade } from "./lib/transport_live_upgrade.mjs";
 import { deviceMovementWorkload } from "./lib/transport_movement_workload.mjs";
 import { observeMovementSessions } from "./lib/transport_movement_sessions.mjs";
-import { physicalMovementSegments } from "./lib/transport_movement_observation.mjs";
+import { writeJoinedMovementCapture } from "./lib/transport_movement_capture_owner.mjs";
 import { TOTAL_MOVES } from "./lib/transport_movement_profile.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -40,10 +41,10 @@ assert.ok(["local", "remote"].includes(input.network_profile));
 const mediaRoles = ["participant-1", "participant-2", "participant-3", "participant-4", "replacement-1"];
 const controllerRoles = ["controller-1", "controller-2"];
 assert.deepEqual(Object.keys(input.actors).sort(), [...mediaRoles, ...(mediaWorkload ? controllerRoles : [])].sort());
-assert.equal(hash(await readFile(input.executable)), input.binary_sha256);
+assert.equal(await fileSha256(input.executable), input.binary_sha256);
 if (mediaWorkload) {
     assert.ok((await realpath(input.physical_peer_executable)).startsWith(privateRoot + "/"));
-    assert.equal(hash(await readFile(input.physical_peer_executable)), input.physical_peer_sha256);
+    assert.equal(await fileSha256(input.physical_peer_executable), input.physical_peer_sha256);
     assert.equal(new Set(Object.values(input.actors).map(actor => actor.device_id)).size, 7);
     assert.ok([...controllerRoles, "replacement-1"].every(role => input.actors[role].identity_id === input.actors["participant-1"].identity_id));
 }
@@ -394,7 +395,8 @@ try {
                 sourcePrograms[index] = { audioPackets: source.audio.map(packet => [...Buffer.from(packet, "base64")]),
                     videoProgram: liveVideoProgramFromManifest(input.media_source_directory, sourceManifest, index) };
             }
-            report.native_av = await nativeAv(connections, sessionRoles, input.media_source_directory, input.media_output_directory, plan,
+            try {
+                report.native_av = await nativeAv(connections, sessionRoles, input.media_source_directory, input.media_output_directory, plan,
                 observation => { report.native_av_observation = observation; }, async workload => {
                     const observed = await observeMovementSessions({ workload, primarySessions: sessions,
                         controllerSessions: controllers.map((client, index) => client.conversations.byId(cid).sessions.byId(sessions[index].id)),
@@ -417,24 +419,25 @@ try {
                     report.device_movement = observed.value.observation;
                     return observed.value.observation;
                 });
+            } finally {
+                // nativeAv's observation follows the joined control task,
+                // including every late physical movement owner. Neither source
+                // programme may lose packets while a replacement can read it.
+                if (report.native_av_observation?.original_tasks_joined === true &&
+                    report.native_av_observation.fixture_payload_arrays_released === true)
+                    for (const source of Object.values(sourcePrograms)) source.audioPackets.length = 0;
+            }
             report.replacement_media_ownership_observed = report.device_movement.original_moves_completed === TOTAL_MOVES;
             report.data_workload.current_owner_end = report.device_movement.current_owner_end;
             phase = "original-and-physical-capture-custody";
-            const normalized = await physicalMovementSegments({ directory: join(privateDirectory, "movement"),
+            report.native_movement_capture = await writeJoinedMovementCapture({ directory: join(privateDirectory, "movement"),
+                outputDirectory: input.media_output_directory,
                 movement: report.device_movement,
-                plan: JSON.parse(await readFile(join(privateDirectory, "movement/plan.json"), "utf8")),
                 packetWorkersJoined: report.native_av.original_receive_tasks_joined,
                 conversationId: cid, sessionIds: sessions.map(session => session.id),
                 connectionIds: connections.map(item => item.connection.id),
                 streamIds: connections.map(item => ({ audio: plan[item.prefix + "-audio"], video: plan[item.prefix + "-video"], data: plan[item.prefix + "-stream"] })),
                 executableSha256: input.physical_peer_sha256 });
-            const normalizedPath = join(input.media_output_directory, "movement-segments.json");
-            await writeFile(normalizedPath, encode(normalized), { flag: "wx", mode: 0o600 });
-            report.native_movement_capture = { format: normalized.format, sha256: hash(await readFile(normalizedPath)),
-                original_capture_sha256: await Promise.all(connections.map(async (_, index) =>
-                    hash(await readFile(join(input.media_output_directory, "received-" + index + ".json"))))),
-                original_move_records_bound: normalized.original_move_records_bound,
-                reliable_data_exchanges_bound: normalized.reliable_data_exchanges_bound };
             assert.equal(report.device_movement.replacement_data_io_verified, true);
             const movementMessages = report.device_movement.replacement_data_exchanges.flatMap(exchange => exchange.messages);
             assert.equal(movementMessages.length, TOTAL_MOVES * 2);
@@ -571,8 +574,8 @@ try {
     }
     for (const [role, actor] of Object.entries(input.actors))
         if (hash(await readFile(actor.config)) !== report.sdk_config_hashes[role]) report.passed = false;
-    if (hash(await readFile(input.executable)) !== input.binary_sha256) report.passed = false;
-    if (mediaWorkload && hash(await readFile(input.physical_peer_executable)) !== input.physical_peer_sha256) report.passed = false;
+    if (await fileSha256(input.executable) !== input.binary_sha256) report.passed = false;
+    if (mediaWorkload && await fileSha256(input.physical_peer_executable) !== input.physical_peer_sha256) report.passed = false;
     await writeFile(output, encode(report), { flag: "wx", mode: 0o600 });
 }
 process.stdout.write(JSON.stringify({ conversation_control_passed: report.passed, checks: report.checks.length, cell_qualified: false }) + "\n");

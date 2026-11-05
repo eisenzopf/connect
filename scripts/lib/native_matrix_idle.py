@@ -16,6 +16,7 @@ import urllib.request
 
 from .matrix_idle import POLICY, owned_usage
 from .matrix_macos_resources import MacProcessResources
+from .matrix_owner_diagnostics import idle_owner_diagnostics
 from .operational_process_resources import ProcessResources
 from .native_matrix_process import NativeOwner, publish
 
@@ -111,6 +112,11 @@ class NativeMatrixIdle:
             sample = dict(stage=stage, monotonic_seconds=when, error=type(error).__name__)
         self.samples.append(sample)
         self.next_sample = self.clock() + POLICY["sample_seconds"]
+        if stage in {"baseline", "idle-final"}:
+            # Diagnostic only, after the original quantitative sample. No extra
+            # health request, workload owner, deadline, allowance or verdict.
+            sample["owner_diagnostics"] = idle_owner_diagnostics(self.sampler, roles=("server", "helper"),
+                directory=self.directory / "owner-diagnostics", stage=stage)
         return sample
 
     def request(self, phase):

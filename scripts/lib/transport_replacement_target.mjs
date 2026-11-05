@@ -1,3 +1,4 @@
+import { fileSha256 } from "./transport_file_hash.mjs";
 import { validateProgrammeClock, programmeElapsed } from "./transport_programme_clock.mjs";
 // Public SDK metadata controller and an independently owned physical Rust peer.
 // Packet sources/receivers and independent decoding remain the caller's owners.
@@ -173,7 +174,7 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
     const root = await realpath(privateRoot), parent = await realpath(dirname(resolve(directory)));
     assert.ok(parent === root || parent.startsWith(root + "/"));
     assert.equal(await realpath(executable), resolve(executable));
-    assert.equal(hash(await readFile(executable)), executableSha256);
+    assert.equal(await fileSha256(executable), executableSha256);
     const config = await realpath(intent.target.nativeConfig);
     assert.ok(config.startsWith(root + "/"));
     assert.equal((await stat(config)).mode & 0o077, 0);
@@ -225,7 +226,7 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             }
         }
         await log?.close();
-        report.target_executable_unchanged = await readFile(executable).then(bytes => hash(bytes) === executableSha256, () => false);
+        report.target_executable_unchanged = await fileSha256(executable).then(digest => digest === executableSha256, () => false);
         report.target_config_unchanged = await readFile(config).then(bytes => hash(bytes) === configHash, () => false);
         report.passed &&= report.target_worker_joined && !report.target_worker_forced &&
             report.target_executable_unchanged && report.target_config_unchanged;

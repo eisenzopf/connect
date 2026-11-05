@@ -88,10 +88,14 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
                 'Original current target Device and Endpoint must be ready');
             check(moved.retired.length===1&&moved.retired[0]===before.connection.id&&moved.retained.length===1&&
                 moved.retained[0].id===command.retain,'Original source retirement and retained peer');
-            const old=await before.connection.refresh(options());check(old.state==='retired','Original source must be durably retired');
             const source=sources.sources.find(source=>source.index===route.index),binding=source.attachments.find(binding=>binding.connectionId===before.connection.id);
             check(binding?.capture.closed===true,'Original SDK capture must close after movement receipt');
+            // Both original receipts already prove the ready target and exact
+            // source retirement. Observe its subsequent genuine decoder output
+            // now; an additional verification read must not manufacture a gap.
+            // Prepared outputs remain excluded and are never replayed.
             observer?.activate(route.index,targetOwner.connection.id);
+            const old=await before.connection.refresh(options());check(old.state==='retired','Original source must be durably retired');
             sources.retireConnection(before.connection.id);
             current[route.index]={connection:targetOwner.connection,role:intent.targetRole,video:intent.video,receiveVideo:intent.receiveVideo};
             state.connections[route.index]=targetOwner.connection;

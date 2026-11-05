@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .operational_process_resources import ProcessResources
 from .matrix_macos_resources import MacProcessResources
+from .matrix_owner_diagnostics import idle_owner_diagnostics
 
 
 POLICY = dict(profile="connect/matrix-idle/1", idle_seconds=10, sample_seconds=1,
@@ -119,6 +120,11 @@ class MatrixIdle:
             sample = dict(stage=stage, monotonic_seconds=started, error=type(error).__name__)
         self.samples.append(sample)
         self.next_sample = time.monotonic() + POLICY["sample_seconds"]
+        if stage in {"baseline", "idle-final"}:
+            # Diagnostic only, after the original quantitative sample. No extra
+            # health request, workload owner, deadline, allowance or verdict.
+            sample["owner_diagnostics"] = idle_owner_diagnostics(self.sampler, roles=("server",),
+                directory=self.directory / "owner-diagnostics", stage=stage)
         return sample
 
     def respond(self, phase, value):

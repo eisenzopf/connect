@@ -4,6 +4,8 @@ import { mkdir, mkdtemp, writeFile, readFile, rm, chmod, unlink, symlink } from 
 import { join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { physicalMovementSegments } from "../lib/transport_movement_observation.mjs";
+import { writeJoinedMovementCapture } from "../lib/transport_movement_capture_owner.mjs";
+import { startProgrammeClock } from "../lib/transport_programme_clock.mjs";
 
 import { MOVE_START_OFFSETS_MS, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256 } from "../lib/transport_movement_profile.mjs";
 
@@ -138,6 +140,67 @@ async function edit(options, name, change) {
     const path = join(options.directory, "0-0", name), value = JSON.parse(await readFile(path, "utf8"));
     change(value); await save(path, value);
 }
+
+async function interpreterInput(options) {
+    const outputDirectory = join(options.directory, "received");
+    await mkdir(outputDirectory, { mode: 0o700 });
+    await save(join(options.directory, "plan.json"), options.plan);
+    const hashes = [];
+    for (let index = 0; index < 6; index++) {
+        const bytes = JSON.stringify({ synthetic_original_capture: index }) + "\n";
+        await writeFile(join(outputDirectory, "received-" + index + ".json"), bytes, { mode: 0o600 });
+        hashes.push(sha(bytes));
+    }
+    // This synthetic custody test exercises the existing cleanup window; it
+    // neither runs nor claims a programme or a decoded media qualification.
+    const now = startProgrammeClock();
+    const clock = { ...now, origin_ns: (BigInt(now.origin_ns) - 62_000_000_000n).toString() };
+    options.movement.original_program_clock = clock;
+    options.movement.current_owner_end = { original_cutoff_monotonic_ms: Number(BigInt(clock.origin_ns)) / 1e6 + 67000 };
+    const { plan, ...input } = options;
+    return { input: { ...input, outputDirectory }, hashes };
+}
+
+test("owned interpreter preserves exact capture interpretation and returns only metadata after reaping", () => run(undefined, async options => {
+    const { input, hashes } = await interpreterInput(options);
+    const expected = await physicalMovementSegments(options);
+    const result = await writeJoinedMovementCapture(input);
+    const bytes = await readFile(join(input.outputDirectory, "movement-segments.json"), "utf8");
+    assert.equal(bytes, JSON.stringify(expected, null, 2) + "\n");
+    assert.equal(result.sha256, sha(bytes)); assert.deepEqual(result.original_capture_sha256, hashes);
+    assert.equal(result.original_move_records_bound, 4); assert.equal(result.reliable_data_exchanges_bound, 4);
+    assert.equal(result.capture_interpreter_joined, true);
+    const receiptBytes = await readFile(join(input.outputDirectory, "movement-capture-joined.json"));
+    assert.equal(sha(receiptBytes), result.interpreter_process_sha256);
+    const receipt = JSON.parse(receiptBytes);
+    assert.equal(receipt.parent_pid, process.pid); assert.notEqual(receipt.pid, process.pid);
+    assert.equal(receipt.joined, true); assert.equal(receipt.forced, false);
+    assert.equal(receipt.exit_code, 0); assert.equal(receipt.signal, null);
+    assert.ok(receipt.closed_monotonic_ms < receipt.original_cutoff_monotonic_ms);
+    assert.ok(Buffer.byteLength(JSON.stringify(result)) < 2048);
+    assert.equal(result.segments, undefined); assert.equal(result.plan, undefined);
+}, "io"));
+
+test("an interpreter refusal still joins its actual child and cannot return a capture receipt", () => run(undefined, async options => {
+    const { input } = await interpreterInput(options);
+    await edit(options, "stage.json", stage => { stage.target_worker_forced = true; });
+    await assert.rejects(writeJoinedMovementCapture(input));
+    const receipt = JSON.parse(await readFile(join(input.outputDirectory, "movement-capture-joined.json")));
+    assert.equal(receipt.joined, true); assert.equal(receipt.forced, false);
+    assert.equal(receipt.exit_code, 1);
+    await assert.rejects(readFile(join(input.outputDirectory, "movement-segments.json")), { code: "ENOENT" });
+}));
+
+test("capture interpretation cannot acquire a fresh deadline or start after original cancellation", () => run(undefined, async options => {
+    const { input } = await interpreterInput(options);
+    input.movement.current_owner_end.original_cutoff_monotonic_ms += 1;
+    await assert.rejects(writeJoinedMovementCapture(input));
+    input.movement.current_owner_end.original_cutoff_monotonic_ms -= 1;
+    const stop = new AbortController(), failure = Error("original cancelled"); stop.abort(failure);
+    await assert.rejects(writeJoinedMovementCapture(input, { signal: stop.signal }), error => error === failure);
+    await assert.rejects(readFile(join(input.outputDirectory, "movement-capture-owner.json")), { code: "ENOENT" });
+    await assert.rejects(writeJoinedMovementCapture({ ...input, packetWorkersJoined: false }), /packet owners must join/);
+}));
 
 test("four capture records bind two exact original chains without claiming decoded quality", () => run(undefined, async options => {
     const result = await physicalMovementSegments(options);

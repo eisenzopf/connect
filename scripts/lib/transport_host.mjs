@@ -1,4 +1,5 @@
 // Actual native-host observations; no declared topology is accepted as evidence.
+import { fileSha256 } from "./transport_file_hash.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -16,7 +17,7 @@ export function nativeHost() {
 }
 export async function executableHash(pid) {
     assert.ok(Number.isSafeInteger(pid) && pid > 0);
-    if (process.platform === "linux") return hash(await readFile(`/proc/${pid}/exe`));
+    if (process.platform === "linux") return fileSha256(`/proc/${pid}/exe`);
     assert.equal(process.platform, "darwin");
     let path;
     try {
@@ -29,7 +30,7 @@ export async function executableHash(pid) {
         throw error;
     }
     assert.ok(isAbsolute(path));
-    return hash(await readFile(path));
+    return fileSha256(path);
 }
 export function childPids(parent) {
     const rows = execFileSync("ps", ["-axo", "pid=,ppid="], { encoding: "utf8", timeout: 5000 }).trim().split("\n");
