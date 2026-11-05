@@ -2,10 +2,10 @@
   "format": "connect/g6-058-uctp-nullable-followup/1",
   "status": "source-correction-verified-components-full-transport-pending",
   "base_revision": "40bd2301a632f21250f7e04153e748f852250ac2",
-  "recorded_at": "2026-11-05T20:37:12.539217+00:00",
+  "recorded_at": "2026-11-05T20:42:03.720074+00:00",
   "source_lock_sha256": "1477752a147d87a921684fede6d59f8766eb00661bcc4c7ec90bdc2d326d5551",
   "upstream_patch_sha256": "1f5633b81718e0c3a22198d2f44b299b11f9cf5e3ed27cfcc42e557173ac1e49",
-  "problem": "The Rust generator discarded the null branch of required active_participant. A later regeneration made the typed codec reject contract-valid silence and prevented existing Option assertions from compiling. A retained-peer fixture and command-only media mock also omitted newer fields/intent handling.",
+  "problem": "The generator discarded the null branch of required active_participant. The signed-video epoch patch changed its typed field from Option<Identifier> to Identifier, rejecting contract-valid silence and preventing existing Option assertions from compiling. A retained-peer fixture and command-only media mock also omitted newer fields/intent handling.",
   "correction": "Restore required-but-nullable participant decoding and explicit-null serialization. Correct regeneration without double Option or relaxed missing/invalid identifier rules. Initialize test-only empty/no-feedback metadata and explicitly refuse replacement-video authority in a connection.update-only fixture.",
   "contract_inputs": {
     "schema_sha256": "073c721d6800ed8d9d324b7a5d04b451c04ec7a8e221557d74a12831b4e1fad9",
@@ -66,9 +66,45 @@
       "failed": 0,
       "skipped": 0
     },
-    "generated_rust_semantic_tests": "building; no result claimed",
-    "actual_wire_and_context_controls": "building; no result claimed",
-    "matrix_cells_qualified": 0
+    "generated_rust_semantic_tests": {
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "profile": "cargo test --release; unchanged default release settings",
+      "scope": "Generated complete payload module and real frozen candidate Identifier/SessionTarget, three pure serde/session-scope cases; no transport qualification.",
+      "generated_module_sha256": "d7384149fd1b829aa4e014a82b98f2660935cc052d98a43df6cf56caa95cd119",
+      "generated_module_unchanged": true,
+      "unexpected_dependency_identities": []
+    },
+    "actual_wire_and_context_controls": [
+      {
+        "name": "peer_native::canonical_media::media_control::canonical_held_media_context_cannot_authorize_another_action_or_revision",
+        "passed": true
+      },
+      {
+        "name": "peer_native::canonical_media::video_feedback::native_duplex_rtp_sender_report_and_compound_feedback_share_original_wire_cursor",
+        "passed": true
+      },
+      {
+        "name": "peer_native::canonical_media::video_feedback::native_feedback_binds_actual_handles_ssrc_epochs_authority_and_shared_publisher_rate",
+        "passed": true
+      }
+    ],
+    "matrix_cells_qualified": 0,
+    "wire_profile": {
+      "opt_level": "3",
+      "debuginfo": 0,
+      "debug_assertions": false,
+      "overflow_checks": false,
+      "test": true
+    },
+    "wire_binary_sha256": "06162660382d21f69bc7c20324f236b10c53284c4a6353c5fa90bd74e6c0faa8",
+    "wire_prepared_sources_unchanged": true,
+    "normal_release_rust_cases_passed": 13,
+    "total_unique_rust_cases": 13,
+    "python_regeneration_cases_passed": 4,
+    "first_generated_consumer_resolution": "A first metadata setup regenerated dependency versions and was refused before compilation; the corrected consumer preserves all existing package identities. Original failure retained."
   },
   "scope": "Component code/results only. Separate branch preserves active original40bd focused run. No source-clock, media quality, authority, deadline or resource limit changes. Full32/all432 remain required. G6-054 stays deferred."
 }
