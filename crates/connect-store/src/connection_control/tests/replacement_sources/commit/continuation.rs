@@ -3,7 +3,7 @@ use super::*;
 
 #[test]
 fn exact_started_commit_can_read_current_public_pair_before_journal_projection() {
-    let m = fixture(true);
+    let m = fixture_scoped(true, &["stream.subscribe"]);
     let scene =
         m.f.store
             .try_native_replacement_scene_read(&m.origin, &m.sources)
