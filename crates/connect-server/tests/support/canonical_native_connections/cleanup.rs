@@ -313,7 +313,7 @@ async fn production_native_concurrent_physical_admissions_survive_cold_open_and_
         }
         let retired_round = loop {
             let current = f.server.service.canonical_runtime_snapshot();
-            if current.is_ok_and(|v| v.physical_peers == 0) {
+            if current.is_some_and(|v| v.physical_peers == 0) {
                 break true;
             }
             if tokio::time::Instant::now() >= cutoff {

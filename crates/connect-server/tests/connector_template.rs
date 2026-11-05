@@ -323,7 +323,11 @@ async fn invalid_or_unready_composition_cannot_persist_contracts_or_claim_work()
         }
         fn manifest(&self) -> Manifest {
             let mut value = Manifest::messaging(self.descriptor());
-            value.video = true;
+            // A messaging-only connector cannot claim live media without its
+            // explicit media contract in the current manifest format.
+            value
+                .operations
+                .insert(connect_connector_api::manifest::ConnectorOperation::LiveMedia);
             value
         }
         async fn deliver(

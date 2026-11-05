@@ -85,6 +85,7 @@ async fn application_and_signed_clients_share_current_authority_health_and_mutat
         profile,
         installation_id,
         readiness,
+        operational,
     } = app.health().await.unwrap()
     else {
         panic!("health")
@@ -93,6 +94,10 @@ async fn application_and_signed_clients_share_current_authority_health_and_mutat
     assert_eq!(profile, PROFILE);
     assert_eq!(installation_id, f.server.store.installation_id().unwrap());
     assert!(readiness.is_some());
+    assert!(
+        operational.is_none(),
+        "scoped application health must not expose installation-wide observations"
+    );
     let mut native = CanonicalClient::open(native_config(&f.state, f.server.address))
         .await
         .unwrap();

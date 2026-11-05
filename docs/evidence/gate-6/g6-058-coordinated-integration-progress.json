@@ -2,8 +2,8 @@
   "format": "connect/g6-058-coordinated-integration-progress/1",
   "task": "G6-058",
   "status": "partial-batch-applied-runtime-unverified",
-  "basis_revision": "de73711e7e35d6bd43dba450ecb21ccda06b77ed",
-  "recorded_at": "2026-11-05T14:59:15.824162+00:00",
+  "basis_revision": "3c0c14c8722352961af383c50b582bced3039c50",
+  "recorded_at": "2026-11-05T15:56:02.561058+00:00",
   "source_lock_sha256": "cf291eca04bc1a8495df51f2137f1e1fd95c4131c493c48bab277e3fabbe25e2",
   "prepared_files_verified": 528,
   "reviewed_upstream_results_verified": 20,
@@ -27,9 +27,17 @@
     "dependency_preparation_exit_code": 0,
     "repository_format_check_exit_code": 0,
     "javascript_python_syntax_checked_files": 27,
-    "rust_typescript_builds_executed": 0,
+    "rust_typescript_builds_executed": 3,
     "runtime_tests_executed": 0,
-    "new_matrix_cells_qualified": 0
+    "new_matrix_cells_qualified": 0,
+    "rust_typecheck_attempts": 3,
+    "rust_typecheck_passed": false,
+    "typecheck_findings": [
+      "Removed manifest video field migrated to invalid unsupported live-media declaration, preserving refusal/no-persistence assertions",
+      "Scoped application health explicitly asserts absent installation-wide operational observations",
+      "Physical retirement test corrected Option predicate from is_ok_and to is_some_and"
+    ],
+    "corrected_source_rechecked": false
   },
   "latest_runtime_matrix": {
     "run": "v192",
@@ -56,6 +64,9 @@
     ".local/gate-6/known-gap-integration-v197/static-audit.json",
     ".local/gate-6/known-gap-integration-v197/observer-integration-receipt.json",
     ".local/gate-6/known-gap-integration-v197/start-metadata-integration-receipt.json",
-    ".local/gate-6/known-gap-integration-v197/observer-startup-static-audit.json"
+    ".local/gate-6/known-gap-integration-v197/observer-startup-static-audit.json",
+    ".local/gate-6/known-gap-integration-v197/cargo-check-integrated-receipt.json",
+    ".local/gate-6/known-gap-integration-v197/cargo-check-corrected-connector-receipt.json",
+    ".local/gate-6/known-gap-integration-v197/cargo-check-current-contracts-receipt.json"
   ]
 }
