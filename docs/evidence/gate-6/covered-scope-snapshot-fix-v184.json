@@ -1,0 +1,153 @@
+{
+  "format": "connect/g6-058-covered-scope-snapshot-fix/1",
+  "date": "2026-11-04",
+  "candidate": "c87e3e6cf68fb7d649fe552e460569f6bcf2c0cf",
+  "diagnosis": "v182: 2,297 exact-observer reseal refusals versus239 all-observer saturation refusals.",
+  "change": "Rederive invalidated facts under the fresh old-scope reader and one SQL interval. Seal only complete current scope coverage; otherwise release before fresh admission. Cache only successfully sealed facts.",
+  "counterexample": {
+    "format": "connect/current-reader-admission/1",
+    "source_revision": "ac115e5867232e79225d714caac9985fa52fd956",
+    "controller_pid": 55807,
+    "stage": "complete",
+    "source_guard_active": false,
+    "passed": false,
+    "suite": "sql-observers",
+    "cases": [
+      "peer_authority::connection_media::snapshot::tests::observer_cache::changed_facts_with_covered_scopes_keep_one_fresh_admission"
+    ],
+    "results": [
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::observer_cache::changed_facts_with_covered_scopes_keep_one_fresh_admission",
+        "exit_code": 101,
+        "passed": false,
+        "log_sha256": "a1446d9f3bc75087621eef1928065142cc8b8fd33a94c92ed240dfdf6d4850a7"
+      }
+    ],
+    "scope": "Current SQL observer saturation, exact observer custody, snapshot resealing and memo scope validity; no full media or idle-resource pass.",
+    "compile_exit_code": 0,
+    "compile_log_sha256": "b80f2100ea417085ed1a95d6da23c585f0631a6de0e684fdf62edfdd650ef105",
+    "binary_sha256": "83bd90a1bc87d8e01b3d61979b11339be876b60b19783ce0c74c5de6e7c7abdb",
+    "test_list_exit_code": 0,
+    "test_list_sha256": "3a266c37b50354c1883920f3b8a67439c156b7dda862b2eb87ad7c2e1fda4553",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "elapsed_seconds": 55.56161835999956
+  },
+  "verification": {
+    "format": "connect/current-reader-admission/1",
+    "source_revision": "c87e3e6cf68fb7d649fe552e460569f6bcf2c0cf",
+    "controller_pid": 55951,
+    "stage": "complete",
+    "source_guard_active": false,
+    "passed": true,
+    "suite": "sql-observers",
+    "cases": [
+      "peer_authority::connection_media::snapshot::tests::observer_cache::changed_facts_with_covered_scopes_keep_one_fresh_admission",
+      "peer_authority::connection_media::snapshot::tests::packet_sql_observers_are_read_only_and_release_after_saturation",
+      "peer_authority::connection_media::snapshot::tests::observer_custody::original_observer_contention_refuses_without_substitution_and_releases_the_reader",
+      "peer_authority::connection_media::snapshot::tests::observer_custody::an_earlier_observer_becoming_free_cannot_replace_the_original_snapshot_observer",
+      "peer_authority::connection_media::snapshot::tests::observer_custody::original_observer_reacquisition_rechecks_external_data_and_schema_versions",
+      "peer_authority::connection_media::snapshot::tests::observer_cache::cached_current_observer_needs_only_one_fresh_file_admission",
+      "peer_authority::connection_media::snapshot::tests::observer_cache::another_observers_old_scope_names_cannot_cover_new_current_metadata",
+      "peer_authority::connection_media::snapshot::tests::optimistic_metadata_uses_only_fresh_scope_coverage_after_a_version_change",
+      "peer_authority::connection_media::snapshot::tests::packet_metadata_memo_invalidates_external_own_clock_connection_and_source_changes",
+      "peer_authority::connection_media::snapshot::tests::packet_metadata_memo_contention_and_failed_capture_keep_no_cached_grant",
+      "peer_authority::connection_media::snapshot::tests::erased_packet_projection_memo_skips_only_unchanged_facts_and_finishes_every_grant",
+      "peer_authority::connection_media::snapshot::tests::compound_packet_projection_clock_edge_revalidates_under_original_interval_and_expiry",
+      "peer_authority::connection_media::snapshot::tests::compound_packet_projection_releases_every_reader_when_final_construction_crosses_a_commit"
+    ],
+    "results": [
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::observer_cache::changed_facts_with_covered_scopes_keep_one_fresh_admission",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "31f2c58a19a328352adf2661d2348d202239b8bc3e013e82381efe00e7293039"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::packet_sql_observers_are_read_only_and_release_after_saturation",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "b66cfa30943bd50c95ee5d58acbba964aab3a13a9e7b24a55bd7de18f63e4d84"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::observer_custody::original_observer_contention_refuses_without_substitution_and_releases_the_reader",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "e314bed954fceb00473af0f54625c12936cfa090a91b2b9493c7fa5e8c56bf63"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::observer_custody::an_earlier_observer_becoming_free_cannot_replace_the_original_snapshot_observer",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "ca82a715366d954eb9cf580f2f836d68a85610a9d871d7c1e9bfeee85bd8dd93"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::observer_custody::original_observer_reacquisition_rechecks_external_data_and_schema_versions",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "5caf1161ae25f44b7fc81a41a14d8aef9d096faeeaa2d375eb5158ffc5b1fc33"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::observer_cache::cached_current_observer_needs_only_one_fresh_file_admission",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "8cb20d2060bad7900f6ad6ce6b3ba6cd569ca2fa7f61293795e8116fa945f0b0"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::observer_cache::another_observers_old_scope_names_cannot_cover_new_current_metadata",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "2cf89ceab624070bac51daba2243fecd11b0e8ea4073580a6b0dbdf58bca51c6"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::optimistic_metadata_uses_only_fresh_scope_coverage_after_a_version_change",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "982b1e8ecedeaf8d6356e5b196fec1722285768feb07da3b54f987b079250dd3"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::packet_metadata_memo_invalidates_external_own_clock_connection_and_source_changes",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "f3b40915d5dfd97b1b23176228a7f3d3e7a37fc4944bb2369381b32cc5d96eab"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::packet_metadata_memo_contention_and_failed_capture_keep_no_cached_grant",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "0e3af09b5e74ea11a770696c7f0d28b99cc2a84a84df6266a2fb133763a8cdc7"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::erased_packet_projection_memo_skips_only_unchanged_facts_and_finishes_every_grant",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "e9f9276fa0fe0bddf35f9e067b03b0654c5e1085e1416e7310855a5b06757047"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::compound_packet_projection_clock_edge_revalidates_under_original_interval_and_expiry",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "5d5d455345fd49a5e54c022a23f1bb09a640b5ee296613f364e4f73006a8415d"
+      },
+      {
+        "case": "peer_authority::connection_media::snapshot::tests::compound_packet_projection_releases_every_reader_when_final_construction_crosses_a_commit",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "e65a52ced599d9c3ce73f9f5fc5eff37e2da08c2424ecfb8d78b3beaf7e5a35f"
+      }
+    ],
+    "scope": "Current SQL observer saturation, exact observer custody, snapshot resealing and memo scope validity; no full media or idle-resource pass.",
+    "compile_exit_code": 0,
+    "compile_log_sha256": "3ccafafffbd8e2ff4a0ec9f000e64489232851f6d592d98c4c89d4990eacc94f",
+    "binary_sha256": "919c2ef4b70f6d66ae7a803fb5cbe2544d405bac701316045a8ab5f0bfdb0404",
+    "test_list_exit_code": 0,
+    "test_list_sha256": "3a266c37b50354c1883920f3b8a67439c156b7dda862b2eb87ad7c2e1fda4553",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "elapsed_seconds": 58.71395894499801
+  },
+  "live_verification": "v185 not run: less than five GiB scratch. Verified archival recovered6.4GiB; v186 active release compilation at the same candidate source. No live candidate result yet.",
+  "scope": "Component proof of removal of redundant admission after metadata invalidation, plus retained snapshot/authority guards. No end-to-end media improvement established.",
+  "cell_qualified": false,
+  "task_complete": false
+}

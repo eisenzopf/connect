@@ -80,3 +80,21 @@ This small component result does not establish why the8a reliable-data scene
 exceeded its original200msmetadata budget. See
 `docs/evidence/gate-6/observer-operation-sql-cache.json` and the retained negative
 `docs/evidence/gate-6/native-av-source-paired-sql-negative-8a.json`.
+
+
+The G6-058 browser diagnostic v182 distinguishes full SQL-observer saturation
+from failure to reacquire the original observer after file admission. The latter
+accounted for2,297 of2,536 observer refusals in that run. A current memo miss now
+rederives facts under the freshly acquired old-scope reader and one SQL interval.
+Only complete coverage of the resulting current scopes permits sealing; a
+changed scope set releases that interval before normal fresh admission. The
+original SQL/schema/clock/source checks remain mandatory. Only facts returned by
+a successful seal may enter the memo, including when an optimistic capture falls
+back to a different observer's memo entry.
+
+The prior implementation fails the new external-commit regression by admitting
+the same scopes twice. The candidate passes that case and12 related local ARM
+checks for snapshot invalidation, source changes, writer exclusion, original
+expiry and failed-read cleanup. See
+[the before/after evidence](../evidence/gate-6/covered-scope-snapshot-fix-v184.json).
+This is component verification; live media improvement remains unproven.

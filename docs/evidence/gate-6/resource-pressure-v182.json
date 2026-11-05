@@ -1,0 +1,111 @@
+{
+  "format": "connect/g6-058-during-test-resource-audit/1",
+  "date": "2026-11-04",
+  "attempt": "v182",
+  "source_revision": "2d6fad4ef45dfd8e5060b7b976db9aa8534c9f6f",
+  "raw_samples_sha256": "cb3d82f7308ee59e648f697d5c2c50c6596667b01e85842cd6d0e1a1bf7c0864",
+  "samples": 79,
+  "observed_seconds": 78.0635782040008,
+  "scope": "Concurrent host memory-pressure and Linux VM aggregate CPU, available memory and PSI samples from pre-authentication baseline through the ten-second idle window; excludes release compilation.",
+  "host_pressure_levels": {
+    "1": 79
+  },
+  "host_swap_observations": [
+    "vm.swapusage: total = 0.00M  used = 0.00M  free = 0.00M  (encrypted)"
+  ],
+  "vm_average_busy_percent": 19.00135708592724,
+  "vm_peak_one_second_busy_percent": 42.20338983050848,
+  "vm_minimum_available_bytes": 10459983872,
+  "vm_pressure_stall_microseconds": {
+    "cpu": {
+      "some": 1654751,
+      "full": 0
+    },
+    "memory": {
+      "some": 0,
+      "full": 0
+    },
+    "io": {
+      "some": 42379,
+      "full": 35220
+    }
+  },
+  "server_descriptor_and_thread_snapshots": [
+    {
+      "stage": "baseline",
+      "processes": [
+        {
+          "descriptors": {
+            "other-file": 4,
+            "anon_inode:[eventpoll]": 2,
+            "anon_inode:[eventfd]": 1,
+            "socket": 7,
+            "sqlite": 11,
+            "authority-admission": 5,
+            "authority-resource": 5
+          },
+          "threads": {
+            "connect": 1,
+            "tokio-rt-worker": 12
+          }
+        }
+      ]
+    },
+    {
+      "stage": "terminal",
+      "processes": [
+        {
+          "descriptors": {
+            "other-file": 4,
+            "anon_inode:[eventpoll]": 2,
+            "anon_inode:[eventfd]": 1,
+            "socket": 7,
+            "sqlite": 15,
+            "authority-admission": 9,
+            "authority-resource": 10
+          },
+          "threads": {
+            "connect": 1,
+            "tokio-rt-worker": 15
+          }
+        }
+      ]
+    },
+    {
+      "stage": "idle-nine-seconds",
+      "processes": [
+        {
+          "descriptors": {
+            "other-file": 4,
+            "anon_inode:[eventpoll]": 2,
+            "anon_inode:[eventfd]": 1,
+            "socket": 7,
+            "sqlite": 15,
+            "authority-admission": 12,
+            "authority-resource": 10
+          },
+          "threads": {
+            "connect": 1,
+            "tokio-rt-worker": 15
+          }
+        }
+      ]
+    }
+  ],
+  "owned_pools_restored": true,
+  "idle_failures": [
+    "server:sampled_threads",
+    "server:sampled_open_descriptors",
+    "server:sampled_rss_bytes",
+    "browser:live_processes",
+    "browser:sampled_threads",
+    "browser:sampled_open_descriptors",
+    "browser:sampled_rss_bytes"
+  ],
+  "limits": [
+    "One-second samples do not exclude shorter stalls or blocked application threads.",
+    "PSI is VM-wide, not exclusive to the media process.",
+    "Authority file descriptors may be unlocked cache entries; descriptor counts are not authority-grant counts.",
+    "A full resource-restoration pass is still missing."
+  ]
+}

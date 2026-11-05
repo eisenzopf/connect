@@ -43,14 +43,14 @@
     }
   ],
   "current_av_work": {
-    "candidate": "455d6b32 shared-reader authority admission",
-    "focused_attempt": "v177",
+    "candidate": "c87e3e6c covered-scope snapshot reseal",
+    "focused_attempt": "v184",
     "focused_passed": 13,
     "focused_failed": 0,
-    "live_attempt": "v180",
+    "live_attempt": "v182 diagnostic before candidate",
     "live_status": "complete; four moves passed; decoded quality and idle failed",
     "scope": "A separate contention contributor; does not complete the three videocall comparison items.",
-    "next": "Separate SQL observer exhaustion from original-observer reseal contention; address mixer same-tick recovery without idle authority or changed deadlines."
+    "next": "v186 is actively compiling the covered-scope candidate locally after verified archival; evaluate original observer refusals, decoded audio continuity and unchanged full quality/idle thresholds."
   },
   "task_complete": false
 }
