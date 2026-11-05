@@ -2,8 +2,8 @@
   "format": "connect/g6-058-coordinated-integration-progress/1",
   "task": "G6-058",
   "status": "coordinated-readiness-batch-applied-runtime-unverified",
-  "basis_revision": "086978bb",
-  "recorded_at": "2026-11-05T16:02:04.475303+00:00",
+  "basis_revision": "b569ea44af5fb5204d61d4e7fef9c41adcdbbdc4",
+  "recorded_at": "2026-11-05T16:09:56.230768+00:00",
   "source_lock_sha256": "d4a87d43935c102979c166b610f835fe3831f146ba8585baa8a520fcbc22fabf",
   "prepared_files_verified": 531,
   "reviewed_upstream_results_verified": 33,
@@ -36,10 +36,10 @@
     "dependency_preparation_exit_code": 0,
     "repository_format_check_exit_code": 0,
     "javascript_python_syntax_checked_files": 27,
-    "rust_typescript_builds_executed": 3,
+    "rust_typescript_builds_executed": 4,
     "runtime_tests_executed": 0,
     "new_matrix_cells_qualified": 0,
-    "rust_typecheck_attempts": 3,
+    "rust_typecheck_attempts": 4,
     "rust_typecheck_passed": false,
     "typecheck_findings": [
       "Removed manifest video field migrated to invalid unsupported live-media declaration, preserving refusal/no-persistence assertions",
@@ -48,8 +48,16 @@
     ],
     "corrected_source_rechecked": false,
     "new_batch_syntax_json_checks": 13,
-    "new_batch_builds_executed": 0,
-    "new_batch_runtime_tests_executed": 0
+    "new_batch_builds_executed": 1,
+    "new_batch_runtime_tests_executed": 0,
+    "latest_typecheck": {
+      "exit_code": 101,
+      "original_jobs_joined": true,
+      "tracked_source_hashes_verified": 5584,
+      "prepared_file_hashes_verified": 531,
+      "failure": "SDK StreamId conversion used Display; corrected to existing as_str().to_owned() API",
+      "runtime_tests_executed": 0
+    }
   },
   "latest_runtime_matrix": {
     "run": "v192",
@@ -84,6 +92,7 @@
     ".local/gate-6/coordinated-staging-v198/private-ancestry-integration-receipt.json",
     ".local/gate-6/coordinated-staging-v198/static-syntax-checks.json",
     ".local/gate-6/coordinated-staging-v198/prepare-format-correction.json",
-    ".local/gate-6/coordinated-staging-v198/openapi-regeneration-receipt.json"
+    ".local/gate-6/coordinated-staging-v198/openapi-regeneration-receipt.json",
+    ".local/gate-6/coordinated-staging-v198/integrated-typecheck-receipt.json"
   ]
 }

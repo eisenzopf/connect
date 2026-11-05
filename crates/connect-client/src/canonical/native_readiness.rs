@@ -341,7 +341,7 @@ impl Shared {
                         .find(|v| v["strm_id"].as_str() == Some(stream.id.as_str()))
                         .ok_or(ClientError::Protocol)?;
                     Ok(NativeReadinessStream {
-                        stream_id: stream.id.to_string(),
+                        stream_id: stream.id.as_str().to_owned(),
                         stream_local_id: stream.stream_local_id.ok_or(ClientError::Protocol)?,
                         payload_type: raw["codec"]["params"]["payload_type"]
                             .as_u64()
