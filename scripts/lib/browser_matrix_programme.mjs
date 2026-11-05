@@ -31,11 +31,14 @@ export function browserMatrixKeepalive(actors) {
  * the full cell verifier; source draws and completed moves cannot stand in. */
 export async function browserMatrixProgramme({state,actors,plan,sources,journal,keepalive,report,observer}) {
     check(plan.programmeMs===62000&&plan.moves.length===4,'Approved fixed programme and four moves required');
-    if(observer)await observer.initial(state,{timeoutMs:8000});
+    let decoderStartupFailure;
+    if(observer){try{await observer.initial(state,{timeoutMs:8000});}
+        catch(error){decoderStartupFailure={name:error.name,kind:error.kind??null};}}
     const original=sources.beginProgramme();
     observer?.start(original);
     Object.assign(report,{format:'connect/browser-matrix-programme/1',passed:false,source_programme:original,
-        decoded_media_verified:false,packet_capture_verified:false,moves:[],terminal_ms:original.deadlineMs});
+        decoded_media_verified:false,packet_capture_verified:false,moves:[],failures:[],blocked_moves:[],terminal_ms:original.deadlineMs});
+    if(decoderStartupFailure)report.decoder_startup_failure=decoderStartupFailure;
     await journal({kind:'programme-origin',original});
     // stream.subscribe creates a dedicated local receiver named after the
     // selected publication. Transfer that port's existing selection; the
@@ -47,6 +50,10 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
     });
     async function move(intent){
         const route=plan.routes[intent.source],before=current[intent.source],target=actors[intent.targetRole];
+        if(intent.ordinal===1&&!report.moves.some(value=>value.source_index===route.index&&value.ordinal===0)){
+            report.blocked_moves.push({operation_id:intent.operation,source_index:route.index,ordinal:intent.ordinal,
+                reason:'outbound-move-failed; no return mutation submitted'});return;
+        }
         const began=performance.now(),cutoff=Math.min(began+8000,original.deadlineMs);
         const options=()=>{keepalive.check();const timeoutMs=Math.floor(cutoff-performance.now());check(timeoutMs>0,'Original movement deadline');return {timeoutMs};};
         const sid=plan.sessions[route.session].id,cid=state.conversation.id;
@@ -95,6 +102,9 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             check(result.source_master_continues,'Movement cannot restart or retire the original master');
             report.moves.push(result);await journal({kind:'move-completed',...result});
         }catch(error){
+            report.failures.push({operation_id:intent.operation,source_index:route.index,ordinal:intent.ordinal,
+                name:error.name,kind:error.kind??null,certainty:error.certainty??null,
+                problem:error.problem?{code:error.problem.code,reason:error.problem.reason}:null});
             await journal({kind:'move-failure',operationId:intent.operation,reference:operation?.referenceJson()??null,
                 certainty:error.certainty??null,kindOfFailure:error.kind??error.name});throw error;
         }
@@ -102,7 +112,10 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
     for(const offset of [15000,40000]){
         await sleep(original.originMs+offset-performance.now());keepalive.check();
         const outcomes=await Promise.allSettled(plan.moves.filter(move=>move.scheduledStartMs===offset).map(move));
-        const rejected=outcomes.find(outcome=>outcome.status==='rejected');if(rejected)throw rejected.reason;
+        // Keep the fixed original programme and every independent observer
+        // running after a failed move. Its return depends on that move and is
+        // recorded as blocked above, never retried or submitted against self.
+        report.failed_move_attempts=(report.failed_move_attempts??0)+outcomes.filter(outcome=>outcome.status==='rejected').length;
     }
     await sleep(original.deadlineMs-performance.now());keepalive.check();
     report.finished_ms=performance.now()-original.originMs;

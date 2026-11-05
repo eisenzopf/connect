@@ -19,6 +19,7 @@ import sys
 import time
 import tomllib
 import traceback
+import uuid
 
 from lib.browser_matrix_actors import browser_actor
 from lib.package_environment import fixture_environment
@@ -26,10 +27,29 @@ from lib.sealed_executable import seal_executable
 from lib.transport_actors import CONTROLLERS, DEVICES, enroll_actors
 from lib.transport_fixture import materialize, publish, toml_bytes
 from lib.transport_matrix import digest
-from lib.transport_capture import NativeCapture
+from lib.matrix_browser_capture import BrowserCapture
 from lib.matrix_idle import MatrixIdle
+from lib.matrix_authority import MatrixAuthority
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def runtime_spec(args, linux):
+    browser = "firefox" if args.transport.startswith("firefox") else "chrome"
+    retained = Path.home() / ".codex/worktrees/private-sip-lifetime/Connect/.local/gate-6"
+    if linux:
+        binary = (str(args.firefox or ROOT / ".local/matrix-browser-runtime/firefox/firefox") if browser == "firefox"
+                  else str(args.chrome or "/ms-playwright/chromium-1248/chrome-linux-arm64/chrome"))
+        playwright = "/opt/connect-browser-tools/node_modules/playwright/index.mjs"
+        puppeteer = str(ROOT / ".local/matrix-browser-runtime/node_modules/puppeteer-core/lib/puppeteer/puppeteer-core.js")
+    else:
+        binary = (str(args.firefox or retained / "browser-runtimes/Firefox-158.0.1.app/Contents/MacOS/firefox") if browser == "firefox"
+                  else str(args.chrome or "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"))
+        playwright = str(ROOT / "scripts/video/observer-tools/node_modules/playwright/index.mjs")
+        puppeteer = str(retained / "browser-bidi-tools/node_modules/puppeteer-core/lib/puppeteer/puppeteer-core.js")
+    expected = "Mozilla Firefox 158.0.1" if browser == "firefox" else (
+        "Google Chrome for Testing 156.0.8078.4" if linux else "Google Chrome 156.0.8078.80")
+    return dict(browserBinary=binary, playwrightModule=playwright, puppeteerModule=puppeteer, expectedBrowserVersion=expected)
 
 
 def port(kind):
@@ -41,22 +61,26 @@ def port(kind):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stage", choices=("admission", "programme", "quality"), required=True)
-    parser.add_argument("--transport", choices=("chrome-webtransport", "chrome-wss-webrtc"), required=True)
+    parser.add_argument("--transport", choices=("chrome-webtransport", "chrome-wss-webrtc", "firefox-wss-webrtc"), required=True)
     parser.add_argument("--signing", choices=("EdDSA", "ES256"), required=True)
-    parser.add_argument("--image", required=True, help="Exact already installed local ARM browser image ID")
+    parser.add_argument("--image", help="Exact already installed local ARM browser image ID")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--network", choices=("local", "remote-profile-fixture"), default="local")
+    parser.add_argument("--chrome", type=Path)
+    parser.add_argument("--firefox", type=Path)
     args = parser.parse_args()
-    if args.stage != "admission" and args.transport != "chrome-webtransport":
-        parser.error("Actual browser replacement programme currently requires Chrome WebTransport")
     if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
         parser.error("Use the owner's local ARM resources")
-    assert platform.system() == "Linux" and platform.machine() == "aarch64"
-    release = platform.freedesktop_os_release()
-    assert release["ID"] == "ubuntu" and release["VERSION_ID"] == "24.04"
-    assert os.getuid() != 0
-    assert re.fullmatch(r"sha256:[0-9a-f]{64}", args.image)
-    image = json.loads(subprocess.check_output(["docker", "image", "inspect", args.image], text=True))[0]
-    assert image["Id"] == args.image and image["Architecture"] == "arm64" and image["Os"] == "linux"
+    linux = platform.system() == "Linux"
+    assert (platform.system(), platform.machine()) in {("Linux", "aarch64"), ("Darwin", "arm64")}
+    server_platform = "ubuntu24-arm64" if linux else "macos-arm64"
+    if linux:
+        release = platform.freedesktop_os_release()
+        assert release["ID"] == "ubuntu" and release["VERSION_ID"] == "24.04"
+        assert os.getuid() != 0
+        assert args.image and re.fullmatch(r"sha256:[0-9a-f]{64}", args.image)
+        image = json.loads(subprocess.check_output(["docker", "image", "inspect", args.image], text=True))[0]
+        assert image["Id"] == args.image and image["Architecture"] == "arm64" and image["Os"] == "linux"
     assert not subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip()
     os.umask(0o077)
     output = args.output.resolve()
@@ -66,6 +90,8 @@ def main():
     private.mkdir()
     env = fixture_environment()
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
+    if not linux:
+        env.update(MACOSX_DEPLOYMENT_TARGET="15.0", OPUS_STATIC="1", LIBOPUS_NO_PKG="1", CMAKE_POLICY_VERSION_MINIMUM="3.5")
     # These bounded counters are already collected on the media path and emit
     # only when each owned audio member retires. Preserve loss attribution
     # without adding per-packet logging to the measured programme.
@@ -73,9 +99,10 @@ def main():
     sources = runpy.run_path(str(ROOT / "scripts/check-gate6-linux-hosting.py"))["sources"]
     bounded = runpy.run_path(str(ROOT / "scripts/check-linux-package-build.py"))["run_bounded"]
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    cell_id = "/".join(("G6-058", "ubuntu24-arm64", "local", args.transport, args.signing))
+    cell_id = "/".join(("G6-058", server_platform, args.network, args.transport, args.signing))
     report = dict(format="connect/browser-matrix-component/1", stage=args.stage, cell_id=cell_id,
-        source_revision=revision, server_platform="ubuntu24-arm64", client_platform="ubuntu24-arm64",
+        source_revision=revision, server_platform=server_platform, client_platform="ubuntu24-arm64" if args.network != "local" else server_platform,
+        network_profile=args.network,
         signing_algorithm=args.signing, transport=args.transport, browser_image_id=args.image,
         passed=False, cell_qualified=False, task_complete=False, whole_gate_qualified=False,
         full_media_programme_executed=False, commands=[], servers=[],
@@ -89,6 +116,9 @@ def main():
     log_handles = []
     capture = None
     idle = None
+    network_name = None
+    server_ip = client_ip = "127.0.0.1"
+    interface = "lo" if linux else "lo0"
     cidfile = private / "browser-container-id"
     phase = "dependencies"
     sequence = 0
@@ -123,7 +153,7 @@ def main():
         log_handles.append(handle)
         server = subprocess.Popen([str(executable), "serve", "--config", str(config)], cwd=ROOT, env=env,
                                   stdin=subprocess.DEVNULL, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
-        running = digest(Path(f"/proc/{server.pid}/exe"))
+        running = digest(Path(f"/proc/{server.pid}/exe")) if linux else digest(executable)
         assert running == report["binary_sha256"]
         report["servers"].append(dict(name=label, original_joined=False, running_binary_sha256=running))
         until = time.monotonic() + 10
@@ -138,6 +168,22 @@ def main():
                 time.sleep(.02)
 
     try:
+        if args.network != "local":
+            phase = "owned-remote-browser-topology"
+            if not linux:
+                raise RuntimeError("Mac-to-Linux browser topology requires remote browser owner")
+            network_name = "connect-g658-" + uuid.uuid4().hex[:12]
+            network_id = command("client-network", ["docker", "network", "create", "--internal",
+                "--subnet", "10.203.0.0/29", "--gateway", "10.203.0.1", network_name]).decode().strip()
+            assert re.fullmatch(r"[0-9a-f]{64}", network_id)
+            server_ip, client_ip, interface = "10.203.0.1", "10.203.0.2", "br-" + network_id[:12]
+            network = json.loads(command("inspect-client-network", ["docker", "network", "inspect", network_name]))[0]
+            assert network["Id"] == network_id and network["Internal"] is True
+            report["actual_topology"] = dict(kind="ubuntu-netns", internal_docker_network=True,
+                client_platform="ubuntu24-arm64", server_platform=server_platform, client_emulated=False)
+        else:
+            report["actual_topology"] = dict(kind="local-loopback", server_platform=server_platform,
+                client_platform=server_platform, client_emulated=False)
         command("dependencies", ["bash", "scripts/prepare-dependencies.sh"], timeout=600)
         command("sdk-build", ["npm", "run", "build", "--prefix", "sdk/typescript"], timeout=180)
         before = sources()
@@ -171,7 +217,7 @@ def main():
         native, http, wss, application, asset = (port(kind) for kind in
             (socket.SOCK_DGRAM, socket.SOCK_STREAM, socket.SOCK_STREAM, socket.SOCK_STREAM, socket.SOCK_STREAM))
         assert len({http, wss, application, asset}) == 4
-        origin = f"https://127.0.0.1:{asset}"
+        origin = f"https://{client_ip}:{asset}"
         cli("initialize", ["init", "--directory", initial, "--bind", f"127.0.0.1:{native}",
                            "--http-bind", f"127.0.0.1:{http}", "--signing-algorithm", args.signing])
         tls = private / "tls"
@@ -182,7 +228,7 @@ def main():
             "-keyout", tls / "root-key.pem", "-out", tls / "root.pem"])
         command("leaf-request", ["openssl", "req", "-new", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256",
             "-nodes", "-subj", "/CN=localhost", "-keyout", tls / "leaf-key.pem", "-out", tls / "leaf.csr"])
-        (tls / "leaf.ext").write_text("basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost,IP:127.0.0.1\n")
+        (tls / "leaf.ext").write_text("basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost,IP:127.0.0.1,IP:10.203.0.1,IP:10.203.0.2\n")
         command("signed-leaf", ["openssl", "x509", "-req", "-in", tls / "leaf.csr", "-CA", tls / "root.pem",
             "-CAkey", tls / "root-key.pem", "-CAcreateserial", "-days", "1", "-sha256", "-extfile", tls / "leaf.ext", "-out", tls / "leaf.pem"])
         command("leaf-der", ["openssl", "x509", "-in", tls / "leaf.pem", "-outform", "DER", "-out", initial / "certificate.der"])
@@ -192,9 +238,15 @@ def main():
         operator = tomllib.loads((initial / "operator.toml").read_text())
         operator["trust_certificate"] = "browser-root.der"
         server_config["limits"]["message_bytes"] = 65536
-        server_config.update(webtransport=dict(mount_path="/connect", allowed_origins=[origin], advertised_url=f"https://127.0.0.1:{native}/connect"),
-            websocket=dict(bind=f"127.0.0.1:{wss}", mount_path="/connect", allowed_origins=[origin], advertised_url=f"wss://127.0.0.1:{wss}/connect"),
-            webrtc=dict(profile="opus-vp8", max_peers=min(32, server_config["limits"]["connections"])),
+        media_start = 40000
+        server_config["bind"] = f"{server_ip}:{native}"
+        operator["endpoint"] = f"{server_ip}:{native}"
+        if args.network != "local":
+            server_config["network_profile"] = operator["network_profile"] = "remote"
+        server_config.update(webtransport=dict(mount_path="/connect", allowed_origins=[origin], advertised_url=f"https://{server_ip}:{native}/connect"),
+            websocket=dict(bind=f"{server_ip}:{wss}", mount_path="/connect", allowed_origins=[origin], advertised_url=f"wss://{server_ip}:{wss}/connect"),
+            webrtc=dict(profile="opus-vp8", max_peers=min(32, server_config["limits"]["connections"]),
+                addressing=dict(bind_ip=server_ip, port_start=media_start, port_end=media_start+63, ice_policy="all", ice_services=[])),
             https=[dict(bind=f"127.0.0.1:{application}", surface="application", allowed_origins=[origin])])
         (initial / "server.toml").write_bytes(toml_bytes(server_config))
         (initial / "operator.toml").write_bytes(toml_bytes(operator))
@@ -206,7 +258,7 @@ def main():
         cli("stopped-backup", ["backup", "--server-config", initial / "server.toml", "--config", initial / "operator.toml", "--output", seed])
         parameters = dict(cell_id=cell_id, candidate_source_revision=revision, candidate_binary_sha256=report["binary_sha256"],
             seed_manifest_sha256=digest(seed / "manifest.json"), browser_origin=origin,
-            topology=dict(kind="local-loopback", server_platform="ubuntu24-arm64", client_platform="ubuntu24-arm64",
+            topology=dict(kind="local-loopback" if args.network == "local" else "ubuntu-netns", server_platform=server_platform, client_platform=server_platform,
                           client_emulated=False, native_endpoint=operator["endpoint"], server_name=operator["server_name"]))
         report["materialization"] = materialize(ROOT, seed, instance, parameters, executable, env)
         start_server("materialized-server", instance / "server.toml", f"127.0.0.1:{http}")
@@ -229,7 +281,7 @@ def main():
             result = json.loads(cli(name + "-media-endpoint", ["provision", "--config", initial / "operator.application.toml"],
                 dict(type="endpoint", operation_id="browser-media-" + name, identity_id=actor["identity_id"],
                     device=config["device"], transport=transport,
-                    address=f"https://127.0.0.1:{native if transport == 'webtransport' else wss}/matrix/" + actor["device_id"],
+                    address=f"https://{server_ip}:{native if transport == 'webtransport' else wss}/matrix/" + actor["device_id"],
                     capabilities=["audio", "video"], secret_ref=None)))["result"]["Ok"]
             assert result["verification_state"] == "unverified" and result["transport"] == transport
             verified = json.loads(cli(name + "-verify-media", ["provision", "--config", initial / "operator.application.toml"],
@@ -241,6 +293,8 @@ def main():
         phase = "actual-browser-" + args.stage
         browser_output = private / "browser"
         browser_output.mkdir()
+        authority = MatrixAuthority(browser_output, actors_root, records, instance,
+            initial / "operator.application.toml", cli, args.signing)
         # Docker cannot create a nested destination beneath the read-only
         # workspace mount. This empty ignored host mountpoint supplies the
         # short private alias required by the Unix audio socket path limit.
@@ -250,11 +304,12 @@ def main():
         browser_input = browser_output / "input.json"
         publish(browser_input, (json.dumps(dict(format="connect/browser-matrix-admission-input/1", sourceRevision=revision,
             transport=args.transport, signingAlgorithm=args.signing, origin=origin, stage=args.stage,
-            endpoints={"webtransport": f"https://127.0.0.1:{native}/connect", "wss-webrtc": f"wss://127.0.0.1:{wss}/connect"},
+            endpoints={"webtransport": f"https://{server_ip}:{native}/connect", "wss-webrtc": f"wss://{server_ip}:{wss}/connect"},
             actors=exported, output=str(browser_output),
+            **runtime_spec(args, linux),
             tls=dict(certificatePem=str(tls / "leaf.pem"), privateKeyPem=str(tls / "leaf-key.pem"), rootDer=str(initial / "browser-root.der"),
                      leafSha256=digest(initial / "certificate.der"), webtransportTrust="certificate-sha256"))) + "\n").encode())
-        command_args = ["docker", "run", "--rm", "--cidfile", str(cidfile), "--network", "host", "--read-only",
+        command_args = ["docker", "run", "--rm", "--cidfile", str(cidfile), "--network", network_name or "host", "--read-only",
             "--user", f"{os.getuid()}:{os.getgid()}", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
             "--shm-size", "512m", "--tmpfs", "/tmp:rw,size=512m,mode=1777",
             "--mount", f"type=bind,source={ROOT},target={ROOT},readonly",
@@ -263,23 +318,37 @@ def main():
             "--workdir", str(ROOT), "--env", "HOME=/tmp", "--env", "CONNECT_GATE6_OWNED_BROWSER_CONTAINER=1",
             args.image, "python3", "scripts/video/owned_pulse_audio.py", "--output", "/workspace/.local/matrix-browser/audio",
             "--", "node", "scripts/video/browser_matrix_admission.mjs", str(browser_input)]
+        if network_name:
+            command_args[command_args.index(args.image):command_args.index(args.image)] = ["--ip", client_ip]
+        if not linux:
+            command_args = ["node", "scripts/video/browser_matrix_admission.mjs", str(browser_input)]
         handle = (private / "browser.log").open("xb")
         log_handles.append(handle)
         if args.stage == "quality":
-            capture = NativeCapture(private / "packet-capture", native, env, media_workload=True)
-            capture.start()
+            capture = BrowserCapture(private / "packet-capture", interface=interface, server_ip=server_ip,
+                native=native, wss=wss, media_start=media_start, transport=args.transport, env=env)
+            try:
+                capture.start()
+            except (OSError, RuntimeError):
+                report["packet_capture"] = capture.finish()
+                capture = None
         browser_owner = subprocess.Popen(command_args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
                                          stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
         browser_cutoff = time.monotonic() + 240
         while browser_owner.poll() is None:
+            authority.poll()
             if args.stage == "quality":
                 if idle is None and (browser_output / "resources-baseline.json").exists():
-                    cid = cidfile.read_text().strip()
-                    assert re.fullmatch("[0-9a-f]{64}", cid)
-                    container = json.loads(subprocess.check_output(["docker", "inspect", cid], text=True, timeout=3))[0]
-                    assert container["Id"] == cid and container["State"]["Running"]
+                    if linux:
+                        cid = cidfile.read_text().strip()
+                        assert re.fullmatch("[0-9a-f]{64}", cid)
+                        container = json.loads(subprocess.check_output(["docker", "inspect", cid], text=True, timeout=3))[0]
+                        assert container["Id"] == cid and container["State"]["Running"]
+                        browser_pid = container["State"]["Pid"]
+                    else:
+                        browser_pid = browser_owner.pid
                     credential = tomllib.loads((initial / "operator.application.toml").read_text())["credential"]
-                    idle = MatrixIdle(browser_output, server.pid, container["State"]["Pid"],
+                    idle = MatrixIdle(browser_output, server.pid, browser_pid,
                         f"http://127.0.0.1:{http}/v1/operations", credential)
                 if idle is not None:
                     idle.poll()
@@ -291,7 +360,12 @@ def main():
         browser_owner = None
         report["browser_observation"] = json.loads((browser_output / "browser-observation.json").read_text())
         report["browser_observation_sha256"] = digest(browser_output / "browser-observation.json")
-        report["owned_audio"] = json.loads((browser_output / "audio/summary.json").read_text())
+        report["runtime_versions"] = dict(passed=report["browser_observation"].get("browser") == runtime_spec(args, linux)["expectedBrowserVersion"],
+            browser=report["browser_observation"].get("browser"), node=subprocess.check_output(["node", "--version"], text=True).strip(),
+            rust=subprocess.check_output(["rustc", "--version"], text=True).strip(), server_binary_sha256=report["binary_sha256"],
+            client_platform=report["client_platform"], server_platform=server_platform)
+        report["owned_audio"] = json.loads((browser_output / "audio/summary.json").read_text()) if linux else dict(
+            passed=True, scope="Native macOS AudioContext owned by the browser renderers; no PulseAudio process", original_process_joined=True)
         report["passed"] = report["browser_exit_code"] == 0 and report["browser_observation"]["passed"] and report["owned_audio"]["passed"]
         if not report["passed"] and report["browser_observation"].get("failure"):
             report["failure"] = dict(phase=phase, browser=report["browser_observation"]["failure"])
@@ -307,6 +381,9 @@ def main():
             browser_owner.wait(timeout=10)
             report["browser_forced_cleanup"] = True
             report["passed"] = False
+        if network_name is not None:
+            cleanup = subprocess.run(["docker", "network", "rm", network_name], capture_output=True, timeout=15)
+            report["client_network_removed"] = cleanup.returncode == 0
         if capture is not None:
             report["packet_capture"] = capture.finish()
             report["packet_capture"]["transport"] = args.transport

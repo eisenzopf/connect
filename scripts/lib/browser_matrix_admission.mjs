@@ -21,7 +21,7 @@ export function browserMatrixPlan(uuid = () => crypto.randomUUID()) {
         programmeMs: 62000, operations, messages, sessions, routes, moves};
 }
 
-export async function browserMatrixAdmission({actors, plan, journal, selectedTransport, startMedia}) {
+export async function browserMatrixAdmission({actors, plan, journal, selectedTransport, startMedia, state={}, afterControl}) {
     check(["webtransport", "wss-webrtc"].includes(selectedTransport), "explicit matrix transport");
     check(typeof journal === "function", "durable original intent journal is required");
     check(plan?.format === "connect/browser-matrix-plan/1" && plan.routes.length === 6 && plan.sessions.length === 2
@@ -34,7 +34,7 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
         "controllers and replacement belong to the original identity");
     await journal({kind: "plan", plan}); // Must settle before any mutation submission.
     const references = new Map();
-    const options = {timeoutMs: 8000}, report = {checks: [], operations: [], fullProgrammeComplete: false};
+    const options = {timeoutMs: 8000}, report = state.report = {checks: [], operations: [], fullProgrammeComplete: false};
     const client = role => actors[role].client;
     const mutation = operationId => ({...options, operationId});
     async function complete(name, operationId, submit, onAccepted) {
@@ -73,6 +73,7 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
     const conversation = await complete("create", plan.operations.create, opts => owner.conversations.create({policy: "persistent",
         participants: roles.slice(1, 3).map(role => actors[role].identityId)}, opts));
     const cid = conversation.id;
+    state.conversation=conversation;state.createReference=references.get("create");
     const recovered = await owner.operations.restore(references.get("create"), owner.operationKinds.conversationCreate).wait(options);
     check(recovered.snapshot.state === "completed" && recovered.value.id === cid, "recover original create without another mutation");
     report.checks.push("original-browser-operation-reference-recovers-same-conversation");
@@ -115,7 +116,10 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
     await complete("update", plan.operations.update, opts => conversation.participants.byId(fourth.id)
         .update({role: "reviewer", expectedConversationRevision: oldRevision}, opts));
     await refused(() => conversation.participants.byId(fourth.id).update({role: "participant", expectedConversationRevision: oldRevision},
+        mutation(plan.operations.update)), 409, "operation_conflict");
+    await refused(() => conversation.participants.byId(fourth.id).update({role: "participant", expectedConversationRevision: oldRevision},
         mutation(plan.operations.stale)), 409, "operation_conflict");
+    report.conflict={passed:true,changed_original_intent_refused:true,stale_revision_refused:true};
     view = await conversation.refresh(options);
     await complete("remove", plan.operations.remove, opts => conversation.participants.byId(fourth.id)
         .remove({expectedConversationRevision: view.revision}, opts));
@@ -131,6 +135,7 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
     const participants = roles.map(role => member(view, role).id);
     const capabilities = {audio: ["opus"], video: ["vp8"]};
     const sessions = [];
+    state.sessions=sessions;state.connections=[];state.participants=participants;
     for (const session of plan.sessions) {
         const invited = await complete("invite-" + session.index, session.invite, opts => conversation.sessions.invite({sessionId: session.id,
             to: participants.slice(1, session.index === 0 ? 4 : 2), medium: "voice", intent: "call", capabilities}, opts));
@@ -151,7 +156,8 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
         sessions.push(invited);
     }
     report.checks.push("two-concurrent-accepted-sessions-upgraded-to-audio-video-and-unoffered-screen-refused");
-    const connections = [];
+    if(afterControl)await afterControl(state);
+    const connections = state.connections;
     check(typeof startMedia === "function", "real owned media must start before awaiting offer readiness");
     for (const route of plan.routes) {
         const session = client(route.role).conversations.byId(cid).sessions.byId(plan.sessions[route.session].id);
@@ -170,7 +176,7 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
             selectors: nonempty([{stream: source.audio}, {stream: source.video}])}, opts));
     }
     report.checks.push("six-real-browser-connections-with-current-session-scoped-duplex-selections");
-    return {conversation, sessions, connections, participants, report, createReference: references.get("create")};
+    return state;
 }
 
 

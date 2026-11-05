@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local ARM G6-058 execution ledger: probe, run selected workloads, merge hosts.
+"""Local ARM G6-058 execution ledger: probe, run all 32 workloads, merge hosts.
 
 Native workload failures are recorded per cell and do not stop later cells.
 Browser/full-cell observer gaps stay explicit until their producers exist.
@@ -20,7 +20,8 @@ import sys
 import traceback
 
 from lib.transport_matrix import digest, inventory, load_contract
-from lib.transport_matrix_execution import configure_execution, merge_hosts, record_browser_result, record_native_result, select_cells
+from lib.transport_matrix_execution import configure_execution, full_run_preflight, merge_hosts, record_browser_result, record_native_result, select_cells
+from lib.transport_matrix_verdict import evaluate_cell, blocked, summarize
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -117,18 +118,31 @@ def probe(chrome=None, firefox=None, browser_image=None):
 def execute_selected(matrix, ids, output, execute):
     """Persist before/after each original attempt; keep going after failures."""
     for cell in select_cells(matrix, ids):
+        full = matrix.get("requested_stage") == "full"
         if not cell["execution"]["runnable"]:
+            if full and cell["server"] == matrix["execution_environment"]["server"]:
+                cell.update(status="blocked", reason="environment-preflight")
+                cell["check_results"] = {name: blocked(
+                    ",".join(cell["execution"]["blockers"]), category="environment") for name in cell["required_checks"]}
+                save(output / "matrix.json", matrix)
             continue
         cell["status"] = "running"
         cell["reason"] = "original-required-workload-running"
         save(output / "matrix.json", matrix)
         try:
             report, report_sha256, code = execute(cell)
-            record = record_browser_result if cell["execution"].get("producer") in {"browser-admission", "browser-programme", "browser-quality"} else record_native_result
-            record(matrix, cell, report, report_sha256, code)
+            if full:
+                cell["execution"].update(attempted=True, component=dict(report_sha256=report_sha256, exit_code=code))
+                evaluate_cell(cell, report, report_sha256, environment=matrix["execution_environment"], revision=matrix["source_revision"])
+            else:
+                record = record_browser_result if cell["execution"].get("producer") in {"browser-admission", "browser-programme", "browser-quality"} else record_native_result
+                record(matrix, cell, report, report_sha256, code)
         except Exception as error:
             cell.update(status="failed", reason="workload-execution-or-evidence-binding-failed")
             cell["execution"].update(attempted=True, failure_class=type(error).__name__)
+            if full:
+                cell["check_results"] = {name: blocked("fixture-" + type(error).__name__, category="harness")
+                                         for name in cell["required_checks"]}
             # Exception text may include credentials/paths; only private traceback retains it.
             (output / (cell["transport"] + "-" + cell["signing"] + "-" + cell["network"] + "-failure.log")).write_text(traceback.format_exc())
         except BaseException:
@@ -136,28 +150,35 @@ def execute_selected(matrix, ids, output, execute):
             cell["execution"]["attempted"] = True
             raise
         finally:
+            if full:
+                summarize(matrix)
             save(output / "matrix.json", matrix)
     return matrix
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=("probe", "run", "merge"), required=True)
+    parser.add_argument("--phase", choices=("probe", "run", "worker", "merge"), required=True)
     parser.add_argument("--output", type=Path, required=True, help="New private directory under .local")
-    parser.add_argument("--cell", action="append", default=[], help="Exact G6-058/platform/network/transport/signing ID")
-    parser.add_argument("--all-cells", action="store_true", help="Explicitly select all 32; unavailable producers remain not-run")
     parser.add_argument("--host-report", type=Path, action="append", default=[])
     parser.add_argument("--chrome", type=Path)
     parser.add_argument("--firefox", type=Path)
-    parser.add_argument("--stage", choices=("media", "admission", "programme", "quality", "non-av"), default="media")
+    parser.add_argument("--stage", choices=("full", "media", "admission", "programme", "quality", "non-av"), default="full",
+                        help="Runs require full; partial stages are read-only probe views")
     parser.add_argument("--browser-image", help="Exact already installed ARM image for browser admission")
+    parser.add_argument("--expected-revision", help="Coordinator binding for an internal full-host worker")
     args = parser.parse_args()
     if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
         parser.error("This runner is for the owner's local ARM resources")
-    if args.cell and args.phase != "run" or args.host_report and args.phase != "merge":
-        parser.error("Cells belong to run; host reports belong to merge")
-    if args.all_cells and (args.cell or args.phase != "run"):
-        parser.error("--all-cells requires run and cannot be combined with --cell")
+    if args.host_report and args.phase != "merge":
+        parser.error("Host reports belong to merge")
+    if args.phase in {"run", "worker"} and args.stage != "full":
+        parser.error("Every G6-058 run must execute the full 32-cell workload; partial stages are probe-only")
+    if args.phase == "run":
+        from lib.transport_matrix_coordinator import run
+        return run(ROOT, args)
+    if args.phase == "worker" and not args.expected_revision:
+        parser.error("Workers require the full-run coordinator's exact candidate")
     output = args.output.resolve()
     if not output.is_relative_to((ROOT / ".local").resolve()):
         parser.error("Results must stay under ignored .local")
@@ -165,30 +186,31 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     os.chdir(ROOT)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    if args.expected_revision and revision != args.expected_revision:
+        raise ValueError("Worker candidate differs from coordinator")
     matrix = inventory(ROOT, revision)
-    if args.all_cells:
-        args.cell = [cell["id"] for cell in matrix["cells"]]
+    selected_ids = [cell["id"] for cell in matrix["cells"]]
     matrix["execution_phase"] = args.phase
     if args.phase == "merge":
         if not args.host_report:
             parser.error("Supply current reports from local hosts")
         matrix = merge_hosts(matrix, [json.loads(p.read_text()) for p in args.host_report])
         save(output / "matrix.json", matrix)
-        print(json.dumps(dict(required_cells=32, qualified_cells=0, host_reports=matrix["host_reports_received"])))
+        print(json.dumps(dict(summary=summarize(matrix), host_reports=matrix["host_reports_received"])))
         return 0
-    if args.stage in {"admission", "programme", "quality"} and args.phase == "run" and not args.browser_image:
-        parser.error("Browser admission requires --browser-image with an exact installed image ID")
     configure_execution(matrix, probe(args.chrome, args.firefox, args.browser_image), args.stage)
     save(output / "matrix.json", matrix)
     if args.phase == "probe":
         print(json.dumps(dict(required_cells=32, runnable_workloads=sum(c["execution"]["runnable"] for c in matrix["cells"]),
                               qualified_cells=0, tests_executed=False)))
         return 0
-    selected = select_cells(matrix, args.cell)
+    preflight = full_run_preflight(matrix)
+    save(output / "full-run-preflight.json", preflight)
+    selected = select_cells(matrix, selected_ids)
     if subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=normal"], text=True).strip():
         raise ValueError("Commit the candidate before execution")
     state = dict(stage="preparing", controller_pid=os.getpid(), source_revision=revision,
-                 source_guard_active=False, selected_cells=args.cell)
+                 source_guard_active=False, selected_cells=selected_ids)
     save(output / "state.json", state)
     try:
         if any(c["execution"]["runnable"] for c in selected):
@@ -209,7 +231,13 @@ def main():
                 loader.loader.exec_module(module)
                 original_argv = sys.argv
                 sys.argv = [str(module.__file__), "--stage", cell["execution"]["stage"], "--transport", cell["transport"],
-                            "--signing", cell["signing"], "--image", args.browser_image, "--output", str(directory)]
+                            "--signing", cell["signing"], "--network", cell["network"], "--output", str(directory)]
+                if args.browser_image:
+                    sys.argv += ["--image", args.browser_image]
+                if args.chrome:
+                    sys.argv += ["--chrome", str(args.chrome)]
+                if args.firefox:
+                    sys.argv += ["--firefox", str(args.firefox)]
                 try:
                     code = module.main()
                 finally:
@@ -228,14 +256,14 @@ def main():
             path = directory / ("evidence/data/rehearsal.json" if args.stage == "non-av" else "evidence/media/rehearsal.json")
             return json.loads(path.read_text()), digest(path), code
 
-        execute_selected(matrix, args.cell, output, execute)
+        execute_selected(matrix, selected_ids, output, execute)
     finally:
         state.update(stage="complete", source_guard_active=False)
         save(output / "state.json", state)
         save(output / "matrix.json", matrix)
-    print(json.dumps(dict(required_cells=32, selected_outcomes={c["id"]: c["status"] for c in selected},
-                          qualified_cells=0, matrix_qualified=False)))
-    return 1  # Full matrix acceptance is deliberately not available from components.
+    print(json.dumps(dict(summary=summarize(matrix), matrix_qualified=matrix["matrix_qualified"])))
+    save(output / "matrix.json", matrix)
+    return 0 if all(c["status"] == "passed" for c in selected if c["server"] == matrix["execution_environment"]["server"]) else 1
 
 
 if __name__ == "__main__":

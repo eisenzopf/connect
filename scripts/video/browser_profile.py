@@ -19,8 +19,9 @@ NSS_VERSION = '3.130'
 def import_firefox_root(runtime, profile, certificate):
     """Use the bundled NSS public API; no app, Keychain or existing profile edit."""
     c = ctypes
-    c.CDLL(str(runtime / 'libmozglue.dylib'), mode=c.RTLD_GLOBAL)
-    nss = c.CDLL(str(runtime / 'libnss3.dylib'))
+    extension = 'dylib' if sys.platform == 'darwin' else 'so'
+    c.CDLL(str(runtime / ('libmozglue.' + extension)), mode=c.RTLD_GLOBAL)
+    nss = c.CDLL(str(runtime / ('libnss3.' + extension)))
 
     class Item(c.Structure):
         _fields_ = [('type', c.c_int), ('data', c.POINTER(c.c_ubyte)), ('len', c.c_uint)]

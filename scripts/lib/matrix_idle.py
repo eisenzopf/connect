@@ -5,11 +5,13 @@ restart, new credentials or media is used to manufacture an idle baseline.
 """
 import json
 import math
+import sys
 import time
 import urllib.request
 from pathlib import Path
 
 from .operational_process_resources import ProcessResources
+from .matrix_macos_resources import MacProcessResources
 
 
 POLICY = dict(profile="connect/matrix-idle/1", idle_seconds=10, sample_seconds=1,
@@ -83,7 +85,8 @@ class MatrixIdle:
     def __init__(self, directory, server_pid, browser_pid, endpoint, credential):
         self.directory = Path(directory)
         self.endpoint, self.credential = endpoint, credential
-        self.sampler = ProcessResources(dict(server=server_pid, browser=browser_pid),
+        collector = MacProcessResources if sys.platform == "darwin" else ProcessResources
+        self.sampler = collector(dict(server=server_pid, browser=browser_pid),
             roles=("server", "browser"), open_resources=True, max_samples=300)
         self.samples, self.baselines = [], []
         self.terminal = None

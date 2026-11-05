@@ -1,7 +1,8 @@
 /** Owned RFC5389 Binding fixture. Reflects the source; never proxies traffic. */
 import dgram from 'node:dgram';
 
-export async function openLoopbackStun() {
+export async function openLoopbackStun(bindIp='127.0.0.1') {
+    if(!['127.0.0.1','10.203.0.2'].includes(bindIp))throw Error('Owned local or matrix namespace address required');
     const socket=dgram.createSocket('udp4');
     const stats={received:0,answered:0,malformed:0,send_errors:0,original_socket_joined:false};
     let closing,stopped=false;
@@ -22,10 +23,10 @@ export async function openLoopbackStun() {
     await new Promise((resolve,reject)=>{
         const failed=error=>{socket.removeListener('listening',ready);reject(error);};
         const ready=()=>{socket.removeListener('error',failed);resolve();};
-        socket.once('error',failed);socket.once('listening',ready);socket.bind(0,'127.0.0.1');
+        socket.once('error',failed);socket.once('listening',ready);socket.bind(0,bindIp);
     });
     socket.on('error',()=>{stats.send_errors++;});
-    return {url:`stun:127.0.0.1:${socket.address().port}`,stats,
+    return {url:`stun:${bindIp}:${socket.address().port}`,stats,
         close:()=>closing??=(async()=>{
             stopped=true;await new Promise(resolve=>socket.close(resolve));stats.original_socket_joined=true;
             return {...stats};

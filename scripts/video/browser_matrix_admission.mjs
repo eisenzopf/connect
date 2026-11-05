@@ -7,11 +7,12 @@ import {spawnSync} from 'node:child_process';
 import {createHash,X509Certificate} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {fixturePrivateJwk,fixtureServerJwk} from '../lib/browser_matrix_keys.mjs';
-import {launchOwnedChromium} from './owned_chromium.mjs';
+import {launchMatrixBrowser} from './owned_matrix_browser.mjs';
 import {installPeerDiagnostics} from './browser_failure.mjs';
 import {openLoopbackStun} from './loopback_stun.mjs';
 import {matrixResourceBridge} from '../lib/matrix_resource_bridge.mjs';
 import {matrixUnavailableTransports} from '../lib/matrix_unavailable_transports.mjs';
+import {matrixAuthorityBridge} from '../lib/matrix_authority_bridge.mjs';
 
 const [inputPath]=process.argv.slice(2);
 assert.equal(process.argv.length,3);
@@ -21,11 +22,10 @@ assert.equal((await fs.stat(inputPath)).mode&0o077,0);
 const spec=JSON.parse(await fs.readFile(inputPath,'utf8'));
 assert.equal(spec.format,'connect/browser-matrix-admission-input/1');
 assert.ok(['admission','programme','quality'].includes(spec.stage));
-assert.ok(spec.stage==='admission'||spec.transport==='chrome-webtransport');
-assert.ok(['chrome-webtransport','chrome-wss-webrtc'].includes(spec.transport));
+assert.ok(['chrome-webtransport','chrome-wss-webrtc','firefox-wss-webrtc'].includes(spec.transport));
 assert.ok(['EdDSA','ES256'].includes(spec.signingAlgorithm));
-assert.ok(process.platform==='linux'&&process.arch==='arm64');
-assert.equal(process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER,'1');
+assert.ok(['linux','darwin'].includes(process.platform)&&process.arch==='arm64');
+if(process.platform==='linux')assert.equal(process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER,'1');
 const output=await fs.realpath(spec.output);
 assert.ok(output.startsWith(privateRoot+path.sep));
 const leaf=new X509Certificate(await fs.readFile(spec.tls.certificatePem));
@@ -36,15 +36,16 @@ assert.equal(leaf.publicKey.asymmetricKeyDetails.namedCurve,'prime256v1');
 const notBefore=Date.parse(leaf.validFrom),notAfter=Date.parse(leaf.validTo);
 assert.ok(notBefore<=Date.now()&&Date.now()<notAfter&&notAfter-notBefore<=14*86400000);
 assert.equal(spec.tls.webtransportTrust,'certificate-sha256');
-const binary='/ms-playwright/chromium-1248/chrome-linux-arm64/chrome';
+spec.browserName=spec.transport.startsWith('firefox')?'firefox':'chrome';
+const binary=spec.browserBinary;
 const version=spawnSync(binary,['--version'],{encoding:'utf8',timeout:10000});
-assert.equal(version.status,0);assert.equal(version.stdout.trim(),'Google Chrome for Testing 156.0.8078.4');
+assert.equal(version.status,0);assert.equal(version.stdout.trim(),spec.expectedBrowserVersion);
 const binaryFile=await fs.open(binary,'r'),header=Buffer.alloc(64);
 try{assert.equal((await binaryFile.read(header,0,64,0)).bytesRead,64);}finally{await binaryFile.close();}
-assert.equal(header.subarray(0,6).toString('hex'),'7f454c460201');assert.equal(header.readUInt16LE(18),183);
+if(process.platform==='linux'){assert.equal(header.subarray(0,6).toString('hex'),'7f454c460201');assert.equal(header.readUInt16LE(18),183);}
 for(const value of [spec.origin,spec.endpoints.webtransport,spec.endpoints['wss-webrtc']]){
     const url=new URL(value);
-    assert.ok(['https:','wss:'].includes(url.protocol)&&url.hostname==='127.0.0.1'&&url.port&&!url.username&&!url.password&&!url.search&&!url.hash);
+    assert.ok(['https:','wss:'].includes(url.protocol)&&['127.0.0.1','10.203.0.1','10.203.0.2'].includes(url.hostname)&&url.port&&!url.username&&!url.password&&!url.search&&!url.hash);
 }
 for(const actor of Object.values(spec.actors)){
     assert.equal(actor.signing.algorithm,spec.signingAlgorithm);assert.equal(actor.server.algorithm,spec.signingAlgorithm);
@@ -53,7 +54,6 @@ for(const actor of Object.values(spec.actors)){
     actor.server.jwk=await fixtureServerJwk(Buffer.from(actor.server.publicRaw,'base64url'),actor.server.algorithm);
     delete actor.signing.privatePkcs8;delete actor.signing.publicRaw;delete actor.server.publicRaw;
 }
-const {chromium}=await import(pathToFileURL('/opt/connect-browser-tools/node_modules/playwright/index.mjs').href);
 const report={format:'connect/browser-matrix-admission-observation/1',source_revision:spec.sourceRevision,
     transport:spec.transport,stage:spec.stage,signing_algorithm:spec.signingAlgorithm,browser:version.stdout.trim(),
     passed:false,cell_qualified:false,task_complete:false,full_media_programme_executed:false,
@@ -75,6 +75,7 @@ try{
             if(url.pathname==='/'){response.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});response.end('<!doctype html><meta charset=utf-8><title>Owned matrix fixture</title>');return;}
             if(url.pathname==='/_matrix/admission.mjs')file=path.join(root,'scripts/lib/browser_matrix_admission.mjs');
             else if(url.pathname==='/_matrix/selection.mjs')file=path.join(root,'scripts/lib/browser_matrix_selection.mjs');
+            else if(url.pathname==='/_matrix/authority.mjs')file=path.join(root,'scripts/lib/browser_matrix_authority.mjs');
             else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_pipeline.mjs')file=path.join(root,'scripts/lib/browser_matrix_pipeline.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_audio_input.mjs')file=path.join(root,'scripts/lib/browser_matrix_audio_input.mjs');
@@ -91,18 +92,18 @@ try{
             response.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'});response.end(await fs.readFile(file));
         }catch{response.writeHead(404);response.end('fixture asset unavailable');}
     });
-    await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(Number(new URL(spec.origin).port),'127.0.0.1',resolve);});
+    await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(Number(new URL(spec.origin).port),new URL(spec.origin).hostname,resolve);});
     stage='untrusted-ca';
-    owner=await launchOwnedChromium(chromium,binary,path.join(output,'untrusted-profile'));
+    owner=await launchMatrixBrowser(spec,path.join(output,'untrusted-profile'));
     let refused=false;
     try{await (await owner.browser.newPage()).goto(spec.origin,{timeout:5000});}
-    catch(error){refused=String(error.message).includes('ERR_CERT_AUTHORITY_INVALID');}
+    catch(error){refused=/ERR_CERT_AUTHORITY_INVALID|SEC_ERROR_UNKNOWN_ISSUER|MOZILLA_PKIX_ERROR|insecure certificate/i.test(String(error.message));}
     report.untrusted_browser=await owner.close();owner=undefined;
     assert.ok(refused&&report.untrusted_browser.original_process_joined&&!report.untrusted_browser.forced_kill);
     report.unconfigured_ca_refused=true;
     stage='normal-ca-import';
-    owner=await launchOwnedChromium(chromium,binary,path.join(output,'trusted-profile'),process.env,async profile=>{
-        const imported=spawnSync('python3',['scripts/video/browser_profile.py','chrome',binary,profile,spec.tls.rootDer],
+    owner=await launchMatrixBrowser(spec,path.join(output,'trusted-profile'),async profile=>{
+        const imported=spawnSync('python3',['scripts/video/browser_profile.py',spec.browserName,binary,profile,spec.tls.rootDer],
             {encoding:'utf8',timeout:10000});
         await fs.writeFile(path.join(output,'profile-import.log'),imported.stdout+imported.stderr,{mode:0o600});
         assert.equal(imported.status,0);const result=JSON.parse(imported.stdout);
@@ -111,7 +112,7 @@ try{
     stage='current-browser-authentication';
     // Local scope uses an owned Binding reflector so the browser can supply
     // actual IP candidates while retaining its ordinary mDNS/privacy policy.
-    stun=await openLoopbackStun();spec.rtcConfiguration={iceServers:[{urls:stun.url}]};
+    stun=await openLoopbackStun(new URL(spec.origin).hostname);spec.rtcConfiguration={iceServers:[{urls:stun.url}]};
     unavailable=await matrixUnavailableTransports();spec.unavailableEndpoints=unavailable.endpoints;
     page=await owner.browser.newPage();
     await page.addInitScript(installPeerDiagnostics);
@@ -119,6 +120,7 @@ try{
     page.on('pageerror',error=>diagnostic(error.stack??error));
     await page.goto(spec.origin,{timeout:5000});
     if(spec.stage==='quality')await page.exposeFunction('matrixResources',matrixResourceBridge(output));
+    await page.exposeFunction('matrixAuthority',matrixAuthorityBridge(output));
     journal=await fs.open(path.join(output,'original-operations.jsonl'),'wx',0o600);
     await page.exposeFunction('matrixJournal',event=>{
         serial=serial.then(async()=>{
@@ -168,8 +170,8 @@ try{
             pinRefusal={mismatched_leaf_refused:true,original_transport_closed:true,application_streams_created:0,application_mutations_submitted:0};
         }
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
-        const actors={};window.matrixActors=actors;let state,sources,keepalive,observer,selectionEnrollment;
-        const selection={};
+        const actors={};window.matrixActors=actors;let state={},sources,keepalive,observer,selectionEnrollment;
+        const selection={},currentAuthority={};
         const programmeReport={};let resourceClock;
         try{
             if(spec.stage==='quality'){
@@ -199,13 +201,20 @@ try{
                 const {BrowserMediaRenderer}=await import('/sdk/browser_media_renderer.js');
                 observer=browserMatrixObservation(BrowserMediaRenderer,plan,BrowserMediaPeer);
             }
-            state=await browserMatrixAdmission({actors,plan,selectedTransport:selected,journal:event=>window.matrixJournal(event),
-                startMedia:input=>sources.start(input)});
-            window.matrixPhase='transport-selection';
-            const {browserMatrixSelection}=await import('/_matrix/selection.mjs');
-            await browserMatrixSelection({Sdk:BrowserSdkClient,Client:BrowserClient,enrollment:selectionEnrollment,
-                endpoints:spec.endpoints,unavailable:spec.unavailableEndpoints,reference:state.createReference,
-                conversationId:state.conversation.id,journal:event=>window.matrixJournal(event),report:selection});
+            state=await browserMatrixAdmission({actors,plan,state,selectedTransport:selected,journal:event=>window.matrixJournal(event),
+                startMedia:input=>sources.start(input),afterControl:async state=>{
+                    window.matrixPhase='transport-selection';
+                    const {browserMatrixSelection}=await import('/_matrix/selection.mjs');
+                    try{await browserMatrixSelection({Sdk:BrowserSdkClient,Client:BrowserClient,enrollment:selectionEnrollment,
+                        endpoints:spec.endpoints,unavailable:spec.unavailableEndpoints,reference:state.createReference,
+                        conversationId:state.conversation.id,journal:event=>window.matrixJournal(event),report:selection});}
+                    catch(error){selection.failure??={name:error.name,kind:error.kind??null};}
+                    window.matrixPhase='current-authority-refusals';
+                    const {browserMatrixAuthority}=await import('/_matrix/authority.mjs');
+                    await browserMatrixAuthority({Sdk:BrowserSdkClient,provision:kind=>window.matrixAuthority(kind),
+                        endpoints:spec.endpoints,selected,pin,state,report:currentAuthority});
+                    window.matrixPhase='six-browser-media-offers';
+                }});
             const sourceStartup=sources.observation();
             if(spec.stage!=='admission'){
                 window.matrixPhase='four-move-programme';
@@ -235,20 +244,21 @@ try{
                     media_peers:peers.length,active_bindings:peers.reduce((n,p)=>n+p.activeBindings,0),
                     queued_packets:peers.reduce((n,p)=>n+p.queuedPackets,0),queued_bytes:peers.reduce((n,p)=>n+p.queuedBytes,0)};
             }
-            return {passed:retirement.passed&&(!observer||programmeReport.decoded_media.passed)&&(!idleResources||idleResources.passed),
+            return {passed:retirement.passed&&selection.passed&&currentAuthority.passed&&(spec.stage==='admission'||programmeReport.passed)&&(!observer||programmeReport.decoded_media.passed)&&(!idleResources||idleResources.passed),
                 ...(observer?{decoded_media:programmeReport.decoded_media,
                     ...(programmeReport.decoded_media.passed?{}:{failure:{stage:'decoded-media-quality',name:'ProfileBudgetsFailed'}})}:{}),wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,admission:state.report,
-                actual_connections:state.connections.length,source_startup:sourceStartup,retirement,idle_resources:idleResources,selection,
+                actual_connections:state.connections.length,source_startup:sourceStartup,retirement,idle_resources:idleResources,selection,current_authority:currentAuthority,
                 ...(spec.stage!=='admission'?{programme:programmeReport,keepalive:keepalive.observation()}:{}),
                 ...(spec.stage!=='admission'?{scope:'Actual admission and four-move programme; decoded quality and idle resources are explicit when requested. Capture/expiry/fallback require separate evidence.'}:{})};
         }catch(error){
             console.error('Matrix failure',String(error.stack??error),JSON.stringify({kind:error.kind,certainty:error.certainty,problem:error.problem}));
             const closes=await Promise.allSettled(Object.values(actors).map(actor=>actor.client.close({timeoutMs:5000})));
-            return {passed:false,wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,failure:{stage:window.matrixPhase,
+            return {passed:false,wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,
+                admission:state.report,actual_connections:state.connections?.length??0,failure:{stage:window.matrixPhase,
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
-                programme:programmeReport,keepalive:keepalive?.observation(),selection,original_client_closes:closes.map(value=>value.status)};
+                programme:programmeReport,keepalive:keepalive?.observation(),selection,current_authority:currentAuthority,original_client_closes:closes.map(value=>value.status)};
         } finally {await keepalive?.close().catch(()=>{});await observer?.close();await sources?.close();BrowserMediaPeer.prototype.shutdown=originalShutdown;}
     },{spec,selected});
     Object.assign(report,result);report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});

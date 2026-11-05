@@ -1,0 +1,272 @@
+{
+  "format": "connect/g6-058-sql-observer-live/1",
+  "date": "2026-11-04",
+  "attempt": "v186",
+  "source_revision": "c87e3e6cf68fb7d649fe552e460569f6bcf2c0cf",
+  "report_sha256": "212c3dc7e68baef268029320cc3de26aed067f56fc63bf0f97b39a58fd1d693f",
+  "server_log_sha256": "bc8027bf22134c64ae6e793079f8980438fd0cb10ebd65ed9e6987b5ee33462a",
+  "environment": "Owner local Ubuntu24.04 ARM64 VM; Chrome WT EdDSA",
+  "integrity": {
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "browser_owner_joined": true
+  },
+  "moves_completed": 4,
+  "decoded_quality_passed": false,
+  "idle_passed": false,
+  "failure": {
+    "phase": "actual-browser-quality",
+    "browser": {
+      "stage": "decoded-media-quality",
+      "name": "ProfileBudgetsFailed"
+    }
+  },
+  "cell_qualified": false,
+  "task_complete": false,
+  "store_refusals": {
+    "Current packet state changed during admission": 21,
+    "All current packet observers are busy": 148,
+    "Original packet observer is busy during snapshot reseal": 1490,
+    "Current authority reader registry is busy": 164,
+    "Current authority is busy": 285,
+    "Exact replacement activation is awaiting durable projection": 3
+  },
+  "store_refusal_groups": [
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 8
+    },
+    {
+      "reason": "All current packet observers are busy",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 119
+    },
+    {
+      "reason": "Original packet observer is busy during snapshot reseal",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 666
+    },
+    {
+      "reason": "Original packet observer is busy during snapshot reseal",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 798
+    },
+    {
+      "reason": "Current authority reader registry is busy",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 57
+    },
+    {
+      "reason": "Current authority reader registry is busy",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 105
+    },
+    {
+      "reason": "Current authority is busy",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 176
+    },
+    {
+      "reason": "Current authority reader registry is busy",
+      "publishing": false,
+      "queued": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 2
+    },
+    {
+      "reason": "Original packet observer is busy during snapshot reseal",
+      "publishing": false,
+      "queued": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 26
+    },
+    {
+      "reason": "All current packet observers are busy",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 23
+    },
+    {
+      "reason": "All current packet observers are busy",
+      "publishing": false,
+      "queued": true,
+      "original_ingress": false,
+      "active_file_custody": true,
+      "events": 5
+    },
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 7
+    },
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": false,
+      "queued": true,
+      "original_ingress": false,
+      "active_file_custody": true,
+      "events": 5
+    },
+    {
+      "reason": "Current authority is busy",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 109
+    },
+    {
+      "reason": "All current packet observers are busy",
+      "publishing": false,
+      "queued": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 1
+    },
+    {
+      "reason": "Current packet state changed during admission",
+      "publishing": false,
+      "queued": false,
+      "original_ingress": false,
+      "active_file_custody": false,
+      "events": 1
+    },
+    {
+      "reason": "Exact replacement activation is awaiting durable projection",
+      "publishing": true,
+      "queued": true,
+      "original_ingress": true,
+      "active_file_custody": false,
+      "events": 3
+    }
+  ],
+  "core_terminal_counters": {
+    "collect-deferred": {
+      "events": 96,
+      "samples": 0
+    },
+    "input-discontinuity": {
+      "events": 11,
+      "samples": 7680
+    },
+    "burst-trim": {
+      "events": 92,
+      "samples": 88320
+    },
+    "take-deferred": {
+      "events": 103,
+      "samples": 0
+    },
+    "target-before-start": {
+      "events": 199,
+      "samples": 191040
+    },
+    "subscription-refused": {
+      "events": 26789,
+      "samples": 25717440
+    },
+    "target-deferred": {
+      "events": 10,
+      "samples": 9600
+    },
+    "empty-output": {
+      "events": 706,
+      "samples": 0
+    },
+    "refresh-reset": {
+      "events": 8,
+      "samples": 0
+    },
+    "target-refused": {
+      "events": 2,
+      "samples": 1920
+    }
+  },
+  "routes": [
+    {
+      "route": 0,
+      "audio_seconds": 57.32,
+      "minimum_fps": 22,
+      "sync_status": "failed",
+      "av_median_ms": 98.19999999925244,
+      "av_p95_ms": 119.99999999999922,
+      "observer_failure": null
+    },
+    {
+      "route": 1,
+      "audio_seconds": 59.42,
+      "minimum_fps": 23,
+      "sync_status": "failed",
+      "av_median_ms": 84.24999999999905,
+      "av_p95_ms": 140.79999999702153,
+      "observer_failure": null
+    },
+    {
+      "route": 2,
+      "audio_seconds": 59.28,
+      "minimum_fps": 24,
+      "sync_status": "failed",
+      "av_median_ms": 119.0999999996265,
+      "av_p95_ms": 160.60000000148733,
+      "observer_failure": null
+    },
+    {
+      "route": 3,
+      "audio_seconds": 59.38,
+      "minimum_fps": 24,
+      "sync_status": "failed",
+      "av_median_ms": 99.49999999999991,
+      "av_p95_ms": 141.19999999925525,
+      "observer_failure": null
+    },
+    {
+      "route": 4,
+      "audio_seconds": 59.14,
+      "minimum_fps": 19,
+      "sync_status": "failed",
+      "av_median_ms": 101.19999999925611,
+      "av_p95_ms": 158.600000001492,
+      "observer_failure": null
+    },
+    {
+      "route": 5,
+      "audio_seconds": 59.1,
+      "minimum_fps": 21,
+      "sync_status": "failed",
+      "av_median_ms": 81.00000000000307,
+      "av_p95_ms": 125,
+      "observer_failure": null
+    }
+  ],
+  "scope": "Diagnostic-only SQL refusal distinction. Counts include audio/video callbacks and ingress retries, not unique lost frames; no change to SQL allocation, authority, queue age or quality thresholds."
+}

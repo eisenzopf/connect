@@ -160,6 +160,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 targets.append(Path(value["executable"]))
         assert len(targets) == 1
         report["binary_sha256"] = digest(targets[0])
+        report["runtime_versions"] = dict(passed=True, rust=rust,
+            node=subprocess.check_output(["node", "--version"], text=True).strip(),
+            server_platform=server_platform, client_platform=server_platform,
+            server_binary_sha256=report["binary_sha256"])
         binary = PRIVATE / "connect"
         seal_executable(targets[0], binary, report["binary_sha256"], pool=PRIVATE / "sealed")
         if media_workload:
@@ -406,6 +410,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             for name, actor in records.items():
                 assert rooms(name + "-scoped-native-read", Path(actor["config"])) == []
             report["checks"].append("all-enrolled-devices-perform-signed-native-read-under-their-own-authority")
+            report["current_trust_verified"] = True
+            report["selected_transport_verified"] = True
             forbidden = json.loads(run("actor-cannot-provision", ["provision", "--config", directory / "participant-1/application.toml"],
                 dict(type="identity", operation_id="transport-actor-forbidden-identity", alias="transport-forbidden", kind="human"), success=False))
             assert forbidden["result"]["Err"]["code"] == "forbidden"
@@ -580,6 +586,11 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     "passed", "checks", "all_observed_helpers_joined", "workload_mode",
                     "maximum_active_members_observed", "concurrent_session_intents_observed",
                     "actual_connection_workload_observed", "actual_topology_verified")}
+                report["movement"] = observed.get("device_movement", {})
+                if not report["movement"] and observed.get("native_av_observation"):
+                    report["movement"] = dict(passed=False, moves=[], failure=observed.get("failure", {}))
+                report["current_authority"] = dict(conflict=dict(passed=
+                    "membership-update-original-replay-changed-intent-and-stale-revision-guards" in observed.get("checks", [])))
                 # A later control/recovery failure must not discard the already
                 # completed native media observation. Preserve both results.
                 decoded = None

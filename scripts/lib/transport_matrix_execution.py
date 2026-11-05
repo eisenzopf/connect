@@ -46,24 +46,26 @@ def browser_selection_verified(observation):
 
 
 def configure_execution(matrix, environment, stage="media"):
-    if stage not in {"media", "admission", "programme", "quality", "non-av"}:
+    if stage not in {"full", "media", "admission", "programme", "quality", "non-av"}:
         raise ValueError("Unknown execution stage")
     if environment["server"] not in DIMENSIONS["server"]:
         raise ValueError("Unapproved execution platform")
     matrix["execution_environment"] = environment
     matrix["requested_stage"] = stage
+    if stage == "full":
+        return configure_full_execution(matrix, environment)
     for cell in matrix["cells"]:
         blockers = []
         non_av = stage == "non-av"
-        admission = stage in {"admission", "programme", "quality"} or (non_av and cell["transport"] != "native-quic")
-        actual_stage = "admission" if non_av and admission else "data" if non_av else stage
+        admission = (stage == "full" and cell["transport"] != "native-quic") or stage in {"admission", "programme", "quality"} or (non_av and cell["transport"] != "native-quic")
+        actual_stage = ("quality" if admission else "media") if stage == "full" else "admission" if non_av and admission else "data" if non_av else stage
         if cell["server"] != environment["server"]:
             blockers.append("requires-other-local-arm-host")
         if admission:
             if (cell["server"] != "ubuntu24-arm64" or cell["network"] != "local"
                     or cell["transport"] not in {"chrome-webtransport", "chrome-wss-webrtc"}):
                 blockers.append("browser-admission-producer-unavailable-for-this-cell")
-            if stage in {"programme", "quality"} and cell["transport"] != "chrome-webtransport":
+            if actual_stage in {"programme", "quality"} and cell["transport"] != "chrome-webtransport":
                 blockers.append("browser-replacement-producer-not-implemented-for-this-transport")
             if not environment.get("browser_runtime_image_id"):
                 blockers.append("exact-local-arm-browser-image-not-verified")
@@ -84,7 +86,7 @@ def configure_execution(matrix, environment, stage="media"):
             producer="browser-" + actual_stage if admission else ("native-data" if non_av else "native-media") if cell["transport"] == "native-quic" else None,
             stage=actual_stage,
             runnable=not blockers, blockers=blockers,
-            completion_blockers=list(COMPLETION_GAPS) + ([("browser-independent-decoded-quality-not-qualified" if stage == "quality" else "browser-independent-decoded-quality-and-packet-capture-not-connected" if stage == "programme" else "full-browser-movement-media-producer-not-connected"),
+            completion_blockers=list(COMPLETION_GAPS) + ([("browser-independent-decoded-quality-not-qualified" if actual_stage == "quality" else "browser-independent-decoded-quality-and-packet-capture-not-connected" if actual_stage == "programme" else "full-browser-movement-media-producer-not-connected"),
                 "browser-fallback-and-neither-path-refusal-not-executed"] if admission else []), attempted=False,
             component=None,
         )
@@ -97,6 +99,45 @@ def configure_execution(matrix, environment, stage="media"):
                 note="Admission/data stages execute available checks only. Replacement, expiry and idle gaps remain required; no AV or full-cell qualification.")
         cell["reason"] = "execution-preflight-blocked" if blockers else "required-workload-ready-not-run"
     return matrix
+
+
+def configure_full_execution(matrix, environment):
+    """All transports use their real producer; runtime refusals are test results."""
+    for cell in matrix["cells"]:
+        browser = cell["transport"] != "native-quic"
+        local_host = cell["server"] == environment["server"]
+        blockers = list(environment["execution_blockers"]) if local_host else ["assigned-to-other-local-arm-host"]
+        cell["execution"] = dict(producer="browser-quality" if browser else "native-media",
+            stage="quality" if browser else "media", runnable=not blockers,
+            blockers=blockers, completion_blockers=[], attempted=False, component=None,
+            executor="scripts/rehearse-gate6-browser-matrix.py" if browser else "scripts/check-transport-fixtures.py",
+            verifier="scripts/lib/transport_matrix_verdict.py")
+        cell["check_results"] = {name: dict(status="not-run", evidence=None) for name in cell["required_checks"]}
+        cell["reason"] = "assigned-to-local-arm-worker" if local_host else "assigned-to-other-local-arm-host"
+    return matrix
+
+
+def full_run_preflight(matrix):
+    """Owner policy: no selected-cell or partial-stage acceptance runs.
+
+    Record environment problems without cancelling independent cells. Behavior
+    failures and library refusals are evaluated during the original execution.
+    """
+    ids = [cell["id"] for cell in matrix["cells"]]
+    if len(ids) != 32 or len(set(ids)) != 32 or matrix.get("requested_stage") != "full":
+        raise ValueError("Every G6-058 run requires all 32 complete workloads")
+    missing = []
+    for cell in matrix["cells"]:
+        execution = cell["execution"]
+        gaps = [b for b in execution["blockers"] if b != "assigned-to-other-local-arm-host"]
+        gaps.extend(gap for gap in execution["completion_blockers"]
+                    if gap.endswith("-not-connected") or gap.endswith("-not-implemented"))
+        if gaps:
+            missing.append(dict(cell_id=cell["id"], gaps=sorted(set(gaps))))
+    return dict(format="connect/g6-058-full-run-preflight/1", required_cells=32,
+                selected_cells=ids, all_workloads_connected=not missing,
+                missing=missing, tests_executed=False,
+                scope="Wiring and environment preflight only; never behavior qualification.")
 
 
 def select_cells(matrix, ids):
@@ -319,12 +360,18 @@ def merge_hosts(base, reports):
                 raise ValueError("Cell dimensions changed")
             if cell["required_checks"] != original["required_checks"]:
                 raise ValueError("Cell requirements changed")
-            if cell["status"] not in {"not-run", "running", "failed", "incomplete"}:
-                raise ValueError("No complete-cell verifier is connected")
+            if cell["status"] not in {"not-run", "running", "failed", "incomplete", "blocked", "passed"}:
+                raise ValueError("Unknown cell outcome")
+            if cell["status"] == "passed" and (cell.get("verifier", {}).get("format") != "connect/g6-058-cell-verdict/1"
+                    or set(cell.get("check_results", {})) != set(original["required_checks"])
+                    or any(r.get("status") != "passed" or not r.get("evidence") for r in cell["check_results"].values())
+                    or cell["verifier"].get("integrity") is not True):
+                raise ValueError("Complete cell lacks all current requirement verdicts")
             if cell["server"] == host:
                 original.update(copy.deepcopy(cell))
         hosts.add(host)
     merged["host_reports_received"] = sorted(hosts)
     merged["missing_host_reports"] = sorted(DIMENSIONS["server"] - hosts)
-    merged["matrix_qualified"] = merged["task_complete"] = merged["whole_gate_qualified"] = False
+    from .transport_matrix_verdict import summarize
+    summarize(merged)
     return merged
