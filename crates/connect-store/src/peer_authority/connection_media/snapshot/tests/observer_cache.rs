@@ -1,5 +1,43 @@
 use super::*;
 
+#[test]
+fn changed_facts_with_covered_scopes_keep_one_fresh_admission() {
+    for selected in 0..crate::packet_observation::OBSERVERS {
+        for paired in [false, true] {
+            let f = Fixture::new();
+            let occupied = occupy_except(&f, selected);
+            let memo = Memo::default();
+            let token: MetadataToken = Arc::new(7u8);
+            let source = paired.then_some(&token);
+            let read = || cached(&f.store, &memo, source, |c| f.derive(c));
+            assert_eq!(read().unwrap().0, 1);
+            let external = Connection::open(f.store.path()).unwrap();
+            external
+                .execute("UPDATE packet_snapshot_test SET value=2", [])
+                .unwrap();
+            let before = f.store.authority.test_admission_attempts();
+            let (value, held) = read().unwrap();
+            assert_eq!(value, 2, "a new commit must invalidate old facts");
+            assert!(f.store.authority_covers(&held, &[f.read.clone()]));
+            assert_eq!(
+                f.store.authority.test_admission_attempts() - before,
+                1,
+                "current facts covered by the fresh reader must not drop SQL and reseal"
+            );
+            assert_eq!(
+                f.store
+                    .try_acquire_authority(&[f.write.clone()])
+                    .unwrap_err()
+                    .code,
+                "authority-busy"
+            );
+            drop(held);
+            drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());
+            drop(occupied);
+        }
+    }
+}
+
 fn occupy_except(f: &Fixture, selected: usize) -> Vec<std::sync::MutexGuard<'_, Connection>> {
     f.store
         .packet_connections
