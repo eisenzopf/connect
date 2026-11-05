@@ -110,7 +110,7 @@
   ],
   "applied_scope": "Audio/subscription/canvas/Worker/observer/startup/TLS/ICE corrections plus paired current continuation, native decoded readiness, exact same-source decoder epoch promotion, original20ms preparation sample cadence and adapted signed/decoder fixtures. Static checks pass; latest broad typecheck exposed two fixture API/ownership errors, now corrected. No new runtime pass. Browser native decoded proof/custody now applied and TypeScript build/full formatting pass; four new/changed Node test files parse, but no runtime test has run.",
   "integration_evidence": "g6-058-coordinated-integration-progress.json",
-  "source_lock_sha256": "c9cb82f2a87b847bb42f714ee11e2d73dee73ddfbaaa46f9988f968f590af35f",
+  "source_lock_sha256": "779f0b64e62f6058868643c547bd6f22fe5674f0407dbb3a2f95e18464d247ff",
   "integration_findings": [
     {
       "id": "preparation-audio-cadence",
@@ -151,6 +151,24 @@
       "fix": "Retain genuine same-source decoder context; exact original native packetizer boundary is being added to actual Core commit, durable result, SDK datagram lineage and public oracle. No source timestamp or threshold changes.",
       "proof": "Existing decoder/epoch fixtures applied but unrun. Native packet lineage and race/old-owner refusal controls are in private implementation. WebRTC retains its separate measurement contract.",
       "reference": ".local/gate-6/native-private-context-oracle-candidate/proposal.json"
+    }
+  ],
+  "integration_wiring_findings": [
+    {
+      "id": "metadata-test-module-path",
+      "kind": "test-wiring",
+      "status": "applied-runtime-unverified",
+      "finding": "Actual ARM Core no-run compile found E0583: path-attributed subscriptions parent changes nested module resolution.",
+      "fix": "Explicit subscriptions/prepared_commit.rs path in both original before overlay and final source. Actual assertion body is unchanged.",
+      "proof": "Recorded patch and fresh dependency reconstruction; original compile failure retained. Corrected Core compile not yet run."
+    },
+    {
+      "id": "private-replay-record-id-types",
+      "kind": "test-wiring",
+      "status": "applied-runtime-unverified",
+      "finding": "Integrated workspace check found two Option<Identifier> versus String comparisons in signed private replay fixtures.",
+      "fix": "Require Some(exact authoritative record ID) through as_ref/as_str; result and authoritative Store effect checks remain.",
+      "proof": "Original check101 joined with5594tracked/532prepared inputs unchanged; corrected assertion parsing/formatting only."
     }
   ]
 }

@@ -1,0 +1,8 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -2043,4 +2043,5 @@
+     resource_subscription_metadata_case("revoke").await;
+ }
+ 
++#[path = "subscriptions/prepared_commit.rs"]
+ mod prepared_commit;

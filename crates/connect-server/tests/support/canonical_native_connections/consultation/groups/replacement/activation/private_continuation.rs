@@ -419,7 +419,10 @@ async fn exercise(case: Case) {
     )
     .await;
     let replay = controller.transition(command.clone()).await.unwrap();
-    assert_eq!(replay.record_id, done.record_id);
+    assert_eq!(
+        replay.record_id.as_ref().map(|id| id.as_str()),
+        Some(done.record_id.as_str())
+    );
     assert_eq!(replay.result, done.result);
     let replayed = status(&f, &key.id, &command.operation_id).await;
     assert_eq!(replayed.effects, done.effects);
@@ -457,7 +460,10 @@ async fn exercise(case: Case) {
     )
     .await;
     let return_replay = controller.transition(returning.clone()).await.unwrap();
-    assert_eq!(return_replay.record_id, returned.record_id);
+    assert_eq!(
+        return_replay.record_id.as_ref().map(|id| id.as_str()),
+        Some(returned.record_id.as_str())
+    );
     assert_eq!(return_replay.result, returned.result);
     let return_replayed = status(&f, &key.id, &returning.operation_id).await;
     assert_eq!(return_replayed.effects, returned.effects);

@@ -1744,6 +1744,11 @@
       "path": "patches/rvoip/connect-private-replacement-successor.patch",
       "sha256": "2e4007d2fe1dd6d681bd76fcebe93ed136fe8f6893b27eefe51c67c7bbc33fcd",
       "source": "G6-058 actual same-commit native private-primary restoration successor and parent-bound immutable physical lineage. Original private expiry and fresh current target authority remain required; consultant/provider and held-remote replacement remain refused. Focused and full matrix behavior verification pending."
+    },
+    {
+      "path": "patches/rvoip/connect-native-subscription-test-module-path.patch",
+      "sha256": "5245e852687f66e17f522bc3cc2e5bef4cacc8d2df728c2d948a5d80d2b1f85e",
+      "source": "G6-058 test-only module resolution correction: explicit subscriptions/prepared_commit.rs under the existing path-attributed subscriptions module. Test source/assertions and production behavior unchanged. No tests/builds executed by this candidate."
     }
   ]
 }
