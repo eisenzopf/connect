@@ -2,6 +2,11 @@
 //! Callers retain logical operation IDs and correlate verified replies/events.
 pub use crate::NativeNetworkProfile;
 use crate::{ClientError, Result};
+/// Historical activation metadata returned by the public native readiness API.
+pub use connect_protocol::replacement_activation::{
+    NativeActivationAudience, NativeActivationBoundary, NativeEgressIdentity, NativeSequenceCut,
+    SequenceMembership,
+};
 pub use native_io::NativeDatagrams;
 pub use native_video::{NativeVideoDatagram, NativeVideoDatagrams};
 use rvoip_auth_core::sig9421::{

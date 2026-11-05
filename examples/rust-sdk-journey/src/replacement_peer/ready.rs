@@ -1,7 +1,10 @@
 //! Actual private decoded readiness is separate from public programme quality.
 use super::*;
 use connect_client::{
-    canonical::{NativeDecodedVideoReadiness, NativeReplacementReadiness, NativeReplacementReady},
+    canonical::{
+        observe_native_media_datagram, NativeActivationAudience, NativeDecodedVideoReadiness,
+        NativeReplacementReadiness, NativeReplacementReady, ObservedNativeMediaDatagram,
+    },
     sdk::VideoReceiveEpoch,
     NativeVideoPacket, VideoFrameAssembler,
 };
@@ -311,10 +314,7 @@ impl Observer {
             );
         }
         let activation = self.preparation.activation_from_completed(status)?;
-        if !matches!(
-            activation.audience,
-            connect_protocol::replacement_activation::NativeActivationAudience::Public { .. }
-        ) {
+        if !matches!(activation.audience, NativeActivationAudience::Public { .. }) {
             return Err("this public programme has no public native activation cut".into());
         }
         let value = serde_json::to_value(activation)?;

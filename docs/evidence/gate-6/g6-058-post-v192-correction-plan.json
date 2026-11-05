@@ -3,11 +3,11 @@
   "task": "G6-058",
   "basis_revision": "ae0bffa62ab6a096c9b2439b4605831060be33fa",
   "basis_matrix_sha256": "a8b87d0fe0c5821661d7859a3b593c25c3a0cb8fa7f01ee751d769b286106264",
-  "status": "coordinated-private-batch-in-progress",
+  "status": "known-gap-source-batch-integrated-focused-verification-next",
   "active_source_changes_applied": true,
   "new_runtime_tests_executed": 194,
   "new_matrix_cells_qualified": 0,
-  "batch_policy": "All known correction boundaries are integrated as one coordinated batch, including native activation cuts and private successor/lineage. API/model call-site and browser asset corrections found by integrated checks are being included. Normal-profile focused ARM behavior verification and one clean all32/all432 local ARM matrix follow complete integration.",
+  "batch_policy": "All known source gaps and newly exposed model/asset/import/credential fixture corrections are integrated as one batch. Selected Node175/175 and Python19/19 pass; workspace and independent Rust example API checks pass. Normal-profile focused ARM verification and all32/all432 matrix follow; before diagnostic results stay separate, WAL before remains unqualified.",
   "items": [
     {
       "id": "prepared-subscription-metadata",

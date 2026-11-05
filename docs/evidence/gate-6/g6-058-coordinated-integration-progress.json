@@ -1,9 +1,9 @@
 {
   "format": "connect/g6-058-coordinated-integration-progress/1",
   "task": "G6-058",
-  "status": "known-gap-batch-integrated-corrected-models-pass-arm-baseline-running",
+  "status": "known-gap-source-batch-complete-focused-arm-verification-next",
   "basis_revision": "d5b6f04ece02eb19dc3a687e1f69891e9be77f8f",
-  "recorded_at": "2026-11-05T19:36:47.209983+00:00",
+  "recorded_at": "2026-11-05T19:46:36.843101+00:00",
   "source_lock_sha256": "6649cc334789306f8ff1d3fb3aada60cec0a66c2f7a7a3f0311f47936c28e98b",
   "prepared_files_verified": 534,
   "reviewed_upstream_results_verified": 46,
@@ -33,9 +33,8 @@
     "exact original native activation cuts with shared per-physical RTP/SR/feedback reservation, signed immutable identities, SDK/parser provenance and original source-clock quality membership"
   ],
   "pending": [
-    "correct newly exposed model/call-site wiring defects without weakening guards",
-    "actual focused normal-profile ARM runtime verification including retained before binaries and cadence controls",
-    "complete32/all432 local matrix and actual resource attribution"
+    "actual focused normal-profile ARM verification including signed/native/Core/adapter/Firefox/VP8 behavior",
+    "full32/all432 local matrix; actual runtime-resource causation and any new failures remain open"
   ],
   "verification": {
     "dependency_preparation_exit_code": 0,
@@ -129,7 +128,7 @@
         "passed": 19,
         "skipped": 0
       },
-      "rust_api_preflight": "corrected original58178 running; includes independent Rust journey after workspace",
+      "rust_api_preflight": "Five workspace crates and tests pass release-cfg/optimization0 API preflight; independent client-only Rust example passes after public-type/helper import corrections. Full production-profile runtime remains pending.",
       "matrix_cells_qualified": 0,
       "node_latest": {
         "cases": 175,
@@ -151,16 +150,36 @@
         "original_jobs_joined": true,
         "all2142inputs_unchanged": true,
         "errors": "six old .begin modelcalls missing source predecessor; corrected"
+      },
+      "rust_workspace_typecheck": {
+        "exit_code": 0,
+        "scope": "v205 five workspace crates and tests; source unchanged through original join",
+        "release_cfg": true,
+        "optimization": 0
+      },
+      "rust_journey_typecheck": {
+        "initial_exit_code": 101,
+        "corrected_exit_code": 0,
+        "original_jobs_joined": true,
+        "all2142inputs_unchanged": true,
+        "scope": "v206 client-only independent example and reexported native metadata API; no transport runtime"
       }
     },
     "transport_runtime_tests_executed": 0,
     "runtime_tests_scope": "Latest selected host suite175/175 and Python19/19 pass; earlier failures retained. No new signed transport or matrix pass yet.",
     "retained_before_runtime": {
       "run": "post-v192-retained-runtime-v1",
-      "status": "running-original51426",
-      "cases_selected": 13,
+      "status": "original-joined-offline-header-reaudit-complete",
+      "cases_executed": 13,
+      "passing_controls": 7,
+      "designated_negatives_qualified": 5,
+      "unqualified": 1,
       "compile_commands": 0,
-      "scope": "Exact retained Corev3/serverv2 artifacts and separate original source graphs; before only"
+      "all_sources_binaries_unchanged": true,
+      "original_worker_guardian_joined_released": true,
+      "scope": "Original thirteen cases: seven passing controls, five designated before failures admitted after strict optional numeric Rust thread-header parser correction. Original receipts unchanged. WAL fails earlier bearer/credential-ID fixture assertion and remains unqualified; current test-only call corrected, final functional proof pending.",
+      "initial_designated_negatives_qualified": 4,
+      "offline_reaudit_new_runtime_invocations": 0
     }
   },
   "latest_runtime_matrix": {
@@ -215,6 +234,9 @@
     ".local/gate-6/coordinated-private-retirement-v203/fast-typecheck-receipt.json",
     ".local/gate-6/coordinated-nativecut-v204/integration-receipt.json",
     ".local/gate-6/coordinated-nativecut-v205/node-tests-receipt.json",
-    ".local/gate-6/post-v192-retained-runtime-input-v1/seal.json"
+    ".local/gate-6/post-v192-retained-runtime-input-v1/seal.json",
+    ".local/gate-6/coordinated-nativecut-v206/integration.json",
+    ".local/gate-6/coordinated-nativecut-v206/typecheck-receipt.json",
+    ".local/gate-6/retained-runtime-panic-header-delta-v1/offline-reaudit.json"
   ]
 }

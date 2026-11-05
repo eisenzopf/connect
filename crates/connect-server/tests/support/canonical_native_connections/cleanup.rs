@@ -234,7 +234,7 @@ async fn production_native_packet_observer_wal_handles_retire_while_server_stays
     }
     let elapsed = terminal.elapsed();
     // Ordinary current control/admin reads still work without a physical peer.
-    let administration_current = scene.f.server.store.revalidate(&scene.f.admin).is_ok();
+    let administration_current = scene.f.server.store.authenticate(&scene.f.admin).is_ok();
     // Join the original server even in the expected BEFORE failure. The FD
     // verdict is the captured live-server observation, never its shutdown count.
     let server_join = scene.f.server.shutdown().await;
