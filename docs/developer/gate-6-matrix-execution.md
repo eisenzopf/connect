@@ -13,14 +13,15 @@ occurred. See [v192 evidence](../evidence/gate-6/matrix-full-v192.json).
 
 The current [correction batch](../evidence/gate-6/g6-058-post-v192-correction-plan.json)
 addresses original PCM loss, target activation ordering, typed metadata retry,
-observer resource lifetime and fixture gaps. Five private candidates are ready
-for verification: original audio retention, subscription metadata retry, explicit
-canvas capture, Firefox loopback ICE and the native QUIC certificate. Activation,
-observer lifetime and Node programme ownership are still being implemented.
-Full WebRTC authority failures and server resource growth need further causal
-evidence. Private drafts and designs are not runtime passes. Preserve every
-original age, authority, media quality and idle limit; no inherited cell
-qualification or threshold adjustment.
+observer resource lifetime and fixture gaps. The Firefox loopback ICE and native
+QUIC leaf-certificate fixes are applied and syntax checked. Original audio
+retention, subscription metadata retry and explicit canvas capture remain private
+candidates. Activation, observer lifetime and Node programme ownership are still
+being implemented. A narrow WebRTC startup metadata draft preserves the exact
+original attempt; private readiness and server resource growth still need causal
+evidence. None of this new work has a runtime pass. Preserve every original age,
+authority, media quality and idle limit; no inherited cell qualification or
+threshold adjustment.
 
 The previous coordinated v196 library batch passes37candidate checks plus a
 separate passing baseline control and expected pre-fix failure. All3actual

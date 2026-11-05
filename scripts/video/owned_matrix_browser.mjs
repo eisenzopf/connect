@@ -16,6 +16,13 @@ export async function launchMatrixBrowser(spec,profile,initializeProfile){
     const {default:puppeteer}=await import(pathToFileURL(spec.puppeteerModule).href);
     if(initializeProfile)await initializeProfile(profile);else await fs.mkdir(profile,{mode:0o700});
     await fs.writeFile(path.join(profile,'user.js'),[
+        // Firefox excludes loopback ICE candidates and loopback STUN by
+        // default. Enable its documented offline-test mode only in this
+        // disposable, explicitly owned all-loopback matrix profile.
+        ...(new URL(spec.origin).hostname==='127.0.0.1' &&
+            Array.isArray(spec.fixtureAddresses) && spec.fixtureAddresses.length===1 &&
+            spec.fixtureAddresses[0]==='127.0.0.1'
+            ? ['user_pref("media.peerconnection.ice.loopback", true);'] : []),
         'user_pref("media.autoplay.default", 0);',
         'user_pref("media.autoplay.blocking_policy", 0);',
         'user_pref("browser.shell.checkDefaultBrowser", false);',

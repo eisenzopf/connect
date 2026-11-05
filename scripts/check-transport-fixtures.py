@@ -348,6 +348,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             commands = [
                 ["openssl", "req", "-new", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256", "-nodes", "-x509", "-days", "1",
                  "-subj", "/CN=" + remote.server_ip, "-addext", "subjectAltName=IP:" + remote.server_ip,
+                 "-addext", "basicConstraints=critical,CA:FALSE",
                  "-addext", "extendedKeyUsage=serverAuth", "-keyout", tls / "private.pem", "-out", tls / "certificate.pem"],
                 ["openssl", "x509", "-in", tls / "certificate.pem", "-outform", "DER", "-out", state / "certificate.der"],
                 ["openssl", "pkcs8", "-topk8", "-nocrypt", "-in", tls / "private.pem", "-outform", "DER", "-out", state / "private-key.der"],

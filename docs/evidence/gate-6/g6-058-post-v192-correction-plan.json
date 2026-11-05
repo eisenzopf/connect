@@ -4,10 +4,10 @@
   "basis_revision": "ae0bffa62ab6a096c9b2439b4605831060be33fa",
   "basis_matrix_sha256": "a8b87d0fe0c5821661d7859a3b593c25c3a0cb8fa7f01ee751d769b286106264",
   "status": "coordinated-private-batch-in-progress",
-  "active_source_changes_applied": false,
+  "active_source_changes_applied": true,
   "new_runtime_tests_executed": 0,
   "new_matrix_cells_qualified": 0,
-  "batch_policy": "Address all nine known boundaries in one coordinated batch using the three existing agents and Root. Five private candidates are ready for verification; activation, observer lifetime and runtime ownership remain in implementation, and WebRTC move authority still needs a controlled diagnosis. Complete focused checks before one clean all-32/all-432 matrix run on local ARM resources. No new runtime result is claimed.",
+  "batch_policy": "Address all nine known boundaries in one coordinated batch using the three existing agents and Root. Two reviewed fixture fixes are applied; three reviewed library candidates remain private. Activation, observer lifetime and runtime ownership remain in implementation. A further narrow WebRTC startup metadata draft is under review; private readiness and server resource growth still need causal evidence. Complete focused checks before one clean all-32/all-432 matrix run on local ARM resources. No new runtime result is claimed.",
   "items": [
     {
       "id": "prepared-subscription-metadata",
@@ -62,7 +62,7 @@
     {
       "id": "firefox-local-ice",
       "kind": "fixture",
-      "status": "private-candidate-syntax-checked-runtime-unverified",
+      "status": "applied-syntax-checked-runtime-unverified",
       "finding": "Four local Firefox cases fail first ICE connection; the disposable profile omits the documented offline loopback ICE setting.",
       "fix": "Enable it only for an authenticated loopback origin and sole explicitly declared 127.0.0.1 fixture address.",
       "proof": "Pinned Firefox actual handshake/decoded media plus wrong-CA refusal and original joins pending; remote capture failure is separate.",
@@ -72,7 +72,7 @@
     {
       "id": "mac-remote-leaf-certificate",
       "kind": "fixture",
-      "status": "private-candidate-syntax-checked-runtime-unverified",
+      "status": "applied-syntax-checked-runtime-unverified",
       "finding": "Both Mac remote native seed exchanges fail before workload; their generated server end-entity certificate has critical CA:TRUE, which the pinned standard verifier rejects in leaf role.",
       "fix": "Explicit critical CA:FALSE, retaining exact IP SAN, P256, serverAuth, one-day validity and normal certificate validation.",
       "proof": "Actual pinned verifier, wrong-root/name controls and original guest QUIC exchange pending. Historical generic error alone does not prove sole causation.",
@@ -92,11 +92,11 @@
     {
       "id": "rtc-movement-authority",
       "kind": "unresolved-boundary",
-      "status": "investigating",
-      "finding": "Chrome WebRTC movements report original-operation deadlines or503 authority_unavailable in full workloads, although focused signed AV cases pass. One retained Mac case reaches private preparation/readiness contention without public commit; the other failed source has no attach trace. Post-commit activation alone does not explain both.",
-      "fix": "Correlate original operation, current authority and preparation/commit/activation stages before choosing a change.",
-      "proof": "Do not retry unknown effects or infer this is the same metadata/activation defect without a controlled witness.",
-      "reference": ".local/gate-6/full-matrix-v192/completed-cell-diagnostics/",
+      "status": "private-startup-metadata-draft-private-readiness-unresolved",
+      "finding": "Original terminal Store records narrow one Mac failure to a once-only start effect left unknown before SDP answer; the other source has confirmed start/attach/activation but no readiness or public commit. Startup provenance and post-answer record lookup each use one-shot immediate primary SQL reads.",
+      "fix": "Draft bounded re-observation of only authority-busy at those two pure metadata reads, retaining exact original attempt, validation, cancellation and deadline; never repeat begin/start, answer delivery or driver IO. Diagnose private readiness separately.",
+      "proof": "Private two-file draft and three helper controls remain uncompiled/unexecuted. Original phases constrain the boundary but do not prove the exact historical503 call site. Actual signed and complete matrix proofs remain required.",
+      "reference": ".local/gate-6/webrtc-start-metadata-candidate/apply-manifest.json",
       "title": "WebRTC move authority"
     }
   ],
@@ -107,5 +107,6 @@
     "Local Mac Studio and Ubuntu24 ARM64 only; G6-054 stays deferred",
     "Recorded upstream patches/source-lock and freshly prepared sources before builds",
     "Exact before-fail/after-pass evidence before broad claims; publication separate"
-  ]
+  ],
+  "applied_scope": "Two fixture changes only: isolated Firefox loopback ICE preference and explicit non-CA QUIC server leaf. Syntax checked; no new runtime test or matrix qualification."
 }
