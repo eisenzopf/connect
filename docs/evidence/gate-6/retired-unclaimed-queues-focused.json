@@ -1,0 +1,92 @@
+{
+  "format": "connect/retired-unclaimed-queues-focused/1",
+  "status": "focused-verified-and-integrated",
+  "scope": "Actual Core controlled-policy/adapter lifecycle tests on local ARM Linux, including real encoded G711 decoding and typed-data destructor reentry; no physical RTC, canonical runtime shutdown or complete matrix qualification.",
+  "qualified_cell": false,
+  "qualified_gate": false,
+  "architecture": "local Linux aarch64",
+  "patch": {
+    "path": "patches/rvoip/gate6-retired-unclaimed-queues.patch",
+    "sha256": "d9eeaa2e7297b7adbba5fc24941826f43673a9b9789151c7f9905ad6ce8683b5"
+  },
+  "source_files": [
+    {
+      "path": "crates/foundation/rvoip-core/src/staged_streams.rs",
+      "original_sha256": "9d9e280105b252e9a9516fe8fa6666458fec64b003fbd191e7ceec84f6db2d4d",
+      "must_not_exist": false,
+      "candidate_sha256": "773d615bdf3a184df0fb7152f305a682b6c470c8c3a39d81ebf402e2246a0675"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/staged_streams/tests.rs",
+      "original_sha256": "0ea32cfb9d597ea7141d0d838e49e1ad5a82a1f9969216b7a37500499c176625",
+      "must_not_exist": false,
+      "candidate_sha256": "a3d2fd0df8e3c72681797c0107c406d227652156f8ea766ef20f4ee38cb09c17"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/staged_streams/tests/retired_queue_ownership.rs",
+      "original_sha256": null,
+      "must_not_exist": true,
+      "candidate_sha256": "746c10fa8d9e34599ad4e17692440876372889ef25f7dd0351c2aee46b69e898"
+    }
+  ],
+  "actual_checks": {
+    "selected": 13,
+    "before_passed": 11,
+    "before_failed": [
+      "staged_streams::tests::retired_queue_ownership::shutdown_releases_admitted_ingress_when_receiver_was_never_claimed",
+      "staged_streams::tests::retired_queue_ownership::shutdown_releases_forwarded_egress_when_receiver_was_never_claimed"
+    ],
+    "after_passed": 13,
+    "after_failed": 0,
+    "ignored": 0,
+    "identical_inventory": [
+      "staged_streams::tests::retired_queue_ownership::shutdown_releases_admitted_ingress_when_receiver_was_never_claimed",
+      "staged_streams::tests::retired_queue_ownership::shutdown_releases_forwarded_egress_when_receiver_was_never_claimed",
+      "staged_streams::tests::retired_queue_ownership::claimed_ingress_and_dequeued_packet_keep_their_actual_owner_until_drop",
+      "staged_streams::tests::retired_queue_ownership::claimed_egress_decodes_before_retirement_and_remains_fenced_afterward",
+      "staged_streams::tests::retired_queue_ownership::cancelled_open_releases_candidate_without_draining_existing_audio",
+      "staged_streams::tests::retired_queue_ownership::failed_open_releases_candidate_without_draining_existing_audio",
+      "staged_streams::tests::encoded_audio_crosses_only_committed_current_authorized_ports",
+      "staged_streams::tests::cancelled_candidates_quarantine_capacity_until_cleanup_confirms",
+      "staged_streams::tests::shutdown_cancels_preparation_and_confirms_only_owned_resources",
+      "staged_streams::tests::dropping_the_control_future_cancels_and_retains_cleanup_evidence",
+      "staged_streams::tests::terminal_cleanup_waits_for_the_final_guard_and_never_closes_another_port",
+      "staged_streams::tests::local_send_timeout_releases_authority_and_cleanup_fences",
+      "staged_streams::tests::retired_queue_ownership::queued_data_context_drop_can_reenter_after_all_cleanup_guards_are_gone"
+    ]
+  },
+  "before": {
+    "receipt_sha256": "f230f65ce1ddc09fcf8050036a14bb8a794bcbe7b8b789c47fa629902f99b0ea",
+    "binary_sha256": "d0aadfb7a970089b2a544db6dccc718928bde52dd488998f763a4690e6d43618",
+    "ownership_log_sha256": "907a22518e0884d1f965554076269a629aceaf7432cc6e0591e9e7b7a2715454",
+    "qualification": "Only the two final WeakAdapterMediaPort release assertions fail after successful Core shutdown and dead controller owners; other eleven controls pass."
+  },
+  "after": {
+    "receipt_sha256": "3a38dda072c2bd05622e61e52711ae7cf764613883b0e8dacff19afa7856b371",
+    "binary_sha256": "76c05f89ba3cbd34561300058154348f39cda9f9b23c144de302ecd6e7e4011f",
+    "ownership_log_sha256": "b71bd5a0cbfcb41bacb04b1e30a67c39f8a042630ba650e7f62d9a00d5d66380",
+    "new_binary_differs_from_before": true,
+    "all_original_groups_joined_without_force": true
+  },
+  "fix": "Release internally unclaimed receivers after retirement outside all controller, port, cleanup and in-flight guards. Already claimed consumers retain and release their actual original packets normally.",
+  "preserved_behavior": [
+    "Quarantined physical capacity remains until cleanup confirms",
+    "Current delivery fences reject post-retirement writes",
+    "Failed/cancelled candidate opens preserve existing original audio",
+    "Typed-data destructors may reenter only after all cleanup guards have gone"
+  ],
+  "prepared_source": {
+    "active_source_lock_sha256": "bcc8465ecb2b022ba1d0481b1f6afad2092d1a4283793918c6d029d3a59b3250",
+    "all_patched_source_files_verified": 514,
+    "default_prepare_exit_code": 0,
+    "private_parent_preparation_receipt_sha256": "acc7d73eef659f888b9483ec2a81bc7c9cca1500df698a7928b430dadf3a5379",
+    "original_dependency_tree_preserved": true
+  },
+  "verification_receipt_sha256": "9abb21e1b6796a931726f7a67fa9e45dee8a3d00b60eae02e70fb9ed9ba5ec8e",
+  "limits": [
+    "Real Core APIs, encoded G711 decode and typed-data lifetime tests use the existing controlled-policy/adapter test fixture. They do not qualify physical RTC/native shutdown by themselves.",
+    "No v191 RSS attribution, canonical runtime shutdown fix, full32 matrix pass or idle criterion pass is claimed.",
+    "No allocator, GC, runtime keepalive, queue threshold, authorization or deadline threshold changed.",
+    "Original compile-import and mode-guard failures, and the identical-binary stale after-attempt, are retained as unqualified."
+  ]
+}

@@ -1688,7 +1688,17 @@
     {
       "path": "patches/rvoip/gate6-replacement-metadata-exclusion.patch",
       "sha256": "2cfa55e0714c2f538ddf7f530f40c2853c78cdab936350f7a86923334b3432d2",
-      "source": "G6-058: distinguish exact replacement planning/readiness WouldBlock exclusion with MetadataBusy; preserve semantic conflicts and poisoning. Check captured/current readiness before consuming event sequence or changing confirmation, then retry only effect-free original-root service metadata under unchanged deadline. Runtime bytes match passing26testv1; test-only v2separates reachable77partial/fullconfirmation fixtures and is under dedicatedARMverification. No allocation or commit replay."
+      "source": "G6-058: distinguish exact replacement planning/readiness WouldBlock exclusion with MetadataBusy; preserve semantic conflicts and poisoning. Check captured/current readiness before consuming event sequence or changing confirmation, then retry only effect-free original-root service metadata under unchanged deadline. Actual26Core ARM v2tests and4service projection checks pass, including separate reachable77partial/fullconfirmation fixtures. No allocation or commit replay."
+    },
+    {
+      "path": "patches/rvoip/gate6-webrtc-original-ingress-retention.patch",
+      "sha256": "7afa7a3b5653f8c302f6099a24dcc4599ba9e6bd12b39a048575d192604386a7",
+      "source": "G6-058 actual canonical RTC ingress worker loses Audio/Video originals at temporary metadata contention while fresh frames survive. Retain one original frame and captured source-clock generation across only effect-free MetadataBusy/queue-full retries under original200ms or earlier grants, with fresh authority and ordered bounded input. Actual5RTC+9Core ARM checks pass; expected negative original-loss and terminal-queue controls retained. No network, decoded AV or matrix qualification."
+    },
+    {
+      "path": "patches/rvoip/gate6-retired-unclaimed-queues.patch",
+      "sha256": "d9eeaa2e7297b7adbba5fc24941826f43673a9b9789151c7f9905ad6ce8683b5",
+      "source": "G6-058 actual unclaimed ingress/egress queues retain their own Port after successful shutdown and dead controller owners. Release unclaimed queues outside controller/port/cleanup/inflight guards; preserve claimed consumer ownership and quarantined physical resources. Same13 actual ARM checks pass against fresh distinct binary; before has exactly2final WeakPort leaks and11passing controls. No canonical runtime shutdown or RSS/matrix attribution."
     }
   ]
 }

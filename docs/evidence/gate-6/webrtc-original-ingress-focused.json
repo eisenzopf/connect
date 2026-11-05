@@ -1,0 +1,126 @@
+{
+  "format": "connect/webrtc-original-ingress-focused/1",
+  "status": "focused-verified-and-integrated",
+  "scope": "Actual canonical RTC ingress worker and Core queues on local Linux aarch64; no browser, transport matrix, full G6-058 or historical v191 qualification",
+  "qualified_cell": false,
+  "qualified_gate": false,
+  "architecture": "local Linux aarch64",
+  "patch": {
+    "path": "patches/rvoip/gate6-webrtc-original-ingress-retention.patch",
+    "sha256": "7afa7a3b5653f8c302f6099a24dcc4599ba9e6bd12b39a048575d192604386a7"
+  },
+  "source_files": [
+    {
+      "path": "crates/webrtc/rvoip-webrtc/src/canonical/media.rs",
+      "original_sha256": "a53c416d50cdaee2243882166a2f30f57ac8353885ac4335dde2f8288e3ce343",
+      "candidate_sha256": "6f8bd54704f2c8318c1f05438bc26640809cd5fed5b8858bd5bf3ebc9e9efcf7"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs",
+      "original_sha256": "847e65c4aac86539338fce538a940d5f8714fee2c7dc1a78a31903cdbfadcf8b",
+      "candidate_sha256": "df715e9401830309f76b2aedb571f031664bca2b01c9a333d241dce17de45398"
+    },
+    {
+      "path": "crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs",
+      "original_sha256": "abbb1713c537a371d0a7574850bb25121e15548bf3572e3172f65edb436d4a8d",
+      "candidate_sha256": "6cbdb926ce00deafb27df8bd4ae8f5d25f3a3ccbf7b56e35a7e77f23cca466f2"
+    },
+    {
+      "path": "crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs",
+      "original_sha256": null,
+      "candidate_sha256": "2526cfc85c59c4192a6889dbf3fe317024fae27473ceffd9769f774c2570390d"
+    }
+  ],
+  "actual_checks": {
+    "adapter_passed": 5,
+    "core_passed": 9,
+    "failed": 0,
+    "ignored": 0,
+    "newly_compiled_binaries_differ_from_before": true,
+    "all_original_groups_joined_without_force": true
+  },
+  "negative": {
+    "actual_expected_failed_tests": 2,
+    "observation": "Unchanged RTC lost both original audio/video frames while the fresh frame still arrived; unchanged Core made a queue-full original terminal.",
+    "original_frame_age_ms": [
+      95,
+      99
+    ],
+    "original_maximum_age_ms": 200,
+    "fresh_control_timestamps": [
+      320
+    ]
+  },
+  "positive": {
+    "audio_video_timestamps_each": [
+      160,
+      320
+    ],
+    "original_frame_age_ms": [
+      3,
+      2
+    ],
+    "current_policy_attempts_each": 3,
+    "results": [
+      {
+        "label": "after-rtc-original",
+        "tests": [
+          "canonical::media::original_ingress_tests::rtc_original_ingress_input_bound_and_original_stop_join_are_preserved",
+          "canonical::media::original_ingress_tests::rtc_original_ingress_keeps_original_age_and_earlier_grant_cutoffs",
+          "canonical::media::original_ingress_tests::rtc_original_ingress_queue_full_recovers_same_original_in_order",
+          "canonical::media::original_ingress_tests::rtc_original_ingress_recovers_exact_once_and_fresh_control",
+          "canonical::media::original_ingress_tests::rtc_original_ingress_refuses_semantic_readiness_revocation_and_generation_changes"
+        ],
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "negative_control": false,
+        "log_sha256": "e6c2e9dc7d063d6340b112be2846c60e96b7ef4441447546d6d1d958c50220ea"
+      },
+      {
+        "label": "after-core-original",
+        "tests": [
+          "staged_streams::tests::original_ingress_custody::original_ingress_cannot_capture_prepared_muted_future_or_expired_inputs",
+          "staged_streams::tests::original_ingress_custody::original_ingress_initial_exclusion_cannot_adopt_later_gates_or_authority",
+          "staged_streams::tests::original_ingress_custody::original_ingress_initial_exclusion_keeps_exact_activation_instant",
+          "staged_streams::tests::original_ingress_custody::original_ingress_initial_exclusion_refuses_pre_ready_and_post_receipt_activation",
+          "staged_streams::tests::original_ingress_custody::original_ingress_initial_model_exclusion_preserves_original_without_waiting",
+          "staged_streams::tests::original_ingress_custody::original_ingress_queue_full_cannot_refresh_credentials_gates_or_age",
+          "staged_streams::tests::original_ingress_custody::original_ingress_queue_full_keeps_same_frame_and_fresh_current_authority",
+          "staged_streams::tests::original_ingress_custody::original_ingress_recovers_exact_frame_and_releases_authority_between_attempts",
+          "staged_streams::tests::original_ingress_custody::original_ingress_refuses_revocation_aba_new_audience_and_semantic_readiness"
+        ],
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0,
+        "negative_control": false,
+        "log_sha256": "8da6d0be3ecb002e187eba4eb9df5957f3fb2029998ced5f0f7fa83937760b97"
+      }
+    ],
+    "binary_sha256": {
+      "after-fresh-rvoip_core": "0799ecb4b980eb617ea62d9937059598d7d6587013a0385dd6ba4170b30b0e10",
+      "after-fresh-rvoip_webrtc": "e4e63efee22969abc3ac1969ec92bd31ecebbc8507f1ab765d81e0662be40085"
+    }
+  },
+  "preserved_behavior": [
+    "Same original frame, receipt time, generation, clock and earlier grant deadlines",
+    "Fresh authority on each retry, released before asynchronous waiting",
+    "Only MetadataBusy and definite no-enqueue queue-full Backpressure retry",
+    "Semantic refusal, revocation, generation change, expiry and shutdown still refuse",
+    "Original bounded queue and worker join requirements"
+  ],
+  "prepared_source": {
+    "active_source_lock_sha256": "bcc8465ecb2b022ba1d0481b1f6afad2092d1a4283793918c6d029d3a59b3250",
+    "all_patched_source_files_verified": 514,
+    "default_prepare_exit_code": 0,
+    "private_parent_preparation_receipt_sha256": "acc7d73eef659f888b9483ec2a81bc7c9cca1500df698a7928b430dadf3a5379",
+    "original_dependency_tree_preserved": true
+  },
+  "verification_receipt_sha256": "41b18a0d168d163498bff0fe1d8987a96a1cee528a03645905a71f077f77c561",
+  "limits": [
+    "Does not attribute every retained v191 video deficit to metadata contention.",
+    "Does not qualify network handoff, decoded AV quality, idle resource budgets or the ALL32 matrix.",
+    "Existing 200 ms original age, earlier grant deadlines, ten-slot RTC input bound and UCTP queue-full handling remain unchanged.",
+    "Earlier after-attempt reused the before binary because of old copied source timestamps; preserved as unqualified. Only distinct freshly compiled positive binaries count."
+  ]
+}

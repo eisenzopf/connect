@@ -1,0 +1,451 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -556,6 +556,16 @@
+         }
+         state.status = PortStatus::Retired;
+     }
++    fn release_unclaimed_queues(&self) {
++        // Queued packets own this port. A receiver still held here can form
++        // port -> queue -> packet -> port after the controller owner retires.
++        // Call only after retirement, outside all controller/port guards:
++        // typed data contexts may run application destructors when dropped.
++        // A claimed receiver remains with its original consumer until it joins.
++        let input = self.input.lock().unwrap_or_else(|p| p.into_inner()).take();
++        let output = self.output.lock().unwrap_or_else(|p| p.into_inner()).take();
++        drop((input, output));
++    }
+     fn kind(&self) -> StreamKind {
+         match self.binding.negotiated.requested.medium {
+             Medium::Audio => StreamKind::Audio,
+@@ -3444,16 +3454,30 @@
+     /// One bounded cleanup attempt per retired port. Quarantined ports retain
+     /// their capacity and exact resources until cleanup actually confirms.
+     pub async fn reconcile_cleanup(&self, deadline: tokio::time::Instant) -> usize {
++        let (remaining, ports) = self.reconcile_cleanup_owned(deadline).await;
++        for port in ports {
++            port.release_unclaimed_queues();
++        }
++        remaining
++    }
++    // Return original owners so queued context destructors run only after
++    // this cleanup exclusion and any caller-owned control flight have ended.
++    async fn reconcile_cleanup_owned(
++        &self,
++        deadline: tokio::time::Instant,
++    ) -> (usize, Vec<Arc<Port>>) {
+         let _cleanup = match tokio::time::timeout_at(deadline, self.cleanup_lock.lock()).await {
+             Ok(guard) => guard,
+             Err(_) => {
+-                return self
+-                    .cleanup_status()
+-                    .iter()
+-                    .filter(|(_, status)| {
+-                        matches!(status, PortStatus::Retired | PortStatus::Quarantined)
+-                    })
+-                    .count();
++                return (
++                    self.cleanup_status()
++                        .iter()
++                        .filter(|(_, status)| {
++                            matches!(status, PortStatus::Retired | PortStatus::Quarantined)
++                        })
++                        .count(),
++                    Vec::new(),
++                );
+             }
+         };
+         let ports = {
+@@ -3471,7 +3495,7 @@
+                 .cloned()
+                 .collect::<Vec<_>>()
+         };
+-        for port in ports {
++        for port in &ports {
+             let cleanup = port
+                 .state
+                 .lock()
+@@ -3519,7 +3543,8 @@
+                     PortStatus::Quarantined;
+             }
+         }
+-        self.state
++        let remaining = self
++            .state
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+             .all
+@@ -3530,7 +3555,8 @@
+                     PortStatus::Retired | PortStatus::Quarantined
+                 )
+             })
+-            .count()
++            .count();
++        (remaining, ports)
+     }
+     /// Read-only cancellation observation for deterministic host interleaving tests.
+     /// This does not wait on metadata or grant media/control authority.
+@@ -3559,7 +3585,12 @@
+                 Ok(Ok(permit)) => permit,
+                 _ => return self.cleanup_status().len(),
+             };
+-        self.reconcile_cleanup(deadline).await
++        let (remaining, ports) = self.reconcile_cleanup_owned(deadline).await;
++        drop(_flight);
++        for port in ports {
++            port.release_unclaimed_queues();
++        }
++        remaining
+     }
+ }
+ impl Drop for StreamController {
+@@ -3572,6 +3603,9 @@
+             .values()
+         {
+             port.retire();
++            // get_mut holds no metadata guard; the final controller Arc is
++            // already gone, so queued weak contexts cannot reacquire it.
++            port.release_unclaimed_queues();
+         }
+     }
+ }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2833,3 +2833,6 @@
+ mod queued_source_dispatch;
+ 
+ mod original_ingress_custody;
++
++#[path = "tests/retired_queue_ownership.rs"]
++mod retired_queue_ownership;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/retired_queue_ownership.rs
+@@ -0,0 +1,329 @@
++use super::*;
++
++async fn shutdown_both(f: &Fixture) {
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++    assert_eq!(f.b.shutdown(deadline()).await, 0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 0);
++    assert_eq!(f.ba.outstanding.load(Ordering::Acquire), 0);
++}
++
++#[tokio::test]
++async fn shutdown_releases_admitted_ingress_when_receiver_was_never_claimed() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let weak = source.downgrade();
++    let controller = Arc::downgrade(&f.a);
++    // Use normal admission and an actual encoded frame. There is intentionally
++    // no scene/adapter consumer yet; successful publication owns the packet.
++    source.try_publish(&frame(&source, 160)).unwrap();
++    shutdown_both(&f).await;
++    assert!(source.try_publish(&frame(&source, 320)).is_err());
++    drop(source);
++    drop(f);
++    assert!(controller.upgrade().is_none());
++    assert!(
++        weak.upgrade().is_none(),
++        "confirmed shutdown retained the unclaimed ingress queue's media port"
++    );
++}
++
++#[tokio::test]
++async fn shutdown_releases_forwarded_egress_when_receiver_was_never_claimed() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let target = f.ba.port(Medium::Audio);
++    let source_weak = source.downgrade();
++    let target_weak = target.downgrade();
++    let source_controller = Arc::downgrade(&f.a);
++    let target_controller = Arc::downgrade(&f.b);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    // Forwarding used current source and recipient authority. The recipient
++    // has not claimed its egress receiver, so the queued copy is still owned
++    // internally rather than by an adapter worker we could join here.
++    shutdown_both(&f).await;
++    drop(input);
++    drop((source, target));
++    drop(f);
++    assert!(source_controller.upgrade().is_none());
++    assert!(target_controller.upgrade().is_none());
++    assert!(
++        target_weak.upgrade().is_none(),
++        "confirmed shutdown retained the unclaimed egress queue's media port"
++    );
++    assert!(source_weak.upgrade().is_none());
++}
++
++#[tokio::test]
++async fn claimed_ingress_and_dequeued_packet_keep_their_actual_owner_until_drop() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let weak = source.downgrade();
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    shutdown_both(&f).await;
++    drop(source);
++    drop(f);
++    assert!(
++        weak.upgrade().is_some(),
++        "the claimed queue still owns its packet"
++    );
++    let packet = receive(&mut input).await;
++    drop(input);
++    assert!(
++        weak.upgrade().is_some(),
++        "the dequeued packet still owns its port"
++    );
++    drop(packet);
++    assert!(weak.upgrade().is_none());
++}
++
++#[tokio::test]
++async fn claimed_egress_decodes_before_retirement_and_remains_fenced_afterward() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let target = f.ba.port(Medium::Audio);
++    let weak = target.downgrade();
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = target.take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    assert_audio(outgoing(&mut output).await).await;
++    for timestamp in [320, 480] {
++        source.try_publish(&frame(&source, timestamp)).unwrap();
++        receive(&mut input)
++            .await
++            .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++            .unwrap();
++    }
++    shutdown_both(&f).await;
++    let sent = Arc::new(AtomicBool::new(false));
++    let observed = sent.clone();
++    assert!(outgoing(&mut output)
++        .await
++        .deliver(|_| async move {
++            observed.store(true, Ordering::Release);
++            Ok(())
++        })
++        .await
++        .is_err());
++    // The controllers and ports still exist here: retirement itself must
++    // prevent this callback, independently of later Weak-owner failure.
++    assert!(!sent.load(Ordering::Acquire));
++    drop(input);
++    drop((source, target));
++    drop(f);
++    assert!(
++        weak.upgrade().is_some(),
++        "the claimed queue still owns its copy"
++    );
++    let queued = outgoing(&mut output).await;
++    drop(output);
++    assert!(
++        weak.upgrade().is_some(),
++        "the dequeued copy still owns its target"
++    );
++    let observed = sent.clone();
++    assert!(queued
++        .deliver(|_| async move {
++            observed.store(true, Ordering::Release);
++            Ok(())
++        })
++        .await
++        .is_err());
++    assert!(!sent.load(Ordering::Acquire));
++    assert!(weak.upgrade().is_none());
++}
++
++async fn refused_upgrade_preserves_old_queue(cancelled: bool) {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let target = f.ba.port(Medium::Audio);
++    let source_weak = source.downgrade();
++    let target_weak = target.downgrade();
++    // Queue before starting the failed/cancelled upgrade, and only claim the
++    // old receiver afterward. Candidate retirement must not drain this port.
++    source.try_publish(&frame(&source, 160)).unwrap();
++    f.aa.mode
++        .store(if cancelled { 1 } else { 2 }, Ordering::Release);
++    let token = CancellationToken::new();
++    let candidate;
++    if cancelled {
++        let a = f.a.clone();
++        let cancellation = token.clone();
++        let task = tokio::spawn(async move {
++            a.change(
++                1,
++                &[desired(Medium::Audio), desired(Medium::Video)],
++                &BTreeSet::new(),
++                deadline(),
++                cancellation,
++            )
++            .await
++        });
++        tokio::time::timeout(Duration::from_secs(1), f.aa.entered.notified())
++            .await
++            .unwrap();
++        candidate = f.aa.port(Medium::Video);
++        assert!(candidate.try_publish(&frame(&candidate, 1)).is_err());
++        token.cancel();
++        assert!(matches!(
++            task.await.unwrap(),
++            Err(StreamControlError::Cancelled)
++        ));
++    } else {
++        assert!(matches!(
++            f.a.change(
++                1,
++                &[desired(Medium::Audio), desired(Medium::Video)],
++                &BTreeSet::new(),
++                deadline(),
++                token,
++            )
++            .await,
++            Err(StreamControlError::NotReady)
++        ));
++        candidate = f.aa.port(Medium::Video);
++    }
++    let candidate_weak = candidate.downgrade();
++    assert_eq!(f.a.revision(), 1);
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 1);
++    assert!(candidate.try_publish(&frame(&candidate, 2)).is_err());
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = target.take_egress().unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    assert_audio(outgoing(&mut output).await).await;
++    shutdown_both(&f).await;
++    drop((input, output));
++    drop((source, target, candidate));
++    drop(f);
++    assert!(candidate_weak.upgrade().is_none());
++    assert!(source_weak.upgrade().is_none());
++    assert!(target_weak.upgrade().is_none());
++}
++
++#[tokio::test]
++async fn cancelled_open_releases_candidate_without_draining_existing_audio() {
++    refused_upgrade_preserves_old_queue(true).await;
++}
++
++#[tokio::test]
++async fn failed_open_releases_candidate_without_draining_existing_audio() {
++    refused_upgrade_preserves_old_queue(false).await;
++}
++
++struct ReentrantContext {
++    controller: Weak<StreamController>,
++    observed: Arc<AtomicUsize>,
++    held: Arc<AtomicUsize>,
++}
++impl Drop for ReentrantContext {
++    fn drop(&mut self) {
++        let Some(controller) = self.controller.upgrade() else {
++            self.observed.store(2, Ordering::Release);
++            return;
++        };
++        // Detect a held lock without making a failing regression hang. When
++        // none is held, perform the actual public metadata read from Drop.
++        let mut held = 0;
++        if controller.state.try_lock().is_err() {
++            held |= 1;
++        }
++        if controller.cleanup_lock.try_lock().is_err() {
++            held |= 2;
++        }
++        if controller.inflight.available_permits() != 1 {
++            held |= 4;
++        }
++        self.held.store(held, Ordering::Release);
++        if held == 0 {
++            let _ = controller.revision();
++            self.observed.store(1, Ordering::Release);
++        } else {
++            self.observed.store(3, Ordering::Release);
++        }
++    }
++}
++struct ReentrantDataPolicy(Arc<Policy>);
++impl MediaPolicy for ReentrantDataPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.0.current(scope)
++    }
++    fn current_data(
++        &self,
++        scope: &MediaScope<'_>,
++        data: &crate::staged_streams::reliable_data::StagedData,
++        held: Option<&(dyn Any + Send + Sync)>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if held.is_some() || data.context::<ReentrantContext>().is_none() {
++            return Err(StreamControlError::Authority);
++        }
++        self.0.current(scope)
++    }
++}
++
++#[tokio::test]
++async fn queued_data_context_drop_can_reenter_after_all_cleanup_guards_are_gone() {
++    let f = Fixture::with_policy(
++        8,
++        Some(Box::new(|base| Arc::new(ReentrantDataPolicy(base)))),
++    );
++    f.start(&[Medium::Data]).await;
++    let source = f.aa.port(Medium::Data);
++    let target = f.ba.port(Medium::Data);
++    let mut input = f.a.take_ingress(&desired(Medium::Data).logical_id).unwrap();
++    let observed = Arc::new(AtomicUsize::new(0));
++    let held = Arc::new(AtomicUsize::new(0));
++    let data = crate::staged_streams::reliable_data::StagedData::new(
++        crate::DataMessage::reliable("data", "application/json", Bytes::from_static(b"{}")),
++        ReentrantContext {
++            controller: Arc::downgrade(&f.b),
++            observed: observed.clone(),
++            held: held.clone(),
++        },
++    )
++    .unwrap();
++    source.try_publish_data(&data, None).unwrap();
++    drop(data);
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Data).logical_id)
++        .unwrap();
++    assert_eq!(observed.load(Ordering::Acquire), 0);
++    assert!(target.report_terminal().unwrap());
++    assert_eq!(f.b.shutdown(deadline()).await, 0);
++    // On the original implementation this public late claim/drop releases
++    // the otherwise retained packet; it makes this a passing before-control.
++    // The fixed cleanup already released its unclaimed receiver and refuses
++    // the claim. Neither path permits data delivery after retirement.
++    if let Ok(output) = target.take_egress() {
++        drop(output);
++    }
++    assert_eq!(held.load(Ordering::Acquire), 0);
++    assert_eq!(observed.load(Ordering::Acquire), 1);
++    shutdown_both(&f).await;
++}
