@@ -50,6 +50,35 @@ def render(matrix, path):
     temporary.replace(path)
 
 
+
+def refresh_reports(root, revision, workers, reports, read_report):
+    """A terminal decision requires snapshots read after every original exit.
+
+    A worker can write its final report and exit while this loop is reading
+    another host. Capture exits first so that case always gets another read.
+    An unreadable final snapshot is explicit missing evidence, never the last
+    cached (possibly still-running) snapshot presented as a completed run.
+    """
+    exited = {host: process.poll() is not None for host, process in workers.items()}
+    for host in workers:
+        try:
+            reports[host] = read_report(host)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            if not exited[host]:
+                continue
+            reason = ("host-final-snapshot-unavailable" if host in reports else
+                      "host-worker-failed-before-fixture")
+            report = configure_execution(inventory(root, revision), dict(server=host,
+                execution_blockers=[reason], browsers={}), "full")
+            for cell in report["cells"]:
+                if cell["server"] == host:
+                    cell.update(status="blocked", reason=reason)
+                    cell["check_results"] = {name: blocked(reason, category="environment")
+                                            for name in cell["required_checks"]}
+            reports[host] = report
+    return all(exited.values())
+
+
 def run(root, args):
     if (platform.system(), platform.machine()) != ("Darwin", "arm64"):
         raise ValueError("Start the complete two-host run on the owner's Mac Studio")
@@ -82,26 +111,16 @@ def run(root, args):
             logs.append(log)
             workers[host] = subprocess.Popen(command, cwd=root, stdout=log, stderr=subprocess.STDOUT,
                                               stdin=subprocess.DEVNULL, start_new_session=True)
+        def read_report(host):
+            if host == "macos-arm64":
+                return json.loads((output / host / "matrix.json").read_text())
+            receipt = subprocess.run(["colima", "--profile", "connect-gate6", "ssh", "--", "cat", str(remote_output / "matrix.json")],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10, check=True)
+            return json.loads(receipt.stdout)
+
         last = None
         while True:
-            for host, process in workers.items():
-                try:
-                    if host == "macos-arm64":
-                        report = json.loads((output / host / "matrix.json").read_text())
-                    else:
-                        receipt = subprocess.run(["colima", "--profile", "connect-gate6", "ssh", "--", "cat", str(remote_output / "matrix.json")],
-                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10, check=True)
-                        report = json.loads(receipt.stdout)
-                    reports[host] = report
-                except (OSError, ValueError, subprocess.SubprocessError):
-                    if process.poll() is not None and host not in reports:
-                        report = configure_execution(inventory(root, revision), dict(server=host,
-                            execution_blockers=["host-worker-failed-before-fixture"], browsers={}), "full")
-                        for cell in report["cells"]:
-                            if cell["server"] == host:
-                                cell.update(status="blocked", reason="host-worker-failed-before-fixture")
-                                cell["check_results"] = {name: blocked(cell["reason"], category="environment") for name in cell["required_checks"]}
-                        reports[host] = report
+            workers_done = refresh_reports(root, revision, workers, reports, read_report)
             merged = merge_hosts(base, list(reports.values()))
             merged.update(run_id=run_id, execution_phase="run")
             write(output / "matrix.json", merged)
@@ -110,7 +129,7 @@ def run(root, args):
             if current != last:
                 print(current, flush=True)
                 last = current
-            if all(process.poll() is not None for process in workers.values()):
+            if workers_done:
                 break
             time.sleep(2)
         state.update(stage="complete", source_guard_active=False,
