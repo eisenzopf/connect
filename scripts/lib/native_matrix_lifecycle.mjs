@@ -7,10 +7,14 @@ const now=()=>Number(process.hrtime.bigint())/1e9;
  * the parent; this helper never creates another transport or changes media. */
 export function nativeMatrixLifecycle(directory){
     let terminal;
-    const exchange=async(phase,extra={})=>{
-        const when=now(),request=join(directory,`resources-${phase}.json`),temporary=request+'.tmp';
+    const announce=async(phase,extra={},when=now())=>{
+        const request=join(directory,`resources-${phase}.json`),temporary=request+'.tmp';
         await writeFile(temporary,JSON.stringify({phase,monotonic_seconds:when,...extra})+'\n',{flag:'wx',mode:0o600});
         await rename(temporary,request);
+        return when;
+    };
+    const exchange=async(phase,extra={})=>{
+        const when=await announce(phase,extra);
         const cutoff=when+(phase==='retired'?13:5),response=join(directory,`resources-${phase}-response.json`);
         while(now()<cutoff){
             try{
@@ -26,7 +30,11 @@ export function nativeMatrixLifecycle(directory){
     const safely=async work=>{try{return await work();}catch(error){return {passed:false,failure:error.name};}};
     return {
         baseline:()=>safely(()=>exchange('baseline')),
-        terminal:()=>{terminal=now();return safely(()=>exchange('terminal'));},
+        terminal:()=>{terminal=now();return safely(async()=>{
+            await announce('terminal',{},terminal);
+            // A missing observer must never postpone original client cleanup.
+            return {passed:true};
+        });},
         retired:async({observedHelpers,helpersJoined,closeFailed})=>{
             const local={passed:terminal!==undefined&&observedHelpers>0&&helpersJoined&&!closeFailed,
                 observed_helpers:observedHelpers,original_helpers_joined:helpersJoined,

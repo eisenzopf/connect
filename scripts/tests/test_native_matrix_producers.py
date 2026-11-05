@@ -155,6 +155,10 @@ class NativeMatrixProducers(unittest.TestCase):
         report["servers"][0]["original_joined"]=False
         evaluate_cell(cell,report,"b"*64,environment=matrix["execution_environment"],revision="a"*40)
         self.assertEqual(cell["check_results"]["owned-drain-and-resource-reclamation"]["status"],"failed")
+        report["current_authority"]["expiry"].update(passed=False,executed=False,launcher_attempted=True)
+        evaluate_cell(cell,report,"b"*64,environment=matrix["execution_environment"],revision="a"*40)
+        self.assertEqual(cell["check_results"]["current-revocation-expiry-and-conflicting-operation-refusals"]["status"],"blocked",
+            "Provisioning/import failure is not an executed current-authority case")
 
 
 class NativeOriginalOwner(unittest.TestCase):

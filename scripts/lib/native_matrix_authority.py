@@ -104,7 +104,7 @@ def run_native_authority(*, root, directory, instance, admin, binary, env, execu
                 operation_id=plan["operation_id"], revoke_operation_id=plan["revoke_operation_id"], expires_at=expires)) + "\n").encode())
             owner = owner_factory(["node", "scripts/check-transport-native-authority.mjs", case / "input.json", case / "observation.json"],
                 case / "owner", case / "process.log", cwd=root, env=env, wrap=wrap)
-            value["executed"] = True
+            value["launcher_attempted"] = True
             cutoff = time.monotonic() + 45
             revoked = False
             while owner.poll() is None:

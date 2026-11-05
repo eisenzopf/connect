@@ -39,7 +39,26 @@
   },
   "firefox_smoke": "docs/evidence/gate-6/firefox-original-programme.json",
   "linux_runtime": "docs/evidence/gate-6/browser-arm-runtime-v190.json",
-  "integrated_arm_server": "service and server libraries compiled; integration test binary compiling; positive actual media verification pending",
+  "integrated_arm_server": {
+    "source_commit": "632cf98f66a9ebc749dca7e59dec30ff639829e3",
+    "release_compile": "passed",
+    "compile_seconds": 992.718,
+    "real_regressions": {
+      "passed": 0,
+      "failed": 3,
+      "phase": "original replacement preparation before target allocation or movement",
+      "diagnosed_cause": "Service held preparation whitelist still excluded Webrtc; Core returned Unsupported after original effect began",
+      "fix_commit": "7253a6dbde1c118e89b4d735cadbf74b358e4c50",
+      "focused_retest": "building local ARM test profile; final matrix remains release profile"
+    },
+    "private_log_sha256": {
+      "second-results.json": "db52cfeac1d933aa37fb5270e6655f325b47e41075f576d040ad7ea997806430",
+      "allocation-second.log": "c25804296c6de8551c73a60ac46c8035d623990e298472955c3bda6fee549531",
+      "av-eddsa-second.log": "47af94fe371407a0aa9f29441fd75947229f8f979ec1b1d6ea68c62e7e978138",
+      "av-es256-second.log": "1cbe0c1be1d989c166e203d3d2d466d424b9672c833995c0d28b6f59f3d924f1",
+      "av-prepare-diagnostic.log": "2cb899938baf5db67505173cf78fc5621c46de59166779b98b09d6474661efea"
+    }
+  },
   "full_matrix": "latest completed v189, 0/32 qualified; next full run pending",
   "adapter": {
     "host": "owned Ubuntu24 ARM64 VM",

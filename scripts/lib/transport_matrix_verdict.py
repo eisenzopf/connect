@@ -106,7 +106,8 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
            decoded.get("passed") is True, "browser_observation.decoded_media" if browser else "native_av_decoded")
     authority = report.get("current_authority", observation.get("current_authority", {}))
     record("current-revocation-expiry-and-conflicting-operation-refusals",
-           all(name in authority for name in ("revocation", "expiry", "conflict")),
+           all(name in authority for name in ("revocation", "expiry", "conflict"))
+           and (browser or all(authority[name].get("executed") is True for name in ("revocation", "expiry"))),
            all(authority.get(name, {}).get("passed") is True for name in ("revocation", "expiry", "conflict"))
            and (browser or all(authority_verdict(authority[name], name) for name in ("revocation", "expiry"))),
            "current_authority", "every-current-authority-subcase-required")
