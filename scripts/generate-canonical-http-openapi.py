@@ -14,6 +14,14 @@ def render():
     definitions=source.pop('$defs');source.pop('$schema',None);source.pop('$id',None)
     schemas={'Wire'+name:rewrite(value) for name,value in definitions.items()}
     schemas['Envelope']=rewrite(source)
+    readiness=json.loads((ROOT/'contracts/schemas/replacement-decoder-readiness-1.schema.json').read_text())
+    def readiness_refs(value):
+        if isinstance(value,list):return [readiness_refs(v) for v in value]
+        if isinstance(value,dict):return {k:readiness_refs(v) for k,v in value.items()}
+        if isinstance(value,str) and value.startswith('#/$defs/'):return '#/components/schemas/ReplacementReadiness'+value[len('#/$defs/'):]
+        return value
+    schemas.update({'ReplacementReadiness'+name:readiness_refs(value) for name,value in readiness['$defs'].items()})
+
     ref=lambda name:{'$ref':'#/components/schemas/'+name}
     def obj(properties,required=None):return dict(type='object',properties=properties,required=list(properties) if required is None else required,additionalProperties=False)
     schemas['NativeDataAcceptance']=obj(dict(connection_id=ref('WireIdentifier'),message_id=ref('WireIdentifier'),core_queue_admission=dict(type='boolean',const=True)))

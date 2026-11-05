@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { physicalAvSegment } from "../lib/transport_replacement_observation.mjs";
 import { decodeNativeVideoEpoch } from "../../sdk/typescript/dist/browser_video_wire.js";
 
-const expected = { programStartUnixUs: 1_800_000_000_000_000,
+const expected = { programStartUnixUs: 1_800_000_000_000_000, connectionId:"candidate", targetGeneration:2,
     audioStreamId: "audio", sendVideoStreamId: "camera", receiveVideoStreamId: "selected" };
 function capture(tagged, selected, length) {
     const bytes = new Uint8Array(length), view = new DataView(bytes.buffer);
@@ -26,6 +26,11 @@ function capture(tagged, selected, length) {
         original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
         video_transfer_admitted: true, operation_completed_inferred: false, decoded_media_verified: false,
         program_start_unix_us: expected.programStartUnixUs, root_completed_observed_programme_us: 1000,
+        private_decoder_started_programme_us:750,
+        private_decoded_readiness:{profile:"connect/native-private-decoded-readiness/1",connection_id:"candidate",
+            source_generation:1,target_generation:2,stream_revision:2,readiness_frozen:true,decoder_reset_on_root_completion:false,
+            frozen_private_observations:{audio_decoded_samples:2880,audio_ssrc:42,video_decoded_frames:1,video_decoded_keyframes:1,video_epoch},
+            decoder_process:{joined:true,clean:true,forced:false,exit_code:0},video_decode_receipts:[]},
         negotiated_streams: [binding("audio", "audio", "sendrecv", 1),
             binding("camera", "video", "recvonly", 2), binding("selected", "video", "sendonly", 3)],
         received: [{ elapsed_us: 1000, original_root_completed_observed: true,

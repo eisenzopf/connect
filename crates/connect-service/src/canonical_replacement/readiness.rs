@@ -3,43 +3,20 @@
 //! generation and current Store authority remain independently required.
 use super::*;
 use crate::{canonical_native::Reply, canonical_runtime::Physical, StoreInvocationAuthority};
+use connect_protocol::replacement_readiness::Observation;
 use rvoip_core::{
     staged_streams::{device_replacement::VideoReplacementPreparation, MediaSource},
     stream_lifecycle::{Medium, StreamDirection},
 };
 use rvoip_uctp::v2::auth_dispatch::AuthorizedEnvelope;
-use serde::{Deserialize, Serialize};
 use std::sync::{Mutex, OnceLock};
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Audio {
-    stream_id: String,
-    decoded_samples: u64,
-}
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Video {
-    stream_id: String,
-    decoded_frames: u64,
-    decoded_keyframes: Option<u64>,
-    decoder_startup: String,
-}
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Observation {
-    nonce: String,
-    source_generation: u64,
-    target_generation: u64,
-    stream_revision: u64,
-    audio: Audio,
-    video: Option<Video>,
-}
 pub(super) struct ReadyGate {
     nonce: String,
     source_generation: u64,
     target_generation: u64,
     audio: String,
     video: Option<String>,
+    counted_video_required: bool,
     deadline: tokio::time::Instant,
     observation: Mutex<Option<Observation>>,
     pub(super) preroll: OnceLock<Arc<VideoReplacementPreparation>>,
@@ -49,6 +26,31 @@ impl ReadyGate {
         read: &connect_store::NativeReplacementStartRead,
         plan: &rvoip_uctp::v2::native_negotiation::NativeOfferPlan,
         deadline: tokio::time::Instant,
+    ) -> Result<Arc<Self>> {
+        Self::with_received_video(read, plan, deadline, None, false)
+    }
+    pub(super) fn new_native(
+        read: &connect_store::NativeReplacementStartRead,
+        plan: &rvoip_uctp::v2::native_negotiation::NativeOfferPlan,
+        deadline: tokio::time::Instant,
+        mapped: Option<&rvoip_core::staged_streams::device_replacement::ReplacementVideoRequest>,
+    ) -> Result<Arc<Self>> {
+        let ids = mapped
+            .map(|r| {
+                r.receivers
+                    .iter()
+                    .map(|r| r.replacement.as_str())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        Self::with_received_video(read, plan, deadline, Some(&ids), true)
+    }
+    fn with_received_video(
+        read: &connect_store::NativeReplacementStartRead,
+        plan: &rvoip_uctp::v2::native_negotiation::NativeOfferPlan,
+        deadline: tokio::time::Instant,
+        mapped: Option<&[&str]>,
+        counted_video_required: bool,
     ) -> Result<Arc<Self>> {
         let audio = plan
             .selected()
@@ -64,22 +66,25 @@ impl ReadyGate {
             .filter(|s| {
                 s.requested.medium == Medium::Video
                     && s.requested.direction != StreamDirection::Receive
+                    && mapped.is_none_or(|ids| ids.contains(&s.requested.logical_id.as_str()))
             })
             .collect::<Vec<_>>();
         if video.len() > 1
+            || mapped.is_some_and(|ids| ids.len() != video.len())
             || read.source().context().source_generation.checked_add(1)
                 != Some(read.target().connection.generation)
         {
             return Err(Error::forbidden());
         }
         Ok(Arc::new(Self {
-            nonce: format!("rtc-ready-{}", uuid::Uuid::new_v4()),
+            nonce: format!("replacement-ready-{}", uuid::Uuid::new_v4()),
             source_generation: read.source().context().source_generation,
             target_generation: read.target().connection.generation,
             audio: audio.requested.logical_id.as_str().into(),
             video: video
                 .first()
                 .map(|s| s.requested.logical_id.as_str().into()),
+            counted_video_required,
             deadline,
             observation: Mutex::new(None),
             preroll: OnceLock::new(),
@@ -88,10 +93,23 @@ impl ReadyGate {
     pub(super) fn challenge(&self) -> serde_json::Value {
         serde_json::json!({"nonce":self.nonce,"source_generation":self.source_generation,"target_generation":self.target_generation,"stream_revision":2})
     }
+    pub(super) fn native_challenge(
+        &self,
+        record: &str,
+    ) -> Result<rvoip_uctp::v2::native_negotiation::ReplacementReadinessChallenge> {
+        rvoip_uctp::v2::native_negotiation::ReplacementReadinessChallenge::new(
+            record.into(),
+            self.nonce.clone(),
+            self.source_generation,
+            self.target_generation,
+        )
+        .map_err(|_| Error::forbidden())
+    }
     fn parse(&self, value: &serde_json::Value) -> Result<Observation> {
         let o: Observation = serde_json::from_value(value.clone()).map_err(|_| {
             Error::new("invalid-request", "Invalid replacement decoder observation")
         })?;
+        o.validate()?;
         if o.nonce != self.nonce
             || o.source_generation != self.source_generation
             || o.target_generation != self.target_generation
@@ -103,6 +121,7 @@ impl ReadyGate {
                 (Some(expected), Some(video)) => {
                     video.stream_id != *expected
                         || video.decoded_frames == 0
+                        || (self.counted_video_required && video.decoded_keyframes.is_none())
                         || video.decoder_startup != "fresh-peer-first-decoded-frame"
                         || video
                             .decoded_keyframes
@@ -176,7 +195,7 @@ impl ReadyGate {
     }
 }
 impl Runtime {
-    pub(crate) async fn webrtc_replacement_ready(
+    pub(crate) async fn replacement_ready(
         self: &Arc<Self>,
         a: Arc<AuthorizedEnvelope>,
         physical: Arc<Physical>,
@@ -190,7 +209,12 @@ impl Runtime {
         let intent = crate::canonical_native::intent(a.envelope())?;
         let marker = &intent.offer["replacement_preparation"];
         if marker["profile"] != "connect-replacement-ready-v1"
-            || physical.binding.transport() != rvoip_core::Transport::WebSocket
+            || !matches!(
+                physical.binding.transport(),
+                rvoip_core::Transport::WebSocket
+                    | rvoip_core::Transport::Quic
+                    | rvoip_core::Transport::WebTransport
+            )
         {
             return Err(Error::forbidden());
         }
@@ -212,7 +236,8 @@ impl Runtime {
             .map_err(|_| Error::storage())?
             .clone()
             .ok_or_else(Error::forbidden)?;
-        if allocated.webrtc.is_none()
+        if allocated.webrtc.is_some()
+            != (physical.binding.transport() == rvoip_core::Transport::WebSocket)
             || allocated
                 .physical
                 .upgrade()
@@ -268,5 +293,81 @@ impl Runtime {
             record,
             answered: false,
         })
+    }
+}
+
+#[cfg(test)]
+mod decoder_contract_tests {
+    use super::*;
+    fn gate(native: bool, video: bool) -> ReadyGate {
+        ReadyGate {
+            nonce: "original-challenge".into(),
+            source_generation: 1,
+            target_generation: 2,
+            audio: "original-audio".into(),
+            video: video.then(|| "original-video".into()),
+            counted_video_required: native,
+            deadline: tokio::time::Instant::now() + Duration::from_secs(1),
+            observation: Mutex::new(None),
+            preroll: OnceLock::new(),
+        }
+    }
+    fn observation(video: bool) -> serde_json::Value {
+        let mut v = serde_json::json!({"nonce":"original-challenge","source_generation":1,"target_generation":2,"stream_revision":2,
+            "audio":{"stream_id":"original-audio","decoded_samples":160}});
+        if video {
+            v["video"] = serde_json::json!({"stream_id":"original-video","decoded_frames":1,"decoded_keyframes":1,"decoder_startup":"fresh-peer-first-decoded-frame"});
+        }
+        v
+    }
+    #[tokio::test]
+    async fn original_decoder_observation_is_frozen_and_identical_retry_is_observational_only() {
+        let gate = gate(true, false);
+        let original = observation(false);
+        assert!(!gate.existing(&original).unwrap());
+        gate.capture(&original).unwrap();
+        assert!(gate.existing(&original).unwrap());
+        gate.capture(&original).unwrap();
+        let mut changed = original.clone();
+        changed["audio"]["decoded_samples"] = serde_json::json!(320);
+        assert_eq!(gate.existing(&changed).err().unwrap().code, "conflict");
+        for (key, value) in [
+            ("nonce", serde_json::json!("different")),
+            ("source_generation", serde_json::json!(2)),
+            ("target_generation", serde_json::json!(3)),
+            ("stream_revision", serde_json::json!(3)),
+        ] {
+            let mut changed = original.clone();
+            changed[key] = value;
+            assert!(gate.capture(&changed).is_err());
+        }
+        assert!(gate.existing(&original).unwrap());
+    }
+    #[tokio::test]
+    async fn expired_original_gate_cannot_capture_or_extend_decoder_readiness() {
+        let mut gate = gate(true, false);
+        gate.deadline = tokio::time::Instant::now() - Duration::from_millis(1);
+        assert!(gate.capture(&observation(false)).is_err());
+        assert!(!gate.observed());
+        assert!(gate.observation.lock().unwrap().is_none());
+    }
+    #[tokio::test]
+    async fn native_video_requires_real_count_and_current_private_route_even_for_valid_wire_shape()
+    {
+        let native = gate(true, true);
+        let mut original = observation(true);
+        assert!(native.parse(&original).is_ok());
+        assert!(
+            native.capture(&original).is_err(),
+            "no actual private route exists in this parser-only control"
+        );
+        original["video"]["decoded_keyframes"] = serde_json::Value::Null;
+        assert!(native.parse(&original).is_err());
+        let browser = gate(false, true);
+        assert!(browser.parse(&original).is_ok());
+        assert!(
+            browser.capture(&original).is_err(),
+            "browser fallback cannot fabricate a current private route"
+        );
     }
 }

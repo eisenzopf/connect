@@ -1,0 +1,862 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -573,7 +573,20 @@
+ impl DirectCommit<'_> {
+     pub(super) fn commit(&mut self, plan: &DirectPlan) {
+         for id in &plan.changed {
+-            if let Some(private) = self.0.preparation.remove(id) {
++            let private = self.0.preparation.remove(id);
++            // Preserve decoder identity only for this exact validated private
++            // preparation becoming its identical public selection. It carries
++            // no private delivery/feedback permission or queued frame.
++            let feedback = private
++                .as_ref()
++                .filter(|private| {
++                    plan.program
++                        .get(id)
++                        .is_some_and(|selection| private.selection.same(selection))
++                })
++                .map(|private| private.feedback.promoted())
++                .unwrap_or_default();
++            if let Some(private) = private {
+                 private.ticket.retire_if_current();
+             }
+             match plan.program.get(id) {
+@@ -592,7 +605,7 @@
+                     self.0.program.insert(
+                         id.clone(),
+                         Arc::new(Route {
+-                            feedback: Arc::new(super::video_feedback::FeedbackCache::default()),
++                            feedback: Arc::new(feedback),
+                             selection: selection.clone(),
+                             ticket: next,
+                             started: Instant::now(),
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+@@ -104,13 +104,11 @@
+ 
+     fn assert_target_quarantined(&self) {
+         let target = &self.movement.room.nodes["device"];
+-        assert!(
+-            target
+-                .controller
+-                .direct_subscriptions
+-                .saved_selections()
+-                .is_empty()
+-        );
++        assert!(target
++            .controller
++            .direct_subscriptions
++            .saved_selections()
++            .is_empty());
+         let camera = target.adapter.port(Medium::Video);
+         assert!(
+             camera.try_publish(&frame(&camera, 99)).is_err(),
+@@ -136,8 +134,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_preroll_copies_only_existing_selected_video_and_keeps_old_audio_and_video_live()
+- {
++async fn replacement_preroll_copies_only_existing_selected_video_and_keeps_old_audio_and_video_live(
++) {
+     let mut f = Preroll::new().await;
+     let cancellation = CancellationToken::new();
+     let prepared = f.prepare(cancellation.clone()).await;
+@@ -176,12 +174,10 @@
+     f.movement.room.tick();
+     f.movement.room.heard("bob", 800).await;
+     f.movement.room.heard("public", 800).await;
+-    assert!(
+-        !f.movement.room.nodes["alice"]
+-            .controller
+-            .shutdown
+-            .is_cancelled()
+-    );
++    assert!(!f.movement.room.nodes["alice"]
++        .controller
++        .shutdown
++        .is_cancelled());
+     prepared.close();
+     assert!(
+         !cancellation.is_cancelled(),
+@@ -213,23 +209,19 @@
+         if mode == "drop" {
+             assert!(!cancellation.is_cancelled());
+         }
+-        assert!(
+-            queued
+-                .deliver(|_| async { panic!("retired private frame reached sink") })
+-                .await
+-                .is_err()
+-        );
++        assert!(queued
++            .deliver(|_| async { panic!("retired private frame reached sink") })
++            .await
++            .is_err());
+         delivered(&mut f.old_output, 20).await;
+         f.publish_video("bob", 21);
+         delivered(&mut f.old_output, 21).await;
+         assert!(f.target_output.try_recv().is_err());
+         f.assert_target_quarantined();
+-        assert!(
+-            !f.movement.room.nodes["alice"]
+-                .controller
+-                .shutdown
+-                .is_cancelled()
+-        );
++        assert!(!f.movement.room.nodes["alice"]
++            .controller
++            .shutdown
++            .is_cancelled());
+     }
+ }
+ 
+@@ -253,18 +245,14 @@
+     .await
+     .unwrap();
+     assert!(!prepared.is_current());
+-    assert!(
+-        queued
+-            .deliver(|_| async { panic!("unsubscribed private source delivered") })
+-            .await
+-            .is_err()
+-    );
+-    assert!(
+-        old_queued
+-            .deliver(|_| async { panic!("unsubscribed original source delivered") })
+-            .await
+-            .is_err()
+-    );
++    assert!(queued
++        .deliver(|_| async { panic!("unsubscribed private source delivered") })
++        .await
++        .is_err());
++    assert!(old_queued
++        .deliver(|_| async { panic!("unsubscribed original source delivered") })
++        .await
++        .is_err());
+     old.change_direct_subscriptions(
+         old.revision(),
+         DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
+@@ -351,8 +339,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_preroll_source_or_target_transport_replacement_invalidates_readiness_descriptors()
+- {
++async fn replacement_preroll_source_or_target_transport_replacement_invalidates_readiness_descriptors(
++) {
+     for name in ["bob", "device"] {
+         let mut f = Preroll::new().await;
+         let prepared = f.prepare(CancellationToken::new()).await;
+@@ -396,18 +384,14 @@
+             !prepared.is_current(),
+             "{name} new transport borrowed the original readiness descriptor"
+         );
+-        assert!(
+-            queued
+-                .deliver(|_| async { panic!("queued old-generation preparation delivered") })
+-                .await
+-                .is_err()
+-        );
+-        assert!(
+-            !f.movement.room.nodes["alice"]
+-                .controller
+-                .shutdown
+-                .is_cancelled()
+-        );
++        assert!(queued
++            .deliver(|_| async { panic!("queued old-generation preparation delivered") })
++            .await
++            .is_err());
++        assert!(!f.movement.room.nodes["alice"]
++            .controller
++            .shutdown
++            .is_cancelled());
+     }
+ }
+ 
+@@ -425,12 +409,10 @@
+     let original_bindings = bindings(&target);
+     let plan = f.movement.plan_with_video(Some(request())).unwrap();
+     let (_, handle) = f.movement.commit(plan).await.unwrap();
+-    assert!(
+-        f.movement.room.nodes["alice"]
+-            .controller
+-            .shutdown
+-            .is_cancelled()
+-    );
++    assert!(f.movement.room.nodes["alice"]
++        .controller
++        .shutdown
++        .is_cancelled());
+     assert!(!prepared.is_current());
+     assert_eq!(target.direct_subscriptions.saved_selections().len(), 1);
+     assert_eq!(
+@@ -520,23 +502,19 @@
+         !committing.is_finished(),
+         "compound swap published while original private write was in flight"
+     );
+-    assert!(
+-        !f.movement.room.nodes["alice"]
+-            .controller
+-            .shutdown
+-            .is_cancelled()
+-    );
++    assert!(!f.movement.room.nodes["alice"]
++        .controller
++        .shutdown
++        .is_cancelled());
+     release.send(()).unwrap();
+     writing.await.unwrap().unwrap();
+     let (_, handle) = committing.await.unwrap().unwrap();
+     assert!(!private_ticket.is_current());
+     assert!(!prepared.is_current());
+-    assert!(
+-        f.movement.room.nodes["alice"]
+-            .controller
+-            .shutdown
+-            .is_cancelled()
+-    );
++    assert!(f.movement.room.nodes["alice"]
++        .controller
++        .shutdown
++        .is_cancelled());
+     prepared.close();
+     assert!(!target.shutdown.is_cancelled());
+     f.publish_video("bob", 61);
+@@ -548,3 +526,260 @@
+         ReplacementCleanupOutcome::LocalMediaClosed
+     );
+ }
++
++async fn feedback_delivery(
++    output: &mut mpsc::Receiver<QueuedMedia>,
++    timestamp: u32,
++) -> crate::staged_streams::VideoFeedbackRoute {
++    outgoing(output)
++        .await
++        .deliver_video_with_feedback(|frame, _, _| async move {
++            assert_eq!(
++                frame.timestamp_rtp, timestamp,
++                "promotion replayed private cached payload"
++            );
++            Ok(())
++        })
++        .await
++        .unwrap()
++}
++
++#[tokio::test]
++async fn replacement_preroll_public_promotion_preserves_decoder_identity_but_retires_private_feedback(
++) {
++    let mut f = Preroll::new().await;
++    let prepared = f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob", 70);
++    delivered(&mut f.old_output, 70).await;
++    let private = feedback_delivery(&mut f.target_output, 70).await;
++    private
++        .dispatch(private.epoch(), 41, |_, _| Ok(()))
++        .unwrap();
++    let plan = f.movement.plan_with_video(Some(request())).unwrap();
++    let (_, handle) = f.movement.commit(plan).await.unwrap();
++    assert!(!private.is_current());
++    assert!(private
++        .dispatch(private.epoch(), 42, |_, _| panic!(
++            "private feedback crossed promotion"
++        ))
++        .is_err());
++    prepared.close();
++    assert!(
++        f.target_output.try_recv().is_err(),
++        "promotion replayed a private queued payload"
++    );
++    f.publish_video("bob", 71);
++    let public = feedback_delivery(&mut f.target_output, 71).await;
++    assert_eq!(
++        public.epoch(),
++        private.epoch(),
++        "same original physical decoder was reset at public promotion"
++    );
++    assert!(public
++        .dispatch(public.epoch(), 41, |_, _| panic!(
++            "old feedback sequence was accepted"
++        ))
++        .is_err());
++    tokio::time::sleep(Duration::from_millis(110)).await;
++    public.dispatch(public.epoch(), 42, |_, _| Ok(())).unwrap();
++    f.movement
++        .room
++        .domain
++        .base
++        .0
++        .write()
++        .await
++        .revoked
++        .insert("bob".into());
++    assert!(public
++        .dispatch(public.epoch(), 43, |_, _| panic!(
++            "historical decoder identity bypassed current source revocation"
++        ))
++        .is_err());
++    assert_eq!(
++        handle.finish_local_media_cleanup(deadline()).await,
++        ReplacementCleanupOutcome::LocalMediaClosed
++    );
++}
++
++#[tokio::test]
++async fn replacement_preroll_promotion_changes_identity_when_actual_source_selection_changes() {
++    let mut f = Preroll::new().await;
++    let prepared = f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob", 80);
++    delivered(&mut f.old_output, 80).await;
++    let private = feedback_delivery(&mut f.target_output, 80).await;
++    let plan = f.movement.plan_with_video(Some(request())).unwrap();
++    let (_, handle) = f.movement.commit(plan).await.unwrap();
++    prepared.close();
++    f.publish_video("bob", 81);
++    let first = feedback_delivery(&mut f.target_output, 81).await;
++    assert_eq!(first.epoch(), private.epoch());
++    let target = f.movement.room.nodes["device"].controller.clone();
++    target
++        .change_direct_subscriptions(
++            target.revision(),
++            DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                &f.movement.room.nodes["public"].controller,
++                desired(Medium::Video).logical_id,
++                request().receivers[0].replacement.clone(),
++            )]),
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    f.publish_video("public", 82);
++    let changed = feedback_delivery(&mut f.target_output, 82).await;
++    assert_ne!(
++        changed.epoch(),
++        first.epoch(),
++        "different actual source borrowed decoded startup"
++    );
++    assert!(!first.is_current());
++    assert!(first
++        .dispatch(first.epoch(), 1, |_, _| panic!(
++            "retired source selection accepted feedback"
++        ))
++        .is_err());
++    assert_eq!(
++        handle.finish_local_media_cleanup(deadline()).await,
++        ReplacementCleanupOutcome::LocalMediaClosed
++    );
++}
++
++#[tokio::test]
++async fn replacement_preroll_public_identity_does_not_survive_source_or_target_port_generation_change(
++) {
++    for name in ["bob", "device"] {
++        let mut f = Preroll::new().await;
++        let prepared = f.prepare(CancellationToken::new()).await;
++        f.publish_video("bob", 90);
++        delivered(&mut f.old_output, 90).await;
++        let private = feedback_delivery(&mut f.target_output, 90).await;
++        let plan = f.movement.plan_with_video(Some(request())).unwrap();
++        let (_, handle) = f.movement.commit(plan).await.unwrap();
++        prepared.close();
++        f.publish_video("bob", 91);
++        let public = feedback_delivery(&mut f.target_output, 91).await;
++        assert_eq!(public.epoch(), private.epoch());
++        let controller = f.movement.room.nodes[name].controller.clone();
++        let logical = if name == "bob" {
++            desired(Medium::Video).logical_id
++        } else {
++            request().receivers[0].replacement.clone()
++        };
++        let before = controller
++            .active_bindings()
++            .into_iter()
++            .find(|b| b.negotiated.requested.logical_id == logical)
++            .unwrap();
++        let desired = controller
++            .active_bindings()
++            .into_iter()
++            .map(|b| b.negotiated.requested)
++            .collect::<Vec<_>>();
++        controller
++            .change(
++                controller.revision(),
++                &desired,
++                &BTreeSet::from([logical.clone()]),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++        let after = controller
++            .active_bindings()
++            .into_iter()
++            .find(|b| b.negotiated.requested.logical_id == logical)
++            .unwrap();
++        assert_ne!(before.transport_id, after.transport_id);
++        assert!(after.generation > before.generation);
++        if name == "device" {
++            f.target_output = f.movement.room.nodes[name].adapter.ports.lock().unwrap()[&logical]
++                .take_egress()
++                .unwrap();
++        }
++        f.publish_video("bob", 92);
++        let changed = feedback_delivery(&mut f.target_output, 92).await;
++        assert_ne!(
++            changed.epoch(),
++            public.epoch(),
++            "{name} replacement inherited old decoder identity"
++        );
++        assert!(!public.is_current());
++        assert_eq!(
++            handle.finish_local_media_cleanup(deadline()).await,
++            ReplacementCleanupOutcome::LocalMediaClosed
++        );
++    }
++}
++
++#[tokio::test]
++async fn replacement_preroll_unavailable_identity_metadata_creates_fresh_public_epoch_without_waiting(
++) {
++    let mut f = Preroll::new().await;
++    let prepared = f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob", 100);
++    delivered(&mut f.old_output, 100).await;
++    let private = feedback_delivery(&mut f.target_output, 100).await;
++    let target = f.movement.room.nodes["device"].controller.clone();
++    let cache = target
++        .direct_subscriptions
++        .stamp(
++            &f.movement.room.nodes["bob"].controller,
++            &desired(Medium::Video).logical_id,
++            &request().receivers[0].replacement,
++            Instant::now(),
++        )
++        .unwrap()
++        .feedback;
++    let unavailable = cache.hold_metadata_for_test();
++    let plan = f.movement.plan_with_video(Some(request())).unwrap();
++    let (_, handle) = tokio::time::timeout(Duration::from_secs(1), f.movement.commit(plan))
++        .await
++        .expect("publication blocked on optional decoder metadata")
++        .unwrap();
++    drop(unavailable);
++    prepared.close();
++    f.publish_video("bob", 101);
++    let public = feedback_delivery(&mut f.target_output, 101).await;
++    assert_ne!(public.epoch(), private.epoch());
++    assert!(!private.is_current());
++    assert_eq!(
++        handle.finish_local_media_cleanup(deadline()).await,
++        ReplacementCleanupOutcome::LocalMediaClosed
++    );
++}
++
++#[tokio::test]
++async fn replacement_preroll_cancelled_identity_never_authorizes_queued_or_feedback_work() {
++    let mut f = Preroll::new().await;
++    let stop = CancellationToken::new();
++    let prepared = f.prepare(stop.clone()).await;
++    f.publish_video("bob", 110);
++    delivered(&mut f.old_output, 110).await;
++    let private = feedback_delivery(&mut f.target_output, 110).await;
++    f.publish_video("bob", 111);
++    delivered(&mut f.old_output, 111).await;
++    let queued = outgoing(&mut f.target_output).await;
++    stop.cancel();
++    assert!(!prepared.is_current());
++    assert!(private
++        .dispatch(private.epoch(), 1, |_, _| panic!(
++            "cancelled private epoch authorized feedback"
++        ))
++        .is_err());
++    assert!(queued
++        .deliver_video_with_feedback(|_, _, _| async {
++            panic!("cancelled private payload delivered")
++        })
++        .await
++        .is_err());
++    assert!(!f.movement.room.nodes["alice"]
++        .controller
++        .shutdown
++        .is_cancelled());
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
+@@ -37,20 +37,84 @@
+                 .is_some_and(|s| s.cancel.is_cancelled())
+     }
+ }
+-#[derive(Default)]
++#[derive(Clone, Default)]
+ struct Rate {
+     sequence: Option<u32>,
+     next: Option<Instant>,
+ }
+ struct Epoch {
+     id: u128,
++    source: MediaSource,
+     scope: Scope,
+     rate: Mutex<Rate>,
+ }
+ // One current epoch per direct selection. New packets share its rate/sequence
+ // state; neither recording more packets nor unrelated Data controls resets it.
+ #[derive(Default)]
+-pub(super) struct FeedbackCache(Mutex<Option<Arc<Epoch>>>);
++pub(super) struct FeedbackCache {
++    current: Mutex<Option<Arc<Epoch>>>,
++    continuation: Option<DecoderContinuation>,
++}
++// Decoder identity and replay/cooldown cursor only. This owns no Epoch, route,
++// media frame, current ticket, reader, port or controller. Admission is rebuilt
++// at the first actual public delivery under its new real current guards.
++#[derive(Clone)]
++struct DecoderContinuation {
++    id: u128,
++    source: Weak<Port>,
++    target: Weak<Port>,
++    descriptor: MediaSource,
++    rate: Rate,
++}
++impl DecoderContinuation {
++    fn matches(&self, scope: &Scope, source: &MediaSource) -> bool {
++        Weak::ptr_eq(&self.source, &scope.source)
++            && Weak::ptr_eq(&self.target, &scope.target)
++            && self.source.upgrade().is_some()
++            && self.target.upgrade().is_some()
++            && self.descriptor.conversation == source.conversation
++            && self.descriptor.session == source.session
++            && self.descriptor.connection == source.connection
++            && self.descriptor.participant == source.participant
++            && self.descriptor.membership_epoch == source.membership_epoch
++            && self.descriptor.connection_generation == source.connection_generation
++            && self.descriptor.logical_id == source.logical_id
++            && self.descriptor.transport_id == source.transport_id
++            && self.descriptor.stream_generation == source.stream_generation
++    }
++}
++#[cfg(test)]
++pub(super) struct FeedbackMetadataLock<'a> {
++    _guard: std::sync::MutexGuard<'a, Option<Arc<Epoch>>>,
++}
++impl FeedbackCache {
++    #[cfg(test)]
++    pub(super) fn hold_metadata_for_test(&self) -> FeedbackMetadataLock<'_> {
++        FeedbackMetadataLock {
++            _guard: self.current.lock().unwrap(),
++        }
++    }
++    /// Only DirectCommit may call this for its validated original private route
++    /// and identical selected source. Unavailable metadata conservatively gets a
++    /// fresh identity; it never blocks the atomic routing fence or borrows IO.
++    pub(super) fn promoted(&self) -> Self {
++        let continuation = self.current.try_lock().ok().and_then(|slot| {
++            let epoch = slot.as_ref()?;
++            let rate = epoch.rate.try_lock().ok()?.clone();
++            Some(DecoderContinuation {
++                id: epoch.id,
++                source: epoch.scope.source.clone(),
++                target: epoch.scope.target.clone(),
++                descriptor: epoch.source.clone(),
++                rate,
++            })
++        });
++        Self {
++            current: Mutex::new(None),
++            continuation,
++        }
++    }
++}
+ 
+ #[derive(Clone)]
+ pub struct VideoFeedbackRoute {
+@@ -75,14 +139,24 @@
+         let epoch = {
+             let mut slot = direct
+                 .feedback
+-                .0
++                .current
+                 .try_lock()
+                 .map_err(|_| StreamControlError::Backpressure)?;
+             if slot.as_ref().is_none_or(|epoch| !epoch.scope.same(&scope)) {
++                // A promotion seed applies only to the empty new cache. A
++                // later source/port/scene change always begins a fresh epoch.
++                let continuation = slot
++                    .is_none()
++                    .then(|| direct.feedback.continuation.as_ref())
++                    .flatten()
++                    .filter(|seed| seed.matches(&scope, &source));
+                 *slot = Some(Arc::new(Epoch {
+-                    id: uuid::Uuid::new_v4().as_u128(),
++                    id: continuation.map_or_else(|| uuid::Uuid::new_v4().as_u128(), |seed| seed.id),
++                    source: source.clone(),
+                     scope,
+-                    rate: Mutex::new(Rate::default()),
++                    rate: Mutex::new(
++                        continuation.map_or_else(Rate::default, |seed| seed.rate.clone()),
++                    ),
+                 }));
+             }
+             slot.as_ref().unwrap().clone()
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -687,6 +687,7 @@
+         a: Arc<super::auth_dispatch::AuthorizedEnvelope>,
+         held: Arc<dyn std::any::Any + Send + Sync>,
+         deadline: tokio::time::Instant,
++        readiness: Option<super::native_negotiation::ReplacementReadinessChallenge>,
+     ) -> std::result::Result<
+         super::native_negotiation::NativeOfferOutcome,
+         super::native_negotiation::NativeOfferError,
+@@ -713,7 +714,7 @@
+         if expected != controller.revision() {
+             return Err(NativeOfferError::Conflict);
+         }
+-        let guard = broker.begin(a.clone(), expected)?;
++        let guard = broker.begin(a.clone(), expected, readiness)?;
+         if guard.plan().rejected().iter().any(|id| {
+             controller
+                 .active_bindings()
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
+@@ -153,6 +153,7 @@
+     pub(crate) rejected: Vec<super::super::Identifier>,
+     pub(crate) remote: EndpointMediaCapabilities,
+     pub(crate) declaration_generation: Option<u64>,
++    pub(crate) replacement_readiness: Option<super::ReplacementReadinessChallenge>,
+ }
+ impl NativeOfferPlan {
+     pub(crate) fn subscription(
+@@ -215,6 +216,7 @@
+             rejected: vec![],
+             remote: effective,
+             declaration_generation: None,
++            replacement_readiness: None,
+         })
+     }
+     /// Select new parameters from the actual update and the last confirmed
+@@ -329,6 +331,7 @@
+             rejected: vec![],
+             remote: effective,
+             declaration_generation: None,
++            replacement_readiness: None,
+         })
+     }
+     /// Plan a Session policy against existing bindings. This is metadata only.
+@@ -427,6 +430,7 @@
+             rejected: Vec::new(),
+             remote: effective,
+             declaration_generation: None,
++            replacement_readiness: None,
+         })
+     }
+     /// A complete peer declaration for future negotiation. Empty catalogs can
+@@ -643,6 +647,7 @@
+             rejected,
+             remote,
+             declaration_generation: None,
++            replacement_readiness: None,
+         })
+     }
+ }
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -15,7 +15,9 @@
+ use tokio::time::Instant;
+ use tokio_util::sync::CancellationToken;
+ mod activation;
++mod replacement_readiness;
+ pub use activation::NativeMediaActivation;
++pub use replacement_readiness::ReplacementReadinessChallenge;
+ pub(crate) mod catalog;
+ use catalog::{codec_wire, direction, format_name, kind, payload_type, peer_direction};
+ pub use catalog::{NativeMediaProfile, NativeOfferPlan};
+@@ -382,8 +384,13 @@
+         self: &Arc<Self>,
+         invocation: Arc<AuthorizedEnvelope>,
+         expected: u64,
++        readiness: Option<ReplacementReadinessChallenge>,
+     ) -> Result<NegotiationGuard, NativeOfferError> {
+-        let plan = self.plan(&invocation)?;
++        let mut plan = self.plan(&invocation)?;
++        if let Some(readiness) = readiness {
++            readiness.validate_start(invocation.envelope(), expected, &plan)?;
++            plan.replacement_readiness = Some(readiness);
++        }
+         let Payload::ConnectionOffer(offer) = invocation.envelope().payload() else {
+             return Err(NativeOfferError::Unsupported);
+         };
+@@ -863,28 +870,32 @@
+         let setup = json!({"kind":"native-prepared/1","revision":op.expected+1,"offer_id":op.envelope.id(),"streams":wire});
+         let answered=bindings.iter().map(|b|json!({"id":b.negotiated.requested.logical_id.as_str(),"kind":kind(b.negotiated.requested.medium),"direction":direction(b.negotiated.requested.direction),"codec":codec_wire(&b.negotiated.format,payload_type(&b.negotiated.format))})).collect::<Vec<_>>();
+         let substrate = &op.substrate;
++        let readiness = op
++            .plan
++            .replacement_readiness
++            .as_ref()
++            .map(|challenge| challenge.marker(&bindings))
++            .transpose()?;
+         if let Some(invocation) = op
+             .command()
+             .filter(|a| a.envelope().kind() == "connection.offer")
+         {
+-            let answer = message(
+-                &op.envelope,
+-                "connection.answer",
+-                json!({"by_participant":self.participant.as_str(),"substrate":substrate,"capabilities":self.profile.wire,"streams_answered":answered,"substrate_setup":setup}),
+-                true,
+-            )?;
++            let mut payload = json!({"by_participant":self.participant.as_str(),"substrate":substrate,"capabilities":self.profile.wire,"streams_answered":answered,"substrate_setup":setup});
++            if let Some(marker) = &readiness {
++                payload["replacement_preparation"] = marker.clone();
++            }
++            let answer = message(&op.envelope, "connection.answer", payload, true)?;
+             tokio::select! {biased;_=cancel.cancelled()=>return Err(NativeOfferError::Cancelled),_=self.lifetime.cancelled()=>return Err(NativeOfferError::Cancelled),r=invocation.answer_offer(answer,deadline)=>{r?;}}
+         }
+         // One server offer after both families have actually installed their local
+         // provisional resources. The peer confirms these exact parameters through
+         // the actor's current signed reply lane; no client-ready boolean is accepted.
+         let offered=bindings.iter().map(|b|json!({"id":b.negotiated.requested.logical_id.as_str(),"kind":kind(b.negotiated.requested.medium),"direction":direction(b.negotiated.requested.direction),"codec_preferences":[format_name(&b.negotiated.format)]})).collect::<Vec<_>>();
+-        let request = message(
+-            &op.envelope,
+-            "connection.offer",
+-            json!({"by_participant":self.participant.as_str(),"substrate":substrate,"capabilities":self.profile.wire,"streams_offered":offered,"substrate_setup":setup}),
+-            false,
+-        )?;
++        let mut payload = json!({"by_participant":self.participant.as_str(),"substrate":substrate,"capabilities":self.profile.wire,"streams_offered":offered,"substrate_setup":setup});
++        if let Some(marker) = readiness {
++            payload["replacement_preparation"] = marker;
++        }
++        let request = message(&op.envelope, "connection.offer", payload, false)?;
+         let (reply, server_reply) = match &op.source {
+             Source::Command(invocation) => {
+                 let reply = tokio::select! {biased;_=cancel.cancelled()=>return Err(NativeOfferError::Cancelled),_=self.lifetime.cancelled()=>return Err(NativeOfferError::Cancelled),r=invocation.exchange(request,deadline)=>r?};
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/replacement_readiness.rs
+@@ -0,0 +1,109 @@
++//! Host-issued metadata for one original native replacement negotiation.
++//! This is a challenge, never a media grant or a decoder observation. It cannot
++//! be copied from arbitrary client extensions or attached to an update/replay.
++use super::*;
++#[derive(Clone)]
++pub struct ReplacementReadinessChallenge {
++    record: Identifier,
++    nonce: Identifier,
++    source_generation: u64,
++    target_generation: u64,
++}
++impl ReplacementReadinessChallenge {
++    pub fn new(
++        operation_record_id: String,
++        nonce: String,
++        source_generation: u64,
++        target_generation: u64,
++    ) -> Result<Self, NativeOfferError> {
++        if source_generation == 0
++            || source_generation.checked_add(1) != Some(target_generation)
++            || target_generation > super::super::MAX_SAFE_REVISION
++        {
++            return Err(NativeOfferError::Invalid);
++        }
++        Ok(Self {
++            record: operation_record_id
++                .try_into()
++                .map_err(|_| NativeOfferError::Invalid)?,
++            nonce: nonce.try_into().map_err(|_| NativeOfferError::Invalid)?,
++            source_generation,
++            target_generation,
++        })
++    }
++    pub(super) fn validate_start(
++        &self,
++        envelope: &Envelope,
++        expected: u64,
++        plan: &NativeOfferPlan,
++    ) -> Result<(), NativeOfferError> {
++        let marker = &envelope.original()["payload"]["replacement_preparation"];
++        if envelope.kind() != "connection.offer"
++            || expected != 0
++            || marker.as_object().map(|m| m.len()) != Some(2)
++            || marker["profile"] != "connect-replacement-media-v1"
++            || marker["operation_record_id"].as_str() != Some(self.record.as_str())
++            || plan
++                .selected()
++                .iter()
++                .filter(|s| {
++                    s.requested.medium == Medium::Audio
++                        && s.requested.direction == StreamDirection::Both
++                })
++                .count()
++                != 1
++        {
++            return Err(NativeOfferError::Scope);
++        }
++        Ok(())
++    }
++    pub(super) fn marker(&self, bindings: &[ReadyMediaBinding]) -> Result<Value, NativeOfferError> {
++        if bindings.is_empty()
++            || bindings
++                .iter()
++                .any(|b| b.connection_generation != self.target_generation)
++        {
++            return Err(NativeOfferError::Confirmation);
++        }
++        Ok(
++            json!({"profile":"connect-replacement-media-v1","operation_record_id":self.record.as_str(),"readiness":{
++                "nonce":self.nonce.as_str(),"source_generation":self.source_generation,"target_generation":self.target_generation,"stream_revision":2
++            }}),
++        )
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn replacement_challenge_requires_exact_bounded_consecutive_generations_and_identifiers() {
++        assert!(ReplacementReadinessChallenge::new("record".into(), "nonce".into(), 1, 2).is_ok());
++        for (a, b) in [
++            (0, 1),
++            (1, 1),
++            (1, 3),
++            (u64::MAX, u64::MAX),
++            (
++                super::super::super::MAX_SAFE_REVISION,
++                super::super::super::MAX_SAFE_REVISION + 1,
++            ),
++        ] {
++            assert!(
++                ReplacementReadinessChallenge::new("record".into(), "nonce".into(), a, b).is_err()
++            );
++        }
++        assert!(
++            ReplacementReadinessChallenge::new("../record".into(), "nonce".into(), 1, 2).is_err()
++        );
++        assert!(ReplacementReadinessChallenge::new("record".into(), "".into(), 1, 2).is_err());
++    }
++    #[test]
++    fn replacement_challenge_without_actual_prepared_binding_never_emits_a_marker() {
++        let challenge =
++            ReplacementReadinessChallenge::new("record".into(), "nonce".into(), 1, 2).unwrap();
++        assert!(matches!(
++            challenge.marker(&[]),
++            Err(NativeOfferError::Confirmation)
++        ));
++    }
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -780,7 +780,7 @@
+                 .insert(id.clone(), activation);
+         }
+         let result = adapter
+-            .negotiate_native_offer(&id, a.clone(), invocation.clone(), deadline())
++            .negotiate_native_offer(&id, a.clone(), invocation.clone(), deadline(), None)
+             .await;
+         let ok = result.is_ok();
+         self.record.results.lock().unwrap().push(result);

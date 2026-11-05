@@ -44,10 +44,13 @@ def independent_decode(directory, name, frames):
         capture_output=True, check=True, timeout=10, env=fixture_environment()).stdout
     if len(decoded) != len(frames) * 384:
         raise AssertionError("independent decoder did not produce every original frame")
+    actual_luma_sums = []
     for position, (index, _, _) in enumerate(frames):
         luma = decoded[position * 384:position * 384 + 256]
+        actual_luma_sums.append(sum(luma))
         if abs(sum(luma) / 256 - (60 + 3 * index)) > 3:
             raise AssertionError("decoded marker belongs to another original frame")
+    return actual_luma_sums
 
 
 class LiveVp8Encoder(unittest.TestCase):
@@ -93,7 +96,35 @@ class LiveVp8Encoder(unittest.TestCase):
                         last_key = index
                     self.assertIsNotNone(last_key)
                     self.assertLess(index - last_key, 30)
-            independent_decode(directory, "requested-whole", recovered)
+            # The same original decoder owns all frames across a marked
+            # conceptual preparation/commit boundary. No restart at index 7.
+            def decode(frames, suffix=b""):
+                wire = b"".join(struct.pack("<4sIII", b"D8F1", i, len(frame), key) + frame
+                                for i, key, frame in frames) + suffix
+                return subprocess.run([str(binary), "--decode-vp8"], input=wire,
+                                      capture_output=True, timeout=5,
+                                      env=fixture_environment())
+            decoded = decode(recovered)
+            self.assertEqual(decoded.returncode, 0, decoded.stderr)
+            self.assertEqual(len(decoded.stdout), len(recovered) * 32)
+            retained_luma_sums = []
+            for position, (index, key, _) in enumerate(recovered):
+                magic, actual, count, actual_key, width, height, luma, pixels = struct.unpack(
+                    "<4sIIIIIII", decoded.stdout[position*32:(position+1)*32])
+                self.assertEqual((magic, actual, count, actual_key, width, height, pixels),
+                                 (b"V8D1", index, 1, key, 640, 360, 256))
+                self.assertLessEqual(abs(luma / pixels - (60 + 3 * index)), 3)
+                retained_luma_sums.append(luma)
+            # A valid interframe is not startup readiness; malformed, duplicate
+            # and falsely labelled keyframes cannot become decoder output.
+            self.assertNotEqual(decode(baseline[1:2]).returncode, 0)
+            self.assertNotEqual(decode(recovered[:1] * 2).returncode, 0)
+            self.assertNotEqual(decode([(0, 1, b"\0" * 16)]).returncode, 0)
+            self.assertNotEqual(decode([(0, 0, recovered[0][2])]).returncode, 0)
+            self.assertNotEqual(decode(recovered[:1], b"partial").returncode, 0)
+            independent_luma_sums = independent_decode(directory, "requested-whole", recovered)
+            self.assertEqual(retained_luma_sums, independent_luma_sums,
+                             "retained libvpx and independent offline decoder must observe the same original pixels")
             # Start a separate decoder at the requested physical frame. This
             # must decode its own original marker, not a cached earlier image.
             independent_decode(directory, "requested-fresh-history", recovered[7:])
@@ -111,6 +142,7 @@ class LiveVp8Encoder(unittest.TestCase):
             self.assertNotEqual(run(struct.pack("<II", 0, 0)).returncode, 0)
             print(json.dumps(dict(build=metadata, independently_decoded_frames=73,
                                   requested_keyframe_index=7, original_indices_preserved=True,
+                                  actual_retained_decoder_outputs=40, independent_pixel_comparison=True,
                                   transport_qualified=False, full_media_qualified=False)))
 
 

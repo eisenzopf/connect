@@ -482,6 +482,7 @@ impl Runtime {
             plan,
             root: Arc::downgrade(&root),
             activation: OnceLock::new(),
+            public_continuation: OnceLock::new(),
             origin: OnceLock::new(),
             preparation_operation: OnceLock::new(),
             data_observer: None,

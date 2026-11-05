@@ -385,6 +385,7 @@ dependencies = [
  "base64 0.22.1",
  "connect-client",
  "nix",
+ "opus",
  "serde",
  "serde_json",
  "sha2",

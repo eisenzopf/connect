@@ -400,6 +400,53 @@ cannot cancel the adopted target. Failure cleanup joins owned workers even when
 recording cleanup metadata fails; no stored readiness flag substitutes for a
 current resource observation.
 
+## Signed native target decoder readiness
+
+Native QUIC and WebTransport replacements require a decoder acknowledgment on
+that exact original authenticated physical target, including audio-only moves.
+The server supplies the identical `replacement_preparation` challenge marker in
+its signed native `connection.answer` and its subsequent parameter
+`connection.offer`. The marker has profile `connect-replacement-media-v1`, the
+original `operation_record_id`, and `readiness` containing `nonce`,
+`source_generation`, `target_generation` and `stream_revision: 2`. The target
+validates both signed callbacks and their exact connection, original offer ID,
+logical IDs, handles and generations. The parameter setup revision is 1; the
+challenge's revision 2 identifies the ensuing private-mute/preparation state.
+The host constructs this typed challenge; arbitrary client extensions are never
+reflected into it.
+
+Before original public retirement, the target sends the original immutable
+media offer and scope again with profile `connect-replacement-ready-v1`. Its
+`readiness` repeats the challenge and includes `audio: {stream_id,
+decoded_samples}` from actual private decoded PCM. If the original signed move
+maps an incoming video receiver, it also includes `video: {stream_id,
+decoded_frames, decoded_keyframes, decoder_startup}` with positive actual frame
+and keyframe counts and `decoder_startup: "fresh-peer-first-decoded-frame"`.
+Native does not use the browser's missing-keyframe-counter fallback. Counts are
+frozen before the first signed observation; a transport reply loss may only
+reobserve that same observation/original operation. Different counts, nonce,
+generations, original peer, current key or stream intent cannot repeat capture
+or movement. The gate is in-memory and bounded by the original preparation
+cutoff; process restart cannot reconstruct readiness from a journal receipt.
+The ready response acknowledges capture/status and does not wait for completed
+projection. Current authorization remains mandatory on observational replay.
+
+The existing explicit video mappings inherit their intended gates only at the
+atomic Core move. Before that, video delivery uses a receiver-only private copy
+of exact retained selections and current source/target tickets. The target may
+start its original encoder and decoder during preparation; it must not wait for
+a completed-root file or reset decoder history at completion. A genuinely
+changed signed video epoch still requires a new keyframe. Omitted video mappings
+remain conservatively muted and require no fictional video proof. Data keeps its
+separate post-completion controls. Actual Core duplex IO, current private route,
+current generation and Store authorization are required in addition to the
+signed endpoint report; the report is not independent proof against a malicious
+endpoint.
+
+See [the normative readiness schema](schemas/replacement-decoder-readiness-1.schema.json)
+and `ReplacementReadiness*` OpenAPI components. These fields add no HTTP media or
+readiness route. This protocol does not by itself claim Gate 6 quality coverage.
+
 ## Private native continuation
 
 A successful signed resource start queues an owned local continuation. Schema 56

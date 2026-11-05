@@ -12,6 +12,7 @@ use tokio::sync::Notify;
 
 #[derive(Default)]
 pub(super) struct Shared {
+    pub(super) readiness: super::native_readiness::Shared,
     state: Mutex<Option<State>>,
     pub changed: Notify,
 }
@@ -70,6 +71,7 @@ impl Shared {
     /// Invoked immediately after signature verification, before generic inbox
     /// delivery. Consumed epoch notices never crowd out command replies/Data.
     pub fn verified(&self, frame: &Envelope) -> Result<bool> {
+        self.readiness.verified(frame)?;
         let mut guard = self.state.lock().map_err(|_| ClientError::Protocol)?;
         let Some(s) = guard.as_mut() else {
             return Ok(false);
@@ -232,6 +234,7 @@ impl Shared {
     // Mutations are not retried here. Resume cannot resurrect a retained epoch;
     // only a strictly newer signed notice may establish subsequent history.
     pub fn outgoing(&self, frame: &Value) -> Result<()> {
+        self.readiness.outgoing(frame)?;
         let mut guard = self.state.lock().map_err(|_| ClientError::Protocol)?;
         let Some(s) = guard.as_mut() else {
             return Ok(());

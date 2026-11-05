@@ -4,6 +4,8 @@ use super::*;
 mod activation;
 #[path = "replacement/av.rs"]
 mod av;
+#[path = "replacement/decoded_readiness.rs"]
+pub(super) mod decoded_readiness;
 async fn wait_prepared(f: &Fixture, key: &str, operation: &str) -> OperationRecord {
     let until = tokio::time::Instant::now() + Duration::from_secs(10);
     loop {
@@ -185,6 +187,8 @@ async fn exercise_replacement_with_control(
 #[derive(Clone, Copy)]
 enum ActivationAudit {
     None,
+    #[cfg(feature = "test-support")]
+    Continuation(activation::continuation::Case),
     RevokeBeforeReady,
     #[cfg(feature = "test-support")]
     RefuseBeforeCore,
@@ -293,6 +297,8 @@ async fn exercise_replacement_with_av_transfer(
         .filter(|case| selected_case.is_none_or(|selected| *case == selected))
     {
         #[cfg(feature = "test-support")]
+        let mut continuation_owners = Vec::new();
+        #[cfg(feature = "test-support")]
         let data_running = if activation_audit.data_observer() {
             Some(activation::data_observer::setup().await)
         } else {
@@ -384,7 +390,18 @@ async fn exercise_replacement_with_av_transfer(
         if movement {
             target_scope.operations.push("stream.subscribe".into());
         }
-        let target = party_with_scope(
+        #[cfg(feature = "test-support")]
+        let target_expiry = if matches!(
+            activation_audit,
+            ActivationAudit::Continuation(activation::continuation::Case::Expire)
+        ) {
+            chrono::Utc::now().timestamp() + 45
+        } else {
+            chrono::Utc::now().timestamp() + 600
+        };
+        #[cfg(not(feature = "test-support"))]
+        let target_expiry = chrono::Utc::now().timestamp() + 600;
+        let target = crate::canonical_native_connections::identities::party_with_scope_until(
             &f,
             &f.client.identity_id,
             281,
@@ -396,6 +413,7 @@ async fn exercise_replacement_with_av_transfer(
                 vec!["audio".into()]
             },
             target_scope,
+            target_expiry,
         );
         let endpoint: String = rusqlite::Connection::open(&f.config.database)
             .unwrap()
@@ -535,6 +553,7 @@ async fn exercise_replacement_with_av_transfer(
             controller.transition(command.clone()).await.unwrap()
         };
         let prepared = wait_prepared(&f, &key.id, &command.operation_id).await;
+        let original_cutoff = decoded_readiness::original_cutoff(&prepared);
         assert_eq!(prepared.state, OperationState::Preparing);
         assert!(prepared.result.is_none());
         assert_eq!(prepared.effects.len(), 1 + usize::from(candidate_target));
@@ -638,6 +657,8 @@ async fn exercise_replacement_with_av_transfer(
             1
         );
         let mut replacement_handle = None;
+        let mut decoded_preparation = None;
+        let mut original_video_sequence = 40u16;
         let mut replacement_video_handle = None;
         let mut replacement_incoming_video_handle = None;
         let mut allocated_target = if allocate {
@@ -735,14 +756,27 @@ async fn exercise_replacement_with_av_transfer(
             );
             drop(c);
             if start_media {
-                let (request_id, scope) = client
-                    .begin_native_replacement_media(
-                        &command,
-                        &public_root,
-                        serde_json::from_value(offer.clone()).unwrap(),
-                    )
-                    .await
-                    .unwrap();
+                let (request_id, scope) = if reject_answer {
+                    // Deliberately malformed parameters are a signed server
+                    // negative. Do not bypass/relax the safe typed answer API.
+                    let mut media = offer.clone();
+                    media["replacement_preparation"]["profile"] =
+                        json!("connect-replacement-media-v1");
+                    let id = client
+                        .send_value("connection.offer", media, offer_scope.clone())
+                        .await
+                        .unwrap();
+                    (id, offer_scope.clone())
+                } else {
+                    client
+                        .begin_native_replacement_media(
+                            &command,
+                            &public_root,
+                            serde_json::from_value(offer.clone()).unwrap(),
+                        )
+                        .await
+                        .unwrap()
+                };
                 let answer = client.receive_control().await.unwrap();
                 assert_eq!(
                     answer.kind(),
@@ -795,20 +829,26 @@ async fn exercise_replacement_with_av_transfer(
                         OperationState::Preparing,
                     );
                 }
-                let payload = &callback.original()["payload"];
-                let streams=payload["substrate_setup"]["streams"].as_array().unwrap().iter().map(|v|json!({"id":v["strm_id"],"kind":v["kind"],"direction":match v["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":v["codec"]})).collect::<Vec<_>>();
-                let mut response = json!({"by_participant":payload["by_participant"],"substrate":"quic","capabilities":offer["capabilities"],"streams_answered":streams,"substrate_setup":payload["substrate_setup"]});
                 if reject_answer {
+                    let payload = &callback.original()["payload"];
+                    let streams = payload["substrate_setup"]["streams"].as_array().unwrap().iter()
+                        .map(|v| json!({"id":v["strm_id"],"kind":v["kind"],"direction":match v["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":v["codec"]})).collect::<Vec<_>>();
+                    let mut response = json!({"by_participant":payload["by_participant"],"substrate":"quic","capabilities":offer["capabilities"],"streams_answered":streams,"substrate_setup":payload["substrate_setup"]});
                     response["substrate_setup"]["revision"] = json!(999);
+                    client
+                        .answer_connection_offer(
+                            &callback,
+                            serde_json::from_value(response).unwrap(),
+                            &scope,
+                        )
+                        .await
+                        .unwrap();
+                } else {
+                    decoded_preparation = Some(
+                        decoded_readiness::answer(&mut client, &callback, &scope, original_cutoff)
+                            .await,
+                    );
                 }
-                client
-                    .answer_connection_offer(
-                        &callback,
-                        serde_json::from_value(response).unwrap(),
-                        &scope,
-                    )
-                    .await
-                    .unwrap();
                 if reject_answer {
                     stopped(&f, &key.id, &command.operation_id, OperationState::Failed).await;
                 } else {
@@ -904,6 +944,20 @@ async fn exercise_replacement_with_av_transfer(
                 rusqlite::Connection::open(&f.config.database).unwrap().execute_batch("CREATE TRIGGER fixture_projection_block BEFORE INSERT ON native_replacement_lifetimes BEGIN SELECT RAISE(ABORT,'isolated projection failure'); END;").unwrap();
             }
             #[cfg(feature = "test-support")]
+            let continuation_audit = if let ActivationAudit::Continuation(case) = activation_audit {
+                assert!(!deferred_projection && !candidate_target && !observer);
+                let record = status(&f, &key.id, &command.operation_id).await;
+                Some((
+                    case,
+                    f.server
+                        .service
+                        .pause_canonical_replacement_projection_for_test(&record.record_id)
+                        .unwrap(),
+                ))
+            } else {
+                None
+            };
+            #[cfg(feature = "test-support")]
             let fault_audit = if matches!(
                 activation_audit,
                 ActivationAudit::RefuseBeforeCore
@@ -932,14 +986,23 @@ async fn exercise_replacement_with_av_transfer(
             } else {
                 None
             };
-            #[cfg(feature = "test-support")]
-            if let Some((armed, _)) = &fault_audit {
-                activation::pre_core::send_until_refusal(&mut peers[2], armed).await;
-            } else {
-                send_readiness(&mut peers[2]).await;
-            }
-            #[cfg(not(feature = "test-support"))]
-            send_readiness(&mut peers[2]).await;
+            let _frozen_decoded_ready = {
+                let (retained, rest) = peers.split_at_mut(1);
+                let publisher = transfer_video.then(|| decoded_readiness::VideoSource {
+                    client: &retained[0].client,
+                    handle: source_video_handle.unwrap(),
+                    next_sequence: &mut original_video_sequence,
+                });
+                decoded_readiness::confirm(
+                    &mut rest[1],
+                    decoded_preparation.take().unwrap(),
+                    publisher,
+                    &mut controller,
+                    &command,
+                    &prepared,
+                )
+                .await
+            };
             #[cfg(feature = "test-support")]
             if let Some((armed, original_bindings)) = fault_audit {
                 if matches!(activation_audit, ActivationAudit::RefuseBeforeCore) {
@@ -987,6 +1050,43 @@ async fn exercise_replacement_with_av_transfer(
                 f.server.shutdown().await.unwrap();
                 super::sdk_movements::shutdown_joined(movement_controller);
                 continue;
+            }
+
+            #[cfg(feature = "test-support")]
+            if let Some((case, pause)) = continuation_audit {
+                let (stopped, owners) = activation::continuation::paused(
+                    &f,
+                    &cid,
+                    candidate,
+                    &key.id,
+                    &target.credential,
+                    &command,
+                    &mut peers,
+                    case,
+                    transfer_video.then(|| {
+                        (
+                            source_video_handle.unwrap(),
+                            replacement_video_handle.unwrap(),
+                            retained_video.unwrap().0,
+                            replacement_incoming_video_handle.unwrap(),
+                        )
+                    }),
+                    &mut original_video_sequence,
+                    pause,
+                )
+                .await;
+                continuation_owners = owners;
+                if stopped {
+                    for peer in peers {
+                        let _ = peer.client.shutdown().await;
+                    }
+                    wait_slots(&f, 0).await;
+                    let movement_controller = super::sdk_movements::before_shutdown(&f).await;
+                    f.server.shutdown().await.unwrap();
+                    super::sdk_movements::shutdown_joined(movement_controller);
+                    activation::continuation::owners_joined(&continuation_owners);
+                    continue;
+                }
             }
 
             if deferred_projection {
@@ -1099,7 +1199,9 @@ async fn exercise_replacement_with_av_transfer(
                 let movement_controller = super::sdk_movements::before_shutdown(&f).await;
                 f.server.shutdown().await.unwrap();
                 super::sdk_movements::shutdown_joined(movement_controller);
-                eprintln!("actual captured movement projection failure recovered: known commit, revoked target before adoption, exact retirement, retained peer, no second attempt");
+                eprintln!(
+                    "actual captured movement projection failure recovered: known commit, revoked target before adoption, exact retirement, retained peer, no second attempt"
+                );
                 continue;
             }
 
@@ -1170,6 +1272,7 @@ async fn exercise_replacement_with_av_transfer(
                     replacement_video_handle.unwrap(),
                     retained_video.unwrap().0,
                     replacement_incoming_video_handle.unwrap(),
+                    &mut original_video_sequence,
                 )
                 .await;
             } else if av {
@@ -1357,7 +1460,11 @@ async fn exercise_replacement_with_av_transfer(
             let movement_controller = super::sdk_movements::before_shutdown(&f).await;
             f.server.shutdown().await.unwrap();
             super::sdk_movements::shutdown_joined(movement_controller);
-            eprintln!("actual managed movement passed: observer={observer}; generation2, original-only retirement, current independent audio, latecancel and original authority revocation");
+            #[cfg(feature = "test-support")]
+            activation::continuation::owners_joined(&continuation_owners);
+            eprintln!(
+                "actual managed movement passed: observer={observer}; generation2, original-only retirement, current independent audio, latecancel and original authority revocation"
+            );
             continue;
         }
         if let Some(client) = allocated_target.as_mut() {
@@ -1555,31 +1662,14 @@ async fn exercise_replacement_with_av_transfer(
         let movement_controller = super::sdk_movements::before_shutdown(&f).await;
         f.server.shutdown().await.unwrap();
         super::sdk_movements::shutdown_joined(movement_controller);
-        eprintln!("actual Core replacement phase passed: observer={observer}, endpoint_revoked={revoke_endpoint}, target_key_revoked={revoke_target_key}, allocated={allocate}, resources_started={start_media}, rejected_answer={reject_answer}; one attempt per phase, provisional target media closed, original audio/role retained, actual cancellation/retirement and capacity reuse");
+        #[cfg(feature = "test-support")]
+        activation::continuation::owners_joined(&continuation_owners);
+        eprintln!(
+            "actual Core replacement phase passed: observer={observer}, endpoint_revoked={revoke_endpoint}, target_key_revoked={revoke_target_key}, allocated={allocate}, resources_started={start_media}, rejected_answer={reject_answer}; one attempt per phase, provisional target media closed, original audio/role retained, actual cancellation/retirement and capacity reuse"
+        );
     }
 }
 
-async fn send_readiness(peer: &mut Peer) {
-    use rvoip_uctp::substrate::{pack_rtp_datagram, RtpDatagram, RtpMediaPayload};
-    for _ in 0..12 {
-        peer.sequence += 1;
-        let packet = pack_rtp_datagram(&RtpDatagram {
-            flags: 0,
-            stream_local_id: peer.handle,
-            seq: peer.sequence,
-            rtp: RtpMediaPayload {
-                payload: vec![0xff; 160].into(),
-                payload_type: 0,
-                sequence_number: peer.sequence as u16,
-                timestamp: (peer.clock.elapsed().as_micros() * 8 / 1000) as u32,
-                ssrc: 0x4736_8002,
-            },
-        })
-        .unwrap();
-        peer.client.send_native_media_datagram(&packet).unwrap();
-        tokio::time::sleep(Duration::from_millis(20)).await;
-    }
-}
 async fn subsequent_move(
     f: &Fixture,
     controller: &mut CanonicalHttpClient,
@@ -1617,6 +1707,7 @@ async fn subsequent_move(
     };
     let public = controller.transition(command.clone()).await.unwrap();
     let prepared = wait_prepared(f, &key.id, &command.operation_id).await;
+    let original_cutoff = decoded_readiness::original_cutoff(&prepared);
     let raw: String = rusqlite::Connection::open(&f.config.database)
         .unwrap()
         .query_row(
@@ -1647,9 +1738,8 @@ async fn subsequent_move(
     let handle = handle(&answer);
     let callback = client.receive_control().await.unwrap();
     assert_eq!(callback.kind(), "connection.offer");
-    let payload = &callback.original()["payload"];
-    let streams=payload["substrate_setup"]["streams"].as_array().unwrap().iter().map(|v|json!({"id":v["strm_id"],"kind":v["kind"],"direction":match v["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":v["codec"]})).collect::<Vec<_>>();
-    client.answer_connection_offer(&callback,serde_json::from_value(json!({"by_participant":payload["by_participant"],"substrate":"quic","capabilities":capabilities(),"streams_answered":streams,"substrate_setup":payload["substrate_setup"]})).unwrap(),&scope).await.unwrap();
+    let decoded_preparation =
+        decoded_readiness::answer(&mut client, &callback, &scope, original_cutoff).await;
     let until = tokio::time::Instant::now() + Duration::from_secs(5);
     loop {
         let r = status(f, &key.id, &command.operation_id).await;
@@ -1673,7 +1763,15 @@ async fn subsequent_move(
         sequence: 1,
         live: true,
     });
-    send_readiness(&mut peers[3]).await;
+    let _frozen_decoded_ready = decoded_readiness::confirm(
+        &mut peers[3],
+        decoded_preparation,
+        None,
+        controller,
+        &command,
+        &prepared,
+    )
+    .await;
     let until = tokio::time::Instant::now() + Duration::from_secs(10);
     loop {
         let r = status(f, &key.id, &command.operation_id).await;
@@ -1742,7 +1840,9 @@ async fn subsequent_move(
         "replace-generation-three-keeps-current-target-key",
     )
     .await;
-    eprintln!("actual generation-three movement passed: retained native remote, new logical stream, generation-two key loss, no replacement rollback");
+    eprintln!(
+        "actual generation-three movement passed: retained native remote, new logical stream, generation-two key loss, no replacement rollback"
+    );
     candidate
 }
 
@@ -1771,6 +1871,8 @@ async fn production_mcp_device_movement_keeps_decoded_generation_two_audio_origi
             false,
         )
         .await;
-        eprintln!("MCP device movement {algorithm}: speaker/observer, current endpoint/target revocation, retained remote, decoded generation-two media, original replay/recovery, one effect per phase and joined owners");
+        eprintln!(
+            "MCP device movement {algorithm}: speaker/observer, current endpoint/target revocation, retained remote, decoded generation-two media, original replay/recovery, one effect per phase and joined owners"
+        );
     }
 }

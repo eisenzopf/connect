@@ -125,6 +125,27 @@ impl NativeVideoDatagrams {
         recovery.waiting = true;
         Ok(at)
     }
+    /// Check the exact receiver history against the current verified physical
+    /// owner. A completed frame from an older epoch is not current readiness.
+    pub fn is_current_video_receive_epoch(
+        &self,
+        handle: u16,
+        epoch: &VideoReceiveEpoch,
+    ) -> Result<bool> {
+        self.io.current()?;
+        let guard = self
+            .shared
+            .state
+            .lock()
+            .map_err(|_| ClientError::Protocol)?;
+        Ok(guard.as_ref().is_some_and(|s| {
+            !s.ended
+                && !s.suspended
+                && s.active
+                    .get(&(handle, false))
+                    .is_some_and(|n| &n.history == epoch)
+        }))
+    }
     /// Consume at most one original hint immediately before fresh encoding.
     /// Calling twice cannot repeat it; age, source SSRC, selected history,
     /// control version, physical lifetime and captured expiry must still match.

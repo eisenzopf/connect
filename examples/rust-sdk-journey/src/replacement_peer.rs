@@ -8,9 +8,11 @@ use connect_client::canonical::{
 use std::time::{SystemTime, UNIX_EPOCH};
 mod controls;
 mod data;
+mod decoder;
 mod encoder;
 mod media;
 mod owner;
+mod ready;
 mod selected;
 mod terminal;
 mod timeline;
@@ -377,6 +379,10 @@ pub(super) async fn run(
     let mut terminal_end_receipt = None;
     let mut data_exchange = None;
     let mut encoder = None;
+    let mut readiness = None;
+    let mut readiness_attempts = 0u32;
+    let mut readiness_acknowledged = false;
+    let mut readiness_ack_recovered = false;
     let work = async {
         phase = "live-video-source";
         if let Some(video) = &source.video { encoder = Some(encoder::Encoder::open(&video.program).await?); }
@@ -402,7 +408,8 @@ pub(super) async fn run(
             || payload["by_participant"] != answer.original()["payload"]["by_participant"] {
             return Err("replacement callback changed negotiated resources".into());
         }
-        client.answer_connection_offer(&callback, selected::answer(payload,&offer_json["capabilities"])?, &scope).await?;
+        let confirmation = client.native_replacement_answer(&callback)?;
+        client.answer_connection_offer(&callback, confirmation, &scope).await?;
         negotiated=selected.iter().map(|s|s.raw.clone()).collect();
         if let Some(contract) = &source.data {
             data_exchange = Some(data::io::Exchange::new(contract.clone(), &scope, &command.operation_id,
@@ -410,15 +417,19 @@ pub(super) async fn run(
             client.start_signaling_reader()?;
         }
         emit(json!({"phase":"target-negotiated","media_ready_inferred":false})).await?;
+        phase = "private-decoder-start";
+        readiness = Some(ready::Observer::open(client.native_replacement_readiness()?, &source).await?);
         phase = "physical-media";
         let io = if source.video.is_some() { media::Io::Video(client.claim_native_video_datagrams()?) }
             else { media::Io::Audio(client.claim_native_datagrams()?) };
-        let mut pump = media::Pump::new(io, &source, &audio, video_binding.as_ref(), &mut media, encoder.as_mut())?;
+        let mut pump = media::Pump::new(io, &source, &audio, video_binding.as_ref(), &mut media, encoder.as_mut(),
+            readiness.as_mut().ok_or("original private decoder missing")?)?;
         let start = pump.start;
         let until = pump.until;
         let mut root_revision = root.revision;
         let mut next_poll = start + Duration::from_millis(50);
         let mut next_owner = start;
+        let mut readiness_retry_allowed = true;
         while tokio::time::Instant::now() < until {
             if source.owner_control && tokio::time::Instant::now() >= next_owner {
                 phase = "physical-owner-control";
@@ -433,7 +444,7 @@ pub(super) async fn run(
                     pump.during(data.tick(&mut client, root_observed, start, &output)).await??;
                     phase = "physical-owner-control";
                 }
-                if !owner_ready && pump.observation.sent > 0
+                if !owner_ready && pump.observation.root_observed && pump.observation.sent > 0
                     && (source.video.is_none() || (pump.observation.video_open && pump.observation.sent_video > 0)) {
                     pump.during(owner::ready(&output, &command.operation_id,
                         scope.connection_id.as_deref().ok_or("replacement candidate missing")?,
@@ -443,34 +454,62 @@ pub(super) async fn run(
                 next_owner = tokio::time::Instant::now() + Duration::from_millis(20);
                 phase = "physical-media";
             }
-            if let Some(video) = &source.video {
-                if !pump.observation.video_open && tokio::time::Instant::now() >= next_poll {
-                    phase = "original-completion-observation";
-                    let pending = controls::completion(&mut client, &command, &root,
-                        scope.connection_id.as_deref().ok_or("replacement scope missing candidate")?,
-                        &device, &selected, &mut root_revision);
-                    if let Some(admission) = pump.during(tokio::time::timeout_at(until, pending)).await??? {
-                        let receiving = selected.iter().find(|binding| binding.id == video.receive_video_stream_id)
-                            .ok_or("original receiving video binding missing")?;
-                        pump.observe_root_completion(receiving.handle)?;
-                        // Video is already transferred by the original activation. Data keeps
-                        // distinct authorization and commands while the video pump progresses.
+            if !pump.observation.root_observed && !readiness_acknowledged
+                && readiness_retry_allowed && readiness_attempts < 32 {
+                if let Some(proof) = pump.readiness_proof()? {
+                    phase = "private-decoded-readiness";
+                    readiness_attempts += 1;
+                    readiness_retry_allowed = false;
+                    // Exactly this frozen payload/root is replayable after a
+                    // signed pending status. Allocation/start are never redone.
+                    match pump.during(tokio::time::timeout_at(until,
+                        client.confirm_native_replacement_ready(&proof))).await?? {
+                        Ok(_) => readiness_acknowledged = true,
+                        Err(connect_client::ClientError::Application(problem))
+                            if matches!(problem.code.as_str(), "authority-busy" | "storage-unavailable") => {
+                            pump.during(emit(json!({"phase":"private-readiness-deferred","code":problem.code}))).await??;
+                        }
+                        Err(error) => return Err(error.into()),
+                    }
+                    phase = "physical-media";
+                }
+            }
+            if !pump.observation.root_observed && tokio::time::Instant::now() >= next_poll {
+                phase = "original-completion-observation";
+                let mut authoritative_pending = false;
+                let pending = controls::completion(&mut client, &command, &root,
+                    scope.connection_id.as_deref().ok_or("replacement scope missing candidate")?,
+                    &device, &selected, &mut root_revision, &mut authoritative_pending);
+                if let Some(admission) = pump.during(tokio::time::timeout_at(until, pending)).await??? {
+                    if readiness_attempts == 0 { return Err("replacement completed before original decoded readiness submission".into()); }
+                    pump.readiness.completed(admission.generation, admission.revision)?;
+                    if !readiness_acknowledged { readiness_acknowledged = true; readiness_ack_recovered = true; }
+                    pump.observe_root_completion()?;
+                    if let Some(video) = &source.video {
+                        // Media's original private decoder/producer stays live.
+                        // Data alone waits for this original completed root.
                         pump.observation.video_open = true;
                         phase = "original-post-commit-data-controls";
                         let incoming = pump.during(tokio::time::timeout_at(until,
                             controls::open(&mut client, &scope, &root, &admission, video,
                                 &selected, &offer_json["capabilities"], &output))).await???;
                         negotiated.extend(incoming.into_iter().map(|binding| binding.raw));
-                        pump.during(emit(json!({"phase":"target-video-transfer-admitted",
-                            "original_root_observed":true,"decoded_media_inferred":false}))).await??;
                     }
-                    next_poll = tokio::time::Instant::now() + Duration::from_millis(50);
-                    phase = "physical-media";
+                    pump.during(emit(json!({"phase":"target-video-transfer-admitted",
+                        "original_root_observed":true,"decoded_media_inferred":false,
+                        "private_decoded_readiness_acknowledged":true}))).await??;
+                } else if authoritative_pending && !readiness_acknowledged {
+                    readiness_retry_allowed = true;
                 }
+                next_poll = tokio::time::Instant::now() + Duration::from_millis(50);
+                phase = "physical-media";
             }
-            let poll = if source.video.is_some() && !pump.observation.video_open { next_poll } else { until };
+            let poll = if !pump.observation.root_observed { next_poll } else { until };
             let owner = if source.owner_control { next_owner } else { until };
             pump.step(poll.min(owner)).await?;
+        }
+        if !pump.observation.root_observed || !readiness_acknowledged {
+            return Err("replacement ended without its original decoded readiness and completed root".into());
         }
         if source.video.is_some() && (!pump.observation.video_open || pump.observation.sent_video == 0) {
             return Err("replacement AV source ended without original admitted video transfer and original video packets".into());
@@ -494,6 +533,10 @@ pub(super) async fn run(
         Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
     }
     .await;
+    let decoder_join = match &mut readiness {
+        Some(observer) => observer.stop_and_join().await,
+        None => Ok(()),
+    };
     let encoder_join = match &mut encoder {
         Some(encoder) => encoder.stop_and_join().await.map(Some),
         None => Ok(None),
@@ -514,6 +557,8 @@ pub(super) async fn run(
         sent_video,
         skipped_video,
         video_open,
+        video_prepared,
+        private_decoder_started_programme_us,
         root_observed,
         root_observed_programme_us,
         program_origin,
@@ -527,11 +572,13 @@ pub(super) async fn run(
     rows.sort_by_key(|row| row["elapsed_us"].as_u64().unwrap_or(u64::MAX));
     let shutdown = client.shutdown().await;
     let result = json!({"format":"connect/native-replacement-peer-observation/1",
-        "passed":work.is_ok() && shutdown.is_ok() && encoder_join.as_ref().is_ok_and(|joined| joined.as_ref().is_none_or(|joined| joined.joined && (joined.clean || joined.cancelled))),"encoder_process":encoder_join.as_ref().ok().and_then(|joined| joined.as_ref()),"sent_audio_packets":sent,"skipped_original_frames":skipped,
+        "passed":work.is_ok() && shutdown.is_ok() && decoder_join.is_ok() && encoder_join.as_ref().is_ok_and(|joined| joined.as_ref().is_none_or(|joined| joined.joined && (joined.clean || joined.cancelled))),"encoder_process":encoder_join.as_ref().ok().and_then(|joined| joined.as_ref()),"sent_audio_packets":sent,"skipped_original_frames":skipped,
         "captured_bytes":captured_bytes,"received":rows,"packet_events_during_control":control_packet_events,"video_feedback_requests":video_feedback_requests,"original_client_joined":shutdown.is_ok(),
         "failure_stage":if work.is_err(){Some(phase)}else{None},
         "operation_completed_inferred":false,"decoded_media_verified":false,
         "video_enabled":source.video.is_some(),"original_root_completed_observed":root_observed,
+        "video_preparation_started":video_prepared,"private_decoder_started_programme_us":private_decoder_started_programme_us,"private_decoded_readiness":readiness.as_ref().map(|r|r.summary(program_origin)),
+        "readiness_attempts":readiness_attempts,"readiness_acknowledged":readiness_acknowledged,"readiness_ack_recovered_from_completed_root":readiness_ack_recovered,"decoder_joined":decoder_join.is_ok(),
         "root_completed_observed_programme_us":root_observed_programme_us,
         "video_transfer_admitted":video_open,"sent_video_packets":sent_video,"skipped_original_video_frames":skipped_video,
         "owner_control":source.owner_control,"owner_ready":owner_ready,"stop_requested":stop_requested,
@@ -545,6 +592,7 @@ pub(super) async fn run(
     shutdown?;
     diagnostic?;
     work?;
+    decoder_join?;
     if encoder_join?.is_some_and(|joined| !joined.clean && !joined.cancelled) {
         return Err("encoder stopped without clean completion".into());
     }

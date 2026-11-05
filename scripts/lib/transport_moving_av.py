@@ -75,7 +75,13 @@ def rows(value, medium, allowed_streams, default_stream=None):
                 last_decoder_history = decoder_history
             # Decode each contiguous physical history separately. Returning to
             # the same stream/SSRC cannot recover a previous decoder's state.
-            boundary = (stream, ssrc, decoder_history)
+            epoch = row.get('video_epoch')
+            if epoch is not None:
+                if (not isinstance(epoch, dict) or set(epoch) != {'epoch','incarnation','revision','ssrc','first_sequence','first_timestamp'}
+                        or epoch['ssrc'] != ssrc or type(epoch['revision']) is not int or epoch['revision'] <= 0):
+                    raise ValueError('moving exact video epoch identity')
+                epoch = tuple(epoch[key] for key in ('epoch','incarnation','revision','ssrc','first_sequence','first_timestamp'))
+            boundary = (stream, ssrc, decoder_history, epoch, row.get('connection_generation'), row.get('stream_generation'))
             if boundary != video_boundary:
                 video_group += 1
                 video_boundary = boundary
@@ -114,7 +120,7 @@ def timeline(directory, metadata):
             cut = capture['root_completed_observed_programme_us'] / 1000
             scheduled = MOVE_START_OFFSETS_MS[segment['ordinal']]
             actual = segment.get('actual_start_ms')
-            if (capture['format'] != 'connect/physical-av-segment/1' or capture['program_start_unix_us'] != origin
+            if (capture['format'] != 'connect/physical-av-segment/2' or capture['program_start_unix_us'] != origin
                     or segment.get('scheduled_start_ms') != scheduled
                     or type(actual) not in (int, float) or not math.isfinite(actual) or not scheduled <= actual <= cut < 62000
                     or cuts and cut <= cuts[-1]
@@ -144,13 +150,42 @@ def timeline(directory, metadata):
             chain, cuts = chains[receiver]
             for ordinal, segment in enumerate(chain):
                 capture = segment['capture']; audio = []; video = []
+                context = capture.get('decoder_context')
+                if (not isinstance(context, dict) or context.get('profile') != 'connect/native-retained-private-context/1'
+                        or context.get('connection_id') != segment['connection_id']
+                        or type(context.get('target_generation')) is not int or context['target_generation'] < 2
+                        or context.get('source_generation') != context['target_generation']-1
+                        or context.get('audio_stream_id') != segment['published_stream_ids']['audio']
+                        or context.get('video_stream_id') != streams[peer]['video']
+                        or type(context.get('video_stream_generation')) is not int or context['video_stream_generation'] <= 0
+                        or type(context.get('decoder_started_programme_us')) is not int
+                        or not 0 <= context['decoder_started_programme_us'] <= cuts[ordinal]*1000):
+                    raise ValueError('moving original private decoder context binding')
                 for medium, output in [('audio', audio), ('video', video)]:
                     for history in capture[medium]:
-                        if history['rows']:
-                            if any(row['elapsed_ms'] < cuts[ordinal] for row in history['rows']):
-                                raise ValueError('moving pre-completion rows cannot initialize a physical decoder')
-                            output.extend(rows(history['rows'], medium,
-                                {segment['published_stream_ids']['audio']} if medium == 'audio' else {streams[peer]['video']}))
+                        group = history['rows']
+                        normalized = rows(group, medium,
+                            {segment['published_stream_ids']['audio']} if medium == 'audio' else {streams[peer]['video']})
+                        for row in group:
+                            private = row['elapsed_ms'] < cuts[ordinal]
+                            if (type(row.get('decoder_context_only')) is not bool or row['decoder_context_only'] != private
+                                    or row.get('connection_generation') != context['target_generation']
+                                    or row['elapsed_ms']*1000 < context['decoder_started_programme_us']):
+                                raise ValueError('moving pre-completion context cannot move the original ownership window')
+                            if medium == 'video' and row.get('stream_generation') != context['video_stream_generation']:
+                                raise ValueError('moving private video generation changed')
+                            if private and medium == 'audio' and row['ssrc'] != context.get('audio_ssrc'):
+                                raise ValueError('moving private audio source context changed')
+                            if private and medium == 'video':
+                                decoded = row.get('original_decoder_completed_programme_us')
+                                encoded = base64.b64decode(row['payload'],validate=True)
+                                if (row.get('video_epoch') != context.get('video_epoch') or not isinstance(context.get('video_epoch'), dict)
+                                        or row['ssrc'] != context['video_epoch'].get('ssrc')
+                                        or type(row.get('original_decoder_ordinal')) is not int or not 0 <= row['original_decoder_ordinal'] < 1860
+                                        or row.get('original_decoder_encoded_sha256') != hashlib.sha256(encoded).hexdigest()
+                                        or type(decoded) is not int or not row['elapsed_ms']*1000 <= decoded < row['elapsed_ms']*1000+200000):
+                                    raise ValueError('moving private video context lacks its exact actual decoder output')
+                        output.extend(normalized)
                 physical.append((f'physical-{receiver}-{ordinal}', cuts[ordinal], cuts[ordinal+1] if ordinal + 1 < MOVES_PER_SESSION else 62000,
                     capture, audio, video))
         histories = []; clocks = {'audio':0,'video':0}
@@ -163,7 +198,7 @@ def timeline(directory, metadata):
                     # Prior rows in this same codec history may initialize its
                     # decoder. Every counted row belongs to exactly one owner.
                     bounded = [row for row in group if row['elapsed_ms'] < end]
-                    selected = [i for i,row in enumerate(bounded) if max(2000,start) <= row['elapsed_ms'] < min(62000,end)]
+                    selected = [i for i,row in enumerate(bounded) if not row.get('decoder_context_only', False) and max(2000,start) <= row['elapsed_ms'] < min(62000,end)]
                     excluded[medium] += len(group) - len(selected)
                     if bounded and selected:
                         histories.append(dict(capture_id=capture_id, medium=medium, stream_id=stream, ssrc=ssrc,
@@ -362,6 +397,6 @@ def verify(directory,manifest,metadata):
         warmup_seconds=2,observation_seconds=60,source_manifest=manifest,capture_bundle_sha256=metadata['sha256'],
         physical_codec_histories_inspected=number,independently_decoded_codec_histories=decoders_started,routes=results,
         full_timeline_decoded=all(r['video']['undecodable_frames']==0 for r in results),task_complete=False,cell_qualified=False,matrix_qualified=False,whole_gate_qualified=False,
-        scope='Independent whole-window receive-content component. Every physical/stream/SSRC history decodes separately with original timestamps; actual root observations delimit ownership. No PLC, gaps filled, retiming, duplicated-frame coverage or inferred device presentation. Impairment/browser/remote cells remain separate.')
+        scope='Independent whole-window receive-content component. Private context is actual same-physical/stream/SSRC/generation/epoch decoder history and never coverage. Ownership remains the original completed-root observation; earlier real public continuation cannot be classified without an independent activation receipt. Every physical/stream/SSRC history decodes separately with original timestamps; actual root observations delimit ownership. No PLC, gaps filled, retiming, duplicated-frame coverage or inferred device presentation. Impairment/browser/remote cells remain separate.')
     (output/'decoded.json').write_text(json.dumps(report,indent=2)+'\n')
     return report

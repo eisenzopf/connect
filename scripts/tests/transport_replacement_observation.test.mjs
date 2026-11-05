@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { physicalAvSegment } from "../lib/transport_replacement_observation.mjs";
 import { encodeRtcpSenderReport } from "../../sdk/typescript/dist/browser_rtcp.js";
 
-const expected = { programStartUnixUs: 1_800_000_000_000_000,
+const expected = { programStartUnixUs: 1_800_000_000_000_000, connectionId: "candidate", targetGeneration: 2,
     audioStreamId: "own-audio", sendVideoStreamId: "own-video", receiveVideoStreamId: "remote-video" };
 function fixture(received) {
     const binding = (strm_id, kind, direction, stream_local_id) => ({ strm_id, kind, direction, stream_local_id,
@@ -13,7 +14,15 @@ function fixture(received) {
     return { format: "connect/native-replacement-peer-observation/1", passed: true,
         original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
         video_transfer_admitted: true, operation_completed_inferred: false, decoded_media_verified: false,
-        program_start_unix_us: expected.programStartUnixUs,
+        program_start_unix_us: expected.programStartUnixUs, private_decoder_started_programme_us: 0,
+        // Parser fixtures model the shape of a separately bound decoder receipt;
+        // these synthetic rows are not actual codec or cell qualification.
+        private_decoded_readiness: { profile: "connect/native-private-decoded-readiness/1",
+            connection_id: expected.connectionId, source_generation: 1, target_generation: 2, stream_revision: 2,
+            readiness_frozen: true, decoder_reset_on_root_completion: false,
+            frozen_private_observations: { audio_decoded_samples: 2880, audio_ssrc: 12,
+                video_decoded_frames: 1, video_decoded_keyframes: 1, video_epoch: null },
+            decoder_process: { joined: true, clean: true, forced: false, exit_code: 0 }, video_decode_receipts: [] },
         root_completed_observed_programme_us: received.find(row => row.original_root_completed_observed)?.elapsed_us ?? 0,
         negotiated_streams: [binding("remote-video", "video", "sendonly", 9),
             binding("own-video", "video", "recvonly", 8), binding("own-audio", "audio", "sendrecv", 7)], received };
@@ -56,7 +65,7 @@ test("declared reliable Data resources stay in custody without becoming RTP deco
     assert.throws(() => physicalAvSegment(wrongPacket, scope));
 });
 
-test("pre-completion packets cannot initialize later audio, clock or VP8 state", () => {
+test("private packets without actual original decoder evidence cannot initialize later histories", () => {
     const capture = fixture([
         row(100, rtp(), false), row(200, clock(), false),
         row(300, video({ marker: false, payload: [0x10, 0, 1] }), false),
@@ -144,7 +153,7 @@ test("selected replacement capture splits same-SSRC signed epochs and refuses st
     };
     const one=epoch(1,1,960),two=epoch(2,2,3960);
     const capture=fixture([tagged(1_000,one,1,960,true), tagged(34_000,two,2,3960,false),tagged(67_000,two,3,6960,true)]);
-    for(const binding of capture.negotiated_streams.filter(s=>s.kind==="video"))binding.video_feedback={profile:"rtcp-pli-epoch/1",original_operation:"move",original_offer:"offer",stream_generation:1,connection_generation:1};
+    for(const binding of capture.negotiated_streams.filter(s=>s.kind==="video"))binding.video_feedback={profile:"rtcp-pli-epoch/1",original_operation:"move",original_offer:"offer",stream_generation:1,connection_generation:2};
     const before=structuredClone(capture),result=physicalAvSegment(capture,expected);
     assert.deepEqual(capture,before);
     assert.deepEqual(result.video[0].rows.map(r=>r.timestamp),[960,6960]);
@@ -155,5 +164,75 @@ test("selected replacement capture splits same-SSRC signed epochs and refuses st
         c=>{c.received[1].video_epoch.revision=1;},c=>{delete c.received[1].video_epoch;},
         c=>{delete c.negotiated_streams[0].video_feedback;}]) {
         const wrong=structuredClone(capture);change(wrong);assert.throws(()=>physicalAvSegment(wrong,expected));
+    }
+});
+
+const epoch = (n, firstSequence, firstTimestamp, ssrc=12) => ({ epoch: n.toString(16).padStart(32,"0"),
+    incarnation: "f".repeat(32), revision:n, ssrc, first_sequence:firstSequence, first_timestamp:firstTimestamp });
+function tagged(time, n, sequence, timestamp, key, completed) {
+    const plain=Uint8Array.from(video({sequence,timestamp,ssrc:n.ssrc,payload:[0x10,key?0:1,1,2]}));
+    new DataView(plain.buffer).setUint32(4,sequence);
+    const wire=new Uint8Array(plain.length+16);wire.set(plain.subarray(0,8));wire[1]=1;
+    wire.set(Buffer.from(n.epoch,"hex"),8);wire.set(plain.subarray(8),24);
+    return {...row(time,[...wire],completed),video_epoch:n};
+}
+function retained() {
+    const one=epoch(1,1,960), capture=fixture([
+        {...row(100,rtp(),false),decoder_audio_samples:960},
+        tagged(200,one,1,960,true,false),tagged(1000,one,2,3960,false,true)]);
+    for(const stream of capture.negotiated_streams.filter(s=>s.kind==="video"))
+        stream.video_feedback={profile:"rtcp-pli-epoch/1",original_operation:"move",original_offer:"offer",stream_generation:1,connection_generation:2};
+    capture.private_decoded_readiness.frozen_private_observations.video_epoch=one;
+    capture.private_decoded_readiness.video_decode_receipts=[{ordinal:0,timestamp_rtp:960,keyframe:true,
+        video_epoch:one,encoded_sha256:createHash("sha256").update(Buffer.from([0,1,2])).digest("hex"),
+        received_programme_us:200,decoded_programme_us:250}];
+    return capture;
+}
+test("same original private decoder context is retained while every private output stays explicitly excluded",()=>{
+    const capture=retained(), before=structuredClone(capture), result=physicalAvSegment(capture,expected);
+    assert.deepEqual(capture,before);
+    assert.equal(result.format,"connect/physical-av-segment/2");
+    assert.equal(result.root_completed_observed_programme_us,1000);
+    assert.deepEqual(result.private_preparation_packet_rows,[0,1]);
+    assert.deepEqual(result.private_decoder_context_rows,[0,1]);
+    assert.deepEqual(result.video[0].rows.map(r=>[r.timestamp,r.elapsed_ms,r.decoder_context_only]),[[960,.2,true],[3960,1,false]]);
+    assert.deepEqual(result.video[0].rows.map(r=>r.decoder_history),[1,1]);
+    assert.equal(result.audio[0].rows[0].decoder_context_only,true);
+    assert.equal(result.video[0].rows[0].original_decoder_ordinal,0);
+    assert.equal(result.decoded_media_verified,false);
+    assert.equal(result.cell_qualified,false);
+});
+test("missing actual private keyframe output cannot become an offline startup keyframe",()=>{
+    const capture=retained();capture.private_decoded_readiness.video_decode_receipts=[];
+    const result=physicalAvSegment(capture,expected);
+    assert.deepEqual(result.quarantined_precompletion_rows,[1]);
+    assert.ok(result.video[0].rows.every(r=>!r.key));
+    assert.deepEqual(result.video[0].rows.map(r=>r.decoder_context_only),[false]);
+});
+test("wrong physical generation, decoder seal, encoded bytes, epoch or source cannot lend private state",()=>{
+    for(const mutate of [
+        c=>{c.private_decoded_readiness.connection_id="foreign";},
+        c=>{c.private_decoded_readiness.target_generation=3;},
+        c=>{c.private_decoded_readiness.decoder_process.forced=true;},
+        c=>{c.private_decoded_readiness.decoder_reset_on_root_completion=true;},
+        c=>{c.private_decoded_readiness.video_decode_receipts[0].encoded_sha256="0".repeat(64);},
+        c=>{c.private_decoded_readiness.video_decode_receipts[0].decoded_programme_us=200200;},
+        c=>{c.received[1].video_epoch.ssrc=13;},
+        c=>{c.negotiated_streams[0].video_feedback.connection_generation=3;},
+    ]) {const capture=structuredClone(retained());mutate(capture);assert.throws(()=>physicalAvSegment(capture,expected));}
+    const different=retained();different.private_decoded_readiness.frozen_private_observations.video_epoch=epoch(2,2,3960);
+    const result=physicalAvSegment(different,expected);
+    assert.ok(result.video[0].rows.every(r=>!r.key));
+    assert.ok(result.quarantined_precompletion_rows.includes(1));
+});
+test("decoder start and actual audio output gate private context without moving original times",()=>{
+    const beforeStart=retained();beforeStart.private_decoder_started_programme_us=300;
+    beforeStart.private_decoded_readiness.video_decode_receipts=[];
+    const result=physicalAvSegment(beforeStart,expected);
+    assert.deepEqual(result.quarantined_precompletion_rows,[0,1]);
+    assert.equal(result.root_completed_observed_programme_us,1000);
+    for(const mutate of [c=>{c.received[0].decoder_audio_samples=0;},c=>{c.private_decoded_readiness.frozen_private_observations.audio_ssrc=13;}]) {
+        const capture=retained();mutate(capture);const result=physicalAvSegment(capture,expected);
+        assert.ok(result.quarantined_precompletion_rows.includes(0));assert.equal(result.audio.length,0);
     }
 });

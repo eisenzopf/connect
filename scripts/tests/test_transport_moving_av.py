@@ -66,9 +66,16 @@ class MovingCustody(unittest.TestCase):
             for ordinal in range(MOVES_PER_SESSION):
                 start=MOVE_START_OFFSETS_MS[ordinal]+1000
                 arrivals=[start+100, MOVE_START_OFFSETS_MS[ordinal+1]+1100 if ordinal+1 < MOVES_PER_SESSION else 61000]
-                capture=dict(format='connect/physical-av-segment/1',program_start_unix_us=origin,root_completed_observed_programme_us=start*1000,
+                capture=dict(format='connect/physical-av-segment/2',program_start_unix_us=origin,root_completed_observed_programme_us=start*1000,
                     audio=[dict(ssrc=7,rows=[packet(at, f'physical-audio-{receiver}-{ordinal}') for at in arrivals])],
                     video=[dict(ssrc=7,rows=[packet(at,streams[peer]['video']) for at in arrivals])],clock_reports={'audio':[],'video':[]})
+                capture['decoder_context']=dict(profile='connect/native-retained-private-context/1',
+                    connection_id=f'candidate-{receiver}-{ordinal}',source_generation=ordinal+1,target_generation=ordinal+2,
+                    decoder_started_programme_us=(start-1000)*1000,audio_stream_id=f'physical-audio-{receiver}-{ordinal}',
+                    video_stream_id=streams[peer]['video'],audio_ssrc=7,video_epoch=None,video_stream_generation=1)
+                for medium in ('audio','video'):
+                    for item in capture[medium][0]['rows']:
+                        item.update(decoder_context_only=False,connection_generation=ordinal+2,stream_generation=1 if medium=='video' else None)
                 bundle['segments'].append(dict(source_index=receiver,ordinal=ordinal,connection_id=f'candidate-{receiver}-{ordinal}',
                     scheduled_start_ms=MOVE_START_OFFSETS_MS[ordinal],actual_start_ms=MOVE_START_OFFSETS_MS[ordinal]+100,
                     published_stream_ids=dict(audio=f'physical-audio-{receiver}-{ordinal}',video=f'physical-video-{receiver}-{ordinal}'),capture=capture,
@@ -102,10 +109,47 @@ class MovingCustody(unittest.TestCase):
         self.save();path=self.directory/'received-0.json';path.write_bytes(path.read_bytes()+b' ')
         with self.assertRaisesRegex(ValueError,'digest'):timeline(self.directory,self.metadata)
 
-    def test_quarantined_precompletion_audio_cannot_initialize_an_independent_decoder(self):
+    def test_unlabelled_precompletion_audio_cannot_initialize_an_independent_decoder(self):
         self.bundle['segments'][0]['capture']['audio'][0]['rows'][0]['elapsed_ms']=15999
         self.save()
         with self.assertRaisesRegex(ValueError,'pre-completion'):timeline(self.directory,self.metadata)
+
+    def test_actual_private_context_warms_only_same_history_and_never_enters_selected_indices(self):
+        import copy
+        capture=self.bundle['segments'][0]['capture'];cut=capture['root_completed_observed_programme_us']/1000
+        audio=copy.deepcopy(capture['audio'][0]['rows'][0]);audio.update(elapsed_ms=cut-20,timestamp=int((cut-20)*48),decoder_context_only=True)
+        capture['audio'][0]['rows'].insert(0,audio)
+        epoch=dict(epoch='1'*32,incarnation='2'*32,revision=1,ssrc=7,first_sequence=1,first_timestamp=int((cut-30)*48))
+        video=copy.deepcopy(capture['video'][0]['rows'][0]);video.update(elapsed_ms=cut-30,timestamp=epoch['first_timestamp'],
+            decoder_context_only=True,video_epoch=epoch,original_decoder_ordinal=0,
+            original_decoder_encoded_sha256=hashlib.sha256(base64.b64decode(video['payload'])).hexdigest(),
+            original_decoder_completed_programme_us=int((cut-29)*1000))
+        capture['decoder_context']['video_epoch']=epoch
+        for row in capture['video'][0]['rows']:row.update(video_epoch=epoch,key=False)
+        capture['video'][0]['rows'].insert(0,video);self.save()
+        _,routes=timeline(self.directory,self.metadata)
+        physical=[h for h in routes[0]['histories'] if h['capture_id']=='physical-0-0']
+        self.assertEqual(len(physical),2)
+        for history in physical:
+            self.assertEqual(history['selected_indices'],[1]);self.assertTrue(history['rows'][0]['decoder_context_only'])
+            self.assertEqual(history['owner_start_ms'],cut)
+        before=copy.deepcopy(capture)
+        for medium,key,value in [('audio','ssrc',8),('video','connection_generation',3),('video','stream_generation',2),
+                ('video','original_decoder_encoded_sha256','0'*64),('video','video_epoch',dict(epoch,incarnation='3'*32))]:
+            with self.subTest(medium=medium,field=key):
+                self.bundle['segments'][0]['capture']=copy.deepcopy(before)
+                self.bundle['segments'][0]['capture'][medium][0]['rows'][0][key]=value;self.save()
+                with self.assertRaises(ValueError):timeline(self.directory,self.metadata)
+
+    def test_changed_epoch_starts_another_offline_history_without_a_private_keyframe_fallback(self):
+        one=dict(epoch='1'*32,incarnation='2'*32,revision=1,ssrc=7,first_sequence=1,first_timestamp=3000)
+        sample=dict(elapsed_ms=2000,timestamp=3000,ssrc=7,payload='AA==',key=True,stream_id='v',
+            video_epoch=one,connection_generation=2,stream_generation=1)
+        changed=dict(sample,elapsed_ms=2033,timestamp=6000,key=False,video_epoch=dict(one,epoch='3'*32,revision=2,first_timestamp=6000,first_sequence=2))
+        groups=rows([sample,changed],'video',{'v'})
+        self.assertEqual(len(groups),2)
+        result=video_decode(self.directory,'changed-epoch',dict(rows=groups[1][2],selected_indices=[0]),0)
+        self.assertFalse(result['decoder_started']);self.assertEqual(result['undecodable_frames'],1)
 
     def test_missing_data_receipts_do_not_become_full_custody(self):
         self.bundle['reliable_data_exchanges_bound']=3;self.save()
@@ -186,6 +230,12 @@ class IndependentMovingCodecs(unittest.TestCase):
         self.assertEqual(sum(m['wrong_source'] for m in v['measurements']),0)
         no_key=video_decode(self.directory,'unkeyed',dict(rows=video_rows[1:],selected_indices=list(range(29))),0)
         self.assertEqual(no_key['measurements'],[]);self.assertEqual(no_key['undecodable_frames'],29)
+        warmed=video_decode(self.directory,'private-context',dict(rows=video_rows,selected_indices=list(range(1,30))),0)
+        self.assertEqual(len(warmed['measurements']),29);self.assertEqual(warmed['undecodable_frames'],0)
+        self.assertEqual([m['hash'] for m in warmed['measurements']],[m['hash'] for m in v['measurements'][1:]])
+        self.assertEqual([m['row'] for m in warmed['measurements']],video_rows[1:])
+        self.assertEqual(sum(m['wrong_source'] for m in warmed['measurements']),0)
+        self.assertNotIn(video_rows[0],[m['row'] for m in warmed['measurements']], 'private startup output is never measured')
         self.assertFalse(marker_alignment([a],[v])['status']=='passed','one second cannot satisfy42 paired markers')
 
 

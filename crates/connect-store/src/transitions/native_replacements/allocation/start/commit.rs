@@ -213,6 +213,7 @@ impl Store {
                 binding: origin.started.attempt.request.clone(),
                 descriptor,
                 expires_at: source_expires_at,
+                original: p.selection.origin.clone(),
             },
         )?;
         if !read.current() {

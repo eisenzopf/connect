@@ -18,6 +18,7 @@ mod authenticated_operations;
 mod authentication;
 mod credential_binding;
 mod record_context;
+mod runtime_retention;
 pub use credential_binding::{StoreCredentialBinding, StoreInvocationAuthority};
 mod canonical;
 mod canonical_assurance;
@@ -218,6 +219,46 @@ impl Service {
         let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
         Ok(runtime.role_projection.lock().await)
     }
+    #[cfg(feature = "test-support")]
+    pub fn canonical_replacement_weak_owners_for_test(
+        &self,
+        record: &str,
+    ) -> Result<Vec<std::sync::Weak<dyn std::any::Any + Send + Sync>>> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .replacement_weak_owners_for_test(record)
+    }
+
+    /// Observe the exact pending continuation's fresh domain refusal without
+    /// returning a grant or publishing any media. Test support only.
+    #[cfg(feature = "test-support")]
+    pub fn canonical_replacement_continuation_refusal_for_test(
+        &self,
+        record: &str,
+    ) -> Result<String> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .replacement_continuation_refusal_for_test(record)
+    }
+
+    /// Pause one original worker after actual movement and release of its
+    /// current media readers, before metadata capture. Test support only.
+    #[cfg(feature = "test-support")]
+    pub fn pause_canonical_replacement_projection_for_test(
+        &self,
+        record: &str,
+    ) -> Result<crate::canonical_media::continuation_fixture::ReplacementProjectionPause> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .pause_replacement_projection_for_test(record)
+    }
+
     /// Inject one adoption-preparation refusal for an exact original record.
     /// The returned flag becomes false only when the injection is consumed.
     /// Test-support only: this cannot grant permission or invoke movement.
@@ -562,6 +603,7 @@ impl Service {
                     .get()
                     .and_then(|runtime| runtime.operational_resources());
                 snapshot.resource_pools = self.readiness.resource_pool_snapshot();
+                crate::runtime_retention::observe(self.canonical_runtime.get().map(Arc::as_ref));
             }
         }
         if let (
@@ -676,7 +718,12 @@ impl Service {
     async fn run(&self, credential_id: String, operation: Operation) -> Result<Outcome> {
         let store = self.store.clone();
         let runtime = self.runtime.clone();
-        tokio::task::spawn_blocking(move || {
+        let kind = if matches!(&operation, Operation::Health {}) {
+            runtime_retention::Kind::Health
+        } else {
+            runtime_retention::Kind::Application
+        };
+        runtime_retention::spawn_blocking(kind, move || {
             store.execute_with_runtime(&credential_id, &operation, &runtime)
         })
         .await
@@ -940,3 +987,8 @@ mod tests {
 mod event_tests;
 
 pub use canonical_records::http::CanonicalHttpRecordResponse;
+
+#[cfg(feature = "test-support")]
+pub mod canonical_media_projection_fixture {
+    pub use crate::canonical_media::continuation_fixture::ReplacementProjectionPause;
+}

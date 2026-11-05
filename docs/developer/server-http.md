@@ -28,9 +28,12 @@ claim that retired ordinary communication variants remain supported.
 
 Endpoint movement uses the existing canonical `connection.replace` command and
 original-operation status reads. The [device replacement contract](../../contracts/device-replacement.md)
-also specifies the physical target's WebRTC allocation, SDP and readiness
-continuations over authenticated WSS. These continuations use `connection.offer`
+also specifies the physical target's native QUIC/WebTransport and WebRTC
+allocation, negotiation and decoder-readiness continuations. These continuations use `connection.offer`
 with distinct replacement profiles and the same original movement record.
+Their bounded challenge and observation fields are published as `ReplacementReadiness*`
+components in the canonical OpenAPI reference and the
+[physical readiness schema](../../contracts/schemas/replacement-decoder-readiness-1.schema.json).
 They add no HTTP media endpoint or HTTP readiness proof. The original source
 remains active during preparation; a second peer connection becomes public only
 after current authority, real resource readiness and movement commit succeed.

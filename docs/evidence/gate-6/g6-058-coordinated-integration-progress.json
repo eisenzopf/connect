@@ -1,12 +1,12 @@
 {
   "format": "connect/g6-058-coordinated-integration-progress/1",
   "task": "G6-058",
-  "status": "partial-batch-applied-runtime-unverified",
-  "basis_revision": "3c0c14c8722352961af383c50b582bced3039c50",
-  "recorded_at": "2026-11-05T15:56:02.561058+00:00",
-  "source_lock_sha256": "cf291eca04bc1a8495df51f2137f1e1fd95c4131c493c48bab277e3fabbe25e2",
-  "prepared_files_verified": 528,
-  "reviewed_upstream_results_verified": 20,
+  "status": "coordinated-readiness-batch-applied-runtime-unverified",
+  "basis_revision": "086978bb",
+  "recorded_at": "2026-11-05T16:02:04.475303+00:00",
+  "source_lock_sha256": "d4a87d43935c102979c166b610f835fe3831f146ba8585baa8a520fcbc22fabf",
+  "prepared_files_verified": 531,
+  "reviewed_upstream_results_verified": 33,
   "applied": [
     "valid original PCM retention within unchanged bounds",
     "typed effect-free post-prepare subscription metadata retry",
@@ -15,13 +15,22 @@
     "isolated Firefox loopback ICE fixture",
     "explicit non-CA native QUIC server leaf fixture",
     "physical packet-observer lifetime, generation-safe reseal and original-cutoff concurrent admission",
-    "busy-only original WebRTC startup provenance and post-answer metadata re-observation"
+    "busy-only original WebRTC startup provenance and post-answer metadata re-observation",
+    "paired current Store and actual Core target/source continuation during projection",
+    "native signed original challenge and decoded audio/mapped-video readiness gate",
+    "exact same-source private-to-public decoder epoch promotion with fresh current route grants",
+    "Rust native SDK immutable readiness continuation and actual owned Opus/VP8 decoder in matrix programme",
+    "original same-context private decoder inputs, excluded from public quality coverage",
+    "shared native readiness fixtures and actual private ancestry refusal/isolation controls",
+    "bounded read-only original server blocking-call attribution, no runtime or allocator tuning"
   ],
   "pending": [
-    "current public target/source continuation and projection boundary",
-    "native private decoded audio/video readiness before retirement",
-    "causal server thread/RSS retention diagnosis",
-    "complete-batch builds, exact before/after regressions and full32/all432 runtime verification"
+    "browser WT/native-WSS actual decoded readiness continuation",
+    "real private consultation replacement lineage and current private route projection",
+    "epoch-aware cold-recovery fixture migration",
+    "public activation interval currently excluded until completed-root observation; signed per-stream cut proposal pending",
+    "causal server thread/RSS diagnosis with actual runtime observations",
+    "complete-batch successful builds, exact before/after regressions and full32/all432 runtime verification"
   ],
   "verification": {
     "dependency_preparation_exit_code": 0,
@@ -37,7 +46,10 @@
       "Scoped application health explicitly asserts absent installation-wide operational observations",
       "Physical retirement test corrected Option predicate from is_ok_and to is_some_and"
     ],
-    "corrected_source_rechecked": false
+    "corrected_source_rechecked": false,
+    "new_batch_syntax_json_checks": 13,
+    "new_batch_builds_executed": 0,
+    "new_batch_runtime_tests_executed": 0
   },
   "latest_runtime_matrix": {
     "run": "v192",
@@ -67,6 +79,11 @@
     ".local/gate-6/known-gap-integration-v197/observer-startup-static-audit.json",
     ".local/gate-6/known-gap-integration-v197/cargo-check-integrated-receipt.json",
     ".local/gate-6/known-gap-integration-v197/cargo-check-corrected-connector-receipt.json",
-    ".local/gate-6/known-gap-integration-v197/cargo-check-current-contracts-receipt.json"
+    ".local/gate-6/known-gap-integration-v197/cargo-check-current-contracts-receipt.json",
+    ".local/gate-6/coordinated-staging-v198/integration-receipt.json",
+    ".local/gate-6/coordinated-staging-v198/private-ancestry-integration-receipt.json",
+    ".local/gate-6/coordinated-staging-v198/static-syntax-checks.json",
+    ".local/gate-6/coordinated-staging-v198/prepare-format-correction.json",
+    ".local/gate-6/coordinated-staging-v198/openapi-regeneration-receipt.json"
   ]
 }

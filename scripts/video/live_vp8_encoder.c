@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <vpx/vp8cx.h>
 #include <vpx/vpx_encoder.h>
+#include <vpx/vp8dx.h>
+#include <vpx/vpx_decoder.h>
 
 enum { WIDTH = 640, HEIGHT = 360, FPS = 30, MAX_FRAMES = 62 * FPS,
        RAW_BYTES = WIDTH * HEIGHT * 3 / 2, MAX_ENCODED = 256 * 1024 };
@@ -57,7 +59,60 @@ static int read_frame(int fd, uint32_t index, unsigned char *raw) {
   }
   return 1;
 }
+/* One actual receiver decoder. No PLC, frame fabrication, clock rewrite, or
+ * per-frame decoder restart. Complete bounded RTP assembly belongs to caller.
+ * stdin: "D8F1", request ordinal, encoded length, actual keyframe bit, bytes.
+ * stdout: "V8D1", ordinal, decoded count, key bit, width, height, 16x16 luma
+ * sum, actual sampled pixels. Original caller owns deadlines and child join. */
+static int decode_mode(void) {
+  vpx_codec_ctx_t decoder;
+  vpx_codec_dec_cfg_t cfg = {1, WIDTH, HEIGHT};
+  int initialized = 0, result = 1, first = 1;
+  uint32_t previous = 0, requests = 0;
+  unsigned char *encoded = malloc(MAX_ENCODED);
+  if (!encoded || vpx_codec_dec_init(&decoder, vpx_codec_vp8_dx(), &cfg, 0)) goto done;
+  initialized = 1;
+  for (;;) {
+    unsigned char input[16], output[32] = {'V','8','D','1'};
+    size_t n = fread(input, 1, sizeof(input), stdin);
+    if (n == 0 && feof(stdin)) { result = 0; break; }
+    if (n != sizeof(input) || memcmp(input, "D8F1", 4)) goto done;
+    uint32_t ordinal = load32(input + 4), length = load32(input + 8), key = load32(input + 12);
+    if (++requests > MAX_FRAMES || length < 3 || length > MAX_ENCODED || key > 1 ||
+        (!first && ordinal <= previous) || fread(encoded, 1, length, stdin) != length ||
+        (uint32_t)((encoded[0] & 1) == 0) != key || (first && !key)) goto done;
+    if (key) {
+      vpx_codec_stream_info_t info;
+      memset(&info, 0, sizeof(info)); info.sz = sizeof(info);
+      if (vpx_codec_peek_stream_info(vpx_codec_vp8_dx(), encoded, length, &info) ||
+          !info.is_kf || info.w != WIDTH || info.h != HEIGHT) goto done;
+    }
+    if (vpx_codec_decode(&decoder, encoded, length, NULL, 0)) goto done;
+    int corrupt = 1;
+    if (vpx_codec_control(&decoder, VP8D_GET_FRAME_CORRUPTED, &corrupt) || corrupt) goto done;
+    vpx_codec_iter_t iterator = NULL;
+    vpx_image_t *frame = vpx_codec_get_frame(&decoder, &iterator);
+    if (!frame || frame->d_w != WIDTH || frame->d_h != HEIGHT ||
+        frame->fmt != VPX_IMG_FMT_I420 || !frame->planes[0] || frame->stride[0] < WIDTH) goto done;
+    uint32_t luma = 0, pixels = 0;
+    for (unsigned y = 0; y < 16; ++y) for (unsigned x = 0; x < 16; ++x) {
+      luma += frame->planes[0][y * (unsigned)frame->stride[0] + x]; ++pixels;
+    }
+    if (vpx_codec_get_frame(&decoder, &iterator) != NULL) goto done;
+    save32(output + 4, ordinal); save32(output + 8, 1); save32(output + 12, key);
+    save32(output + 16, WIDTH); save32(output + 20, HEIGHT);
+    save32(output + 24, luma); save32(output + 28, pixels);
+    if (fwrite(output, 1, sizeof(output), stdout) != sizeof(output) || fflush(stdout)) goto done;
+    first = 0; previous = ordinal;
+  }
+done:
+  if (result) fputs("live VP8 decoder refused input or decoding\n", stderr);
+  if (initialized) vpx_codec_destroy(&decoder);
+  free(encoded);
+  return result;
+}
 int main(int argc, char **argv) {
+  if (argc == 2 && strcmp(argv[1], "--decode-vp8") == 0) return decode_mode();
   int result = 1, fd = -1, initialized = 0;
   unsigned char *raw = NULL;
   vpx_codec_ctx_t encoder;

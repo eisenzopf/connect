@@ -78,6 +78,7 @@ pub(in super::super) async fn after_commit(
     replacement_publisher: u16,
     retained_receiver: u16,
     replacement_receiver: u16,
+    original_video_sequence: &mut u16,
 ) {
     // No subscribe/unmute call is allowed before either actual packet proof.
     let db = rusqlite::Connection::open(&f.config.database).unwrap();
@@ -123,9 +124,10 @@ pub(in super::super) async fn after_commit(
         &mut rest[1].client,
         original_publisher,
         replacement_receiver,
-        100,
+        *original_video_sequence,
     )
     .await;
+    *original_video_sequence = original_video_sequence.wrapping_add(29);
     assert_eq!(
         [
             stream_revision(f, "codec-source"),
@@ -157,5 +159,7 @@ pub(in super::super) async fn after_commit(
     .await;
     drain_exercised_video(&mut peers[0], retained_receiver).await;
     drain_exercised_video(&mut peers[2], replacement_receiver).await;
-    eprintln!("signed video transfer: actual VP8 in both directions on original negotiated receiver handles, no post-commit subscribe/unmute or resource revision change; source/target authority and original recovery audited by shared fixture; not decoded quality");
+    eprintln!(
+        "signed video transfer: actual VP8 in both directions on original negotiated receiver handles, no post-commit subscribe/unmute or resource revision change; source/target authority and original recovery audited by shared fixture; not decoded quality"
+    );
 }

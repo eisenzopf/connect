@@ -105,14 +105,23 @@ impl Policy {
         })? {
             return target.current(scope);
         }
-        if let Some(target) = packet_lookup(until, original, "replacement-target", || {
-            self.replacement_target(scope.connection)
-        })? {
-            return target.current(scope);
-        }
-        let entry = packet_lookup(until, original, "native-entry", || {
-            self.entry(scope.connection)
-        })?;
+        let target_continuation = if let Some(target) =
+            packet_lookup(until, original, "replacement-target", || {
+                self.replacement_target(scope.connection)
+            })? {
+            match target.current_continuation()? {
+                Some(current) if !matches!(scope.purpose, MediaPurpose::Control) => Some(current),
+                _ => return target.current(scope),
+            }
+        } else {
+            None
+        };
+        let entry = match &target_continuation {
+            Some(current) => current.entry.clone(),
+            None => packet_lookup(until, original, "native-entry", || {
+                self.entry(scope.connection)
+            })?,
+        };
         self.scope(scope, &entry).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet scope refused");error})?;
         if let MediaPurpose::Receive { source } = scope.purpose {
             if let Some(initial) = packet_lookup(until, original, "source-initial-target", || {
@@ -128,12 +137,26 @@ impl Policy {
                 return telephone.native_receive(scope, source, &entry);
             }
         }
+        let source_continuation = match scope.purpose {
+            MediaPurpose::Receive { source } => {
+                packet_lookup(until, original, "source-replacement-target", || {
+                    self.replacement_target(&source.connection)
+                })?
+                .map(|target| target.current_continuation())
+                .transpose()?
+                .flatten()
+            }
+            _ => None,
+        };
         let source = match scope.purpose {
             MediaPurpose::Receive { source } => Some((
                 source,
-                packet_lookup(until, original, "source-entry", || {
-                    self.entry(&source.connection)
-                })?,
+                match &source_continuation {
+                    Some(current) => current.entry.clone(),
+                    None => packet_lookup(until, original, "source-entry", || {
+                        self.entry(&source.connection)
+                    })?,
+                },
             )),
             _ => None,
         };
@@ -141,21 +164,40 @@ impl Policy {
         if let (Some(held), Some((descriptor, source))) = (held.as_deref(), source.as_ref()) {
             source_matches(descriptor, source, held.target())?;
         }
-        let result = packet_read_until(until, || match (held.as_deref(), source.as_ref()) {
-            (Some(held), Some((_, source))) => {
-                // The opaque context must be this actual source binding, not
-                // another grant that happens to cover the same Conversation.
-                self.store
-                    .try_native_media_read_under(&entry.origin, &source.origin, held)
+        let result = packet_read_until(until, || {
+            if target_continuation.is_some() || source_continuation.is_some() {
+                return self.store.try_native_replacement_continuation_media_read(
+                    &entry.origin,
+                    target_continuation
+                        .as_ref()
+                        .map(|current| current.metadata.as_ref()),
+                    source.as_ref().map(|(_, source)| {
+                        (
+                            source.origin.as_ref(),
+                            source_continuation
+                                .as_ref()
+                                .map(|current| current.metadata.as_ref()),
+                        )
+                    }),
+                    held.as_deref(),
+                );
             }
-            (Some(held), None) if matches!(scope.purpose, MediaPurpose::Publish) => self
-                .store
-                .try_native_media_source_read_under(&entry.origin, held),
-            (Some(_), None) => return Err(connect_protocol::Error::forbidden()),
-            (None, _) => self.store.try_native_media_read(
-                &entry.origin,
-                source.as_ref().map(|(_, entry)| entry.origin.as_ref()),
-            ),
+            match (held.as_deref(), source.as_ref()) {
+                (Some(held), Some((_, source))) => {
+                    // The opaque context must be this actual source binding, not
+                    // another grant that happens to cover the same Conversation.
+                    self.store
+                        .try_native_media_read_under(&entry.origin, &source.origin, held)
+                }
+                (Some(held), None) if matches!(scope.purpose, MediaPurpose::Publish) => self
+                    .store
+                    .try_native_media_source_read_under(&entry.origin, held),
+                (Some(_), None) => return Err(connect_protocol::Error::forbidden()),
+                (None, _) => self.store.try_native_media_read(
+                    &entry.origin,
+                    source.as_ref().map(|(_, entry)| entry.origin.as_ref()),
+                ),
+            }
         });
         tracing::trace!(target: "connect_service::canonical_packet",
             connection = entry.origin.connection_id(),
@@ -210,7 +252,28 @@ impl Policy {
             .activation()?
             .ok_or(StreamControlError::NotReady)?
             .current(owner).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet activation refused");error})?;
-        Ok(Box::new(Fresh::new(owner, read, held)))
+        // Current Store readers exist before these short Core metadata checks.
+        // Capture no Core mutex across authorization acquisition or packet IO.
+        let mut continuations = Vec::with_capacity(2);
+        if let Some(current) = &target_continuation {
+            continuations.push(current.current(&owner)?);
+        }
+        if let Some(current) = &source_continuation {
+            let source_owner = current.entry.owner(
+                read.source().ok_or(StreamControlError::Authority)?,
+                &current.entry.principal,
+                false,
+            )?;
+            let source_owner = current
+                .entry
+                .activation()?
+                .ok_or(StreamControlError::NotReady)?
+                .current(source_owner)?;
+            continuations.push(current.current(&source_owner)?);
+        }
+        Ok(Box::new(
+            Fresh::new(owner, read, held).with_continuations(continuations),
+        ))
     }
 }
 

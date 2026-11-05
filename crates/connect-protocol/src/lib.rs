@@ -15,6 +15,7 @@ pub mod native_network;
 pub mod native_streams;
 pub mod received_dtmf;
 pub mod record_mutations;
+pub mod replacement_readiness;
 pub mod replacement_video;
 pub use conversations::Conversation;
 

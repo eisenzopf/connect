@@ -136,6 +136,16 @@ impl Runtime {
                     )
                 },
             )?;
+        let deadline = saved.deadline.min(
+            tokio::time::Instant::now()
+                + Duration::from_secs(
+                    (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64
+                ),
+        );
+        let mapped = super::movement::replacement_video(&saved.plan)?;
+        let gate =
+            super::readiness::ReadyGate::new_native(&read, &plan, deadline, mapped.as_ref())?;
+        let challenge = gate.native_challenge(record)?;
         let (attempt, read) = {
             let store = self.media.store.clone();
             let a = a.clone();
@@ -147,10 +157,6 @@ impl Runtime {
             .await?
         };
         let read = Arc::new(read);
-        let deadline = tokio::time::Instant::now()
-            + Duration::from_secs(
-                (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64
-            );
         let id = saved.handle.intent().replacement.clone();
         let scope = StagedRtpScope {
             session: SessionId::from_string(intent.session_id.clone()),
@@ -173,10 +179,11 @@ impl Runtime {
             plan,
             root: Arc::downgrade(&saved),
             activation: OnceLock::new(),
+            public_continuation: OnceLock::new(),
             origin: OnceLock::new(),
             preparation_operation: OnceLock::new(),
             data_observer,
-            readiness: None,
+            readiness: Some(gate),
         });
         let invocation = Arc::new(StartInvocation {
             policy: policy.clone(),
@@ -197,7 +204,7 @@ impl Runtime {
             // coordinator and current scene before its single commit.
             drop(roles);
             tracing::debug!(target:"connect_service::canonical_replacement",stage="negotiate","Replacement resource start");
-            let outcome=native.negotiate_native_offer(&id,a.clone(),invocation.clone(),deadline).await.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement native negotiation refused");Error::forbidden()})?;
+            let outcome=native.negotiate_native_offer(&id,a.clone(),invocation.clone(),deadline,Some(challenge)).await.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement native negotiation refused");Error::forbidden()})?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="mute","Replacement resource start");
             native.mute_native_media_for_private_admission(&id,&a,invocation.clone(),deadline).await.map_err(|error| {
                 tracing::debug!(target:"connect_service::canonical_replacement", stage="initial-mute", ?error, "Replacement resource start refused");

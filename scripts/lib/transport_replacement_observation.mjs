@@ -1,6 +1,8 @@
 // Offline interpretation of one already-joined physical replacement capture.
 // No authority, mutation, clock correction or decoded-quality claim is created.
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import { decodeRtpDatagram, Vp8Assembler, MEDIA_LIMITS } from "../../sdk/typescript/dist/browser.js";
 import { decodeNativeVideoEpoch } from "../../sdk/typescript/dist/browser_video_wire.js";
 import { VideoReceiveHistory } from "./transport_video_recovery.mjs";
@@ -20,6 +22,39 @@ export function physicalAvSegment(observed, expected) {
     assert.equal(observed.program_start_unix_us, expected.programStartUnixUs);
     const rootObservedUs = observed.root_completed_observed_programme_us;
     assert.ok(uint(rootObservedUs, 61_999_999), "actual completed-root programme observation is required");
+    const readiness = observed.private_decoded_readiness, frozen = readiness?.frozen_private_observations;
+    assert.equal(readiness?.profile, "connect/native-private-decoded-readiness/1");
+    assert.equal(readiness.connection_id, expected.connectionId);
+    assert.ok(id(expected.connectionId) && uint(expected.targetGeneration, Number.MAX_SAFE_INTEGER) && expected.targetGeneration >= 2);
+    assert.equal(readiness.target_generation, expected.targetGeneration);
+    assert.equal(readiness.source_generation + 1, expected.targetGeneration);
+    assert.equal(readiness.stream_revision, 2);
+    assert.equal(readiness.readiness_frozen, true);
+    assert.equal(readiness.decoder_reset_on_root_completion, false);
+    assert.ok(uint(frozen?.audio_decoded_samples, Number.MAX_SAFE_INTEGER) && frozen.audio_decoded_samples >= 2880);
+    assert.ok(uint(frozen.audio_ssrc, 0xffffffff));
+    assert.ok(uint(frozen.video_decoded_keyframes, Number.MAX_SAFE_INTEGER) && frozen.video_decoded_keyframes > 0 &&
+        uint(frozen.video_decoded_frames, Number.MAX_SAFE_INTEGER) && frozen.video_decoded_keyframes <= frozen.video_decoded_frames);
+    const decoderStartedUs = observed.private_decoder_started_programme_us;
+    assert.ok(uint(decoderStartedUs, rootObservedUs), "original private decoder starts before public ownership");
+    assert.equal(readiness.decoder_process?.joined, true);
+    assert.equal(readiness.decoder_process.clean, true);
+    assert.equal(readiness.decoder_process.forced, false);
+    assert.equal(readiness.decoder_process.exit_code, 0);
+    const decodedReceipts = readiness.video_decode_receipts;
+    assert.ok(Array.isArray(decodedReceipts) && decodedReceipts.length <= 1860);
+    const originalDecoded = new Map(); let previousOrdinal = -1;
+    for (const receipt of decodedReceipts) {
+        assert.ok(uint(receipt.ordinal, 1859) && receipt.ordinal > previousOrdinal); previousOrdinal = receipt.ordinal;
+        assert.ok(uint(receipt.timestamp_rtp, 0xffffffff) && typeof receipt.keyframe === "boolean");
+        assert.match(receipt.encoded_sha256, /^[a-f0-9]{64}$/);
+        assert.ok(uint(receipt.received_programme_us, 62_000_000) && receipt.received_programme_us >= decoderStartedUs);
+        assert.ok(uint(receipt.decoded_programme_us, 62_000_000) && receipt.decoded_programme_us >= receipt.received_programme_us &&
+            receipt.decoded_programme_us - receipt.received_programme_us < 200_000);
+        const key = JSON.stringify([receipt.video_epoch?.epoch,receipt.video_epoch?.incarnation,receipt.video_epoch?.revision,
+            receipt.video_epoch?.ssrc,receipt.timestamp_rtp]);
+        assert.ok(!originalDecoded.has(key), "one actual original decoder output per frame"); originalDecoded.set(key, receipt);
+    }
     const ids = [expected.audioStreamId, expected.sendVideoStreamId, expected.receiveVideoStreamId];
     const hasData = expected.sendDataStreamId !== undefined || expected.receiveDataStreamId !== undefined;
     const dataIds = hasData ? [expected.sendDataStreamId, expected.receiveDataStreamId] : [];
@@ -39,7 +74,8 @@ export function physicalAvSegment(observed, expected) {
         assert.ok(uint(stream.stream_local_id, 65535) && stream.stream_local_id > 0);
         assert.ok(!handles.has(stream.stream_local_id), "physical stream handles must be distinct");
         handles.add(stream.stream_local_id);
-        if (index !== 1) streams.set(stream.stream_local_id, { streamId, medium, pt: stream.codec.params.payload_type, feedback: stream.video_feedback?.profile === "rtcp-pli-epoch/1" });
+        if (stream.video_feedback) assert.equal(stream.video_feedback.connection_generation, expected.targetGeneration);
+        if (index !== 1) streams.set(stream.stream_local_id, { streamId, medium, pt: stream.codec.params.payload_type, feedback: stream.video_feedback?.profile === "rtcp-pli-epoch/1", generation: stream.video_feedback?.stream_generation ?? null });
     }
     const dataResources = dataIds.map((streamId, index) => {
         const matches = observed.negotiated_streams.filter(stream => stream.strm_id === streamId);
@@ -56,7 +92,7 @@ export function physicalAvSegment(observed, expected) {
     });
     assert.ok(Array.isArray(observed.received) && observed.received.length <= 16000);
     const audio = new Map(), video = new Map(), clocks = { audio: [], video: [] }, assembler = new Vp8Assembler();
-    const quarantine = [], recovery = new VideoReceiveHistory(true);
+    const quarantine = [], privateContext = [], privatePackets = [], recovery = new VideoReceiveHistory(true);
     let currentEpoch;
     let previous = -1, completedSeen = false, bytes = 0;
     for (const [index, row] of observed.received.entries()) {
@@ -84,14 +120,17 @@ export function physicalAvSegment(observed, expected) {
             "capture exceeds its negotiated native framing bound");
         bytes += row.datagram.length;
         assert.ok(bytes <= 16 * 1024 * 1024);
-        // Never feed a pre-completion fragment or clock into a later decoder.
-        // Keep its original row index so the raw input still accounts for it.
-        if (!row.original_root_completed_observed) { quarantine.push(index); continue; }
-        completedSeen = true;
+        // Original same-epoch private bytes can warm only this already-live
+        // decoder. Its outputs stay outside the unchanged public window.
+        const contextOnly = !row.original_root_completed_observed;
+        if (contextOnly) privatePackets.push(index);
+        if (row.elapsed_us < decoderStartedUs) { quarantine.push(index); continue; }
+        completedSeen ||= row.original_root_completed_observed;
         const elapsed_ms = row.elapsed_us / 1000;
         if (wire[1] === 0 && wire[9] >= 192 && wire[9] <= 223) {
             // A malformed RTCP claim is never reinterpreted as RTP.
             const report = decodeRtcpSenderReport(wire.subarray(8));
+            if (contextOnly) { quarantine.push(index); continue; }
             assert.ok(clocks[stream.medium].length < 512);
             clocks[stream.medium].push({ elapsed_ms, physical_observation_row: index,
                 stream_id: stream.streamId, ssrc: report.ssrc, ntp: report.ntp.toString(),
@@ -117,16 +156,24 @@ export function physicalAvSegment(observed, expected) {
             assert.ok(row.video_epoch === undefined || row.video_epoch === null);
             packet = decodeRtpDatagram(wire);
         }
+        if (contextOnly && (stream.medium === "audio" ? packet.ssrc !== frozen.audio_ssrc || row.decoder_audio_samples !== 960
+            : !epoch || !isDeepStrictEqual(epoch, frozen.video_epoch))) {
+            // Another private source/history never lends startup state to this
+            // completed target. Raw custody remains in the original capture.
+            quarantine.push(index); continue;
+        }
         assert.equal(packet.payloadType, stream.pt);
         assert.ok(packet.payload.length > 0);
         const common = { elapsed_ms, physical_observation_row: index, stream_id: stream.streamId,
-            ssrc: packet.ssrc, timestamp: packet.timestamp };
+            ssrc: packet.ssrc, timestamp: packet.timestamp, decoder_context_only: contextOnly,
+            connection_generation: expected.targetGeneration, stream_generation: stream.generation };
         const segments = stream.medium === "audio" ? audio : video;
         if (!segments.has(packet.ssrc)) {
             assert.ok(segments.size < 8, "bounded physical codec histories");
             segments.set(packet.ssrc, []);
         }
         if (stream.medium === "audio") {
+            if (contextOnly) privateContext.push(index);
             assert.ok(segments.get(packet.ssrc).length < 3200);
             segments.get(packet.ssrc).push({ ...common, sequence: packet.sequence,
                 payload: Buffer.from(packet.payload).toString("base64") });
@@ -138,21 +185,40 @@ export function physicalAvSegment(observed, expected) {
                 payloadType: packet.payloadType }, payload: packet.payload, videoEpoch: epoch }, elapsed_ms)
                 : assembler.push(packet, elapsed_ms);
             if (frame) {
+                let receipt;
+                if (contextOnly) {
+                    const key = JSON.stringify([epoch.epoch,epoch.incarnation,epoch.revision,epoch.ssrc,frame.timestamp]);
+                    receipt = originalDecoded.get(key);
+                    if (!receipt) { quarantine.push(index); continue; }
+                    assert.ok(isDeepStrictEqual(receipt.video_epoch, epoch));
+                    assert.equal(receipt.keyframe, frame.key);
+                    assert.equal(receipt.encoded_sha256, createHash("sha256").update(frame.bytes).digest("hex"));
+                    assert.ok(receipt.decoded_programme_us >= row.elapsed_us && receipt.decoded_programme_us - row.elapsed_us < 200_000);
+                    privateContext.push(index);
+                }
                 assert.ok(segments.get(packet.ssrc).length < 2000);
                 segments.get(packet.ssrc).push({ ...common, key: frame.key,
                     ...(epoch ? { video_epoch: epoch, decoder_history: frame.decoderHistory } : {}),
+                    ...(receipt ? { original_decoder_ordinal: receipt.ordinal, original_decoder_encoded_sha256: receipt.encoded_sha256,
+                        original_decoder_completed_programme_us: receipt.decoded_programme_us } : {}),
                     payload: Buffer.from(frame.bytes).toString("base64") });
             }
         }
     }
     assert.ok(completedSeen, "capture needs an actual post-completion observation");
     const histories = groups => [...groups].map(([ssrc, rows]) => ({ ssrc, rows }));
-    return { format: "connect/physical-av-segment/1", program_start_unix_us: observed.program_start_unix_us,
+    return { format: "connect/physical-av-segment/2", program_start_unix_us: observed.program_start_unix_us,
         root_completed_observed_programme_us: rootObservedUs,
         audio: histories(audio), video: histories(video), clock_reports: clocks,
+        decoder_context: { profile: "connect/native-retained-private-context/1", connection_id: expected.connectionId,
+            source_generation: readiness.source_generation, target_generation: expected.targetGeneration,
+            decoder_started_programme_us: decoderStartedUs, audio_stream_id: expected.audioStreamId,
+            video_stream_id: expected.receiveVideoStreamId, audio_ssrc: frozen.audio_ssrc,
+            video_epoch: frozen.video_epoch ?? null, video_stream_generation: [...streams.values()].find(s => s.medium === "video").generation },
+        private_preparation_packet_rows: privatePackets, private_decoder_context_rows: privateContext,
         quarantined_precompletion_rows: quarantine, original_datagram_count: observed.received.length,
         negotiated_data_resources: dataResources, reliable_data_io_verified: false,
         original_datagram_bytes: bytes, pending_video_fragments: assembler.queuedFragments + recovery.pendingFragments,
         decoded_media_verified: false, full_timeline_decoded: false, cell_qualified: false,
-        scope: "Original receive times and codec bytes only, split by physical SSRC. Pre-completion rows excluded from codec state. No PLC, gap filling, retiming or media quality inference." };
+        scope: "Original receive times and codec bytes only, split by physical SSRC. Only original same-physical/stream/SSRC/generation/epoch private bytes can initialize the retained decoder; their outputs never enter public coverage. No PLC, gap filling, retiming or media quality inference." };
 }

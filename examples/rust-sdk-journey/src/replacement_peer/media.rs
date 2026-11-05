@@ -59,6 +59,8 @@ pub(super) struct Observation {
     pub sent_video: u32,
     pub skipped_video: u32,
     pub video_open: bool,
+    pub video_prepared: bool,
+    pub private_decoder_started_programme_us: Option<u128>,
     pub root_observed: bool,
     pub root_observed_programme_us: Option<u128>,
     pub program_origin: Option<u128>,
@@ -88,6 +90,7 @@ pub(super) struct Pump<'a> {
     last_video_clock: Option<usize>,
     encoder: Option<&'a mut encoder::Encoder>,
     encoded: Option<encoder::Frame>,
+    pub readiness: &'a mut ready::Observer,
 }
 impl<'a> Pump<'a> {
     pub fn new(
@@ -97,6 +100,7 @@ impl<'a> Pump<'a> {
         video: Option<&'a selected::Binding>,
         observation: &'a mut Observation,
         encoder: Option<&'a mut encoder::Encoder>,
+        readiness: &'a mut ready::Observer,
     ) -> Result<Self> {
         let (program, start) = if let Some(clock) = &source.program_clock {
             clock.join(
@@ -113,6 +117,21 @@ impl<'a> Pump<'a> {
                 start,
             )
         };
+        readiness.bind_programme_start(start)?;
+        let mut io = io;
+        if let Some(handle) = readiness.receive_video_handle() {
+            let Io::Video(video) = &mut io else {
+                return Err("prepared decoder requires original video owner".into());
+            };
+            video.reset_video_receive_decoder(handle)?;
+            observation.video_prepared = true;
+        }
+        observation.private_decoder_started_programme_us = Some(
+            readiness
+                .started()
+                .saturating_duration_since(start)
+                .as_micros(),
+        );
         observation.program_origin = Some(program.unix);
         observation.source_start_audio_index = program.audio_index;
         observation.source_start_video_index = program.video_index;
@@ -136,24 +155,35 @@ impl<'a> Pump<'a> {
             last_video_clock: None,
             encoder,
             encoded: None,
+            readiness,
         })
     }
 
-    /// Begin the decoder at the same original-root boundary used by capture.
-    /// A keyframe consumed while completion was pending cannot initialize the
-    /// new application decoder or suppress its fresh recovery request.
-    pub fn observe_root_completion(&mut self, receive_video_handle: u16) -> Result<()> {
+    /// Mark public ownership using the exact completion receipt. The original
+    /// private receiver decoder continues; no precommit packet is relabelled.
+    pub fn observe_root_completion(&mut self) -> Result<()> {
         if self.observation.root_observed {
             return Err("root completion already observed".into());
         }
-        let Io::Video(io) = &mut self.io else {
-            return Err("video decoder requires its original video IO owner".into());
-        };
-        let at = io.reset_video_receive_decoder(receive_video_handle)?;
-        self.observation.root_observed_programme_us =
-            Some(at.duration_since(self.start).as_micros());
+        self.observation.root_observed_programme_us = Some(self.start.elapsed().as_micros());
         self.observation.root_observed = true;
         Ok(())
+    }
+    pub fn readiness_proof(
+        &mut self,
+    ) -> Result<Option<connect_client::canonical::NativeReplacementReady>> {
+        let current = match (
+            &self.io,
+            self.readiness.receive_video_handle(),
+            self.readiness.epoch(),
+        ) {
+            (Io::Video(io), Some(handle), Some(epoch)) => {
+                io.is_current_video_receive_epoch(handle, epoch)?
+            }
+            (Io::Audio(_), None, None) => true,
+            _ => false,
+        };
+        self.readiness.proof(current)
     }
 
     /// The original control future remains pinned and is never restarted. Its
@@ -237,6 +267,7 @@ impl<'a> Pump<'a> {
                 self.encoded = Some(frame?);
                 None
             },
+            result = self.readiness.decoded(), if self.readiness.pending() => { result?; None },
             packet = self.io.receive() => Some(packet),
         };
         if let Some(packet) = packet {
@@ -262,8 +293,21 @@ impl<'a> Pump<'a> {
                 .is_some_and(|at| elapsed >= at);
             self.observation.rows.push(
                 json!({"elapsed_us":elapsed,"datagram":packet.bytes,"video_epoch":packet.epoch,
-                "original_root_completed_observed":completed}),
+                "original_root_completed_observed":completed,"decoder_audio_samples":null}),
             );
+            // Preserve the offending original bytes even when actual decode
+            // refuses; readiness evidence is added only after successful output.
+            let decoded = self.readiness.packet(
+                &packet.bytes,
+                packet.epoch.as_ref(),
+                packet.arrived,
+                self.until,
+            )?;
+            self.observation
+                .rows
+                .last_mut()
+                .ok_or("original packet observation missing")?["decoder_audio_samples"] =
+                json!(decoded);
             return Ok(());
         }
         if tokio::time::Instant::now() >= self.until {
@@ -323,7 +367,7 @@ impl<'a> Pump<'a> {
                 && tokio::time::Instant::now() >= due
                 && !pending
             {
-                if !self.observation.video_open
+                if !self.observation.video_prepared
                     || self.start.elapsed().as_micros().saturating_sub(original_us) >= 200_000
                 {
                     self.encoded = None;

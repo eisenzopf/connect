@@ -264,7 +264,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             path = PRIVATE / (name + ".log")
             stream = path.open("wb")
             streams.append(stream)
-            server_env = dict(env, RUST_LOG="info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug") if data_workload else env
+            server_env = dict(env, RUST_LOG="info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug") if data_workload else dict(env)
+            if data_workload:
+                server_env["RUST_LOG"] += ",connect_service::runtime_retention=debug"
             if native_replacement_commit_trace:
                 # Original phase/error events and terminal audio counters. No per-frame observer,
                 # authority backtrace, SQL custody or helper timing trace.

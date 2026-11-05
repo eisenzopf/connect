@@ -197,8 +197,9 @@ impl Store {
 }
 
 impl Store {
-    /// Authenticate the decoder observation against the SAME saved target SDP,
-    /// key, endpoint and logical stream intent. This begins no transport effect.
+    /// Authenticate the decoder observation against the SAME saved target offer,
+    /// key, endpoint and logical stream intent on RTC or native transport. This
+    /// begins no transport effect and accepts no server-issued challenge as authority.
     pub fn native_replacement_ready_read_with_peer(
         &self,
         started: &NativeReplacementStarted,

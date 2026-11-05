@@ -102,7 +102,7 @@ impl Runtime {
                 tokio::select! {biased;_=stop.cancelled()=>return,_=tick.tick()=>{}}
                 let saved=store.clone();
                 let after=cursor.clone();
-                let Ok(Ok((next,ids)))=tokio::task::spawn_blocking(move ||saved.session_reconnect_page(&after)).await else {continue;};
+                let Ok(Ok((next,ids)))=crate::runtime_retention::spawn_blocking(crate::runtime_retention::Kind::ReconnectScan, move ||saved.session_reconnect_page(&after)).await else {continue;};
                 cursor=next;
                 let ids=ids.into_iter().chain(std::mem::take(&mut cleanup));
                 for (cid,sid) in ids {
@@ -110,7 +110,7 @@ impl Runtime {
                     let saved=store.clone();
                     let current_cid=cid.clone();
                     let current_sid=sid.clone();
-                    let result=tokio::task::spawn_blocking(move ||saved.reconcile_session_reconnect(&current_cid,&current_sid)).await;
+                    let result=crate::runtime_retention::spawn_blocking(crate::runtime_retention::Kind::ReconnectReconcile, move ||saved.reconcile_session_reconnect(&current_cid,&current_sid)).await;
                     if matches!(result,Ok(Ok(true))) {
                         let Some(runtime)=runtime.upgrade() else {return;};
                         if let Ok(mut audiences)=runtime.consultation_audiences.lock() {audiences.retain(|_,a|a.session!=sid);}
@@ -149,9 +149,11 @@ impl Runtime {
             loop {
                 tokio::select! {biased;_=stop.cancelled()=>return,_=tick.tick()=>{}}
                 let saved = store.clone();
-                let loaded =
-                    tokio::task::spawn_blocking(move || saved.session_lifecycle_hint_page(cursor))
-                        .await;
+                let loaded = crate::runtime_retention::spawn_blocking(
+                    crate::runtime_retention::Kind::LifecycleScan,
+                    move || saved.session_lifecycle_hint_page(cursor),
+                )
+                .await;
                 let Ok(Ok(page)) = loaded else {
                     continue;
                 };

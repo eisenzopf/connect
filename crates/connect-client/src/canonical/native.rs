@@ -154,6 +154,22 @@ impl CanonicalClient {
             .to_owned();
         // Register before the write: an already-running owned reader can see
         // the first signed answer as soon as the server receives this command.
+        let required_video = match &command.intent {
+            connect_protocol::transitions::TransitionIntent::Replace { video, .. } => video
+                .as_ref()
+                .map(|mapping| {
+                    mapping
+                        .receivers
+                        .iter()
+                        .map(|binding| binding.replacement.clone())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default(),
+            _ => return Err(ClientError::Protocol),
+        };
+        self.native_video
+            .readiness
+            .begin(&id, &scope, &payload, required_video)?;
         self.native_video
             .begin(id.clone(), scope.clone(), payload)?;
         self.write(value, true).await?;
@@ -169,6 +185,10 @@ impl CanonicalClient {
         payload: payloads::ConnectionAnswer,
         root: &CommandScope,
     ) -> Result<String> {
+        let seal_readiness = self
+            .native_video
+            .readiness
+            .check_answer(request, &payload, root)?;
         let seal_video = self
             .native_video
             .check_confirmation(request, &payload, root)?;
@@ -180,6 +200,9 @@ impl CanonicalClient {
         self.write(value, true).await?;
         if seal_video {
             self.native_video.confirmed()?;
+        }
+        if seal_readiness {
+            self.native_video.readiness.confirmed()?;
         }
         Ok(id)
     }

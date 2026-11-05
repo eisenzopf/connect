@@ -15,7 +15,9 @@ pub(super) async fn completion(
     device: &str,
     own: &[selected::Binding],
     minimum_revision: &mut u64,
+    authoritative_pending: &mut bool,
 ) -> Result<Option<Admission>> {
+    *authoritative_pending = false;
     let batch = client
         .request_value(
             "operation.get",
@@ -46,15 +48,19 @@ pub(super) async fn completion(
     if updates.len() != 1 {
         return Err("original operation read omitted its unique correlated result".into());
     }
-    observed(
-        &updates[0].original()["payload"],
+    let value = &updates[0].original()["payload"];
+    let result = observed(
+        value,
         command,
         root,
         candidate,
         device,
         own,
         minimum_revision,
-    )
+    )?;
+    *authoritative_pending =
+        result.is_none() && matches!(value["state"].as_str(), Some("accepted" | "preparing"));
+    Ok(result)
 }
 fn completion_read_pending(batch: &ReplyBatch) -> Result<bool> {
     match batch.ack() {

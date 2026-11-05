@@ -162,7 +162,7 @@ async fn run(runtime: Weak<Runtime>, store: Arc<Store>, stop: CancellationToken)
                 let recover = recovery.elapsed() >= Duration::from_secs(1);
                 if recover { recovery = tokio::time::Instant::now(); }
                 let db = store.clone();
-                let scan = tokio::task::spawn_blocking(move || {
+                let scan = crate::runtime_retention::spawn_blocking(crate::runtime_retention::Kind::CodecScan, move || {
                     // Existing owned scan, before taking any SQL/file guards.
                     // Lease Drop only queued this exact original close batch.
                     db.reap_idle_packet_observers()?;

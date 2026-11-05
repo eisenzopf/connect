@@ -65,6 +65,100 @@ impl NativeReplacementOrigin {
     ) -> Result<NativeReplacementContext> {
         context(store, c, self)
     }
+    /// Fresh authority for an already-started original movement. This does not
+    /// repeat whole-preflight: successful Core publication legitimately retires
+    /// the old route before the journal projection. It grants no Core route.
+    pub(crate) fn continuation_authority(
+        &self,
+        store: &Store,
+        c: &Connection,
+        target_identity: &str,
+    ) -> Result<(Vec<crate::AuthorityScope>, i64)> {
+        let owner = store.require_runtime_owner()?;
+        if self.runtime != store.runtime_epoch()
+            || !owner.current()
+            || self
+                .owner
+                .upgrade()
+                .is_none_or(|old| !Arc::ptr_eq(&old, &owner))
+        {
+            return Err(Error::forbidden());
+        }
+        let actor = actor_from_connection(c, &self.credential)?;
+        actor.require("connection.replace")?;
+        if actor.identity_id != target_identity {
+            actor.require("connection.replace.any")?;
+        }
+        let row = rows::by_record(c, &self.record)?;
+        if row.digest != self.digest
+            || rows::request(&row)? != self.request
+            || !row.ledger
+            || !row.native_replacement
+            || row.tombstoned
+            || row.record.state != OperationState::Preparing
+            || row.record.cancel_requested
+            || row
+                .record
+                .expires_at
+                .is_none_or(|until| crate::now() >= until)
+        {
+            return Err(Error::forbidden());
+        }
+        authority::read(c, &actor, &row)?;
+        let expires: Option<i64> = c.query_row(
+            "SELECT n.expires_at FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND n.credential_id=?2 AND n.runtime_epoch=?3 AND n.original_digest=?4 AND n.reservation_id=o.lease_owner AND o.worker_runtime=n.runtime_epoch AND o.lease_expires_at=n.expires_at AND n.expires_at>?5",
+            params![self.record,self.credential,self.runtime,self.digest,crate::now()], |r|r.get(0)
+        ).optional().map_err(|_| Error::storage())?;
+        let mut scopes = vec![
+            crate::AuthorityScope::identity(&actor.identity_id, crate::AuthorityMode::Read)?,
+            crate::AuthorityScope::conversation(
+                &self.request.conversation_id,
+                crate::AuthorityMode::Read,
+            )?,
+        ];
+        let mut members = c.prepare_cached("SELECT participant_id,identity_id,membership_epoch FROM operation_members WHERE operation_record_id=?1").map_err(|_| Error::storage())?;
+        for value in members
+            .query_map([&self.record], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, u64>(2)?,
+                ))
+            })
+            .map_err(|_| Error::storage())?
+        {
+            let (participant, identity, epoch) = value.map_err(|_| Error::storage())?;
+            let current =
+                crate::audience::member(c, &identity, &self.request.conversation_id, true)?;
+            if current.participant_id != participant
+                || current.membership_epoch != epoch
+                || !actor.permits_recipient(&identity)
+            {
+                return Err(Error::forbidden());
+            }
+            let present: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM session_participants WHERE session_id=?1 AND participant_id=?2 AND membership_epoch=?3 AND state='present')",params![self.request.session_id,participant,epoch], |r|r.get(0)).map_err(|_| Error::storage())?;
+            if !present {
+                return Err(Error::forbidden());
+            }
+            scopes.push(crate::AuthorityScope::identity(
+                &identity,
+                crate::AuthorityMode::Read,
+            )?);
+        }
+        // Endpoint mutations remain current refusals even though the replaced
+        // connection's physical retirement itself is now expected.
+        let endpoint_changed: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM operation_endpoints s LEFT JOIN endpoints e ON e.id=s.endpoint_id LEFT JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.tenant_id=e.tenant_id WHERE s.operation_record_id=?1 AND (e.id IS NULL OR e.revision!=s.revision OR e.verification_state!='verified' OR d.id IS NULL OR d.revoked!=0))",[&self.record],|r|r.get(0)).map_err(|_| Error::storage())?;
+        if endpoint_changed {
+            return Err(Error::forbidden());
+        }
+        Ok((
+            crate::AuthorityScope::merged(&scopes)?,
+            expires
+                .ok_or_else(Error::forbidden)?
+                .min(actor.expires_at)
+                .min(self.request.expires_at),
+        ))
+    }
     pub(crate) fn require(&self, store: &Store, c: &Connection) -> Result<Actor> {
         let owner = store.require_runtime_owner()?;
         if self.runtime != store.runtime_epoch()

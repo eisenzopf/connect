@@ -431,12 +431,14 @@ impl Policy {
     }
 }
 
-/// Allocated before physical movement. Its origin cannot admit packets until
-/// the exact durable completion, and it retains no current Store reader.
+/// Allocated before physical movement. Ordinary admission waits for durable
+/// completion; the exact pending continuation separately requires current
+/// Store authority and the actual committed Core route. No reader is retained.
 pub(crate) struct ReplacementAdoption {
     target: Arc<crate::canonical_replacement::TargetPolicy>,
     metadata: Arc<connect_store::NativeReplacementActivation>,
     entry: Arc<super::Connection>,
+    continuation: Arc<super::public_continuation::Continuation>,
     writer: std::sync::Mutex<Option<super::data_writes::Observer>>,
 }
 impl super::Policy {
@@ -496,10 +498,22 @@ impl super::Policy {
             binding: std::sync::Mutex::new(Some(binding)),
             preparation: Default::default(),
         });
+        let continuation = super::public_continuation::Continuation::new(
+            target.root.clone(),
+            metadata.clone(),
+            entry.clone(),
+        );
+        // This install is before the only Core movement. It cannot authorize
+        // a packet until the actual managed route exists and Store agrees.
+        target
+            .public_continuation
+            .set(continuation.clone())
+            .map_err(|_| StreamControlError::Authority)?;
         Ok(Arc::new(ReplacementAdoption {
             target: target.clone(),
             metadata,
             entry,
+            continuation,
             writer: std::sync::Mutex::new(writer),
         }))
     }
@@ -535,7 +549,7 @@ impl ReplacementAdoption {
                 Err(StreamControlError::Authority)
             };
         }
-        let mut provisional = target
+        let provisional = target
             .base
             .replacement_targets
             .try_lock()
@@ -577,7 +591,8 @@ impl ReplacementAdoption {
         // physical source has already gone; its slot transfers exactly once.
         entries.remove(&target.pending.intent().source);
         entries.insert(id.clone(), self.entry.clone());
-        provisional.remove(id);
+        // Keep exact continuation dispatch until the final SQL commit and
+        // ordinary-mode publication are ordered under these same registries.
         Ok(())
     }
 
@@ -616,7 +631,15 @@ impl ReplacementAdoption {
         let installed = entries
             .get(id)
             .is_some_and(|entry| Arc::ptr_eq(entry, &self.entry))
-            && !provisional.contains_key(id)
+            && provisional
+                .get(id)
+                .and_then(std::sync::Weak::upgrade)
+                .is_some_and(|target| Arc::ptr_eq(&target, &self.target))
+            && self
+                .target
+                .public_continuation
+                .get()
+                .is_some_and(|current| Arc::ptr_eq(current, &self.continuation))
             && self
                 .target
                 .data_observer
@@ -667,6 +690,7 @@ impl ReplacementAdoption {
                 .get()
                 .ok_or_else(connect_protocol::Error::forbidden)?,
             generation: expected.origin().generation(),
+            continuation: &self.continuation,
             _entries: entries,
             _provisional: provisional,
             _activation: activation,
@@ -684,6 +708,7 @@ struct InstalledEntry<'a> {
     record: &'a str,
     native: &'a crate::canonical_replacement::Activation,
     generation: u64,
+    continuation: &'a super::public_continuation::Continuation,
     _activation: std::sync::MutexGuard<'a, Option<Arc<dyn MediaActivation>>>,
     _binding: std::sync::MutexGuard<'a, Option<rvoip_core::relationships::ConnectionBinding>>,
 
@@ -716,7 +741,12 @@ impl connect_store::NativeReplacementInstallationGuard for InstalledEntry<'_> {
                     retirement.wait_for_cancellation()?;
                 }
             }
-            commit()
+            commit()?;
+            // The installed ordinary entry and SQL Ready are both committed
+            // before any packet lookup may choose the ordinary policy. Existing
+            // pending reads crossing this edge refuse/retry; they never fall back.
+            self.continuation.publish_ordinary();
+            Ok(())
         });
         // Core releases installation metadata before we join actual retirement.
         // This hook is absent from normal production builds.

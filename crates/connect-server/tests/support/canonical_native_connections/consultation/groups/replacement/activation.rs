@@ -86,3 +86,11 @@ pub(super) fn stopped_without_ready(f: &Fixture, candidate: &str, record: &Opera
         "a stopped-before-activation route never emitted Ready"
     );
 }
+
+#[cfg(feature = "test-support")]
+#[path = "activation/continuation.rs"]
+pub(super) mod continuation;
+
+#[cfg(feature = "test-support")]
+#[path = "activation/private_continuation.rs"]
+mod private_continuation;

@@ -1,4 +1,6 @@
 //! Native engine policy derives every grant from current fenced Store state.
+#[cfg(feature = "test-support")]
+pub(crate) mod continuation_fixture;
 pub(crate) mod credential_refresh;
 pub(crate) mod data;
 pub(crate) mod data_writes;
@@ -7,6 +9,7 @@ pub(crate) mod ice;
 mod packet_metadata;
 mod packets;
 pub(crate) mod preparation;
+pub(crate) mod public_continuation;
 #[cfg(feature = "test-support")]
 mod publication_fixture;
 pub(crate) mod reconciliation;
@@ -71,6 +74,8 @@ pub(crate) struct Policy {
         Mutex<BTreeMap<ConnectionId, Weak<crate::telephone_replacement::media::Policy>>>,
     initial_targets: Mutex<BTreeMap<ConnectionId, Weak<crate::initial_telephone::policy::Leg>>>,
     capacity: usize,
+    #[cfg(feature = "test-support")]
+    replacement_projection_pauses: Mutex<BTreeMap<String, Arc<continuation_fixture::Pause>>>,
     #[cfg(feature = "test-support")]
     held_registry_probes: Mutex<BTreeMap<String, Arc<std::sync::atomic::AtomicUsize>>>,
     #[cfg(feature = "test-support")]
@@ -720,7 +725,15 @@ impl Policy {
             .try_lock()
             .map_err(metadata_contention)?
             .get(id)
-            .and_then(Weak::upgrade))
+            .and_then(Weak::upgrade)
+            // Dispatch state only; the ordinary path still takes fresh Store
+            // and actual resource admission. This flag never grants media.
+            .filter(|target| {
+                !target
+                    .public_continuation
+                    .get()
+                    .is_some_and(|continuation| continuation.ordinary())
+            }))
     }
     pub fn new(store: Arc<Store>, capacity: usize) -> Arc<Self> {
         Arc::new(Self {
@@ -730,6 +743,8 @@ impl Policy {
             telephone_targets: Mutex::new(BTreeMap::new()),
             initial_targets: Mutex::new(BTreeMap::new()),
             capacity,
+            #[cfg(feature = "test-support")]
+            replacement_projection_pauses: Default::default(),
             #[cfg(feature = "test-support")]
             replacement_adoption_refusals: Default::default(),
             #[cfg(feature = "test-support")]
@@ -794,6 +809,33 @@ impl Policy {
     }
     pub(crate) fn origin(&self, id: &ConnectionId) -> Option<Arc<NativeMediaOrigin>> {
         self.entries.lock().ok()?.get(id).map(|e| e.origin.clone())
+    }
+    /// Resource-bearing entries and Weak target registries, never permissions.
+    /// Each try_lock releases before another registry or serialization is entered.
+    pub(crate) fn retention_counts(&self) -> serde_json::Value {
+        let entries = self.entries.try_lock().ok().map(|entries| entries.len());
+        let replacement = self.replacement_targets.try_lock().ok().map(|entries| {
+            (
+                entries.len(),
+                entries.values().filter(|p| p.strong_count() > 0).count(),
+            )
+        });
+        let telephone = self.telephone_targets.try_lock().ok().map(|entries| {
+            (
+                entries.len(),
+                entries.values().filter(|p| p.strong_count() > 0).count(),
+            )
+        });
+        let initial = self.initial_targets.try_lock().ok().map(|entries| {
+            (
+                entries.len(),
+                entries.values().filter(|p| p.strong_count() > 0).count(),
+            )
+        });
+        serde_json::json!({"connection_strong_entries": entries,
+            "replacement_weak_entries_and_with_strong_owner": replacement,
+            "telephone_weak_entries_and_with_strong_owner": telephone,
+            "initial_weak_entries_and_with_strong_owner": initial})
     }
     pub(crate) fn remove(&self, id: &ConnectionId) {
         self.entries
@@ -925,6 +967,8 @@ struct Fresh {
     weak: std::sync::Weak<dyn Any + Send + Sync>,
     // Active IO only. Queued packets can retain only the weak reference above.
     _source: Option<Arc<NativeMediaRead>>,
+    _continuations:
+        Vec<rvoip_core::orchestrator::participant_control::CurrentReplacementPublication>,
 }
 impl Fresh {
     fn new(owner: MediaOwner, read: NativeMediaRead, source: Option<Arc<NativeMediaRead>>) -> Self {
@@ -938,7 +982,15 @@ impl Fresh {
             _read: read,
             weak: Arc::downgrade(&erased),
             _source: source,
+            _continuations: Vec::new(),
         }
+    }
+    fn with_continuations(
+        mut self,
+        current: Vec<rvoip_core::orchestrator::participant_control::CurrentReplacementPublication>,
+    ) -> Self {
+        self._continuations = current;
+        self
     }
 }
 impl MediaAuthorityLease for Fresh {

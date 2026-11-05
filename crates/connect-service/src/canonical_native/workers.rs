@@ -42,6 +42,25 @@ fn uncertain() -> Error {
     )
 }
 impl Workers {
+    /// Counts only existing original custody; does not join, reopen or retire it.
+    pub(crate) fn retention_counts(&self) -> Option<serde_json::Value> {
+        let counts = self.0.try_lock().ok().map(|state| {
+            (
+                state.lanes.len(),
+                state
+                    .lanes
+                    .values()
+                    .map(|lane| lane.active.len())
+                    .sum::<usize>(),
+                state.lanes.values().filter(|lane| lane.closed).count(),
+                state.lanes.values().filter(|lane| lane.failed).count(),
+            )
+        })?;
+        Some(
+            serde_json::json!({"lane_entries": counts.0, "original_invocations": counts.1,
+            "closed_lanes": counts.2, "failed_lanes": counts.3}),
+        )
+    }
     /// Register before Store can mark an ordinary native effect started.
     /// A closed lane still permits the caller's separate metadata-only replay.
     pub(crate) fn register(
@@ -193,6 +212,27 @@ impl Retirement {
 mod tests {
     use super::*;
     use std::time::Duration;
+    #[test]
+    fn retention_observer_distinguishes_contended_from_empty_original_registry() {
+        let workers = Workers::default();
+        assert_eq!(
+            workers.retention_counts().unwrap()["original_invocations"],
+            0
+        );
+        let held = workers.0.lock().unwrap();
+        assert!(workers.retention_counts().is_none());
+        drop(held);
+        let original = workers
+            .register("original", 2, &CancellationToken::new())
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            workers.retention_counts().unwrap()["original_invocations"],
+            1
+        );
+        original.complete();
+        assert_eq!(workers.retention_counts().unwrap()["lane_entries"], 0);
+    }
     #[tokio::test]
     async fn retirement_waits_for_every_original_cleanup_and_preserves_other_lanes() {
         let workers = Workers::default();

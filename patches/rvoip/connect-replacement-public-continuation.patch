@@ -1,0 +1,199 @@
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/publication.rs
+@@ -0,0 +1,94 @@
++//! A current managed-route fence for the short post-commit journal interval.
++//! This grants no Store permission and retains no Orchestrator/session owner.
++use super::*;
++use crate::staged_streams::{ControlResult as MediaResult, MediaOwner};
++use rvoip_core_traits::peer_switch::{PeerDeliveryGuard, PeerRouteTicket};
++
++/// Owned by precisely one live managed route. Removal, replacement or session
++/// destruction invalidates every future continuation admission.
++pub(crate) struct ManagedRoutePublication(PeerRouteTicket);
++impl ManagedRoutePublication {
++    pub(crate) fn new() -> Self {
++        Self(PeerRouteTicket::initial())
++    }
++}
++impl Drop for ManagedRoutePublication {
++    fn drop(&mut self) {
++        self.0.retire_if_current();
++    }
++}
++
++/// A non-forgeable observation of this actual live binding and delivery ticket.
++/// The ordinary packet gate still validates port/model/scene/subscription stamps
++/// after policy admission. No mutex or current-domain reader is retained here.
++#[must_use]
++pub struct CurrentReplacementPublication {
++    _delivery: PeerDeliveryGuard,
++}
++fn metadata<T>(error: std::sync::TryLockError<T>) -> StreamControlError {
++    match error {
++        std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
++        std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
++    }
++}
++impl DeviceReplacementPreparation {
++    /// Call after fresh domain admission, never before an awaited Store read.
++    /// An inactive or historical preparation is insufficient: the exact live
++    /// model binding, original lifecycle and current delivery ticket must agree.
++    pub fn current_publication(
++        &self,
++        current: &MediaOwner,
++    ) -> MediaResult<CurrentReplacementPublication> {
++        if self.owner.upgrade().is_none()
++            || self.cancellation.is_cancelled()
++            || tokio::time::Instant::now() >= self.deadline
++            || current.connection.connection() != &self.intent.replacement
++            || current.connection.participant() != &self.intent.participant
++            || current.connection.endpoint() != &self.intent.endpoint
++            || current.connection.device() != &self.intent.device
++            || current.presence.session() != &self.runtime.session
++            || current.member.conversation() != &self.runtime.conversation
++        {
++            return Err(StreamControlError::Authority);
++        }
++        // Store -> managed state -> lifecycle is the existing commit order.
++        // Both locks are immediate and are dropped before the policy returns.
++        let state = self.runtime.state.try_lock().map_err(metadata)?;
++        if state.ended || state.pending.contains_key(&self.intent.replacement) {
++            return Err(StreamControlError::NotReady);
++        }
++        let route = state
++            .routes
++            .get(&self.intent.replacement)
++            .ok_or(StreamControlError::NotReady)?;
++        if route.lifecycle.connection_id != self.candidate.connection_id
++            || route.lifecycle.generation != self.candidate.generation
++            || !Arc::ptr_eq(&route.lifecycle.state, &self.candidate.state)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        state
++            .controller
++            .require_live_binding(&current.member, &current.connection)
++            .map_err(|_| StreamControlError::Authority)?;
++        let lifecycle = route.lifecycle.state.try_lock().map_err(metadata)?;
++        if !lifecycle.active
++            || lifecycle.retired
++            || lifecycle.generation != self.candidate.generation
++            || lifecycle.replacement_reservation.is_some()
++            || lifecycle.peer_admission.as_ref().is_none_or(|permit| {
++                permit.peer.is_closed() || permit.cancellation().is_cancelled()
++            })
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let delivery = route
++            .publication
++            .0
++            .try_begin_delivery()
++            .ok_or(StreamControlError::Authority)?;
++        Ok(CurrentReplacementPublication {
++            _delivery: delivery,
++        })
++    }
++}
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -7,17 +7,19 @@
+ };
+ use crate::peer_admission::PeerAdmission;
+ use crate::staged_streams::{
+-    StreamControlError,
+     audience::{AudioAudienceHandle, AudioAudiencePlan, AudioAudienceRequest},
+     device_replacement::{
+         AudioDeviceReplacementHandle, AudioDeviceReplacementOutcome, AudioDeviceReplacementPlan,
+         AudioDeviceReplacementRequest, ReplacementReadinessStamp,
+     },
+     signal::ControllerSignalStamp,
++    StreamControlError,
+ };
+ use std::collections::BTreeSet;
+ use std::sync::atomic::{AtomicU8, Ordering};
+ pub(crate) mod metadata_retry;
++pub(super) mod publication;
++pub use publication::CurrentReplacementPublication;
+ const PREPARING: u8 = 0;
+ const ATTACHED: u8 = 1;
+ const COMMITTED: u8 = 2;
+@@ -1305,6 +1307,7 @@
+             LiveRoute {
+                 _slot: original_route._slot,
+                 lifecycle: self.context.plan.preparation.candidate.clone(),
++                publication: publication::ManagedRoutePublication::new(),
+             },
+         );
+         let index = self
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -235,6 +235,7 @@
+ struct LiveRoute {
+     _slot: OwnedSemaphorePermit,
+     lifecycle: ConnectionLifecycleTicket,
++    publication: replacement::publication::ManagedRoutePublication,
+ }
+ struct ManagedState {
+     controller: ParticipantSession,
+@@ -1960,6 +1961,7 @@
+                             None => ready.slot.take().expect("reserved slot"),
+                         },
+                         lifecycle: ready.lifecycle.clone(),
++                        publication: replacement::publication::ManagedRoutePublication::new(),
+                     },
+                 );
+                 ready.committed = true;
+@@ -2319,9 +2321,9 @@
+ pub(crate) use replacement::ManagedAudienceContext;
+ mod publication_mixer;
+ pub use replacement::{
+-    DeviceReplacementAdapterRequest, DeviceReplacementAdapterRoute, DeviceReplacementEndpointEvent,
+-    DeviceReplacementEvent, DeviceReplacementPreparation, DeviceReplacementSignalScope,
+-    DeviceReplacementSignalSource, ManagedAudioDeviceReplacementPlan,
++    CurrentReplacementPublication, DeviceReplacementAdapterRequest, DeviceReplacementAdapterRoute,
++    DeviceReplacementEndpointEvent, DeviceReplacementEvent, DeviceReplacementPreparation,
++    DeviceReplacementSignalScope, DeviceReplacementSignalSource, ManagedAudioDeviceReplacementPlan,
+     ParticipantReplacementAuthority, ParticipantReplacementControl, ParticipantReplacementLease,
+     ParticipantReplacementScope, ReplacementPhase,
+ };
+--- a/crates/foundation/rvoip-core/src/participant_transitions.rs
++++ b/crates/foundation/rvoip-core/src/participant_transitions.rs
+@@ -269,6 +269,37 @@
+             .get(participant)
+             .map(|p| p.connections.keys().cloned().collect())
+             .unwrap_or_default()
++    }
++
++    /// Current model ownership only. A captured replacement receipt or matching
++    /// public identifier cannot substitute for this live admitted incarnation.
++    pub(crate) fn require_live_binding(
++        &self,
++        member: &Membership,
++        binding: &ConnectionBinding,
++    ) -> Result<()> {
++        self.check_member(member, true)?;
++        let presence = self
++            .participants
++            .get(member.participant())
++            .ok_or(ParticipantTransitionError::Inactive)?;
++        self.check_presence(member, presence)?;
++        presence.appearance.require_current(member)?;
++        let actual = presence
++            .connections
++            .get(binding.connection())
++            .ok_or(ParticipantTransitionError::Inactive)?;
++        actual.require_current(member, &presence.appearance)?;
++        if actual.state() != crate::relationships::BindingState::Active
++            || binding.state() != crate::relationships::BindingState::Active
++            || !actual.same_incarnation(binding)
++            || actual.generation() != binding.generation()
++            || actual.endpoint() != binding.endpoint()
++            || actual.device() != binding.device()
++        {
++            return Err(ParticipantTransitionError::Conflict);
++        }
++        Ok(())
+     }
+ 
+     fn check_member(&self, member: &Membership, active: bool) -> Result<()> {

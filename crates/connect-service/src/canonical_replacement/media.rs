@@ -28,6 +28,8 @@ pub(crate) struct TargetPolicy {
     pub plan: NativeOfferPlan,
     pub root: Weak<PreparedReplacement>,
     pub activation: OnceLock<Arc<Activation>>,
+    pub(crate) public_continuation:
+        OnceLock<Arc<crate::canonical_media::public_continuation::Continuation>>,
     pub origin: OnceLock<Arc<NativeReplacementMediaOrigin>>,
     pub preparation_operation: OnceLock<String>,
     pub data_observer: Option<Arc<crate::canonical_media::data_writes::PendingObserver>>,

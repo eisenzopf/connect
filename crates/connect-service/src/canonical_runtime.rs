@@ -457,6 +457,74 @@ impl Runtime {
         Ok(matches.pop())
     }
 
+    /// Diagnostic-only counts, sampled independently with try_lock. A map entry,
+    /// live Weak target and unfinished task are deliberately different fields.
+    pub(crate) fn retention_counts(&self) -> serde_json::Value {
+        let physical = self
+            .physical
+            .try_lock()
+            .ok()
+            .map(|p| (p.len(), p.iter().filter(|p| p.strong_count() > 0).count()));
+        let worker = |slot: &Mutex<Option<tokio::task::JoinHandle<()>>>| {
+            slot.try_lock().ok().map(|slot| {
+                (
+                    usize::from(slot.is_some()),
+                    usize::from(slot.as_ref().is_some_and(|job| !job.is_finished())),
+                )
+            })
+        };
+        let replacements = self.replacements.try_lock().ok().map(|entries| {
+            (
+                entries.len(),
+                entries.values().filter(|r| r.handle.is_committed()).count(),
+            )
+        });
+        let listeners = self.capability_listeners.try_lock().ok().map(|entries| {
+            (
+                entries.len(),
+                entries
+                    .values()
+                    .filter(|owner| owner.strong_count() > 0)
+                    .count(),
+            )
+        });
+        let dtmf = self.dtmf_listeners.try_lock().ok().map(|entries| {
+            (
+                entries.len(),
+                entries
+                    .values()
+                    .filter(|owner| owner.strong_count() > 0)
+                    .count(),
+            )
+        });
+        serde_json::json!({
+            "physical_weak_entries": physical.map(|(entries, _)| entries),
+            "physical_weak_with_strong_owner": physical.map(|(_, live)| live),
+            "control_joinset_entries": self.work.try_lock().ok().map(|jobs| jobs.len()),
+            "retained_original_control_polls": self.control_polls.len(),
+            "ordinary_native_worker_lanes": self.native_workers.retention_counts(),
+            "session_worker_handle_entries_and_unfinished": {
+                "reconnect": worker(&self.session_reconnect_worker),
+                "lifecycle": worker(&self.session_lifecycle_worker),
+                "codec": worker(&self.session_codec_worker)
+            },
+            "codec_origin_strong_entries": self.codec_origins.try_lock().ok().map(|m| m.len()),
+            "replacement_strong_entries": replacements.map(|(entries, _)| entries),
+            "replacement_committed_entries": replacements.map(|(_, committed)| committed),
+            "invitation_job_entries": self.invitation_jobs.try_lock().ok().map(|m| m.len()),
+            "consultation_job_entries": self.consultation_jobs.try_lock().ok().map(|m| m.len()),
+            "consultation_audience_receipts": self.consultation_audiences.try_lock().ok().map(|m| m.len()),
+            "handoff_receipts": self.handoffs.try_lock().ok().map(|m| m.len()),
+            "consultation_return_receipts": self.consultation_returns.try_lock().ok().map(|m| m.len()),
+            "credential_refresh_receipts": self.credential_refresh_receipts.try_lock().ok().map(|m| m.len()),
+            "capability_weak_entries_and_with_strong_owner": listeners,
+            "dtmf_weak_entries_and_with_strong_owner": dtmf,
+            "role_projections": self.role_projections.load(std::sync::atomic::Ordering::Relaxed),
+            "retirement_failed": self.retirement_failed.load(std::sync::atomic::Ordering::Acquire),
+            "media_policy": self.media.retention_counts(),
+            "unobserved": ["Core orphan controllers/ports outside the service registry", "codec heap capacities", "allocator retained pages"]
+        })
+    }
     /// Nonblocking process observations. Counts are owners/JoinSet entries,
     /// not authoritative Session state or proof that cleanup has finished.
     pub(crate) fn operational_resources(&self) -> Option<connect_protocol::RuntimeResources> {

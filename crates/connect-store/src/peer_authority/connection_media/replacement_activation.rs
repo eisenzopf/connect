@@ -2,12 +2,14 @@
 use super::*;
 
 /// An inactive ordinary entry can be allocated before the public completion
-/// transaction. The enclosed origin is deliberately unusable until that exact
-/// attempt is durably confirmed and completed. Each eventual packet still
-/// requires the normal current authorization and lifetime checks.
+/// transaction. Ordinary origin admission remains unavailable until that exact
+/// attempt is durably confirmed and completed. The separate continuation read
+/// requires this same original started attempt and actual current Core owner;
+/// captured metadata alone never grants a packet.
 pub struct NativeReplacementActivation {
     origin: Arc<NativeMediaOrigin>,
     target: PeerConnectionProjection,
+    pub(super) original: crate::NativeReplacementOrigin,
 }
 impl std::fmt::Debug for NativeReplacementActivation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -55,6 +57,7 @@ pub(crate) struct ReplacementActivationInput {
     pub binding: PeerAuthorityRequest,
     pub descriptor: serde_json::Value,
     pub expires_at: i64,
+    pub original: crate::NativeReplacementOrigin,
 }
 impl Store {
     /// Called only while reserving the original commit under its complete
@@ -72,13 +75,18 @@ impl Store {
             mut binding,
             descriptor,
             expires_at,
+            original,
         } = input;
         let mut intent: OfferIntent =
             serde_json::from_value(descriptor["intent"].clone()).map_err(|_| Error::storage())?;
         let credential = descriptor["credential_id"]
             .as_str()
             .ok_or_else(Error::storage)?;
-        if runtime != self.runtime_epoch()
+        if original.record_id() != record
+            || original.runtime != runtime
+            || original.request().conversation_id != target.connection.conversation_id
+            || original.request().session_id != target.connection.session_id
+            || runtime != self.runtime_epoch()
             || binding.credentials.last().map(String::as_str) != Some(credential)
             || descriptor["key_id"].as_str() != Some(binding.key_id.as_str())
             || binding.device.id != target.device_id
@@ -119,7 +127,11 @@ impl Store {
             credential_epoch: 0,
             metadata: snapshot::new_metadata(),
         });
-        Ok(Arc::new(NativeReplacementActivation { origin, target }))
+        Ok(Arc::new(NativeReplacementActivation {
+            origin,
+            target,
+            original,
+        }))
     }
 
     /// Final activation uses current target authority, unlike historical stopped

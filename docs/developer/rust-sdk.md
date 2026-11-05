@@ -941,3 +941,50 @@ SSRC, serial and original remaining lifetime never grant media authority. A
 changed route or expired hint must be discarded; no encoded frame is replayed.
 The service continues to enforce current source/receiver authorization and its
 shared publisher feedback limit.
+
+
+### Native replacement decoded readiness
+
+A prepared native replacement now retains the original signed allocation and
+media-start operation while its target actually decodes private media. After
+`begin_native_replacement_media`, receive the signed `connection.answer` and its
+same-root parameter `connection.offer`, obtain its exact independently validated
+answer from `native_replacement_answer(&callback)`, then use
+`answer_connection_offer` for that exact callback. Both signed legs must carry the same server-issued
+`replacement_preparation.readiness` challenge. Native resource negotiation is at
+revision 1; the challenge names the subsequent private preparation revision 2.
+Neither phase is public ownership or decoded readiness.
+
+`CanonicalClient::native_replacement_readiness()` returns an opaque challenge
+only after that physical reader verified both legs and the answer write
+completed. It exposes the exact selected audio/video stream IDs, hop handles,
+payload types and source/target generations. Begin the caller-owned audio and
+video decoders during this private preparation, while the original route
+continues. Count actual non-concealed Opus PCM and actual decoded VP8 keyframes;
+RTP counters, clock reports, parameter ACKs and operation status are not decoder
+observations. Actual decoded silence is valid audio. `NativeVideoDatagrams::
+is_current_video_receive_epoch` checks whether an observed video history still
+belongs to this current authenticated receiver; no foreign/old epoch can supply
+readiness.
+
+Freeze those observations using `NativeReplacementReadiness::with_decoded` and
+submit that same value with `confirm_native_replacement_ready`. This third
+signed `connection.offer` preserves the original immutable offer, resources,
+record, candidate and operation; it changes only the preparation profile and
+adds the exact challenged observation. Changed observation replays refuse.
+A transient refusal can recover through a current read of the original
+operation and an identical continuation under the original deadline. Pending
+status does not prove that capture was absent: identical retries rely on the
+server's exact captured-observation replay contract. A transport timeout closes
+the original physical client and must not silently create a new peer or root.
+
+Continue the same actual decoder after the exact completed-root receipt. Do not
+reset it at commit, relabel private packets as public observations or open Data
+from a readiness ACK. Data retains its distinct completed-root authorization.
+The local Gate 6 native helper uses the already-pinned `opus` 0.3.1 with PLC/FEC
+disabled, and a single hash-bound libvpx child started in `--decode-vp8` mode.
+Three actual 960-sample private audio outputs and a selected, complete, actually
+decoded keyframe are required. Private decoder context stays separate from the
+full public quality oracle. Every decoder child is explicitly joined; forced,
+expired, malformed or missing decoder output is not readiness. This API/profile
+change requires combined SDK/service/helper verification before qualification.

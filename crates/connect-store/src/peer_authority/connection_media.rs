@@ -28,6 +28,7 @@ mod handoff;
 mod handoff_lifetime;
 mod replacement;
 mod replacement_activation;
+mod replacement_continuation;
 pub(crate) use replacement_activation::ReplacementActivationInput;
 pub use replacement_activation::{
     NativeReplacementActivation, NativeReplacementInstallationGuard,
@@ -352,59 +353,7 @@ fn views_for(
             return Err(Error::forbidden());
         }
         let (source_view, source_scopes, source_expiry) = facts_for(store, c, source, purpose)?;
-        let target_handoff = handoff_lifetime::current(store, c, target)?;
-        let source_handoff = handoff_lifetime::current(store, c, source)?;
-        if target_handoff.is_some() || source_handoff.is_some() {
-            match (&target_handoff, &source_handoff) {
-                (Some(t), Some(s))
-                    if t.record == s.record
-                        && t.pairs.contains(&(
-                            target.connection_id().into(),
-                            source.connection_id().into(),
-                        )) =>
-                {
-                    ()
-                }
-                _ => return Err(Error::forbidden()),
-            }
-        } else {
-            if view.handoff_preparation || source_view.handoff_preparation {
-                return Err(Error::forbidden());
-            }
-            for (private, other) in [(target, source), (source, target)] {
-                if let Some(partner) =
-                    crate::connection_control::private_consultation::private_partner(
-                        c,
-                        private.connection_id(),
-                    )?
-                {
-                    if other.connection_id() != partner {
-                        return Err(Error::forbidden());
-                    }
-                }
-            }
-        }
-        let target_actor = crate::identity::actor_from_connection(
-            c,
-            target
-                .binding
-                .credentials
-                .last()
-                .ok_or_else(Error::forbidden)?,
-        )?;
-        let source_actor = crate::identity::actor_from_connection(
-            c,
-            source
-                .binding
-                .credentials
-                .last()
-                .ok_or_else(Error::forbidden)?,
-        )?;
-        if !target_actor.permits_recipient(&source_view.session.actor.identity_id)
-            || !source_actor.permits_recipient(&view.session.actor.identity_id)
-        {
-            return Err(Error::forbidden());
-        }
+        require_current_pair(store, c, target, source, &view, &source_view)?;
         scopes.extend(source_scopes);
         expires = expires.min(source_expiry);
         Some(source_view)
@@ -413,6 +362,68 @@ fn views_for(
     };
     Ok((view, source, AuthorityScope::merged(&scopes)?, expires))
 }
+fn require_current_pair(
+    store: &Store,
+    c: &Connection,
+    target: &NativeMediaOrigin,
+    source: &NativeMediaOrigin,
+    view: &PeerConnectionProjection,
+    source_view: &PeerConnectionProjection,
+) -> Result<()> {
+    let target_handoff = handoff_lifetime::current(store, c, target)?;
+    let source_handoff = handoff_lifetime::current(store, c, source)?;
+    if target_handoff.is_some() || source_handoff.is_some() {
+        match (&target_handoff, &source_handoff) {
+            (Some(t), Some(s))
+                if t.record == s.record
+                    && t.pairs.contains(&(
+                        target.connection_id().into(),
+                        source.connection_id().into(),
+                    )) =>
+            {
+                ()
+            }
+            _ => return Err(Error::forbidden()),
+        }
+    } else {
+        if view.handoff_preparation || source_view.handoff_preparation {
+            return Err(Error::forbidden());
+        }
+        for (private, other) in [(target, source), (source, target)] {
+            if let Some(partner) = crate::connection_control::private_consultation::private_partner(
+                c,
+                private.connection_id(),
+            )? {
+                if other.connection_id() != partner {
+                    return Err(Error::forbidden());
+                }
+            }
+        }
+    }
+    let target_actor = crate::identity::actor_from_connection(
+        c,
+        target
+            .binding
+            .credentials
+            .last()
+            .ok_or_else(Error::forbidden)?,
+    )?;
+    let source_actor = crate::identity::actor_from_connection(
+        c,
+        source
+            .binding
+            .credentials
+            .last()
+            .ok_or_else(Error::forbidden)?,
+    )?;
+    if !target_actor.permits_recipient(&source_view.session.actor.identity_id)
+        || !source_actor.permits_recipient(&view.session.actor.identity_id)
+    {
+        return Err(Error::forbidden());
+    }
+    Ok(())
+}
+
 impl Store {
     pub(crate) fn native_signal_facts_at(
         &self,

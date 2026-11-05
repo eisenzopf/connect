@@ -1724,6 +1724,21 @@
       "path": "patches/rvoip/connect-packet-observer-admission-cutoff.patch",
       "sha256": "ea1f1cca60291caa9a85eb9e1216b9576f405dacd862e9eca652f6b56c9bf539",
       "source": "G6-058 packet observer physical custody: carry the original driver authentication cutoff through synchronous effect-free resource admission and peer authentication, without timeout renewal. Constructor call sites and focused deadline tests are updated. Private candidate is not compiled or executed; no matrix qualification."
+    },
+    {
+      "path": "patches/rvoip/connect-replacement-public-continuation.patch",
+      "sha256": "d0286155a16d6eba700f10584405e54e1388118980724a770ef6d067da5035e6",
+      "source": "G6-058 paired current Store and actual managed Core route continuation during the original physical-commit/journal-projection interval. No stale grant fallback; current cancellation, generation, private ancestry and retirement checks remain required. Drafted controls are uncompiled and unexecuted."
+    },
+    {
+      "path": "patches/rvoip/connect-native-decoder-readiness-promotion.patch",
+      "sha256": "3ea7194322c7924efc1ca98b046e0caa9b8d2478dc3e3a6991938ed512f7d493",
+      "source": "G6-058 native replacement carries one original host-issued readiness challenge and preserves decoder epoch only through the exact same-source private-to-public promotion, with fresh current route grants and no retained payload/reader. Signed actual decoded audio and mapped video keyframe required before retirement; focused and matrix verification pending."
+    },
+    {
+      "path": "patches/rvoip/connect-runtime-retention-attribution.patch",
+      "sha256": "b2293d1319b864888e15eb7ed1940700e1b60b4971198ad3b873b1da0d3aeb56",
+      "source": "G6-058 bounded read-only OS thread identity for original blocking-call attribution; no runtime setting, allocator feature, job, authority or idle acceptance change. Focused Linux/macOS identity tests are drafted and unexecuted."
     }
   ]
 }

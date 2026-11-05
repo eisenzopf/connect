@@ -56,6 +56,7 @@ pub(super) async fn run(
     };
     let root = controller.transition(command.clone()).await.unwrap();
     let prepared = wait_prepared(f, key, &command.operation_id).await;
+    let original_cutoff = decoded_readiness::original_cutoff(&prepared);
     let plan: String = db
         .query_row(
             "SELECT plan_json FROM native_replacements WHERE operation_record_id=?1",
@@ -103,9 +104,8 @@ pub(super) async fn run(
         "{:?}",
         callback.original()
     );
-    let p = &callback.original()["payload"];
-    let streams=p["substrate_setup"]["streams"].as_array().unwrap().iter().map(|v|json!({"id":v["strm_id"],"kind":v["kind"],"direction":match v["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":v["codec"]})).collect::<Vec<_>>();
-    client.answer_connection_offer(&callback,serde_json::from_value(json!({"by_participant":p["by_participant"],"substrate":"quic","capabilities":capabilities(),"streams_answered":streams,"substrate_setup":p["substrate_setup"]})).unwrap(),&scope).await.unwrap();
+    let decoded_preparation =
+        decoded_readiness::answer(&mut client, &callback, &scope, original_cutoff).await;
     let staged_until = tokio::time::Instant::now() + Duration::from_secs(5);
     loop {
         let staged = status(f, key, &command.operation_id).await;
@@ -151,7 +151,15 @@ pub(super) async fn run(
         sequence: 1,
         live: true,
     });
-    send_readiness(&mut peers[candidate_index]).await;
+    let _frozen_decoded_ready = decoded_readiness::confirm(
+        &mut peers[candidate_index],
+        decoded_preparation,
+        None,
+        controller,
+        &command,
+        &prepared,
+    )
+    .await;
     let end = tokio::time::Instant::now() + Duration::from_secs(10);
     let done = loop {
         let state = status(f, key, &command.operation_id).await;
@@ -243,7 +251,9 @@ pub(super) async fn run(
     for peer in peers.drain(..) {
         let _ = peer.client.shutdown().await;
     }
-    eprintln!("actual telephone/native return passed: same logical member, retained native unchanged, generation3 actual duplex, one SIP call, exact old route absence and replay");
+    eprintln!(
+        "actual telephone/native return passed: same logical member, retained native unchanged, generation3 actual duplex, one SIP call, exact old route absence and replay"
+    );
 }
 
 // Distinct, orthogonal current markers identify both directions even when the
@@ -412,5 +422,8 @@ async fn old_duplex(
         (observer || heard[0] > 10) && heard[1] > 10,
         "old telephone/native duplex lost before new native readiness: {heard:?}"
     );
-    eprintln!("distinct telephone/native old duplex: phone_1khz_to_native={} native_2khz_to_phone={}, own markers absent and private candidate silent observer={observer}",heard[0],heard[1]);
+    eprintln!(
+        "distinct telephone/native old duplex: phone_1khz_to_native={} native_2khz_to_phone={}, own markers absent and private candidate silent observer={observer}",
+        heard[0], heard[1]
+    );
 }

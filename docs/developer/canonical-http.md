@@ -271,3 +271,14 @@ handles remain observations and confer no media custody or current permission.
 Verification of the installation barrier is in progress under G6-058. The
 metadata prerequisite's Store cases do not qualify Service installation, physical
 termination races, process restart recovery or uninterrupted media.
+
+### Native target decoder acknowledgment
+
+Native QUIC/WebTransport replacement parameters carry the same original signed
+server challenge in `connection.answer` and the subsequent parameter offer.
+After actual private PCM decoding, and a decoded keyframe for an explicitly
+transferred video receiver, the target signs `connect-replacement-ready-v1` with
+the original immutable offer and frozen decoder counts. The HTTP status surface
+can observe that original operation, but cannot submit physical readiness. See
+[the normative physical schema](../../contracts/schemas/replacement-decoder-readiness-1.schema.json)
+and `ReplacementReadiness*` components in the canonical OpenAPI reference.

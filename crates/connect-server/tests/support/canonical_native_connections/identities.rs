@@ -45,12 +45,25 @@ pub(crate) fn party_with_scope(
     capabilities: Vec<String>,
     scope: Scope,
 ) -> CanonicalClientConfig {
+    party_with_scope_until(
+        f,
+        identity,
+        index,
+        capabilities,
+        scope,
+        chrono::Utc::now().timestamp() + 600,
+    )
+}
+pub(crate) fn party_with_scope_until(
+    f: &Fixture,
+    identity: &str,
+    index: usize,
+    capabilities: Vec<String>,
+    scope: Scope,
+    expires_at: i64,
+) -> CanonicalClientConfig {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
-    let credential = f
-        .server
-        .store
-        .issue(identity, scope, chrono::Utc::now().timestamp() + 600)
-        .unwrap();
+    let credential = f.server.store.issue(identity, scope, expires_at).unwrap();
     let mut config = f.client.clone();
     config.identity_id = identity.into();
     config.credential = credential.token;
@@ -113,7 +126,7 @@ pub(crate) fn party_with_scope(
                 },
                 public_key: URL_SAFE_NO_PAD.encode(public),
                 not_before: chrono::Utc::now().timestamp() - 1,
-                expires_at: chrono::Utc::now().timestamp() + 600,
+                expires_at,
                 expected_revision: None,
             },
         )

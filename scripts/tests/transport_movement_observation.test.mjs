@@ -50,6 +50,12 @@ async function fixture(dataProfile = false) {
                 original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
                 video_transfer_admitted: true, operation_completed_inferred: false, decoded_media_verified: false,
                 program_start_unix_us: program, negotiated_streams: streams,
+                private_decoder_started_programme_us: MOVE_START_OFFSETS_MS[ordinal]*1000,
+                private_decoded_readiness:{profile:"connect/native-private-decoded-readiness/1",
+                    connection_id:"candidate-"+key,source_generation:ordinal+1,target_generation:ordinal+2,stream_revision:2,
+                    readiness_frozen:true,decoder_reset_on_root_completion:false,
+                    frozen_private_observations:{audio_decoded_samples:2880,audio_ssrc:12,video_decoded_frames:1,video_decoded_keyframes:1,video_epoch:null},
+                    decoder_process:{joined:true,clean:true,forced:false,exit_code:0},video_decode_receipts:[]},
                 root_completed_observed_programme_us: MOVE_START_OFFSETS_MS[ordinal] * 1000 + 2_000_000,
                 received: [{ elapsed_us: MOVE_START_OFFSETS_MS[ordinal] * 1000 + 2_000_000, datagram, original_root_completed_observed: true }] };
             const next = "candidate-" + key;
@@ -120,7 +126,7 @@ async function fixture(dataProfile = false) {
             await save(join(folder, "original-reference.json"), { command: "connection.replace", operation_id: step.operationId,
                 scope: { conversation_id: "room", session_id: sessionIds[sid], connection_id: current } });
             await save(join(folder, "admission.json"), { movement: {
-                retired: [current], retained: [connectionIds[peer]], connection: next } });
+                retired: [current], retained: [connectionIds[peer]], connection: next, binding:{generation:ordinal+2} } });
             movement.moves.push({ source_index: sourceIndex, ordinal, session_index: sid, stage_directory: folder,
                 original_reference_preserved: true, original_retired: true, camera_transfer_admitted: true,
                 scheduled_start_ms: MOVE_START_OFFSETS_MS[ordinal], actual_start_ms: MOVE_START_OFFSETS_MS[ordinal] + 100 });
@@ -299,3 +305,7 @@ test("evidence stays private and a symlink cannot substitute an original capture
         await unlink(path); await symlink(join(o.directory, "4-0/target-observation.json"), path);
     }, o => assert.rejects(physicalMovementSegments(o)));
 });
+
+test("actual completed movement generation must match its original private decoder challenge",()=>run(
+    o=>edit(o,"admission.json",v=>{v.movement.binding.generation++;}),
+    o=>assert.rejects(physicalMovementSegments(o))));

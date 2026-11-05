@@ -52,6 +52,9 @@ impl OfferIntent {
         if !self.offer.is_object() {
             return Err(invalid());
         }
+        if let Some(marker) = self.offer.get("replacement_preparation") {
+            crate::replacement_readiness::validate_marker(marker)?;
+        }
         let transport = self.endpoint_transport()?;
         let webrtc = transport == crate::provisioning::EndpointTransport::Webrtc;
         let maximum_bytes = if webrtc { 544 * 1024 } else { 32 * 1024 };

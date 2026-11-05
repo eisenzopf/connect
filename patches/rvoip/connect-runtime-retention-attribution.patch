@@ -1,0 +1,137 @@
+diff --git a/crates/foundation/rvoip-core/src/lib.rs b/crates/foundation/rvoip-core/src/lib.rs
+--- a/crates/foundation/rvoip-core/src/lib.rs
++++ b/crates/foundation/rvoip-core/src/lib.rs
+@@ -150,6 +150,7 @@
+ pub mod records;
+ pub mod relationships;
+ pub mod rtp_boundary;
++pub mod runtime_diagnostics;
+ pub mod session;
+ pub mod signing;
+ pub mod staged_streams;
+diff --git a/crates/foundation/rvoip-core/src/runtime_diagnostics.rs b/crates/foundation/rvoip-core/src/runtime_diagnostics.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/runtime_diagnostics.rs
+@@ -0,0 +1,121 @@
++//! Read-only host identity for attributing an already-running original job.
++//! These identifiers grant no media, transport, or process-control authority.
++
++/// The current OS thread identity, not a Rust `ThreadId` or a thread name.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct OsThreadIdentity {
++    pub tid: u64,
++    /// Darwin's pthread handle is separate from its numeric kernel thread ID.
++    /// `PROC_PIDLISTTHREADS`/`PROC_PIDTHREADINFO` consume this handle.
++    pub pthread_handle: Option<u64>,
++}
++
++/// Observe only the calling thread. No new thread, query worker, allocation,
++/// privilege, or process mutation is needed. Unsupported/error is unavailable.
++pub fn current_os_thread_identity() -> Option<OsThreadIdentity> {
++    #[cfg(target_os = "linux")]
++    {
++        extern "C" {
++            fn gettid() -> std::ffi::c_int;
++        }
++        // SAFETY: Linux gettid has no arguments or memory preconditions. The
++        // supported Ubuntu ARM profile provides this libc symbol.
++        let tid = unsafe { gettid() };
++        return (tid > 0).then_some(OsThreadIdentity {
++            tid: tid as u64,
++            pthread_handle: None,
++        });
++    }
++    #[cfg(target_os = "macos")]
++    {
++        extern "C" {
++            fn pthread_threadid_np(thread: *mut std::ffi::c_void, tid: *mut u64)
++                -> std::ffi::c_int;
++            fn pthread_self() -> *mut std::ffi::c_void;
++        }
++        let mut tid = 0;
++        // SAFETY: Darwin documents a null pthread argument as the current
++        // thread. `tid` is a valid writable u64 for the entire synchronous call.
++        let result = unsafe { pthread_threadid_np(std::ptr::null_mut(), &mut tid) };
++        if result != 0 || tid == 0 {
++            return None;
++        }
++        // SAFETY: pthread_self has no preconditions. Its opaque result is only
++        // converted to a numeric diagnostic handle and is never dereferenced.
++        let handle = unsafe { pthread_self() } as usize as u64;
++        return Some(OsThreadIdentity {
++            tid,
++            pthread_handle: (handle != 0).then_some(handle),
++        });
++    }
++    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
++    None
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    #[cfg(any(target_os = "linux", target_os = "macos"))]
++    fn current_identity_is_stable_and_distinct_from_a_joined_original_thread() {
++        let parent = current_os_thread_identity().expect("original current OS identity");
++        assert_eq!(Some(parent), current_os_thread_identity());
++        let child = std::thread::spawn(current_os_thread_identity)
++            .join()
++            .expect("original child joined")
++            .expect("original child OS identity");
++        assert_ne!(parent.tid, child.tid);
++        if cfg!(target_os = "macos") {
++            assert_ne!(parent.pthread_handle, child.pthread_handle);
++        }
++    }
++
++    #[test]
++    #[cfg(target_os = "linux")]
++    fn linux_identity_matches_the_original_proc_thread_self() {
++        let identity = current_os_thread_identity().expect("Linux OS identity");
++        let original = std::fs::read_link("/proc/thread-self").expect("original proc identity");
++        let proc_tid = original
++            .file_name()
++            .and_then(|name| name.to_str())
++            .and_then(|name| name.parse::<u64>().ok())
++            .expect("numeric proc TID");
++        assert_eq!(identity.tid, proc_tid);
++        assert_eq!(identity.pthread_handle, None);
++    }
++
++    #[test]
++    #[cfg(target_os = "macos")]
++    fn darwin_kernel_id_and_pthread_handle_match_separate_libproc_queries() {
++        #[link(name = "proc")]
++        extern "C" {
++            fn proc_pidinfo(
++                pid: i32,
++                flavor: i32,
++                arg: u64,
++                data: *mut std::ffi::c_void,
++                size: i32,
++            ) -> i32;
++        }
++        let identity = current_os_thread_identity().expect("Darwin OS identity");
++        let handle = identity.pthread_handle.expect("original pthread handle");
++        for (flavor, value) in [(5, handle), (15, identity.tid)] {
++            // macOS SDK proc_threadinfo is 112 bytes. Separate flavors consume
++            // the pthread handle and numeric ID; neither is a Rust ThreadId.
++            let mut info = [0u64; 14];
++            // SAFETY: the buffer is writable, aligned and exactly the declared
++            // size; the selected same-process queries are read-only.
++            let read = unsafe {
++                proc_pidinfo(
++                    std::process::id() as i32,
++                    flavor,
++                    value,
++                    info.as_mut_ptr().cast(),
++                    std::mem::size_of_val(&info) as i32,
++                )
++            };
++            assert_eq!(read, 112, "original OS thread is observable by libproc");
++        }
++    }
++}

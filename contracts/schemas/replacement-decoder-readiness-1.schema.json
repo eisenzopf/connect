@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://connect.invalid/schemas/replacement-decoder-readiness-1",
+  "title": "Original physical replacement decoder challenge and observation",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ChallengeMarker"
+    },
+    {
+      "$ref": "#/$defs/ReadyMarker"
+    }
+  ],
+  "$defs": {
+    "Challenge": {
+      "type": "object",
+      "properties": {
+        "nonce": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        },
+        "source_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "target_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "stream_revision": {
+          "const": 2
+        }
+      },
+      "required": [
+        "nonce",
+        "source_generation",
+        "target_generation",
+        "stream_revision"
+      ],
+      "additionalProperties": false,
+      "description": "Original server-issued challenge. target_generation equals source_generation+1. Stream revision 2 is private preparation; native parameter callback revision 1 is distinct."
+    },
+    "AudioObservation": {
+      "type": "object",
+      "properties": {
+        "stream_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        },
+        "decoded_samples": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "stream_id",
+        "decoded_samples"
+      ],
+      "additionalProperties": false
+    },
+    "VideoObservation": {
+      "type": "object",
+      "properties": {
+        "stream_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        },
+        "decoded_frames": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "decoded_keyframes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decoder_startup": {
+          "const": "fresh-peer-first-decoded-frame"
+        }
+      },
+      "required": [
+        "stream_id",
+        "decoded_frames",
+        "decoded_keyframes",
+        "decoder_startup"
+      ],
+      "additionalProperties": false,
+      "description": "Native requires an actual positive decoded-keyframe count no greater than decoded_frames. A browser that omits its keyframe counter may report null only after a fresh decoder outputs an actual frame."
+    },
+    "Observation": {
+      "type": "object",
+      "properties": {
+        "nonce": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        },
+        "source_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "target_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "stream_revision": {
+          "const": 2
+        },
+        "audio": {
+          "$ref": "#/$defs/AudioObservation"
+        },
+        "video": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VideoObservation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "nonce",
+        "source_generation",
+        "target_generation",
+        "stream_revision",
+        "audio"
+      ],
+      "additionalProperties": false,
+      "description": "Signed endpoint observation, not independent proof against a malicious endpoint and never a domain grant. Every count comes from actual decoding on the fresh original target; packet receipt, RTP headers, signed answer or Ready row is insufficient."
+    },
+    "ChallengeMarker": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "connect-replacement-media-v1"
+        },
+        "operation_record_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        },
+        "readiness": {
+          "$ref": "#/$defs/Challenge"
+        }
+      },
+      "required": [
+        "profile",
+        "operation_record_id",
+        "readiness"
+      ],
+      "additionalProperties": false
+    },
+    "ReadyMarker": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "connect-replacement-ready-v1"
+        },
+        "operation_record_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        },
+        "readiness": {
+          "$ref": "#/$defs/Observation"
+        }
+      },
+      "required": [
+        "profile",
+        "operation_record_id",
+        "readiness"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

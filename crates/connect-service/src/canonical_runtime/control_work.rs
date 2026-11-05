@@ -62,7 +62,10 @@ impl Polls {
         jobs.active.insert(
             id,
             Job {
-                handle: tokio::task::spawn_blocking(poll),
+                handle: crate::runtime_retention::spawn_blocking(
+                    crate::runtime_retention::Kind::NativeControlPoll,
+                    poll,
+                ),
                 waiting: true,
             },
         );

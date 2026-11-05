@@ -299,6 +299,13 @@ impl Runtime {
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
         cancellation: Option<tokio_util::sync::CancellationToken>,
     ) -> Result<()> {
+        if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
+            == "connect-replacement-ready-v1"
+        {
+            let outcome = self.replacement_ready(a, physical, &credential).await;
+            let _ = tx.send(outcome);
+            return Ok(());
+        }
         if physical.binding.transport() == rvoip_core::Transport::WebSocket {
             if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
                 == "connect-replacement-preparation-v1"
@@ -313,15 +320,6 @@ impl Runtime {
                 == "connect-replacement-media-v1"
             {
                 return Box::pin(self.webrtc_replacement_worker(a, physical, credential, tx)).await;
-            }
-            if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
-                == "connect-replacement-ready-v1"
-            {
-                let outcome = self
-                    .webrtc_replacement_ready(a, physical, &credential)
-                    .await;
-                let _ = tx.send(outcome);
-                return Ok(());
             }
             return Box::pin(self.webrtc_worker(a, physical, credential, tx)).await;
         }
@@ -707,7 +705,7 @@ impl Runtime {
         entry.set_activation(activation.clone()).map_err(denied)?;
         *stage = "negotiate";
         let outcome = native
-            .negotiate_native_offer(&id, a.clone(), invocation.clone(), deadline)
+            .negotiate_native_offer(&id, a.clone(), invocation.clone(), deadline, None)
             .await
             .map_err(|error| {
                 tracing::debug!(?error, "Native engine negotiation failed");

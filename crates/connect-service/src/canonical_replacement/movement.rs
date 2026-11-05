@@ -109,6 +109,14 @@ impl Runtime {
             .collect();
         let revisions = i.read.capture_commit_revisions(observed)?;
         drop(i);
+        #[cfg(feature = "test-support")]
+        self.media
+            .await_replacement_projection_for_test(
+                root.origin.record_id(),
+                root.deadline,
+                &self.stop,
+            )
+            .await?;
         let actual = outcome
             .media
             .participant_replacement

@@ -280,7 +280,10 @@ impl Runtime {
                             &i,
                         )
                         .map_err(|error| {
-                            tracing::debug!(?error, "RTC private video preparation refused");
+                            tracing::debug!(
+                                ?error,
+                                "Replacement private video preparation refused"
+                            );
                             Error::forbidden()
                         })?;
                     gate.preroll

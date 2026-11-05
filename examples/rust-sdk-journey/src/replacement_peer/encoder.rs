@@ -51,7 +51,11 @@ impl Program {
     }
 }
 
-async fn verify(path: &std::path::Path, expected: &str, raw_size: Option<u64>) -> Result<()> {
+pub(super) async fn verify(
+    path: &std::path::Path,
+    expected: &str,
+    raw_size: Option<u64>,
+) -> Result<()> {
     let before = tokio::fs::symlink_metadata(path).await?;
     let limit = raw_size.unwrap_or(16 * 1024 * 1024);
     if !before.is_file()
