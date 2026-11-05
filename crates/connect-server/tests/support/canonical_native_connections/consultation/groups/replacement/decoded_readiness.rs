@@ -12,6 +12,9 @@ use rvoip_uctp::substrate::{
 use tokio::time::{timeout_at, Instant};
 #[path = "decoded_readiness/audio.rs"]
 mod audio;
+#[cfg(feature = "test-support")]
+#[path = "decoded_readiness/cadence.rs"]
+pub(super) mod cadence;
 #[cfg(test)]
 #[path = "decoded_readiness/tests.rs"]
 mod tests;

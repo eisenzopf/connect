@@ -119,7 +119,7 @@
       "status": "applied-runtime-unverified",
       "finding": "Existing production preparation emits one20ms codec frame on50ms wakes and stamps wall-observation jitter; newly required contiguous decoder readiness cannot accumulate three frames. This is source-proven integration incompatibility, not established historical v192 causation.",
       "fix": "Original purpose-scoped generated source uses exact20ms sample-clock slots; full missed slots remain gaps and original cancellation/deadline stop generation. Remote/live clocks and decoder/quality rules unchanged.",
-      "proof": "Four timing/RTP-wrap/refusal controls drafted; actual signed G711 and native Opus decoding and fullmatrix required. No runtime pass.",
+      "proof": "Four timing controls and four actual signed G711/Opus six-packet emission/contiguity cases are wired but unrun. Exact original50ms source rollback is private for paired before-only proof; designated verdict follows original cancellation, all client/server/movement joins and Weak expiry. No runtime pass.",
       "reference": ".local/gate-6/native-preparation-cadence-candidate/apply-manifest.json"
     },
     {

@@ -3,7 +3,7 @@
   "task": "G6-058",
   "status": "private-successor-integrated-wiring-corrected-native-cut-draft-pending",
   "basis_revision": "d5b6f04ece02eb19dc3a687e1f69891e9be77f8f",
-  "recorded_at": "2026-11-05T18:01:49.429354+00:00",
+  "recorded_at": "2026-11-05T18:07:41.670744+00:00",
   "source_lock_sha256": "779f0b64e62f6058868643c547bd6f22fe5674f0407dbb3a2f95e18464d247ff",
   "prepared_files_verified": 532,
   "reviewed_upstream_results_verified": 39,
@@ -27,7 +27,8 @@
     "epoch-aware native recovery fixture with same actual decoder through commit followed by explicit test-owned cold reset",
     "private ancestry fixtures require established completed consultation and exact signed return, preserving journal replay effects",
     "browser native signed challenge and actual matched WebCodecs output proof, immutable retry, source-transition status-only resolution and bounded queued-reconciliation custody",
-    "actual same-commit native private-primary restoration successor, current parent-bound physical lineage, original expiry ceiling and current-primary return routing"
+    "actual same-commit native private-primary restoration successor, current parent-bound physical lineage, original expiry ceiling and current-primary return routing",
+    "four actual signed G711/Opus preparation cadence cases: six decoded original packets, unchanged original routes/cutoff and deferred verdict after original joins"
   ],
   "pending": [
     "exact public native activation boundary and original packet lineage through SDK/oracle are in private implementation",
@@ -90,6 +91,13 @@
       "runtime_tests_executed": 0,
       "previous_materialization_failure_preserved": true,
       "materialization_fix_synthetic_git_tests_passed": 3
+    },
+    "signed_cadence_witness": {
+      "cases_wired": 4,
+      "candidate_manifest_sha256": "d2fce3cc01e52d9fd47276559653b0bb52273ea5a8b2686e695e48b3a3dd2dc8",
+      "repository_format_check_exit_code": 0,
+      "before_production_rollback_applied": false,
+      "runtime_tests_executed": 0
     }
   },
   "latest_runtime_matrix": {
@@ -138,6 +146,7 @@
     ".local/gate-6/coordinated-private-v200/integration-receipt.json",
     ".local/gate-6/coordinated-private-v200/integrated-typecheck-receipt.json",
     ".local/gate-6/coordinated-private-v200/baseline-materialization-tests.json",
-    ".local/gate-6/coordinated-wiring-v201/integration-receipt.json"
+    ".local/gate-6/coordinated-wiring-v201/integration-receipt.json",
+    ".local/gate-6/coordinated-cadence-witness-v202/integration-receipt.json"
   ]
 }

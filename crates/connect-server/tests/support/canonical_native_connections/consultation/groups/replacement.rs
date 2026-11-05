@@ -191,6 +191,8 @@ enum ActivationAudit {
     Continuation(activation::continuation::Case),
     RevokeBeforeReady,
     #[cfg(feature = "test-support")]
+    PreparationCadence(decoded_readiness::cadence::Case),
+    #[cfg(feature = "test-support")]
     RefuseBeforeCore,
     #[cfg(feature = "test-support")]
     RetireAtPublication,
@@ -668,6 +670,10 @@ async fn exercise_replacement_with_av_transfer(
                 CanonicalClient::open(target.clone()).await.unwrap()
             };
             let mut offer = json!({"substrate":"quic","capabilities":capabilities(),"streams_offered":[{"id":"replacement-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}],"replacement_preparation":{"profile":"connect-replacement-preparation-v1","operation_record_id":prepared.record_id}});
+            #[cfg(feature = "test-support")]
+            if let ActivationAudit::PreparationCadence(case) = activation_audit {
+                case.configure_offer(&mut offer);
+            }
             if av {
                 offer["capabilities"] = av_capabilities();
                 offer["streams_offered"].as_array_mut().unwrap().push(json!({"id":"replacement-camera","kind":"video","direction":if transfer_video {"sendonly"} else {"sendrecv"},"codec_preferences":["vp8"]}));
@@ -926,6 +932,25 @@ async fn exercise_replacement_with_av_transfer(
             "replace-real-preparation-retains-source-role",
         )
         .await;
+        #[cfg(feature = "test-support")]
+        if let ActivationAudit::PreparationCadence(case) = activation_audit {
+            assert!(allocate && start_media && !reject_answer && !movement);
+            assert!(!observer && !revoke_endpoint && !revoke_target_key && !av);
+            // Both marked original routes above remain live. This audit decodes
+            // the separately owned private source, never an echoed old call.
+            decoded_readiness::cadence::observe_and_join(
+                f,
+                allocated_target.take().unwrap(),
+                decoded_preparation.take().unwrap(),
+                peers,
+                controller,
+                command,
+                key,
+                case,
+            )
+            .await;
+            continue;
+        }
         if movement {
             let handle = replacement_handle.unwrap();
             let client = allocated_target.take().unwrap();
