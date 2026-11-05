@@ -23,6 +23,8 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
     """Evaluate all 12 native / 14 browser requirements, without short circuit."""
     from .transport_matrix_execution import browser_selection_verified
     from .matrix_idle import idle_verdict
+    from .native_matrix_idle import native_idle_verdict
+    from .native_matrix_authority import authority_verdict
 
     if not re.fullmatch(r"[0-9a-f]{64}", report_sha256):
         raise ValueError("An original report digest is required")
@@ -105,12 +107,14 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
     authority = report.get("current_authority", observation.get("current_authority", {}))
     record("current-revocation-expiry-and-conflicting-operation-refusals",
            all(name in authority for name in ("revocation", "expiry", "conflict")),
-           all(authority.get(name, {}).get("passed") is True for name in ("revocation", "expiry", "conflict")),
+           all(authority.get(name, {}).get("passed") is True for name in ("revocation", "expiry", "conflict"))
+           and (browser or all(authority_verdict(authority[name], name) for name in ("revocation", "expiry"))),
            "current_authority", "every-current-authority-subcase-required")
     idle = report.get("idle_resources", {})
     retirement = observation.get("retirement", {})
     record("owned-drain-and-resource-reclamation", bool(idle),
-           idle_verdict(idle) and retirement.get("passed") is True
+           (idle_verdict(idle) if browser else native_idle_verdict(idle)) and retirement.get("passed") is True
+           and (browser or len(report.get("servers", [])) == 2)
            and all(s.get("original_joined") is True for s in report.get("servers", [])),
            "idle_resources")
     if browser:

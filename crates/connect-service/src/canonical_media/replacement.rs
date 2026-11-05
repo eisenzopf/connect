@@ -251,6 +251,7 @@ impl ParticipantReplacementLease for ReplacementPreparationInvocation {
             ctx.target_transport,
             connect_protocol::provisioning::EndpointTransport::Quic
                 | connect_protocol::provisioning::EndpointTransport::Webtransport
+                | connect_protocol::provisioning::EndpointTransport::Webrtc
         ) {
             return Err(ParticipantControlError::Unsupported);
         }

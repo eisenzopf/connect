@@ -101,15 +101,28 @@ def configure_execution(matrix, environment, stage="media"):
     return matrix
 
 
+def full_producer_gaps(cell):
+    """Declared producer paths, independent of scheduling and behavior results.
+
+    The Mac remote topology/clock bridge remains a separate integration. Keep
+    its missing pieces explicit until both executable paths are connected; a
+    scheduled command or a verifier function is not an implemented producer.
+    """
+    if cell["server"] == "macos-arm64" and cell["network"] != "local":
+        return ["macos-server-linux-client-remote-producer-not-connected",
+                "cross-host-ten-second-idle-observer-not-connected"]
+    return []
+
+
 def configure_full_execution(matrix, environment):
-    """All transports use their real producer; runtime refusals are test results."""
+    """Schedule all original attempts, retaining actual producer gaps."""
     for cell in matrix["cells"]:
         browser = cell["transport"] != "native-quic"
         local_host = cell["server"] == environment["server"]
         blockers = list(environment["execution_blockers"]) if local_host else ["assigned-to-other-local-arm-host"]
         cell["execution"] = dict(producer="browser-quality" if browser else "native-media",
             stage="quality" if browser else "media", runnable=not blockers,
-            blockers=blockers, completion_blockers=[], attempted=False, component=None,
+            blockers=blockers, completion_blockers=full_producer_gaps(cell), attempted=False, component=None,
             executor="scripts/rehearse-gate6-browser-matrix.py" if browser else "scripts/check-transport-fixtures.py",
             verifier="scripts/lib/transport_matrix_verdict.py")
         cell["check_results"] = {name: dict(status="not-run", evidence=None) for name in cell["required_checks"]}
