@@ -1,4 +1,6 @@
 use super::*;
+
+const SOURCE_CONNECTION: &str = "source";
 fn scope() -> CommandScope {
     CommandScope {
         conversation_id: Some("room".into()),
@@ -26,10 +28,15 @@ fn original() -> Value {
             {"id":"camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}],
         "replacement_preparation":{"profile":"connect-replacement-media-v1","operation_record_id":"record"}})
 }
+fn native_egress(handle: u16) -> Value {
+    // Explicit negotiated parser-model identity, not live media evidence.
+    json!({"profile":"native-sequence-cursor/1","physical_incarnation":format!("{handle:032x}"),
+        "stream_generation":1,"connection_generation":2,"initial_outer_sequence":0})
+}
 fn pair(request: &str) -> (Value, Value) {
-    let audio = json!({"strm_id":"audio","kind":"audio","direction":"sendrecv","stream_local_id":6,
+    let audio = json!({"strm_id":"audio","kind":"audio","direction":"sendrecv","stream_local_id":6,"native_egress":native_egress(6),
         "codec":{"name":"opus","params":{"sample_rate":48000,"channels":1,"payload_type":111}}});
-    let video = json!({"strm_id":"camera","kind":"video","direction":"sendrecv","stream_local_id":7,
+    let video = json!({"strm_id":"camera","kind":"video","direction":"sendrecv","stream_local_id":7,"native_egress":native_egress(7),
         "codec":{"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":96}},
         "video_feedback":{"profile":"rtcp-pli-epoch/1","original_operation":"operation","original_offer":request,"stream_generation":1,"connection_generation":2}});
     let base = json!({"by_participant":"participant","substrate":"quic","capabilities":original()["capabilities"],
@@ -47,7 +54,13 @@ fn pair(request: &str) -> (Value, Value) {
 fn setup() -> (Shared, Envelope, payloads::ConnectionAnswer) {
     let shared = Shared::default();
     shared
-        .begin("offer", &scope(), &original(), vec!["camera".into()])
+        .begin(
+            "offer",
+            &scope(),
+            &original(),
+            vec!["camera".into()],
+            SOURCE_CONNECTION,
+        )
         .unwrap();
     let (answer, callback) = pair("offer");
     shared
@@ -106,7 +119,13 @@ fn changed_nonce_or_generation_between_signed_legs_cannot_become_readiness() {
     ] {
         let shared = Shared::default();
         shared
-            .begin("offer", &scope(), &original(), vec!["camera".into()])
+            .begin(
+                "offer",
+                &scope(),
+                &original(),
+                vec!["camera".into()],
+                SOURCE_CONNECTION,
+            )
             .unwrap();
         let (answer, mut callback) = pair("offer");
         shared
@@ -210,6 +229,7 @@ fn another_original_media_request_cannot_reuse_opaque_readiness() {
             &scope(),
             &original(),
             vec!["camera".into()],
+            SOURCE_CONNECTION,
         )
         .unwrap();
     let (answer, callback) = pair("another-offer");
@@ -227,7 +247,13 @@ fn another_original_media_request_cannot_reuse_opaque_readiness() {
 fn absent_challenge_is_not_a_downgraded_native_replacement_profile() {
     let shared = Shared::default();
     shared
-        .begin("offer", &scope(), &original(), vec!["camera".into()])
+        .begin(
+            "offer",
+            &scope(),
+            &original(),
+            vec!["camera".into()],
+            SOURCE_CONNECTION,
+        )
         .unwrap();
     let (mut answer, _) = pair("offer");
     answer
@@ -244,7 +270,7 @@ fn absent_challenge_is_not_a_downgraded_native_replacement_profile() {
 fn omitted_video_transfer_keeps_selected_video_muted_and_requires_only_audio() {
     let shared = Shared::default();
     shared
-        .begin("offer", &scope(), &original(), vec![])
+        .begin("offer", &scope(), &original(), vec![], SOURCE_CONNECTION)
         .unwrap();
     let (answer, callback) = pair("offer");
     shared
@@ -270,6 +296,7 @@ fn explicit_video_transfer_must_resolve_the_original_selected_receiver() {
             &scope(),
             &original(),
             vec!["another-camera".into()],
+            SOURCE_CONNECTION,
         )
         .unwrap();
     let (answer, callback) = pair("offer");

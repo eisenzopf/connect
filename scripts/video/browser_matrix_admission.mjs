@@ -14,6 +14,7 @@ import {matrixResourceBridge} from '../lib/matrix_resource_bridge.mjs';
 import {matrixUnavailableTransports} from '../lib/matrix_unavailable_transports.mjs';
 import {matrixAuthorityBridge} from '../lib/matrix_authority_bridge.mjs';
 import {originalBrowserMatrixResult} from '../lib/browser_matrix_result.mjs';
+import {matrixSdkAssetName} from '../lib/browser_matrix_sdk_asset.mjs';
 
 const [inputPath]=process.argv.slice(2);
 assert.equal(process.argv.length,3);
@@ -100,8 +101,9 @@ try{
             else if(url.pathname==='/video/marker_calibration.mjs')file=path.join(root,'scripts/video/marker_calibration.mjs');
             else if(url.pathname==='/video/source_identity.mjs')file=path.join(root,'scripts/video/source_identity.mjs');
             else{
-                assert.ok(url.pathname.startsWith('/sdk/')&&url.pathname.endsWith('.js'));
-                file=await fs.realpath(path.resolve(assets,'.'+url.pathname.slice(4)));
+                // The observation module retains its valid Node-relative SDK
+                // import, which resolves beneath this second browser URL prefix.
+                file=await fs.realpath(path.join(assets,matrixSdkAssetName(url.pathname)));
                 assert.ok(file.startsWith(assets+path.sep));
             }
             response.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'});response.end(await fs.readFile(file));

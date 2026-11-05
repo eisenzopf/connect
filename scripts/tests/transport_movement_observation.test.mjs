@@ -267,7 +267,12 @@ test("historical stress counts, another profile and an early move cannot qualify
 });
 
 test("even internally rehashed capture bytes cannot place the original completion before the scheduled move", () => run(async o => {
-    await edit(o, "target-observation.json", value => { value.root_completed_observed_programme_us = 14_999_999; });
+    await edit(o, "target-observation.json", value => {
+        // Keep this adversarial capture internally coherent so it reaches the
+        // independent scheduled-move guard, rather than the decoder-start guard.
+        value.private_decoder_started_programme_us = 14_000_000;
+        value.root_completed_observed_programme_us = 14_999_999;
+    });
     const digest = sha(await readFile(join(o.directory, "0-0/target-observation.json")));
     o.movement.physical_segments[0].sha256 = digest;
     await edit(o, "stage.json", value => { value.target_observation_sha256 = digest; });

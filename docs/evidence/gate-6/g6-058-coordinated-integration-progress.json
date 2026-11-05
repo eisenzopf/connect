@@ -1,9 +1,9 @@
 {
   "format": "connect/g6-058-coordinated-integration-progress/1",
   "task": "G6-058",
-  "status": "native-activation-batch-integrated-verification-running",
+  "status": "known-gap-batch-integrated-corrected-models-pass-arm-baseline-running",
   "basis_revision": "d5b6f04ece02eb19dc3a687e1f69891e9be77f8f",
-  "recorded_at": "2026-11-05T19:31:25.521144+00:00",
+  "recorded_at": "2026-11-05T19:36:47.209983+00:00",
   "source_lock_sha256": "6649cc334789306f8ff1d3fb3aada60cec0a66c2f7a7a3f0311f47936c28e98b",
   "prepared_files_verified": 534,
   "reviewed_upstream_results_verified": 46,
@@ -124,23 +124,44 @@
       "typescript_full_format_check_exit_code": 0,
       "repository_format_check_exit_code": 0,
       "generated_http_reference_check_exit_code": 0,
-      "node_attempt": {
+      "python_tests": {
+        "cases": 19,
+        "passed": 19,
+        "skipped": 0
+      },
+      "rust_api_preflight": "corrected original58178 running; includes independent Rust journey after workspace",
+      "matrix_cells_qualified": 0,
+      "node_latest": {
+        "cases": 175,
+        "passed": 175,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0,
+        "scope": "Host-compatible full selected model/component files; ARM-only actual VP8 component still pending in local VM"
+      },
+      "initial_node_attempt_preserved": {
         "cases": 175,
         "passed": 173,
         "failed": 2,
         "skipped": 0,
         "scope": "one adversarial model inconsistency; one ARM Linux-only test mistakenly dispatched on macOS, retained as failure and queued for ARM"
       },
-      "python_tests": {
-        "cases": 19,
-        "passed": 19,
-        "skipped": 0
-      },
-      "rust_api_preflight": "running-original39813; six existing native_readiness model calls need new predecessor argument; original cargo jobs still joining",
-      "matrix_cells_qualified": 0
+      "rust_api_preflight_initial": {
+        "exit_code": 101,
+        "original_jobs_joined": true,
+        "all2142inputs_unchanged": true,
+        "errors": "six old .begin modelcalls missing source predecessor; corrected"
+      }
     },
     "transport_runtime_tests_executed": 0,
-    "runtime_tests_scope": "175 Node model/component cases and19 Python model/source-clock cases actually executed; no signed transport, actual browser transport or new matrix run yet."
+    "runtime_tests_scope": "Latest selected host suite175/175 and Python19/19 pass; earlier failures retained. No new signed transport or matrix pass yet.",
+    "retained_before_runtime": {
+      "run": "post-v192-retained-runtime-v1",
+      "status": "running-original51426",
+      "cases_selected": 13,
+      "compile_commands": 0,
+      "scope": "Exact retained Corev3/serverv2 artifacts and separate original source graphs; before only"
+    }
   },
   "latest_runtime_matrix": {
     "run": "v192",
@@ -192,6 +213,8 @@
     ".local/gate-6/coordinated-cadence-witness-v202/integration-receipt.json",
     ".local/gate-6/coordinated-private-retirement-v203/integration-receipt.json",
     ".local/gate-6/coordinated-private-retirement-v203/fast-typecheck-receipt.json",
-    ".local/gate-6/coordinated-nativecut-v204/integration-receipt.json"
+    ".local/gate-6/coordinated-nativecut-v204/integration-receipt.json",
+    ".local/gate-6/coordinated-nativecut-v205/node-tests-receipt.json",
+    ".local/gate-6/post-v192-retained-runtime-input-v1/seal.json"
   ]
 }
