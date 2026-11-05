@@ -335,7 +335,16 @@ impl Runtime {
         let mut duplex_reported = false;
         loop {
             tokio::select! {biased;_=self.stop.cancelled()=>return Ok(()),_=cancellation.cancelled()=>return Ok(()),_=tokio::time::sleep(Duration::from_millis(50))=>{}}
-            if !preparation.has_duplex_io() {
+            // Core's first successful writer completion can precede the new
+            // peer's decoded-media observation. Keep the same purpose-scoped
+            // preparation audio available while that original report is pending;
+            // otherwise the peer can wait for packets that we stopped sending.
+            let waiting_for_decoder = started
+                .policy
+                .readiness
+                .as_ref()
+                .is_some_and(|gate| !gate.observed());
+            if !preparation.has_duplex_io() || waiting_for_decoder {
                 if !waiting_reported {
                     waiting_reported = true;
                     tracing::debug!(target: "connect_service::replacement_phase_trace",
@@ -353,14 +362,6 @@ impl Runtime {
             // The original endpoint remains public until its new peer has
             // actually decoded this challenge's audio and first video frame.
             // The signed report alone cannot bypass Core private route pins.
-            if started
-                .policy
-                .readiness
-                .as_ref()
-                .is_some_and(|gate| !gate.observed())
-            {
-                continue;
-            }
             if !duplex_reported {
                 duplex_reported = true;
                 tracing::debug!(target: "connect_service::replacement_phase_trace",

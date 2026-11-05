@@ -44,5 +44,62 @@
     ],
     "private_receipt_sha256": "7abd6eae06919cfeee71d4e417efc68bac720f7e301e5799482fc1b00253d5be"
   },
-  "next": "Integrate verified pending library fixes and investigate target audio timeout; rebuild signed cases against the combined candidate before the next complete 32-cell run. Original v191 results remain unchanged."
+  "next": "Review exact remaining remote-track/shutdown failures; integrate separately proven RTC ingress and pending queue cleanup patches into one freshly prepared candidate, then complete signed behavior proof before all32 matrix.",
+  "private_preparation_candidate": {
+    "status": "actual-es256-media-readiness-passed-shutdown-still-failed",
+    "source_mechanism": "The preparation loop previously generated local neutral audio only until Core had existential duplex proof, then waited for the signed decoder report. The signed AV receiver needs three actual 960-sample packets before submitting that report; stopping the producer can cause a circular wait.",
+    "browser_scope": "The public browser SDK separately requires at least960worklet samples and960nonconcealed received samples plus decoded video; it does not require the signed server fixture's three packets.",
+    "fix": "Continue the identical purpose-scoped local preparation audio while either Core duplex proof or the original signed decoder observation is pending.",
+    "preserved": [
+      "Original replacement root, resources, deadline and cancellation",
+      "Current exact-purpose authority on every enqueue and actual write",
+      "Original credential and per-packet200ms maximum lifetime",
+      "Actual received/decoded packet thresholds; no invented readiness",
+      "Old public route retained until managed commit"
+    ],
+    "current_source_sha256": "b918c156673ce498a3a77c8880d86118085bcefeadb4eb0974126ca3b0f65141",
+    "proof_limit": "Source mechanism is confirmed, but original logs do not count exact target packets; unchanged actual signed cases must prove the after-fix behavior."
+  },
+  "combined_candidate_attempt": {
+    "actual_tests": 3,
+    "passed": 1,
+    "failed": 2,
+    "binary_sha256": "bf24e6c6a6bc9cd14d28ea694aae1d14f472c6a2cdb11dbd9989514951dbc384",
+    "source_unchanged": true,
+    "all_original_groups_joined": true,
+    "forced": false,
+    "original_receipt_sha256": "7fe94fb92e0b0890968ddd2b293386346f53c366e1ed731cd73e579af026e75d",
+    "results": [
+      {
+        "case": "audio-replacement-logical-retry",
+        "passed": true,
+        "scope": "Exact signed reservation idempotency, decoded original audio and candidate cancellation regression."
+      },
+      {
+        "case": "av-eddsa",
+        "passed": false,
+        "failure": "Timed out waiting for a remote track at av.rs:87; source ingress fix not present in this binary. Cause not established."
+      },
+      {
+        "case": "av-es256",
+        "passed": false,
+        "partial_observation": "All decoded private audio/video, signed readiness, old-route retention, invalid-report, exact-once commit, original-operation recovery and transport-retirement assertions reached completion.",
+        "failure": "Final service shutdown returned canonical runtime retirement error at replacement_av.rs:533; owner/deadline diagnosis is pending."
+      }
+    ],
+    "logs": [
+      {
+        "case": "server-0",
+        "sha256": "d4b8b40cfb1c6a79d6768e7a52b1bdc889931570b33e931cb257d37b13de0407"
+      },
+      {
+        "case": "server-1",
+        "sha256": "306943244ad509b2a4cbe853db2f58cabcfe1c4fcaaeae532ceca2bb7d28dbf4"
+      },
+      {
+        "case": "server-2",
+        "sha256": "3a077d375012fe0b035ec647e52cfce5cfa209470887a3cc11d70f7b3ac7496d"
+      }
+    ]
+  }
 }

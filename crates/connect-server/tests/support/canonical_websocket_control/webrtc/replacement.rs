@@ -294,7 +294,13 @@ async fn signed_webrtc_replacement_reserves_once_preserves_decoded_old_audio_and
     while b.try_recv().is_ok() {}
     opus::tone(&mut a, 880.0, false).await;
     opus::tone(&mut b, 440.0, false).await;
-    // Exact retry reads the same original receipt and cannot reserve again.
+    // Redeliver the same logical preparation with a fresh signed wire nonce.
+    // Reusing the original envelope ID is correctly refused as a replay.
+    let original_wire_id = offer["id"].clone();
+    offer["id"] = json!(format!("env_{}", uuid::Uuid::new_v4().simple()));
+    offer["ts"] = json!(chrono::Utc::now());
+    assert_ne!(offer["id"], original_wire_id);
+    assert_eq!(offer["operation_id"], operation);
     command(&mut target_peer, offer).await;
     assert_eq!(record(&f, &target_config, operation), allocated);
     assert_eq!(
