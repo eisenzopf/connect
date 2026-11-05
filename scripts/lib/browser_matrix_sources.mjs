@@ -109,11 +109,11 @@ export async function browserMatrixSources() {
                 };
                 record.draw=draw;draw();record.timer=setInterval(draw,1000/30);
             }
-            const stream=new MediaStream(record.stream.getTracks().map(track=>track.clone()));
+            const stream=new MediaStream(record.stream.getVideoTracks().map(track=>track.clone()));
             const binding={connectionId:connection.id,stream,capture:undefined,retired:false};
             bindings.set(connection.id,binding);record.attachments.push(binding);
             try{
-                binding.capture=await connection.capture({audio:true,video:'camera',stream},options);
+                binding.capture=await connection.capture({audio:true,audioNode:record.gain,video:'camera',stream},options);
                 if(stopped||terminal||bindings.get(connection.id)!==binding){
                     binding.capture.close();stream.getTracks().forEach(track=>track.stop());
                     throw Error('Source retired during capture admission');
@@ -130,7 +130,7 @@ export async function browserMatrixSources() {
             // stalled audio. The monotonic terminal remains fixed either way.
             const audioOriginSeconds=audio.currentTime+.1,originMs=performance.now()+100;
             programme=Object.freeze({audioOriginSeconds,originMs,deadlineMs:originMs+durationMs,durationMs,
-                markerProgram,sourcePulseMs:100,audioPeakLow:matrixAudioProfile.lowPeak,audioPeakHigh:matrixAudioProfile.highPeak});
+                markerProgram,sourcePulseMs:100,audioCaptureMode:'caller-owned-audio-node',audioPeakLow:matrixAudioProfile.lowPeak,audioPeakHigh:matrixAudioProfile.highPeak});
             for(const source of sources){
                 // AudioContext advances in quanta. Poll the unchanged 30fps
                 // source coordinate frequently enough to observe each frame;
@@ -152,7 +152,7 @@ export async function browserMatrixSources() {
                 if(cleanupFailures)throw Error('Source capture cleanup failed');
             })();
         },
-        observation:()=>({real_time_audio_state:audio.state,programme:programme??null,source_terminal:terminal,cleanup_failures:cleanupFailures,
+        observation:()=>({capture_input_mode:'caller-owned-audio-node+owned-video-track',audio_context_ownership:'original-source-owner',real_time_audio_state:audio.state,programme:programme??null,source_terminal:terminal,cleanup_failures:cleanupFailures,
             source_audio_elapsed_ms:programme?(audio.currentTime-programme.audioOriginSeconds)*1000:null,
             sources:sources.map(source=>({index:source.index,source_id:source.sourceId,draws:source.draws,
                 canvas_capture_mode:source.canvasCaptureMode,

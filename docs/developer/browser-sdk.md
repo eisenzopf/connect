@@ -261,6 +261,51 @@ capture tracks disabled until an explicit resume while visible. Cancelling an
 uncertain RTC `replaceTrack` retires that RTC owner so a late replacement cannot
 affect a new capture; the shared control client remains available.
 
+### Caller-owned audio graphs
+
+`BrowserCaptureInput.audioNode` explicitly borrows output zero of a running
+48 kHz real-time `AudioContext` node. Use `audio: true`. The SDK sends the
+actual graph samples through its existing AudioWorklet and Opus encoder on WT;
+RTC creates one owned `MediaStreamDestination` in that same context for its
+sender. The WT path does not re-read a synthetic track into a second context.
+The source node, context and their other graph edges remain caller-owned.
+
+```ts
+const capture = await connection.capture({
+    audio: true,
+    audioNode: applicationMixOutput,
+}, { timeoutMs: 5000, signal: captureCancellation.signal });
+// Retires this physical capture edge; the application context keeps running.
+capture.close();
+```
+
+| Capture input | Required behavior |
+| --- | --- |
+| `audioNode: AudioNode` | `audio: true`; output zero; running real-time 48 kHz context; no `audioDeviceId` or supplied audio track. |
+| `stream` with `audioNode` | Owned video tracks only, matching the requested camera/screen Stream. |
+| `videoDeviceId` with `audioNode` | Permitted for camera permission when no stream is supplied; audio device permission is not requested. |
+| No `audioNode` | Existing explicit device or owned `MediaStream` capture. |
+
+Capture never resumes, suspends or closes a borrowed context. Caller suspension
+pauses this capture and disconnects its own graph edge; restoring the context
+does not silently resume capture. After the caller resumes its context, call
+`capture.resume()` while visible. Caller closure retires the capture. Pausing,
+cancelling or retiring an old physical owner does not disconnect another
+prepared capture from the same source node. Concurrent captures share one
+context-local worklet module registration; a cancelled waiter cannot create a
+late worklet or cancel another capture's registration.
+
+`BrowserMediaCaptureOptions.audioNode` exposes the same graph source for the
+lower-level negotiated WT capture owner. Startup retains the original finite
+capture deadline and cancellation. The worklet's original PCM frames, timestamp
+mapping, epoch and credit handling are unchanged. Media objects stay local;
+this feature adds no HTTP, OpenAPI or UCTP payload fields and grants no new
+server-side permission or media ownership.
+
+[AudioNode capture component evidence](../evidence/gate-6/browser-audio-node-capture.json)
+records the isolated six-source programme and ownership checks; it does not
+qualify a transport-matrix cell.
+
 `connection.end(input, mutation)` returns the original observable Operation;
 observing its completed receipt retires local media owners while preserving
 other Connections and the control client. Physical retirement also closes

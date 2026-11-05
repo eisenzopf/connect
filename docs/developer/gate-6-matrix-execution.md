@@ -29,6 +29,26 @@ The owner-approved cache cleanup recovered 66.9 GiB internally; the existing
 ARM VM root was expanded to 64 GiB and reports 44 GiB free. Mac BPF capture
 access was restored and remains a runtime preflight observation.
 
+## Browser source operating profile
+
+The next candidate declares `capture_input_mode:
+"caller-owned-audio-node+owned-video-track"` in its source evidence and
+`audioCaptureMode: "caller-owned-audio-node"` in the original programme record.
+Each original synthetic GainNode is passed through the public SDK capture
+input. WT uses its existing worklet in the source context; RTC owns a
+same-context destination track. Capture retirement removes only that physical
+edge. The source owner keeps the original clock and closes the source context
+after all physical captures retire.
+
+This is an explicit producer change from the v191 cross-context synthetic
+MediaStream capture bridge. It does not revise any retained result. The
+62-second programme, 60-second measured window, six sources, 15s/40s movement
+windows, 30fps source clock, 100ms pulse edges, and all decoded media/age/coverage
+limits remain unchanged. Browser source gain is 0.05 low and 0.2 high, the
+separately recorded input-envelope calibration; native source gain is unchanged.
+The graph-input feature and component checks do not qualify a transport cell;
+the complete next 32-cell run must provide current decoded and lifecycle proof.
+
 ## Historical decoded-media investigations
 
 Attempt v163 (`b03fcc00`) connects ten-second idle observations to the same

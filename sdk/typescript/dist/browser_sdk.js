@@ -2358,6 +2358,7 @@ export class BrowserConnection {
                     audioDeviceId: captured.audioDeviceId,
                     videoDeviceId: captured.videoDeviceId,
                     stream: captured.stream,
+                    audioNode: captured.audioNode,
                     state,
                     ...budget.options(),
                 }));

@@ -24,6 +24,9 @@ export declare class BrowserOpusCodec {
     private readonly encoder;
     private readonly decoder;
     private stopped;
+    private readonly counts;
+    /** Original codec-local counters only; never decoded-quality evidence. */
+    get diagnostics(): Readonly<typeof this.counts>;
     private readonly pendingEncode;
     private readonly pendingDecode;
     constructor(callbacks: CodecCallbacks<AudioData>);
@@ -37,6 +40,8 @@ export declare class BrowserVp8Codec {
     private readonly encoder;
     private readonly decoder;
     private stopped;
+    private readonly encodeCounts;
+    get encodeDiagnostics(): Readonly<typeof this.encodeCounts>;
     private lastKey;
     private lastFrame;
     private readonly frameTimes;

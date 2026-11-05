@@ -363,6 +363,23 @@ export interface BrowserIncomingInvitations extends AsyncIterableIterator<Browse
     next(): Promise<IteratorResult<BrowserIncomingInvitation, undefined>>;
     close(): Promise<void>;
 }
+/** Local capture sources; AudioNode output zero and its context remain caller-owned.
+ * With audioNode, an optional owned stream supplies video only. Device IDs and
+ * media objects are never sent in signaling or operation payloads. */
+export type BrowserCaptureInput = {
+    audio?: boolean;
+    video?: "camera" | "screen";
+    videoDeviceId?: string;
+    stream?: MediaStream;
+    state?: BrowserMediaCaptureOptions["state"];
+} & ({
+    audioNode?: undefined;
+    audioDeviceId?: string;
+} | {
+    audio: true;
+    audioNode: AudioNode;
+    audioDeviceId?: never;
+});
 export interface BrowserCaptureHandle {
     readonly closed: boolean;
     pause(): void;
@@ -445,14 +462,7 @@ export declare class BrowserConnection {
     }, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserConnection>>;
     private native;
     /** Local capture is explicit and owns only this physical's negotiated senders. */
-    capture(input: {
-        audio?: boolean;
-        video?: "camera" | "screen";
-        audioDeviceId?: string;
-        videoDeviceId?: string;
-        stream?: MediaStream;
-        state?: BrowserMediaCaptureOptions["state"];
-    }, options: BrowserSdkRequestOptions): Promise<BrowserCaptureHandle>;
+    capture(input: BrowserCaptureInput, options: BrowserSdkRequestOptions): Promise<BrowserCaptureHandle>;
     /** Decoded frames route to the owned renderer without protocol callbacks in app code. */
     render(input: {
         audio?: boolean;

@@ -62,6 +62,31 @@ export class BrowserOpusCodec {
     encoder;
     decoder;
     stopped = false;
+    counts = {
+        inputCalls: 0,
+        encodeAccepted: 0,
+        encodeQueueRefusals: 0,
+        encodedFrames: 0,
+        decodeCalls: 0,
+        decodeAccepted: 0,
+        decodeQueueRefusals: 0,
+        decodedFrames: 0,
+        maxEncoderQueue: 0,
+        maxDecoderQueue: 0,
+        maxPendingEncode: 0,
+        maxPendingDecode: 0,
+        lastInputTimestampUs: null,
+        lastEncodedTimestampUs: null,
+        lastDecodeTimestampUs: null,
+        lastDecodedTimestampUs: null,
+        captureTimelineGaps: 0,
+        nonforwardInputTimestamps: 0,
+        maximumInputStepUs: 0,
+    };
+    /** Original codec-local counters only; never decoded-quality evidence. */
+    get diagnostics() {
+        return { ...this.counts };
+    }
     pendingEncode = [];
     pendingDecode = [];
     constructor(callbacks) {
@@ -81,6 +106,8 @@ export class BrowserOpusCodec {
                         throw new ConnectError("media", "Encoded Opus exceeds negotiated RTP limit");
                     const bytes = new Uint8Array(chunk.byteLength);
                     chunk.copyTo(bytes);
+                    this.counts.encodedFrames++;
+                    this.counts.lastEncodedTimestampUs = original.timestampUs;
                     callbacks.encoded({
                         bytes,
                         // AudioEncoder can compress capture gaps, including a
@@ -126,6 +153,8 @@ export class BrowserOpusCodec {
                             data: samples,
                         });
                     }
+                    this.counts.decodedFrames++;
+                    this.counts.lastDecodedTimestampUs = original.timestampUs;
                     callbacks.decoded(restored ?? frame);
                 }
                 catch (e) {
@@ -155,9 +184,23 @@ export class BrowserOpusCodec {
             !Number.isSafeInteger(timestampUs) ||
             timestampUs < 0)
             throw new ConnectError("media", "Use 960 finite mono PCM samples per 20 ms Opus frame");
+        this.counts.inputCalls++;
+        const prior = this.counts.lastInputTimestampUs;
+        if (prior !== null) {
+            const step = timestampUs - prior;
+            if (step > 20000)
+                this.counts.captureTimelineGaps++;
+            if (step <= 0)
+                this.counts.nonforwardInputTimestamps++;
+            this.counts.maximumInputStepUs = Math.max(this.counts.maximumInputStepUs, step);
+        }
+        this.counts.lastInputTimestampUs = timestampUs;
+        this.counts.maxEncoderQueue = Math.max(this.counts.maxEncoderQueue, this.encoder.encodeQueueSize);
         if (this.encoder.encodeQueueSize >= MEDIA_LIMITS.audioPackets ||
-            this.pendingEncode.length >= MEDIA_LIMITS.audioPackets)
+            this.pendingEncode.length >= MEDIA_LIMITS.audioPackets) {
+            this.counts.encodeQueueRefusals++;
             return false;
+        }
         const frame = new AudioData({
             format: "f32-planar",
             sampleRate: 48000,
@@ -168,8 +211,11 @@ export class BrowserOpusCodec {
         });
         const original = { timestampUs };
         this.pendingEncode.push(original);
+        this.counts.maxPendingEncode = Math.max(this.counts.maxPendingEncode, this.pendingEncode.length);
         try {
             this.encoder.encode(frame);
+            this.counts.encodeAccepted++;
+            this.counts.maxEncoderQueue = Math.max(this.counts.maxEncoderQueue, this.encoder.encodeQueueSize);
             return true;
         }
         catch (e) {
@@ -183,16 +229,25 @@ export class BrowserOpusCodec {
         }
     }
     decode(bytes, timestampUs) {
+        if (!this.stopped) {
+            this.counts.decodeCalls++;
+            this.counts.lastDecodeTimestampUs = timestampUs;
+            this.counts.maxDecoderQueue = Math.max(this.counts.maxDecoderQueue, this.decoder.decodeQueueSize);
+        }
         if (this.stopped ||
             this.decoder.decodeQueueSize >= MEDIA_LIMITS.audioPackets ||
-            this.pendingDecode.length >= MEDIA_LIMITS.audioPackets)
+            this.pendingDecode.length >= MEDIA_LIMITS.audioPackets) {
+            if (!this.stopped)
+                this.counts.decodeQueueRefusals++;
             return false;
+        }
         if (!bytes.length ||
             bytes.length > 1160 ||
             !Number.isSafeInteger(timestampUs))
             throw new ConnectError("media", "Invalid Opus RTP payload or timestamp");
         const original = { timestampUs };
         this.pendingDecode.push(original);
+        this.counts.maxPendingDecode = Math.max(this.counts.maxPendingDecode, this.pendingDecode.length);
         try {
             this.decoder.decode(new EncodedAudioChunk({
                 type: "key",
@@ -200,6 +255,8 @@ export class BrowserOpusCodec {
                 duration: 20000,
                 data: bytes,
             }));
+            this.counts.decodeAccepted++;
+            this.counts.maxDecoderQueue = Math.max(this.counts.maxDecoderQueue, this.decoder.decodeQueueSize);
         }
         catch (e) {
             const index = this.pendingDecode.indexOf(original);
@@ -232,6 +289,25 @@ export class BrowserVp8Codec {
     encoder;
     decoder;
     stopped = false;
+    encodeCounts = {
+        inputCalls: 0,
+        acceptedFrames: 0,
+        nativeOutputs: 0,
+        forwardedOutputs: 0,
+        stoppedRefusals: 0,
+        queueRefusals: 0,
+        timestampRefusals: 0,
+        rateRefusals: 0,
+        suspendedRefusals: 0,
+        outputRateDrops: 0,
+        outputWaitingForKeyDrops: 0,
+        maxEncoderQueue: 0,
+        lastInputTimestampUs: null,
+        lastEncodedTimestampUs: null,
+    };
+    get encodeDiagnostics() {
+        return { ...this.encodeCounts };
+    }
     lastKey = -Infinity;
     lastFrame = -Infinity;
     frameTimes = [];
@@ -250,6 +326,11 @@ export class BrowserVp8Codec {
         lateFrames: 0,
         assemblyLosses: 0,
         queueDrops: 0,
+        submittedFrames: 0,
+        decodedFrames: 0,
+        waitingForKeyDrops: 0,
+        maxDecoderQueue: 0,
+        lastDecodedTimestampUs: null,
     };
     get decodeDiagnostics() {
         return { ...this.decodeCounts, waitingForKey: this.needsKey };
@@ -263,6 +344,7 @@ export class BrowserVp8Codec {
             output: (chunk) => {
                 if (this.stopped)
                     return;
+                this.encodeCounts.nativeOutputs++;
                 try {
                     if (chunk.byteLength > MEDIA_LIMITS.frameBytes)
                         throw new ConnectError("media", "Encoded VP8 exceeds frame limit");
@@ -271,14 +353,17 @@ export class BrowserVp8Codec {
                             1000000)
                         this.rateBytes -= this.rateWindow.shift().bytes;
                     if (this.rateBytes + chunk.byteLength > 125000) {
+                        this.encodeCounts.outputRateDrops++;
                         this.dropUntilKey = this.forceKey = true;
                         this.suspendedUntil =
                             (this.rateWindow[0]?.timestamp ?? chunk.timestamp) +
                                 1000000;
                         return;
                     }
-                    if (this.dropUntilKey && chunk.type !== "key")
+                    if (this.dropUntilKey && chunk.type !== "key") {
+                        this.encodeCounts.outputWaitingForKeyDrops++;
                         return;
+                    }
                     this.dropUntilKey = false;
                     this.rateWindow.push({
                         timestamp: chunk.timestamp,
@@ -287,6 +372,8 @@ export class BrowserVp8Codec {
                     this.rateBytes += chunk.byteLength;
                     const bytes = new Uint8Array(chunk.byteLength);
                     chunk.copyTo(bytes);
+                    this.encodeCounts.forwardedOutputs++;
+                    this.encodeCounts.lastEncodedTimestampUs = chunk.timestamp;
                     callbacks.encoded({
                         bytes,
                         timestampUs: chunk.timestamp,
@@ -302,8 +389,12 @@ export class BrowserVp8Codec {
         this.decoder = new VideoDecoder({
             output: (frame) => {
                 try {
-                    if (!this.stopped)
+                    if (!this.stopped) {
+                        this.decodeCounts.decodedFrames++;
+                        this.decodeCounts.lastDecodedTimestampUs =
+                            frame.timestamp;
                         callbacks.decoded(frame);
+                    }
                 }
                 catch (e) {
                     this.fail(e);
@@ -329,12 +420,25 @@ export class BrowserVp8Codec {
             while (this.frameTimes.length &&
                 frame.timestamp - this.frameTimes[0] >= 1000000)
                 this.frameTimes.shift();
-            if (this.stopped ||
-                this.encoder.encodeQueueSize >= 2 ||
-                frame.timestamp <= this.lastFrame ||
-                this.frameTimes.length >= 30 ||
-                frame.timestamp < this.suspendedUntil)
+            this.encodeCounts.inputCalls++;
+            this.encodeCounts.lastInputTimestampUs = frame.timestamp;
+            if (!this.stopped)
+                this.encodeCounts.maxEncoderQueue = Math.max(this.encodeCounts.maxEncoderQueue, this.encoder.encodeQueueSize);
+            const refusal = this.stopped
+                ? "stoppedRefusals"
+                : this.encoder.encodeQueueSize >= 2
+                    ? "queueRefusals"
+                    : frame.timestamp <= this.lastFrame
+                        ? "timestampRefusals"
+                        : this.frameTimes.length >= 30
+                            ? "rateRefusals"
+                            : frame.timestamp < this.suspendedUntil
+                                ? "suspendedRefusals"
+                                : null;
+            if (refusal) {
+                this.encodeCounts[refusal]++;
                 return false;
+            }
             this.lastFrame = frame.timestamp;
             this.frameTimes.push(frame.timestamp);
             // Refresh references within 500 ms after loss; the profile permits
@@ -346,6 +450,7 @@ export class BrowserVp8Codec {
                 this.lastKey = frame.timestamp;
             this.forceKey = false;
             this.encoder.encode(frame, { keyFrame });
+            this.encodeCounts.acceptedFrames++;
             return true;
         }
         finally {
@@ -372,6 +477,8 @@ export class BrowserVp8Codec {
         this.forceKey = true;
     }
     decode(frame, timestampUs) {
+        if (!this.stopped)
+            this.decodeCounts.maxDecoderQueue = Math.max(this.decodeCounts.maxDecoderQueue, this.decoder.decodeQueueSize);
         if (this.stopped || this.decoder.decodeQueueSize >= 8) {
             if (!this.stopped)
                 this.decodeCounts.queueDrops++;
@@ -405,13 +512,17 @@ export class BrowserVp8Codec {
         }
         this.lastSequence = frame.lastSequence;
         this.lastTimestamp = frame.timestamp;
-        if (this.needsKey && !frame.key)
+        if (this.needsKey && !frame.key) {
+            this.decodeCounts.waitingForKeyDrops++;
             return false;
+        }
         this.decoder.decode(new EncodedVideoChunk({
             type: frame.key ? "key" : "delta",
             timestamp: timestampUs,
             data: frame.bytes,
         }));
+        this.decodeCounts.submittedFrames++;
+        this.decodeCounts.maxDecoderQueue = Math.max(this.decodeCounts.maxDecoderQueue, this.decoder.decodeQueueSize);
         this.needsKey = false;
         return true;
     }

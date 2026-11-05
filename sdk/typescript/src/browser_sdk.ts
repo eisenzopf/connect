@@ -3308,6 +3308,24 @@ function incoming(
     return reader;
 }
 
+/** Local capture sources; AudioNode output zero and its context remain caller-owned.
+ * With audioNode, an optional owned stream supplies video only. Device IDs and
+ * media objects are never sent in signaling or operation payloads. */
+export type BrowserCaptureInput = {
+    audio?: boolean;
+    video?: "camera" | "screen";
+    videoDeviceId?: string;
+    stream?: MediaStream;
+    state?: BrowserMediaCaptureOptions["state"];
+} & (
+    | { audioNode?: undefined; audioDeviceId?: string }
+    | {
+          audio: true;
+          audioNode: AudioNode;
+          audioDeviceId?: never;
+      }
+);
+
 export interface BrowserCaptureHandle {
     readonly closed: boolean;
     pause(): void;
@@ -3733,14 +3751,7 @@ export class BrowserConnection {
     }
     /** Local capture is explicit and owns only this physical's negotiated senders. */
     async capture(
-        input: {
-            audio?: boolean;
-            video?: "camera" | "screen";
-            audioDeviceId?: string;
-            videoDeviceId?: string;
-            stream?: MediaStream;
-            state?: BrowserMediaCaptureOptions["state"];
-        },
+        input: BrowserCaptureInput,
         options: BrowserSdkRequestOptions,
     ): Promise<BrowserCaptureHandle> {
         if (
@@ -3794,6 +3805,7 @@ export class BrowserConnection {
                           audioDeviceId: captured.audioDeviceId,
                           videoDeviceId: captured.videoDeviceId,
                           stream: captured.stream,
+                          audioNode: captured.audioNode,
                           state,
                           ...budget.options(),
                       }),

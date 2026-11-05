@@ -145,6 +145,7 @@ export type {
     BrowserEventStream,
     MessageId,
     BrowserCaptureHandle,
+    BrowserCaptureInput,
     BrowserRenderHandle,
     BrowserConnection,
     BrowserStream,

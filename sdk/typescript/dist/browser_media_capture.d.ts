@@ -6,6 +6,8 @@ export interface BrowserMediaCaptureOptions extends BrowserCaptureDevices {
     videoSource?: "camera" | "screen";
     /** Transfers ownership: all supplied tracks stop when this capture closes. */
     stream?: MediaStream;
+    /** Borrows output zero of a caller-owned running 48 kHz AudioContext node. Supplied streams may contain only video. */
+    audioNode?: AudioNode;
     timeoutMs?: number;
     signal?: AbortSignal;
     state?: (state: "active" | "paused" | "closed", error?: Error) => void;
@@ -17,7 +19,7 @@ export declare function browserCaptureSupport(): {
     audioWorklet: boolean;
     videoFrames: boolean;
 };
-/** Owned device/screen capture only. Decoded playback belongs to the renderer. */
+/** Owned device tracks or borrowed audio graphs. Decoded playback belongs to the renderer. */
 export declare class BrowserMediaCapture {
     private readonly connection;
     private readonly options;
@@ -27,6 +29,10 @@ export declare class BrowserMediaCapture {
     private readonly abort;
     private readonly until;
     private context?;
+    private ownsContext;
+    private sourceNode?;
+    private sourceConnected;
+    private readonly contextChanged;
     private input?;
     private worklet?;
     private silent?;
@@ -47,6 +53,7 @@ export declare class BrowserMediaCapture {
     private bound;
     private resetClock;
     private audio;
+    private disconnectSource;
     private camera;
     pause(): void;
     resume(): Promise<void>;

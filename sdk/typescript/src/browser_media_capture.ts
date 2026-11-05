@@ -1,3 +1,7 @@
+import {
+    captureAudioNode,
+    captureWorkletModule,
+} from "./browser_audio_source.js";
 import { type BrowserMediaConnection } from "./browser_media.js";
 import {
     captureDevices,
@@ -11,6 +15,8 @@ export interface BrowserMediaCaptureOptions extends BrowserCaptureDevices {
     videoSource?: "camera" | "screen";
     /** Transfers ownership: all supplied tracks stop when this capture closes. */
     stream?: MediaStream;
+    /** Borrows output zero of a caller-owned running 48 kHz AudioContext node. Supplied streams may contain only video. */
+    audioNode?: AudioNode;
     timeoutMs?: number;
     signal?: AbortSignal;
     state?: (state: "active" | "paused" | "closed", error?: Error) => void;
@@ -38,7 +44,7 @@ export function browserCaptureSupport(): {
     };
 }
 
-/** Owned device/screen capture only. Decoded playback belongs to the renderer. */
+/** Owned device tracks or borrowed audio graphs. Decoded playback belongs to the renderer. */
 export class BrowserMediaCapture {
     private readonly streams = new Set<MediaStream>();
     private readonly enabled = new Map<MediaStreamTrack, boolean>();
@@ -46,6 +52,18 @@ export class BrowserMediaCapture {
     private readonly abort = new AbortController();
     private readonly until: number;
     private context?: AudioContext;
+    private ownsContext = false;
+    private sourceNode?: AudioNode;
+    private sourceConnected = false;
+    private readonly contextChanged = () => {
+        const context = this.context;
+        if (this.stopped || !context || context.state === "running") return;
+        if (context.state === "closed")
+            this.close(
+                new ConnectError("media-capture", "Capture audio graph closed"),
+            );
+        else this.pause();
+    };
     private input?: MediaStreamAudioSourceNode;
     private worklet?: AudioWorkletNode;
     private silent?: GainNode;
@@ -88,6 +106,7 @@ export class BrowserMediaCapture {
         connection: BrowserMediaConnection,
         options: BrowserMediaCaptureOptions,
     ): Promise<BrowserMediaCapture> {
+        options = { ...options };
         const timeout = options.timeoutMs ?? 10000;
         if (
             !Number.isFinite(timeout) ||
@@ -120,6 +139,7 @@ export class BrowserMediaCapture {
                     "Capture must use this Connection's negotiated sender Streams",
                 );
         }
+        const sourceNode = captureAudioNode(options, !!audio);
         const devices = captureDevices(options, !!video, !!options.stream);
         if (
             options.videoSource === "screen" &&
@@ -134,7 +154,7 @@ export class BrowserMediaCapture {
             (audio && !support.audioWorklet) ||
             (video && !support.videoFrames) ||
             (!options.stream &&
-                ((audio && !support.microphone) ||
+                ((audio && !sourceNode && !support.microphone) ||
                     (video &&
                         !(options.videoSource === "screen"
                             ? support.screen
@@ -144,7 +164,11 @@ export class BrowserMediaCapture {
                 "unsupported-media-profile",
                 "Required capture APIs are unavailable",
             );
-        const capture = new BrowserMediaCapture(connection, options, timeout);
+        const capture = new BrowserMediaCapture(
+            connection,
+            { ...options, audioNode: undefined },
+            timeout,
+        );
         try {
             if (capture.stopped)
                 throw new ConnectError(
@@ -165,22 +189,23 @@ export class BrowserMediaCapture {
                         }),
                     );
                 const camera = video && options.videoSource !== "screen";
-                if (audio || camera)
+                if ((audio && !sourceNode) || camera)
                     await capture.permission(
                         navigator.mediaDevices.getUserMedia({
-                            audio: audio
-                                ? {
-                                      sampleRate: { ideal: 48000 },
-                                      channelCount: { ideal: 1, max: 2 },
-                                      ...(devices.audioDeviceId
-                                          ? {
-                                                deviceId: {
-                                                    exact: devices.audioDeviceId,
-                                                },
-                                            }
-                                          : {}),
-                                  }
-                                : false,
+                            audio:
+                                audio && !sourceNode
+                                    ? {
+                                          sampleRate: { ideal: 48000 },
+                                          channelCount: { ideal: 1, max: 2 },
+                                          ...(devices.audioDeviceId
+                                              ? {
+                                                    deviceId: {
+                                                        exact: devices.audioDeviceId,
+                                                    },
+                                                }
+                                              : {}),
+                                      }
+                                    : false,
                             video: camera
                                 ? {
                                       width: { ideal: 640, max: 640 },
@@ -201,7 +226,7 @@ export class BrowserMediaCapture {
             const tracks = [...capture.streams].flatMap((s) => s.getTracks());
             if (
                 tracks.filter((t) => t.kind === "audio").length !==
-                    (audio ? 1 : 0) ||
+                    (audio && !sourceNode ? 1 : 0) ||
                 tracks.filter((t) => t.kind === "video").length !==
                     (video ? 1 : 0) ||
                 tracks.some((t) => t.readyState !== "live")
@@ -211,7 +236,10 @@ export class BrowserMediaCapture {
                     "Capture did not supply the requested live tracks",
                 );
             if (audio)
-                await capture.audio(tracks.find((t) => t.kind === "audio")!);
+                await capture.audio(
+                    tracks.find((t) => t.kind === "audio"),
+                    sourceNode,
+                );
             if (video)
                 await capture.camera(tracks.find((t) => t.kind === "video")!);
             document.addEventListener("visibilitychange", capture.visibility);
@@ -314,22 +342,33 @@ export class BrowserMediaCapture {
                     this.context.currentTime * 1000000,
             });
     }
-    private async audio(track: MediaStreamTrack): Promise<void> {
-        const context = (this.context = new AudioContext({
-            sampleRate: 48000,
-            latencyHint: "interactive",
-        }));
+    private async audio(
+        track?: MediaStreamTrack,
+        sourceNode?: AudioNode,
+    ): Promise<void> {
+        const context = (this.context = sourceNode
+            ? (sourceNode.context as AudioContext)
+            : new AudioContext({
+                  sampleRate: 48000,
+                  latencyHint: "interactive",
+              }));
+        this.ownsContext = !sourceNode;
+        this.sourceNode = sourceNode;
         if (context.sampleRate !== 48000)
             throw new ConnectError(
                 "unsupported-media-profile",
                 "Capture requires a 48 kHz audio graph",
             );
-        await this.bound(
-            context.audioWorklet.addModule(
-                new URL("./browser_audio_worklet.js", import.meta.url),
-            ),
-        );
+        if (sourceNode)
+            context.addEventListener("statechange", this.contextChanged);
+        const module = captureWorkletModule(context, this.abort.signal);
+        await this.bound(module);
         if (this.stopped) return;
+        if (sourceNode && context.state !== "running")
+            throw new ConnectError(
+                "media-capture",
+                "Caller audio context is not running",
+            );
         const node = (this.worklet = new AudioWorkletNode(
             context,
             "connect-pcm-48k",
@@ -375,32 +414,40 @@ export class BrowserMediaCapture {
                     });
             }
         };
-        const input = (this.input = context.createMediaStreamSource(
-            new MediaStream([track]),
-        ));
         const silent = (this.silent = context.createGain());
         silent.gain.value = 0;
-        input.connect(node);
+        if (sourceNode) {
+            sourceNode.connect(node);
+            this.sourceConnected = true;
+        } else {
+            const input = (this.input = context.createMediaStreamSource(
+                new MediaStream([track!]),
+            ));
+            input.connect(node);
+        }
         node.connect(silent);
         silent.connect(context.destination);
-        await this.bound(context.resume());
+        if (this.ownsContext) await this.bound(context.resume());
         if (context.state !== "running")
             throw new ConnectError(
                 "media-playback",
                 "Capture audio graph did not start",
             );
-        context.onstatechange = () => {
-            if (this.stopped || context.state === "running") return;
-            if (context.state === "closed")
-                this.close(
-                    new ConnectError(
-                        "media-capture",
-                        "Capture audio graph closed",
-                    ),
-                );
-            else this.pause();
-        };
+        if (this.ownsContext)
+            context.addEventListener("statechange", this.contextChanged);
     }
+    private disconnectSource(): void {
+        if (!this.sourceConnected) return;
+        this.sourceConnected = false;
+        if (this.sourceNode && this.worklet) {
+            try {
+                this.sourceNode.disconnect(this.worklet);
+            } catch {
+                /* Caller may already have removed this edge. */
+            }
+        }
+    }
+
     private async camera(track: MediaStreamTrack): Promise<void> {
         const video = (this.video = document.createElement("video"));
         video.muted = true;
@@ -490,8 +537,9 @@ export class BrowserMediaCapture {
         if (this.stopped || this.paused) return;
         this.paused = true;
         for (const track of this.enabled.keys()) track.enabled = false;
+        this.disconnectSource();
         this.resetClock();
-        void this.context?.suspend().catch(() => {});
+        if (this.ownsContext) void this.context?.suspend().catch(() => {});
         this.options.state?.("paused");
     }
     async resume(): Promise<void> {
@@ -501,7 +549,16 @@ export class BrowserMediaCapture {
                 "media-capture",
                 "Resume capture from a visible page",
             );
-        if (this.context)
+        if (
+            this.context &&
+            !this.ownsContext &&
+            this.context.state !== "running"
+        )
+            throw new ConnectError(
+                "media-capture",
+                "Resume the caller audio context before capture",
+            );
+        if (this.context && this.ownsContext)
             try {
                 await this.bound(
                     this.context.resume(),
@@ -513,6 +570,10 @@ export class BrowserMediaCapture {
             }
         if (this.stopped) return;
         this.resetClock();
+        if (this.sourceNode && this.worklet && !this.sourceConnected) {
+            this.sourceNode.connect(this.worklet);
+            this.sourceConnected = true;
+        }
         for (const [track, enabled] of this.enabled) track.enabled = enabled;
         this.paused = false;
         this.options.state?.("active");
@@ -536,14 +597,29 @@ export class BrowserMediaCapture {
             this.video.pause();
             this.video.srcObject = null;
         }
+        this.disconnectSource();
         if (this.worklet) {
             this.worklet.port.postMessage({ type: "stop" });
+            this.worklet.port.onmessage = null;
             this.worklet.port.close();
             this.worklet.disconnect();
         }
         this.input?.disconnect();
         this.silent?.disconnect();
-        if (this.context) this.connection.ownCleanup(this.context.close());
+        if (this.context) {
+            this.context.removeEventListener(
+                "statechange",
+                this.contextChanged,
+            );
+            if (this.ownsContext)
+                this.connection.ownCleanup(this.context.close());
+        }
+        this.sourceNode = undefined;
+        this.context = undefined;
+        this.worklet = undefined;
+        this.input = undefined;
+        this.silent = undefined;
+        this.stopOwner = undefined;
         for (const [track, handler] of this.ended)
             track.removeEventListener("ended", handler);
         this.ended.clear();

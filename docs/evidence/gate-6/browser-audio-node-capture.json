@@ -1,0 +1,260 @@
+{
+  "format": "connect/browser-audio-node-capture/1",
+  "status": "component-passed",
+  "scope": "One actual local Mac Chrome synthetic62-second SDK capture/Opus/VP8 component; no service, network transport, real device handoff, provider or32-cell qualification. The public low-level BrowserMediaCapture uses its actual existing worklet and codecs; typed SDK ownership/API boundaries also have focused tests.",
+  "qualified_cell": false,
+  "qualified_gate": false,
+  "browser": "Chrome156.0.8078.80 on local macOS arm64",
+  "original_result": {
+    "artifact": "component-graph-input/run-1793870748229/result.json",
+    "sha256": "15329cbe2851b6ce10facf364fc75a349cbfe667b3edf8b791a185a6481b0073",
+    "elapsed_ms": 63993,
+    "source_guards_unchanged": true
+  },
+  "source_profile": {
+    "capture_input_mode": "caller-owned-audio-node+owned-video-track",
+    "duration_ms": 62000,
+    "measured_window_ms": 60000,
+    "audio_sample_rate": 48000,
+    "audio_peak_low": 0.05,
+    "audio_peak_high": 0.2,
+    "source_pulse_ms": 100,
+    "video_frames_per_second": 30,
+    "prepared_replacement_windows_ms": [
+      15000,
+      40000
+    ],
+    "sources": 6,
+    "capture_codec_owners": 10,
+    "peak_concurrent_codec_owners": 8,
+    "original_clock_and_quality_thresholds_unchanged": true
+  },
+  "actual_capture_ownership": {
+    "distinct_source_contexts": 1,
+    "all_original_nodes_and_contexts_used": true,
+    "no_supplied_audio_track_bridge": true,
+    "old_owner_closes": [
+      {
+        "id": "source-0-generation-0",
+        "callback_seconds": 16.00129999999702,
+        "caller_context_state": "running",
+        "capture_closed": true,
+        "context_reference_released": true,
+        "source_reference_released": true
+      },
+      {
+        "id": "source-4-generation-0",
+        "callback_seconds": 16.0015,
+        "caller_context_state": "running",
+        "capture_closed": true,
+        "context_reference_released": true,
+        "source_reference_released": true
+      },
+      {
+        "id": "source-0-generation-1",
+        "callback_seconds": 41.0005,
+        "caller_context_state": "running",
+        "capture_closed": true,
+        "context_reference_released": true,
+        "source_reference_released": true
+      },
+      {
+        "id": "source-4-generation-1",
+        "callback_seconds": 41.00059999999404,
+        "caller_context_state": "running",
+        "capture_closed": true,
+        "context_reference_released": true,
+        "source_reference_released": true
+      }
+    ],
+    "all_capture_context_and_source_references_released": true,
+    "all_capture_and_codec_owners_closed": true,
+    "caller_source_tracks_ended": true,
+    "physical_capture_context_cleanup_promises": 0,
+    "context_cleanup_explanation": "The source context is caller-owned and is closed/joined by the original source owner; physical captures own no context-close or shared-module future.",
+    "original_browser": {
+      "original_process_joined": true,
+      "forced_kill": false,
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    }
+  },
+  "audio_pipeline": {
+    "programme_inputs": 18798,
+    "input_bad_identity_frames": 0,
+    "decoded_bad_identity_frames": 0,
+    "unmatched_outputs": 0,
+    "capture_calls_including_warmup": 18810,
+    "encoded_outputs_including_warmup": 18810,
+    "native_decoded_outputs_including_warmup": 18810,
+    "capture_timestamp_gaps": 0,
+    "encoder_refusals": 0,
+    "decoder_refusals": 0,
+    "maximum_original_capture_step_us": 20000
+  },
+  "routes": [
+    {
+      "route": 0,
+      "audio": {
+        "decoded_seconds": 60,
+        "identified_seconds": 60,
+        "maximum_gap_ms": 11.500000000000066,
+        "bad_identity_frames": 0,
+        "duplicate_frames": 0,
+        "passed": true
+      },
+      "video_minimum_changing_fps": 24,
+      "video_passed": true,
+      "sync_status": "passed",
+      "passed": true
+    },
+    {
+      "route": 1,
+      "audio": {
+        "decoded_seconds": 60,
+        "identified_seconds": 60,
+        "maximum_gap_ms": 11.500000000000066,
+        "bad_identity_frames": 0,
+        "duplicate_frames": 0,
+        "passed": true
+      },
+      "video_minimum_changing_fps": 24,
+      "video_passed": true,
+      "sync_status": "passed",
+      "passed": true
+    },
+    {
+      "route": 2,
+      "audio": {
+        "decoded_seconds": 60,
+        "identified_seconds": 60,
+        "maximum_gap_ms": 11.500000000000066,
+        "bad_identity_frames": 0,
+        "duplicate_frames": 0,
+        "passed": true
+      },
+      "video_minimum_changing_fps": 24,
+      "video_passed": true,
+      "sync_status": "passed",
+      "passed": true
+    },
+    {
+      "route": 3,
+      "audio": {
+        "decoded_seconds": 60,
+        "identified_seconds": 60,
+        "maximum_gap_ms": 11.500000000000066,
+        "bad_identity_frames": 0,
+        "duplicate_frames": 0,
+        "passed": true
+      },
+      "video_minimum_changing_fps": 24,
+      "video_passed": true,
+      "sync_status": "passed",
+      "passed": true
+    },
+    {
+      "route": 4,
+      "audio": {
+        "decoded_seconds": 60,
+        "identified_seconds": 60,
+        "maximum_gap_ms": 11.500000000000066,
+        "bad_identity_frames": 0,
+        "duplicate_frames": 0,
+        "passed": true
+      },
+      "video_minimum_changing_fps": 24,
+      "video_passed": true,
+      "sync_status": "passed",
+      "passed": true
+    },
+    {
+      "route": 5,
+      "audio": {
+        "decoded_seconds": 60,
+        "identified_seconds": 60,
+        "maximum_gap_ms": 11.500000000000066,
+        "bad_identity_frames": 0,
+        "duplicate_frames": 0,
+        "passed": true
+      },
+      "video_minimum_changing_fps": 24,
+      "video_passed": true,
+      "sync_status": "passed",
+      "passed": true
+    }
+  ],
+  "focused_verification": {
+    "sdk_and_lifecycle_cases_passed": 39,
+    "source_and_identity_cases_passed": 8,
+    "isolated_sdk_build": true,
+    "public_capture_union_type_contract": true,
+    "original_graph_input_regression_failed_before": true,
+    "review_regressions_reproduced_before_fixed_after": [
+      "ordinary device startup suspension",
+      "cancelled and expired module waiters join actual BrowserTasks before shared module settles"
+    ]
+  },
+  "implementation_inputs": [
+    {
+      "path": "sdk/typescript/src/browser_media_capture.ts",
+      "original_sha256": "5e5175f4aa3c8ef3033c58d75c096c60512a6a1047f8f269e962a5a02fc5c5b8",
+      "candidate_sha256": "c7eabbba4387baee82671d6d2bebcc82f091870da9687953806b336ae068dc28"
+    },
+    {
+      "path": "sdk/typescript/src/browser_sdk.ts",
+      "original_sha256": "e0e7c1ed1ec07ee4b32d8117f26fde7236ed8739b0296810f17151423cee1a54",
+      "candidate_sha256": "2bfa2345622a6e7fb0099121a8e51330df1a80a632b68623b87cd35f1b69b40a"
+    },
+    {
+      "path": "sdk/typescript/src/browser_sdk_webrtc.ts",
+      "original_sha256": "b621241960e91e480f6957df703abee9eb604e9bc6d02682689bbfc6df261887",
+      "candidate_sha256": "f5ded3f3a5a325ab47020e5eca3660e9b848d2c65d4b88ddddbcb0937ad79550"
+    },
+    {
+      "path": "sdk/typescript/src/browser.ts",
+      "original_sha256": "970c61894099530282d4503a9cda28d9465d1d87054126eae26f247f84631edf",
+      "candidate_sha256": "ec624288b94e5a7e3a45d3472c68074b9108f89681be9dfac79a4f358b19aca4"
+    },
+    {
+      "path": "scripts/lib/browser_matrix_sources.mjs",
+      "original_sha256": "1335a4b1d497e63dea13e99a9c6e61c2e208784d8b4c5d15a925491b125eb767",
+      "candidate_sha256": "fdffb3e8ec56623f47400cc13eac6276043055a453586131535dc7142c8e77e0"
+    },
+    {
+      "path": "sdk/typescript/src/browser_audio_source.ts",
+      "original_sha256": null,
+      "candidate_sha256": "30ee26069ebaf4f132e7c2172ed37c20ff0d9421e748c6ff09f143aafc46384e"
+    }
+  ],
+  "limits": [
+    "The exact native Chrome silence-insertion branch remains unproven; original source/gain versus SDK-worklet boundary evidence places it in the avoided cross-context MediaStream bridge.",
+    "This introduces a declared public AudioNode source mode; retained v191 and earlier results are unchanged.",
+    "Native and RTC transport/renderer behavior and the complete32-cell matrix still require current evidence."
+  ],
+  "browser_version_binding": {
+    "observed_browser": "Chrome/156.0.8078.80",
+    "observed_revision": "@fb096c0011f9d50f0a264a9376420cdea9c421e3",
+    "prior_version_observation_artifact": "component-bridge/run-1793868045855/result.json",
+    "prior_result_sha256": "2725622f53c3c47c4b233a89c05ce1dd8c73d528cc2c8e13f576ddb400fb6104",
+    "same_actual_executable_sha256": "3f0acaf1e585195596d73ffa1824baa72c3c3ac115b5cfc43d789030a3f23d93"
+  },
+  "parent_verification": {
+    "receipt": ".local/gate-6/post-v191-fixture-verification/graph-parent-integration-receipt.json",
+    "receipt_sha256": "84fa7a822a3ef2728928f405d4222c20bb740731aac550e1a6f0b785d7e3c930",
+    "candidate_manifest_sha256": "79245bbafebb1cd05456be015fb12a53955b7d25059543ff485a59286ffc34eb",
+    "applied_manifest_files_verified": 12,
+    "public_evidence_before_append_sha256": "6d39cbc7429e6cd3b5c824f921d5bcf3dab53466f49a258408658a988a8fee1f",
+    "original_component_sha256": "15329cbe2851b6ce10facf364fc75a349cbfe667b3edf8b791a185a6481b0073",
+    "original_component_source_guards_verified": 26,
+    "original_component_routes_passed": 6,
+    "retained_sdk_and_source_tests_passed": 47,
+    "retained_test_exit_provenance": "Parent-observed original exits 0; passing counts independently verified from retained logs. No tests rerun.",
+    "fresh_sdk_build_and_type_receipt_sha256": "07999b32dfa6900173f9a56d96e70c7494839c2964621eefe82fbe79949a36cb",
+    "fresh_sdk_build_exit_code": 0,
+    "fresh_public_type_contract_exit_code": 0,
+    "scope": "Applied bytes and retained isolated capture/codec evidence verified; fresh SDK build and public type contract passed. No transport, matrix-cell or gate qualification."
+  }
+}

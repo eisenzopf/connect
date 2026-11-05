@@ -42,8 +42,8 @@ async function fixture(run,{manualFrameRequest=true}={}) {
     let owner;
     const route=index=>({index,role:'participant-'+([0,1,2,3,0,1][index]+1)});
     const captures=[];
-    const connection=id=>({id,capture:async({stream})=>{
-        const handle={closed:false,stream,close(){this.closed=true;stream.getTracks().forEach(track=>track.stop());}};
+    const connection=id=>({id,capture:async({stream,audioNode})=>{
+        const handle={closed:false,stream,audioNode,close(){this.closed=true;stream.getTracks().forEach(track=>track.stop());}};
         captures.push(handle);return handle;
     }});
     try{
@@ -66,6 +66,9 @@ test('matrix source pulses retain fixed 100ms duration and a fixed 62s endpoint'
 test('two device moves retain source masters, identity and the original programme clock',()=>fixture(async f=>{
     for(let index=0;index<6;index++)await f.owner.start({route:f.route(index),connection:f.connection('original-'+index),options:{}});
     const masters=f.owner.sources.map(source=>source.stream.getTracks()),programme=f.owner.beginProgramme();
+    assert.equal(programme.audioCaptureMode,'caller-owned-audio-node');
+    assert.equal(f.owner.observation().capture_input_mode,'caller-owned-audio-node+owned-video-track');
+    for(const [index,capture]of f.captures.entries()){assert.equal(capture.audioNode,f.owner.sources[index].gain);assert.equal(capture.stream.getAudioTracks().length,0);assert.equal(capture.stream.getVideoTracks().length,1);}
     assert.ok(f.owner.observation().sources.every(source=>source.canvas_capture_mode==='manual-frame-request'));
     assert.deepEqual(f.canvasCaptures.map(value=>value.fps),Array(6).fill(0));
     assert.equal(programme.deadlineMs-programme.originMs,62000);assert.ok(Object.isFrozen(programme));

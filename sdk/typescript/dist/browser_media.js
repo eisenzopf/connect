@@ -87,6 +87,7 @@ export class BrowserMediaPeer {
     }
     get routeDiagnostics() {
         return [...this.routes.values()].map((r) => ({
+            connectionId: r.binding.connectionId,
             streamId: r.binding.streamId,
             direction: r.binding.direction,
             kind: r.binding.kind,
@@ -95,6 +96,8 @@ export class BrowserMediaPeer {
             incompleteFrames: r.assembler?.queuedFrames ?? 0,
             fragments: r.assembler?.queuedFragments ?? 0,
             recovery: r.vp8?.decodeDiagnostics,
+            encoding: r.vp8?.encodeDiagnostics,
+            audioCodec: r.opus?.diagnostics,
             ordering: r.order?.diagnostics,
         }));
     }

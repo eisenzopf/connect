@@ -1,20 +1,12 @@
 import { type BrowserReplacementRoot } from "./browser_replacement.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import type { BrowserConnectionOptions } from "./browser_media.js";
-import type { BrowserCaptureHandle, BrowserRenderHandle } from "./browser_sdk.js";
-import type { BrowserMediaCaptureOptions } from "./browser_media_capture.js";
+import type { BrowserCaptureHandle, BrowserCaptureInput, BrowserRenderHandle } from "./browser_sdk.js";
 export interface BrowserRtcConfiguration {
     readonly iceServers?: readonly RTCIceServer[];
     readonly iceTransportPolicy?: RTCIceTransportPolicy;
 }
-export interface BrowserRtcCaptureInput {
-    audio?: boolean;
-    video?: "camera" | "screen";
-    audioDeviceId?: string;
-    videoDeviceId?: string;
-    stream?: MediaStream;
-    state?: BrowserMediaCaptureOptions["state"];
-}
+export type BrowserRtcCaptureInput = BrowserCaptureInput;
 /** One current physical's RTC owner. No capture permission is requested by offer. */
 export declare class BrowserRtcConnection {
     private readonly client;

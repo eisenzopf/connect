@@ -1,3 +1,4 @@
+import { captureAudioNode } from "./browser_audio_source.js";
 import { observeWebRtcDecodedReadiness } from "./browser_webrtc_readiness.js";
 import { replacementRoot, } from "./browser_replacement.js";
 import { BrowserDeadline } from "./browser_deadline.js";
@@ -365,7 +366,7 @@ export class BrowserRtcConnection {
             throw new ConnectError("cancelled", "Capture cancelled before permission");
         if (this.captureOwner && !this.captureOwner.closed)
             throw new ConnectError("conflict", "Capture already owned");
-        const selected = { ...input }, audio = !!selected.audio, video = selected.video !== undefined;
+        const selected = { ...input, audioNode: undefined }, audio = !!selected.audio, video = selected.video !== undefined;
         if ((!audio && !video) ||
             (audio && !this.input.audio) ||
             (video &&
@@ -373,6 +374,9 @@ export class BrowserRtcConnection {
                     ? this.input.screen
                     : this.input.video)))
             throw unsupported();
+        let graphSource = captureAudioNode(input, audio);
+        let graphContext = graphSource?.context;
+        let graphDestination, graphConnected = false;
         const devices = captureDevices(selected, video, !!selected.stream);
         if (selected.video === "screen" && selected.videoDeviceId !== undefined)
             throw new ConnectError("invalid-request", "Screen choice requires browser permission");
@@ -391,6 +395,11 @@ export class BrowserRtcConnection {
             abort.abort();
             detach();
             events.abort();
+            graphContext?.removeEventListener("statechange", graphState);
+            disconnectGraph();
+            graphSource = undefined;
+            graphDestination = undefined;
+            graphContext = undefined;
             document.removeEventListener("visibilitychange", visibility);
             for (const stream of streams)
                 for (const track of stream.getTracks()) {
@@ -406,12 +415,34 @@ export class BrowserRtcConnection {
             if (stopped || paused)
                 return;
             paused = true;
+            disconnectGraph();
             for (const stream of streams)
                 for (const track of stream.getTracks()) {
                     enabled.set(track, track.enabled);
                     track.enabled = false;
                 }
             selected.state?.("paused");
+        };
+        const disconnectGraph = () => {
+            if (!graphConnected)
+                return;
+            graphConnected = false;
+            if (graphSource && graphDestination) {
+                try {
+                    graphSource.disconnect(graphDestination);
+                }
+                catch {
+                    /* Caller may already have removed this edge. */
+                }
+            }
+        };
+        const graphState = () => {
+            if (!graphContext || stopped || graphContext.state === "running")
+                return;
+            if (graphContext.state === "closed")
+                close(new ConnectError("media-capture", "Caller audio graph closed"));
+            else
+                pause();
         };
         const visibility = () => {
             if (document.visibilityState === "hidden")
@@ -428,6 +459,12 @@ export class BrowserRtcConnection {
                     throw closed();
                 if (document.visibilityState === "hidden")
                     return;
+                if (graphContext && graphContext.state !== "running")
+                    throw new ConnectError("media-capture", "Resume the caller audio context before capture");
+                if (graphSource && graphDestination && !graphConnected) {
+                    graphSource.connect(graphDestination);
+                    graphConnected = true;
+                }
                 for (const [track, was] of enabled)
                     track.enabled = was;
                 enabled.clear();
@@ -461,6 +498,16 @@ export class BrowserRtcConnection {
                 cancelled();
             if (stopped)
                 throw closed();
+            if (graphSource && graphContext) {
+                graphContext.addEventListener("statechange", graphState);
+                if (graphContext.state !== "running")
+                    throw unsupported();
+                graphDestination = graphContext.createMediaStreamDestination();
+                graphDestination.channelCount = 1;
+                own(graphDestination.stream);
+                graphSource.connect(graphDestination);
+                graphConnected = true;
+            }
             if (selected.stream)
                 own(selected.stream);
             else {
@@ -473,9 +520,9 @@ export class BrowserRtcConnection {
                         },
                         audio: false,
                     }));
-                if (audio || selected.video === "camera")
+                if ((audio && !graphSource) || selected.video === "camera")
                     await permission(navigator.mediaDevices.getUserMedia({
-                        audio: audio
+                        audio: audio && !graphSource
                             ? {
                                 sampleRate: { ideal: 48000 },
                                 channelCount: { ideal: 1, max: 2 },

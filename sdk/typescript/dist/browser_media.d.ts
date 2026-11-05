@@ -110,6 +110,7 @@ export declare class BrowserMediaPeer {
         activeBindings: number;
     }>;
     get routeDiagnostics(): ReadonlyArray<{
+        connectionId: string;
         streamId: string;
         direction: MediaBinding["direction"];
         kind: MediaBinding["kind"];
@@ -118,6 +119,8 @@ export declare class BrowserMediaPeer {
         incompleteFrames: number;
         fragments: number;
         recovery?: BrowserVp8Codec["decodeDiagnostics"];
+        encoding?: BrowserVp8Codec["encodeDiagnostics"];
+        audioCodec?: BrowserOpusCodec["diagnostics"];
         ordering?: BrowserVideoOrder["diagnostics"];
     }>;
     private check;

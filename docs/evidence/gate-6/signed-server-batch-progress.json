@@ -1,0 +1,48 @@
+{
+  "format": "connect/signed-server-batch-progress/1",
+  "status": "failed",
+  "scope": "Local macOS ARM focused signed server replacement checks; no transport cell or gate qualification. Original binary binds integrated Core audio retention, MetadataBusy classification and RTC admission deadline fixes. Pending RTC original-ingress and retired-queue fixes are absent.",
+  "qualified_cell": false,
+  "qualified_gate": false,
+  "original_binary_sha256": "2a1dfddf10cedce18d697768db48cf4b63d9ade29f3cb1c31d9f608ba67efc94",
+  "first_attempt": {
+    "audio_actual_failed": 1,
+    "audio_cause": "Test reused the identical signed wire envelope ID; service correctly refused replay_detected. Local fixture now renews the wire nonce while preserving logical operation ID; rebuilt execution pending.",
+    "av_ignored": 2,
+    "scope_note": "The original runner omitted --ignored and explicit local fixtures. These were not executed or counted as passes."
+  },
+  "explicit_av_attempt": {
+    "actual_executed": 2,
+    "passed": 0,
+    "failed": 2,
+    "all_original_processes_joined": true,
+    "unchanged_original_binary": true,
+    "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffmpeg_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+    "synthetic_fixtures": {
+      "red": {
+        "bytes": 64,
+        "ivf_sha256": "03c24f4e6f97a3e188695ab871f6bccb6b8e0da5b85328722f6e021325526d74",
+        "vp8_sha256": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b"
+      },
+      "blue": {
+        "bytes": 64,
+        "ivf_sha256": "6a0c5bbab1b6eece302d28bb415f8e6cdd5c5245cbe235d920c94a701ad926ae",
+        "vp8_sha256": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+      }
+    },
+    "failure": "Both tests passed original duplex audio and independent original VP8 decoding, then timed out waiting for decoded private target audio at replacement_av.rs:96. Cause remains under investigation.",
+    "logs": [
+      {
+        "case": "av-0",
+        "sha256": "cd47aa10855b25597b06a45e9adf595df2abad40714776ef1044261ecc897ebf"
+      },
+      {
+        "case": "av-1",
+        "sha256": "8831caea9053c581795fd92d44c3e57e46b2322be55812cad86b5c9f2fe5e868"
+      }
+    ],
+    "private_receipt_sha256": "7abd6eae06919cfeee71d4e417efc68bac720f7e301e5799482fc1b00253d5be"
+  },
+  "next": "Integrate verified pending library fixes and investigate target audio timeout; rebuild signed cases against the combined candidate before the next complete 32-cell run. Original v191 results remain unchanged."
+}
