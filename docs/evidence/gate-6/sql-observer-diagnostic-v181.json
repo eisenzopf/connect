@@ -1,0 +1,55 @@
+{
+  "format": "connect/g6-058-sql-observer-diagnostic/1",
+  "date": "2026-11-04",
+  "attempt": "v181",
+  "source_revision": "2d6fad4ef45dfd8e5060b7b976db9aa8534c9f6f",
+  "environment": "Owner local Ubuntu24.04 ARM64 VM",
+  "passed": true,
+  "results": [
+    {
+      "case": "peer_authority::connection_media::snapshot::tests::packet_sql_observers_are_read_only_and_release_after_saturation",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "03cdde6a3609eb9b6f1990629be939ba527a7d70d754baed4f252168936c49ee"
+    },
+    {
+      "case": "peer_authority::connection_media::snapshot::tests::observer_custody::original_observer_contention_refuses_without_substitution_and_releases_the_reader",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "083d75669227f5792912d59f87f5368dcdb8805b95f321e36cf09d9b975cc3fa"
+    },
+    {
+      "case": "peer_authority::connection_media::snapshot::tests::observer_custody::an_earlier_observer_becoming_free_cannot_replace_the_original_snapshot_observer",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "2c1cb1952cea1bb18460de040f78d0f938cf595b42f1b4ecabf8041e0c237f5d"
+    },
+    {
+      "case": "peer_authority::connection_media::snapshot::tests::observer_custody::original_observer_reacquisition_rechecks_external_data_and_schema_versions",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "55a7d23c0a1f9b99599ca8b38beaa7d18bd3c083723dac6e72367be04cdfeea5"
+    },
+    {
+      "case": "peer_authority::connection_media::snapshot::tests::observer_cache::cached_current_observer_needs_only_one_fresh_file_admission",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "cfb93640b78fdaf7186fad59095476225c4c370f3c8b745951454f763bb99237"
+    },
+    {
+      "case": "peer_authority::connection_media::snapshot::tests::observer_cache::another_observers_old_scope_names_cannot_cover_new_current_metadata",
+      "exit_code": 0,
+      "passed": true,
+      "log_sha256": "01183d0867069a9b175a48c20fc8c6479f7df2ba5cb53282c1cfeb0d2a0cfe5f"
+    }
+  ],
+  "binary_sha256": "594f1477f2657521c9fd7e835fde622bc5de3206cf0d4a201ebeb871bd88ca7f",
+  "source_inputs_unchanged": true,
+  "executable_unchanged": true,
+  "elapsed_seconds": 56.94135677799932,
+  "scope": "Current SQL observer saturation, exact observer custody, snapshot resealing and memo scope validity; no full media or idle-resource pass.",
+  "change": "Distinguish all-reader exhaustion from exact-original-reader contention after SQL release for file admission. Error code and admission behavior unchanged.",
+  "limits": [
+    "Controlled SQL tests do not establish the dominant live failure mode or qualify media quality."
+  ]
+}
