@@ -31,12 +31,19 @@ CASES = [
 ]
 SNAPSHOT = "peer_authority::connection_media::snapshot::tests::"
 OBSERVER_CASES = [
+    SNAPSHOT + "observer_cache::changed_facts_with_covered_scopes_keep_one_fresh_admission",
     SNAPSHOT + "packet_sql_observers_are_read_only_and_release_after_saturation",
     SNAPSHOT + "observer_custody::original_observer_contention_refuses_without_substitution_and_releases_the_reader",
     SNAPSHOT + "observer_custody::an_earlier_observer_becoming_free_cannot_replace_the_original_snapshot_observer",
     SNAPSHOT + "observer_custody::original_observer_reacquisition_rechecks_external_data_and_schema_versions",
     SNAPSHOT + "observer_cache::cached_current_observer_needs_only_one_fresh_file_admission",
     SNAPSHOT + "observer_cache::another_observers_old_scope_names_cannot_cover_new_current_metadata",
+    SNAPSHOT + "optimistic_metadata_uses_only_fresh_scope_coverage_after_a_version_change",
+    SNAPSHOT + "packet_metadata_memo_invalidates_external_own_clock_connection_and_source_changes",
+    SNAPSHOT + "packet_metadata_memo_contention_and_failed_capture_keep_no_cached_grant",
+    SNAPSHOT + "erased_packet_projection_memo_skips_only_unchanged_facts_and_finishes_every_grant",
+    SNAPSHOT + "compound_packet_projection_clock_edge_revalidates_under_original_interval_and_expiry",
+    SNAPSHOT + "compound_packet_projection_releases_every_reader_when_final_construction_crosses_a_commit",
 ]
 
 

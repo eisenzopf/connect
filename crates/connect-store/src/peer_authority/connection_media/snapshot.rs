@@ -179,9 +179,10 @@ fn cached_with<T: Clone>(
     let mut optimistic = None;
     if held.is_none() {
         // Copy metadata outside SQL and use only its old scope names to try a
-        // new file interval. It lends no grant. The exact current SQL/clock/
-        // source version must still match under that new interval. A mismatch
-        // drops both SQL and the disposable reader before normal derivation.
+        // new file interval. It lends no grant. Resolve current facts under
+        // this reader and one SQL interval, rederiving on any stamp mismatch.
+        // Only complete current scope coverage permits sealing; otherwise drop
+        // SQL and the disposable reader before normal derivation/admission.
         let previous = memo
             .0
             .try_lock()
@@ -191,29 +192,19 @@ fn cached_with<T: Clone>(
             if let Ok(reader) = store.try_acquire_authority(&previous.scopes) {
                 let c = store.try_packet_connection()?;
                 let before = version(&c)?;
-                // The available observer need not be the first memo entry's
-                // observer. Reuse only this actual connection's exact current
-                // metadata, and only when the freshly admitted old scope names
-                // cover its complete current scope set. Otherwise drop the
-                // disposable reader before ordinary fresh derivation/admission.
-                let selected = if previous.matches(before, source) {
-                    Some(previous)
-                } else {
-                    memo.0.try_lock().ok().and_then(|slot| {
-                        slot.iter()
-                            .find(|entry| entry.matches(before, source))
-                            .cloned()
-                    })
-                };
-                if let Some(selected) =
-                    selected.filter(|entry| store.authority_covers(&reader, &entry.scopes))
-                {
+                // A commit or policy-clock edge invalidates facts, not
+                // necessarily the scope set. Releasing this valid fresh reader
+                // and SQL merely to acquire the same scopes again creates a
+                // needless exact-observer reacquisition race. capture still
+                // checks this observer's exact version and original source.
+                let (facts, scopes) = current_refusal(&c, before, capture(&c, before))?;
+                if store.authority_covers(&reader, &scopes) {
                     optimistic = Some(seal(
                         store,
                         &c,
                         before,
-                        selected.facts,
-                        selected.scopes,
+                        facts,
+                        scopes,
                         reader,
                         &mut capture,
                         finish.take().ok_or_else(Error::storage)?,
@@ -241,7 +232,9 @@ fn cached_with<T: Clone>(
     }?;
     // Publish only a fully admitted unchanged capture. Neither cache lock nor
     // SQL is retained by the caller's owned fresh authority guard.
-    if let Some(entry) = captured {
+    // An optimistic capture with uncovered scopes can precede a fallback memo
+    // hit on another observer. Publish only the actual successfully sealed facts.
+    if let Some(entry) = captured.filter(|entry| Arc::ptr_eq(&entry.facts, &result.0)) {
         if let Ok(mut slot) = memo.0.try_lock() {
             // Drop dead original sources and superseded versions for this
             // observer. Retained facts own no reader or grant.
