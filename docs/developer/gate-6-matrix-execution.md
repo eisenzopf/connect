@@ -5,20 +5,29 @@ cell must not postpone attempts in other executable cells. Workloads run on the
 owner's Mac Studio and local Ubuntu24.04 ARM64 guest. G6-054 remains deferred.
 
 The [current 32-cell table](g6-058-matrix-status.html) links actual attempts and
-prerequisites. The latest complete attempt, v191, attempted all32 configurations
-and recorded all432 verdicts:219passed,82failed and131blocked, with zero qualified
-configurations. Both original workers exited. Storage exhaustion did not recur.
-See [v191 evidence](../evidence/gate-6/matrix-full-v191.json).
+prerequisites. The latest complete attempt, v192, attempted all 32 configurations
+and recorded all 432 verdicts: 312 passed, 72 failed and 48 blocked, with zero qualified
+configurations. Both original workers and all original workload guardians exited;
+all 32 report hashes and frozen source guards were checked. No storage interruption
+occurred. See [v192 evidence](../evidence/gate-6/matrix-full-v192.json).
 
-The coordinated v196 library batch now passes37candidate checks plus a separate
-passing baseline control and qualified expected pre-fix failure. All3actual
+The current [correction batch](../evidence/gate-6/g6-058-post-v192-correction-plan.json)
+addresses original PCM loss, target activation ordering, typed metadata retry,
+observer resource lifetime and fixture gaps. Private drafts and designs are not
+runtime passes. Firefox remote capture and full WebRTC authority failures remain
+under investigation. Preserve every original age, authority, media quality and
+idle limit; no inherited cell qualification or threshold adjustment.
+
+The previous coordinated v196 library batch passes37candidate checks plus a
+separate passing baseline control and expected pre-fix failure. All3actual
 signed server cases pass, including both AV signing modes and final shutdown.
-Original groups and the ARM guardian join naturally; source guards and pinned
-fixtures remain unchanged. See [terminal custody evidence](../evidence/gate-6/owned-terminal-cleanup-candidate.json)
+See [terminal custody evidence](../evidence/gate-6/owned-terminal-cleanup-candidate.json)
 and [signed server evidence](../evidence/gate-6/signed-server-batch-progress.json).
-These focused results do not qualify cells. Next is full32/all432 attempt v192
-from one clean identical host/VM revision; its [live ledger](../../.local/gate-6/full-matrix-v192/status.html)
-records execution after launch. Keep all tracked files, prepared dependencies
+These focused results did not replace the full v192 observations.
+
+No matrix run is active. Review and seal exact before/after verification of the
+complete correction batch, then execute another full32/all432 candidate from one
+clean identical host/VM revision. Keep all tracked files, prepared dependencies
 and runner inputs unchanged until both original workers join.
 
 `scripts/run-gate6-transport-matrix.py --phase run` starts the complete two-host

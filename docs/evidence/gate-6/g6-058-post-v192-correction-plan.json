@@ -1,0 +1,110 @@
+{
+  "format": "connect/g6-058-post-v192-correction-plan/1",
+  "task": "G6-058",
+  "basis_revision": "ae0bffa62ab6a096c9b2439b4605831060be33fa",
+  "basis_matrix_sha256": "a8b87d0fe0c5821661d7859a3b593c25c3a0cb8fa7f01ee751d769b286106264",
+  "status": "coordinated-private-batch-in-progress",
+  "active_source_changes_applied": false,
+  "new_runtime_tests_executed": 0,
+  "new_matrix_cells_qualified": 0,
+  "items": [
+    {
+      "id": "prepared-subscription-metadata",
+      "kind": "library",
+      "status": "private-implementation-unexecuted",
+      "finding": "Resource-changing subscription has one-shot final route metadata validation after adapter readiness; temporary contention can become Capacity and leave the same operation unknown.",
+      "fix": "Retry only typed effect-free metadata contention, keeping the original candidate, preparation, quiescence and absolute deadline.",
+      "proof": "Seven drafted controls, including exact before-compatible held-metadata witness and unchanged original audio; no runtime pass yet.",
+      "reference": ".local/gate-6/native-stream-metadata-candidate/apply-manifest.json",
+      "title": "Subscription commit"
+    },
+    {
+      "id": "original-pcm-retention",
+      "kind": "library",
+      "status": "private-implementation-unexecuted",
+      "finding": "Late mixer cadence and backlog trimming can discard valid original PCM below the existing age/queue bounds, before target retention can help.",
+      "fix": "At most two real capture rounds per wake with original source clocks/ages/current grants and explicit per-target unsupported-clock slot accounting.",
+      "proof": "Eight real-codec controls drafted, including before-compatible loss witnesses, mixed sources, expiry holes, RTP wrap and resampling. No runtime pass yet.",
+      "reference": ".local/gate-6/native-media-continuity-proposal/fix-plan.json",
+      "title": "Audio continuity"
+    },
+    {
+      "id": "public-target-activation",
+      "kind": "library",
+      "status": "reviewed-design-not-implemented",
+      "finding": "Core can retire the original route before the ordinary target authority is active; current target preparation policy refuses a committed root during projection.",
+      "fix": "Preinstall inactive exact continuation, then require actual current Core binding plus fresh current Store admission until ordinary activation is verifiably active.",
+      "proof": "Actual signed paused-projection, revocation/cancellation/generation/crash/replay witnesses required.",
+      "reference": ".local/gate-6/native-media-continuity-proposal/README.txt",
+      "title": "Target activation"
+    },
+    {
+      "id": "packet-observer-lifetime",
+      "kind": "library",
+      "status": "private-implementation-in-progress",
+      "finding": "Four added server descriptors match original WAL paths across independent native cases; fixed Store packet readers retain them after physical owners end.",
+      "fix": "Physical resource scopes plus complete-observation leases, generation-safe fixed slots and close outside all foreign guards in existing owned custody.",
+      "proof": "Exact original WAL-descriptor before/after and acquisition/drain/reopen/cache/authority races pending; this alone does not prove RSS restoration.",
+      "reference": ".local/gate-6/packet-observer-idle-proposal/proposal.html",
+      "title": "Packet observer lifetime"
+    },
+    {
+      "id": "framework-idle-lifetimes",
+      "kind": "runtime-hosting",
+      "status": "architecture-reviewed-causation-incomplete",
+      "finding": "Node retains a loop-owned emergency descriptor after child streams; server threads are consistent with blocking-pool growth while background scans continue. Anonymous RSS growth remains unexplained.",
+      "fix": "Review an actually owned Node programme Worker with natural exit and original process/terminal/aggregate measurements. Add bounded task attribution before changing server worker behavior.",
+      "proof": "No prewarming, GC, internal FD removal, baseline subtraction, keepalive fitting or allowance. Worker exit does not guarantee whole-process RSS or global thread-pool restoration.",
+      "reference": ".local/gate-6/packet-observer-idle-proposal/proposal.html",
+      "title": "Runtime resources"
+    },
+    {
+      "id": "firefox-local-ice",
+      "kind": "fixture",
+      "status": "private-candidate-syntax-checked-runtime-unverified",
+      "finding": "Four local Firefox cases fail first ICE connection; the disposable profile omits the documented offline loopback ICE setting.",
+      "fix": "Enable it only for an authenticated loopback origin and sole explicitly declared 127.0.0.1 fixture address.",
+      "proof": "Pinned Firefox actual handshake/decoded media plus wrong-CA refusal and original joins pending; remote capture failure is separate.",
+      "reference": ".local/gate-6/firefox-loopback-fixture-candidate/proposal.json",
+      "title": "Firefox on loopback"
+    },
+    {
+      "id": "mac-remote-leaf-certificate",
+      "kind": "fixture",
+      "status": "private-candidate-syntax-checked-runtime-unverified",
+      "finding": "Both Mac remote native seed exchanges fail before workload; their generated server end-entity certificate has critical CA:TRUE, which the pinned standard verifier rejects in leaf role.",
+      "fix": "Explicit critical CA:FALSE, retaining exact IP SAN, P256, serverAuth, one-day validity and normal certificate validation.",
+      "proof": "Actual pinned verifier, wrong-root/name controls and original guest QUIC exchange pending. Historical generic error alone does not prove sole causation.",
+      "reference": ".local/gate-6/mac-remote-leaf-certificate-candidate/proposal.json",
+      "title": "Native QUIC certificate"
+    },
+    {
+      "id": "firefox-remote-capture",
+      "kind": "unresolved-boundary",
+      "status": "investigating",
+      "finding": "Remote Firefox reaches ICE/DTLS connected then fails public capture with an application error; local loopback preference cannot explain it.",
+      "fix": "Identify exact public capture API/parameter incompatibility and retain the underlying bounded error stage.",
+      "proof": "All actual source/capture/decoded thresholds and normal TLS remain required.",
+      "reference": ".local/gate-6/full-matrix-v192/completed-cell-diagnostics/",
+      "title": "Firefox capture"
+    },
+    {
+      "id": "rtc-movement-authority",
+      "kind": "unresolved-boundary",
+      "status": "investigating",
+      "finding": "Chrome WebRTC movements report original-operation deadlines or503 authority_unavailable in full workloads, although focused signed AV cases pass.",
+      "fix": "Correlate original operation, current authority and preparation/commit/activation stages before choosing a change.",
+      "proof": "Do not retry unknown effects or infer this is the same metadata/activation defect without a controlled witness.",
+      "reference": ".local/gate-6/full-matrix-v192/completed-cell-diagnostics/",
+      "title": "WebRTC move authority"
+    }
+  ],
+  "preserved": [
+    "All32 configurations/all432 verdicts on each complete matrix run; no inherited passes",
+    "Original logical IDs, authority/revocation, clocks,200ms/earlier frame ages and original deadlines",
+    "Unchanged decoded media, privacy, retirement and ten-second resource limits",
+    "Local Mac Studio and Ubuntu24 ARM64 only; G6-054 stays deferred",
+    "Recorded upstream patches/source-lock and freshly prepared sources before builds",
+    "Exact before-fail/after-pass evidence before broad claims; publication separate"
+  ]
+}
