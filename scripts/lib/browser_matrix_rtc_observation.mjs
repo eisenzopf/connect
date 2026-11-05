@@ -71,6 +71,8 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
     };
     Rtc.prototype.render=function(input,...args){
         const previous=rendering;rendering=this.input.connectionId;
+        // Label the exact existing native peer; never infer owners from creation order.
+        globalThis.connectPeerTag?.(this.peer,this.input.connectionId);
         try{return render.call(this,input,...args);}finally{rendering=previous;}
     };
     HTMLVideoElement.prototype.requestVideoFrameCallback=function(callback){

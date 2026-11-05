@@ -26,7 +26,7 @@ test("RTP loss and repair counters remain bounded numeric facts without private 
         const clocks=await globalThis.connectPeerClockDiagnostics();
         assert.equal(clocks.length,4);assert(clocks.every(rows=>rows.length===8));
         assert.equal(value.length,4);assert(value.every(rows=>rows.length===8));
-        assert.deepEqual(value[0][0],{type:"inbound-rtp",kind:"audio",packetsLost:2,nackCount:4,
+        assert.deepEqual(value[0][0],{peer_index:0,connection_id:null,report_index:0,stats_timestamp_ms:null,type:"inbound-rtp",kind:"audio",packetsLost:2,nackCount:4,
             concealedSamples:960,silentConcealedSamples:480,concealmentEvents:2,
             jitterBufferDelay:.1,jitterBufferEmittedCount:960,jitterBufferTargetDelay:.2,
             jitterBufferMinimumDelay:.05,totalDecodeTime:.01,totalProcessingDelay:.03,
@@ -34,7 +34,7 @@ test("RTP loss and repair counters remain bounded numeric facts without private 
         assert.equal(JSON.stringify(value).includes("private-secret"),false);
     }finally{
         globalThis.RTCPeerConnection=original;
-        delete globalThis.connectPeerDiagnostics;delete globalThis.connectPeerMediaDiagnostics;delete globalThis.connectPeerCodecDiagnostics;delete globalThis.connectPeerClockDiagnostics;
+        delete globalThis.connectPeerTag;delete globalThis.connectPeerDiagnostics;delete globalThis.connectPeerMediaDiagnostics;delete globalThis.connectPeerCodecDiagnostics;delete globalThis.connectPeerClockDiagnostics;
     }
 });
 
@@ -64,7 +64,7 @@ test("codec diagnostics preserve negotiation facts and exclude signaling secrets
         assert.deepEqual(value[0].remote.media[0].codecs,[{payload_type:96,name:"VP8",clock_rate:90000,channels:null}]);
     }finally{
         globalThis.RTCPeerConnection=original;
-        delete globalThis.connectPeerDiagnostics;delete globalThis.connectPeerMediaDiagnostics;delete globalThis.connectPeerCodecDiagnostics;delete globalThis.connectPeerClockDiagnostics;
+        delete globalThis.connectPeerTag;delete globalThis.connectPeerDiagnostics;delete globalThis.connectPeerMediaDiagnostics;delete globalThis.connectPeerCodecDiagnostics;delete globalThis.connectPeerClockDiagnostics;
     }
 });
 
@@ -104,7 +104,7 @@ test('receiver clock diagnostics resolve kind privately and preserve signed cloc
         for(const key of ['id','ssrc','timestamp','remoteTimestamp','localId'])assert.equal(key in rows[1],false);
     }finally{
         globalThis.RTCPeerConnection=original;
-        for(const name of ['connectPeerDiagnostics','connectPeerMediaDiagnostics','connectPeerCodecDiagnostics','connectPeerClockDiagnostics'])delete globalThis[name];
+        for(const name of ['connectPeerTag','connectPeerDiagnostics','connectPeerMediaDiagnostics','connectPeerCodecDiagnostics','connectPeerClockDiagnostics'])delete globalThis[name];
     }
 });
 
@@ -129,6 +129,6 @@ test('unsupported clocks, empty buffers and failed clock reads remain explicitly
         peer.fail=true;assert.deepEqual(await globalThis.connectPeerClockDiagnostics(),[{unavailable:true}]);
     }finally{
         globalThis.RTCPeerConnection=original;
-        for(const name of ['connectPeerDiagnostics','connectPeerMediaDiagnostics','connectPeerCodecDiagnostics','connectPeerClockDiagnostics'])delete globalThis[name];
+        for(const name of ['connectPeerTag','connectPeerDiagnostics','connectPeerMediaDiagnostics','connectPeerCodecDiagnostics','connectPeerClockDiagnostics'])delete globalThis[name];
     }
 });

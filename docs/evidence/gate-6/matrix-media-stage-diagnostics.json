@@ -1,0 +1,69 @@
+{
+  "format": "connect/matrix-media-stage-diagnostics/1",
+  "scope": "Integrated read-only diagnostic counters. Parent TypeScript build and focused mock tests passed; no new browser/media/matrix qualification.",
+  "fixture_tests_passed": 27,
+  "sdk_codec_media_tests_passed": 39,
+  "failed": 0,
+  "source_sha256": {
+    "sdk/typescript/src/browser_codecs.ts": "55042362cb306d7129288a08dda1b40e04f2106f42f097eb828176bb80145487",
+    "sdk/typescript/src/browser_media.ts": "05f18f1bd62dea89eeb842d5ca18f445af8748892838935e3336c345e730619b",
+    "scripts/lib/browser_matrix_pipeline.mjs": "aca086bd00d34c595ca0ed2c3695287fd614f8af4ad19c95ea9a1469451f546f",
+    "scripts/lib/browser_matrix_observation.mjs": "defb3a4ccc9176902417a260a8227164928d8fb0d02555ea8937b25aa3b661d3",
+    "scripts/video/browser_failure.mjs": "54799cac083ca7c9d6158f3f2bc5239f87dd24676181457133e5fbe81c870b9b",
+    "scripts/video/browser_matrix_admission.mjs": "98aee20f91f45d21b09e024294382fd0033b2f4c0413ef6dd0735ce33037a328",
+    "scripts/tests/browser_matrix_stages.test.mjs": "83b8c0427d54f392086302b657f2e3bce927b969850264fc0fe38edd057a1b09",
+    "scripts/lib/browser_matrix_rtc_observation.mjs": "d23ead6719dc0905d0749f4891d2f5fdb55dbd49664f3ac1f55656f14b1b565f",
+    "scripts/lib/browser_matrix_stages.mjs": "7d86e51e95f1363a49f4d81f45a04b6e96f5e1365143ef6416ea3d800b95ed45",
+    "scripts/lib/browser_matrix_pcm.mjs": "9ece85501210e1d2361cdf2bb6805aeed1c142f222bfd340bcde7822a590457f",
+    "sdk/tests/browser_codec_diagnostics.test.mjs": "2f807f2d2f4f3dc11f691510792fa9b4e9361d2a25055a0fd4e3c4581cadba66",
+    "scripts/video/browser-failure.test.mjs": "83fe6b58058ccfe96717a2566c951210d8219702bf8493fc5948492de0b1bf37"
+  },
+  "parent_logs": {
+    "stages-fixture-tests.log": {
+      "passed": 27,
+      "failed": 0,
+      "sha256": "a26dfc2c5a680545ff233bd8bb9c5b87d2904bb1c5e810fcc73c4b7e153c96ea"
+    },
+    "stages-sdk-tests.log": {
+      "passed": 39,
+      "failed": 0,
+      "sha256": "217891480fc8297c2d319d6644c70cada4692641207c0801d1462fb16d0105f7"
+    }
+  },
+  "bounds": {
+    "peer_owners": 16,
+    "media_rows_per_peer_per_snapshot": 8,
+    "opaque_private_stat_ids_per_peer": 32,
+    "state_events_per_peer": 128,
+    "listeners_per_peer": 20,
+    "rtc_original_attempts": 64,
+    "rtc_sample_interval_ms": 1000,
+    "rtc_pending_reads_per_sampler": 1,
+    "rtc_close_join_timeout_ms": 500,
+    "wt_owners": 10,
+    "wt_snapshots_per_owner": 63,
+    "suspect_pcm_boundaries_per_owner": 32
+  },
+  "acceptance_unchanged": [
+    "60-second measured programme window",
+    "24 changing video frames per second",
+    "original duplicate/wrong-source checks",
+    "audio gap, identity and AV synchronization thresholds",
+    "original source timestamps and original operation custody",
+    "all historical runtime verdicts"
+  ],
+  "behavior": [
+    "Every original/replacement RTC peer is observed within16peer/8media-row bounds, once per second and at most64original snapshots.",
+    "One peer stats refusal cannot erase another peer; native opaque identities and implementation strings are not published.",
+    "Retired peer/listener references are released. A pending nativegetStats is reported joined=false after its bounded close wait, never treated as a successful retirement.",
+    "WT input/encoded/decoded/refusal/queue counters retain original clocks and generations; they do not substitute for decoded pixels/PCM."
+  ],
+  "limitations": [
+    "No new complete matrix or real media pass claimed.",
+    "Existing v191 logs do not identify packet media kind or bind server wall clock to browser programme origin; contention counts cannot be converted into exact video-frame loss.",
+    "Counters are diagnostic observations, never replacements for decoded PCM/pixel quality.",
+    "Native getStats cannot be force-cancelled; an original outstanding read returns joined=false after the bounded close wait."
+  ],
+  "preserved_initial_test_setup_failure": "The handed draft browser_codec_diagnostics.test.mjs omitted one class-closing brace and failed parsing; production TS build succeeded. Original failing log sdk-tests.tap retained. Final corrected test run passes39/39.",
+  "matrix_qualified": false
+}

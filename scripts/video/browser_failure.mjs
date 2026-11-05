@@ -1,5 +1,6 @@
 /** Bounded public peer state diagnostics. Never retain SDP, addresses or credentials. */
-export function installPeerDiagnostics() {
+export function installPeerDiagnostics({peerBound=4}={}) {
+    if(!Number.isInteger(peerBound)||peerBound<1||peerBound>16)throw Error('Bounded original peer diagnostics');
     const NativePeer = globalThis.RTCPeerConnection;
     const entries = [];
     let omittedPeers = 0;
@@ -19,11 +20,17 @@ export function installPeerDiagnostics() {
     globalThis.RTCPeerConnection = class extends NativePeer {
         constructor(...args) {
             super(...args);
-            if (entries.length >= 4) { omittedPeers++; return; }
-            const entry = {peer: this, events: [], omitted_events: 0, snapshot_errors: 0};
+            if (entries.length >= peerBound) { omittedPeers++; return; }
+            const entry = {peer: this, peer_index:entries.length, connection_id:null, current:null, codecs:null, detach:null, stats_ids:new Map(), omitted_media_rows:0, omitted_listeners:0, events: [], omitted_events: 0, snapshot_errors: 0};
             entries.push(entry);
-            const observedTransports = new WeakSet();
+            const observedTransports = new WeakSet(),listeners=[];
+            const listen=(target,event,callback)=>{
+                if(listeners.length>=20){entry.omitted_listeners++;return;}
+                target.addEventListener(event,callback);listeners.push([target,event,callback]);
+            };
+            entry.detach=()=>{for(const [target,event,callback]of listeners)target.removeEventListener?.(event,callback);listeners.length=0;};
             const record = () => {
+                if(entry.peer!==this)return;
                 try {
                     const value = {...sample(this), elapsed_ms: performance.now()};
                     if (entry.events.length < 128) entry.events.push(value);
@@ -32,29 +39,49 @@ export function installPeerDiagnostics() {
                         for (const transport of [transceiver.sender?.transport, transceiver.receiver?.transport]) {
                             if (transport && !observedTransports.has(transport)) {
                                 observedTransports.add(transport);
-                                transport.addEventListener("statechange", record);
+                                listen(transport,"statechange", record);
                             }
                         }
                     }
                 } catch { entry.snapshot_errors++; }
             };
             for (const event of ["connectionstatechange", "iceconnectionstatechange", "icegatheringstatechange", "signalingstatechange"])
-                this.addEventListener(event, record);
+                listen(this,event, record);
             record();
         }
+        close(){
+            const entry=entries.find(value=>value.peer===this);
+            if(entry)try{entry.codecs=codecSnapshot(this);}catch{entry.codecs={unavailable:true};}
+            try{return super.close();}
+            finally{
+                if(entry&&(this.connectionState==='closed'||this.signalingState==='closed')){
+                    try{entry.current=sample(this);}catch{entry.current={unavailable:true};}
+                    entry.detach?.();entry.detach=null;entry.peer=null;entry.stats_ids.clear();
+                }
+            }
+        }
+    };
+    globalThis.connectPeerTag=(peer,connectionId)=>{
+        const entry=entries.find(value=>value.peer===peer);
+        if(!entry||typeof connectionId!=='string'||!connectionId.length||connectionId.length>256||
+            entry.connection_id!==null&&entry.connection_id!==connectionId)return false;
+        entry.connection_id=connectionId;return true;
     };
     globalThis.connectPeerDiagnostics = () => ({
-        peer_bound: 4, event_bound_per_peer: 128, omitted_peers: omittedPeers,
+        peer_bound: peerBound, event_bound_per_peer: 128, omitted_peers: omittedPeers,
         peers: entries.map(entry => {
             let current;
-            try { current = sample(entry.peer); } catch { current = {unavailable: true}; }
-            return {current, events: entry.events, omitted_events: entry.omitted_events, snapshot_errors: entry.snapshot_errors};
+            try { current = entry.peer?sample(entry.peer):entry.current; } catch { current = {unavailable: true}; }
+            return {peer_index:entry.peer_index,connection_id:entry.connection_id,live_owner_retained:entry.peer!==null,current, events: entry.events, omitted_events: entry.omitted_events, snapshot_errors: entry.snapshot_errors,omitted_media_rows:entry.omitted_media_rows,omitted_listeners:entry.omitted_listeners};
         }),
     });
     globalThis.connectPeerMediaDiagnostics = async () => Promise.all(entries.map(async(entry)=>{
+        if(!entry.peer)return [];
+        try{
         const report=await entry.peer.getStats(),rows=[];
+        if(!entry.peer)return [];entry.omitted_media_rows=0;
         const fields=["packetsSent","packetsReceived","bytesSent","bytesReceived","framesEncoded","framesDecoded",
-            "framesReceived","framesDropped","totalSamplesSent","totalSamplesReceived","totalAudioEnergy",
+            "framesReceived","framesDropped","framesSent","keyFramesEncoded","keyFramesDecoded","frames","framesPerSecond","frameRate","totalEncodeTime","totalSamplesSent","totalSamplesReceived","totalAudioEnergy",
             "totalSamplesDuration","audioLevel","frameWidth","frameHeight"];
         fields.push("packetsLost","nackCount","pliCount","firCount","retransmittedPacketsSent",
             "retransmittedBytesSent","concealedSamples","silentConcealedSamples","concealmentEvents",
@@ -62,16 +89,27 @@ export function installPeerDiagnostics() {
             "jitterBufferDelay","jitterBufferEmittedCount","jitterBufferTargetDelay",
             "jitterBufferMinimumDelay","totalDecodeTime","totalProcessingDelay",
             "totalInterFrameDelay","totalSquaredInterFrameDelay","freezeCount","totalFreezesDuration");
-        report.forEach(stat=>{
-            if(!["inbound-rtp","outbound-rtp","media-source"].includes(stat.type)||rows.length>=8)return;
-            const row={type:stat.type,kind:["audio","video"].includes(stat.kind)?stat.kind:"other"};
-            for(const field of fields)if(Number.isFinite(stat[field])&&stat[field]>=0)row[field]=stat[field];
+        report.forEach((stat,key)=>{
+            if(!["inbound-rtp","outbound-rtp","media-source"].includes(stat.type))return;
+            if(rows.length>=8){entry.omitted_media_rows++;return;}
+            let ordinal=entry.stats_ids.get(key);
+            if(ordinal===undefined){
+                if(typeof key!=='string'||key.length>256||entry.stats_ids.size>=32){entry.omitted_media_rows++;return;}
+                ordinal=entry.stats_ids.size;entry.stats_ids.set(key,ordinal);
+            }
+            const row={peer_index:entry.peer_index,connection_id:entry.connection_id,report_index:ordinal,type:stat.type,
+                kind:["audio","video"].includes(stat.kind)?stat.kind:"other",
+                stats_timestamp_ms:Number.isFinite(stat.timestamp)?stat.timestamp:null};
+            if(['none','cpu','bandwidth','other'].includes(stat.qualityLimitationReason))row.qualityLimitationReason=stat.qualityLimitationReason;
+            for(const field of fields)if(Number.isFinite(stat[field])&&(stat[field]>=0||field==='packetsLost'))row[field]=stat[field];
             rows.push(row);
         });
         return rows;
+        }catch{return [{peer_index:entry.peer_index,connection_id:entry.connection_id,unavailable:true}];}
     }));
     globalThis.connectPeerClockDiagnostics = async () => Promise.all(entries.map(async(entry)=>{
         try{
+        if(!entry.peer)return [];
         const report=await entry.peer.getStats(),rows=[],now=performance.timeOrigin+performance.now();
         const numeric=value=>Number.isFinite(value)&&value>=0?value:null;
         const difference=(left,right)=>Number.isFinite(left)&&Number.isFinite(right)&&Math.abs(left-right)<=3600000
@@ -130,9 +168,15 @@ export function installPeerDiagnostics() {
         }
         return {type:["offer","answer","pranswer","rollback"].includes(description.type)?description.type:"other",media};
     };
-    globalThis.connectPeerCodecDiagnostics=()=>entries.map(entry=>({
-        local:descriptionCodecs(entry.peer.localDescription),remote:descriptionCodecs(entry.peer.remoteDescription),
-        transceivers:entry.peer.getTransceivers().slice(0,4).map(tx=>({direction:tx.direction,current_direction:tx.currentDirection}))}));
+    const codecSnapshot=peer=>({
+        local:descriptionCodecs(peer.localDescription),remote:descriptionCodecs(peer.remoteDescription),
+        transceivers:peer.getTransceivers().slice(0,4).map(tx=>({
+            direction:state(tx.direction,["sendrecv","sendonly","recvonly","inactive","stopped"]),
+            current_direction:tx.currentDirection===null?null:state(tx.currentDirection,["sendrecv","sendonly","recvonly","inactive","stopped"])}))});
+    globalThis.connectPeerCodecDiagnostics=()=>entries.map(entry=>{
+        if(!entry.peer)return {closed:true,...(entry.codecs??{unavailable:true})};
+        try{return codecSnapshot(entry.peer);}catch{return {unavailable:true};}
+    });
 }
 
 export async function browserFailure(pages, error) {

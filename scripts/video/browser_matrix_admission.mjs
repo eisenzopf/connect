@@ -90,6 +90,8 @@ try{
             else if(url.pathname==='/_matrix/authority.mjs')file=path.join(root,'scripts/lib/browser_matrix_authority.mjs');
             else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_pipeline.mjs')file=path.join(root,'scripts/lib/browser_matrix_pipeline.mjs');
+            else if(url.pathname==='/_matrix/browser_matrix_stages.mjs')file=path.join(root,'scripts/lib/browser_matrix_stages.mjs');
+            else if(url.pathname==='/_matrix/browser_matrix_pcm.mjs')file=path.join(root,'scripts/lib/browser_matrix_pcm.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_audio_input.mjs')file=path.join(root,'scripts/lib/browser_matrix_audio_input.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_rtc_observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_rtc_observation.mjs');
             else if(url.pathname==='/_matrix/observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_observation.mjs');
@@ -128,7 +130,7 @@ try{
     stun=await openLoopbackStun(new URL(spec.origin).hostname,fixtureAddresses);spec.rtcConfiguration={iceServers:[{urls:stun.url}]};
     unavailable=await matrixUnavailableTransports();spec.unavailableEndpoints=unavailable.endpoints;
     page=await owner.browser.newPage();
-    await page.addInitScript(installPeerDiagnostics);
+    await page.addInitScript(installPeerDiagnostics,{peerBound:16});
     page.on('console',message=>diagnostic(message.text()));
     page.on('pageerror',error=>diagnostic(error.stack??error));
     await page.goto(spec.origin,{timeout:5000});
