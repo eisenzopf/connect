@@ -1,0 +1,120 @@
+{
+  "format": "connect/browser-preencode-source-silence/1",
+  "scope": "Actual isolated local browser capture\u2192SDK Opus\u2192decode component, with no service/Core/network and no real device handoff. One scoped audio defect is proven upstream of Opus; other historical AV failures remain unattributed.",
+  "result_sha256": "911d1d1567fefea202b9ae721d12f2d40b7ceae2fa7db02abc3d9d6c51556875",
+  "elapsed_ms": 64047,
+  "original_join": {
+    "original_process_joined": true,
+    "forced_kill": false,
+    "exit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "original_cleanup": {
+    "source_master_tracks_ended": true,
+    "capture_owners": 10,
+    "capture_owners_closed": true,
+    "codec_owners_closed": true,
+    "audio_cleanup_promises_joined": 10
+  },
+  "source_inputs_unchanged": true,
+  "programme": {
+    "audioOriginSeconds": 0.15333333333333335,
+    "originMs": 326.3999999985099,
+    "deadlineMs": 62326.39999999851,
+    "durationMs": 62000,
+    "markerProgram": "connect-av-cadence/1",
+    "sourcePulseMs": 100,
+    "audioPeakLow": 0.05,
+    "audioPeakHigh": 0.2
+  },
+  "measured_decoded_identity_failures": 1,
+  "owner": "steady source5 generation0;660Hz",
+  "timestamp_us": 30245800,
+  "callback_seconds": 29.93839999999851,
+  "active_owner": true,
+  "original_input_pcm_sha256": "91e558605602e9fc51aaa12ada3bec46a9e41d5e9920ded3ff49afec0df84b5a",
+  "original_input_samples": 960,
+  "leading_exact_zero_samples": 480,
+  "nonzero_correct_tone_samples_after_zeros": 480,
+  "input_boundary": {
+    "sample_count": 960,
+    "sample_rate": 48000,
+    "longest_exact_zero_run_samples": 480,
+    "leading_exact_zero_samples": 480,
+    "trailing_exact_zero_samples": 0,
+    "near_zero_samples": 480,
+    "near_zero_absolute_limit": 1e-08,
+    "maximum_absolute_sample_step": 0.04754238203167915,
+    "absolute_peak": 0.04999997094273567,
+    "first_sample": 0,
+    "last_sample": -0.04871627315878868
+  },
+  "original_capture_state": {
+    "callback_seconds": 29.93829999999702,
+    "epoch": 1,
+    "audio_context_state": "running",
+    "audio_context_time": 30.048,
+    "paused": false,
+    "tracks": [
+      {
+        "kind": "audio",
+        "state": "live",
+        "muted": false,
+        "enabled": true
+      },
+      {
+        "kind": "video",
+        "state": "live",
+        "muted": false,
+        "enabled": true
+      }
+    ]
+  },
+  "codec_stage_at_original_boundary": {
+    "capture_calls": 1502,
+    "encoded": 1502,
+    "decode_submissions": 1502,
+    "native_encoded": 1502,
+    "native_decoded": 1502,
+    "last_capture_timestamp_us": 30245800,
+    "capture_timestamp_gaps": 1,
+    "nonforward_capture_timestamps": 0,
+    "maximum_capture_step_us": 25333,
+    "max_encode_queue": 0,
+    "max_decode_queue": 0,
+    "max_pending_encode": 1,
+    "max_pending_decode": 1,
+    "encoder_refusals": 0,
+    "decoder_refusals": 0
+  },
+  "input_identity": {
+    "rms": 0.025176087882876327,
+    "powers": [
+      1.1351000112984483e-06,
+      0.00015998327360791856,
+      1.6606680298620873e-06,
+      1.146993905523035e-06
+    ],
+    "identified": true
+  },
+  "decoded_identity": {
+    "rms": 0.025347390330139837,
+    "powers": [
+      4.827320109949923e-06,
+      2.872627165919581e-05,
+      2.7936867422264466e-06,
+      9.94552792141736e-07
+    ],
+    "identified": false
+  },
+  "raw_pcm_and_encoded_packets_private": true,
+  "limits_and_existing_observation_window_unchanged": true,
+  "remaining": [
+    "Pinpoint whether the unintended silence enters the synthetic WebAudio graph, its MediaStream/track-processor bridge, or SDK sample batching.",
+    "Correct that actual source/capture boundary; do not fill/drop/retime the failed measured block, reset the codec to hide it or weaken the identity threshold.",
+    "Complete separately pending video/idle/typed-planning corrections and the full32 transport qualification."
+  ],
+  "matrix_qualified": false
+}
