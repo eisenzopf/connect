@@ -1759,6 +1759,11 @@
       "path": "patches/rvoip/connect-native-activation-cut.patch",
       "sha256": "e9e50361b6901eb181e262d7520eda4bae327445c085ac73808f8c5961e5a59d",
       "source": "G6-058 exact original native egress activation cuts, signed negotiation identity and decoder provenance; current private successor guards preserved. Focused behavioral verification and complete 32-cell matrix pending."
+    },
+    {
+      "path": "patches/rvoip/connect-uctp-required-nullable-and-fixture-guards.patch",
+      "sha256": "1f5633b81718e0c3a22198d2f44b299b11f9cf5e3ed27cfcc42e557173ac1e49",
+      "source": "Private v209 candidate: restore frozen nullable-but-required active speaker contract; exact test fixtures. Active original source remains unchanged; behavioral qualification pending."
     }
   ]
 }

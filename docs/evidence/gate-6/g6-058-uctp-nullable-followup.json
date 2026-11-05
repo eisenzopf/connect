@@ -1,0 +1,74 @@
+{
+  "format": "connect/g6-058-uctp-nullable-followup/1",
+  "status": "source-correction-verified-components-full-transport-pending",
+  "base_revision": "40bd2301a632f21250f7e04153e748f852250ac2",
+  "recorded_at": "2026-11-05T20:37:12.539217+00:00",
+  "source_lock_sha256": "1477752a147d87a921684fede6d59f8766eb00661bcc4c7ec90bdc2d326d5551",
+  "upstream_patch_sha256": "1f5633b81718e0c3a22198d2f44b299b11f9cf5e3ed27cfcc42e557173ac1e49",
+  "problem": "The Rust generator discarded the null branch of required active_participant. A later regeneration made the typed codec reject contract-valid silence and prevented existing Option assertions from compiling. A retained-peer fixture and command-only media mock also omitted newer fields/intent handling.",
+  "correction": "Restore required-but-nullable participant decoding and explicit-null serialization. Correct regeneration without double Option or relaxed missing/invalid identifier rules. Initialize test-only empty/no-feedback metadata and explicitly refuse replacement-video authority in a connection.update-only fixture.",
+  "contract_inputs": {
+    "schema_sha256": "073c721d6800ed8d9d324b7a5d04b451c04ec7a8e221557d74a12831b4e1fad9",
+    "vectors_sha256": "137d0d3ff5f1f2228bd370c8aca0c2c4191f93e8687aed6ee7300762b276ea39"
+  },
+  "verification": {
+    "upstream_all_test_api_check_exit": 0,
+    "api_check_scope": "Private corrected graph; release cfg with optimization0; no runtime claim from compilation.",
+    "normal_release_protocol_cases": [
+      {
+        "name": "v2::tests::frozen_golden_vectors_decode_and_roundtrip_every_type",
+        "passed": true
+      },
+      {
+        "name": "v2::tests::active_speaker_is_session_scoped_and_preserves_explicit_null_silence",
+        "passed": true
+      },
+      {
+        "name": "v2::tests::active_speaker_typed_payload_requires_explicit_nullable_participant",
+        "passed": true
+      },
+      {
+        "name": "v2::native_negotiation::tests::new_capability_declarations_invalidate_old_prepared_negotiation_metadata",
+        "passed": true
+      }
+    ],
+    "normal_release_adapter_cases": [
+      {
+        "name": "staged_media::tests::measured_egress_keeps_successful_video_prefix_when_a_later_datagram_fails",
+        "passed": true
+      },
+      {
+        "name": "staged_media::tests::sender_clock_reports_actual_submissions_and_never_counts_metadata_as_rtp",
+        "passed": true
+      },
+      {
+        "name": "staged_media::clock_acquisition_tests::acquiring_first_clock_keeps_in_progress_vp8_ssrc_sequence_and_sender_counts",
+        "passed": true
+      }
+    ],
+    "normal_release_profile": {
+      "opt_level": "3",
+      "debuginfo": 0,
+      "debug_assertions": false,
+      "overflow_checks": false,
+      "test": true
+    },
+    "private_prepared_sources_unchanged": true,
+    "python_regeneration_before": {
+      "tests": 4,
+      "passed": 2,
+      "expected_assertion_failures": 2,
+      "skipped": 0
+    },
+    "python_regeneration_after": {
+      "tests": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    "generated_rust_semantic_tests": "building; no result claimed",
+    "actual_wire_and_context_controls": "building; no result claimed",
+    "matrix_cells_qualified": 0
+  },
+  "scope": "Component code/results only. Separate branch preserves active original40bd focused run. No source-clock, media quality, authority, deadline or resource limit changes. Full32/all432 remain required. G6-054 stays deferred."
+}

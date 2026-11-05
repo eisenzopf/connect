@@ -1,0 +1,84 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/payloads.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/payloads.rs
+@@ -900,9 +900,21 @@
+ 
+ #[derive(Clone, Serialize, Deserialize)]
+ pub struct StreamActiveSpeaker {
+-    pub active_participant: Identifier,
++    #[serde(deserialize_with = "deserialize_required_nullable_identifier")]
++    pub active_participant: Option<Identifier>,
+     pub strm_id: Identifier,
+     pub changed_at: DateTime<Utc>,
++}
++
++// Silence is explicit null. The field must still be present when decoding a
++// typed payload directly, independently of the envelope schema validator.
++fn deserialize_required_nullable_identifier<'de, D>(
++    deserializer: D,
++) -> Result<Option<Identifier>, D::Error>
++where
++    D: serde::Deserializer<'de>,
++{
++    Option::<Identifier>::deserialize(deserializer)
+ }
+ 
+ impl std::fmt::Debug for StreamActiveSpeaker {
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
+@@ -343,6 +343,8 @@
+         .declare_capabilities(initial.remote.clone(), || true)
+         .is_err());
+     *broker.retained.lock().unwrap() = Some(RetainedPeer {
++        video_allocations: Vec::new(),
++        video_feedback: false,
+         negotiated: initial.remote.clone(),
+         declared: None,
+         substrate: "quic".into(),
+--- a/crates/uctp/rvoip-uctp/tests/support/media_control.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -130,6 +130,9 @@
+             return Err(StreamControlError::Authority);
+         }
+         let intent_matches = match intent {
++            // This fixture captures only connection.update commands; it owns
++            // no authenticated replacement-video preparation invocation.
++            MediaControlIntent::PrepareReplacementVideo { .. } => false,
+             MediaControlIntent::Initialize => {
+                 held.action == ConnectionUpdateAction::CodecRenegotiate
+             }
+--- a/crates/uctp/rvoip-uctp/src/v2/tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/tests.rs
+@@ -269,6 +269,33 @@
+ }
+ 
+ #[test]
++fn active_speaker_typed_payload_requires_explicit_nullable_participant() {
++    let mut value = sample("stream.active-speaker")["payload"].clone();
++    value["active_participant"] = Value::Null;
++    let silence: super::payloads::StreamActiveSpeaker =
++        serde_json::from_value(value.clone()).unwrap();
++    assert!(silence.active_participant.is_none());
++    let serialized = serde_json::to_value(silence).unwrap();
++    assert!(serialized.as_object().unwrap().contains_key("active_participant"));
++    assert!(serialized["active_participant"].is_null());
++
++    value["active_participant"] = json!("participant_actual");
++    let active: super::payloads::StreamActiveSpeaker =
++        serde_json::from_value(value.clone()).unwrap();
++    assert_eq!(
++        active.active_participant.as_ref().unwrap().as_str(),
++        "participant_actual"
++    );
++    for invalid in [json!(37), json!("invalid/participant"), json!(true)] {
++        value["active_participant"] = invalid;
++        assert!(serde_json::from_value::<super::payloads::StreamActiveSpeaker>(value.clone())
++            .is_err());
++    }
++    value.as_object_mut().unwrap().remove("active_participant");
++    assert!(serde_json::from_value::<super::payloads::StreamActiveSpeaker>(value).is_err());
++}
++
++#[test]
+ fn closed_preparation_metadata_refuses_asserted_authority_without_disabling_ordinary_extensions() {
+     let vectors: Value = serde_json::from_str(include_str!("golden-vectors.json")).unwrap();
+     let mut value = vectors["vectors"]
