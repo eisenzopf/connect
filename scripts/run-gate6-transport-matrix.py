@@ -132,8 +132,19 @@ def execute_selected(matrix, ids, output, execute):
         try:
             report, report_sha256, code = execute(cell)
             if full:
-                cell["execution"].update(attempted=True, component=dict(report_sha256=report_sha256, exit_code=code))
+                failure = report.get("failure") or {}
+                cell["execution"].update(attempted=True, component=dict(report_sha256=report_sha256,
+                    exit_code=code, failure_phase=failure.get("phase"), failure_kind=failure.get("name")))
                 evaluate_cell(cell, report, report_sha256, environment=matrix["execution_environment"], revision=matrix["source_revision"])
+                from lib.matrix_archive import archive_joined
+                directory = output / "cells" / cell["server"] / cell["network"] / cell["transport"] / cell["signing"]
+                if directory.is_dir():
+                    try:
+                        cell["execution"]["evidence_archive"] = archive_joined(directory, report)
+                    except Exception as error:
+                        # Preserve the expanded original on any archival doubt;
+                        # storage housekeeping cannot rewrite a behavior verdict.
+                        cell["execution"]["archive_failure"] = type(error).__name__
             else:
                 record = record_browser_result if cell["execution"].get("producer") in {"browser-admission", "browser-programme", "browser-quality"} else record_native_result
                 record(matrix, cell, report, report_sha256, code)
