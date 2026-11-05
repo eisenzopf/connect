@@ -71,7 +71,12 @@ fn original_observer_contention_refuses_without_substitution_and_releases_the_re
             f.store.try_acquire_authority(scopes)
         },
     );
-    assert_eq!(result.unwrap_err().code, "authority-busy");
+    let error = result.unwrap_err();
+    assert_eq!(error.code, "authority-busy");
+    assert_eq!(
+        error.message,
+        "Original packet observer is busy during snapshot reseal"
+    );
     drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());
     drop(occupied);
     assert_eq!(acquire(&f.store, |c| f.derive(c)).unwrap().0, 1);

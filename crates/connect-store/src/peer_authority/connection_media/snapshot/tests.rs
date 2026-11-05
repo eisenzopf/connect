@@ -961,10 +961,9 @@ fn occupy_packet_sql(store: &Store) -> Vec<crate::installation_ownership::Connec
 fn packet_sql_observers_are_read_only_and_release_after_saturation() {
     let f = Fixture::new();
     let held = occupy_packet_sql(&f.store);
-    assert_eq!(
-        acquire(&f.store, |c| f.derive(c)).unwrap_err().code,
-        "authority-busy"
-    );
+    let error = acquire(&f.store, |c| f.derive(c)).unwrap_err();
+    assert_eq!(error.code, "authority-busy");
+    assert_eq!(error.message, "All current packet observers are busy");
     assert!(held[0]
         .execute("UPDATE packet_snapshot_test SET value=9", [])
         .is_err());

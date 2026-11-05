@@ -344,7 +344,11 @@ impl Store {
         }
         Err(Error::new(
             "authority-busy",
-            "Current packet observers are busy",
+            if original.is_some() {
+                "Original packet observer is busy during snapshot reseal"
+            } else {
+                "All current packet observers are busy"
+            },
         ))
     }
     /// Register one bounded component hint, never an authorization grant.
