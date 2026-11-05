@@ -1,0 +1,25 @@
+{
+  "format": "connect/firefox-original-programme-smoke/1",
+  "scope": "One actual Mac Firefox about:blank original 12-second promise; no Connect, provider or media calls",
+  "browser_version": "Firefox158.0.1",
+  "protocol_timeout_ms": 10000,
+  "workload_ms": 12000,
+  "passed": true,
+  "start_request_ms": 4.3212079999993875,
+  "result": {
+    "original": "one-original-about-blank-result",
+    "starts": 1,
+    "elapsed_ms": 12011
+  },
+  "result_wait_ms": 12137.958999999999,
+  "original_result_observed": true,
+  "browser": {
+    "original_process_joined": true,
+    "forced_kill": false,
+    "exit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "elapsed_ms": 17569.675
+}
