@@ -293,6 +293,15 @@ impl Runtime {
                 }
             }
         }
+        if let Some(root) = &owned.root {
+            // The preparation watcher transfers this entry's lifetime to us
+            // at commit. Remove only our exact original entry after all owned
+            // route joins and durable retirement attempts have completed.
+            self.replacements
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .retain(|_, current| !Arc::ptr_eq(current, root));
+        }
         failure.map_or(Ok(()), Err)
     }
     async fn settle_adopted_rtc_retirement(

@@ -1,0 +1,15 @@
+{
+  "image_id": "sha256:2856c7b7ae4eea13ba0fb4a5605b4f182557f0b1842f45efebd2c03ea66e9e6c",
+  "architecture": "arm64",
+  "base": "sha256:453a491700f0681a6595de797f97a993a68bfa5d0834d5909c3bcdbadf28a42b",
+  "exit_code": 0,
+  "stdout": "Mozilla Firefox 158.0.1\n",
+  "stderr": "[1] Sandbox: CanCreateUserNamespace() clone() failure: EPERM\n",
+  "scope": "Pinned browser runtime availability only; not media qualification",
+  "format": "connect/local-arm-browser-runtime/1",
+  "task": "G6-058",
+  "executed_on": "owner Mac Studio Colima connect-gate6 Ubuntu 24.04 ARM64",
+  "full_matrix_qualified": false,
+  "reason": "Missing Linux GTK shared libraries repaired in locally built fixture image; browser version check only.",
+  "build_recipe": "scripts/video/Dockerfile.matrix-browser"
+}

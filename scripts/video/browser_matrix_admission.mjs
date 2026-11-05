@@ -13,6 +13,7 @@ import {openLoopbackStun} from './loopback_stun.mjs';
 import {matrixResourceBridge} from '../lib/matrix_resource_bridge.mjs';
 import {matrixUnavailableTransports} from '../lib/matrix_unavailable_transports.mjs';
 import {matrixAuthorityBridge} from '../lib/matrix_authority_bridge.mjs';
+import {originalBrowserMatrixResult} from '../lib/browser_matrix_result.mjs';
 
 const [inputPath]=process.argv.slice(2);
 assert.equal(process.argv.length,3);
@@ -60,6 +61,9 @@ const report={format:'connect/browser-matrix-admission-observation/1',source_rev
     scope:'Actual isolated Chrome/public browser-SDK admission only. HTTPS/WSS use configured CA trust; WT uses its explicitly supplied fresh short-lived certificate SHA256 through the standard API. No full media/four-move/expiry/idle/fallback or complete-cell qualification.',
     tls_trust:{https_wss:'isolated-profile-CA',webtransport:spec.transport==='chrome-webtransport'?'explicit-fresh-certificate-sha256':null,
         leaf_sha256:leafSha256,leaf_key:'ECDSA-P256',leaf_validity_seconds:(notAfter-notBefore)/1000,certificate_errors_ignored:false}};
+// The parent owns a 240-second process deadline. Leave room here for the
+// original browser and listener joins, while preserving every inner deadline.
+const programmeDeadline=performance.now()+210000;
 let owner,server,page,journal,stun,unavailable,stage='asset-listener',events=0,serial=Promise.resolve(),diagnostics=Promise.resolve(),diagnosticBytes=0;
 const diagnostic=text=>{
     const body=String(text).slice(0,8192)+'\n';diagnosticBytes+=Buffer.byteLength(body);
@@ -131,7 +135,12 @@ try{
         });return serial;
     });
     const selected=spec.transport==='chrome-webtransport'?'webtransport':'wss-webrtc';
-    const result=await page.evaluate(async({spec,selected})=>{
+    await page.evaluate(({spec,selected})=>{
+        if(globalThis.connectMatrixOriginalProgramme)throw Error('Original browser programme already started');
+        const original=globalThis.connectMatrixOriginalProgramme={state:'pending'};
+        // Start once, return immediately to automation, and retain the exact
+        // completion. Polling below never submits another operation/workload.
+        void (async()=>{
         const {BrowserSdkClient,BrowserClient}=await import('/sdk/browser.js');
         // Diagnostic-only observer: retain the original low-level rejection in
         // the private browser log before the public SDK classifies it. No wire
@@ -286,13 +295,18 @@ try{
         } finally {await keepalive?.close().catch(()=>{});await observer?.close();await sources?.close();
             BrowserMediaPeer.prototype.shutdown=originalShutdown;BrowserMediaPeer.prototype.beginReplacementConnection=beginReplacement;
             BrowserRtcConnection.prototype.shutdown=originalRtcShutdown;}
+        })().then(value=>{original.value=value;original.state='fulfilled';},error=>{
+            original.error={name:error.name,message:String(error.message??error),stack:String(error.stack??error)};
+            original.state='rejected';
+        });
     },{spec,selected});
+    const result=await originalBrowserMatrixResult(page,{deadline:programmeDeadline});
     Object.assign(report,result);report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
     stage='browser-retirement';
     report.trusted_browser=await owner.close();owner=undefined;
     report.passed=Boolean(report.passed&&report.trusted_browser.original_process_joined&&!report.trusted_browser.forced_kill);
 }catch(error){
-    report.passed=false;report.failure??={stage,name:error.name};
+    report.passed=false;report.failure??={stage:error.matrixPhase??stage,name:error.name};
     await fs.writeFile(path.join(output,'failure-private.log'),String(error.stack??error),{mode:0o600});
 }finally{
     if(owner)report.failure_browser=await owner.close();

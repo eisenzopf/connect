@@ -956,6 +956,7 @@ dependencies = [
  "rvoip-sip-transport",
  "rvoip-uctp",
  "rvoip-webrtc",
+ "serde",
  "serde_json",
  "sha2",
  "tempfile",
