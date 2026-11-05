@@ -1,0 +1,1035 @@
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/metadata_test_support.rs
+@@ -0,0 +1,73 @@
++//! Test access to the actual production event state machine. The fixture supplies
++//! real scene/controller/PCM readiness; this bridge supplies no authority or IO.
++use super::*;
++use crate::staged_streams::media_scene::GuardedMediaScene;
++pub(crate) struct ObservationState(PendingReplacementState);
++impl ObservationState {
++    pub(crate) fn new(
++        ticket: PreparedParticipantReplacement,
++        context: AudioAudienceHandle,
++        readiness: ReplacementReadinessStamp,
++    ) -> Self {
++        // A complete "7" confirmation has an answer and one digit. An actual
++        // "77" partial fixture supplies an answered, ready, unconfirmed ticket.
++        let complete = ticket.confirmation_ready();
++        assert!(ticket.has_answered());
++        Self(PendingReplacementState {
++            ticket,
++            context: Some(context),
++            slot: None,
++            cleanup_started: false,
++            captured_signal: if complete { 2 } else { 1 },
++            observed_signal: if complete { 2 } else { 1 },
++            confirmation: None,
++            confirmed_at: complete.then_some(readiness),
++        })
++    }
++    pub(crate) fn partial(&mut self, stamp: ReplacementReadinessStamp) {
++        assert!(!self.0.ticket.confirmation_ready());
++        assert!(self.0.confirmed_at.is_none());
++        let crate::participant_transitions::EndpointConfirmationPolicy::AnsweredDtmf { digits } =
++            &self.0.ticket.intent().confirmation
++        else {
++            panic!("DTMF fixture required")
++        };
++        assert_eq!(digits, "77");
++        // Snapshot after one attributed '7', a proper prefix of the actual
++        // configured '77'. This state is mutually exclusive with completion.
++        self.0.captured_signal = 2;
++        self.0.observed_signal = 2;
++        self.0.confirmation = Some(PartialConfirmation {
++            digits: "7".into(),
++            readiness: stamp,
++        });
++    }
++    pub(crate) fn refresh(&mut self) -> ControlResult<()> {
++        self.0.refresh_confirmation()
++    }
++    pub(crate) fn capture(
++        &mut self,
++        scene: &GuardedMediaScene,
++    ) -> ControlResult<(Option<ReplacementReadinessStamp>, bool, u64)> {
++        self.0.capture_observation(true, Some(scene))
++    }
++    pub(crate) fn observe(
++        &mut self,
++        scene: &GuardedMediaScene,
++        event: &DeviceReplacementEndpointEvent,
++        stamp: Option<&ReplacementReadinessStamp>,
++        sequence: u64,
++    ) -> ControlResult<Option<EndpointConfirmationObservation>> {
++        self.0
++            .prepare_observation(event, true, stamp, true, sequence, scene)
++    }
++    pub(crate) fn snapshot(&self) -> (bool, bool, Option<String>, u64, u64) {
++        (
++            self.0.ticket.confirmation_ready(),
++            self.0.confirmed_at.is_some(),
++            self.0.confirmation.as_ref().map(|p| p.digits.clone()),
++            self.0.captured_signal,
++            self.0.observed_signal,
++        )
++    }
++}
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -7,13 +7,13 @@
+ };
+ use crate::peer_admission::PeerAdmission;
+ use crate::staged_streams::{
++    StreamControlError,
+     audience::{AudioAudienceHandle, AudioAudiencePlan, AudioAudienceRequest},
+     device_replacement::{
+         AudioDeviceReplacementHandle, AudioDeviceReplacementOutcome, AudioDeviceReplacementPlan,
+         AudioDeviceReplacementRequest, ReplacementReadinessStamp,
+     },
+     signal::ControllerSignalStamp,
+-    StreamControlError,
+ };
+ use std::collections::BTreeSet;
+ use std::sync::atomic::{AtomicU8, Ordering};
+@@ -107,11 +107,7 @@
+         if let Some(stamp) = &self.confirmed_at {
+             match stamp.check() {
+                 Ok(()) => {}
+-                Err(
+-                    e @ StreamControlError::Model(
+-                        crate::stream_lifecycle::MediaTransitionError::Conflict,
+-                    ),
+-                ) => return Err(e.into()),
++                Err(e @ StreamControlError::MetadataBusy) => return Err(e.into()),
+                 Err(_) => {
+                     self.ticket.invalidate_confirmation();
+                     self.confirmed_at = None;
+@@ -120,6 +116,109 @@
+             }
+         }
+         Ok(())
++    }
++}
++impl PendingReplacementState {
++    /// Metadata reads precede consuming the immutable event sequence. A busy
++    /// scene can be retried with the same event without losing a digit or
++    /// invalidating an otherwise current confirmation.
++    fn capture_observation(
++        &mut self,
++        has_controller: bool,
++        scene: Option<&crate::staged_streams::media_scene::GuardedMediaScene>,
++    ) -> ControlResult<(Option<ReplacementReadinessStamp>, bool, u64)> {
++        let media = match (has_controller, scene, self.context.as_ref()) {
++            (true, Some(scene), Some(context)) => {
++                match scene.replacement_endpoint_stamp(context) {
++                    Ok(stamp) => Some(stamp),
++                    Err(error @ StreamControlError::MetadataBusy) => return Err(error.into()),
++                    // Actual absent duplex media keeps its pre-media outcome.
++                    // A changed scene, poisoned lock or failed authority is a
++                    // refusal, never an invitation to recapture indefinitely.
++                    Err(StreamControlError::NotReady) => None,
++                    Err(error) => return Err(error.into()),
++                }
++            }
++            _ => None,
++        };
++        let sequence = self
++            .captured_signal
++            .checked_add(1)
++            .ok_or(ParticipantControlError::Authority)?;
++        self.captured_signal = sequence;
++        Ok((media, self.ticket.has_answered(), sequence))
++    }
++
++    fn prepare_observation(
++        &mut self,
++        event: &DeviceReplacementEndpointEvent,
++        has_controller: bool,
++        media_at_capture: Option<&ReplacementReadinessStamp>,
++        answered_at_capture: bool,
++        sequence: u64,
++        scene: &crate::staged_streams::media_scene::GuardedMediaScene,
++    ) -> ControlResult<Option<EndpointConfirmationObservation>> {
++        let needs_media = matches!(
++            event,
++            DeviceReplacementEndpointEvent::MediaObserved
++                | DeviceReplacementEndpointEvent::Dtmf { .. }
++        );
++        if needs_media {
++            let captured_current = match media_at_capture.map(ReplacementReadinessStamp::check) {
++                Some(Ok(())) => true,
++                Some(Err(error @ StreamControlError::MetadataBusy)) => return Err(error.into()),
++                _ => false,
++            };
++            if !has_controller
++                || !captured_current
++                || matches!(event, DeviceReplacementEndpointEvent::Dtmf { .. })
++                    && !answered_at_capture
++            {
++                self.confirmation = None;
++                return Ok(Some(EndpointConfirmationObservation::BeforeAnswerOrMedia));
++            }
++        }
++        if sequence <= self.observed_signal {
++            return Ok(Some(EndpointConfirmationObservation::AlreadyObserved));
++        }
++        let contiguous = self.observed_signal.checked_add(1) == Some(sequence);
++        let partial_current = if contiguous {
++            match self
++                .confirmation
++                .as_ref()
++                .map(|partial| partial.readiness.check())
++            {
++                Some(Ok(())) | None => true,
++                Some(Err(error @ StreamControlError::MetadataBusy)) => return Err(error.into()),
++                Some(Err(_)) => false,
++            }
++        } else {
++            false
++        };
++        let media_ready = if needs_media {
++            match self.context.as_ref() {
++                Some(context) => match scene.replacement_endpoint_ready(context) {
++                    Ok(()) => true,
++                    Err(StreamControlError::NotReady) => false,
++                    Err(error) => return Err(error.into()),
++                },
++                None => false,
++            }
++        } else {
++            true
++        };
++        // No further retryable metadata read follows this point. In particular
++        // final scene-read contention cannot consume the original sequence or
++        // erase a consecutive partial confirmation.
++        if !contiguous || !partial_current {
++            self.confirmation = None;
++        }
++        self.observed_signal = sequence;
++        if !media_ready {
++            self.confirmation = None;
++            return Ok(Some(EndpointConfirmationObservation::BeforeAnswerOrMedia));
++        }
++        Ok(None)
+     }
+ }
+ struct PartialConfirmation {
+@@ -1434,62 +1533,22 @@
+             source: &self.source,
+         };
+         let lease = scene.replacement_signal_authority(&signal_scope, held)?;
+-        // A captured pre-answer/pre-media digit keeps its specific refusal
+-        // even if a later answer callback has already been observed.
+-        if matches!(
+-            self.event,
+-            DeviceReplacementEndpointEvent::MediaObserved
+-                | DeviceReplacementEndpointEvent::Dtmf { .. }
+-        ) && (self.controller.is_none()
+-            || !self
+-                .media_at_capture
+-                .as_ref()
+-                .is_some_and(|stamp| stamp.check().is_ok())
+-            || matches!(self.event, DeviceReplacementEndpointEvent::Dtmf { .. })
+-                && !self.answered_at_capture)
+-        {
+-            state.confirmation = None;
+-            return Ok(EndpointConfirmationObservation::BeforeAnswerOrMedia);
+-        }
+-        // Only fresh, authorized observations consume a sequence. Replaying an
+-        // opaque event never becomes another keypress; a lost/out-of-order
+-        // callback cannot concatenate a prefix across an unknown gap.
+-        if self.sequence <= state.observed_signal {
+-            return Ok(EndpointConfirmationObservation::AlreadyObserved);
+-        }
+-        if state.observed_signal.checked_add(1) != Some(self.sequence) {
+-            state.confirmation = None;
+-        }
+-        if let Some(partial) = &state.confirmation {
+-            match partial.readiness.check() {
+-                Ok(()) => {}
+-                Err(
+-                    e @ StreamControlError::Model(
+-                        crate::stream_lifecycle::MediaTransitionError::Conflict,
+-                    ),
+-                ) => return Err(e.into()),
+-                Err(_) => state.confirmation = None,
+-            }
+-        }
+-        state.observed_signal = self.sequence;
++        if let Some(observation) = state.prepare_observation(
++            &self.event,
++            self.controller.is_some(),
++            self.media_at_capture.as_ref(),
++            self.answered_at_capture,
++            self.sequence,
++            scene,
++        )? {
++            return Ok(observation);
++        }
+         match &self.event {
+             DeviceReplacementEndpointEvent::Answered => {
+                 Ok(state.ticket.observe_answer(&p.intent.replacement, g)?)
+             }
+             DeviceReplacementEndpointEvent::MediaObserved
+             | DeviceReplacementEndpointEvent::Dtmf { .. } => {
+-                let Some(context) = &state.context else {
+-                    state.confirmation = None;
+-                    return Ok(EndpointConfirmationObservation::BeforeAnswerOrMedia);
+-                };
+-                match scene.replacement_endpoint_ready(context) {
+-                    Ok(()) => {}
+-                    Err(StreamControlError::NotReady) => {
+-                        state.confirmation = None;
+-                        return Ok(EndpointConfirmationObservation::BeforeAnswerOrMedia);
+-                    }
+-                    Err(v) => return Err(v.into()),
+-                }
+                 let current = lease.authority();
+                 state
+                     .ticket
+@@ -1629,24 +1688,8 @@
+         // confirmation. Pin the actual trusted scene state at event capture;
+         // observation still requires fresh current signal authority.
+         let mut pending = p.state.lock().unwrap_or_else(|v| v.into_inner());
+-        let media_at_capture = if controller.is_some() {
+-            pending.context.as_ref().and_then(|context| {
+-                p.runtime
+-                    .mixer
+-                    .staged
+-                    .as_ref()?
+-                    .replacement_endpoint_stamp(context)
+-                    .ok()
+-            })
+-        } else {
+-            None
+-        };
+-        let answered_at_capture = pending.ticket.has_answered();
+-        let sequence = pending
+-            .captured_signal
+-            .checked_add(1)
+-            .ok_or(ParticipantControlError::Authority)?;
+-        pending.captured_signal = sequence;
++        let (media_at_capture, answered_at_capture, sequence) =
++            pending.capture_observation(controller.is_some(), p.runtime.mixer.staged.as_deref())?;
+         drop(pending);
+         Ok(DeviceReplacementEvent {
+             owner: Arc::downgrade(self),
+@@ -1881,3 +1924,6 @@
+         Ok(activation)
+     }
+ }
++
++#[cfg(test)]
++pub(crate) mod metadata_test_support;
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement/video.rs
+@@ -55,16 +55,16 @@
+         let old_state = old
+             .state
+             .try_lock()
+-            .map_err(|_| {
+-                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "video-old-state", "Replacement plan state lock busy");
+-                MediaTransitionError::Conflict
++            .map_err(|error| {
++                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "video-old-state", "Replacement plan state lock unavailable");
++                metadata_lock_error(error)
+             })?;
+         let new_state = new
+             .state
+             .try_lock()
+-            .map_err(|_| {
+-                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "video-new-state", "Replacement plan state lock busy");
+-                MediaTransitionError::Conflict
++            .map_err(|error| {
++                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "video-new-state", "Replacement plan state lock unavailable");
++                metadata_lock_error(error)
+             })?;
+         if old_state.closed
+             || new_state.closed
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -149,16 +149,19 @@
+     duplex: AudioDuplexStamp,
+     auxiliary_ports: Vec<Weak<Port>>,
+ }
++fn metadata_lock_error<T>(error: std::sync::TryLockError<T>) -> StreamControlError {
++    match error {
++        std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
++        std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
++    }
++}
+ impl ReplacementReadinessStamp {
+     pub(crate) fn check(&self) -> ControlResult<()> {
+         let controller = self
+             .controller
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+-        let state = controller
+-            .state
+-            .try_lock()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
++        let state = controller.state.try_lock().map_err(metadata_lock_error)?;
+         self.current(&controller, &state)
+     }
+     fn current(&self, controller: &StreamController, state: &State) -> ControlResult<()> {
+@@ -194,14 +197,8 @@
+         }
+         // Signal capture owns connection fences. Refuse contention rather
+         // than wait in the reverse of the managed media commit lock order.
+-        let members = self
+-            .members
+-            .try_lock()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
+-        let registry = self
+-            .audiences
+-            .try_lock()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
++        let members = self.members.try_lock().map_err(metadata_lock_error)?;
++        let registry = self.audiences.try_lock().map_err(metadata_lock_error)?;
+         if !registry
+             .groups
+             .get(&context.group.operation)
+@@ -220,7 +217,7 @@
+             .controller
+             .state
+             .try_lock()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
++            .map_err(metadata_lock_error)?;
+         let auxiliary_ports = context
+             .commit()
+             .quarantined_auxiliary_ports(&member.controller, &state)?;
+@@ -309,9 +306,9 @@
+             let state = old
+                 .state
+                 .try_lock()
+-                .map_err(|_| {
+-                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "audio-old-state", "Replacement plan state lock busy");
+-                MediaTransitionError::Conflict
++                .map_err(|error| {
++                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "audio-old-state", "Replacement plan state lock unavailable");
++                metadata_lock_error(error)
+             })?;
+             state
+                 .model
+@@ -325,9 +322,9 @@
+             let state = new
+                 .state
+                 .try_lock()
+-                .map_err(|_| {
+-                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "audio-new-state", "Replacement plan state lock busy");
+-                MediaTransitionError::Conflict
++                .map_err(|error| {
++                tracing::debug!(target: "rvoip_core::replacement_commit", stage = "audio-new-state", "Replacement plan state lock unavailable");
++                metadata_lock_error(error)
+             })?;
+             if let Some(confirmation) = &confirmation {
+                 confirmation.current(new, &state).map_err(|error| {
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/metadata_contention.rs
+@@ -0,0 +1,402 @@
++use super::*;
++use crate::orchestrator::participant_control::{
++    DeviceReplacementEndpointEvent, ParticipantControlError,
++    replacement::metadata_test_support::ObservationState,
++};
++use crate::participant_transitions::EndpointConfirmationObservation;
++fn request(f: &Move) -> AudioDeviceReplacementRequest {
++    AudioDeviceReplacementRequest {
++        operation_id: f.pending.intent().operation_id.clone(),
++        expected_revision: f.room.scene.audience_revision(),
++        source: f.pending.intent().source.clone(),
++        admitted: f.pending.intent().replacement.clone(),
++        retained: f.pending.intent().retained.clone(),
++        video: None,
++    }
++}
++async fn ready() -> Move {
++    let mut f = Move::new(false).await;
++    f.io().await;
++    f.confirm().await;
++    f
++}
++async fn partial_ready() -> Move {
++    let mut f = Move::with_media_and_confirmation(
++        false,
++        "alice",
++        false,
++        vec![desired(Medium::Audio)],
++        EndpointConfirmationPolicy::AnsweredDtmf {
++            digits: "77".into(),
++        },
++    )
++    .await;
++    f.io().await;
++    let owner = f.room.domain.base.0.read().await.owners["device"].clone();
++    let generation = f.pending.generation();
++    f.pending
++        .observe_media_ready(&owner.member, &owner.endpoint, generation)
++        .unwrap();
++    f.pending
++        .observe_answer(owner.connection.connection(), generation)
++        .unwrap();
++    assert!(!f.pending.confirmation_ready());
++    f
++}
++fn busy<T>(result: ControlResult<T>) {
++    assert!(
++        matches!(result, Err(StreamControlError::MetadataBusy)),
++        "actual held metadata must be the distinct temporary result"
++    );
++}
++fn event_busy<T>(result: Result<T, ParticipantControlError>) {
++    assert!(
++        matches!(
++            result,
++            Err(ParticipantControlError::Media(
++                StreamControlError::MetadataBusy
++            ))
++        ),
++        "metadata deferral must reach the event caller without consuming the event"
++    );
++}
++#[tokio::test]
++async fn replacement_metadata_audio_old_and_new_lock_collisions_preserve_plan_and_old_pcm() {
++    let mut f = ready().await;
++    let stamp = f.room.scene.replacement_endpoint_stamp(&f.context).unwrap();
++    let revision = f.room.scene.audience_revision();
++    let before = f.pending.binding().clone();
++    for who in ["alice", "device"] {
++        let c = f.room.nodes[who].controller.clone();
++        let held = c.state.lock().unwrap();
++        busy(f.room.scene.plan_audio_device_replacement(
++            &f.context,
++            &f.pending,
++            Some(stamp.clone()),
++            request(&f),
++        ));
++        drop(held);
++        assert!(
++            f.room
++                .scene
++                .plan_audio_device_replacement(
++                    &f.context,
++                    &f.pending,
++                    Some(stamp.clone()),
++                    request(&f)
++                )
++                .is_ok()
++        );
++        assert_eq!(f.room.scene.audience_revision(), revision);
++        assert!(f.pending.binding().same_incarnation(&before));
++        assert!(!f.room.nodes["alice"].controller.shutdown.is_cancelled());
++        f.room.publish("alice", 800).unwrap();
++        f.room.tick();
++        f.room.heard("bob", 800).await;
++        f.room.heard("public", 800).await;
++        f.room.silent(&["device"]);
++    }
++}
++#[tokio::test]
++async fn replacement_metadata_video_old_and_new_lock_collisions_preserve_intent() {
++    let mut f = Move::with_media(
++        false,
++        "alice",
++        false,
++        vec![desired(Medium::Audio), desired(Medium::Video)],
++    )
++    .await;
++    let old = f.room.nodes["alice"].controller.clone();
++    old.change(
++        old.revision(),
++        &[desired(Medium::Audio), desired(Medium::Video)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    f.io().await;
++    f.confirm().await;
++    let new = f.room.nodes["device"].controller.clone();
++    let video = ReplacementVideoRequest {
++        publications: vec![ReplacementVideoStream {
++            previous: desired(Medium::Video).logical_id,
++            replacement: desired(Medium::Video).logical_id,
++        }],
++        receivers: vec![],
++    };
++    let stamp = f.room.scene.replacement_endpoint_stamp(&f.context).unwrap();
++    let revision = f.room.scene.audience_revision();
++    for c in [&old, &new] {
++        let held = c.state.lock().unwrap();
++        let mut intent = request(&f);
++        intent.video = Some(video.clone());
++        busy(f.room.scene.plan_audio_device_replacement(
++            &f.context,
++            &f.pending,
++            Some(stamp.clone()),
++            intent,
++        ));
++        drop(held);
++        assert!(f.plan_with_video(Some(video.clone())).is_ok());
++        assert_eq!(f.room.scene.audience_revision(), revision);
++        assert!(!old.shutdown.is_cancelled());
++        assert!(
++            new.state.lock().unwrap().model.streams()[&desired(Medium::Video).logical_id]
++                .source_muted
++        );
++    }
++}
++#[tokio::test]
++async fn replacement_metadata_capture_preserves_original_sequence_on_each_scene_lock() {
++    let f = ready().await;
++    let stamp = f.room.scene.replacement_endpoint_stamp(&f.context).unwrap();
++    let mut state = ObservationState::new(f.pending.clone(), f.context.clone(), stamp.clone());
++    let before = state.snapshot();
++    let controller = f.room.nodes["device"].controller.clone();
++    let held = controller.state.lock().unwrap();
++    event_busy(state.capture(&f.room.scene));
++    assert_eq!(state.snapshot(), before);
++    drop(held);
++    let held = f.room.scene.members.lock().unwrap();
++    event_busy(state.capture(&f.room.scene));
++    assert_eq!(state.snapshot(), before);
++    drop(held);
++    let held = f.room.scene.audiences.lock().unwrap();
++    event_busy(state.capture(&f.room.scene));
++    assert_eq!(state.snapshot(), before);
++    drop(held);
++    let (stamp, answered, sequence) = state.capture(&f.room.scene).unwrap();
++    assert!(stamp.is_some() && answered);
++    assert_eq!(sequence, before.3 + 1);
++}
++#[tokio::test]
++async fn replacement_metadata_readiness_deferral_preserves_full_and_partial_confirmation() {
++    let f = ready().await;
++    let stamp = f.room.scene.replacement_endpoint_stamp(&f.context).unwrap();
++    let mut full = ObservationState::new(f.pending.clone(), f.context.clone(), stamp.clone());
++    let before = full.snapshot();
++    assert!(before.0 && before.1 && before.2.is_none());
++    let controller = f.room.nodes["device"].controller.clone();
++    let held = controller.state.lock().unwrap();
++    busy(stamp.check());
++    event_busy(full.refresh());
++    assert_eq!(full.snapshot(), before);
++    drop(held);
++    full.refresh().unwrap();
++    assert_eq!(full.snapshot(), before);
++
++    let f = partial_ready().await;
++    let stamp = f.room.scene.replacement_endpoint_stamp(&f.context).unwrap();
++    let mut partial = ObservationState::new(f.pending.clone(), f.context.clone(), stamp.clone());
++    partial.partial(stamp.clone());
++    let (_, _, sequence) = partial.capture(&f.room.scene).unwrap();
++    let before = partial.snapshot();
++    assert!(!before.0 && !before.1 && before.2.as_deref() == Some("7"));
++    let controller = f.room.nodes["device"].controller.clone();
++    let held = controller.state.lock().unwrap();
++    // Answer capture is already complete: only the actual stored prefix's
++    // readiness check is blocked here, not the media-at-capture predicate.
++    event_busy(partial.observe(
++        &f.room.scene,
++        &DeviceReplacementEndpointEvent::Answered,
++        None,
++        sequence,
++    ));
++    assert_eq!(partial.snapshot(), before);
++    drop(held);
++    assert!(
++        partial
++            .observe(
++                &f.room.scene,
++                &DeviceReplacementEndpointEvent::Answered,
++                None,
++                sequence
++            )
++            .unwrap()
++            .is_none()
++    );
++    assert_eq!(partial.snapshot().2.as_deref(), Some("7"));
++    assert_eq!(partial.snapshot().4, sequence);
++    assert_eq!(
++        partial
++            .observe(
++                &f.room.scene,
++                &DeviceReplacementEndpointEvent::Answered,
++                None,
++                sequence
++            )
++            .unwrap(),
++        Some(EndpointConfirmationObservation::AlreadyObserved)
++    );
++}
++#[tokio::test]
++async fn replacement_metadata_observation_does_not_consume_event_at_capture_or_final_scene_check() {
++    for which in ["capture", "members", "audiences"] {
++        let f = partial_ready().await;
++        let stamp = f.room.scene.replacement_endpoint_stamp(&f.context).unwrap();
++        let mut state = ObservationState::new(f.pending.clone(), f.context.clone(), stamp.clone());
++        state.partial(stamp.clone());
++        let (captured, _, sequence) = state.capture(&f.room.scene).unwrap();
++        let captured = captured.unwrap();
++        let before = state.snapshot();
++        let event = DeviceReplacementEndpointEvent::Dtmf { digits: "7".into() };
++        let c = f.room.nodes["device"].controller.clone();
++        if which == "capture" {
++            let held = c.state.lock().unwrap();
++            event_busy(state.observe(&f.room.scene, &event, Some(&captured), sequence));
++            drop(held);
++        } else if which == "members" {
++            let held = f.room.scene.members.lock().unwrap();
++            event_busy(state.observe(&f.room.scene, &event, Some(&captured), sequence));
++            drop(held);
++        } else {
++            let held = f.room.scene.audiences.lock().unwrap();
++            event_busy(state.observe(&f.room.scene, &event, Some(&captured), sequence));
++            drop(held);
++        }
++        assert_eq!(
++            state.snapshot(),
++            before,
++            "{which}: original event state changed while busy"
++        );
++        assert!(
++            state
++                .observe(&f.room.scene, &event, Some(&captured), sequence)
++                .unwrap()
++                .is_none()
++        );
++        assert_eq!(state.snapshot().2.as_deref(), Some("7"));
++        assert_eq!(state.snapshot().4, sequence);
++        assert_eq!(
++            state
++                .observe(&f.room.scene, &event, Some(&captured), sequence)
++                .unwrap(),
++            Some(EndpointConfirmationObservation::AlreadyObserved)
++        );
++    }
++}
++#[tokio::test]
++async fn replacement_metadata_real_revision_and_binding_refusals_are_never_busy() {
++    let mut f = ready().await;
++    let stamp = f.room.scene.replacement_endpoint_stamp(&f.context).unwrap();
++    let mut wrong = request(&f);
++    wrong.expected_revision += 1;
++    assert!(matches!(
++        f.room.scene.plan_audio_device_replacement(
++            &f.context,
++            &f.pending,
++            Some(stamp.clone()),
++            wrong
++        ),
++        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++    ));
++    let mut wrong = request(&f);
++    wrong.admitted = ConnectionId::from_string("other");
++    assert!(matches!(
++        f.room.scene.plan_audio_device_replacement(
++            &f.context,
++            &f.pending,
++            Some(stamp.clone()),
++            wrong
++        ),
++        Err(StreamControlError::Authority)
++    ));
++    let c = f.room.nodes["device"].controller.clone();
++    let mut state = ObservationState::new(f.pending.clone(), f.context.clone(), stamp.clone());
++    c.set_media_gate(
++        c.revision(),
++        &BTreeSet::from([desired(Medium::Audio).logical_id]),
++        StreamGateAction::Pause,
++        deadline(),
++    )
++    .await
++    .unwrap();
++    assert!(matches!(stamp.check(), Err(StreamControlError::NotReady)));
++    state.refresh().unwrap();
++    assert_eq!(state.snapshot(), (false, false, None, 2, 2));
++    f.room.publish("alice", 800).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 800).await;
++}
++#[tokio::test]
++async fn replacement_metadata_poisoned_state_is_refused_without_retry_or_old_retirement() {
++    let f = ready().await;
++    let stamp = f.room.scene.replacement_endpoint_stamp(&f.context).unwrap();
++    let controller = f.room.nodes["device"].controller.clone();
++    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++        let _held = controller.state.lock().unwrap();
++        panic!("intentional fixture metadata owner panic");
++    }));
++    assert!(result.is_err() && controller.state.is_poisoned());
++    assert!(matches!(
++        stamp.check(),
++        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++    ));
++    assert!(matches!(
++        f.room.scene.plan_audio_device_replacement(
++            &f.context,
++            &f.pending,
++            Some(stamp.clone()),
++            request(&f)
++        ),
++        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++    ));
++    let mut state = ObservationState::new(f.pending.clone(), f.context.clone(), stamp.clone());
++    let before = state.snapshot();
++    assert!(matches!(
++        state.capture(&f.room.scene),
++        Err(ParticipantControlError::Media(StreamControlError::Model(
++            MediaTransitionError::Conflict
++        )))
++    ));
++    assert_eq!(state.snapshot(), before);
++    assert!(!f.room.nodes["alice"].controller.shutdown.is_cancelled());
++}
++
++#[tokio::test]
++async fn replacement_metadata_original_pre_media_and_sequence_gap_refusals_remain() {
++    let f = partial_ready().await;
++    let stamp = f.room.scene.replacement_endpoint_stamp(&f.context).unwrap();
++    let mut state = ObservationState::new(f.pending.clone(), f.context.clone(), stamp.clone());
++    state.partial(stamp.clone());
++    let dtmf = DeviceReplacementEndpointEvent::Dtmf { digits: "7".into() };
++    let (_, _, sequence) = state.capture(&f.room.scene).unwrap();
++    // An original event carrying no captured media cannot acquire readiness
++    // retroactively merely because the current fixture now has actual IO.
++    assert_eq!(
++        state.observe(&f.room.scene, &dtmf, None, sequence).unwrap(),
++        Some(EndpointConfirmationObservation::BeforeAnswerOrMedia)
++    );
++    assert_eq!(state.snapshot().4, 2);
++    assert!(state.snapshot().2.is_none());
++
++    let mut state = ObservationState::new(f.pending.clone(), f.context.clone(), stamp.clone());
++    state.partial(stamp.clone());
++    let (_, _, lost) = state.capture(&f.room.scene).unwrap();
++    let (_, _, later) = state.capture(&f.room.scene).unwrap();
++    assert_eq!(later, lost + 1);
++    assert!(
++        state
++            .observe(
++                &f.room.scene,
++                &DeviceReplacementEndpointEvent::Answered,
++                None,
++                later
++            )
++            .unwrap()
++            .is_none()
++    );
++    assert_eq!(state.snapshot().4, later);
++    assert!(
++        state.snapshot().2.is_none(),
++        "a lost original event must break the digit prefix"
++    );
++    assert_eq!(
++        state
++            .observe(&f.room.scene, &dtmf, Some(&stamp), lost)
++            .unwrap(),
++        Some(EndpointConfirmationObservation::AlreadyObserved)
++    );
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -85,6 +85,22 @@
+         route_actor: &str,
+         logical: bool,
+         media: Vec<DesiredStream>,
++    ) -> Self {
++        Self::with_media_and_confirmation(
++            closed,
++            route_actor,
++            logical,
++            media,
++            EndpointConfirmationPolicy::AnsweredDtmf { digits: "7".into() },
++        )
++        .await
++    }
++    async fn with_media_and_confirmation(
++        closed: bool,
++        route_actor: &str,
++        logical: bool,
++        media: Vec<DesiredStream>,
++        confirmation: EndpointConfirmationPolicy,
+     ) -> Self {
+         let mut room = Room::new().await;
+         let source = room.domain.base.0.read().await.owners["alice"].clone();
+@@ -245,7 +261,7 @@
+             retained: ConnectionId::from_string("bob"),
+             endpoint: ep.endpoint().clone(),
+             device: ep.device().clone(),
+-            confirmation: EndpointConfirmationPolicy::AnsweredDtmf { digits: "7".into() },
++            confirmation,
+         };
+         let pending = model.prepare_replacement(&target, &ep, intent).unwrap();
+         let mut owner = source.clone();
+@@ -310,7 +326,7 @@
+         )
+     }
+     fn queue_prompt(&mut self, sample: i16) -> ControlResult<()> {
+-        use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++        use rvoip_media_core::{AudioFrame, codec::factory::CodecFactory};
+         let node = self.room.nodes.get_mut("device").unwrap();
+         node.sequence += 1;
+         let port = node.adapter.port(Medium::Audio);
+@@ -370,8 +386,8 @@
+     }
+ }
+ #[tokio::test]
+-async fn replacement_scene_keeps_old_audio_until_confirmed_then_maps_only_intended_device_and_preserves_other_senders(
+-) {
++async fn replacement_scene_keeps_old_audio_until_confirmed_then_maps_only_intended_device_and_preserves_other_senders()
++ {
+     let mut f = Move::new(false).await;
+     let remote = f.room.nodes["bob"].controller.active_bindings();
+     let new = f.room.nodes["device"].controller.active_bindings();
+@@ -414,12 +430,14 @@
+     );
+     assert_eq!(f.model.revision(), model_revision);
+     assert!(f.room.publish("alice", 800).is_err());
+-    assert!(private_tail
+-        .deliver(|_| async {
+-            panic!("a queued private preparation prompt crossed the committed call boundary")
+-        })
+-        .await
+-        .is_err());
++    assert!(
++        private_tail
++            .deliver(|_| async {
++                panic!("a queued private preparation prompt crossed the committed call boundary")
++            })
++            .await
++            .is_err()
++    );
+     assert!(f.commit(stale).await.is_err());
+     assert_eq!(
+         handle.finish_local_media_cleanup(deadline()).await,
+@@ -447,15 +465,16 @@
+         f.room.nodes["device"].controller.active_bindings()[0].transport_id,
+         new[0].transport_id
+     );
+-    assert!(f
+-        .room
+-        .scene
+-        .plan_restore_audio_audience(
+-            handle.audience(),
+-            "unsafe_restore".into(),
+-            f.room.scene.audience_revision()
+-        )
+-        .is_err());
++    assert!(
++        f.room
++            .scene
++            .plan_restore_audio_audience(
++                handle.audience(),
++                "unsafe_restore".into(),
++                f.room.scene.audience_revision()
++            )
++            .is_err()
++    );
+     f.room.nodes["alice"]
+         .adapter
+         .uncertain
+@@ -466,8 +485,8 @@
+     );
+ }
+ #[tokio::test]
+-async fn replacement_scene_failed_local_send_missing_policy_and_changed_generations_cannot_lend_readiness(
+-) {
++async fn replacement_scene_failed_local_send_missing_policy_and_changed_generations_cannot_lend_readiness()
++ {
+     let mut f = Move::new(false).await;
+     let c = &f.room.nodes["bob"];
+     let p = c.adapter.port(Medium::Audio);
+@@ -485,10 +504,12 @@
+     f.room.tick();
+     f.queue_prompt(4000).unwrap();
+     let queued = outgoing(&mut f.room.nodes.get_mut("device").unwrap().out).await;
+-    assert!(queued
+-        .deliver(|_| async { Err(StreamControlError::NotReady) })
+-        .await
+-        .is_err());
++    assert!(
++        queued
++            .deliver(|_| async { Err(StreamControlError::NotReady) })
++            .await
++            .is_err()
++    );
+     f.confirm().await;
+     assert!(f.plan().is_err());
+     f.io().await;
+@@ -587,8 +608,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_scene_current_role_change_invalidates_old_plan_and_receive_only_state_survives_move(
+-) {
++async fn replacement_scene_current_role_change_invalidates_old_plan_and_receive_only_state_survives_move()
++ {
+     let mut f = Move::new(false).await;
+     f.io().await;
+     f.confirm().await;
+@@ -621,19 +642,21 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_distinct_route_account_follows_sealed_binding_and_logical_participant_intent_with_current_io(
+-) {
++async fn replacement_distinct_route_account_follows_sealed_binding_and_logical_participant_intent_with_current_io()
++ {
+     let mut f = Move::with_route_actor(false, "sip-account").await;
+-    assert!(!f.room.nodes["alice"]
+-        .controller
+-        .credential_snapshot()
+-        .principal
+-        .has_same_owner(
+-            &f.room.nodes["device"]
+-                .controller
+-                .credential_snapshot()
+-                .principal
+-        ));
++    assert!(
++        !f.room.nodes["alice"]
++            .controller
++            .credential_snapshot()
++            .principal
++            .has_same_owner(
++                &f.room.nodes["device"]
++                    .controller
++                    .credential_snapshot()
++                    .principal
++            )
++    );
+     f.io().await;
+     f.confirm().await;
+     let plan = f.plan().unwrap();
+@@ -662,8 +685,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn retained_media_participant_reconciles_after_distinct_route_replacement_without_lending_old_principal(
+-) {
++async fn retained_media_participant_reconciles_after_distinct_route_replacement_without_lending_old_principal()
++ {
+     use crate::staged_streams::selection_intent::SelectionMutation;
+     let mut f = Move::with_route_actor_and_selection(false, "sip-account", true).await;
+     f.io().await;
+@@ -844,11 +867,10 @@
+ 
+ mod video;
+ 
+-
+ #[tokio::test]
+ async fn replacement_metadata_collision_retries_original_plan_and_preserves_refusals() {
+     use crate::orchestrator::participant_control::{
+-        replacement::metadata_retry, ParticipantControlError,
++        ParticipantControlError, replacement::metadata_retry,
+     };
+     for mode in ["recover", "cancel", "expire", "revoke", "role-change"] {
+         let mut f = Move::new(false).await;
+@@ -961,3 +983,5 @@
+         }
+     }
+ }
++
++mod metadata_contention;

@@ -1,0 +1,40 @@
+{
+  "format": "connect/replacement-metadata-exclusion/1",
+  "scope": "actual local ARM Core replacement group; service projection4focused tests separately verified; full signed service/server and all32matrix stillrequired",
+  "core_passed": 26,
+  "core_existing": 18,
+  "core_new": 8,
+  "core_failed": 0,
+  "service_projection_passed": 4,
+  "service_projection_failed": 0,
+  "core_patch": "patches/rvoip/gate6-replacement-metadata-exclusion.patch",
+  "core_patch_sha256": "2cfa55e0714c2f538ddf7f530f40c2853c78cdab936350f7a86923334b3432d2",
+  "source_lock_sha256": "45ea02b4d4079ee60317c007222581f1f664d866d87d45d1c5f1cd23e86078f7",
+  "historical_vm_source_lock_sha256": "4418ed32f97be4e8678d4940d41baad22c3f0432f34996d44d983c74a9fb8d0f",
+  "actual_core_receipt_sha256": "c0967f856f54c44d27890210705c44dbd9895a9d037be826ce60ccad767708bf",
+  "actual_core_log_sha256": "6bbed3e11c3fe32568fd4f8aa59a5aacfffc41c6eec726a5fb1db222721d83f8",
+  "actual_core_binary_sha256": "da1522cc0e25fbbe813154a0ffc508e052b34e7072a6c26f1b5b2bb4e14db54d",
+  "service_projection_receipt_sha256": "e4be5b6b618055c6eb1b564a9b71221e70bfa78b3c0ab6d62f4cf95e9194e4c8",
+  "source_guards_unchanged": true,
+  "all_original_groups_joined": true,
+  "vm_lease_released": true,
+  "host_prepared_all15_source_digests_verified": true,
+  "service_source_sha256": {
+    "crates/connect-service/src/canonical_replacement/movement.rs": "3821f25b0fd7c064cf80d9c80bf4205c65bfd2ccd9cfa024da59480ab1ee92ad",
+    "crates/connect-service/src/canonical_replacement/preparation.rs": "9ed65602fb22eadd74a400fc1b15988775cff8d95aa41906fda2530e040ea03c",
+    "crates/connect-service/src/canonical_replacement/projection.rs": "6634eb2d01444e7c6bf6d8312995e244ab62e7a0aa99bd96afc147a6714c53bc"
+  },
+  "behavior": [
+    "Only actual WouldBlock at replacement metadata locks becomes MetadataBusy. Poisoning, semantic revision/intent, authorization and cancellation retain their refusal paths.",
+    "Readiness checks finish before event sequence or partial confirmation changes; the same original sequence can be observed once after temporary exclusion clears.",
+    "Service retries only typed Core MetadataBusy as fresh effect-free planning/read metadata under its original fixed root/five-second cutoff. No allocation, start, SDP or movement commit replay.",
+    "Original operation IDs identify terminal preparation and pre-commit refusal stages."
+  ],
+  "fixture_scope": "White-box snapshots are now mutually exclusive full-confirmed versus proper7prefix under actual77policy, actual ready/answered/unconfirmed ticket, actual decodedPCM readiness and originalcapture counters. Production metadata checks/sequence transitions are invoked directly; fullpublicadapter/signedDTMFexecution is notclaimed.",
+  "preserved_v1_limitation": "Original26passing v1results remain retained, but one combined full+partial confirmation fixture was unreachable. V2uses separate reachable full-confirmed and actual77partial snapshots and was compiled/run separately.",
+  "remaining": [
+    "Run three actual rebuilt signed WebRTC server replacement regressions on this integrated candidate.",
+    "Finish source/capture, video and real idle restoration work; then run all32 configurations with unchanged limits."
+  ],
+  "matrix_qualified": false
+}

@@ -8,6 +8,28 @@ fn busy() -> Error {
     Error::new("authority-busy", "Replacement projection metadata is busy")
 }
 
+/// Core promises this variant is temporary exclusion before publication.
+/// Semantic revision/binding conflicts and uncertain mutations are not retries.
+pub(super) fn is_core_metadata_busy(
+    error: &rvoip_core::orchestrator::participant_control::ParticipantControlError,
+) -> bool {
+    matches!(
+        error,
+        rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(
+            rvoip_core::staged_streams::StreamControlError::MetadataBusy
+        )
+    )
+}
+pub(super) fn core_plan_error(
+    error: rvoip_core::orchestrator::participant_control::ParticipantControlError,
+) -> Error {
+    if is_core_metadata_busy(&error) {
+        busy()
+    } else {
+        Error::forbidden()
+    }
+}
+
 /// Only fresh, effect-free metadata belongs in this closure. A refused read
 /// releases the coordinator and every partial reader before the next poll.
 pub(super) async fn read<'a, T, F, Fut>(
@@ -199,5 +221,61 @@ mod tests {
         )
         .await;
         assert_eq!(result.err().unwrap().code, "authority-busy");
+    }
+    #[tokio::test]
+    async fn only_definitely_unpublished_core_metadata_is_retried_under_original_cutoff() {
+        use rvoip_core::{
+            orchestrator::participant_control::ParticipantControlError,
+            staged_streams::StreamControlError, stream_lifecycle::MediaTransitionError,
+        };
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let roles = Mutex::new(());
+        let stop = CancellationToken::new();
+        let calls = AtomicUsize::new(0);
+        let cutoff = tokio::time::Instant::now() + Duration::from_millis(70);
+        let result = read(&roles, &stop, cutoff, || async {
+            calls.fetch_add(1, Ordering::SeqCst);
+            Err::<(), _>(core_plan_error(StreamControlError::MetadataBusy.into()))
+        })
+        .await;
+        assert_eq!(result.err().unwrap().code, "authority-busy");
+        assert!(calls.load(Ordering::SeqCst) > 1);
+        assert!(tokio::time::Instant::now() >= cutoff);
+        assert!(roles.try_lock().is_ok());
+        for error in [
+            ParticipantControlError::from(StreamControlError::Model(
+                MediaTransitionError::Conflict,
+            )),
+            ParticipantControlError::from(StreamControlError::Authority),
+            ParticipantControlError::from(StreamControlError::NotReady),
+            ParticipantControlError::from(StreamControlError::Backpressure),
+            ParticipantControlError::Cancelled,
+            ParticipantControlError::Deadline,
+        ] {
+            assert!(!is_core_metadata_busy(&error));
+            let mapped = core_plan_error(error);
+            assert_eq!(mapped.code, "forbidden");
+            let code = mapped.code.clone();
+            let original = std::sync::Mutex::new(Some(mapped));
+            calls.store(0, Ordering::SeqCst);
+            let result = read(
+                &roles,
+                &stop,
+                tokio::time::Instant::now() + Duration::from_secs(1),
+                || async {
+                    calls.fetch_add(1, Ordering::SeqCst);
+                    Err::<(), _>(
+                        original
+                            .lock()
+                            .unwrap()
+                            .take()
+                            .expect("permanent Core error retried"),
+                    )
+                },
+            )
+            .await;
+            assert_eq!(result.err().unwrap().code, code);
+            assert_eq!(calls.load(Ordering::SeqCst), 1);
+        }
     }
 }

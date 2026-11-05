@@ -21,12 +21,12 @@ impl Runtime {
         let (roles, i) = super::projection::read(&self.role_projection, &self.stop,
             root.deadline.min(tokio::time::Instant::now() + Duration::from_secs(5)), || async {
                 let plan = self.core.plan_staged_device_replacement(&root.handle, replacement_video(&root.plan)?).map_err(|error| {
-                    tracing::debug!(target:"connect_service::canonical_replacement",stage="plan",?error,"Replacement pre-commit refused");
-                    Error::forbidden()
+                    tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="plan",?error,"Replacement pre-commit refused");
+                    super::projection::core_plan_error(error)
                 })?;
                 self.continuation_read_once(root, started, Phase::Commit(plan)).await
             }).await.map_err(|error| {
-                tracing::debug!(target:"connect_service::canonical_replacement",stage="scene-read",code=%error.code,"Replacement pre-commit refused");
+                tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="scene-read",code=%error.code,"Replacement pre-commit refused");
                 error
             })?;
         let Phase::Commit(plan) = i.phase.clone() else {
@@ -35,7 +35,7 @@ impl Runtime {
         let owner = i
             .owner(started.policy.pending.binding().connection())
             .map_err(|error| {
-                tracing::debug!(target:"connect_service::canonical_replacement",stage="current-owner",?error,"Replacement pre-commit refused");
+                tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="current-owner",?error,"Replacement pre-commit refused");
                 Error::forbidden()
             })?;
         let attempt = {
@@ -48,7 +48,7 @@ impl Runtime {
                 .ok_or_else(Error::forbidden)?;
             let read = i.read.clone();
             store_call(move || store.begin_native_replacement_commit(origin, &read)).await.map_err(|error| {
-                tracing::debug!(target:"connect_service::canonical_replacement",stage="commit-reservation",code=%error.code,"Replacement pre-commit refused");
+                tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="commit-reservation",code=%error.code,"Replacement pre-commit refused");
                 error
             })?
         };

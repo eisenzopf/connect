@@ -1684,6 +1684,11 @@
       "path": "patches/rvoip/gate6-original-target-audio-retention.patch",
       "sha256": "0a11066157b25bf2e6755bd5199b0778e2ecbd9a1baf9387540cb0f146db42ac",
       "source": "G6-058 actual ARM target-only PCM loss: retain at most ten original20ms mixed quanta per receiver across temporary admission contention; fresh source/target authority on each attempt with no readers held while waiting. Carry every original ingress/collect/credential deadline through decoded segments and pending target; later grants only narrow. Actual85focused mixer/ingress/expiry tests pass. No synthetic samples, timestamp repair, wire fields or relaxed budgets."
+    },
+    {
+      "path": "patches/rvoip/gate6-replacement-metadata-exclusion.patch",
+      "sha256": "2cfa55e0714c2f538ddf7f530f40c2853c78cdab936350f7a86923334b3432d2",
+      "source": "G6-058: distinguish exact replacement planning/readiness WouldBlock exclusion with MetadataBusy; preserve semantic conflicts and poisoning. Check captured/current readiness before consuming event sequence or changing confirmation, then retry only effect-free original-root service metadata under unchanged deadline. Runtime bytes match passing26testv1; test-only v2separates reachable77partial/fullconfirmation fixtures and is under dedicatedARMverification. No allocation or commit replay."
     }
   ]
 }

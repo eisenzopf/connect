@@ -100,12 +100,20 @@ original, and all physical peers/server join without force. The journal retains
 `native-target-stopped` with no readiness or movement capture.
 
 Readiness capture and observation use nonblocking media-state locks while Core
-holds connection fences. The service now defers that conflict until its next
-50 ms poll, releases the held invocation and captures a fresh event under fresh
-current authority. It keeps the original operation and deadline; every other
-error still refuses. This correction requires new production behavior evidence.
-Neither these seven observations nor the correction qualify twenty transitions
-or the full transport matrix.
+holds connection fences. The earlier correction deferred a broad model conflict.
+The November 5 correction instead returns `MetadataBusy` only for an actual
+`WouldBlock` at the planning/readiness mutexes. Poisoned locks and genuine model,
+binding, intent and authorization refusals are not converted into retries.
+
+Core checks captured and final current media readiness before consuming an event
+sequence or changing a partial digit prefix. The service releases the held
+invocation before its next 50 ms readiness poll. Effect-free pre-commit planning
+uses fresh reads under one fixed original-root/five-second cutoff; no allocation
+or movement effect is replayed. Original operation IDs correlate refusal logs.
+[26 actual ARM Core replacement tests and four service projection checks](../evidence/gate-6/replacement-metadata-exclusion.json)
+pass. The partial-confirmation fixtures use separate full-confirmed and reachable
+`77` partial states with actual decoded duplex readiness; these white-box checks
+do not replace public signed DTMF/server execution or the full transport matrix.
 
 `scripts/lib/transport_replacement_audio.py` independently decodes the private
 original RTP payloads after native RTCP demultiplexing. It requires exactly 960

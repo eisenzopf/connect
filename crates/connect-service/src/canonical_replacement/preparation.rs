@@ -27,7 +27,7 @@ impl Runtime {
         let runtime = self.clone();
         work.spawn(async move {
             if let Err(error)=runtime.prepare_replacement_media(&root,&started,&peer).await {
-                tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,"Private replacement preparation stopped");
+                tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,code=%error.code,"Private replacement preparation stopped");
                 root.handle.cancel();
             }
         });
@@ -141,7 +141,7 @@ impl Runtime {
         peer: &Arc<PeerAdmission>,
     ) -> Result<()> {
         {
-            tracing::debug!(target:"connect_service::canonical_replacement",stage="attach-fence","Replacement continuation");
+            tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="attach-fence","Replacement continuation");
             let (roles, i) = super::projection::read(
                 &self.role_projection,
                 &self.stop,
@@ -150,7 +150,7 @@ impl Runtime {
                 || self.continuation_read_once(root, started, Phase::Attach),
             )
             .await?;
-            tracing::debug!(target:"connect_service::canonical_replacement",stage="attach-begin","Replacement continuation");
+            tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="attach-begin","Replacement continuation");
             let attempt = self.begin_continuation(started, &i, Step::Attach).await?;
             let expected = attempt.expected()?;
             let result = self
@@ -383,13 +383,7 @@ impl Runtime {
                 .and_then(|event| event.observe_with_held(&i));
             let observed = match observed {
                 Ok(observed) => observed,
-                Err(
-                    rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(
-                        rvoip_core::staged_streams::StreamControlError::Model(
-                            rvoip_core::stream_lifecycle::MediaTransitionError::Conflict,
-                        ),
-                    ),
-                ) => {
+                Err(error) if super::projection::is_core_metadata_busy(&error) => {
                     // Readiness uses try-locks while holding connection fences.
                     // Release this invocation before the next bounded poll and
                     // capture a fresh event with fresh current authority. The
