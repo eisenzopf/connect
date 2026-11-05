@@ -1,6 +1,10 @@
 import {markerFrames,markerProgram} from '../video/marker_calibration.mjs';
 import {markerCells} from '../video/source_identity.mjs';
 const durationMs=62000;
+// A14x pulse amplitude step can make an otherwise clean20ms tone block
+// spectrally ambiguous. Keep every block identifiable while preserving the
+// fixed100ms pulse schedule and unchanged decoded RMS/identity thresholds.
+export const matrixAudioProfile=Object.freeze({lowPeak:.05,highPeak:.2});
 const pulses=Object.freeze(markerFrames().filter(frame=>frame<1860));
 // Source coordinates only: late callbacks draw the current frame once, never
 // catch-up frames or fabricated observer samples.
@@ -70,7 +74,7 @@ export async function browserMatrixSources() {
                 const canvasCapture=originalCanvasCapture(canvas);
                 const paint=canvas.getContext('2d'),oscillator=audio.createOscillator(),gain=audio.createGain();
                 const destination=audio.createMediaStreamDestination();destination.channelCount=1;
-                oscillator.frequency.value=440+220*role;gain.gain.value=.05;
+                oscillator.frequency.value=440+220*role;gain.gain.value=matrixAudioProfile.lowPeak;
                 oscillator.connect(gain);gain.connect(destination);oscillator.start();
                 record={index:route.index,sourceId:role,draws:0,oscillator,gain,destination,canvas,
                     stream:new MediaStream([...destination.stream.getAudioTracks(),canvasCapture.video]),capture:undefined,timer:undefined,
@@ -126,16 +130,16 @@ export async function browserMatrixSources() {
             // stalled audio. The monotonic terminal remains fixed either way.
             const audioOriginSeconds=audio.currentTime+.1,originMs=performance.now()+100;
             programme=Object.freeze({audioOriginSeconds,originMs,deadlineMs:originMs+durationMs,durationMs,
-                markerProgram,sourcePulseMs:100});
+                markerProgram,sourcePulseMs:100,audioPeakLow:matrixAudioProfile.lowPeak,audioPeakHigh:matrixAudioProfile.highPeak});
             for(const source of sources){
                 // AudioContext advances in quanta. Poll the unchanged 30fps
                 // source coordinate frequently enough to observe each frame;
                 // draw still emits only the current frame once, never catch-up.
                 clearInterval(source.timer);source.timer=setInterval(source.draw,5);
-                source.gain.gain.setValueAtTime(.05,audioOriginSeconds);
+                source.gain.gain.setValueAtTime(matrixAudioProfile.lowPeak,audioOriginSeconds);
                 for(const frame of pulses){
-                    source.gain.gain.setValueAtTime(.7,audioOriginSeconds+frame/30);
-                    source.gain.gain.setValueAtTime(.05,audioOriginSeconds+frame/30+.1);
+                    source.gain.gain.setValueAtTime(matrixAudioProfile.highPeak,audioOriginSeconds+frame/30);
+                    source.gain.gain.setValueAtTime(matrixAudioProfile.lowPeak,audioOriginSeconds+frame/30+.1);
                 }
             }
             terminalTimer=setTimeout(stopSources,Math.max(0,programme.deadlineMs-performance.now()));

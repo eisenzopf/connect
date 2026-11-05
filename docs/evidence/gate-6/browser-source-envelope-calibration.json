@@ -1,0 +1,152 @@
+{
+  "scope": "Partial synthetic-source calibration; no library/transport/cell pass",
+  "focused_tests": {
+    "passed": 8,
+    "failed": 0,
+    "command": "node --test <candidate>/scripts/tests/browser_matrix_sources.test.mjs <candidate>/scripts/tests/browser_matrix_source_identity.test.mjs"
+  },
+  "numerical_comparison": {
+    "scope": "Pure synthetic-input numerical comparison only; no codec/native/matrix qualification",
+    "source_hashes": {
+      "scripts/lib/transport_av.py": "aaeab1915b814e12e622b99b72ed2d0b35f9e4e58e4e7a7e4067181c87f2600e",
+      "scripts/lib/browser_matrix_observation.mjs": "a99e5d6a0a89dd51a2aefdd3089b52afbcc08adf69b3930b438a53f9be0f5134"
+    },
+    "results": [
+      {
+        "method": "browser20ms",
+        "high_amplitude": 0.7,
+        "low_amplitude": 0.05,
+        "cases": 3840,
+        "bad_identity": 382,
+        "minimum_dominance_ratio": 3.677054077766145
+      },
+      {
+        "method": "browser20ms",
+        "high_amplitude": 0.2,
+        "low_amplitude": 0.05,
+        "cases": 3840,
+        "bad_identity": 0,
+        "minimum_dominance_ratio": 16.27703909623593
+      },
+      {
+        "method": "native100ms",
+        "high_amplitude": 0.7,
+        "low_amplitude": 0.05,
+        "cases": 5760,
+        "bad_identity": 0,
+        "minimum_dominance_ratio": 22.458278106767608
+      },
+      {
+        "method": "native100ms",
+        "high_amplitude": 0.2,
+        "low_amplitude": 0.05,
+        "cases": 5760,
+        "bad_identity": 0,
+        "minimum_dominance_ratio": 254.83850981671222
+      }
+    ]
+  },
+  "actual_components": [
+    {
+      "label": "before",
+      "sha256": "09368cbfbc328109fd372f469d834befc39efeae30106e21bbf4308c21ef2b0b",
+      "finished": true,
+      "unchanged": true,
+      "elapsed_ms": 64036,
+      "join": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "cleanup": {
+        "source_master_tracks_ended": true,
+        "capture_owners": 10,
+        "capture_owners_closed": true,
+        "codec_owners_closed": true,
+        "audio_cleanup_promises_joined": 10
+      },
+      "measured_audio_bad_frames": 170,
+      "video_minima": [
+        25,
+        25,
+        25,
+        25,
+        25,
+        25
+      ],
+      "sync_statuses": [
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "private_receipt": ".local/gate-6/av-quality-v191-diagnosis/component/run-1793863755446/result.json"
+    },
+    {
+      "label": "after",
+      "sha256": "4e74da90bfdf66d552e36a3873662ccab568d5238e798398dbaad9ac40dc7140",
+      "finished": true,
+      "unchanged": true,
+      "elapsed_ms": 64019,
+      "join": {
+        "original_process_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "cleanup": {
+        "source_master_tracks_ended": true,
+        "capture_owners": 10,
+        "capture_owners_closed": true,
+        "codec_owners_closed": true,
+        "audio_cleanup_promises_joined": 10
+      },
+      "measured_audio_bad_frames": 2,
+      "video_minima": [
+        25,
+        25,
+        25,
+        25,
+        25,
+        25
+      ],
+      "sync_statuses": [
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "private_receipt": ".local/gate-6/av-quality-v191-diagnosis/component-source-calibration/run-1793864505488/result.json"
+    }
+  ],
+  "remaining": [
+    "Two steady660Hz decoded blocks remain below unchanged8x identity dominance.",
+    "Their pre-encode low-RMS summaries are consistent with partial silence, but raw PCM/sub-block energy was not retained, so exact input cause is unproved.",
+    "No decoded timestamps were rewritten, no failed frame excluded, no thresholds changed.",
+    "Native100ms source oracle has zero numerical failures with original.7 amplitude; native source is unchanged.",
+    "Stationary RTC and handoff WT video loss still require stage attribution."
+  ],
+  "limitations": [
+    "Before/after are separate isolated real-time executions; no complete matrix or network/service handoff qualification.",
+    "The after run adds bounded diagnostics; observed frame-count differences are not a deterministic estimate of the correction effect.",
+    "Two measured decoded blocks still fail unchanged identity limits; input partial-silence attribution remains unproven."
+  ],
+  "parent_integrated_verification": {
+    "checks_passed": 8,
+    "failed": 0,
+    "log_sha256": "9044bc75046484b8ffb1d07527d8bd1f32185a3c8832936986803179c17da038",
+    "source_sha256": {
+      "scripts/lib/browser_matrix_sources.mjs": "1335a4b1d497e63dea13e99a9c6e61c2e208784d8b4c5d15a925491b125eb767",
+      "scripts/tests/browser_matrix_source_identity.test.mjs": "664a622e9d648d3c22a93f9f419128150c07ae222a3e76847bb1aa27853fdc81"
+    }
+  }
+}
