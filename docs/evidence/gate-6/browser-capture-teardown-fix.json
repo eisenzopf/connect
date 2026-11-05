@@ -1,0 +1,403 @@
+{
+  "format": "connect/browser-capture-teardown-fix/1",
+  "scope": "Original v191 evidence only. No historical cell promotion, replayed media or new packet-capture qualification. Linux gzip archives remained on VM; only bounded exact selected log/component sections were returned after complete archive hashes verified under workload lease.",
+  "original_ledger_sha256": "c8e83bc1a47e5b3b74c656bc35985008c68c894118aba0af758923266f16c2cb",
+  "summary": {
+    "distinct_failed_cells": 14,
+    "bootstrap_empty": 10,
+    "bridge_removed_before_capture_join": 6,
+    "overlap": 2
+  },
+  "cells": [
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "report_sha256": "fda7fd5bae40209283f58078bb79962c5d14f3d7c6579015c019941af2e73915",
+      "archive_sha256_verified": null,
+      "archive_receipt_sha256": null,
+      "pcap_sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea",
+      "pcap_bytes": 24,
+      "capture_log_sha256": "d29e05e3d5680f22941eee0e30abaac0d127e80c076284362a31522dd133e3d5",
+      "captured_packets": 0,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": "fixture-local-stun-address-rejection",
+      "bridge_removed_before_capture_join": false,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": null,
+      "original_capture": {
+        "transport": "chrome-webtransport",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 0,
+        "failure": "ValueError",
+        "environment_failure": false
+      }
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "report_sha256": "cea9e9bf9bcfbb494b8e3002cac0aa47000b7dad6b1848a20047fb7080958e54",
+      "archive_sha256_verified": null,
+      "archive_receipt_sha256": null,
+      "pcap_sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea",
+      "pcap_bytes": 24,
+      "capture_log_sha256": "d29e05e3d5680f22941eee0e30abaac0d127e80c076284362a31522dd133e3d5",
+      "captured_packets": 0,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": "fixture-local-stun-address-rejection",
+      "bridge_removed_before_capture_join": false,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": null,
+      "original_capture": {
+        "transport": "chrome-webtransport",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 0,
+        "failure": "ValueError",
+        "environment_failure": false
+      }
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "report_sha256": "f9ed26a887afc40d511b95f8a4484ed67b91ce89df54e48086b21b4616ca0aa5",
+      "archive_sha256_verified": null,
+      "archive_receipt_sha256": null,
+      "pcap_sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea",
+      "pcap_bytes": 24,
+      "capture_log_sha256": "d29e05e3d5680f22941eee0e30abaac0d127e80c076284362a31522dd133e3d5",
+      "captured_packets": 0,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": "fixture-local-stun-address-rejection",
+      "bridge_removed_before_capture_join": false,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": null,
+      "original_capture": {
+        "transport": "chrome-wss-webrtc",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 0,
+        "failure": "ValueError",
+        "environment_failure": false
+      }
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "report_sha256": "0505f89c21ef72d3e465c9749151c01c2aede6201b2a76aa20013bdb61b59106",
+      "archive_sha256_verified": null,
+      "archive_receipt_sha256": null,
+      "pcap_sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea",
+      "pcap_bytes": 24,
+      "capture_log_sha256": "d29e05e3d5680f22941eee0e30abaac0d127e80c076284362a31522dd133e3d5",
+      "captured_packets": 0,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": "fixture-local-stun-address-rejection",
+      "bridge_removed_before_capture_join": false,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": null,
+      "original_capture": {
+        "transport": "chrome-wss-webrtc",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 0,
+        "failure": "ValueError",
+        "environment_failure": false
+      }
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "report_sha256": "6cec083a593db4ad61bdbb445cf6af3a839e0015c9081d171a166c3df1fa55ab",
+      "archive_sha256_verified": null,
+      "archive_receipt_sha256": null,
+      "pcap_sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea",
+      "pcap_bytes": 24,
+      "capture_log_sha256": "d29e05e3d5680f22941eee0e30abaac0d127e80c076284362a31522dd133e3d5",
+      "captured_packets": 0,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": "linux-firefox-executable-path",
+      "bridge_removed_before_capture_join": false,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": null,
+      "original_capture": {
+        "transport": "firefox-wss-webrtc",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 0,
+        "failure": "ValueError",
+        "environment_failure": false
+      }
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "report_sha256": "53e75afb9b670a30bdbe68315b28122cf1265818efc7c271fd2703175fa300ce",
+      "archive_sha256_verified": null,
+      "archive_receipt_sha256": null,
+      "pcap_sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea",
+      "pcap_bytes": 24,
+      "capture_log_sha256": "d29e05e3d5680f22941eee0e30abaac0d127e80c076284362a31522dd133e3d5",
+      "captured_packets": 0,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": "linux-firefox-executable-path",
+      "bridge_removed_before_capture_join": false,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": null,
+      "original_capture": {
+        "transport": "firefox-wss-webrtc",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 0,
+        "failure": "ValueError",
+        "environment_failure": false
+      }
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "report_sha256": "0fae13bdf4a60c65873ff51d7fd7a9d5235ddf301f69e968a08f0b063a24751a",
+      "archive_sha256_verified": true,
+      "archive_receipt_sha256": "eb1ce592c96e50089665dae27b9594ab441d52c23e85ec200960b6da8ad0dc55",
+      "pcap_sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea",
+      "pcap_bytes": 24,
+      "capture_log_sha256": "5e03f32d98faa326e72cbd0b7583f79e21b54f32f95199d99746cd426f57f885",
+      "captured_packets": 0,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": "linux-firefox-nss-missing-libmozglue",
+      "bridge_removed_before_capture_join": false,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": "ee189ed49b85e73a3f91d50f324ec02c0998e44135beb8941a13d4821e078dbb",
+      "original_capture": {
+        "transport": "firefox-wss-webrtc",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 0,
+        "failure": "ValueError",
+        "environment_failure": false
+      },
+      "archive": {
+        "bytes": 157223917,
+        "sha256": "f332425a530cbd7d67f73ffa567e6b3431c691d5d3cd398d647d55ee70d3765f",
+        "verified_before_removal": true
+      }
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "report_sha256": "705e75c2d78fbf71b673d42c733ff538aec42d7db4552a345982985c34e07182",
+      "archive_sha256_verified": true,
+      "archive_receipt_sha256": "b4ce26c8e1fae6f4610610c4a7d88b6d4dd513338d8fd96a3a47d93223903b4b",
+      "pcap_sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea",
+      "pcap_bytes": 24,
+      "capture_log_sha256": "5e03f32d98faa326e72cbd0b7583f79e21b54f32f95199d99746cd426f57f885",
+      "captured_packets": 0,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": "linux-firefox-nss-missing-libmozglue",
+      "bridge_removed_before_capture_join": false,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": "ee189ed49b85e73a3f91d50f324ec02c0998e44135beb8941a13d4821e078dbb",
+      "original_capture": {
+        "transport": "firefox-wss-webrtc",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 0,
+        "failure": "ValueError",
+        "environment_failure": false
+      },
+      "archive": {
+        "bytes": 157217148,
+        "sha256": "2114ac955155c300da4c3a76c26893eef580886e7dc4f8c1ac28585f36a61401",
+        "verified_before_removal": true
+      }
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "report_sha256": "d273fbe3b5b72d39f1ab412aa41ef6b306afbb9771bb47b0702caf3ae6ec39b7",
+      "archive_sha256_verified": true,
+      "archive_receipt_sha256": "9a5f5d8febc8cb1fe89ac58ccacf13be0f484cb672b6cd14f79ab9c90e88da65",
+      "pcap_sha256": "9d7d90d6badbe572e4f905a740aed2f1cb5a2bd5a003af17faa88ffb785646a3",
+      "pcap_bytes": 57468632,
+      "capture_log_sha256": "a59a61052c5c6fdfab1767e4768cd256a8b26ad77acb0ed7d883a88f2e23108d",
+      "captured_packets": 112292,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": null,
+      "bridge_removed_before_capture_join": true,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": null,
+      "original_capture": {
+        "transport": "chrome-webtransport",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 1,
+        "failure": "ValueError",
+        "environment_failure": true
+      },
+      "archive": {
+        "bytes": 200003679,
+        "sha256": "1fe5fb8cdf3e8e78f169da6235a23b4e4307b9bfd4f7e8323022faffd7267633",
+        "verified_before_removal": true
+      }
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "report_sha256": "3d810a371bf65cf1541e40872469a123d49a13bd8345429691d9203330ec20a9",
+      "archive_sha256_verified": true,
+      "archive_receipt_sha256": "6bc491de48ef468b4cae2224fd85b7a3ce11f978c6defe67ba936bdc1d4a4516",
+      "pcap_sha256": "8c27c0093219c836c33c528da17bb995e5f7e4b018abb2a684cc0e054c5eff51",
+      "pcap_bytes": 56494786,
+      "capture_log_sha256": "2b7fa2e9768295e94ccc89f681d811f32dc65057a61c766a208f492fc6200c57",
+      "captured_packets": 108320,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": null,
+      "bridge_removed_before_capture_join": true,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": null,
+      "original_capture": {
+        "transport": "chrome-webtransport",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 1,
+        "failure": "ValueError",
+        "environment_failure": true
+      },
+      "archive": {
+        "bytes": 199226285,
+        "sha256": "32386b5e346790550837074cbb048bf7cde00025972f480ee8370234a82d96c0",
+        "verified_before_removal": true
+      }
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "report_sha256": "811a942338e1dfd87f74e6ba0d4241ef96d9c538824427e68678464fb4a8ea96",
+      "archive_sha256_verified": true,
+      "archive_receipt_sha256": "e94a1396871b281eccbd0ffa09272c7b43fbede2609173967c2b4fe1fd6a261f",
+      "pcap_sha256": "0f5b948a52d65bf810c8098974a3bc93dbcb4db006ec1d1b879223a04ef86d55",
+      "pcap_bytes": 55910388,
+      "capture_log_sha256": "add6c9c60874cbad66dfcd352584f1f78314f584d4384518642043870517a5b5",
+      "captured_packets": 95908,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": null,
+      "bridge_removed_before_capture_join": true,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": null,
+      "original_capture": {
+        "transport": "chrome-wss-webrtc",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 1,
+        "failure": "ValueError",
+        "environment_failure": true
+      },
+      "archive": {
+        "bytes": 198455646,
+        "sha256": "e65958433bbcd044de30433044796967bcb82eccd27632318ef3e722c075548e",
+        "verified_before_removal": true
+      }
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "report_sha256": "18fc423caaff06709232bffce45c562b6f82ae26f9e504110c758b639f1237c6",
+      "archive_sha256_verified": true,
+      "archive_receipt_sha256": "f7882055cbbabd820f74e6e390c22c017f440f8709cc524239b8b6c220335d29",
+      "pcap_sha256": "ee3eabfd581c41305ade4fbee23e3d73d8da09963acb2f23501b76b3639e6524",
+      "pcap_bytes": 58228229,
+      "capture_log_sha256": "969cce82a5182cd04f41c9049bffaf1a050e1a89231ee319743d5d5c1aefa4bc",
+      "captured_packets": 100397,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": null,
+      "bridge_removed_before_capture_join": true,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": null,
+      "original_capture": {
+        "transport": "chrome-wss-webrtc",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 1,
+        "failure": "ValueError",
+        "environment_failure": true
+      },
+      "archive": {
+        "bytes": 200648571,
+        "sha256": "f22dd2d7ec07b1e785293ca9be906af2901b6dee2197e22949b9a3034a2d70e8",
+        "verified_before_removal": true
+      }
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "report_sha256": "20309b56bb21983aed3c16fd6e07d5ce20c7f5e51fb217170733e0ae389d8b1d",
+      "archive_sha256_verified": true,
+      "archive_receipt_sha256": "fa378acdb457b2877106d36ef5a89209fb7853787c422c41e38c484287bf5e54",
+      "pcap_sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea",
+      "pcap_bytes": 24,
+      "capture_log_sha256": "8e49870e842b89a218c6da4d2eab2a01d6be76cea20e51befa9ffe6485599bf5",
+      "captured_packets": 0,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": "linux-firefox-nss-missing-libmozglue",
+      "bridge_removed_before_capture_join": true,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": "ee189ed49b85e73a3f91d50f324ec02c0998e44135beb8941a13d4821e078dbb",
+      "original_capture": {
+        "transport": "firefox-wss-webrtc",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 1,
+        "failure": "ValueError",
+        "environment_failure": true
+      },
+      "archive": {
+        "bytes": 157359227,
+        "sha256": "63155c1d1afdc1c8e2e2b8f75ffb3a96606f136be63994f14c97709d8fe9f83a",
+        "verified_before_removal": true
+      }
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "report_sha256": "28e5dc398ac4edef27300555124ec702cf721ebe7ce7d003213e59a548da8905",
+      "archive_sha256_verified": true,
+      "archive_receipt_sha256": "101131e6c68e5e1c348ff61a57d0a4c328b3f72c394f14f5092c47f654064b61",
+      "pcap_sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea",
+      "pcap_bytes": 24,
+      "capture_log_sha256": "1d3377da503c57e27fd50950948575b2f288695dbe30945d274e884cba561738",
+      "captured_packets": 0,
+      "kernel_dropped_packets": 0,
+      "bootstrap_failure": "linux-firefox-nss-missing-libmozglue",
+      "bridge_removed_before_capture_join": true,
+      "original_verdict": "failed",
+      "bootstrap_log_sha256": "ee189ed49b85e73a3f91d50f324ec02c0998e44135beb8941a13d4821e078dbb",
+      "original_capture": {
+        "transport": "firefox-wss-webrtc",
+        "observed": false,
+        "original_joined": true,
+        "owner_created": true,
+        "exit_code": 1,
+        "failure": "ValueError",
+        "environment_failure": true
+      },
+      "archive": {
+        "bytes": 157343971,
+        "sha256": "7f4462a22e8fca948a72437c03e96d4d6a2caf2ce724f8f2b1c79a456558490a",
+        "verified_before_removal": true
+      }
+    }
+  ],
+  "fix": "Join original traffic owner, then flush and join tcpdump while its original bridge remains alive; remove the bridge afterward. Existing pcap/privacy/drop/duplex thresholds and original failures remain unchanged.",
+  "focused_regression": {
+    "original_transport_subcases_failed": 3,
+    "candidate_tests_passed": 3,
+    "candidate_tests_failed": 0,
+    "parent_log_sha256": "946acfd74cc11aff8da84cf35f68137c7af2d277f03e4bec7c5baf2f80df4833",
+    "source_sha256": {
+      "scripts/rehearse-gate6-browser-matrix.py": "2004191cfaaef3527e7d9f82e5413b57737799d4f13eebc70e1c1de78c6b4102",
+      "scripts/tests/test_browser_capture_cleanup.py": "923506c4637be6eb14183850edae6d8e3a4f6633dd38d972da08654e3a4859a6"
+    },
+    "real_capture_validator": true,
+    "process_network_effects": "controlled local fakes; no new actual capture qualification"
+  },
+  "remaining": "The next full32 run must produce valid original captures. Startup-dependent empty captures need the integrated NSS/STUN/executable fixture corrections; no historical failed capture is promoted."
+}

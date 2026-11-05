@@ -434,13 +434,15 @@ def main():
             # A failed programme can still return its original process custody.
             # Record the real join even when it exited before this cleanup ran.
             report["browser_owner_joined"] = True
-        if network_name is not None:
-            cleanup = subprocess.run(["docker", "network", "rm", network_name], capture_output=True, timeout=15)
-            report["client_network_removed"] = cleanup.returncode == 0
+        # The traffic owner is joined above. Keep its interface alive until
+        # tcpdump flushes and joins; removing the bridge first aborts capture.
         if capture is not None:
             report["packet_capture"] = capture.finish()
             report["packet_capture"]["transport"] = args.transport
             report["passed"] &= report["packet_capture"]["observed"]
+        if network_name is not None:
+            cleanup = subprocess.run(["docker", "network", "rm", network_name], capture_output=True, timeout=15)
+            report["client_network_removed"] = cleanup.returncode == 0
         if idle is not None:
             report["idle_resources"] = idle.finish()
             report["passed"] &= report["idle_resources"]["passed"]
