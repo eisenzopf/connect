@@ -398,7 +398,7 @@ fn backup_digest_covers_private_original_negotiation_bytes() {
     let directory = tempfile::tempdir().unwrap();
     let backup = directory.path().join("ice-backup.sqlite3");
     let saved = f.store.backup(&backup).unwrap();
-    assert_eq!(saved.schema, 116);
+    assert_eq!(saved.schema, 117);
     assert_eq!(saved, Store::inspect_snapshot(&backup).unwrap());
     let c = Connection::open(&backup).unwrap();
     c.execute("DROP TRIGGER native_webrtc_ice_operation_immutable", [])

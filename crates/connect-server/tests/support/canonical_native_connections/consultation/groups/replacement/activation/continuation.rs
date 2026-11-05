@@ -1,6 +1,25 @@
 //! Original signed replacement with a real Core commit paused before metadata.
 //! These are behavior controls, not a 60-second quality qualification.
 use super::*;
+// A diagnostic refusal must not replace or weaken the original probe verdict.
+// Codes: 1 = retained-ID query; 2 = metadata busy; 3 = unavailable exact owner.
+struct PausedAudioDiagnostic(
+    std::result::Result<rvoip_core::staged_streams::audio_diagnostic::AudioDiagnostics, u8>,
+);
+impl Drop for PausedAudioDiagnostic {
+    fn drop(&mut self) {
+        let snapshot = match &self.0 {
+            Ok(observation) => {
+                serde_json::json!({"armed":true,"observation":observation.snapshot()})
+            }
+            Err(code) => serde_json::json!({"armed":false,"refusal_code":code}),
+        };
+        if let Ok(snapshot) = serde_json::to_string(&snapshot) {
+            use std::io::Write;
+            let _ = writeln!(std::io::stderr(), "G6_PAUSED_AUDIO_DIAGNOSTIC {snapshot}");
+        }
+    }
+}
 #[derive(Clone, Copy, Debug)]
 pub(in super::super) enum Case {
     Duplex,
@@ -118,6 +137,14 @@ pub(in super::super) async fn paused(
             |r| r.get(0),
         )
         .unwrap();
+    let retained = if matches!(case, Case::Duplex) {
+        Some(c.query_row::<String, _, _>(
+            "SELECT runtime_connection_id FROM connection_offers WHERE connection_id='codec-source'",
+            [], |row| row.get(0),
+        ).map_err(|_| 1u8))
+    } else {
+        None
+    };
     let target_expiry = f
         .server
         .store
@@ -143,6 +170,14 @@ pub(in super::super) async fn paused(
             "target must be the actual Core owner"
         );
     }
+    let audio_diagnostic = retained.map(|retained| {
+        PausedAudioDiagnostic(retained.and_then(|retained| {
+            f.server
+                .service
+                .canonical_paused_audio_diagnostic_for_test(&retained, &target)
+                .map_err(|error| if error.code == "authority-busy" { 2 } else { 3 })
+        }))
+    });
     unpublished(f, candidate, &current.record_id);
     peers[1].live = false;
     // Qualified BEFORE witness: the original live generation moved while the
@@ -279,6 +314,7 @@ pub(in super::super) async fn paused(
             "paused metadata must not replay the original movement"
         );
     }
+    drop(audio_diagnostic);
     pause.release();
     tokio::time::timeout(Duration::from_secs(2), pause.left())
         .await

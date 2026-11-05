@@ -617,7 +617,7 @@ fn snapshot_includes_enrollment_and_unsupported_schema_is_never_implicitly_upgra
         .backup(&f.dir.path().join("approved.sqlite3"))
         .unwrap();
     assert_eq!(approved.schema, SCHEMA_VERSION);
-    assert_eq!(SCHEMA_VERSION, 116);
+    assert_eq!(SCHEMA_VERSION, 117);
     assert_ne!(before.digest, approved.digest);
     let value = f.complete(&offer);
     let completed = f

@@ -1,0 +1,745 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/publication.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/publication.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/publication.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/publication.rs
+@@ -1,6 +1,8 @@
+ //! A current managed-route fence for the short post-commit journal interval.
+ //! This grants no Store permission and retains no Orchestrator/session owner.
+ use super::*;
++#[cfg(feature = "test-support")]
++use crate::staged_streams::audio_diagnostic::{self, Stage};
+ use crate::staged_streams::{ControlResult as MediaResult, MediaOwner};
+ use rvoip_core_traits::peer_switch::{PeerDeliveryGuard, PeerRouteTicket};
+ 
+@@ -49,29 +51,85 @@
+             || current.presence.session() != &self.runtime.session
+             || current.member.conversation() != &self.runtime.conversation
+         {
++            #[cfg(feature = "test-support")]
++            audio_diagnostic::result(
++                &self.intent.replacement,
++                Stage::PublicationScope,
++                Some(&StreamControlError::Authority),
++            );
+             return Err(StreamControlError::Authority);
+         }
++        #[cfg(feature = "test-support")]
++        audio_diagnostic::result(&self.intent.replacement, Stage::PublicationScope, None);
+         // Store -> managed state -> lifecycle is the existing commit order.
+         // Both locks are immediate and are dropped before the policy returns.
+-        let state = self.runtime.state.try_lock().map_err(metadata)?;
++        let state = self.runtime.state.try_lock().map_err(metadata);
++        #[cfg(feature = "test-support")]
++        if let Err(error) = &state {
++            audio_diagnostic::result(
++                &self.intent.replacement,
++                Stage::PublicationRoute,
++                Some(error),
++            );
++        }
++        let state = state?;
+         if state.ended || state.pending.contains_key(&self.intent.replacement) {
++            #[cfg(feature = "test-support")]
++            audio_diagnostic::result(
++                &self.intent.replacement,
++                Stage::PublicationRoute,
++                Some(&StreamControlError::NotReady),
++            );
+             return Err(StreamControlError::NotReady);
+         }
+         let route = state
+             .routes
+             .get(&self.intent.replacement)
+-            .ok_or(StreamControlError::NotReady)?;
++            .ok_or(StreamControlError::NotReady);
++        #[cfg(feature = "test-support")]
++        if let Err(error) = &route {
++            audio_diagnostic::result(
++                &self.intent.replacement,
++                Stage::PublicationRoute,
++                Some(error),
++            );
++        }
++        let route = route?;
+         if route.lifecycle.connection_id != self.candidate.connection_id
+             || route.lifecycle.generation != self.candidate.generation
+             || !Arc::ptr_eq(&route.lifecycle.state, &self.candidate.state)
+         {
++            #[cfg(feature = "test-support")]
++            audio_diagnostic::result(
++                &self.intent.replacement,
++                Stage::PublicationRoute,
++                Some(&StreamControlError::Authority),
++            );
+             return Err(StreamControlError::Authority);
+         }
+-        state
++        #[cfg(feature = "test-support")]
++        audio_diagnostic::result(&self.intent.replacement, Stage::PublicationRoute, None);
++        let binding = state
+             .controller
+             .require_live_binding(&current.member, &current.connection)
+-            .map_err(|_| StreamControlError::Authority)?;
+-        let lifecycle = route.lifecycle.state.try_lock().map_err(metadata)?;
++            .map_err(|_| StreamControlError::Authority);
++        #[cfg(feature = "test-support")]
++        audio_diagnostic::result(
++            &self.intent.replacement,
++            Stage::PublicationBinding,
++            binding.as_ref().err(),
++        );
++        binding?;
++        let lifecycle = route.lifecycle.state.try_lock().map_err(metadata);
++        #[cfg(feature = "test-support")]
++        if let Err(error) = &lifecycle {
++            audio_diagnostic::result(
++                &self.intent.replacement,
++                Stage::PublicationLifetime,
++                Some(error),
++            );
++        }
++        let lifecycle = lifecycle?;
+         if !lifecycle.active
+             || lifecycle.retired
+             || lifecycle.generation != self.candidate.generation
+@@ -80,13 +138,28 @@
+                 permit.peer.is_closed() || permit.cancellation().is_cancelled()
+             })
+         {
++            #[cfg(feature = "test-support")]
++            audio_diagnostic::result(
++                &self.intent.replacement,
++                Stage::PublicationLifetime,
++                Some(&StreamControlError::Authority),
++            );
+             return Err(StreamControlError::Authority);
+         }
++        #[cfg(feature = "test-support")]
++        audio_diagnostic::result(&self.intent.replacement, Stage::PublicationLifetime, None);
+         let delivery = route
+             .publication
+             .0
+             .try_begin_delivery()
+-            .ok_or(StreamControlError::Authority)?;
++            .ok_or(StreamControlError::Authority);
++        #[cfg(feature = "test-support")]
++        audio_diagnostic::result(
++            &self.intent.replacement,
++            Stage::PublicationTicket,
++            delivery.as_ref().err(),
++        );
++        let delivery = delivery?;
+         Ok(CurrentReplacementPublication {
+             _delivery: delivery,
+         })
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_diagnostic.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_diagnostic.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_diagnostic.rs
+@@ -0,0 +1,368 @@
++//! Test-support-only, bounded numeric observation of two original controllers.
++//! No payload, grant, ticket, controller, timer or task is retained. All counters
++//! are observational; missing metadata never changes a production result.
++use super::*;
++use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
++use std::sync::OnceLock;
++
++#[derive(Clone, Copy)]
++#[repr(usize)]
++pub enum Stage {
++    IngressRetain,
++    IngressPreparation,
++    IngressPublish,
++    CollectAdmission,
++    Decoded,
++    TargetCapture,
++    TargetAdmission,
++    Encoded,
++    WriterAdmission,
++    WriterSubmit,
++    PolicyResult,
++    PolicyStore,
++    PolicyReadState,
++    PolicyOwner,
++    PolicyActivation,
++    PolicyPublication,
++    PublicationScope,
++    PublicationRoute,
++    PublicationBinding,
++    PublicationLifetime,
++    PublicationTicket,
++}
++const NAMES: [&str; 21] = [
++    "ingress-retain",
++    "ingress-preparation",
++    "ingress-publish",
++    "collect-admission",
++    "decoded",
++    "target-capture",
++    "target-admission",
++    "encoded",
++    "writer-admission",
++    "writer-submit",
++    "policy-result",
++    "policy-store",
++    "policy-read-state",
++    "policy-owner",
++    "policy-activation",
++    "policy-publication",
++    "publication-scope",
++    "publication-route",
++    "publication-binding",
++    "publication-lifetime",
++    "publication-ticket",
++];
++const OUTCOMES: [&str; 8] = [
++    "ok",
++    "not-ready",
++    "metadata-busy",
++    "authority",
++    "deadline",
++    "cancelled",
++    "backpressure",
++    "other",
++];
++const SUMMARY_CAPACITY: usize = 64;
++static ACTIVE: AtomicBool = AtomicBool::new(false);
++static MISSED: AtomicU64 = AtomicU64::new(0);
++static CURRENT: OnceLock<Mutex<Weak<Pair>>> = OnceLock::new();
++struct Counts {
++    attempts: [AtomicU64; 8],
++    marked: [AtomicU64; 8],
++    samples: AtomicU64,
++}
++impl Default for Counts {
++    fn default() -> Self {
++        Self {
++            attempts: std::array::from_fn(|_| AtomicU64::new(0)),
++            marked: std::array::from_fn(|_| AtomicU64::new(0)),
++            samples: AtomicU64::new(0),
++        }
++    }
++}
++struct Entry {
++    connection: ConnectionId,
++    owner: Weak<StreamController>,
++    initial_revision: u64,
++    initial_origin_binding_generation: u64,
++    initial_audio_ports: Vec<(String, u64, u64, bool, bool)>,
++    stages: [Counts; 21],
++    summary_events: [AtomicU64; SUMMARY_CAPACITY],
++    summary_samples: [AtomicU64; SUMMARY_CAPACITY],
++}
++struct Pair {
++    entries: Vec<Entry>,
++}
++/// Sole observation owner. Dropping this handle disables collection and releases
++/// only numeric metadata. It never closes or keeps alive any media owner.
++pub struct AudioDiagnostics {
++    pair: Arc<Pair>,
++}
++#[derive(serde::Serialize)]
++pub struct Snapshot {
++    pub missed_observations: u64,
++    pub outcome_names: [&'static str; 8],
++    pub entries: Vec<EntrySnapshot>,
++}
++#[derive(serde::Serialize)]
++pub struct EntrySnapshot {
++    pub connection: String,
++    pub controller_alive: bool,
++    pub initial_revision: u64,
++    pub initial_origin_binding_generation: u64,
++    pub initial_audio_ports: Vec<(String, u64, u64, bool, bool)>,
++    pub stages: Vec<(&'static str, [u64; 8], [u64; 8], u64)>,
++    pub audio_summary: Vec<(&'static str, u64, u64)>,
++}
++pub fn arm(controllers: &[Arc<StreamController>]) -> ControlResult<AudioDiagnostics> {
++    if controllers.len() != 2 || controllers[0].connection == controllers[1].connection {
++        return Err(StreamControlError::Authority);
++    }
++    let slot = CURRENT.get_or_init(|| Mutex::new(Weak::new()));
++    let mut current = slot
++        .try_lock()
++        .map_err(|_| StreamControlError::MetadataBusy)?;
++    if current.strong_count() != 0 {
++        return Err(StreamControlError::Authority);
++    }
++    let mut entries = Vec::with_capacity(2);
++    for controller in controllers {
++        let state = controller
++            .state
++            .try_lock()
++            .map_err(|_| StreamControlError::MetadataBusy)?;
++        let ports = state
++            .active
++            .values()
++            .filter(|port| port.kind() == StreamKind::Audio)
++            .map(|port| {
++                let binding = &port.binding;
++                (
++                    binding.negotiated.requested.logical_id.as_str().to_owned(),
++                    binding.connection_generation,
++                    binding.generation,
++                    binding.source_ready,
++                    binding.sink_ready,
++                )
++            })
++            .collect();
++        entries.push(Entry {
++            connection: controller.connection.clone(),
++            owner: Arc::downgrade(controller),
++            initial_revision: state.model.revision(),
++            initial_origin_binding_generation: controller.origin_binding.generation(),
++            initial_audio_ports: ports,
++            stages: std::array::from_fn(|_| Counts::default()),
++            summary_events: std::array::from_fn(|_| AtomicU64::new(0)),
++            summary_samples: std::array::from_fn(|_| AtomicU64::new(0)),
++        });
++    }
++    let pair = Arc::new(Pair { entries });
++    *current = Arc::downgrade(&pair);
++    MISSED.store(0, Ordering::Relaxed);
++    ACTIVE.store(true, Ordering::Release);
++    Ok(AudioDiagnostics { pair })
++}
++impl AudioDiagnostics {
++    pub fn snapshot(&self) -> Snapshot {
++        Snapshot {
++            missed_observations: MISSED.load(Ordering::Relaxed),
++            outcome_names: OUTCOMES,
++            entries: self
++                .pair
++                .entries
++                .iter()
++                .map(|entry| EntrySnapshot {
++                    connection: entry.connection.as_str().to_owned(),
++                    controller_alive: entry.owner.strong_count() != 0,
++                    initial_revision: entry.initial_revision,
++                    initial_origin_binding_generation: entry.initial_origin_binding_generation,
++                    initial_audio_ports: entry.initial_audio_ports.clone(),
++                    stages: entry
++                        .stages
++                        .iter()
++                        .enumerate()
++                        .map(|(i, counts)| {
++                            (
++                                NAMES[i],
++                                std::array::from_fn(|j| counts.attempts[j].load(Ordering::Relaxed)),
++                                std::array::from_fn(|j| counts.marked[j].load(Ordering::Relaxed)),
++                                counts.samples.load(Ordering::Relaxed),
++                            )
++                        })
++                        .collect(),
++                    audio_summary: guarded_audio::audio_summary_names_for_test()
++                        .iter()
++                        .enumerate()
++                        .filter_map(|(i, name)| {
++                            let events = entry.summary_events[i].load(Ordering::Relaxed);
++                            (events != 0).then(|| {
++                                (
++                                    *name,
++                                    events,
++                                    entry.summary_samples[i].load(Ordering::Relaxed),
++                                )
++                            })
++                        })
++                        .collect(),
++                })
++                .collect(),
++        }
++    }
++}
++impl Drop for AudioDiagnostics {
++    fn drop(&mut self) {
++        ACTIVE.store(false, Ordering::Release);
++    }
++}
++fn with_entry(
++    connection: &ConnectionId,
++    owner: Option<&StreamController>,
++    observe: impl FnOnce(&Entry),
++) {
++    if !ACTIVE.load(Ordering::Acquire) {
++        return;
++    }
++    let Some(slot) = CURRENT.get() else {
++        return;
++    };
++    let Ok(current) = slot.try_lock() else {
++        MISSED.fetch_add(1, Ordering::Relaxed);
++        return;
++    };
++    let pair = current.upgrade();
++    drop(current);
++    let Some(pair) = pair else {
++        return;
++    };
++    let Some(entry) = pair.entries.iter().find(|entry| {
++        &entry.connection == connection
++            && owner.is_none_or(|owner| std::ptr::eq(entry.owner.as_ptr(), owner))
++    }) else {
++        return;
++    };
++    observe(entry);
++}
++fn outcome(error: Option<&StreamControlError>) -> usize {
++    match error {
++        None => 0,
++        Some(StreamControlError::NotReady) => 1,
++        Some(StreamControlError::MetadataBusy) => 2,
++        Some(StreamControlError::Authority) => 3,
++        Some(StreamControlError::Deadline) => 4,
++        Some(StreamControlError::Cancelled) => 5,
++        Some(StreamControlError::Backpressure) => 6,
++        _ => 7,
++    }
++}
++fn record(
++    entry: &Entry,
++    stage: Stage,
++    error: Option<&StreamControlError>,
++    marked: bool,
++    samples: usize,
++) {
++    let code = outcome(error);
++    let counts = &entry.stages[stage as usize];
++    counts.attempts[code].fetch_add(1, Ordering::Relaxed);
++    if marked {
++        counts.marked[code].fetch_add(1, Ordering::Relaxed);
++    }
++    counts.samples.fetch_add(samples as u64, Ordering::Relaxed);
++}
++pub fn result(connection: &ConnectionId, stage: Stage, error: Option<&StreamControlError>) {
++    with_entry(connection, None, |entry| {
++        record(entry, stage, error, false, 0)
++    });
++}
++pub(super) fn frame(
++    owner: &StreamController,
++    stage: Stage,
++    frame: &MediaFrame,
++    error: Option<&StreamControlError>,
++) {
++    if frame.kind != StreamKind::Audio {
++        return;
++    }
++    with_entry(&owner.connection, Some(owner), |entry| {
++        // Only explicit G.711 mu-law is classified before decode. Unknown
++        // encodings never become fabricated decoded/non-silent evidence.
++        let marked = marked_pcmu(frame);
++        record(entry, stage, error, marked, 0);
++    });
++}
++pub(super) fn pcm(
++    owner: &StreamController,
++    stage: Stage,
++    samples: &[i16],
++    error: Option<&StreamControlError>,
++) {
++    with_entry(&owner.connection, Some(owner), |entry| {
++        record(
++            entry,
++            stage,
++            error,
++            samples.iter().any(|s| s.unsigned_abs() > 1000),
++            samples.len(),
++        )
++    });
++}
++pub(super) fn summary(connection: &ConnectionId, index: usize, samples: usize) {
++    with_entry(connection, None, |entry| {
++        if index < SUMMARY_CAPACITY {
++            entry.summary_events[index].fetch_add(1, Ordering::Relaxed);
++            entry.summary_samples[index].fetch_add(samples as u64, Ordering::Relaxed);
++        } else {
++            MISSED.fetch_add(1, Ordering::Relaxed);
++        }
++    });
++}
++
++/// Numeric metadata captured before an owned frame moves. Completing the
++/// observation does not keep its controller or any authorization alive.
++pub(super) struct FrameObservation {
++    pair: Weak<Pair>,
++    index: usize,
++    marked: bool,
++}
++pub(super) fn original_frame(port: &Port, frame: &MediaFrame) -> Option<FrameObservation> {
++    if frame.kind != StreamKind::Audio || !ACTIVE.load(Ordering::Acquire) {
++        return None;
++    }
++    let slot = CURRENT.get()?;
++    let Ok(current) = slot.try_lock() else {
++        MISSED.fetch_add(1, Ordering::Relaxed);
++        return None;
++    };
++    let pair = current.upgrade()?;
++    drop(current);
++    let index = pair
++        .entries
++        .iter()
++        .position(|entry| Weak::ptr_eq(&entry.owner, &port.owner))?;
++    Some(FrameObservation {
++        pair: Arc::downgrade(&pair),
++        index,
++        marked: marked_pcmu(frame),
++    })
++}
++impl FrameObservation {
++    pub(super) fn finish(self, stage: Stage, error: Option<&StreamControlError>) {
++        if let Some(pair) = self.pair.upgrade() {
++            record(&pair.entries[self.index], stage, error, self.marked, 0);
++        }
++    }
++}
++
++// PCMU payload classification uses the same 1000-amplitude threshold as the
++// existing fixture. This is distinct from Stage::Decoded, which observes the
++// actual production decoder output. No inferred samples become media input.
++fn marked_pcmu(frame: &MediaFrame) -> bool {
++    frame.payload_type == Some(0)
++        && frame.payload.iter().any(|byte| {
++            let value = !*byte;
++            let magnitude = ((i32::from(value & 15) << 3) + 0x84) << ((value >> 4) & 7);
++            magnitude - 0x84 > 1000
++        })
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -144,9 +144,15 @@
+                 as u32,
+             deferred: false,
+         };
+-        quantum
+-            .current(&member.controller, &member.port)
+-            .then_some(quantum)
++        let current = quantum.current(&member.controller, &member.port);
++        #[cfg(feature = "test-support")]
++        audio_diagnostic::pcm(
++            &member.controller,
++            audio_diagnostic::Stage::TargetCapture,
++            &quantum.samples,
++            (!current).then_some(&StreamControlError::Cancelled),
++        );
++        current.then_some(quantum)
+     }
+ 
+     fn current(&self, target: &Arc<StreamController>, port: &Arc<Port>) -> bool {
+@@ -326,7 +332,15 @@
+                 }
+             };
+             let mut phase = AudioStage::TargetPendingSourceDeferred;
+-            let current = match quantum.admit(&self.controller, &mut phase) {
++            let attempt = quantum.admit(&self.controller, &mut phase);
++            #[cfg(feature = "test-support")]
++            audio_diagnostic::pcm(
++                &self.controller,
++                audio_diagnostic::Stage::TargetAdmission,
++                &quantum.samples,
++                attempt.as_ref().err(),
++            );
++            let current = match attempt {
+                 Ok(current) => current,
+                 Err(StreamControlError::NotReady)
+                     if tokio::time::Instant::now() < quantum.deadline
+@@ -469,6 +483,13 @@
+                 .note(AudioStage::EncodeRefused, Some(timestamp), 0);
+             return None;
+         };
++        #[cfg(feature = "test-support")]
++        audio_diagnostic::frame(
++            &self.controller,
++            audio_diagnostic::Stage::Encoded,
++            &frame,
++            None,
++        );
+         let route = self.clock_route.predicate();
+         let clock_ticket = target_ticket.clone();
+         let clock_consumer = target_consumer.clone();
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -467,7 +467,7 @@
+         SourceRecovered,
+         CadenceSkipped,
+     }
+-    const NAMES: [&str; 31] = [
++    pub(super) const NAMES: [&str; 31] = [
+         "refresh-refused",
+         "refresh-reset",
+         "collect-expired",
+@@ -508,19 +508,34 @@
+         last: Option<(u64, Option<u32>)>,
+     }
+     pub(super) struct Observations {
++        #[cfg(feature = "test-support")]
++        pub(super) connection: Option<ConnectionId>,
+         started: Instant,
+         counters: [Counter; 31],
+     }
+     impl Default for Observations {
+         fn default() -> Self {
+             Self {
++                #[cfg(feature = "test-support")]
++                connection: None,
+                 started: Instant::now(),
+                 counters: [Counter::default(); 31],
+             }
+         }
+     }
+     impl Observations {
++        pub(super) fn for_controller(_controller: &StreamController) -> Self {
++            Self {
++                #[cfg(feature = "test-support")]
++                connection: Some(_controller.connection.clone()),
++                ..Self::default()
++            }
++        }
+         pub(super) fn note(&mut self, stage: Stage, rtp: Option<u32>, samples: usize) {
++            #[cfg(feature = "test-support")]
++            if let Some(connection) = &self.connection {
++                audio_diagnostic::summary(connection, stage as usize, samples);
++            }
+             let counter = &mut self.counters[stage as usize];
+             let at = (
+                 self.started.elapsed().as_micros().min(u64::MAX as u128) as u64,
+@@ -544,6 +559,10 @@
+     }
+ }
+ use observations::{Observations, Stage as AudioStage};
++#[cfg(feature = "test-support")]
++pub(super) fn audio_summary_names_for_test() -> &'static [&'static str] {
++    &observations::NAMES
++}
+ 
+ pub(crate) struct AudioMember {
+     observations: Observations,
+@@ -680,6 +699,13 @@
+                 packet.scene.as_ref(),
+                 &packet.custody,
+                 Some(&mut bound),
++            );
++            #[cfg(feature = "test-support")]
++            audio_diagnostic::frame(
++                &self.controller,
++                audio_diagnostic::Stage::CollectAdmission,
++                &packet.frame,
++                attempt.as_ref().err(),
+             );
+             // A refused attempt may already have observed a shorter grant.
+             // The original packet keeps that numeric minimum, never its reader.
+@@ -737,6 +763,13 @@
+                 continue;
+             }
+             if !decoded.samples.is_empty() {
++                #[cfg(feature = "test-support")]
++                audio_diagnostic::pcm(
++                    &self.controller,
++                    audio_diagnostic::Stage::Decoded,
++                    &decoded.samples,
++                    None,
++                );
+                 self.consumer.observed_decoded(&packet);
+                 self.retain_decoded(packet, decoded);
+             }
+@@ -1030,7 +1063,7 @@
+         let stamp = consumer.stamp();
+         drop(state);
+         Ok(AudioMember {
+-            observations: Observations::default(),
++            observations: Observations::for_controller(&controller),
+             controller,
+             logical,
+             participant: consumer_participant(&port)?,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -48,6 +48,25 @@
+     /// never a grant. Current model and policy must pass before publication.
+     /// None means an isolated preparation observer consumed the frame.
+     pub fn retain_original_ingress(
++        &self,
++        frame: MediaFrame,
++        received_at: Instant,
++    ) -> ControlResult<Option<OriginalIngress>> {
++        #[cfg(feature = "test-support")]
++        let observation = audio_diagnostic::original_frame(&self.0, &frame);
++        let result = self.retain_original_ingress_actual(frame, received_at);
++        #[cfg(feature = "test-support")]
++        if let Some(observation) = observation {
++            let stage = if matches!(&result, Ok(None)) {
++                audio_diagnostic::Stage::IngressPreparation
++            } else {
++                audio_diagnostic::Stage::IngressRetain
++            };
++            observation.finish(stage, result.as_ref().err());
++        }
++        result
++    }
++    fn retain_original_ingress_actual(
+         &self,
+         frame: MediaFrame,
+         received_at: Instant,
+@@ -167,7 +186,16 @@
+         if self.finished {
+             return Err(StreamControlError::Cancelled);
+         }
++        #[cfg(feature = "test-support")]
++        let observation = audio_diagnostic::original_frame(&self.port.0, &self.frame);
+         let result = self.publish(observe);
++        #[cfg(feature = "test-support")]
++        if let Some(observation) = observation {
++            observation.finish(
++                audio_diagnostic::Stage::IngressPublish,
++                result.as_ref().err(),
++            );
++        }
+         if !matches!(
+             result,
+             Err(StreamControlError::MetadataBusy | StreamControlError::Backpressure)
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1361,7 +1361,17 @@
+         let mut outcomes = Vec::with_capacity(frames.len());
+         let mut interval = None;
+         for (index, queued) in frames.into_iter().enumerate() {
+-            let admitted = match queued.admit_queued_media() {
++            #[cfg(feature = "test-support")]
++            let observation = audio_diagnostic::original_frame(&queued.target, &queued.frame);
++            let attempt = queued.admit_queued_media();
++            #[cfg(feature = "test-support")]
++            if let Some(observation) = observation {
++                observation.finish(
++                    audio_diagnostic::Stage::WriterAdmission,
++                    attempt.as_ref().err(),
++                );
++            }
++            let admitted = match attempt {
+                 Ok(admitted) => admitted,
+                 Err(problem) => {
+                     if matches!(&problem, StreamControlError::Deadline) {
+@@ -1391,6 +1401,13 @@
+                 observation.forwarded_age(queued.admitted_at);
+             }
+             let result = send(index, queued.frame.clone(), queued.delivery_origin());
++            #[cfg(feature = "test-support")]
++            audio_diagnostic::frame(
++                &admitted.target,
++                audio_diagnostic::Stage::WriterSubmit,
++                &queued.frame,
++                result.as_ref().err(),
++            );
+             queued.observe_delivery(&admitted, &result);
+             if interval.is_none() {
+                 interval = Some(admitted);
+@@ -3705,6 +3722,8 @@
+ mod credential_rebind;
+ 
+ mod audio_consumer;
++#[cfg(feature = "test-support")]
++pub mod audio_diagnostic;
+ pub mod audio_subscriptions;
+ pub mod direct_subscriptions;
+ pub(crate) mod guarded_audio;

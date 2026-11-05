@@ -1,0 +1,156 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/native_cut.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/native_cut.rs
+@@ -20,7 +20,11 @@
+     let queued=outgoing(&mut f.target_output).await;
+     let adapter=f.movement.room.nodes["device"].adapter.clone();
+     let port=adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
+-    let original=port.native_egress_identity().unwrap();let ticket=port.0.ticket();
++    let original=port.native_egress_identity().unwrap();
++    // This exact queued frame holds the private selection's reader. Compound
++    // commit drains that selection before reaching this same physical Port.
++    let private_ticket=queued.direct.as_ref().unwrap().delivery_ticket();
++    assert!(private_ticket.is_active());
+     let (entered,seen)=tokio::sync::oneshot::channel();let (release,released)=tokio::sync::oneshot::channel();
+     let writer_adapter=adapter.clone();let writer_port=port.clone();
+     let writing=tokio::spawn(async move {queued.deliver(|_|async move {
+@@ -31,10 +35,23 @@
+     let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
+     let scene=f.movement.room.scene.clone();
+     let committing=tokio::spawn(async move {scene.commit_audio_device_replacement(plan,deadline(),CancellationToken::new(),&grant).await});
+-    tokio::time::timeout(Duration::from_millis(100),async {while ticket.is_active(){tokio::task::yield_now().await;}}).await.unwrap();
+-    assert!(!committing.is_finished());assert!(!f.movement.room.nodes["alice"].controller.shutdown.is_cancelled());
+-    release.send(()).unwrap();writing.await.unwrap().unwrap();
+-    let (outcome,handle)=committing.await.unwrap().unwrap();let cut=native_video_cut(&outcome);
++    let quiesced=tokio::time::timeout(Duration::from_millis(100),async {
++        while private_ticket.is_active(){tokio::task::yield_now().await;}
++    }).await;
++    // Observe while the original writer is held, then release and join it even
++    // if a regression violates one of these assertions.
++    let commit_pending=!committing.is_finished();
++    let source_alive=!f.movement.room.nodes["alice"].controller.shutdown.is_cancelled();
++    let still_current=private_ticket.is_current();
++    let new_reader_refused=private_ticket.try_begin_delivery().is_none();
++    release.send(()).unwrap();let written=writing.await;
++    let committed=committing.await;
++    quiesced.unwrap();assert!(commit_pending);assert!(source_alive);
++    assert!(still_current,"quiescence must drain the original selection before retiring it");
++    assert!(new_reader_refused,"the same private selection must refuse a new reader while draining");
++    written.unwrap().unwrap();
++    let (outcome,handle)=committed.unwrap().unwrap();let cut=native_video_cut(&outcome);
++    assert!(!private_ticket.is_current());
+     assert_eq!(cut.identity(),&original);assert_eq!(cut.ordinal(),1);assert_eq!(cut.public_sequence_floor(),1);
+     f.publish_video("bob",71);let public=outgoing(&mut f.target_output).await;
+     public.deliver(|_|async {assert_eq!(cut_writer(&adapter,&port,1).unwrap(),1);Ok(())}).await.unwrap();
+@@ -82,8 +99,69 @@
+     let old=&f.movement.room.nodes["alice"].controller;
+     old.set_media_gate(old.revision(),&BTreeSet::from([desired(Medium::Video).logical_id]),StreamGateAction::Mute,deadline()).await.unwrap();
+     let (outcome,handle)=f.movement.commit(f.movement.plan_with_video(Some(request())).unwrap()).await.unwrap();
+-    let receipt=outcome.media.replacement_activation.clone().unwrap();let cut=native_video_cut(&outcome);assert_eq!(cut.ordinal(),0);
+-    f.publish_video("bob",74);assert!(f.target_output.try_recv().is_err());
++    let receipt=outcome.media.replacement_activation.clone().unwrap();let cut=native_video_cut(&outcome);
++    let target=f.movement.room.nodes["device"].controller.clone();
++    let adapter=f.movement.room.nodes["device"].adapter.clone();
++    let camera=adapter.port(Medium::Video);
++    let port=adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
++    {
++        let state=target.state.lock().unwrap();
++        let publication=&state.model.streams()[&desired(Medium::Video).logical_id];
++        assert!(publication.source_muted);assert!(!publication.permits(false));
++        assert!(state.model.streams()[&request().receivers[0].replacement].permits(true),
++            "endpoint publication mute does not close incoming video");
++    }
++    assert!(matches!(camera.try_publish(&frame(&camera,74)),Err(StreamControlError::NotReady)));
++    assert_eq!(cut.identity(),&port.native_egress_identity().unwrap());
++    assert_eq!(cut.ordinal(),0);assert_eq!(cut.public_sequence_floor(),0);
++    assert_eq!(port.0.native_egress.get().unwrap().ordinal.load(Ordering::Acquire),0);
++    assert!(matches!(f.target_output.try_recv(),Err(mpsc::error::TryRecvError::Empty)),
++        "the immutable cut must exist before any incoming submission");
++    // Mute gates the endpoint's publication, not Bob's selected output. The
++    // original incoming writer consumes its first sequence only on actual IO.
++    f.publish_video("bob",74);
++    let writer_adapter=adapter.clone();let writer_port=port.clone();
++    outgoing(&mut f.target_output).await.deliver(|frame|async move {
++        assert_eq!(frame.timestamp_rtp,74);
++        assert_eq!(cut_writer(&writer_adapter,&writer_port,0).unwrap(),0);Ok(())
++    }).await.unwrap();
++    assert_eq!(port.0.native_egress.get().unwrap().ordinal.load(Ordering::Acquire),1);
++    assert_eq!(cut.ordinal(),0);
++    assert_eq!(outcome.media.replacement_activation.as_ref(),Some(&receipt));
++    assert_eq!(handle.finish_local_media_cleanup(deadline()).await,ReplacementCleanupOutcome::LocalMediaClosed);
++}
++#[tokio::test]
++async fn native_cut_muted_receive_held_mapping_has_no_output_or_submission() {
++    let mut f=Preroll::new().await;enable_cut(&f);
++    let old=&f.movement.room.nodes["alice"].controller;
++    let ids=BTreeSet::from([desired(Medium::Video).logical_id]);
++    old.set_media_gate(old.revision(),&ids,StreamGateAction::Mute,deadline()).await.unwrap();
++    // Hold is Core-relative: Receive permits endpoint input only. With Mute it
++    // also retains the publication gate, so neither direction may submit.
++    old.set_media_gate(old.revision(),&ids,StreamGateAction::Hold {
++        direction:StreamDirection::Receive,
++    },deadline()).await.unwrap();
++    let (outcome,handle)=f.movement.commit(f.movement.plan_with_video(Some(request())).unwrap()).await.unwrap();
++    let receipt=outcome.media.replacement_activation.clone().unwrap();let cut=native_video_cut(&outcome);
++    let target=f.movement.room.nodes["device"].controller.clone();
++    let adapter=f.movement.room.nodes["device"].adapter.clone();
++    let camera=adapter.port(Medium::Video);
++    let port=adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
++    {
++        let state=target.state.lock().unwrap();
++        let publication=&state.model.streams()[&desired(Medium::Video).logical_id];
++        let incoming=&state.model.streams()[&request().receivers[0].replacement];
++        assert!(publication.source_muted);assert!(!publication.permits(false));
++        assert_eq!(incoming.hold_direction,Some(StreamDirection::Receive));
++        assert!(!incoming.permits(true));
++    }
++    assert!(matches!(camera.try_publish(&frame(&camera,76)),Err(StreamControlError::NotReady)));
++    assert_eq!(cut.identity(),&port.native_egress_identity().unwrap());
++    assert_eq!(cut.ordinal(),0);assert_eq!(cut.public_sequence_floor(),0);
++    f.publish_video("bob",76);
++    assert!(matches!(f.target_output.try_recv(),Err(mpsc::error::TryRecvError::Empty)),
++        "receive hold must refuse the selected incoming frame before queueing it");
++    assert_eq!(port.0.native_egress.get().unwrap().ordinal.load(Ordering::Acquire),0);
+     assert_eq!(outcome.media.replacement_activation.as_ref(),Some(&receipt));
+     assert_eq!(handle.finish_local_media_cleanup(deadline()).await,ReplacementCleanupOutcome::LocalMediaClosed);
+ }
+@@ -123,7 +201,12 @@
+ async fn native_cut_waits_for_original_feedback_reader_then_retires_its_selection() {
+     let mut f=Preroll::new().await;enable_cut(&f);let prepared=f.prepare(CancellationToken::new()).await;
+     f.publish_video("bob",75);delivered(&mut f.old_output,75).await;
+-    let private=feedback_delivery(&mut f.target_output,75).await;
++    let queued=outgoing(&mut f.target_output).await;
++    let private_ticket=queued.direct.as_ref().unwrap().delivery_ticket();
++    assert!(private_ticket.is_active());
++    let private=queued.deliver_video_with_feedback(|frame,_,_|async move {
++        assert_eq!(frame.timestamp_rtp,75);Ok(())
++    }).await.unwrap();
+     let plan=f.movement.plan_with_video(Some(request())).unwrap();
+     let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
+     let (entered,seen)=tokio::sync::oneshot::channel();let (release,released)=std::sync::mpsc::channel();
+@@ -133,10 +216,22 @@
+     }));seen.await.unwrap();
+     let scene=f.movement.room.scene.clone();
+     let committing=tokio::spawn(async move{scene.commit_audio_device_replacement(plan,deadline(),CancellationToken::new(),&grant).await});
+-    tokio::time::timeout(Duration::from_millis(100),async{while private.is_current(){tokio::task::yield_now().await;}}).await.unwrap();
+-    assert!(!committing.is_finished(),"original fresh feedback reader must leave before native cut publication");
+-    release.send(()).unwrap();reader.join().unwrap().unwrap();
+-    let(outcome,handle)=committing.await.unwrap().unwrap();assert_eq!(native_video_cut(&outcome).ordinal(),0);
++    let quiesced=tokio::time::timeout(Duration::from_millis(100),async {
++        while private_ticket.is_active(){tokio::task::yield_now().await;}
++    }).await;
++    let commit_pending=!committing.is_finished();
++    let source_alive=!f.movement.room.nodes["alice"].controller.shutdown.is_cancelled();
++    let still_current=private.is_current() && private_ticket.is_current();
++    let new_reader_refused=private_ticket.try_begin_delivery().is_none();
++    release.send(()).unwrap();let read=reader.join();let committed=committing.await;
++    quiesced.unwrap();
++    assert!(commit_pending,"original fresh feedback reader must leave before native cut publication");
++    assert!(source_alive);
++    assert!(still_current,"selection retirement follows the original reader drain");
++    assert!(new_reader_refused,"quiescence must close admission before waiting for the original reader");
++    read.unwrap().unwrap();
++    let(outcome,handle)=committed.unwrap().unwrap();assert_eq!(native_video_cut(&outcome).ordinal(),0);
++    assert!(!private_ticket.is_current());
+     assert!(private.dispatch(private.epoch(),32,|_,_|panic!("retired feedback reader crossed cut")).is_err());
+     prepared.close();assert_eq!(handle.finish_local_media_cleanup(deadline()).await,ReplacementCleanupOutcome::LocalMediaClosed);
+ }

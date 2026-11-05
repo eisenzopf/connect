@@ -308,7 +308,23 @@ async fn exercise_replacement_with_av_transfer(
         };
         #[cfg(not(feature = "test-support"))]
         let data_running: Option<codecs::Running> = None;
+        #[cfg(feature = "test-support")]
+        let cadence_running = if matches!(
+            activation_audit,
+            ActivationAudit::PreparationCadence(
+                decoded_readiness::cadence::Case::OpusEmission
+                    | decoded_readiness::cadence::Case::OpusContiguous
+            )
+        ) {
+            Some(codecs::setup_with_opus_session_for_preparation().await)
+        } else {
+            None
+        };
+        #[cfg(not(feature = "test-support"))]
+        let cadence_running: Option<codecs::Running> = None;
         let (running, source_video_handle) = if let Some(running) = data_running {
+            (running, None)
+        } else if let Some(running) = cadence_running {
             (running, None)
         } else if av {
             let (running, handle) = av::setup().await;

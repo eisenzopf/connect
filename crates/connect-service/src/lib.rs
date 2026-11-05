@@ -242,6 +242,29 @@ impl Service {
             })
     }
 
+    /// Arm bounded numeric audio observations for precisely two existing
+    /// physical controllers. The returned owner contains only weak identities.
+    #[cfg(feature = "test-support")]
+    pub fn canonical_paused_audio_diagnostic_for_test(
+        &self,
+        retained_runtime_id: &str,
+        target_runtime_id: &str,
+    ) -> Result<rvoip_core::staged_streams::audio_diagnostic::AudioDiagnostics> {
+        use rvoip_core::ids::ConnectionId;
+        use rvoip_core::staged_streams::{audio_diagnostic, StreamControlError};
+        let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
+        let retained =
+            runtime.connection_media_controller(&ConnectionId::from_string(retained_runtime_id))?;
+        let target =
+            runtime.connection_media_controller(&ConnectionId::from_string(target_runtime_id))?;
+        audio_diagnostic::arm(&[retained, target]).map_err(|error| match error {
+            StreamControlError::MetadataBusy => {
+                Error::new("authority-busy", "The diagnostic metadata is busy")
+            }
+            _ => Error::forbidden(),
+        })
+    }
+
     /// Hold only the actual role coordinator for an isolated scheduler-delay
     /// fixture. This grants no authority and does not hold a packet IO fence.
     #[cfg(feature = "test-support")]

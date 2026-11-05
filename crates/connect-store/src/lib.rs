@@ -195,7 +195,7 @@ pub use tasks::{
     TaskObservationBinding, VapiSessionContext,
 };
 pub(crate) mod native_stream_projection;
-pub const SCHEMA_VERSION: u32 = 116;
+pub const SCHEMA_VERSION: u32 = 117;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 // Compiled operation/source SQL only; never a row, transaction or grant cache.
 const OPERATION_SQL_CACHE_CAPACITY: usize = 32;
@@ -571,6 +571,10 @@ impl Store {
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/116_webrtc_ice_custody.sql"))
             .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/117_private_successor_return_binding.sql"
+        ))
+        .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;

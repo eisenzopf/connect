@@ -152,10 +152,20 @@ Explicit result-retention maintenance requires a closed conversation for at leas
 30 days, a terminal operation older than that window and settled external effects.
 Full intent/results may then be removed; the original digest, ID and scope tombstone
 remain. A matching expired ID returns `gone`; changed intent conflicts. It can
-never execute again silently. The current fresh state is schema 116; the earlier
+never execute again silently. The current fresh state is schema 117; the earlier
 31/32 references above identify historical introduction points. Older candidates
 are refused unchanged and require preservation with their matching binary plus
 explicit new-state provisioning. See the current [operations guide](../operations/README.md).
+
+Schema 117 binds a private consultation return to either its original selection
+or the latest confirmed replacement of that selection's original primary slot.
+The replacement must name the same consultation and retained physical capture;
+the private partner, remote, outside slots and audience stay exactly as recorded.
+Original consultation history is immutable. These captured facts do not grant
+permission: admission and execution still validate the current actor, original
+lineage and each surviving physical source. A departed latest successor requires
+its own recorded retirement; an older owner cannot be substituted. No wire/API
+change, migration of existing state or compatibility path is introduced.
 
 Local evidence distinguishes control/storage fixtures from real media. The crash
 harness exits actual child processes at 27 admission/claim/effect/ready/commit,

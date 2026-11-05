@@ -1764,6 +1764,16 @@
       "path": "patches/rvoip/connect-uctp-required-nullable-and-fixture-guards.patch",
       "sha256": "1f5633b81718e0c3a22198d2f44b299b11f9cf5e3ed27cfcc42e557173ac1e49",
       "source": "Private v209 candidate: restore frozen nullable-but-required active speaker contract; exact test fixtures. Active original source remains unchanged; behavioral qualification pending."
+    },
+    {
+      "path": "patches/rvoip/connect-paused-audio-diagnostic.patch",
+      "sha256": "58def47421102140e9e5560f29ff37ce39023acb1f685a4f49b46db140069f11",
+      "source": "Private coordinated v212 candidate; component verification pending. No production authority or timing relaxation."
+    },
+    {
+      "path": "patches/rvoip/connect-native-cut-test-semantics.patch",
+      "sha256": "893705089c93c9a1cdb5a81be4e5efe9dfcc5efabf543926badf764eca546c0b",
+      "source": "Private coordinated v212 candidate; component verification pending. No production authority or timing relaxation."
     }
   ]
 }

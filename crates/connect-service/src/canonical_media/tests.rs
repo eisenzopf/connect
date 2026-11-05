@@ -316,6 +316,52 @@ fn native_plan_selects_accepted_fallback_before_unaccepted_preferred_codec() {
     );
 }
 #[test]
+fn native_opus_offer_is_unsupported_without_both_session_offer_and_acceptance() {
+    let base = crate::canonical_native::base_profile().unwrap();
+    let principal = actor();
+    let mut allowed = view();
+    allowed.session.session.capabilities_offer =
+        Some(json!({"audio":["g.711-mu","g.711-a","opus"]}));
+    allowed.accepted_capabilities = json!({"audio":["g.711-mu","g.711-a","opus"]});
+    allowed.offer["capabilities"]["audio_codecs"] = json!([
+        {"name":"opus","params":{"sample_rate":48000,"channels":1}}
+    ]);
+    allowed.offer["streams_offered"][0]["direction"] = json!("sendrecv");
+    allowed.offer["streams_offered"][0]["codec_preferences"] = json!(["opus"]);
+    let wire = serde_json::from_value(allowed.offer.clone()).unwrap();
+    let (_, selected) = offer_plan(&allowed, &base, &principal).unwrap();
+    assert_eq!(selected.selected().len(), 1);
+    assert_eq!(selected.selected()[0].format, audio("opus", 48000));
+    for missing in ["offer", "acceptance", "both"] {
+        let mut denied = allowed.clone();
+        if matches!(missing, "offer" | "both") {
+            denied.session.session.capabilities_offer =
+                Some(json!({"audio":["g.711-mu","g.711-a"]}));
+        }
+        if matches!(missing, "acceptance" | "both") {
+            denied.accepted_capabilities = json!({"audio":["g.711-mu","g.711-a"]});
+        }
+        // The endpoint and server still support Opus. Current Session policy
+        // removes it before native codec planning or any allocation/effect.
+        assert!(NativeOfferPlan::parse(&wire, &base, &principal).is_ok());
+        let current = NativeMediaProfile::new(
+            filtered(&denied, base.engine_capabilities()),
+            AssuranceLevel::Identified,
+            AssuranceLevel::Identified,
+        )
+        .unwrap();
+        assert!(
+            matches!(
+                NativeOfferPlan::parse(&wire, &current, &principal),
+                Err(rvoip_uctp::v2::native_negotiation::NativeOfferError::Unsupported)
+            ),
+            "{missing}"
+        );
+        assert!(offer_plan(&denied, &base, &principal).is_err(), "{missing}");
+    }
+}
+
+#[test]
 fn native_plan_refuses_missing_current_acceptance_endpoint_or_original_offer_codec() {
     for which in 0..4 {
         let mut view = view();

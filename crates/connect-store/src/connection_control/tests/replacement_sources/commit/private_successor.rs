@@ -3,6 +3,8 @@
 use super::*;
 use crate::connection_control::private_consultation::replacement_lineage;
 
+mod return_binding;
+
 fn private_scene() -> (Movement, String) {
     let (f, sources, partner, consultation, _execution, receipt) =
         consultation_audiences::established_fixture();

@@ -1,6 +1,6 @@
 # Current pre-alpha operations
 
-This guide targets the current signed `connect/2` contract and schema **116**.
+This guide targets the current signed `connect/2` contract and schema **117**.
 The CLI's outer result envelope uses `connect-control/1`; trusted provisioning
 responses use `connect/2`. These identify the current layers of the interface.
 It is an unpublished Gate 6 operations draft. Gate 6 acceptance, remote/media

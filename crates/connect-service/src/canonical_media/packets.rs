@@ -1,5 +1,7 @@
 //! Current per-packet policy; only exact active source file custody is reused.
 use super::*;
+#[cfg(feature = "test-support")]
+use rvoip_core::staged_streams::audio_diagnostic::{self, Stage};
 
 /// Retry only an unavailable current read, inside the engine's original packet
 /// admission callback. No positive grant, SQL lock or partial reader survives a
@@ -67,13 +69,17 @@ impl Policy {
         queued: bool,
         original: bool,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
-        self.packet_current_observed(scope, held, queued, original)
+        let result = self
+            .packet_current_observed(scope, held, queued, original)
             .inspect_err(|error| {
                 tracing::debug!(target: "connect_service::packet_refusal",
                     connection = %scope.connection,
                     publishing = matches!(scope.purpose, MediaPurpose::Publish),
                     queued, original, ?error, "Current packet policy refused");
-            })
+            });
+        #[cfg(feature = "test-support")]
+        audio_diagnostic::result(scope.connection, Stage::PolicyResult, result.as_ref().err());
+        result
     }
     fn packet_current_observed(
         &self,
@@ -223,40 +229,71 @@ impl Policy {
             } else {
                 packet_authority_error(error)
             }
-        })?;
-        if !read.current() {
-            return Err(StreamControlError::Authority);
-        }
-        // Local engine preparation can precede the durable readiness commit.
-        // Fresh publication/delivery cannot use that intermediate state.
-        if matches!(scope.purpose, MediaPurpose::Publish) && read.target().publication_suspended {
-            return Err(StreamControlError::NotReady);
-        }
-        if !matches!(scope.purpose, MediaPurpose::Control)
-            && !matches!(read.target().connection.state.as_str(), "ready" | "active")
-        {
-            return Err(StreamControlError::NotReady);
-        }
-        if source.is_some() && !read.permits_subscriptions() {
-            return Err(StreamControlError::Authority);
-        }
-        if let Some((source, source_entry)) = &source {
-            source_matches(
-                source,
-                source_entry,
-                read.source().ok_or(StreamControlError::Authority)?,
-            )?;
-        }
-        let owner = entry.owner(read.target(), scope.principal, source.is_some()).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet owner refused");error})?;
-        let owner = entry
+        });
+        #[cfg(feature = "test-support")]
+        audio_diagnostic::result(scope.connection, Stage::PolicyStore, read.as_ref().err());
+        let read = read?;
+        let read_state = (|| {
+            if !read.current() {
+                return Err(StreamControlError::Authority);
+            }
+            // Local engine preparation can precede the durable readiness commit.
+            // Fresh publication/delivery cannot use that intermediate state.
+            if matches!(scope.purpose, MediaPurpose::Publish) && read.target().publication_suspended
+            {
+                return Err(StreamControlError::NotReady);
+            }
+            if !matches!(scope.purpose, MediaPurpose::Control)
+                && !matches!(read.target().connection.state.as_str(), "ready" | "active")
+            {
+                return Err(StreamControlError::NotReady);
+            }
+            if source.is_some() && !read.permits_subscriptions() {
+                return Err(StreamControlError::Authority);
+            }
+            if let Some((source, source_entry)) = &source {
+                source_matches(
+                    source,
+                    source_entry,
+                    read.source().ok_or(StreamControlError::Authority)?,
+                )?;
+            }
+            Ok(())
+        })();
+        #[cfg(feature = "test-support")]
+        audio_diagnostic::result(
+            scope.connection,
+            Stage::PolicyReadState,
+            read_state.as_ref().err(),
+        );
+        read_state?;
+        let owner = entry.owner(read.target(), scope.principal, source.is_some()).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet owner refused");error});
+        #[cfg(feature = "test-support")]
+        audio_diagnostic::result(scope.connection, Stage::PolicyOwner, owner.as_ref().err());
+        let owner = owner?;
+        let owner = (|| entry
             .activation()?
             .ok_or(StreamControlError::NotReady)?
-            .current(owner).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet activation refused");error})?;
+            .current(owner))().map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet activation refused");error});
+        #[cfg(feature = "test-support")]
+        audio_diagnostic::result(
+            scope.connection,
+            Stage::PolicyActivation,
+            owner.as_ref().err(),
+        );
+        let owner = owner?;
         // Current Store readers exist before these short Core metadata checks.
         // Capture no Core mutex across authorization acquisition or packet IO.
         let mut continuations = Vec::with_capacity(2);
         if let Some(current) = &target_continuation {
-            continuations.push(current.current(&owner)?);
+            let publication = current.current(&owner);
+            #[cfg(feature = "test-support")]
+            audio_diagnostic::result(
+                scope.connection,
+                Stage::PolicyPublication,
+                publication.as_ref().err(),
+            );
+            continuations.push(publication?);
         }
         if let Some(current) = &source_continuation {
             let source_owner = current.entry.owner(
@@ -269,7 +306,14 @@ impl Policy {
                 .activation()?
                 .ok_or(StreamControlError::NotReady)?
                 .current(source_owner)?;
-            continuations.push(current.current(&source_owner)?);
+            let publication = current.current(&source_owner);
+            #[cfg(feature = "test-support")]
+            audio_diagnostic::result(
+                source_owner.connection.connection(),
+                Stage::PolicyPublication,
+                publication.as_ref().err(),
+            );
+            continuations.push(publication?);
         }
         Ok(Box::new(
             Fresh::new(owner, read, held).with_continuations(continuations),

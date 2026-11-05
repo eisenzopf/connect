@@ -160,6 +160,45 @@ async fn setup_started_profile<T>(
     target_capabilities: Value,
     source_scope: Option<Scope>,
 ) -> (Running, T) {
+    setup_started_session_profile(
+        f,
+        host,
+        target_operation,
+        source_operation,
+        target_capabilities,
+        source_scope,
+        json!({"audio":["g.711-mu","g.711-a"]}),
+    )
+    .await
+}
+
+// Only the Opus preparation-cadence fixtures use this wider Session agreement.
+// Initial physical offers and their codecs remain the original G711 programme.
+#[cfg(feature = "test-support")]
+pub(super) async fn setup_with_opus_session_for_preparation() -> Running {
+    let f = Fixture::with_native_end_scope("EdDSA", 12).await;
+    setup_started_session_profile(
+        f,
+        (),
+        "codec-target-offer",
+        "codec-source-offer",
+        capabilities(),
+        None,
+        json!({"audio":["g.711-mu","g.711-a","opus"]}),
+    )
+    .await
+    .0
+}
+
+async fn setup_started_session_profile<T>(
+    f: Fixture,
+    host: T,
+    target_operation: &str,
+    source_operation: &str,
+    target_capabilities: Value,
+    source_scope: Option<Scope>,
+    session_capabilities: Value,
+) -> (Running, T) {
     ready_endpoint(&f).await;
     let config = match source_scope {
         Some(scope) => party_with_scope(&f, &f.peer.identity_id, 99, vec!["audio".into()], scope),
@@ -167,15 +206,26 @@ async fn setup_started_profile<T>(
     };
     let mut target = CanonicalClient::open(f.client.clone()).await.unwrap();
     let mut source = CanonicalClient::open(config.clone()).await.unwrap();
-    let cid = session_with_media(
-        &f,
-        &mut target,
-        "voice",
-        json!({"audio":["g.711-mu","g.711-a"]}),
-    )
-    .await;
+    let opus_preparation = session_capabilities["audio"]
+        .as_array()
+        .is_some_and(|codecs| codecs.iter().any(|codec| codec == "opus"));
+    // This public helper sends both the original Session invitation and its
+    // acceptance before any endpoint negotiation or replacement allocation.
+    let cid = session_with_media(&f, &mut target, "voice", session_capabilities).await;
     let t=negotiate_media(&mut target,&cid,target_operation,"codec-target",json!([{"id":"codec-monitor","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]),target_capabilities).await;
     let s=negotiate_media(&mut source,&cid,source_operation,"codec-source",json!([{"id":"codec-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]),capabilities()).await;
+    if opus_preparation {
+        for answer in [&t, &s] {
+            let streams = answer.original()["payload"]["streams_answered"]
+                .as_array()
+                .unwrap();
+            assert_eq!(streams.len(), 1);
+            assert_eq!(streams[0]["codec"]["name"], "pcmu");
+            assert_eq!(streams[0]["codec"]["params"]["payload_type"], 0);
+            assert_eq!(streams[0]["codec"]["params"]["sample_rate"], 8000);
+            assert_eq!(streams[0]["codec"]["params"]["channels"], 1);
+        }
+    }
     wait_native_operation(&f, &f.client.credential, &cid, target_operation).await;
     wait_native_operation(&f, &config.credential, &cid, source_operation).await;
     checked_control(

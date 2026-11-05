@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-known-blocker-candidate/1",
+  "scope": "Reviewed combined candidate. Runtime and complete transport matrix qualification remain pending.",
+  "base_revision": "feee630fc0ae2a12633ece6954fa6ea3bad627dd",
+  "frozen_original_runtime_revision": "40bd2301a632f21250f7e04153e748f852250ac2",
+  "source_lock_sha256": "6daa37ad1668ab86363dd79b80c0939e3ce7426ab702392e52b316497ea4fb8e",
+  "changes": [
+    "Preserve required nullable active-speaker decoding and generator semantics (previous component evidence retained).",
+    "Negotiate Opus at the actual signed Session boundary for the two Opus cadence fixtures; physical PCMU offers unchanged.",
+    "Observe exact private selection admission during native cut; distinguish publication mute from incoming receive hold.",
+    "Test-support-only weak nonblocking numeric diagnostics preserve the paused duplex fixture verdict.",
+    "Fresh schema117 admits only the exact latest confirmed same-consultation primary successor; original audience, other slots and fresh Rust authority checks preserved."
+  ],
+  "verification": {
+    "dependency_preparation": "passed on the complete candidate including schema117",
+    "format": "passed on the complete candidate using scripts/format.sh --check",
+    "combined_api": "running on pre-Store private graph; does not qualify this whole candidate",
+    "new_Store_controls": "unrun;4 new and22 existing controls planned",
+    "whole_matrix": "not rerun; original v192 remains authoritative",
+    "matrix_qualified": false,
+    "runtime_original_restarted": false,
+    "diff_check": "passed"
+  },
+  "preserved": [
+    "Original failed logs and qualified negative comparisons retain their original outcomes.",
+    "No sample, age, deadline, quality, resource or authority requirements relaxed.",
+    "Active original source and prepared dependencies unchanged."
+  ]
+}
