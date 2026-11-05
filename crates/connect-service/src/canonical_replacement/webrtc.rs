@@ -20,7 +20,7 @@ use connect_store::{
 use rvoip_core::{
     ids::ConversationId,
     staged_streams::StreamController,
-    stream_lifecycle::{StreamDirection, StreamGateAction},
+    stream_lifecycle::{Medium, StreamDirection, StreamGateAction},
 };
 use rvoip_uctp::v2::auth_dispatch::AuthorizedEnvelope;
 use std::{
@@ -408,7 +408,13 @@ impl Runtime {
             a.principal(),
         )
         .map_err(denied)?;
-        if !plan.rejected().is_empty() || !(1..=3).contains(&plan.selected().len()) {
+        if !plan.rejected().is_empty()
+            || !(1..=3).contains(&plan.selected().len())
+            || plan
+                .selected()
+                .iter()
+                .any(|s| !matches!(s.requested.medium, Medium::Audio | Medium::Video))
+        {
             return Err(Error::new(
                 "unsupported-media-profile",
                 "RTC replacement requires its exact selected audio and optional directional video ports",

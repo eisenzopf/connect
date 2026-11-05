@@ -133,15 +133,15 @@ pub(super) fn validate_offer(offer: &serde_json::Value, av: bool) -> Result<()> 
     let streams = offer["streams_offered"]
         .as_array()
         .ok_or_else(unsupported)?;
-    let split =
-        av && matches!(
-            offer["replacement_preparation"]["profile"].as_str(),
-            Some(
-                "connect-replacement-preparation-v1"
-                    | "connect-replacement-media-v1"
-                    | "connect-replacement-ready-v1"
-            )
-        ) && streams.len() == 3;
+    let replacement = matches!(
+        offer["replacement_preparation"]["profile"].as_str(),
+        Some(
+            "connect-replacement-preparation-v1"
+                | "connect-replacement-media-v1"
+                | "connect-replacement-ready-v1"
+        )
+    );
+    let split = av && replacement && streams.len() == 3;
     if streams.len()
         != if av {
             if split {
@@ -163,7 +163,7 @@ pub(super) fn validate_offer(offer: &serde_json::Value, av: bool) -> Result<()> 
         let kind = stream["kind"].as_str().ok_or_else(unsupported)?;
         let id = stream["id"].as_str().ok_or_else(unsupported)?;
         let direction = stream["direction"].as_str().ok_or_else(unsupported)?;
-        if id.is_empty() || !ids.insert(id) {
+        if id.is_empty() || !ids.insert(id) || (replacement && kind == "screen") {
             return Err(unsupported());
         }
         match kind {
@@ -381,9 +381,20 @@ mod screen_profile_tests {
             .unwrap()
             .remove("replacement_preparation");
         assert!(validate_offer(&unscoped, true).is_err());
-        let mut crossed = original;
+        let mut crossed = original.clone();
         crossed["streams_offered"][2]["kind"] = json!("screen");
         assert!(validate_offer(&crossed, true).is_err());
+        // Ordinary Screen negotiation remains available, but staged RTC
+        // replacement currently has decoded Video readiness and mapping only.
+        let screen = offer();
+        validate_offer(&screen, true).unwrap();
+        let mut replacement_screen = screen;
+        replacement_screen["replacement_preparation"] = original["replacement_preparation"].clone();
+        assert!(validate_offer(&replacement_screen, true).is_err());
+        let mut directional_screen = original;
+        directional_screen["streams_offered"][1]["kind"] = json!("screen");
+        directional_screen["streams_offered"][2]["kind"] = json!("screen");
+        assert!(validate_offer(&directional_screen, true).is_err());
     }
     #[test]
     fn screen_does_not_admit_camera_plus_screen_or_an_audio_only_host() {
