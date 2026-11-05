@@ -1,3 +1,4 @@
+import {nativeCut,nativeEgressIdentity,nativeMembership} from "../../sdk/typescript/dist/browser_native_activation.js";
 // Offline interpretation of one already-joined physical replacement capture.
 // No authority, mutation, clock correction or decoded-quality claim is created.
 import assert from "node:assert/strict";
@@ -41,6 +42,18 @@ export function physicalAvSegment(observed, expected) {
     assert.equal(readiness.decoder_process.clean, true);
     assert.equal(readiness.decoder_process.forced, false);
     assert.equal(readiness.decoder_process.exit_code, 0);
+    const activation=readiness.native_activation;
+    assert.deepEqual(Object.keys(activation??{}).sort(),["profile","operation_record_id","operation_id","source_connection_id","target_connection_id","target_generation","stream_revision","audience"].sort());
+    assert.equal(activation.profile,"connect/native-public-sequence-cut/1");
+    assert.ok(id(readiness.record_id));assert.equal(activation.operation_record_id,readiness.record_id);
+    assert.equal(activation.operation_id,expected.operationId);assert.equal(readiness.operation_id,expected.operationId);
+    assert.equal(activation.source_connection_id,expected.sourceConnectionId);assert.notEqual(expected.sourceConnectionId,expected.connectionId);
+    assert.equal(activation.target_connection_id,expected.connectionId);assert.equal(activation.target_generation,expected.targetGeneration);
+    assert.ok(uint(activation.stream_revision,Number.MAX_SAFE_INTEGER)&&activation.stream_revision>2);
+    assert.deepEqual(Object.keys(activation.audience).sort(),["scope","streams"]);assert.equal(activation.audience.scope,"public");
+    assert.equal(activation.audience.streams.length,2);const cuts=activation.audience.streams.map(nativeCut);
+    assert.equal(new Set(cuts.map(c=>c.stream_id)).size,2);assert.equal(new Set(cuts.map(c=>c.stream_local_id)).size,2);
+    assert.equal(new Set(cuts.map(c=>c.physical_incarnation)).size,2);
     const decodedReceipts = readiness.video_decode_receipts;
     assert.ok(Array.isArray(decodedReceipts) && decodedReceipts.length <= 1860);
     const originalDecoded = new Map(); let previousOrdinal = -1;
@@ -75,7 +88,13 @@ export function physicalAvSegment(observed, expected) {
         assert.ok(!handles.has(stream.stream_local_id), "physical stream handles must be distinct");
         handles.add(stream.stream_local_id);
         if (stream.video_feedback) assert.equal(stream.video_feedback.connection_generation, expected.targetGeneration);
-        if (index !== 1) streams.set(stream.stream_local_id, { streamId, medium, pt: stream.codec.params.payload_type, feedback: stream.video_feedback?.profile === "rtcp-pli-epoch/1", generation: stream.video_feedback?.stream_generation ?? null });
+        if(index!==1) {
+            const identity=nativeEgressIdentity(stream.native_egress),cut=cuts.find(c=>c.stream_id===streamId);
+            assert.ok(cut);assert.equal(cut.stream_local_id,stream.stream_local_id);assert.equal(cut.stream_generation,identity.stream_generation);
+            assert.equal(cut.physical_incarnation,identity.physical_incarnation);assert.equal(identity.connection_generation,expected.targetGeneration);
+            streams.set(stream.stream_local_id,{streamId,medium,pt:stream.codec.params.payload_type,feedback:stream.video_feedback?.profile==="rtcp-pli-epoch/1",
+                generation:identity.stream_generation,identity,cut});
+        }
     }
     const dataResources = dataIds.map((streamId, index) => {
         const matches = observed.negotiated_streams.filter(stream => stream.strm_id === streamId);
@@ -122,7 +141,9 @@ export function physicalAvSegment(observed, expected) {
         assert.ok(bytes <= 16 * 1024 * 1024);
         // Original same-epoch private bytes can warm only this already-live
         // decoder. Its outputs stay outside the unchanged public window.
-        const contextOnly = !row.original_root_completed_observed;
+        const outer=view.getUint32(4);
+        const provenance={profile:"connect/native-decoded-sequence/1",identity:stream.identity,datagramSequences:[outer]};
+        const contextOnly=nativeMembership(stream.cut,provenance)==="private";
         if (contextOnly) privatePackets.push(index);
         if (row.elapsed_us < decoderStartedUs) { quarantine.push(index); continue; }
         completedSeen ||= row.original_root_completed_observed;
@@ -166,7 +187,8 @@ export function physicalAvSegment(observed, expected) {
         assert.ok(packet.payload.length > 0);
         const common = { elapsed_ms, physical_observation_row: index, stream_id: stream.streamId,
             ssrc: packet.ssrc, timestamp: packet.timestamp, decoder_context_only: contextOnly,
-            connection_generation: expected.targetGeneration, stream_generation: stream.generation };
+            connection_generation: expected.targetGeneration, stream_generation: stream.generation,
+            native_datagram_sequences:[outer],native_physical_incarnation:stream.identity.physical_incarnation };
         const segments = stream.medium === "audio" ? audio : video;
         if (!segments.has(packet.ssrc)) {
             assert.ok(segments.size < 8, "bounded physical codec histories");
@@ -181,10 +203,14 @@ export function physicalAvSegment(observed, expected) {
             // Use the actual recorded receive time for the unchanged200ms
             // assembly expiry, never the speed of this offline reader.
             const frame = epoch ? recovery.push(stream.streamId, { header: { ssrc: packet.ssrc,
-                timestamp: packet.timestamp, sequenceNumber: packet.sequence, marker: packet.marker,
+                timestamp: packet.timestamp, sequenceNumber: packet.sequence, datagramSequence:packet.datagramSequence, marker: packet.marker,
                 payloadType: packet.payloadType }, payload: packet.payload, videoEpoch: epoch }, elapsed_ms)
                 : assembler.push(packet, elapsed_ms);
             if (frame) {
+                const frameSequences=frame.datagramSequences;
+                const framePrivate=nativeMembership(stream.cut,{...provenance,datagramSequences:frameSequences})==="private";
+                assert.equal(framePrivate,contextOnly,"actual complete frame cannot straddle the original cut");
+                common.native_datagram_sequences=frameSequences;
                 let receipt;
                 if (contextOnly) {
                     const key = JSON.stringify([epoch.epoch,epoch.incarnation,epoch.revision,epoch.ssrc,frame.timestamp]);
@@ -207,7 +233,7 @@ export function physicalAvSegment(observed, expected) {
     }
     assert.ok(completedSeen, "capture needs an actual post-completion observation");
     const histories = groups => [...groups].map(([ssrc, rows]) => ({ ssrc, rows }));
-    return { format: "connect/physical-av-segment/2", program_start_unix_us: observed.program_start_unix_us,
+    return { format: "connect/physical-av-segment/3", native_activation:activation, program_start_unix_us: observed.program_start_unix_us,
         root_completed_observed_programme_us: rootObservedUs,
         audio: histories(audio), video: histories(video), clock_reports: clocks,
         decoder_context: { profile: "connect/native-retained-private-context/1", connection_id: expected.connectionId,
@@ -220,5 +246,5 @@ export function physicalAvSegment(observed, expected) {
         negotiated_data_resources: dataResources, reliable_data_io_verified: false,
         original_datagram_bytes: bytes, pending_video_fragments: assembler.queuedFragments + recovery.pendingFragments,
         decoded_media_verified: false, full_timeline_decoded: false, cell_qualified: false,
-        scope: "Original receive times and codec bytes only, split by physical SSRC. Only original same-physical/stream/SSRC/generation/epoch private bytes can initialize the retained decoder; their outputs never enter public coverage. No PLC, gap filling, retiming or media quality inference." };
+        scope: "Original receive times and codec bytes only, split by physical SSRC. Public membership is the original signed per-writer cut, independent of root reply arrival. Only original same-physical/stream/SSRC/generation/epoch private bytes can initialize the retained decoder; their outputs never enter public coverage. No PLC, gap filling, retiming or media quality inference." };
 }

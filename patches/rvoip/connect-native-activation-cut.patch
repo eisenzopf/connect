@@ -1,0 +1,822 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -131,6 +131,7 @@
+     pub audience_revision: u64,
+     pub receiver_revisions: BTreeMap<ConnectionId, u64>,
+     pub restored: bool,
++    pub replacement_activation: Option<ReplacementActivationBoundary>,
+     pub departed_connections: BTreeSet<ConnectionId>,
+     pub participant_handoff: Option<crate::participant_transitions::ParticipantHandoffObservation>,
+     pub participant_replacement:
+@@ -1457,6 +1458,15 @@
+             if let Some(logical) = &logical {
+                 logical.check(&plan)?;
+             }
++            // Every original private/audio/direct/port writer remains quiesced.
++            // Reserve immutable metadata before the first infallible publication;
++            // muted streams need no later IO to complete this historical receipt.
++            let replacement_activation = plan.replacement.as_ref().map(|replacement| {
++                let index = targets.iter().position(|target| target.controller.connection == replacement.request.admitted)
++                    .ok_or(StreamControlError::Authority)?;
++                native_activation::capture(replacement, &targets[index].controller, &states[index], !plan.group.origins.is_empty(),
++                    &targets[index].inherited_gates, revisions[&replacement.request.admitted])
++            }).transpose()?;
+             // No fallible work after the first model or programme is published.
+             for ((((target, state), model), commit), direct_commit) in targets
+                 .iter()
+@@ -1595,6 +1605,7 @@
+                     audience_revision: registry.revision,
+                     receiver_revisions: revisions,
+                     restored: plan.restore.is_some(),
++                    replacement_activation,
+                     departed_connections: departed,
+                     participant_handoff: observations.handoff,
+                     participant_replacement: observations.replacement,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -31,7 +31,7 @@
+     pub(super) new_logical: StreamId,
+     pub(super) old_gate: LogicalStream,
+     pub(super) video: Option<video::VideoPlan>,
+-    pending: PreparedParticipantReplacement,
++    pub(super) pending: PreparedParticipantReplacement,
+     pub(super) restoration: Option<super::consultation::PrivateConsultationHandle>,
+ }
+ impl ReplacementIntent {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/native_activation.rs b/crates/foundation/rvoip-core/src/staged_streams/native_activation.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/native_activation.rs
+@@ -0,0 +1,167 @@
++//! Historical native packetization boundaries. No payload, IO permission,
++//! packet completion, strong controller, or independently running task.
++use super::*;
++use std::sync::atomic::{AtomicBool, AtomicU64};
++const MAX_ORDINAL: u64 = 9_007_199_254_740_991;
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct NativeEgressIdentity {
++    incarnation: u128,
++    connection: ConnectionId,
++    logical: StreamId,
++    transport: StreamId,
++    handle: u16,
++    generation: u64,
++    connection_generation: u64,
++}
++impl NativeEgressIdentity {
++    pub fn incarnation(&self) -> u128 { self.incarnation }
++    pub fn connection(&self) -> &ConnectionId { &self.connection }
++    pub fn logical(&self) -> &StreamId { &self.logical }
++    pub fn transport(&self) -> &StreamId { &self.transport }
++    pub fn handle(&self) -> u16 { self.handle }
++    pub fn generation(&self) -> u64 { self.generation }
++    pub fn connection_generation(&self) -> u64 { self.connection_generation }
++}
++pub(super) struct Cursor {
++    identity: NativeEgressIdentity,
++    owner: Weak<Port>,
++    pub(super) ordinal: AtomicU64,
++    live: AtomicBool,
++    feedback_issued:AtomicBool,
++}
++/// The adapter's sole original sequence allocator. Deliberately not Clone.
++/// Installation can happen only before the original egress reader is taken.
++pub struct NativeEgressWriter(Arc<Cursor>);
++impl NativeEgressWriter {
++    /// Reserve exactly one original outer sequence before any RTP/RTCP write.
++    /// Failed/partial writes keep that reservation; it is not an IO receipt.
++    pub fn reserve(&mut self,expected:u32)->ControlResult<u32>{self.0.reserve(Some(expected))}
++    pub fn reserve_next(&mut self)->ControlResult<u32>{self.0.reserve(None)}
++    /// One weak reservation capability for the existing original feedback
++    /// endpoint. It creates no task, current authority, or physical lifetime.
++    pub fn take_feedback_reservation(&mut self)->ControlResult<NativeFeedbackReservation>{
++        if self.0.feedback_issued.compare_exchange(false,true,Ordering::AcqRel,Ordering::Acquire).is_err(){return Err(StreamControlError::Authority);}
++        Ok(NativeFeedbackReservation(Arc::downgrade(&self.0)))
++    }
++}
++pub struct NativeFeedbackReservation(Weak<Cursor>);
++impl NativeFeedbackReservation {
++    pub fn reserve_next(&mut self)->ControlResult<u32>{self.0.upgrade().ok_or(StreamControlError::Cancelled)?.reserve(None)}
++}
++impl Cursor {
++    fn reserve(&self,expected:Option<u32>)->ControlResult<u32>{
++        let port=self.owner.upgrade().ok_or(StreamControlError::Cancelled)?;
++        let state=port.state.lock().map_err(|_|StreamControlError::Authority)?;
++        if !self.live.load(Ordering::Acquire)||!state.ready||!matches!(state.status,PortStatus::Active|PortStatus::Paused){return Err(StreamControlError::Cancelled);}
++        let ordinal=self.ordinal.load(Ordering::Relaxed);
++        if expected.is_some_and(|expected|ordinal as u32!=expected)||ordinal>=MAX_ORDINAL{return Err(StreamControlError::Authority);}
++        self.ordinal.store(ordinal+1,Ordering::Release);Ok(ordinal as u32)
++    }
++}
++
++impl Drop for NativeEgressWriter {
++    fn drop(&mut self) { self.0.live.store(false, Ordering::Release); }
++}
++impl AdapterMediaPort {
++    pub fn install_native_egress_cursor(&self) -> ControlResult<NativeEgressWriter> {
++        let output = self.0.output.lock().map_err(|_| StreamControlError::Authority)?;
++        let state = self.0.state.lock().map_err(|_| StreamControlError::Authority)?;
++        if state.status != PortStatus::Prepared || output.is_none() || !self.0.binding.sink_ready {
++            return Err(StreamControlError::Authority);
++        }
++        install(&self.0)
++    }
++    /// Original negotiation metadata only. Does not expose or clone the writer.
++    pub fn native_egress_identity(&self) -> Option<NativeEgressIdentity> {
++        self.0.native_egress.get().filter(|c|c.live.load(Ordering::Acquire)).map(|c|c.identity.clone())
++    }
++}
++fn install(port: &Arc<Port>) -> ControlResult<NativeEgressWriter> {
++    let owner=port.owner.upgrade().ok_or(StreamControlError::Cancelled)?;
++    let b=&port.binding;
++    let cursor=Arc::new(Cursor {
++        identity:NativeEgressIdentity { incarnation:uuid::Uuid::new_v4().as_u128(), connection:owner.connection.clone(),
++            logical:b.negotiated.requested.logical_id.clone(),transport:b.transport_id.clone(),handle:b.stream_local_id,
++            generation:b.generation,connection_generation:b.connection_generation },
++        owner:Arc::downgrade(port),ordinal:AtomicU64::new(0),live:AtomicBool::new(true),feedback_issued:AtomicBool::new(false),
++    });
++    port.native_egress.set(cursor.clone()).map_err(|_|StreamControlError::Authority)?;
++    Ok(NativeEgressWriter(cursor))
++}
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct NativeSequenceCut { identity:NativeEgressIdentity, ordinal:u64 }
++impl NativeSequenceCut {
++    pub fn identity(&self)->&NativeEgressIdentity { &self.identity }
++    pub fn ordinal(&self)->u64 { self.ordinal }
++    pub fn public_sequence_floor(&self)->u32 { self.ordinal as u32 }
++}
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub enum ReplacementActivationScope {
++    PublicNative,
++    PrivateConsultation { original_operation:String },
++    UnsupportedAdapter,
++}
++/// Minted only inside the compound replacement publication while the original
++/// private/audio/direct/port writers are quiesced. Never deserializable.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct ReplacementActivationBoundary {
++    operation:String, source:ConnectionId,target:ConnectionId,generation:u64,revision:u64,
++    scope:ReplacementActivationScope,streams:Vec<NativeSequenceCut>,
++}
++impl ReplacementActivationBoundary {
++    pub fn operation(&self)->&str { &self.operation }
++    pub fn source(&self)->&ConnectionId { &self.source }
++    pub fn target(&self)->&ConnectionId { &self.target }
++    pub fn generation(&self)->u64 { self.generation }
++    pub fn revision(&self)->u64 { self.revision }
++    pub fn scope(&self)->&ReplacementActivationScope { &self.scope }
++    pub fn streams(&self)->&[NativeSequenceCut] { &self.streams }
++}
++/// Caller holds every quiescence guard plus final model/authority checks. Only
++/// explicitly inherited receiving streams are included; an omitted, still
++/// quarantined auxiliary receiver is not silently assigned public membership.
++pub(super) fn capture(
++    replacement:&device_replacement::ReplacementIntent,
++    target:&Arc<StreamController>,state:&State,closed_audience:bool, inherited:&[(StreamId,LogicalStream)],revision:u64,
++)->ControlResult<ReplacementActivationBoundary> {
++    if target.connection!=replacement.request.admitted || state.closed || target.shutdown.is_cancelled() {
++        return Err(StreamControlError::Authority);
++    }
++    let mut result=ReplacementActivationBoundary { operation:replacement.request.operation_id.clone(),
++        source:replacement.request.source.clone(),target:target.connection.clone(),
++        generation:replacement.pending.generation(),revision,scope:ReplacementActivationScope::UnsupportedAdapter,streams:vec![] };
++    let valid_id=|v:&str|!v.is_empty() && v.len()<=256 && !v.chars().any(char::is_control);
++    if !valid_id(&result.operation) || !valid_id(result.source.as_str()) || !valid_id(result.target.as_str()) || result.source==result.target ||
++        !(1..=MAX_ORDINAL).contains(&result.generation) || !(3..=MAX_ORDINAL).contains(&revision) {return Err(StreamControlError::Authority);}
++    if let Some(parent)=replacement.private_consultation_parent() {
++        if !valid_id(parent) {return Err(StreamControlError::Authority);}
++        result.scope=ReplacementActivationScope::PrivateConsultation { original_operation:parent.to_owned() };
++        return Ok(result);
++    }
++    if closed_audience && target.adapter.native_sequence_cursors(){return Err(StreamControlError::Authority);}
++    let ports=state.active.values().filter(|p|p.binding.sink_ready && p.binding.negotiated.requested.medium!=Medium::Data &&
++        inherited.iter().any(|(id,_)|*id==p.binding.negotiated.requested.logical_id)).collect::<Vec<_>>();
++    if ports.is_empty() || ports.len()>32 { return Err(StreamControlError::Authority); }
++    if !target.adapter.native_sequence_cursors() { return Ok(result); }
++    let (mut handles,mut physical)=(BTreeSet::new(),BTreeSet::new());
++    for port in ports {
++        let current=port.state.lock().map_err(|_|StreamControlError::Authority)?;
++        if !current.ready || !matches!(current.status,PortStatus::Active|PortStatus::Paused) { return Err(StreamControlError::NotReady); }
++        let cursor=port.native_egress.get().ok_or(StreamControlError::NotReady)?;
++        let b=&port.binding;let i=&cursor.identity;
++        if !cursor.live.load(Ordering::Acquire) || !Weak::ptr_eq(&cursor.owner,&Arc::downgrade(port)) ||
++            i.connection!=target.connection || i.logical!=b.negotiated.requested.logical_id || i.transport!=b.transport_id ||
++            i.handle!=b.stream_local_id || i.generation!=b.generation || i.connection_generation!=result.generation {
++            return Err(StreamControlError::Authority);
++        }
++        if !valid_id(i.logical.as_str()) || i.handle==0 || !(1..=MAX_ORDINAL).contains(&i.generation) ||
++            i.incarnation==0 || !handles.insert(i.handle) || !physical.insert(i.incarnation) {return Err(StreamControlError::Authority);}
++        let ordinal=cursor.ordinal.load(Ordering::Acquire);
++        if ordinal>=MAX_ORDINAL || ordinal>=0x8000_0000 { return Err(StreamControlError::Authority); }
++        result.streams.push(NativeSequenceCut {identity:i.clone(),ordinal});
++    }
++    result.streams.sort_by(|a,b|a.identity.logical.cmp(&b.identity.logical));
++    result.scope=ReplacementActivationScope::PublicNative;
++    Ok(result)
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/native_cut.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/native_cut.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/native_cut.rs
+@@ -0,0 +1,166 @@
++use super::*;
++
++// Real Core route/ticket/queue tests. The test adapter installs the original
++// cursor before taking its original egress reader; these tests do not claim a
++// native wire/decoder run, which remains a separate adapter/signed fixture.
++fn cut_writer(adapter:&Adapter, port:&AdapterMediaPort, sequence:u32)->ControlResult<u32> {
++    adapter.native_writers.lock().unwrap().get_mut(&port.binding().transport_id).unwrap().reserve(sequence)
++}
++fn enable_cut(f:&Preroll) { f.movement.room.nodes["device"].adapter.native_cursors.store(true,Ordering::Release); }
++fn native_video_cut(outcome:&AudioDeviceReplacementOutcome)->NativeSequenceCut {
++    let receipt=outcome.media.replacement_activation.as_ref().unwrap();
++    assert_eq!(receipt.scope(),&ReplacementActivationScope::PublicNative);
++    receipt.streams().iter().find(|s|s.identity().logical()==&request().receivers[0].replacement).unwrap().clone()
++}
++#[tokio::test]
++async fn native_cut_waits_for_actual_private_writer_and_keeps_original_cursor() {
++    let mut f=Preroll::new().await;enable_cut(&f);
++    let prepared=f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob",70);delivered(&mut f.old_output,70).await;
++    let queued=outgoing(&mut f.target_output).await;
++    let adapter=f.movement.room.nodes["device"].adapter.clone();
++    let port=adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
++    let original=port.native_egress_identity().unwrap();let ticket=port.0.ticket();
++    let (entered,seen)=tokio::sync::oneshot::channel();let (release,released)=tokio::sync::oneshot::channel();
++    let writer_adapter=adapter.clone();let writer_port=port.clone();
++    let writing=tokio::spawn(async move {queued.deliver(|_|async move {
++        assert_eq!(cut_writer(&writer_adapter,&writer_port,0).unwrap(),0);
++        entered.send(()).unwrap();released.await.unwrap();Ok(())
++    }).await});seen.await.unwrap();
++    let plan=f.movement.plan_with_video(Some(request())).unwrap();
++    let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
++    let scene=f.movement.room.scene.clone();
++    let committing=tokio::spawn(async move {scene.commit_audio_device_replacement(plan,deadline(),CancellationToken::new(),&grant).await});
++    tokio::time::timeout(Duration::from_millis(100),async {while ticket.is_active(){tokio::task::yield_now().await;}}).await.unwrap();
++    assert!(!committing.is_finished());assert!(!f.movement.room.nodes["alice"].controller.shutdown.is_cancelled());
++    release.send(()).unwrap();writing.await.unwrap().unwrap();
++    let (outcome,handle)=committing.await.unwrap().unwrap();let cut=native_video_cut(&outcome);
++    assert_eq!(cut.identity(),&original);assert_eq!(cut.ordinal(),1);assert_eq!(cut.public_sequence_floor(),1);
++    f.publish_video("bob",71);let public=outgoing(&mut f.target_output).await;
++    public.deliver(|_|async {assert_eq!(cut_writer(&adapter,&port,1).unwrap(),1);Ok(())}).await.unwrap();
++    assert_eq!(cut.ordinal(),1,"sealed result did not wait for or change after public IO");
++    prepared.close();assert_eq!(handle.finish_local_media_cleanup(deadline()).await,ReplacementCleanupOutcome::LocalMediaClosed);
++}
++#[tokio::test]
++async fn native_cut_rejects_queued_private_video_local_audio_and_retired_ready_audio() {
++    let mut f=Preroll::new().await;enable_cut(&f);let prepared=f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob",72);delivered(&mut f.old_output,72).await;let private=outgoing(&mut f.target_output).await;
++    f.movement.queue_prompt(4000).unwrap();let local=f.movement.room.nodes.get_mut("device").unwrap().out.try_recv().unwrap();
++    // This real already-dequeued public old-owner audio is eligible for the
++    // adapter's ready-audio batch, but its original owner is retired by commit.
++    f.movement.room.publish("bob",3000).unwrap();f.movement.room.tick();
++    let old=f.movement.room.nodes.get_mut("alice").unwrap().out.try_recv().unwrap();assert!(old.can_batch_audio());
++    let adapter=f.movement.room.nodes["device"].adapter.clone();let port=adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
++    let (outcome,handle)=f.movement.commit(f.movement.plan_with_video(Some(request())).unwrap()).await.unwrap();
++    let cut=native_video_cut(&outcome);assert_eq!(cut.ordinal(),0);
++    assert!(private.deliver(|_|async {panic!("private video reserved after cut")}).await.is_err());
++    assert!(local.deliver(|_|async {panic!("queued local preparation audio reserved after cut")}).await.is_err());
++    let results=QueuedMedia::deliver_ready_audio_batch(vec![old],|_,_,_|panic!("retired ready-audio work reserved after cut"));
++    assert!(matches!(&results[0],ReadyAudioDelivery::Refused{..}));
++    let old_adapter=&f.movement.room.nodes["alice"].adapter;let old_port=old_adapter.port(Medium::Audio);
++    assert!(cut_writer(old_adapter,&old_port,0).is_err(),"original retired writer itself must refuse");
++    assert_eq!(port.0.native_egress.get().unwrap().ordinal.load(Ordering::Acquire),0);
++    f.publish_video("bob",73);outgoing(&mut f.target_output).await.deliver(|_|async {cut_writer(&adapter,&port,0)?;Ok(())}).await.unwrap();
++    prepared.close();assert_eq!(handle.finish_local_media_cleanup(deadline()).await,ReplacementCleanupOutcome::LocalMediaClosed);
++}
++#[tokio::test]
++async fn native_cut_missing_original_writer_and_half_range_refuse_before_publication() {
++    for stopped in [false,true] {
++        let mut f=Preroll::new().await;enable_cut(&f);let prepared=f.prepare(CancellationToken::new()).await;
++        let adapter=&f.movement.room.nodes["device"].adapter;let port=adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
++        let revision=f.movement.room.nodes["device"].controller.revision();
++        if stopped {drop(adapter.native_writers.lock().unwrap().remove(&port.binding().transport_id));}
++        else {port.0.native_egress.get().unwrap().ordinal.store(0x8000_0000,Ordering::Release);}
++        assert!(f.movement.commit(f.movement.plan_with_video(Some(request())).unwrap()).await.is_err());
++        assert_eq!(f.movement.room.nodes["device"].controller.revision(),revision);
++        assert!(!f.movement.room.nodes["alice"].controller.shutdown.is_cancelled());prepared.close();
++    }
++}
++#[tokio::test]
++async fn native_cut_muted_mapping_finishes_without_inventing_submission() {
++    let mut f=Preroll::new().await;enable_cut(&f);
++    let old=&f.movement.room.nodes["alice"].controller;
++    old.set_media_gate(old.revision(),&BTreeSet::from([desired(Medium::Video).logical_id]),StreamGateAction::Mute,deadline()).await.unwrap();
++    let (outcome,handle)=f.movement.commit(f.movement.plan_with_video(Some(request())).unwrap()).await.unwrap();
++    let receipt=outcome.media.replacement_activation.clone().unwrap();let cut=native_video_cut(&outcome);assert_eq!(cut.ordinal(),0);
++    f.publish_video("bob",74);assert!(f.target_output.try_recv().is_err());
++    assert_eq!(outcome.media.replacement_activation.as_ref(),Some(&receipt));
++    assert_eq!(handle.finish_local_media_cleanup(deadline()).await,ReplacementCleanupOutcome::LocalMediaClosed);
++}
++#[tokio::test]
++async fn native_cut_cancelled_commit_has_no_boundary_and_no_cursor_owner_cycle() {
++    let mut f=Preroll::new().await;enable_cut(&f);let prepared=f.prepare(CancellationToken::new()).await;
++    let adapter=f.movement.room.nodes["device"].adapter.clone();let port=adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
++    let weak=Arc::downgrade(&port.0);let cursor=Arc::downgrade(port.0.native_egress.get().unwrap());
++    let plan=f.movement.plan_with_video(Some(request())).unwrap();let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
++    let cancelled=CancellationToken::new();cancelled.cancel();
++    assert!(f.movement.room.scene.commit_audio_device_replacement(plan,deadline(),cancelled,&grant).await.is_err());
++    assert!(!f.movement.room.nodes["alice"].controller.shutdown.is_cancelled());drop(grant);prepared.close();drop(prepared);
++    for node in f.movement.room.nodes.values(){assert_eq!(node.controller.shutdown(deadline()).await,0);}
++    drop(port);drop(adapter);drop(f);assert!(weak.upgrade().is_none());assert!(cursor.upgrade().is_none());
++}
++
++#[tokio::test]
++async fn native_cursor_failed_reservation_exhaustion_and_original_close_are_not_new_owners() {
++    let f=Preroll::new().await;let adapter=&f.movement.room.nodes["device"].adapter;
++    let port=adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
++    let identity=port.native_egress_identity().unwrap();
++    assert!(port.install_native_egress_cursor().is_err(),"a second cursor cannot replace this actual original reader");
++    assert_eq!(cut_writer(adapter,&port,0).unwrap(),0);
++    assert!(cut_writer(adapter,&port,0).is_err(),"failed stale reservation cannot reuse an original sequence");
++    assert_eq!(port.0.native_egress.get().unwrap().ordinal.load(Ordering::Acquire),1);
++    let maximum=9_007_199_254_740_991u64;
++    port.0.native_egress.get().unwrap().ordinal.store(maximum-1,Ordering::Release);
++    assert_eq!(cut_writer(adapter,&port,(maximum-1)as u32).unwrap(),(maximum-1)as u32);
++    assert!(cut_writer(adapter,&port,maximum as u32).is_err());
++    assert_eq!(port.0.native_egress.get().unwrap().ordinal.load(Ordering::Acquire),maximum);
++    assert_eq!(port.native_egress_identity().unwrap(),identity);
++    assert_eq!(f.movement.room.nodes["device"].controller.shutdown(deadline()).await,0);
++    assert!(cut_writer(adapter,&port,maximum as u32).is_err());
++}
++
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn native_cut_waits_for_original_feedback_reader_then_retires_its_selection() {
++    let mut f=Preroll::new().await;enable_cut(&f);let prepared=f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob",75);delivered(&mut f.old_output,75).await;
++    let private=feedback_delivery(&mut f.target_output,75).await;
++    let plan=f.movement.plan_with_video(Some(request())).unwrap();
++    let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
++    let (entered,seen)=tokio::sync::oneshot::channel();let (release,released)=std::sync::mpsc::channel();
++    let original=private.clone();
++    let reader=std::thread::spawn(move||original.dispatch(original.epoch(),31,|_,_| {
++        entered.send(()).unwrap();released.recv_timeout(Duration::from_secs(1)).unwrap();Ok(())
++    }));seen.await.unwrap();
++    let scene=f.movement.room.scene.clone();
++    let committing=tokio::spawn(async move{scene.commit_audio_device_replacement(plan,deadline(),CancellationToken::new(),&grant).await});
++    tokio::time::timeout(Duration::from_millis(100),async{while private.is_current(){tokio::task::yield_now().await;}}).await.unwrap();
++    assert!(!committing.is_finished(),"original fresh feedback reader must leave before native cut publication");
++    release.send(()).unwrap();reader.join().unwrap().unwrap();
++    let(outcome,handle)=committing.await.unwrap().unwrap();assert_eq!(native_video_cut(&outcome).ordinal(),0);
++    assert!(private.dispatch(private.epoch(),32,|_,_|panic!("retired feedback reader crossed cut")).is_err());
++    prepared.close();assert_eq!(handle.finish_local_media_cleanup(deadline()).await,ReplacementCleanupOutcome::LocalMediaClosed);
++}
++#[tokio::test]
++async fn native_cursor_interleaves_original_media_and_feedback_without_a_second_lifetime() {
++    let f=Preroll::new().await;let adapter=&f.movement.room.nodes["device"].adapter;
++    let port=adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
++    let mut writers=adapter.native_writers.lock().unwrap();let writer=writers.get_mut(&port.binding().transport_id).unwrap();
++    let mut feedback=writer.take_feedback_reservation().unwrap();assert!(writer.take_feedback_reservation().is_err());
++    assert_eq!(writer.reserve_next().unwrap(),0);assert_eq!(feedback.reserve_next().unwrap(),1);
++    assert_eq!(writer.reserve_next().unwrap(),2);assert_eq!(feedback.reserve_next().unwrap(),3);
++    // An uncertain/failed send consumes 3; the same original media owner takes 4.
++    assert_eq!(writer.reserve_next().unwrap(),4);drop(writers);
++    assert_eq!(f.movement.room.nodes["device"].controller.shutdown(deadline()).await,0);
++    assert!(feedback.reserve_next().is_err());
++}
++#[tokio::test]
++async fn native_cut_unknown_closed_audience_refuses_before_any_publication() {
++    let mut f=Move::new(true).await;f.io().await;f.confirm().await;
++    f.room.nodes["device"].adapter.native_cursors.store(true,Ordering::Release);
++    let old=f.room.nodes["alice"].controller.clone();let revision=f.room.nodes["device"].controller.revision();
++    let plan=f.plan().unwrap();assert!(!plan.audience().request().private_connections.is_empty());
++    assert!(f.commit(plan).await.is_err());assert!(!old.shutdown.is_cancelled());
++    assert_eq!(f.room.nodes["device"].controller.revision(),revision);
++    f.room.publish("alice",5200).unwrap();f.room.tick();f.room.heard("bob",5200).await;
++    f.room.silent(&["public","other","device"]);
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+@@ -783,3 +783,5 @@
+         .shutdown
+         .is_cancelled());
+ }
++
++mod native_cut;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -266,6 +266,8 @@
+     }
+ }
+ struct Adapter {
++    native_cursors:AtomicBool,
++    native_writers:Mutex<BTreeMap<StreamId,NativeEgressWriter>>,
+     prepare_calls: AtomicUsize,
+     ports: Mutex<BTreeMap<StreamId, AdapterMediaPort>>,
+     mode: AtomicUsize,
+@@ -278,6 +280,8 @@
+ impl Adapter {
+     fn new() -> Arc<Self> {
+         Arc::new(Self {
++            native_cursors:AtomicBool::new(false),
++            native_writers:Mutex::new(BTreeMap::new()),
+             prepare_calls: AtomicUsize::new(0),
+             ports: Mutex::new(BTreeMap::new()),
+             mode: AtomicUsize::new(0),
+@@ -299,6 +303,7 @@
+ }
+ #[async_trait::async_trait]
+ impl StagedMediaAdapter for Adapter {
++    fn native_sequence_cursors(&self)->bool {self.native_cursors.load(Ordering::Acquire)}
+     async fn prepare(
+         &self,
+         ports: Vec<PortPreparation>,
+@@ -318,6 +323,10 @@
+                     uncertain: self.uncertain.clone(),
+                 });
+                 preparation.port.install_cleanup(cleanup)?;
++                if preparation.port.binding().sink_ready && preparation.port.binding().negotiated.requested.medium!=Medium::Data {
++                    let writer=preparation.port.install_native_egress_cursor()?;
++                    self.native_writers.lock().unwrap().insert(preparation.port.binding().transport_id.clone(),writer);
++                }
+                 self.outstanding.fetch_add(1, Ordering::AcqRel);
+                 if mode == 5
+                     && preparation.port.binding().negotiated.requested.medium == Medium::Data
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -493,6 +493,9 @@
+ }
+ #[async_trait::async_trait]
+ pub trait StagedMediaAdapter: Send + Sync {
++    /// Exact original adapter contract; native adapters must install one sole
++    /// cursor on every receiving media port before resource readiness.
++    fn native_sequence_cursors(&self) -> bool { false }
+     /// Register cleanup before allocating resources. Report readiness only
+     /// from the exact negotiated route. Dropping this future must release its
+     /// own provisional work; engine ports are fenced immediately on failure.
+@@ -526,6 +529,8 @@
+     messages_only: bool,
+ }
+ mod diagnostics;
++mod native_activation;
++pub use native_activation::{NativeEgressIdentity, NativeEgressWriter, NativeFeedbackReservation, NativeSequenceCut, ReplacementActivationBoundary, ReplacementActivationScope};
+ 
+ struct Port {
+     owner: Weak<StreamController>,
+@@ -534,6 +539,7 @@
+     ticket: Mutex<PeerRouteTicket>,
+     state: Mutex<PortState>,
+     diagnostics: std::sync::OnceLock<diagnostics::PortDiagnostics>,
++    native_egress: std::sync::OnceLock<Arc<native_activation::Cursor>>,
+     ingress: mpsc::Sender<MediaPacket>,
+     input: Mutex<Option<mpsc::Receiver<MediaPacket>>>,
+     egress: mpsc::Sender<QueuedMedia>,
+@@ -2845,6 +2851,7 @@
+                     messages_only: false,
+                 }),
+                 diagnostics: std::sync::OnceLock::new(),
++                native_egress: std::sync::OnceLock::new(),
+                 ingress,
+                 input: Mutex::new(Some(input)),
+                 egress,
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs b/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
+@@ -39,6 +39,7 @@
+         sink_ready: true,
+     };
+     let mut p = Packetizer {
++        cursor:None,
+         feedback_epoch: None,
+         outer: 0,
+         rtp: 0,
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs b/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs
+@@ -49,6 +49,7 @@
+     publisher: Option<Publisher>,
+     next: Option<Instant>,
+     sequence: u32,
++    reservation:Option<rvoip_core::staged_streams::NativeFeedbackReservation>,
+ }
+ pub(super) struct Endpoint {
+     binding: ReadyMediaBinding,
+@@ -66,6 +67,7 @@
+         transport: Arc<dyn StagedDatagramTransport>,
+         cancel: CancellationToken,
+         lifetime: CancellationToken,
++        reservation:Option<rvoip_core::staged_streams::NativeFeedbackReservation>,
+     ) -> ControlResult<Arc<Self>> {
+         if binding.negotiated.requested.medium != Medium::Video {
+             return Err(StreamControlError::Unsupported);
+@@ -76,7 +78,7 @@
+             transport,
+             cancel,
+             lifetime,
+-            source: Mutex::new(SourceState::default()),
++            source: Mutex::new(SourceState{reservation,..Default::default()}),
+             receiver: Mutex::new(None),
+         }))
+     }
+@@ -237,9 +239,13 @@
+         if state.next.is_some_and(|next| now < next) {
+             return Err(StreamControlError::Backpressure);
+         }
++        // The same original physical handle shares one reservation space with
++        // RTP and sender reports. Existing fresh source/receiver guards remain held.
++        let sequence=if let Some(reservation)=state.reservation.as_mut(){reservation.reserve_next()?}else{state.sequence};
++        state.sequence=sequence.wrapping_add(1);
+         let bytes = pack_video_feedback_datagram(&VideoFeedbackDatagram {
+             stream_local_id: self.binding.stream_local_id,
+-            seq: state.sequence,
++            seq: sequence,
+             sender_ssrc: 1,
+             media_ssrc: ssrc,
+             activation_epoch: epoch,
+@@ -254,7 +260,6 @@
+         }
+         // Consume even an uncertain local send. Never retransmit one request
+         // behind renewed policy, or pass the receiver's sequence to a source.
+-        state.sequence = state.sequence.wrapping_add(1);
+         state.next = Some(now + Duration::from_millis(100));
+         self.transport.send_datagram(bytes)
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -689,6 +689,8 @@
+     clock: Option<(u128, u64)>,
+ }
+ struct Packetizer {
++    // Only the original owned egress task can move/reserve this writer.
++    cursor: Option<NativeEgressWriter>,
+     feedback_epoch: Option<u128>,
+     outer: u32,
+     rtp: u16,
+@@ -702,6 +704,11 @@
+     last_report: Option<std::time::Instant>,
+ }
+ impl Packetizer {
++    fn reserve_outer(&mut self) -> ControlResult<u32> {
++        let sequence=if let Some(cursor)=self.cursor.as_mut(){cursor.reserve_next()?}else{self.outer};
++        self.outer=sequence.wrapping_add(1);
++        Ok(sequence)
++    }
+     fn send(
+         &mut self,
+         frame: MediaFrame,
+@@ -788,34 +795,23 @@
+                         .min(1180),
+                 )
+                 .ok_or(StreamControlError::NotReady)?;
+-            packets
+-                .into_iter()
+-                .map(|packet| {
+-                    observe_rtp(packet)
+-                        .and_then(|rtp| {
+-                            pack_observed_rtp_datagram(&ObservedRtpDatagram {
+-                                flags: 0,
+-                                stream_local_id: binding.stream_local_id,
+-                                seq: {
+-                                    let seq = self.outer;
+-                                    self.outer = self.outer.wrapping_add(1);
+-                                    seq
+-                                },
+-                                rtp,
+-                            })
+-                        })
+-                        .and_then(|wire| match self.feedback_epoch {
+-                            Some(epoch) => crate::substrate::tag_video_epoch_datagram(&wire, epoch),
+-                            None => Ok(wire),
+-                        })
+-                })
+-                .collect::<Result<Vec<_>, _>>()
+-                .map_err(|_| StreamControlError::NotReady)?
++            packets.into_iter().map(|packet| {
++                let rtp = observe_rtp(packet).map_err(|_| StreamControlError::NotReady)?;
++                let sequence = self.reserve_outer()?;
++                let wire = pack_observed_rtp_datagram(&ObservedRtpDatagram {
++                    flags:0,stream_local_id:binding.stream_local_id,seq:sequence,rtp,
++                }).map_err(|_|StreamControlError::NotReady)?;
++                match self.feedback_epoch {
++                    Some(epoch) => crate::substrate::tag_video_epoch_datagram(&wire,epoch).map_err(|_|StreamControlError::NotReady),
++                    None => Ok(wire),
++                }
++            }).collect::<ControlResult<Vec<_>>>()?
+         } else {
++            let sequence=self.reserve_outer()?;
+             let packet = pack_rtp_datagram(&RtpDatagram {
+                 flags: 0,
+                 stream_local_id: binding.stream_local_id,
+-                seq: self.outer,
++                seq: sequence,
+                 rtp: RtpMediaPayload {
+                     payload: frame.payload,
+                     payload_type: pt,
+@@ -825,7 +821,6 @@
+                 },
+             })
+             .map_err(|_| StreamControlError::NotReady)?;
+-            self.outer = self.outer.wrapping_add(1);
+             self.rtp = self.rtp.wrapping_add(1);
+             vec![packet]
+         };
+@@ -860,10 +855,9 @@
+                             cname: self.cname.clone(),
+                         };
+                         if let Some(bytes) =
+-                            rtcp::encode(binding.stream_local_id, self.outer, &report)
++                            rtcp::encode(binding.stream_local_id, self.reserve_outer()?, &report)
+                         {
+                             if bytes.len() <= maximum {
+-                                self.outer = self.outer.wrapping_add(1);
+                                 self.last_report = Some(std::time::Instant::now());
+                                 // Best effort clock metadata never retries original RTP.
+                                 let _ = transport.send_datagram(bytes);
+@@ -878,6 +872,7 @@
+ }
+ #[async_trait]
+ impl StagedMediaAdapter for StagedRtpMedia {
++    fn native_sequence_cursors(&self) -> bool { true }
+     async fn prepare(
+         &self,
+         ports: Vec<PortPreparation>,
+@@ -986,6 +981,7 @@
+             if self.streams.contains_key(&port.binding().transport_id) {
+                 return Err(StreamControlError::NotReady);
+             }
++            let mut cursor=if port.binding().sink_ready{Some(port.install_native_egress_cursor()?)}else{None};
+             let stream: Arc<dyn MediaStream> = Arc::new(RoutedStream {
+                 port: port.clone(),
+                 codec: descriptor,
+@@ -1000,6 +996,7 @@
+                         self.transport.clone(),
+                         resources.cancel.clone(),
+                         self.lifetime.clone(),
++                        cursor.as_mut().map(|writer|writer.take_feedback_reservation()).transpose()?,
+                     )
+                 })
+                 .transpose()?;
+@@ -1074,6 +1071,7 @@
+             let cname = self.clocks.cname.clone();
+             let task = tokio::spawn(async move {
+                 let mut packetizer = Some(Packetizer {
++                    cursor,
+                     feedback_epoch: None,
+                     outer: 0,
+                     rtp: 0,
+@@ -1294,6 +1292,7 @@
+             }),
+         };
+         let mut packetizer = Packetizer {
++            cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+             rtp: 0,
+@@ -1368,6 +1367,7 @@
+         };
+         let transport = Prefix(Mutex::new(Vec::new()));
+         let mut packetizer = Packetizer {
++            cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+             rtp: 0,
+@@ -1385,6 +1385,7 @@
+             .send(frame, None, &binding, 96, &transport, |bytes| observed
+                 .push(bytes))
+             .is_err());
++        assert!(packetizer.outer > 1, "every pre-packetized original fragment, including failed and unsent reservations, remains in the cursor");
+         let sent = transport.0.lock().unwrap();
+         assert_eq!(
+             sent.len(),
+@@ -1405,7 +1406,7 @@
+     }
+     #[test]
+     fn sender_clock_reports_actual_submissions_and_never_counts_metadata_as_rtp() {
+-        struct Wire(Mutex<Vec<Bytes>>);
++        struct Wire(Mutex<Vec<Bytes>>,std::sync::atomic::AtomicBool);
+         impl StagedDatagramTransport for Wire {
+             fn maximum_datagram_bytes(&self) -> Option<usize> {
+                 Some(1200)
+@@ -1414,6 +1415,7 @@
+                 false
+             }
+             fn send_datagram(&self, b: Bytes) -> ControlResult<()> {
++                if rtcp::is_rtcp(&b) && self.1.swap(false,Ordering::AcqRel) {return Err(StreamControlError::Backpressure);}
+                 self.0.lock().unwrap().push(b);
+                 Ok(())
+             }
+@@ -1440,6 +1442,7 @@
+             sink_ready: true,
+         };
+         let mut packetizer = Packetizer {
++            cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+             rtp: 0,
+@@ -1474,7 +1477,7 @@
+                 is_current: Arc::new(|| true),
+             }),
+         };
+-        let wire = Wire(Mutex::new(Vec::new()));
++        let wire = Wire(Mutex::new(Vec::new()),std::sync::atomic::AtomicBool::new(false));
+         let mut observed = 0;
+         assert_eq!(
+             packetizer
+@@ -1485,6 +1488,9 @@
+         assert_eq!(observed, 1);
+         let packets = wire.0.lock().unwrap();
+         assert_eq!(packets.len(), 2);
++        assert_eq!(packetizer.outer,2,"RTP and its original RTCP each reserve one cursor ordinal");
++        assert_eq!(u32::from_be_bytes(packets[0][4..8].try_into().unwrap()),0);
++        assert_eq!(u32::from_be_bytes(packets[1][4..8].try_into().unwrap()),1);
+         let rtp = crate::substrate::observe_rtp_datagram(&packets[0]).unwrap();
+         let (handle, report) = rtcp::parse(&packets[1]).unwrap();
+         assert_eq!(handle, binding.stream_local_id);
+@@ -1545,6 +1551,13 @@
+             prior
+         );
+         assert_eq!(observed, 4);
++        let before_packets=packets.len();drop(packets);
++        let before=packetizer.outer;packetizer.last_report=None;
++        wire.1.store(true,Ordering::Release);
++        packetizer.send(make(true),None,&binding,0,&wire,|_|observed+=1).unwrap();
++        assert_eq!(wire.0.lock().unwrap().len(),before_packets+1,"failed original RTCP did not become observed IO");
++        assert_eq!(packetizer.outer,before+2,"failed RTCP still consumed its unique original reservation");
++        assert_eq!(observed,5);
+     }
+ }
+ 
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -852,6 +852,19 @@
+             .iter()
+             .map(|binding| {
+                 let mut wire = binding_wire(binding);
++                if binding.sink_ready && binding.negotiated.requested.medium != Medium::Data {
++                    let port = ports.iter().find(|p| crate::staged_media::same_binding(p.port.binding(),binding))
++                        .ok_or(NativeOfferError::Confirmation)?;
++                    let identity = port.port.native_egress_identity().ok_or(NativeOfferError::Confirmation)?;
++                    if identity.transport()!=&binding.transport_id || identity.handle()!=binding.stream_local_id ||
++                        identity.generation()!=binding.generation || identity.connection_generation()!=binding.connection_generation {
++                        return Err(NativeOfferError::Confirmation);
++                    }
++                    wire["native_egress"] = json!({"profile":"native-sequence-cursor/1",
++                        "physical_incarnation":format!("{:032x}",identity.incarnation()),
++                        "stream_generation":identity.generation(),"connection_generation":identity.connection_generation(),
++                        "initial_outer_sequence":0});
++                }
+                 if let Some(allocation) = allocations
+                     .iter()
+                     .find(|a| crate::staged_media::same_binding(&a.binding, binding))
+@@ -864,9 +877,9 @@
+                         "connection_generation": binding.connection_generation
+                     });
+                 }
+-                wire
++                Ok(wire)
+             })
+-            .collect::<Vec<_>>();
++            .collect::<Result<Vec<_>,NativeOfferError>>()?;
+         let setup = json!({"kind":"native-prepared/1","revision":op.expected+1,"offer_id":op.envelope.id(),"streams":wire});
+         let answered=bindings.iter().map(|b|json!({"id":b.negotiated.requested.logical_id.as_str(),"kind":kind(b.negotiated.requested.medium),"direction":direction(b.negotiated.requested.direction),"codec":codec_wire(&b.negotiated.format,payload_type(&b.negotiated.format))})).collect::<Vec<_>>();
+         let substrate = &op.substrate;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/video_feedback.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/video_feedback.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/video_feedback.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/video_feedback.rs
+@@ -269,3 +269,38 @@
+         n.stop().await;
+     }
+ }
++
++// Actual original duplex QUIC handles: RTP, SR, and compound PLI+APP all use one
++// packet reservation space. Existing controlled profile is not signed negotiation proof.
++fn original_clock(handle:u16,ssrc:u32,rtp:u32)->Bytes {
++    use bytes::BufMut;use rvoip_rtp_core::packet::rtcp::*;
++    let now=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap();
++    let ntp=((now.as_secs()+2_208_988_800)<<32)|((u64::from(now.subsec_nanos())<<32)/1_000_000_000);
++    let mut sr=RtcpSenderReport::new(ssrc);sr.ntp_timestamp=NtpTimestamp::from_u64(ntp);sr.rtp_timestamp=rtp;sr.sender_packet_count=1;sr.sender_octet_count=4;
++    let mut c=RtcpCompoundPacket::new_with_sr(sr);let mut chunk=RtcpSdesChunk::new(ssrc);chunk.add_item(RtcpSdesItem::cname("original-duplex-clock".into()));
++    let mut description=RtcpSourceDescription::new();description.add_chunk(chunk);c.add_sdes(description);
++    let mut b=bytes::BytesMut::new();b.put_u8(1);b.put_u8(0);b.put_u16(handle);b.put_u32(20);b.extend_from_slice(&c.serialize().unwrap());b.freeze()
++}
++async fn original_wire(n:&Network)->Bytes {tokio::time::timeout(Duration::from_secs(2),n.wire.quic.as_ref().unwrap().2.read_datagram()).await.unwrap().unwrap()}
++#[tokio::test]
++async fn native_duplex_rtp_sender_report_and_compound_feedback_share_original_wire_cursor() {
++    let mut n=Network::new("quic").await;let a=n.configure(0).await;let b=n.configure(1).await;
++    let notices=Arc::new(Notices::default());for leg in [&a,&b]{*leg.readiness.feedback.lock().unwrap()=Some(notices.clone());n.start(leg,&[Medium::Audio,Medium::Video]).await;}
++    select(&n,&a,&b).await;select(&n,&b,&a).await;
++    let ah=binding(&a,Medium::Video).stream_local_id;let bh=binding(&b,Medium::Video).stream_local_id;
++    let mut ai=a.controller.take_ingress(&desired(Medium::Video).logical_id).unwrap();let mut bi=b.controller.take_ingress(&desired(Medium::Video).logical_id).unwrap();
++    send(&n.wire,source_video(bh,1,17));drop(packet(&mut bi).await);
++    send(&n.wire,original_clock(bh,17,3000));send(&n.wire,source_video(bh,2,17));
++    packet(&mut bi).await.try_forward_to(&a.controller,&desired(Medium::Video).logical_id).unwrap();
++    let rtp=original_wire(&n).await;let sr=original_wire(&n).await;
++    assert_eq!(u16::from_be_bytes(rtp[2..4].try_into().unwrap()),ah);assert_eq!(u16::from_be_bytes(sr[2..4].try_into().unwrap()),ah);
++    assert_eq!(u32::from_be_bytes(rtp[4..8].try_into().unwrap()),0);assert_eq!(u32::from_be_bytes(sr[4..8].try_into().unwrap()),1);assert_eq!(sr[9],200);
++    send(&n.wire,source_video(ah,1,7));packet(&mut ai).await.try_forward_to(&b.controller,&desired(Medium::Video).logical_id).unwrap();let out=received(&n.wire).await;assert_eq!(out.stream_local_id,bh);
++    notices.announced(bh,false).await;notices.announced(ah,true).await;let epoch=notices.latest(bh,false);
++    send(&n.wire,pack_video_feedback_datagram(&request(bh,epoch,50)).unwrap());let feedback=feedback(&n).await;
++    assert_eq!(feedback.stream_local_id,ah);assert_eq!(feedback.seq,2,"original PLI+APP reused RTP/SR reservation");
++    send(&n.wire,source_video(bh,3,17));packet(&mut bi).await.try_forward_to(&a.controller,&desired(Medium::Video).logical_id).unwrap();
++    let next=received(&n.wire).await;assert_eq!(next.stream_local_id,ah);assert_eq!(next.seq,3,"feedback reservation broke original packetizer continuity");
++    assert_eq!(a.controller.shutdown(deadline()).await,0);rejected(&n,&b,&request(bh,epoch,51)).await;
++    assert_eq!(b.controller.shutdown(deadline()).await,0);n.stop().await;
++}

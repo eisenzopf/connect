@@ -519,15 +519,15 @@ class State {
         if (this.peer.controlTransport !== "webtransport")
             throw new BrowserSdkError("unsupported", "not-submitted");
         return (this.mediaPeer ??= new BrowserMediaPeer(this.peer, {
-            audio: (binding, frame) => {
+            audio: (binding, frame, native) => {
                 const r = this.renderers.get(binding.connectionId);
                 if (r instanceof BrowserMediaRenderer)
-                    r.audio(binding, frame);
+                    r.audio(binding, frame, native);
             },
-            video: (binding, frame) => {
+            video: (binding, frame, native) => {
                 const r = this.renderers.get(binding.connectionId);
                 if (r instanceof BrowserMediaRenderer)
-                    r.video(binding, frame);
+                    r.video(binding, frame, native);
             },
         }));
     }

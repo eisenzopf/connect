@@ -1,3 +1,4 @@
+import { type NativeActivationBoundary } from "./browser_native_activation.js";
 /** Internal original native replacement proof. Decoder outputs are observations;
  * challenge, counters and acknowledgements never grant public ownership. */
 import { BrowserClient } from "./browser_client.js";
@@ -40,6 +41,9 @@ export declare class BrowserNativeReadiness {
     private readonly challenge;
     private readonly original;
     private readonly scope;
+    private readonly activationReceivers;
+    private activation?;
+    get activationBoundary(): NativeActivationBoundary | undefined;
     private audio?;
     private audioSamples;
     private video?;

@@ -1,12 +1,12 @@
 {
   "format": "connect/g6-058-coordinated-integration-progress/1",
   "task": "G6-058",
-  "status": "private-retirement-and-cadence-wired-integrated-typecheck-passed-native-cut-private",
+  "status": "native-activation-batch-integrated-verification-running",
   "basis_revision": "d5b6f04ece02eb19dc3a687e1f69891e9be77f8f",
-  "recorded_at": "2026-11-05T18:32:55.424786+00:00",
-  "source_lock_sha256": "1348dbfcaadb2e52d2d471e50c673ab508f6f8d42d641e0a06fddccbefa1805e",
-  "prepared_files_verified": 532,
-  "reviewed_upstream_results_verified": 40,
+  "recorded_at": "2026-11-05T19:31:25.521144+00:00",
+  "source_lock_sha256": "6649cc334789306f8ff1d3fb3aada60cec0a66c2f7a7a3f0311f47936c28e98b",
+  "prepared_files_verified": 534,
+  "reviewed_upstream_results_verified": 46,
   "applied": [
     "valid original PCM retention within unchanged bounds",
     "typed effect-free post-prepare subscription metadata retry",
@@ -29,19 +29,20 @@
     "browser native signed challenge and actual matched WebCodecs output proof, immutable retry, source-transition status-only resolution and bounded queued-reconciliation custody",
     "actual same-commit native private-primary restoration successor, current parent-bound physical lineage, original expiry ceiling and current-primary return routing",
     "four actual signed G711/Opus preparation cadence cases: six decoded original packets, unchanged original routes/cutoff and deferred verdict after original joins",
-    "two signed post-Core private partner/held-remote revocation cases and cfg(test-support)-only exact controller/Port/selected-codec Weak proof while canonical server stays live"
+    "two signed post-Core private partner/held-remote revocation cases and cfg(test-support)-only exact controller/Port/selected-codec Weak proof while canonical server stays live",
+    "exact original native activation cuts with shared per-physical RTP/SR/feedback reservation, signed immutable identities, SDK/parser provenance and original source-clock quality membership"
   ],
   "pending": [
-    "exact public native activation boundary and original packet lineage through SDK/oracle are in private implementation",
-    "causal server thread/RSS diagnosis with actual runtime observations",
-    "complete-batch successful builds, exact before/after regressions and full32/all432 runtime verification"
+    "correct newly exposed model/call-site wiring defects without weakening guards",
+    "actual focused normal-profile ARM runtime verification including retained before binaries and cadence controls",
+    "complete32/all432 local matrix and actual resource attribution"
   ],
   "verification": {
     "dependency_preparation_exit_code": 0,
     "repository_format_check_exit_code": 0,
     "javascript_python_syntax_checked_files": 27,
     "rust_typescript_builds_executed": 12,
-    "runtime_tests_executed": 0,
+    "runtime_tests_executed": 194,
     "new_matrix_cells_qualified": 0,
     "rust_typecheck_attempts": 7,
     "rust_typecheck_passed": true,
@@ -114,7 +115,32 @@
       "candidate_manifest_sha256": "8ae4cd94d2bb5dbaf09b6893d707e3861a75b3547734f366bd180a92b49a2a8c",
       "ownership_scope": "Exact selected controller/Ports/codec Weak owners; no RSS attribution",
       "runtime_tests_executed": 0
-    }
+    },
+    "native_activation_batch": {
+      "files": 56,
+      "workspace_files": 44,
+      "upstream_files": 12,
+      "typescript_build_exit_code": 0,
+      "typescript_full_format_check_exit_code": 0,
+      "repository_format_check_exit_code": 0,
+      "generated_http_reference_check_exit_code": 0,
+      "node_attempt": {
+        "cases": 175,
+        "passed": 173,
+        "failed": 2,
+        "skipped": 0,
+        "scope": "one adversarial model inconsistency; one ARM Linux-only test mistakenly dispatched on macOS, retained as failure and queued for ARM"
+      },
+      "python_tests": {
+        "cases": 19,
+        "passed": 19,
+        "skipped": 0
+      },
+      "rust_api_preflight": "running-original39813; six existing native_readiness model calls need new predecessor argument; original cargo jobs still joining",
+      "matrix_cells_qualified": 0
+    },
+    "transport_runtime_tests_executed": 0,
+    "runtime_tests_scope": "175 Node model/component cases and19 Python model/source-clock cases actually executed; no signed transport, actual browser transport or new matrix run yet."
   },
   "latest_runtime_matrix": {
     "run": "v192",
@@ -165,6 +191,7 @@
     ".local/gate-6/coordinated-wiring-v201/integration-receipt.json",
     ".local/gate-6/coordinated-cadence-witness-v202/integration-receipt.json",
     ".local/gate-6/coordinated-private-retirement-v203/integration-receipt.json",
-    ".local/gate-6/coordinated-private-retirement-v203/fast-typecheck-receipt.json"
+    ".local/gate-6/coordinated-private-retirement-v203/fast-typecheck-receipt.json",
+    ".local/gate-6/coordinated-nativecut-v204/integration-receipt.json"
   ]
 }

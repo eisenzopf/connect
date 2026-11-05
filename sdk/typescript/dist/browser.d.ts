@@ -32,3 +32,5 @@ export type { BrowserDecisionReceipt, BrowserRawCanonical, BrowserValidatedEnvel
 export type { BrowserRtcConfiguration } from "./browser_sdk_webrtc.js";
 export { browserInputDevices, BrowserSourcePicker, BrowserCaptureControls, BrowserOperationProgress, type BrowserInputDevice, type BrowserSourceSelection, type BrowserUiState, } from "./browser_ui.js";
 export type { ReplacementVideo, ReplacementVideoStream, } from "./replacement_video.js";
+export type { NativeEgressIdentity, NativeDecodedObservation, NativeSequenceCut, NativeActivationBoundary, } from "./browser_native_activation.js";
+export { nativeMembership } from "./browser_native_activation.js";

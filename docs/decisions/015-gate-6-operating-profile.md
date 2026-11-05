@@ -312,3 +312,28 @@ An unavailable Linux/browser/provider environment is recorded as unrun, not a
 passing equivalent. Measured CPU/RSS/queues are attributed to server, helper and
 browser separately. Media/profile targets freeze before execution; a failed
 measurement is not erased by changing its threshold after the fact.
+
+
+## Native public packet membership producer amendment
+
+The native replacement capture profile is `connect/physical-av-segment/3`, and
+native browser decoded observation is `connect/browser-matrix-decoded-media/2`.
+The producer retains each original packet/decoded observation and classifies it
+using its exact completed native activation cut, including genuinely public output
+that arrived before durable completion. Private decoder context remains excluded.
+Initial owners require their original public admission; each replacement requires
+its own signed-reader-bound public cut. All original source/retirement and Data
+receipts remain required. WebRTC observation stays on its existing profile/window.
+
+Native observation remains `[2,62)` seconds and browser observation `[1,61)`;
+all 60-second coverage, 59.9-second audio, FPS, age and marker limits are unchanged.
+Neither overlap nor delayed replies can create extra coverage: repeated original
+source video timestamps and audio source quanta across physical histories fail.
+Audio identity comes only from the exact original SR/RTP source clock and frozen
+programme origin for the same logical peer. Missing or ambiguous lineage fails;
+rounding labels the original source quantum only and never changes row times or
+PCM. No silent deduplication, clipping, filler or clock repair is permitted.
+
+This is a prospective producer/profile change. Historical v192 rows are not
+requalified by it. Implementation, focused runtime proof and all32 qualification
+are separate states; the private draft has no execution result.

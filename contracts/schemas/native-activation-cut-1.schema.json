@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://connect.invalid/schemas/native-activation-cut-1.schema.json",
+  "$ref": "#/$defs/Boundary",
+  "$defs": {
+    "EgressIdentity": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "native-sequence-cursor/1"
+        },
+        "physical_incarnation": {
+          "type": "string",
+          "pattern": "^(?!0{32}$)[0-9a-f]{32}$"
+        },
+        "stream_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "connection_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "initial_outer_sequence": {
+          "const": 0
+        }
+      },
+      "required": [
+        "profile",
+        "physical_incarnation",
+        "stream_generation",
+        "connection_generation",
+        "initial_outer_sequence"
+      ],
+      "additionalProperties": false
+    },
+    "SequenceCut": {
+      "type": "object",
+      "properties": {
+        "stream_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+        },
+        "stream_local_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "stream_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "physical_incarnation": {
+          "type": "string",
+          "pattern": "^(?!0{32}$)[0-9a-f]{32}$"
+        },
+        "sequence_space": {
+          "const": "native-outer-u32"
+        },
+        "public_sequence_floor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "cursor_ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "submission_observed": {
+          "const": false
+        }
+      },
+      "required": [
+        "stream_id",
+        "stream_local_id",
+        "stream_generation",
+        "physical_incarnation",
+        "sequence_space",
+        "public_sequence_floor",
+        "cursor_ordinal",
+        "submission_observed"
+      ],
+      "additionalProperties": false,
+      "description": "Both numeric fields are the same original unwrapped ordinal, below half-range from the signed original zero. The runtime enforces equality. Includes RTP, SR and original compound PLI+APP reservations, including failed sends. Never a transmission observation."
+    },
+    "Audience": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "const": "public"
+            },
+            "streams": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "items": {
+                "$ref": "#/$defs/SequenceCut"
+              }
+            }
+          },
+          "required": [
+            "scope",
+            "streams"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "const": "private-consultation"
+            },
+            "original_operation": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+            }
+          },
+          "required": [
+            "scope",
+            "original_operation"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "const": "unsupported"
+            },
+            "reason": {
+              "const": "non-native-adapter"
+            }
+          },
+          "required": [
+            "scope",
+            "reason"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Boundary": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "connect/native-public-sequence-cut/1"
+        },
+        "operation_record_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+        },
+        "source_connection_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+        },
+        "target_connection_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+        },
+        "target_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "stream_revision": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 9007199254740991
+        },
+        "audience": {
+          "$ref": "#/$defs/Audience"
+        }
+      },
+      "required": [
+        "profile",
+        "operation_record_id",
+        "operation_id",
+        "source_connection_id",
+        "target_connection_id",
+        "target_generation",
+        "stream_revision",
+        "audience"
+      ],
+      "additionalProperties": false,
+      "description": "Immutable original Core publication metadata. Runtime additionally requires distinct source/target, unique streams/handles/incarnations, exact saved offer substrate and original negotiation binding. Private successors are never public. WebRTC is explicitly unsupported. No arrival, IO, authority or Data completion is inferred."
+    }
+  }
+}

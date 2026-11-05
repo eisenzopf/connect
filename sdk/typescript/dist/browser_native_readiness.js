@@ -1,3 +1,4 @@
+import { nativeActivation, nativeEgressIdentity, } from "./browser_native_activation.js";
 import { ConnectError } from "./errors.js";
 import { canonicalJson, jsonObject, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
@@ -23,6 +24,11 @@ export class BrowserNativeReadiness {
     challenge;
     original;
     scope;
+    activationReceivers;
+    activation;
+    get activationBoundary() {
+        return this.activation;
+    }
     audio;
     audioSamples = 0;
     video;
@@ -41,6 +47,22 @@ export class BrowserNativeReadiness {
         this.root = root;
         this.audioStreamId = audioStreamId;
         this.videoStreamId = videoStreamId;
+        const setup = callback.payload.substrate_setup;
+        if (!jsonObject(setup) || !Array.isArray(setup.streams))
+            bad("Native cursor negotiation missing");
+        const selectedStreams = setup.streams;
+        this.activationReceivers = Object.freeze([audioStreamId, ...(videoStreamId ? [videoStreamId] : [])].map((streamId) => {
+            const rows = selectedStreams.filter((v) => jsonObject(v) && v.strm_id === streamId);
+            if (rows.length !== 1 ||
+                !jsonObject(rows[0]) ||
+                !Number.isInteger(rows[0].stream_local_id))
+                bad("Native cursor binding missing");
+            return Object.freeze({
+                streamId,
+                handle: Number(rows[0].stream_local_id),
+                identity: nativeEgressIdentity(rows[0].native_egress),
+            });
+        }));
         for (const frame of [answer, callback]) {
             if (frame.cid !== root.conversationId ||
                 frame.sid !== root.sessionId ||
@@ -331,6 +353,10 @@ export class BrowserNativeReadiness {
                         receipt.streamRevision <=
                             Number(this.challenge.stream_revision))
                         bad("Native completion changed the prepared generation");
+                    const activation = nativeActivation(this.root, status, this.activationReceivers);
+                    if (activation.target_generation !== this.targetGeneration)
+                        bad("Native activation generation changed");
+                    this.activation = activation;
                     this.completed = true;
                     this.audio = this.video = undefined;
                     if (definitive)

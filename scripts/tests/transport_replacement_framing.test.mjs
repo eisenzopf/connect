@@ -1,9 +1,11 @@
 import test from "node:test";
+import {bindNativeStreams,nativeBoundary} from "../../sdk/tests/native_activation_fixture.mjs";
 import assert from "node:assert/strict";
 import { physicalAvSegment } from "../lib/transport_replacement_observation.mjs";
 import { decodeNativeVideoEpoch } from "../../sdk/typescript/dist/browser_video_wire.js";
 
 const expected = { programStartUnixUs: 1_800_000_000_000_000, connectionId:"candidate", targetGeneration:2,
+    operationId:"move",sourceConnectionId:"original",
     audioStreamId: "audio", sendVideoStreamId: "camera", receiveVideoStreamId: "selected" };
 function capture(tagged, selected, length) {
     const bytes = new Uint8Array(length), view = new DataView(bytes.buffer);
@@ -22,17 +24,22 @@ function capture(tagged, selected, length) {
             payload_type: kind === "audio" ? 111 : 96 } },
         ...(selected && kind === "video" ? { video_feedback: { profile: "rtcp-pli-epoch/1",
             original_operation: "move", original_offer: "offer", stream_generation: 1, connection_generation: 2 } } : {}) });
+    // These are explicit parser-model identities, never a live media receipt.
+    const streams=bindNativeStreams([binding("audio","audio","sendrecv",1),
+        binding("camera","video","recvonly",2),binding("selected","video","sendonly",3)],2);
+    const activation=nativeBoundary({recordId:"record",operationId:expected.operationId,
+        sourceConnectionId:expected.sourceConnectionId,targetConnectionId:expected.connectionId},streams,2,3,{audio:0,selected:1});
     return { format: "connect/native-replacement-peer-observation/1", passed: true,
         original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
         video_transfer_admitted: true, operation_completed_inferred: false, decoded_media_verified: false,
         program_start_unix_us: expected.programStartUnixUs, root_completed_observed_programme_us: 1000,
         private_decoder_started_programme_us:750,
         private_decoded_readiness:{profile:"connect/native-private-decoded-readiness/1",connection_id:"candidate",
+            operation_id:expected.operationId,record_id:"record",native_activation:activation,
             source_generation:1,target_generation:2,stream_revision:2,readiness_frozen:true,decoder_reset_on_root_completion:false,
             frozen_private_observations:{audio_decoded_samples:2880,audio_ssrc:42,video_decoded_frames:1,video_decoded_keyframes:1,video_epoch},
             decoder_process:{joined:true,clean:true,forced:false,exit_code:0},video_decode_receipts:[]},
-        negotiated_streams: [binding("audio", "audio", "sendrecv", 1),
-            binding("camera", "video", "recvonly", 2), binding("selected", "video", "sendonly", 3)],
+        negotiated_streams: streams,
         received: [{ elapsed_us: 1000, original_root_completed_observed: true,
             datagram: [...bytes], ...(tagged ? { video_epoch } : {}) }] };
 }

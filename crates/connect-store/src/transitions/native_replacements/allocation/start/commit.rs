@@ -117,6 +117,188 @@ impl NativeReplacementCommitAttempt {
         NativeReplacementCommitUncertain { attempt: self }
     }
 }
+impl NativeReplacementCommitted {
+    /// Attach the Core-sealed packetization boundary exactly once before this
+    /// original immutable observation is recorded. No DB or physical mutation.
+    pub fn capture_native_activation(
+        &mut self,
+        audience: connect_protocol::replacement_activation::NativeActivationAudience,
+    ) -> Result<()> {
+        use connect_protocol::replacement_activation::{
+            NativeActivationAudience as A, NativeActivationBoundary, PROFILE,
+        };
+        let value: serde_json::Value =
+            serde_json::from_str(&self.observation).map_err(|_| Error::storage())?;
+        if value.get("native_activation").is_some() {
+            return Err(conflict());
+        }
+        let p = &self
+            .attempt
+            .origin
+            .started
+            .attempt
+            .allocated
+            .attempt
+            .prepared;
+        let original = p.selection.origin.request();
+        let private = self
+            .attempt
+            .private_successor
+            .as_ref()
+            .map(|l| l.consultation_record_id.as_str());
+        validate_activation_substrate(&self.attempt.target.offer, &audience)?;
+        match (&audience, private) {
+            (A::PrivateConsultation { original_operation }, Some(parent))
+                if original_operation == parent => {}
+            (A::Public { streams }, None) => {
+                // The Core outcome may name only selected receiving audio and
+                // explicitly inherited receiver-video mappings, never Data or
+                // omitted/quarantined auxiliary media.
+                let offered = self.attempt.target.offer["streams_offered"]
+                    .as_array()
+                    .ok_or_else(invalid)?;
+                let video = match &original.intent {
+                    connect_protocol::transitions::TransitionIntent::Replace { video, .. } => {
+                        video.as_ref()
+                    }
+                    _ => return Err(conflict()),
+                };
+                let mut expected = std::collections::BTreeSet::new();
+                for offer in offered {
+                    if offer["kind"] == "audio" {
+                        if offer["direction"] != "sendonly" {
+                            expected.insert(offer["id"].as_str().ok_or_else(invalid)?.to_owned());
+                        }
+                    }
+                }
+                if let Some(video) = video {
+                    for mapping in &video.receivers {
+                        expected.insert(mapping.replacement.clone());
+                    }
+                }
+                let actual = streams
+                    .iter()
+                    .map(|s| s.stream_id.clone())
+                    .collect::<std::collections::BTreeSet<_>>();
+                if actual != expected {
+                    return Err(conflict());
+                }
+            }
+            (A::Unsupported { reason }, None)
+                if reason == "non-native-adapter"
+                    && self.attempt.target.offer["substrate"] == "websocket+webrtc" => {}
+            _ => return Err(conflict()),
+        }
+        let boundary = NativeActivationBoundary {
+            profile: PROFILE.into(),
+            operation_record_id: p.record.clone(),
+            operation_id: original.operation_id.clone(),
+            source_connection_id: original.connection_id.clone().ok_or_else(invalid)?,
+            target_connection_id: self.attempt.target.connection.connection_id.clone(),
+            target_generation: self.attempt.target.connection.generation,
+            stream_revision: value["readiness"]["stream_revision"]
+                .as_u64()
+                .ok_or_else(invalid)?,
+            audience,
+        };
+        attach_activation_observation(&mut self.observation, &boundary)
+    }
+}
+
+fn validate_activation_substrate(
+    saved_offer: &serde_json::Value,
+    audience: &connect_protocol::replacement_activation::NativeActivationAudience,
+) -> Result<()> {
+    use connect_protocol::replacement_activation::NativeActivationAudience as A;
+    match (saved_offer["substrate"].as_str(), audience) {
+        (Some("quic" | "webtransport"), A::Public { .. } | A::PrivateConsultation { .. }) => Ok(()),
+        (Some("websocket+webrtc"), A::Unsupported { reason }) if reason == "non-native-adapter" => {
+            Ok(())
+        }
+        (Some("websocket+webrtc"), A::PrivateConsultation { .. }) => Ok(()),
+        _ => Err(conflict()),
+    }
+}
+fn attach_activation_observation(
+    observation: &mut String,
+    boundary: &connect_protocol::replacement_activation::NativeActivationBoundary,
+) -> Result<()> {
+    // This helper deliberately borrows the captured effect. Every failure
+    // preserves its exact bytes for Known custody and stop/reconciliation.
+    let mut value: serde_json::Value =
+        serde_json::from_str(observation).map_err(|_| Error::storage())?;
+    if value.get("native_activation").is_some() {
+        return Err(conflict());
+    }
+    boundary.validate()?;
+    value["native_activation"] = serde_json::to_value(boundary).map_err(|_| Error::storage())?;
+    let captured = crate::provisioning::canonical_json(&value)?;
+    *observation = captured;
+    Ok(())
+}
+#[cfg(test)]
+mod activation_capture_tests {
+    use super::*;
+    use connect_protocol::replacement_activation::{
+        NativeActivationAudience as A, NativeActivationBoundary as B,
+    };
+    #[test]
+    fn exact_saved_native_and_webrtc_offer_profiles_cannot_be_interchanged() {
+        let unsupported = A::Unsupported {
+            reason: "non-native-adapter".into(),
+        };
+        let public = A::Public { streams: vec![] };
+        let private = A::PrivateConsultation {
+            original_operation: "consult".into(),
+        };
+        let rtc = serde_json::json!({"substrate":"websocket+webrtc"});
+        assert!(validate_activation_substrate(&rtc, &unsupported).is_ok());
+        assert!(validate_activation_substrate(&rtc, &public).is_err());
+        assert!(validate_activation_substrate(&rtc, &private).is_ok());
+        for substrate in ["quic", "webtransport"] {
+            let offer = serde_json::json!({"substrate":substrate});
+            assert!(validate_activation_substrate(&offer, &public).is_ok());
+            assert!(validate_activation_substrate(&offer, &unsupported).is_err());
+        }
+        for substrate in ["webrtc", "websocket", "other", ""] {
+            let offer = serde_json::json!({"substrate":substrate});
+            assert!(validate_activation_substrate(&offer, &public).is_err());
+            assert!(validate_activation_substrate(&offer, &unsupported).is_err());
+        }
+    }
+    #[test]
+    fn failed_activation_attachment_preserves_exact_captured_effect_for_known_custody() {
+        let original =
+            r#"{"movement":{"original":"already-committed"},"readiness":{"stream_revision":3}}"#
+                .to_owned();
+        let mut observation = original.clone();
+        let mut boundary = B {
+            profile: connect_protocol::replacement_activation::PROFILE.into(),
+            operation_record_id: "record".into(),
+            operation_id: "move".into(),
+            source_connection_id: "old".into(),
+            target_connection_id: "new".into(),
+            target_generation: 2,
+            stream_revision: 2,
+            audience: A::Unsupported {
+                reason: "non-native-adapter".into(),
+            },
+        };
+        assert!(attach_activation_observation(&mut observation, &boundary).is_err());
+        assert_eq!(observation, original);
+        boundary.stream_revision = 3;
+        attach_activation_observation(&mut observation, &boundary).unwrap();
+        let sealed = observation.clone();
+        assert!(attach_activation_observation(&mut observation, &boundary).is_err());
+        assert_eq!(observation, sealed);
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&observation).unwrap()["movement"]
+                ["original"],
+            "already-committed"
+        );
+    }
+}
+
 impl Store {
     /// Persist the single commit attempt before entering Core. The complete
     /// scene grant includes the independent operator, old/retained owners and
@@ -620,7 +802,7 @@ impl Store {
         } else {
             vec![source.clone()]
         };
-        let result = serde_json::json!({"activation_state":if stopped { "stopped" } else { "ready" },"retained_connection_ids":[retained_connection_id],"admitted_connection_ids":[target.connection.connection_id],"retired_connection_ids":retired,"conversation_revision":null,"connection_id":target.connection.connection_id,"replaces":source,"generation":target.connection.generation,"participant_id":target.connection.participant_id,"membership_epoch":target.connection.membership_epoch,"endpoint_id":target.connection.endpoint_id,"device_id":target.device_id,"readiness":if stopped { serde_json::Value::Null } else { ready["readiness"].clone() },"physical_readiness":ready["readiness"],"session_revision":topology_revision});
+        let result = serde_json::json!({"activation_state":if stopped { "stopped" } else { "ready" },"retained_connection_ids":[retained_connection_id],"admitted_connection_ids":[target.connection.connection_id],"retired_connection_ids":retired,"conversation_revision":null,"connection_id":target.connection.connection_id,"replaces":source,"generation":target.connection.generation,"participant_id":target.connection.participant_id,"membership_epoch":target.connection.membership_epoch,"endpoint_id":target.connection.endpoint_id,"device_id":target.device_id,"readiness":if stopped { serde_json::Value::Null } else { ready["readiness"].clone() },"physical_readiness":ready["readiness"],"native_activation":ready["native_activation"],"session_revision":topology_revision});
         tx.execute(
             "UPDATE operations SET state='completed',result_json=?2 WHERE record_id=?1",
             params![p.record, result.to_string()],

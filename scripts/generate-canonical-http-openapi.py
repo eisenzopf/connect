@@ -22,6 +22,13 @@ def render():
         return value
     schemas.update({'ReplacementReadiness'+name:readiness_refs(value) for name,value in readiness['$defs'].items()})
 
+    native_cut=json.loads((ROOT/'contracts/schemas/native-activation-cut-1.schema.json').read_text())
+    def native_cut_refs(value):
+        if isinstance(value,list):return [native_cut_refs(v) for v in value]
+        if isinstance(value,dict):return {k:native_cut_refs(v) for k,v in value.items()}
+        if isinstance(value,str) and value.startswith('#/$defs/'):return '#/components/schemas/NativeActivation'+value[len('#/$defs/'):]
+        return value
+    schemas.update({'NativeActivation'+name:native_cut_refs(value) for name,value in native_cut['$defs'].items()})
     ref=lambda name:{'$ref':'#/components/schemas/'+name}
     def obj(properties,required=None):return dict(type='object',properties=properties,required=list(properties) if required is None else required,additionalProperties=False)
     schemas['NativeDataAcceptance']=obj(dict(connection_id=ref('WireIdentifier'),message_id=ref('WireIdentifier'),core_queue_admission=dict(type='boolean',const=True)))
@@ -42,9 +49,11 @@ def render():
     # keeps its independently implemented result contract.
     schemas['NativeReplacementActivationCompletion']=obj(dict(**topo,connection_id=ref('WireIdentifier'),replaces=ref('WireIdentifier'),generation=safe,participant_id=ref('WireIdentifier'),membership_epoch=safe,endpoint_id=ref('WireIdentifier'),device_id=ref('WireIdentifier'),activation_state=dict(enum=['ready','stopped']),readiness=dict(anyOf=[dict(type='object'),dict(type='null')]),physical_readiness=dict(type='object')))
     schemas['NativeReplacementActivationCompletion']['properties']['conversation_revision']=dict(type='null')
+    schemas['NativeReplacementActivationCompletion']['properties']['native_activation']=dict(anyOf=[ref('NativeActivationBoundary'),dict(type='null')])
+    schemas['NativeReplacementActivationCompletion']['required'].append('native_activation')
     schemas['NativeReplacementActivationCompletion']['properties']['physical_readiness']['description']='Original physical commit observation. For ready activation this equals readiness; for stopped activation readiness is null and this remains historical.'
     schemas['NativeReplacementActivationCompletion']['allOf']=[
-        {'if': {'properties': {'activation_state': {'const': 'ready'}}}, 'then': {'properties': {'readiness': {'type': 'object'}}}},
+        {'if': {'properties': {'activation_state': {'const': 'ready'}}}, 'then': {'properties': {'readiness': {'type': 'object'},'native_activation':ref('NativeActivationBoundary')}}},
         {'if': {'properties': {'activation_state': {'const': 'stopped'}}}, 'then': {'properties': {'readiness': {'type': 'null'}}}}
     ]
     schemas['NativeReplacementActivationCompletion']['description']='Known once-only native movement and its activation outcome. Ready requires the exact ordinary Service entry and Data observer to be installed before publication; local entry custody spans final commit and a nonblocking original activation observation must confirm the expected uncancelled resource generation. Adapter presence during cleanup alone is insufficient. Stopped records a physically committed target retired before activation: no connection_ready event, readiness null, and connection_id appears in both admitted and retired sets because these are ordered historical facts. Physical_readiness and generation describe the original physical commit, not the incremented retired Connection generation. The replacement projection does not retire retained peers. Exclusive successor startup may settle a durably captured unactivated move as stopped after exact local target absence, using original historical capture facts without reconstructing media permission or replaying movement. Uncaptured outcomes remain unknown. Whole-runtime recovery can separately retire other lost native connections. Already-activated replacements retain their immutable completed result while exclusive successor cleanup retires the exact absent old lifetime and journals retirement; it does not turn historical ready into a new stopped operation or revive authority. Completed reports known movement, not continuing connectivity or permission; every packet and original-operation read still requires current authority.'

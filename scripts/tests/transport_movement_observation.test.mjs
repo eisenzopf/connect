@@ -1,3 +1,4 @@
+import {bindNativeStreams,nativeBoundary} from '../../sdk/tests/native_activation_fixture.mjs';
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, writeFile, readFile, rm, chmod, unlink, symlink } from "node:fs/promises";
@@ -45,6 +46,7 @@ async function fixture(dataProfile = false) {
                 [step.dataId, "sendrecv", 10], [streamIds[peer].data, "sendonly", 11]])
                 streams.push({ strm_id, kind: "data", direction, stream_local_id,
                     codec: { name: "binary", params: { reliability: "reliable_ordered" } } });
+            bindNativeStreams(streams,ordinal+2);
             const datagram = [1, 0, 0, 7, 0, 0, 0, 0, 0x80, 111, 0, 1, 0, 0, 3, 192, 0, 0, 0, 12, 1, 2];
             const observed = { format: "connect/native-replacement-peer-observation/1", passed: true,
                 original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
@@ -52,7 +54,7 @@ async function fixture(dataProfile = false) {
                 program_start_unix_us: program, negotiated_streams: streams,
                 private_decoder_started_programme_us: MOVE_START_OFFSETS_MS[ordinal]*1000,
                 private_decoded_readiness:{profile:"connect/native-private-decoded-readiness/1",
-                    connection_id:"candidate-"+key,source_generation:ordinal+1,target_generation:ordinal+2,stream_revision:2,
+                    operation_id:step.operationId,record_id:'record-'+key,native_activation:nativeBoundary({recordId:'record-'+key,operationId:step.operationId,sourceConnectionId:current,targetConnectionId:'candidate-'+key},streams,ordinal+2,3),connection_id:"candidate-"+key,source_generation:ordinal+1,target_generation:ordinal+2,stream_revision:2,
                     readiness_frozen:true,decoder_reset_on_root_completion:false,
                     frozen_private_observations:{audio_decoded_samples:2880,audio_ssrc:12,video_decoded_frames:1,video_decoded_keyframes:1,video_epoch:null},
                     decoder_process:{joined:true,clean:true,forced:false,exit_code:0},video_decode_receipts:[]},

@@ -1754,6 +1754,11 @@
       "path": "patches/rvoip/connect-private-publication-weak-owners.patch",
       "sha256": "f03ff7c99fdda609335bce7674009e3b0281beaf8016a514165945b0722648ba",
       "source": "G6-058 cfg(test-support)-only Weak observations of exact controller/Ports and actual selected codec lifetimes for signed post-Core private revocation and live-server retirement controls. Actual encoder moves its lifetime tag; no production-default lifecycle/authority changes, allocator/RSS attribution or runtime pass."
+    },
+    {
+      "path": "patches/rvoip/connect-native-activation-cut.patch",
+      "sha256": "e9e50361b6901eb181e262d7520eda4bae327445c085ac73808f8c5961e5a59d",
+      "source": "G6-058 exact original native egress activation cuts, signed negotiation identity and decoder provenance; current private successor guards preserved. Focused behavioral verification and complete 32-cell matrix pending."
     }
   ]
 }

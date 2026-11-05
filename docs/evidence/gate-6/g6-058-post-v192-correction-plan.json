@@ -5,9 +5,9 @@
   "basis_matrix_sha256": "a8b87d0fe0c5821661d7859a3b593c25c3a0cb8fa7f01ee751d769b286106264",
   "status": "coordinated-private-batch-in-progress",
   "active_source_changes_applied": true,
-  "new_runtime_tests_executed": 0,
+  "new_runtime_tests_executed": 194,
   "new_matrix_cells_qualified": 0,
-  "batch_policy": "All known correction boundaries remain one coordinated batch. Native/browser readiness, cadence, continuation/epoch and actual private successor/lineage are applied but runtime-unverified. Exact native public activation boundary is in private implementation; server resource causation remains open. Focused behavior verification and one clean all32/all432 local ARM matrix follow complete integration.",
+  "batch_policy": "All known correction boundaries are integrated as one coordinated batch, including native activation cuts and private successor/lineage. API/model call-site and browser asset corrections found by integrated checks are being included. Normal-profile focused ARM behavior verification and one clean all32/all432 local ARM matrix follow complete integration.",
   "items": [
     {
       "id": "prepared-subscription-metadata",
@@ -109,8 +109,8 @@
     "Exact before-fail/after-pass evidence before broad claims; publication separate"
   ],
   "applied_scope": "Audio/subscription/canvas/Worker/observer/startup/TLS/ICE corrections plus paired current continuation, native decoded readiness, exact same-source decoder epoch promotion, original20ms preparation sample cadence and adapted signed/decoder fixtures. Static checks pass; latest broad typecheck exposed two fixture API/ownership errors, now corrected. No new runtime pass. Browser native decoded proof/custody now applied and TypeScript build/full formatting pass; four new/changed Node test files parse, but no runtime test has run.",
-  "integration_evidence": "g6-058-coordinated-integration-progress.json",
-  "source_lock_sha256": "1348dbfcaadb2e52d2d471e50c673ab508f6f8d42d641e0a06fddccbefa1805e",
+  "integration_evidence": "docs/evidence/gate-6/g6-058-coordinated-integration-progress.json",
+  "source_lock_sha256": "6649cc334789306f8ff1d3fb3aada60cec0a66c2f7a7a3f0311f47936c28e98b",
   "integration_findings": [
     {
       "id": "preparation-audio-cadence",
@@ -170,5 +170,7 @@
       "fix": "Require Some(exact authoritative record ID) through as_ref/as_str; result and authoritative Store effect checks remain.",
       "proof": "Original check101 joined with5594tracked/532prepared inputs unchanged; corrected assertion parsing/formatting only."
     }
-  ]
+  ],
+  "new_transport_runtime_tests_executed": 0,
+  "runtime_scope": "Nativecut selected Node175/Python19 executed, two initial Node failures retained; no new signed transport or matrix pass."
 }

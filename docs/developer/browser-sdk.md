@@ -1414,3 +1414,39 @@ owned and unapplied until the exact completed receipt has validated public
 ownership; closing the SDK joins the retained target. A real private-silence to
 public-audio SSRC change after submission disables proof replay and permits only
 original-operation status recovery. It is not itself evidence of commitment.
+
+
+### Original native activation boundary
+
+Native replacement completion carries `native_activation` using
+`connect/native-public-sequence-cut/1`. Each original selected receiving stream
+gets a pre-publication cursor cut bound to the original operation, source,
+target, connection generation, stream generation, negotiated handle and physical
+incarnation. The server supplies `native_egress` identically on both signed native
+negotiation legs; clients compare the final receipt with that original reader.
+A freely supplied receipt cannot establish a different physical identity.
+
+The original RTP packetizer and original compound PLI+APP sender share one
+bounded allocator. RTP fragments, sender reports and failed reservations consume
+ordinals. Commit waits for the actual private writer/feedback guards, rejects
+queued old preparation work, then captures the next ordinal before publishing
+any new programme. `submission_observed` is always false. A muted stream needs
+no later transmission to finish the immutable result. Ordinals at or above the
+first half-range from the advertised zero are unclassifiable and refuse; clocks,
+RTP timestamps and decoder epochs are not changed.
+
+An explicit private-consultation successor records its original parent instead
+of public cuts. An unclassified closed native audience refuses before publication.
+WebRTC records `unsupported/non-native-adapter` and keeps its existing conservative
+observation boundary. These historical facts grant neither media authority nor
+reliable Data delivery. Every operation read and actual send retains its current
+policy and original lifetime checks. Any post-Core attachment failure retains the
+original Known capture and stops/reconciles its exact target; it cannot become a
+completed ready cut.
+
+`BrowserMediaConnection.nativeActivationBoundary` and the corresponding renderer
+getter expose the validated immutable boundary. Optional third arguments on actual
+native audio/video decoder callbacks contain only bounded original packet sequences,
+physical identity and observed source-clock metadata. They borrow the same decoded
+output; they do not grant permission or retain frames. `nativeMembership` rejects
+foreign identities, repeated fragments, frames spanning the cut and wrap ambiguity.

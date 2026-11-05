@@ -1,3 +1,4 @@
+import {nativeIdentity,bindNativeStreams,nativeBoundary} from './native_activation_fixture.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {BrowserNativeReadiness} from '../typescript/dist/browser_native_readiness.js';
@@ -9,14 +10,14 @@ const scope={cid:'room',sid:'session',connid:'target',operation_id:'move',expect
 const challenge={nonce:'nonce',source_generation:1,target_generation:2,stream_revision:2};
 function fixture({video=true,beforeReady,status='completed',changed,expire=false}={}) {
  const streams=['audio',...(video?['send','receive']:[])],marker={profile:'connect-replacement-media-v1',operation_record_id:'record',readiness:challenge};
- const parameters={substrate_setup:{kind:'native-prepared/1',revision:1,offer_id:'offer',streams:[]},replacement_preparation:structuredClone(marker)};
+ const parameters={substrate_setup:{kind:'native-prepared/1',revision:1,offer_id:'offer',streams:bindNativeStreams([{strm_id:'audio',kind:'audio',direction:'sendrecv',stream_local_id:1},...(video?[{strm_id:'receive',kind:'video',direction:'sendonly',stream_local_id:2}]:[])],2)},replacement_preparation:structuredClone(marker)};
  const answer=envelope('connection.answer',parameters,{...scope,in_reply_to:'offer'}),callback=envelope('connection.offer',structuredClone(parameters),scope);
  changed?.({answer,callback});
  const original={substrate:'webtransport',capabilities:{},streams_offered:[{id:'audio',kind:'audio',direction:'sendrecv'},...(video?[{id:'send',kind:'video',direction:'sendonly'},{id:'receive',kind:'video',direction:'recvonly'}]:[])],replacement_preparation:{profile:'connect-replacement-media-v1',operation_record_id:'record'}};
  const owner=new BrowserNativeReadiness(root,original,scope,answer,callback,'offer','audio',video?'receive':undefined,video?2:0);
  const audio={connectionId:'target',streamId:'audio',generation:1,ssrc:7},vi={connectionId:'target',streamId:'receive',generation:1,ssrc:8};
  let current={audio,video:video?{identity:vi,epoch:'signed-epoch'}:undefined},calls=[],attempts=0,committed=false,revision=0;
- const readiness={stream_revision:3,streams},result={activation_state:'ready',connection_id:'target',replaces:'source',endpoint_id:'endpoint',device_id:'device',generation:2,retained_connection_ids:['retained'],admitted_connection_ids:['target'],retired_connection_ids:['source'],readiness,physical_readiness:readiness};
+ const readiness={stream_revision:3,streams},result={activation_state:'ready',connection_id:'target',replaces:'source',endpoint_id:'endpoint',device_id:'device',generation:2,retained_connection_ids:['retained'],admitted_connection_ids:['target'],retired_connection_ids:['source'],readiness,physical_readiness:readiness,native_activation:nativeBoundary(root,parameters.substrate_setup.streams,2,3)};
  const client={closed:false,async requestReplacementContinuation(type,payload,sentScope){calls.push({type,payload:structuredClone(payload),scope:{...sentScope}});
   if(type==='connection.offer'){attempts++;const error=beforeReady?.(attempts,{owner,setCommitted(){committed=true;}});if(error)throw error;committed=true;}
   const state=committed?status:'preparing';return [envelope('operation.updated',{record_id:'record',operation_id:'move',command_type:'connection.replace',revision:++revision,state,native_replacement_prepared:true,...(type==='operation.get'&&state==='completed'?{result}: {})},sentScope)];

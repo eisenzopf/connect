@@ -34,25 +34,33 @@ test('missing received audio and repeated decoded timestamp cannot be hidden by 
     const duplicate=observed({duplicate:true});assert.equal(duplicate.passed,false);assert.equal(duplicate.audio.duplicate_frames,1);
 });
 
-test('initial duplex audio observes its own port and a prepared target stays excluded until original movement commit',async()=>{
+test('original public native outputs before completed-root stay observable while true private outputs never count',async()=>{
     const {browserMatrixPlan}=await import('../lib/browser_matrix_admission.mjs');
+    const {nativeIdentity,nativeBoundary,bindNativeStreams}=await import('../../sdk/tests/native_activation_fixture.mjs');
     const plan=browserMatrixPlan(),old=globalThis.document;
     class Renderer {audio(){return true;}video(){return true;}}
     globalThis.document={createElement:()=>({getContext:()=>({})})};
     const connection=id=>({id,streams:{byId:id=>({id})},render:async()=>({close(){},finished:Promise.resolve()})});
     const state={connections:plan.routes.map(route=>connection(route.connection))};
-    const observer=browserMatrixObservation(Renderer,plan),renderer=new Renderer();
-    const frame={sampleRate:48000,numberOfChannels:1,numberOfFrames:960,timestamp:1,
-        copyTo:output=>output.set(tone(1100))};
+    const observer=browserMatrixObservation(Renderer,plan),renderer=new Renderer(),started=performance.now()-2000;
+    const frame={sampleRate:48000,numberOfChannels:1,numberOfFrames:960,timestamp:1,copyTo:output=>output.set(tone(1100))};
+    const originalNtp=(BigInt(Math.round((performance.timeOrigin+started)*1000))*(1n<<32n))/1000000n+(2208988800n<<32n);
+    const native=(seq,rtp,identity)=>({profile:'connect/native-decoded-sequence/1',identity,datagramSequences:[seq],ssrc:7,rtpTimestamp:rtp,sourceClock:{ntp:originalNtp.toString(),rtpTimestamp:0}});
     try{
-        await observer.initial(state,{timeoutMs:500});observer.start({originMs:performance.now()-2000});
+        await observer.initial(state,{timeoutMs:500});observer.start({originMs:started});
         const binding={connectionId:plan.routes[0].connection,streamId:plan.routes[0].audio};
-        renderer.audio(binding,frame);
+        renderer.audio(binding,frame,native(0,96000,nativeIdentity(1)));
         await observer.attach(0,connection('target'),{audio:'target-audio',video:'target-video'},{timeoutMs:500});
-        renderer.audio({connectionId:'target',streamId:'target-audio'},frame);
-        assert.equal(observer.report().routes[0].audio.decoded_seconds,.02);
-        observer.activate(0,'target');renderer.audio(binding,{...frame,timestamp:2});
-        renderer.audio({connectionId:'target',streamId:'target-audio'},{...frame,timestamp:3});
-        assert.equal(observer.report().routes[0].audio.decoded_seconds,.04);
+        renderer.audio({connectionId:'target',streamId:'target-audio'},{...frame,timestamp:2},native(3,0,nativeIdentity(2,2)));
+        // Genuine public original datagram arrives while the durable root reply is delayed.
+        renderer.audio({connectionId:'target',streamId:'target-audio'},{...frame,timestamp:3},native(4,96960,nativeIdentity(2,2)));
+        const streams=bindNativeStreams([{strm_id:'target-audio',kind:'audio',direction:'sendrecv',stream_local_id:2},{strm_id:'target-video',kind:'video',direction:'sendonly',stream_local_id:3}],2);
+        renderer.nativeActivationBoundary=nativeBoundary({recordId:'record',operationId:'move',sourceConnectionId:binding.connectionId,targetConnectionId:'target'},streams,2,3,{'target-audio':4,'target-video':4});
+        observer.activate(0,'target');
+        const report=observer.report();assert.equal(report.format,'connect/browser-matrix-decoded-media/2');
+        assert.equal(report.routes[0].audio.decoded_seconds,.04);assert.equal(report.routes[0].audio.original_source_quantum_overlaps,0);
+        // Retained physical histories never earn extra coverage for the same original source quantum.
+        renderer.audio(binding,{...frame,timestamp:4},native(1,96960,nativeIdentity(1)));
+        assert.equal(observer.report().routes[0].audio.original_source_quantum_overlaps,1);
     }finally{await observer.close();globalThis.document=old;}
 });

@@ -167,9 +167,16 @@ impl CanonicalClient {
                 .unwrap_or_default(),
             _ => return Err(ClientError::Protocol),
         };
-        self.native_video
-            .readiness
-            .begin(&id, &scope, &payload, required_video)?;
+        self.native_video.readiness.begin(
+            &id,
+            &scope,
+            &payload,
+            required_video,
+            command
+                .connection_id
+                .as_deref()
+                .ok_or(ClientError::Protocol)?,
+        )?;
         self.native_video
             .begin(id.clone(), scope.clone(), payload)?;
         self.write(value, true).await?;

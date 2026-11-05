@@ -1,3 +1,4 @@
+import {nativeIdentity,bindNativeStreams,nativeBoundary} from './native_activation_fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
@@ -95,7 +96,7 @@ test('browser physical owner stages signed epochs, resets same-SSRC decode histo
    if(type==='connection.offer'){
     assert.equal(payload.capabilities.video_feedback,profile);
     queueMicrotask(()=>this.emit(envelope('connection.offer',{by_participant:'participant',substrate:'webtransport',capabilities:caps,
-     substrate_setup:{kind:'native-prepared/1',offer_id:id,revision:1,streams:[{strm_id:'video',kind:'video',direction:'sendrecv',stream_local_id:7,video_feedback:wireAllocation,codec:{name:'vp8',params:{sample_rate:90000,channels:0,payload_type:96}}}]}},scope)));
+     substrate_setup:{kind:'native-prepared/1',offer_id:id,revision:1,streams:[{strm_id:'video',kind:'video',direction:'sendrecv',stream_local_id:7,native_egress:nativeIdentity(7),video_feedback:wireAllocation,codec:{name:'vp8',params:{sample_rate:90000,channels:0,payload_type:96}}}]}},scope)));
     return{id,response:Promise.resolve([envelope('connection.answer',{}, {...scope,in_reply_to:id})])};
    }
    assert.equal(type,'connection.update');this.result={connection_id:'connection',connection_generation:1,stream_revision:2,resources_changed:false,action:'hold',gate_streams:[{binding:{stream_id:'video',medium:'video',direction:'sendrecv',stream_local_id:7,stream_generation:1,connection_generation:1,codec:{name:'vp8',params:{sample_rate:90000,channels:0,payload_type:96}}},state:'paused',source_muted:false,held_direction:null}]};

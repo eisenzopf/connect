@@ -261,6 +261,7 @@ export class RtpSender {
 interface Assembly {
     created: number;
     fragments: Map<number, Uint8Array>;
+    datagrams: Map<number, number>;
     bytes: number;
     start?: number;
     end?: number;
@@ -275,6 +276,10 @@ export interface Vp8Frame {
     /** Complete contiguous RTP range, including both endpoints. */
     firstSequence: number;
     lastSequence: number;
+    /** Original outer datagram sequence of every assembled fragment. */
+    datagramSequences: readonly number[];
+    sourceNtp?: string;
+    sourceClock?: Readonly<{ ntp: string; rtpTimestamp: number }>;
 }
 /** Loss never produces a partial decoded frame; expired assemblies release all bytes. */
 export class Vp8Assembler {
@@ -343,7 +348,12 @@ export class Vp8Assembler {
         if (!frame) {
             while (this.pending.size >= frames || this.fragments >= fragments)
                 this.remove(this.pending.keys().next().value!);
-            frame = { created: now, fragments: new Map(), bytes: 0 };
+            frame = {
+                created: now,
+                fragments: new Map(),
+                datagrams: new Map(),
+                bytes: 0,
+            };
             this.pending.set(key, frame);
         }
         if (frame.fragments.has(packet.sequence)) return undefined;
@@ -355,6 +365,7 @@ export class Vp8Assembler {
             return undefined;
         }
         frame.fragments.set(packet.sequence, p.slice(offset));
+        frame.datagrams.set(packet.sequence, packet.datagramSequence);
         this.fragments++;
         frame.bytes += p.length - offset;
         if (p[0] & 16) {
@@ -404,6 +415,11 @@ export class Vp8Assembler {
             key: (output[0] & 1) === 0,
             firstSequence: frame.start,
             lastSequence: frame.end,
+            datagramSequences: Object.freeze(
+                Array.from({ length: count }, (_, i) =>
+                    frame.datagrams.get((frame.start! + i) & 65535)!,
+                ),
+            ),
         };
     }
 }

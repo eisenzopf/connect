@@ -1,3 +1,4 @@
+import type { NativeDecodedObservation, NativeActivationBoundary } from "./browser_native_activation.js";
 import { type BrowserMediaConnection } from "./browser_media.js";
 import { type MediaBinding } from "./browser_rtp.js";
 export interface BrowserMediaRendererOptions {
@@ -41,11 +42,13 @@ export declare class BrowserMediaRenderer {
     private bound;
     private current;
     /** Copy synchronously; the decoder retains ownership of this AudioData. */
-    audio(binding: Readonly<MediaBinding>, frame: AudioData): boolean;
+    /** Historical metadata only; no render/capture permission. */
+    get nativeActivationBoundary(): NativeActivationBoundary | undefined;
+    audio(binding: Readonly<MediaBinding>, frame: AudioData, _native?: NativeDecodedObservation): boolean;
     private now;
     private presentationTime;
     /** Copy borrowed frames into a bounded owned presentation queue. */
-    video(binding: Readonly<MediaBinding>, frame: VideoFrame): boolean;
+    video(binding: Readonly<MediaBinding>, frame: VideoFrame, _native?: NativeDecodedObservation): boolean;
     private discardVideo;
     private pumpPresentation;
     private schedulePresentation;

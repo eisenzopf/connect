@@ -49,5 +49,10 @@ export declare class RtcpReceiveClock {
     timestamp(handle: number, ssrc: number, timestamp: number): {
         timestampUs: number;
         synchronized: boolean;
+        sourceNtp?: string;
+        sourceClock?: Readonly<{
+            ntp: string;
+            rtpTimestamp: number;
+        }>;
     };
 }

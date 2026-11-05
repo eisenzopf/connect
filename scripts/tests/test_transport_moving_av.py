@@ -14,8 +14,36 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'scripts'))
 from lib.package_environment import fixture_environment
 from lib.transport_av import opus_packets, ivf_frames, decode_completed, marker_profile
-from lib.transport_moving_av import audio_decode, video_decode, timeline, rows, summarize, marker_alignment, arrival_marker_edges
+from lib.transport_moving_av import audio_decode, video_decode, timeline, rows, summarize, marker_alignment, arrival_marker_edges, original_audio_quantum, native_cut_membership
 from lib.transport_movement_profile import MOVE_START_OFFSETS_MS, MOVES_PER_SESSION, TOTAL_MOVES, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256
+
+
+class NativeSourceIdentity(unittest.TestCase):
+    def test_original_sr_identity_preserves_wrap_and_never_changes_row_times(self):
+        origin=1800000000000000;ntp=(origin*(1<<32))//1000000+(2208988800<<32)
+        row=dict(ssrc=7,timestamp=800,elapsed_ms=123.456);before=dict(row)
+        reports=[dict(ssrc=7,ntp=str(ntp),rtp=2**32-160)]
+        self.assertEqual(original_audio_quantum(row,reports,origin),1);self.assertEqual(row,before)
+        self.assertIsNone(original_audio_quantum(row,[],origin));self.assertIsNone(original_audio_quantum(row,[dict(reports[0],ssrc=8)],origin))
+        with self.assertRaisesRegex(ValueError,'conflicting'):
+            original_audio_quantum(row,reports+[dict(reports[0],rtp=(reports[0]['rtp']-960)%2**32)],origin)
+        with self.assertRaisesRegex(ValueError,'ambiguous'):
+            original_audio_quantum(dict(row,timestamp=(reports[0]['rtp']+2**31)%2**32),reports,origin)
+        self.assertIsNone(original_audio_quantum(row,reports,origin+62000000))
+        for raw in ['+1','01',' 1','1.0','-1']:
+            with self.subTest(raw=raw),self.assertRaises(ValueError):original_audio_quantum(row,[dict(reports[0],ntp=raw)],origin)
+        with self.assertRaises(ValueError):original_audio_quantum(row,reports,-1)
+
+    def test_native_cut_never_accepts_crossed_fragment_or_foreign_physical_history(self):
+        import copy
+        cut=dict(stream_id='a',stream_local_id=1,stream_generation=1,physical_incarnation='a'*32,sequence_space='native-outer-u32',public_sequence_floor=4,cursor_ordinal=4,submission_observed=False)
+        capture=dict(native_activation=dict(profile='connect/native-public-sequence-cut/1',audience=dict(scope='public',streams=[cut])))
+        row=dict(stream_id='a',stream_generation=1,native_physical_incarnation='a'*32,native_datagram_sequences=[4])
+        self.assertTrue(native_cut_membership(capture,row));self.assertFalse(native_cut_membership(capture,dict(row,native_datagram_sequences=[3])))
+        for patch in [dict(native_datagram_sequences=[3,4]),dict(native_datagram_sequences=[4,4]),dict(native_datagram_sequences=[2**31]),dict(native_physical_incarnation='b'*32),dict(stream_generation=2)]:
+            with self.subTest(patch=patch),self.assertRaises(ValueError):native_cut_membership(capture,dict(row,**patch))
+        private=copy.deepcopy(capture);private['native_activation']['audience']['scope']='private-consultation'
+        with self.assertRaises(ValueError):native_cut_membership(private,row)
 
 
 class MovingArrivalGroups(unittest.TestCase):
@@ -66,17 +94,18 @@ class MovingCustody(unittest.TestCase):
             for ordinal in range(MOVES_PER_SESSION):
                 start=MOVE_START_OFFSETS_MS[ordinal]+1000
                 arrivals=[start+100, MOVE_START_OFFSETS_MS[ordinal+1]+1100 if ordinal+1 < MOVES_PER_SESSION else 61000]
-                capture=dict(format='connect/physical-av-segment/2',program_start_unix_us=origin,root_completed_observed_programme_us=start*1000,
+                capture=dict(format='connect/physical-av-segment/3',program_start_unix_us=origin,root_completed_observed_programme_us=start*1000,
                     audio=[dict(ssrc=7,rows=[packet(at, f'physical-audio-{receiver}-{ordinal}') for at in arrivals])],
                     video=[dict(ssrc=7,rows=[packet(at,streams[peer]['video']) for at in arrivals])],clock_reports={'audio':[],'video':[]})
+                capture['native_activation']=dict(profile='connect/native-public-sequence-cut/1',operation_record_id=f'record-{receiver}-{ordinal}',operation_id=f'move-{receiver}-{ordinal}',source_connection_id=f'original-{receiver}' if ordinal==0 else f'candidate-{receiver}-{ordinal-1}',target_connection_id=f'candidate-{receiver}-{ordinal}',target_generation=ordinal+2,stream_revision=3,audience=dict(scope='public',streams=[dict(stream_id=f'physical-audio-{receiver}-{ordinal}' if medium=='audio' else streams[peer]['video'],stream_local_id=7 if medium=='audio' else 9,stream_generation=1,physical_incarnation=('a' if medium=='audio' else 'b')*32,sequence_space='native-outer-u32',public_sequence_floor=1,cursor_ordinal=1,submission_observed=False) for medium in ('audio','video')]))
                 capture['decoder_context']=dict(profile='connect/native-retained-private-context/1',
                     connection_id=f'candidate-{receiver}-{ordinal}',source_generation=ordinal+1,target_generation=ordinal+2,
                     decoder_started_programme_us=(start-1000)*1000,audio_stream_id=f'physical-audio-{receiver}-{ordinal}',
                     video_stream_id=streams[peer]['video'],audio_ssrc=7,video_epoch=None,video_stream_generation=1)
                 for medium in ('audio','video'):
                     for item in capture[medium][0]['rows']:
-                        item.update(decoder_context_only=False,connection_generation=ordinal+2,stream_generation=1 if medium=='video' else None)
-                bundle['segments'].append(dict(source_index=receiver,ordinal=ordinal,connection_id=f'candidate-{receiver}-{ordinal}',
+                        item.update(decoder_context_only=False,connection_generation=ordinal+2,stream_generation=1,native_datagram_sequences=[1+capture[medium][0]['rows'].index(item)],native_physical_incarnation=('a' if medium=='audio' else 'b')*32)
+                bundle['segments'].append(dict(operation_id=f'move-{receiver}-{ordinal}',source_index=receiver,ordinal=ordinal,connection_id=f'candidate-{receiver}-{ordinal}',
                     scheduled_start_ms=MOVE_START_OFFSETS_MS[ordinal],actual_start_ms=MOVE_START_OFFSETS_MS[ordinal]+100,
                     published_stream_ids=dict(audio=f'physical-audio-{receiver}-{ordinal}',video=f'physical-video-{receiver}-{ordinal}'),capture=capture,
                     reliable_data=dict(original_data_messages_bound=2)))
@@ -88,17 +117,17 @@ class MovingCustody(unittest.TestCase):
 
     def tearDown(self):self.temp.cleanup()
 
-    def test_original_and_four_scheduled_physical_captures_partition_owner_intervals_without_counting_late_rows(self):
+    def test_original_and_four_physical_captures_use_public_membership_without_retiming(self):
         bundle,routes=timeline(self.directory,self.metadata)
         self.assertEqual(len(bundle['segments']),4);self.assertEqual(len(routes),6)
         for index in (0,4):
             audio=[h for h in routes[index]['histories'] if h['medium']=='audio']
             self.assertEqual(len(audio),3)
-            self.assertEqual(sum(len(h['selected_indices']) for h in audio),5)
+            self.assertEqual(sum(len(h['selected_indices']) for h in audio),7)
             self.assertEqual(audio[0]['rows'][0]['elapsed_ms'],1000,'actual warmup initializes only its own decoder')
-            self.assertEqual(audio[0]['selected_indices'],[1,2])
+            self.assertEqual(audio[0]['selected_indices'],[1,2,3])
             self.assertEqual(audio[1]['rows'][0]['elapsed_ms'],16100)
-            self.assertEqual(audio[1]['selected_indices'],[0])
+            self.assertEqual(audio[1]['selected_indices'],[0,1])
             self.assertGreater(routes[index]['excluded_rows']['audio'],0)
 
     def test_missing_roots_wrong_original_bindings_and_changed_capture_bytes_fail_before_decoder(self):
@@ -110,18 +139,18 @@ class MovingCustody(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'digest'):timeline(self.directory,self.metadata)
 
     def test_unlabelled_precompletion_audio_cannot_initialize_an_independent_decoder(self):
-        self.bundle['segments'][0]['capture']['audio'][0]['rows'][0]['elapsed_ms']=15999
+        self.bundle['segments'][0]['capture']['audio'][0]['rows'][0]['native_datagram_sequences']=[0]
         self.save()
-        with self.assertRaisesRegex(ValueError,'pre-completion'):timeline(self.directory,self.metadata)
+        with self.assertRaisesRegex(ValueError,'public packet membership'):timeline(self.directory,self.metadata)
 
     def test_actual_private_context_warms_only_same_history_and_never_enters_selected_indices(self):
         import copy
         capture=self.bundle['segments'][0]['capture'];cut=capture['root_completed_observed_programme_us']/1000
-        audio=copy.deepcopy(capture['audio'][0]['rows'][0]);audio.update(elapsed_ms=cut-20,timestamp=int((cut-20)*48),decoder_context_only=True)
+        audio=copy.deepcopy(capture['audio'][0]['rows'][0]);audio.update(elapsed_ms=cut-20,timestamp=int((cut-20)*48),decoder_context_only=True,native_datagram_sequences=[0])
         capture['audio'][0]['rows'].insert(0,audio)
-        epoch=dict(epoch='1'*32,incarnation='2'*32,revision=1,ssrc=7,first_sequence=1,first_timestamp=int((cut-30)*48))
+        epoch=dict(epoch='1'*32,incarnation='2'*32,revision=1,ssrc=7,first_sequence=0,first_timestamp=int((cut-30)*48))
         video=copy.deepcopy(capture['video'][0]['rows'][0]);video.update(elapsed_ms=cut-30,timestamp=epoch['first_timestamp'],
-            decoder_context_only=True,video_epoch=epoch,original_decoder_ordinal=0,
+            decoder_context_only=True,native_datagram_sequences=[0],video_epoch=epoch,original_decoder_ordinal=0,
             original_decoder_encoded_sha256=hashlib.sha256(base64.b64decode(video['payload'])).hexdigest(),
             original_decoder_completed_programme_us=int((cut-29)*1000))
         capture['decoder_context']['video_epoch']=epoch
@@ -131,8 +160,8 @@ class MovingCustody(unittest.TestCase):
         physical=[h for h in routes[0]['histories'] if h['capture_id']=='physical-0-0']
         self.assertEqual(len(physical),2)
         for history in physical:
-            self.assertEqual(history['selected_indices'],[1]);self.assertTrue(history['rows'][0]['decoder_context_only'])
-            self.assertEqual(history['owner_start_ms'],cut)
+            self.assertEqual(history['selected_indices'],[1,2]);self.assertTrue(history['rows'][0]['decoder_context_only'])
+            self.assertEqual(history['owner_start_ms'],0)
         before=copy.deepcopy(capture)
         for medium,key,value in [('audio','ssrc',8),('video','connection_generation',3),('video','stream_generation',2),
                 ('video','original_decoder_encoded_sha256','0'*64),('video','video_epoch',dict(epoch,incarnation='3'*32))]:
@@ -198,6 +227,13 @@ class MovingCustody(unittest.TestCase):
         videos=[dict(measurements=[repeated,dict(repeated,row=dict(elapsed_ms=2010,timestamp=9000))],undecodable_frames=0)]
         with self.assertRaisesRegex(ValueError,'counted twice'):
             summarize(dict(index=0,peer_index=3,excluded_rows={},received_clocks={'audio':1,'video':1}),[],videos)
+
+    def test_audio_duplicate_or_unbound_original_quantum_cannot_inflate_physical_histories(self):
+        base=dict(index=0,peer_index=3,excluded_rows={},received_clocks={'audio':1,'video':1})
+        for values,reason in [([None],'unambiguous'),([100,100],'counted twice')]:
+            measurements=[dict(row=dict(elapsed_ms=2000+i*20,original_programme_audio_quantum=value),level=.05) for i,value in enumerate(values)]
+            audio=[dict(measurements=measurements,bad_identity_blocks=0,identity_blocks=1,measured_samples=960*len(values))]
+            with self.subTest(values=values),self.assertRaisesRegex(ValueError,reason):summarize(base,audio,[])
 
 
 @unittest.skipUnless(shutil.which('ffmpeg'),'Independent FFmpeg prerequisite')

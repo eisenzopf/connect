@@ -1,3 +1,4 @@
+import { type NativeEgressIdentity, type NativeDecodedObservation, type NativeActivationBoundary } from "./browser_native_activation.js";
 import { type NativeDecodeIdentity } from "./browser_native_readiness.js";
 import { BrowserVideoOrder } from "./browser_video_order.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
@@ -41,9 +42,9 @@ export interface BrowserConnectionOptions {
 export interface BrowserMediaCallbacks {
     /** Borrowed synchronously; timestamps use the local performance.now() timeline.
      * The SDK closes each decoded frame after this callback. */
-    audio?: (binding: Readonly<MediaBinding>, frame: AudioData) => void;
+    audio?: (binding: Readonly<MediaBinding>, frame: AudioData, native?: NativeDecodedObservation) => void;
     /** Same local receive timeline and borrowed lifetime as decoded audio. */
-    video?: (binding: Readonly<MediaBinding>, frame: VideoFrame) => void;
+    video?: (binding: Readonly<MediaBinding>, frame: VideoFrame, native?: NativeDecodedObservation) => void;
     data?: (message: {
         conversationId: string;
         sessionId: string;
@@ -57,6 +58,8 @@ export interface BrowserMediaCallbacks {
     error?: (error: Error) => void;
 }
 interface Route {
+    nativeEgress?: NativeEgressIdentity;
+    decodedObservation?: NativeDecodedObservation;
     receiveEpoch?: VideoNotice;
     audioSource?: NativeDecodeIdentity;
     binding: Readonly<MediaBinding>;
@@ -174,6 +177,7 @@ export declare class BrowserMediaPeer {
     private replacementStatus;
     private completedReplacement;
     private state;
+    nativeActivationBoundary(id: string): NativeActivationBoundary | undefined;
     streams(id: string): Readonly<MediaBinding>[];
     revision(id: string): number;
     onConnectionClose(id: string, callback: () => void): () => void;
@@ -199,6 +203,8 @@ export declare class BrowserMediaConnection {
     readonly id: string;
     constructor(peer: BrowserMediaPeer, id: string);
     ownCleanup(work: Promise<unknown>): void;
+    /** Immutable historical native cut; undefined for ordinary or uncompleted peers. */
+    get nativeActivationBoundary(): NativeActivationBoundary | undefined;
     get streams(): Readonly<MediaBinding>[];
     get revision(): number;
     onClose(callback: () => void): () => void;

@@ -1,3 +1,4 @@
+import {nativeIdentity,bindNativeStreams,nativeBoundary} from './native_activation_fixture.mjs';
 // Owned BrowserMediaPeer with real WHATWG stream backpressure. Signaling and
 // codec setup are controlled here; actual signed Chromium transport is separate.
 import test from 'node:test';
@@ -45,7 +46,7 @@ async function fixture(mode){
   close(){if(this.closed)return;this.closed=true;for(const f of [...this.lifetimes])f();}
   begin(type,payload,scope){
    assert.equal(type,'connection.offer');assert.equal(payload.capabilities.video_feedback,profile);const id='wire'+ ++this.count;
-   queueMicrotask(()=>this.emit(envelope('connection.offer',{by_participant:'participant',substrate:'webtransport',capabilities:caps,substrate_setup:{kind:'native-prepared/1',offer_id:id,revision:1,streams:[{strm_id:'video',kind:'video',direction:'sendrecv',stream_local_id:7,video_feedback:allocation,codec:{name:'vp8',params:{sample_rate:90000,channels:0,payload_type:96}}}]}},scope)));
+   queueMicrotask(()=>this.emit(envelope('connection.offer',{by_participant:'participant',substrate:'webtransport',capabilities:caps,substrate_setup:{kind:'native-prepared/1',offer_id:id,revision:1,streams:[{strm_id:'video',kind:'video',direction:'sendrecv',stream_local_id:7,native_egress:nativeIdentity(7),video_feedback:allocation,codec:{name:'vp8',params:{sample_rate:90000,channels:0,payload_type:96}}}]}},scope)));
    return{id,response:Promise.resolve([envelope('connection.answer',{}, {...scope,in_reply_to:id})])};
   }
   async send(){this.emit(notice(1));return'answer';}

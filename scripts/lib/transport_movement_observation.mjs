@@ -129,6 +129,7 @@ export async function physicalMovementSegments({ directory, movement, plan,
         assert.deepEqual(observed.value.negotiated_streams, ready.value.negotiated_streams);
         const normalized = physicalAvSegment(observed.value, {
             programStartUnixUs: movement.original_program_start_unix_us,
+            operationId:step.operationId,sourceConnectionId:current.get(sourceIndex),
             connectionId: moved.connection, targetGeneration: moved.binding.generation,
             audioStreamId: step.audioId, sendVideoStreamId: step.videoId,
             receiveVideoStreamId: streamIds[peer].video,

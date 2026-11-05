@@ -1,3 +1,4 @@
+import {nativeIdentity,bindNativeStreams,nativeBoundary} from './native_activation_fixture.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {BrowserMediaPeer} from '../typescript/dist/browser_media.js';
@@ -20,7 +21,7 @@ class Control {
       const frame=envelope('connection.offer',{by_participant:'participant_test',substrate:'webtransport',substrate_setup:{kind:'native-prepared/1',revision:scope.expected_revision+1,offer_id:this.mode==='offer'?'foreign':id,streams:[{strm_id:'data',kind:'data',direction:'sendrecv',stream_local_id:scope.expected_revision+1,codec:{name:'binary',params:{reliability:'reliable_ordered'}}}]}},changed);
       if(this.mode==='receiver'&&type==='stream.subscribe')frame.payload.substrate_setup.streams.push({strm_id:'remote_data',kind:'data',direction:'sendonly',stream_local_id:9,codec:{name:'binary',params:{reliability:'reliable_ordered'}}});
       if(this.clockProfile)frame.payload.capabilities={source_clock:this.clockProfile===true?'rtcp-sr-sdes/1':this.clockProfile};
-      if(this.mode==='audio')frame.payload.substrate_setup.streams=[{strm_id:'audio',kind:'audio',direction:'sendrecv',stream_local_id:1,codec:{name:'opus',params:{sample_rate:48000,channels:1,payload_type:111}}}];
+      if(this.mode==='audio')frame.payload.substrate_setup.streams=[{strm_id:'audio',kind:'audio',direction:'sendrecv',stream_local_id:1,native_egress:nativeIdentity(1),codec:{name:'opus',params:{sample_rate:48000,channels:1,payload_type:111}}}];
       this.confirm=()=>finish?.([envelope('ack',{}, {...scope,in_reply_to:id})]);
       for(const fn of this.events)fn(frame);
     });

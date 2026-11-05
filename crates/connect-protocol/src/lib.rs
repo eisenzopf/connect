@@ -1186,3 +1186,4 @@ mod tests {
 }
 
 pub mod record_retention;
+pub mod replacement_activation;

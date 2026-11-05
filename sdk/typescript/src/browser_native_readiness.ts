@@ -1,3 +1,9 @@
+import {
+    nativeActivation,
+    nativeEgressIdentity,
+    type NativeActivationBoundary,
+    type NegotiatedNativeReceiver,
+} from "./browser_native_activation.js";
 /** Internal original native replacement proof. Decoder outputs are observations;
  * challenge, counters and acknowledgements never grant public ownership. */
 import { BrowserClient } from "./browser_client.js";
@@ -64,6 +70,11 @@ export class BrowserNativeReadiness {
     private readonly challenge: JsonObject;
     private readonly original: JsonObject;
     private readonly scope: Scope;
+    private readonly activationReceivers: readonly NegotiatedNativeReceiver[];
+    private activation?: NativeActivationBoundary;
+    get activationBoundary(): NativeActivationBoundary | undefined {
+        return this.activation;
+    }
     private audio?: AudioOutput;
     private audioSamples = 0;
     private video?: VideoOutput;
@@ -92,6 +103,30 @@ export class BrowserNativeReadiness {
         readonly videoStreamId: string | undefined,
         connectionGeneration: number,
     ) {
+        const setup = callback.payload.substrate_setup;
+        if (!jsonObject(setup) || !Array.isArray(setup.streams))
+            bad("Native cursor negotiation missing");
+        const selectedStreams = setup.streams;
+        this.activationReceivers = Object.freeze(
+            [audioStreamId, ...(videoStreamId ? [videoStreamId] : [])].map(
+                (streamId) => {
+                    const rows = selectedStreams.filter(
+                        (v) => jsonObject(v) && v.strm_id === streamId,
+                    );
+                    if (
+                        rows.length !== 1 ||
+                        !jsonObject(rows[0]) ||
+                        !Number.isInteger(rows[0].stream_local_id)
+                    )
+                        bad("Native cursor binding missing");
+                    return Object.freeze({
+                        streamId,
+                        handle: Number(rows[0].stream_local_id),
+                        identity: nativeEgressIdentity(rows[0].native_egress),
+                    });
+                },
+            ),
+        );
         for (const frame of [answer, callback]) {
             if (
                 frame.cid !== root.conversationId ||
@@ -470,6 +505,14 @@ export class BrowserNativeReadiness {
                         bad(
                             "Native completion changed the prepared generation",
                         );
+                    const activation = nativeActivation(
+                        this.root,
+                        status,
+                        this.activationReceivers,
+                    );
+                    if (activation.target_generation !== this.targetGeneration)
+                        bad("Native activation generation changed");
+                    this.activation = activation;
                     this.completed = true;
                     this.audio = this.video = undefined;
                     if (definitive) throw definitive;

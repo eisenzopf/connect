@@ -398,6 +398,14 @@ async fn full_replacement(algorithm: &str) {
     let done = completed(&f, &target_config, operation).await;
     assert_eq!(done.record_id, prepared.record_id);
     assert_eq!(done.result.as_ref().unwrap()["generation"], 2);
+    let activation: connect_protocol::replacement_activation::NativeActivationBoundary =
+        serde_json::from_value(done.result.as_ref().unwrap()["native_activation"].clone()).unwrap();
+    activation.validate().unwrap();
+    assert!(
+        matches!(activation.audience,connect_protocol::replacement_activation::NativeActivationAudience::Unsupported{ref reason} if reason=="non-native-adapter"),
+        "actual saved websocket+webrtc offer has no native packet cut"
+    );
+
     assert_eq!(done.result.as_ref().unwrap()["connection_id"], candidate);
     assert!(
         done.effects.iter().all(|e| e.attempt <= 1),

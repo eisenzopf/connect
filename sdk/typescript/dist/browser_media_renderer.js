@@ -159,7 +159,11 @@ export class BrowserMediaRenderer {
                 s.direction !== "sendonly"));
     }
     /** Copy synchronously; the decoder retains ownership of this AudioData. */
-    audio(binding, frame) {
+    /** Historical metadata only; no render/capture permission. */
+    get nativeActivationBoundary() {
+        return this.connection.nativeActivationBoundary;
+    }
+    audio(binding, frame, _native) {
         if (!this.current(binding) ||
             binding.kind !== "audio" ||
             !this.context ||
@@ -244,7 +248,7 @@ export class BrowserMediaRenderer {
         return this.clock.local + (timestamp - this.clock.source) / 1000000;
     }
     /** Copy borrowed frames into a bounded owned presentation queue. */
-    video(binding, frame) {
+    video(binding, frame, _native) {
         if (!this.current(binding) ||
             (binding.kind !== "video" && binding.kind !== "screen") ||
             !this.canvases.has(binding.streamId)) {

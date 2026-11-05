@@ -26,6 +26,7 @@ pub struct NativeReadinessStream {
     pub stream_id: String,
     pub stream_local_id: u16,
     pub payload_type: u8,
+    pub native_egress: connect_protocol::replacement_activation::NativeEgressIdentity,
 }
 /// An opaque server-issued challenge, obtainable only after this physical
 /// reader verifies both negotiation legs and writes their exact signed answer.
@@ -36,11 +37,17 @@ pub struct NativeReplacementReadiness {
     callback: Value,
     payload: Value,
     scope: CommandScope,
+    source_connection: String,
     challenge: Challenge,
     audio: NativeReadinessStream,
     video: Option<NativeReadinessStream>,
 }
 impl NativeReplacementReadiness {
+    pub fn record_id(&self) -> &str {
+        self.payload["replacement_preparation"]["operation_record_id"]
+            .as_str()
+            .expect("validated original record")
+    }
     pub fn connection_id(&self) -> Option<&str> {
         self.scope.connection_id.as_deref()
     }
@@ -61,6 +68,66 @@ impl NativeReplacementReadiness {
     }
     pub fn stream_revision(&self) -> u64 {
         self.challenge.stream_revision
+    }
+    /// Validate historical public membership from the original verified
+    /// operation.updated payload against this physical reader's two signed
+    /// negotiation legs. This is neither live authority nor observed IO.
+    pub fn activation_from_completed(
+        &self,
+        status: &Value,
+    ) -> Result<connect_protocol::replacement_activation::NativeActivationBoundary> {
+        use connect_protocol::replacement_activation::{
+            NativeActivationAudience as A, NativeActivationBoundary,
+        };
+        let b: NativeActivationBoundary =
+            serde_json::from_value(status["result"]["native_activation"].clone())
+                .map_err(|_| ClientError::Protocol)?;
+        b.validate().map_err(|_| ClientError::Protocol)?;
+        let result = &status["result"];
+        if status["state"] != "completed"
+            || status["command_type"] != "connection.replace"
+            || status["record_id"] != self.payload["replacement_preparation"]["operation_record_id"]
+            || status["record_id"] != b.operation_record_id
+            || status["operation_id"].as_str() != self.operation_id()
+            || Some(b.operation_id.as_str()) != self.operation_id()
+            || b.source_connection_id != self.source_connection
+            || Some(b.target_connection_id.as_str()) != self.connection_id()
+            || result["connection_id"] != b.target_connection_id
+            || result["replaces"] != b.source_connection_id
+            || result["generation"] != b.target_generation
+            || b.target_generation != self.target_generation()
+            || result["readiness"]["stream_revision"] != b.stream_revision
+            || b.stream_revision <= self.stream_revision()
+            || result["activation_state"] != "ready"
+        {
+            return Err(ClientError::Protocol);
+        }
+        match &b.audience {
+            A::Public { streams } => {
+                let expected = std::iter::once(&self.audio)
+                    .chain(self.video.iter())
+                    .collect::<Vec<_>>();
+                if streams.len() != expected.len() {
+                    return Err(ClientError::Protocol);
+                }
+                for stream in expected {
+                    streams
+                        .iter()
+                        .find(|c| c.stream_id == stream.stream_id)
+                        .ok_or(ClientError::Protocol)?
+                        .matches(
+                            &stream.stream_id,
+                            stream.stream_local_id,
+                            &stream.native_egress,
+                            self.target_generation(),
+                        )
+                        .map_err(|_| ClientError::Protocol)?;
+                }
+            }
+            A::PrivateConsultation { .. } => {} // Explicitly has no public membership.
+            A::Unsupported { .. } => return Err(ClientError::Protocol),
+        }
+        Ok(b)
     }
     /// Freeze actual non-concealed decoded PCM and, if selected, a decoded
     /// keyframe on this fresh decoder. Keep this value unchanged on recovery.
@@ -129,6 +196,7 @@ struct State {
     ended: bool,
     frozen: Option<Value>,
     required_video: Vec<String>,
+    source_connection: String,
 }
 fn roots(scope: &CommandScope, frame: &Envelope) -> bool {
     [
@@ -147,6 +215,7 @@ impl Shared {
         scope: &CommandScope,
         payload: &Value,
         required_video: Vec<String>,
+        source_connection: &str,
     ) -> Result<()> {
         if payload["replacement_preparation"]["profile"] != "connect-replacement-media-v1" {
             return Ok(());
@@ -172,6 +241,7 @@ impl Shared {
             ended: false,
             frozen: None,
             required_video,
+            source_connection: source_connection.to_owned(),
         });
         Ok(())
     }
@@ -340,7 +410,11 @@ impl Shared {
                         .iter()
                         .find(|v| v["strm_id"].as_str() == Some(stream.id.as_str()))
                         .ok_or(ClientError::Protocol)?;
+                    let native_egress:connect_protocol::replacement_activation::NativeEgressIdentity=serde_json::from_value(raw["native_egress"].clone()).map_err(|_|ClientError::Protocol)?;
+                    native_egress.validate().map_err(|_|ClientError::Protocol)?;
+                    if native_egress.connection_generation!=c.target_generation {return Err(ClientError::Protocol);}
                     Ok(NativeReadinessStream {
+                        native_egress,
                         stream_id: stream.id.as_str().to_owned(),
                         stream_local_id: stream.stream_local_id.ok_or(ClientError::Protocol)?,
                         payload_type: raw["codec"]["params"]["payload_type"]
@@ -365,6 +439,7 @@ impl Shared {
             callback: callback.clone(),
             payload: s.payload.clone(),
             scope: s.scope.clone(),
+            source_connection: s.source_connection.clone(),
             challenge: marker.readiness,
             audio: audio.remove(0),
             video: video.pop(),

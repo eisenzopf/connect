@@ -74,6 +74,13 @@ export interface Vp8Frame {
     /** Complete contiguous RTP range, including both endpoints. */
     firstSequence: number;
     lastSequence: number;
+    /** Original outer datagram sequence of every assembled fragment. */
+    datagramSequences: readonly number[];
+    sourceNtp?: string;
+    sourceClock?: Readonly<{
+        ntp: string;
+        rtpTimestamp: number;
+    }>;
 }
 /** Loss never produces a partial decoded frame; expired assemblies release all bytes. */
 export declare class Vp8Assembler {

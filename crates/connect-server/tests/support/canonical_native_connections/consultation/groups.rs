@@ -531,7 +531,23 @@ fn audio_probe_category(name: &str) -> &'static str {
         _ => "other",
     }
 }
+struct NativeProbeSequence {
+    receiver: usize,
+    handle: u16,
+    sequence: u32,
+    decoded_samples: usize,
+    non_silent: bool,
+}
 async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str) {
+    let _ = probe_sequences(peers, source, allowed, name, false).await;
+}
+async fn probe_sequences(
+    peers: &mut [Peer],
+    source: usize,
+    allowed: &[usize],
+    name: &str,
+    capture: bool,
+) -> Vec<NativeProbeSequence> {
     use rvoip_uctp::substrate::{
         pack_rtp_datagram, unpack_rtp_datagram, RtpDatagram, RtpMediaPayload,
     };
@@ -551,6 +567,7 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
     let mut quiesced = false;
     let mut tick = tokio::time::interval(Duration::from_millis(20));
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    let mut original_sequences = Vec::new();
     let mut counts = vec![0usize; peers.len()];
     let mut received_packets = vec![0usize; peers.len()];
     let mut sent_packets = 0usize;
@@ -625,6 +642,36 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
                 let packet = unpack_rtp_datagram(&bytes.unwrap()).unwrap();
                 assert_eq!(packet.stream_local_id, peers[i].handle);
                 received_packets[i] += 1;
+                if capture {
+                    assert_eq!(packet.rtp.payload_type, 0);
+                    assert_eq!(packet.rtp.payload.len(), 160);
+                    // Actual stateless G.711 mu-law expansion. This observation
+                    // is never used as readiness or a whole-window quality pass.
+                    let pcm = packet
+                        .rtp
+                        .payload
+                        .iter()
+                        .map(|byte| {
+                            let v = !*byte;
+                            let value = (((i32::from(v & 15) << 3) + 132)
+                                << (i32::from(v & 112) >> 4))
+                                - 132;
+                            if v & 128 != 0 {
+                                -value
+                            } else {
+                                value
+                            }
+                        })
+                        .collect::<Vec<_>>();
+                    assert!(original_sequences.len() < 2048);
+                    original_sequences.push(NativeProbeSequence {
+                        receiver: i,
+                        handle: packet.stream_local_id,
+                        sequence: packet.seq,
+                        decoded_samples: pcm.len(),
+                        non_silent: pcm.iter().any(|sample| sample.abs() > 1000),
+                    });
+                }
                 if packet
                     .rtp
                     .payload
@@ -670,6 +717,7 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
         }
         assert!(counts[*i] > 10, "{name}: too few marked frames: {counts:?}");
     }
+    original_sequences
 }
 
 #[tokio::test]

@@ -482,7 +482,7 @@ pub(super) async fn run(
                     &device, &selected, &mut root_revision, &mut authoritative_pending);
                 if let Some(admission) = pump.during(tokio::time::timeout_at(until, pending)).await??? {
                     if readiness_attempts == 0 { return Err("replacement completed before original decoded readiness submission".into()); }
-                    pump.readiness.completed(admission.generation, admission.revision)?;
+                    pump.readiness.completed(admission.generation, admission.revision, &admission.receipt)?;
                     if !readiness_acknowledged { readiness_acknowledged = true; readiness_ack_recovered = true; }
                     pump.observe_root_completion()?;
                     if let Some(video) = &source.video {

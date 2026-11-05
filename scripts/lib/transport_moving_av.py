@@ -1,6 +1,6 @@
 """Decode every physical codec history before measuring six logical receivers.
 
-Ownership intervals are original completed-root observations on the unchanged
+Public membership is the original native writer sequence cut on the unchanged
 programme clock. Decoder state, compressed bytes and presentation timestamps
 never cross physical receiver, stream or SSRC boundaries.
 """
@@ -95,6 +95,53 @@ def rows(value, medium, allowed_streams, default_stream=None):
     return [(stream, ssrc, history) for (stream, ssrc, _), history in histories.items()]
 
 
+def native_cut_membership(capture, row):
+    boundary=capture['native_activation']
+    if (boundary.get('profile')!='connect/native-public-sequence-cut/1' or
+            boundary.get('audience',{}).get('scope')!='public'):
+        raise ValueError('native capture has no public writer boundary')
+    cuts=boundary['audience']['streams']
+    selected=[cut for cut in cuts if cut['stream_id']==row['stream_id']]
+    if len(selected)!=1: raise ValueError('native capture cut stream identity')
+    cut=selected[0]; seqs=row.get('native_datagram_sequences')
+    if (cut.get('sequence_space')!='native-outer-u32' or cut.get('submission_observed') is not False or
+            type(cut.get('cursor_ordinal')) is not int or not 0<=cut['cursor_ordinal']<2**31 or
+            cut.get('public_sequence_floor')!=cut['cursor_ordinal'] or
+            cut.get('stream_generation')!=row.get('stream_generation') or
+            cut.get('physical_incarnation')!=row.get('native_physical_incarnation') or
+            not isinstance(seqs,list) or not 1<=len(seqs)<=64 or len(set(seqs))!=len(seqs) or
+            any(type(v) is not int or not 0<=v<2**31 for v in seqs)):
+        raise ValueError('native capture original cursor provenance')
+    membership=[v>=cut['public_sequence_floor'] for v in seqs]
+    if any(v!=membership[0] for v in membership):raise ValueError('original decoded frame straddles native activation')
+    return membership[0]
+
+
+def original_audio_quantum(row, reports, origin_us):
+    """Identity only, never a replacement output timestamp or repaired PCM.
+
+    The original SR maps this exact physical SSRC's RTP samples to the frozen
+    source programme. Integer arithmetic preserves NTP precision. The rounded
+    20ms source quantum is usable only within the original 62-second source.
+    """
+    if type(origin_us) is not int or origin_us<=0 or type(row.get('timestamp')) is not int or not 0<=row['timestamp']<2**32:raise ValueError('original source programme identity')
+    anchors=[v for v in reports if v.get('ssrc')==row['ssrc']]
+    if not anchors:return None
+    origin=(origin_us*(1<<32))//1000000+(2208988800<<32)
+    identities=set()
+    for sr in anchors:
+        raw=sr['ntp']
+        if not isinstance(raw,str) or not raw.isascii() or not raw.isdecimal() or str(int(raw))!=raw:raise ValueError('original audio SR identity')
+        ntp=int(raw);rtp=sr['rtp']
+        if not 0<=ntp<2**64 or type(rtp) is not int or not 0<=rtp<2**32:raise ValueError('original audio SR identity')
+        delta=(row['timestamp']-rtp+2**31)%2**32-2**31
+        if delta==-2**31:raise ValueError('ambiguous original audio RTP distance')
+        numerator=(ntp-origin)*48000+delta*(1<<32);denominator=960*(1<<32)
+        quantum=(numerator+denominator//2)//denominator
+        if 0<=quantum<3100:identities.add(quantum)
+    if len(identities)>1:raise ValueError('original source audio quantum has conflicting SR lineage')
+    return next(iter(identities),None)
+
 def timeline(directory, metadata):
     bundle = original(directory / 'movement-segments.json', 96 * 1024 * 1024, metadata['sha256'])
     if (bundle['format'] != 'connect/physical-movement-segments/1'
@@ -120,12 +167,18 @@ def timeline(directory, metadata):
             cut = capture['root_completed_observed_programme_us'] / 1000
             scheduled = MOVE_START_OFFSETS_MS[segment['ordinal']]
             actual = segment.get('actual_start_ms')
-            if (capture['format'] != 'connect/physical-av-segment/2' or capture['program_start_unix_us'] != origin
+            if (capture['format'] != 'connect/physical-av-segment/3' or capture['program_start_unix_us'] != origin
                     or segment.get('scheduled_start_ms') != scheduled
                     or type(actual) not in (int, float) or not math.isfinite(actual) or not scheduled <= actual <= cut < 62000
                     or cuts and cut <= cuts[-1]
                     or segment['connection_id'] in candidates or segment['reliable_data']['original_data_messages_bound'] != 2):
                 raise ValueError('moving original ownership boundary or Data custody')
+            activation=capture.get('native_activation',{})
+            previous=bundle['original_connection_ids'][receiver] if not cuts else chain[len(cuts)-1]['connection_id']
+            if (activation.get('profile')!='connect/native-public-sequence-cut/1' or activation.get('operation_id')!=segment['operation_id']
+                    or activation.get('source_connection_id')!=previous or activation.get('target_connection_id')!=segment['connection_id']
+                    or activation.get('audience',{}).get('scope')!='public'):
+                raise ValueError('moving original public activation lineage')
             candidates.add(segment['connection_id']); cuts.append(cut)
         chains[receiver] = (chain, cuts)
     result = []
@@ -142,7 +195,7 @@ def timeline(directory, metadata):
         allowed_video = {streams[peer]['video']}
         if peer in chains:
             allowed_video.update(segment['published_stream_ids']['video'] for segment in chains[peer][0])
-        end = chains[receiver][1][0] if receiver in chains else 62000
+        end = 62000
         physical = [(f'original-{receiver}', 0, end, captured,
             rows(captured['audio'], 'audio', {streams[receiver]['audio']}, streams[receiver]['audio']),
             rows(captured['video'], 'video', allowed_video))]
@@ -167,11 +220,11 @@ def timeline(directory, metadata):
                         normalized = rows(group, medium,
                             {segment['published_stream_ids']['audio']} if medium == 'audio' else {streams[peer]['video']})
                         for row in group:
-                            private = row['elapsed_ms'] < cuts[ordinal]
+                            private = not native_cut_membership(capture,row)
                             if (type(row.get('decoder_context_only')) is not bool or row['decoder_context_only'] != private
                                     or row.get('connection_generation') != context['target_generation']
                                     or row['elapsed_ms']*1000 < context['decoder_started_programme_us']):
-                                raise ValueError('moving pre-completion context cannot move the original ownership window')
+                                raise ValueError('moving private context cannot claim public packet membership')
                             if medium == 'video' and row.get('stream_generation') != context['video_stream_generation']:
                                 raise ValueError('moving private video generation changed')
                             if private and medium == 'audio' and row['ssrc'] != context.get('audio_ssrc'):
@@ -186,7 +239,7 @@ def timeline(directory, metadata):
                                         or type(decoded) is not int or not row['elapsed_ms']*1000 <= decoded < row['elapsed_ms']*1000+200000):
                                     raise ValueError('moving private video context lacks its exact actual decoder output')
                         output.extend(normalized)
-                physical.append((f'physical-{receiver}-{ordinal}', cuts[ordinal], cuts[ordinal+1] if ordinal + 1 < MOVES_PER_SESSION else 62000,
+                physical.append((f'physical-{receiver}-{ordinal}', 0, 62000,
                     capture, audio, video))
         histories = []; clocks = {'audio':0,'video':0}
         excluded = {'audio':0, 'video':0}
@@ -197,7 +250,10 @@ def timeline(directory, metadata):
                 for stream, ssrc, group in groups:
                     # Prior rows in this same codec history may initialize its
                     # decoder. Every counted row belongs to exactly one owner.
-                    bounded = [row for row in group if row['elapsed_ms'] < end]
+                    bounded = [dict(row) for row in group if row['elapsed_ms'] < end]
+                    if medium=='audio':
+                        for row in bounded:
+                            row['original_programme_audio_quantum']=original_audio_quantum(row,captured.get('clock_reports',{}).get('audio',[]),origin)
                     selected = [i for i,row in enumerate(bounded) if not row.get('decoder_context_only', False) and max(2000,start) <= row['elapsed_ms'] < min(62000,end)]
                     excluded[medium] += len(group) - len(selected)
                     if bounded and selected:
@@ -345,6 +401,11 @@ def summarize(route, audio, video):
     # every move. Repeated frames cannot inflate whole-window frame coverage.
     if len({m['row']['timestamp'] for m in v})!=len(v):
         raise ValueError('moving original programme video frame counted twice')
+    quanta=[m['row'].get('original_programme_audio_quantum') for m in a]
+    known=[q for q in quanta if q is not None]
+    if len(known)!=len(a):raise ValueError('native /3 counted audio lacks original unambiguous source quantum identity')
+    if len(known)!=len(set(known)):
+        raise ValueError('moving original programme audio quantum counted twice across physical owners')
     bins=[sum(second*1000<=m['row']['elapsed_ms']<(second+1)*1000 for m in v) for second in range(2,62)]
     changing=sum(left['hash']!=right['hash'] for left,right in zip(v,v[1:]));wrong=sum(m['wrong_source'] for m in v)
     # Retain the classifier's distinction without relaxing the existing wrong==0
@@ -364,7 +425,7 @@ def summarize(route, audio, video):
     passed = passed and route['received_clocks']['audio'] > 0 and route['received_clocks']['video'] > 0
     return dict(index=route['index'],peer_index=route['peer_index'],passed=passed,
         audio=dict(decoded_seconds=samples/48000,samples=samples,bad_identity_blocks=bad,
-            original_window_packets=len(a),maximum_arrival_gap_ms=max(gaps,default=None)),
+            original_window_packets=len(a),source_quantum_identity_available=len(known),source_quantum_identity_unavailable=len(a)-len(known),maximum_arrival_gap_ms=max(gaps,default=None)),
         video=dict(decoded_window_frames=len(v),changing_window_frames=changing,changing_fps=changing/60,
             frames_by_observation_second=bins,wrong_source_pixel_frames=wrong,
             source_marker_classification=classification,
@@ -397,6 +458,6 @@ def verify(directory,manifest,metadata):
         warmup_seconds=2,observation_seconds=60,source_manifest=manifest,capture_bundle_sha256=metadata['sha256'],
         physical_codec_histories_inspected=number,independently_decoded_codec_histories=decoders_started,routes=results,
         full_timeline_decoded=all(r['video']['undecodable_frames']==0 for r in results),task_complete=False,cell_qualified=False,matrix_qualified=False,whole_gate_qualified=False,
-        scope='Independent whole-window receive-content component. Private context is actual same-physical/stream/SSRC/generation/epoch decoder history and never coverage. Ownership remains the original completed-root observation; earlier real public continuation cannot be classified without an independent activation receipt. Every physical/stream/SSRC history decodes separately with original timestamps; actual root observations delimit ownership. No PLC, gaps filled, retiming, duplicated-frame coverage or inferred device presentation. Impairment/browser/remote cells remain separate.')
+        scope='Independent whole-window receive-content component. Private context is actual same-physical/stream/SSRC/generation/epoch decoder history and never coverage. Public ownership uses the original signed native writer cut independently of delayed root reply arrival. Actual public output from original admitted owners and exact replacement cuts remains on its original receive clock; source-quantum overlaps fail rather than inflate coverage. Every physical/stream/SSRC history decodes separately with original timestamps; the original completion record binds each immutable cut and actual retirement remains required. No PLC, gaps filled, retiming, duplicated-frame coverage or inferred device presentation. Impairment/browser/remote cells remain separate.')
     (output/'decoded.json').write_text(json.dumps(report,indent=2)+'\n')
     return report

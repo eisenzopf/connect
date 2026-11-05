@@ -1,3 +1,4 @@
+import {nativeIdentity,bindNativeStreams,nativeBoundary} from './native_activation_fixture.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {BrowserMediaPeer} from '../typescript/dist/browser_media.js';
@@ -18,7 +19,7 @@ async function fixture(run,{mode,generation=2}={}) {
  names.forEach((name,i)=>Object.defineProperty(globalThis,name,{configurable:true,value:values[i]}));
  const sent=[],events=new Set(),lifetimes=new Set();let complete=false,reads=0,parameters,reader;
  const status=()=>({record_id:'record',operation_id:'original-move',command_type:'connection.replace',expected_revision:7,state:complete?(mode==='cancelled'?'cancelled':'completed'):'preparing',revision:complete?8:3,native_replacement_prepared:mode!=='not-prepared',
-  ...(complete&&mode!=='cancelled'?{result:{activation_state:mode==='stopped'?'stopped':'ready',connection_id:'replacement_record',replaces:'old',endpoint_id:'endpoint',device_id:'device',generation:mode==='receipt-generation'?generation+1:generation,retained_connection_ids:['remote'],admitted_connection_ids:['replacement_record'],retired_connection_ids:['old'],readiness:{stream_revision:6,streams:['audio','camera','incoming-camera']},physical_readiness:{stream_revision:6,streams:['audio','camera','incoming-camera']}}}:{})});
+  ...(complete&&mode!=='cancelled'?{result:{activation_state:mode==='stopped'?'stopped':'ready',connection_id:'replacement_record',replaces:'old',endpoint_id:'endpoint',device_id:'device',generation:mode==='receipt-generation'?generation+1:generation,retained_connection_ids:['remote'],admitted_connection_ids:['replacement_record'],retired_connection_ids:['old'],readiness:{stream_revision:6,streams:['audio','camera','incoming-camera']},physical_readiness:{stream_revision:6,streams:['audio','camera','incoming-camera']},native_activation:nativeBoundary(root(),parameters.substrate_setup.streams,generation,6)}}:{})});
  const client={closed:false,controlTransport:'webtransport',deviceId:'device',
   datagrams:{maxDatagramSize:1200,readable:new ReadableStream({start(c){reader=c;}}),writable:new WritableStream()},
   onEvent:fn=>{events.add(fn);return()=>events.delete(fn);},onClose:fn=>{lifetimes.add(fn);return()=>lifetimes.delete(fn);},
@@ -35,6 +36,7 @@ async function fixture(run,{mode,generation=2}={}) {
    const streams=payload.streams_offered.map((stream,index)=>({strm_id:stream.id,kind:stream.kind,direction:mode==='wrong-direction'&&stream.id==='incoming-camera'?'recvonly':stream.direction==='sendonly'?'recvonly':stream.direction==='recvonly'?'sendonly':'sendrecv',stream_local_id:index+1,codec:{name:stream.kind==='audio'?'opus':'vp8',params:{sample_rate:stream.kind==='audio'?48000:90000,channels:stream.kind==='audio'?1:0,payload_type:stream.kind==='audio'?111:96}}}));
    parameters={by_participant:'participant',substrate:'webtransport',capabilities:{video_feedback:'rtcp-pli-epoch/1'},substrate_setup:{kind:'native-prepared/1',revision:1,offer_id:id,streams},replacement_preparation:{profile:'connect-replacement-media-v1',operation_record_id:'record',readiness:{nonce:'nonce',source_generation:generation-1,target_generation:generation,stream_revision:2}}};
    for(const stream of streams.filter(s=>s.kind==='video'))stream.video_feedback={profile:'rtcp-pli-epoch/1',original_operation:'original-move',original_offer:id,stream_generation:1,connection_generation:mode==='mixed-generation'&&stream.strm_id==='incoming-camera'?generation+1:generation};
+   bindNativeStreams(streams,generation);
    const answer=structuredClone(parameters);if(mode==='changed-challenge')answer.replacement_preparation.readiness.nonce='other';
    queueMicrotask(()=>{for(const fn of events)fn(envelope('connection.offer',parameters,scope));});
    return {id,response:Promise.resolve([envelope('connection.answer',answer,{...scope,in_reply_to:id})])};

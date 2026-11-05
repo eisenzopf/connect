@@ -336,7 +336,15 @@ export class RtcpReceiveClock {
                 const value = this.base.local + Number((delta * 1000000n) / (1n << 32n));
                 if (Number.isSafeInteger(value) &&
                     Math.abs(value - now) <= 10000000)
-                    return { timestampUs: value, synchronized: true };
+                    return {
+                        timestampUs: value,
+                        synchronized: true,
+                        sourceNtp: capture.toString(),
+                        sourceClock: Object.freeze({
+                            ntp: track.report.ntp.toString(),
+                            rtpTimestamp: track.report.rtpTimestamp,
+                        }),
+                    };
             }
         }
         return { timestampUs: fallback, synchronized: false };

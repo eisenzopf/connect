@@ -1,3 +1,7 @@
+import type {
+    NativeDecodedObservation,
+    NativeActivationBoundary,
+} from "./browser_native_activation.js";
 import { type BrowserMediaConnection } from "./browser_media.js";
 import { type MediaBinding } from "./browser_rtp.js";
 import { ConnectError } from "./errors.js";
@@ -229,7 +233,15 @@ export class BrowserMediaRenderer {
         );
     }
     /** Copy synchronously; the decoder retains ownership of this AudioData. */
-    audio(binding: Readonly<MediaBinding>, frame: AudioData): boolean {
+    /** Historical metadata only; no render/capture permission. */
+    get nativeActivationBoundary(): NativeActivationBoundary | undefined {
+        return this.connection.nativeActivationBoundary;
+    }
+    audio(
+        binding: Readonly<MediaBinding>,
+        frame: AudioData,
+        _native?: NativeDecodedObservation,
+    ): boolean {
         if (
             !this.current(binding) ||
             binding.kind !== "audio" ||
@@ -321,7 +333,11 @@ export class BrowserMediaRenderer {
         return this.clock.local + (timestamp - this.clock.source) / 1000000;
     }
     /** Copy borrowed frames into a bounded owned presentation queue. */
-    video(binding: Readonly<MediaBinding>, frame: VideoFrame): boolean {
+    video(
+        binding: Readonly<MediaBinding>,
+        frame: VideoFrame,
+        _native?: NativeDecodedObservation,
+    ): boolean {
         if (
             !this.current(binding) ||
             (binding.kind !== "video" && binding.kind !== "screen") ||

@@ -368,7 +368,12 @@ export class RtcpReceiveClock {
         handle: number,
         ssrc: number,
         timestamp: number,
-    ): { timestampUs: number; synchronized: boolean } {
+    ): {
+        timestampUs: number;
+        synchronized: boolean;
+        sourceNtp?: string;
+        sourceClock?: Readonly<{ ntp: string; rtpTimestamp: number }>;
+    } {
         const track = this.tracks.get(handle);
         if (!track || !u32(ssrc) || !u32(timestamp)) return invalid();
         const now = this.nowUs();
@@ -407,7 +412,15 @@ export class RtcpReceiveClock {
                     Number.isSafeInteger(value) &&
                     Math.abs(value - now) <= 10000000
                 )
-                    return { timestampUs: value, synchronized: true };
+                    return {
+                        timestampUs: value,
+                        synchronized: true,
+                        sourceNtp: capture.toString(),
+                        sourceClock: Object.freeze({
+                            ntp: track.report.ntp.toString(),
+                            rtpTimestamp: track.report.rtpTimestamp,
+                        }),
+                    };
             }
         }
         return { timestampUs: fallback, synchronized: false };

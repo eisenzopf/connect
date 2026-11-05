@@ -988,3 +988,38 @@ decoded keyframe are required. Private decoder context stays separate from the
 full public quality oracle. Every decoder child is explicitly joined; forced,
 expired, malformed or missing decoder output is not readiness. This API/profile
 change requires combined SDK/service/helper verification before qualification.
+
+
+### Original native activation boundary
+
+Native replacement completion carries `native_activation` using
+`connect/native-public-sequence-cut/1`. Each original selected receiving stream
+gets a pre-publication cursor cut bound to the original operation, source,
+target, connection generation, stream generation, negotiated handle and physical
+incarnation. The server supplies `native_egress` identically on both signed native
+negotiation legs; clients compare the final receipt with that original reader.
+A freely supplied receipt cannot establish a different physical identity.
+
+The original RTP packetizer and original compound PLI+APP sender share one
+bounded allocator. RTP fragments, sender reports and failed reservations consume
+ordinals. Commit waits for the actual private writer/feedback guards, rejects
+queued old preparation work, then captures the next ordinal before publishing
+any new programme. `submission_observed` is always false. A muted stream needs
+no later transmission to finish the immutable result. Ordinals at or above the
+first half-range from the advertised zero are unclassifiable and refuse; clocks,
+RTP timestamps and decoder epochs are not changed.
+
+An explicit private-consultation successor records its original parent instead
+of public cuts. An unclassified closed native audience refuses before publication.
+WebRTC records `unsupported/non-native-adapter` and keeps its existing conservative
+observation boundary. These historical facts grant neither media authority nor
+reliable Data delivery. Every operation read and actual send retains its current
+policy and original lifetime checks. Any post-Core attachment failure retains the
+original Known capture and stops/reconciles its exact target; it cannot become a
+completed ready cut.
+
+The opaque `NativeReplacementReadiness::activation_from_completed` validates a
+current-authorized original completed record against its captured negotiation.
+`NativeSequenceCut::membership` classifies only original datagrams from that
+reader. Keep the original decoder alive across the private-to-public transition;
+private output can establish decoder context but cannot count as public coverage.

@@ -147,7 +147,22 @@ pub(in super::super) async fn paused(
     peers[1].live = false;
     // Qualified BEFORE witness: the original live generation moved while the
     // journal has no Ready. Exact marked PCM must reach both actual endpoints.
-    probe(peers, 0, &[2], "paused-original-move-retained-to-target").await;
+    let original_preparation = peers[2].client.native_replacement_readiness().unwrap();
+    let public_before_projection = probe_sequences(
+        peers,
+        0,
+        &[2],
+        "paused-original-move-retained-to-target",
+        true,
+    )
+    .await;
+    assert!(
+        public_before_projection
+            .iter()
+            .filter(|v| v.receiver == 2 && v.non_silent && v.decoded_samples == 160)
+            .count()
+            > 10
+    );
     probe(peers, 2, &[0], "paused-original-move-target-to-retained").await;
     if matches!(case, Case::Video) {
         let (original_publisher, replacement_publisher, retained_receiver, replacement_receiver) =
@@ -268,6 +283,45 @@ pub(in super::super) async fn paused(
     tokio::time::timeout(Duration::from_secs(2), pause.left())
         .await
         .unwrap();
+    if !stopped {
+        let until = tokio::time::Instant::now() + Duration::from_secs(10);
+        let completed = loop {
+            let record = status(f, credential, &command.operation_id).await;
+            if record.state == OperationState::Completed {
+                break record;
+            }
+            assert!(
+                tokio::time::Instant::now() < until,
+                "same original projection did not complete"
+            );
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        };
+        let boundary = original_preparation
+            .activation_from_completed(&serde_json::to_value(&completed).unwrap())
+            .unwrap();
+        let connect_protocol::replacement_activation::NativeActivationAudience::Public { streams } =
+            boundary.audience
+        else {
+            panic!("public original move has no public native cut")
+        };
+        let cut = streams
+            .iter()
+            .find(|v| v.stream_id == original_preparation.audio().stream_id)
+            .unwrap();
+        for packet in public_before_projection
+            .iter()
+            .filter(|v| v.receiver == 2 && v.non_silent)
+        {
+            assert_eq!(packet.handle, cut.stream_local_id);
+            assert_eq!(cut.membership(packet.sequence).unwrap(),connect_protocol::replacement_activation::SequenceMembership::Public,
+                "actual decoded public PCM before durable completed reply must fall at or after original Core cut");
+        }
+        let replay = status(f, credential, &command.operation_id).await;
+        assert_eq!(
+            replay.result, completed.result,
+            "original completed cut is immutable without a new IO observation"
+        );
+    }
     if stopped {
         let until = tokio::time::Instant::now() + Duration::from_secs(10);
         loop {

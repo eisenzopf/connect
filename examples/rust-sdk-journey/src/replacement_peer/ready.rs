@@ -86,6 +86,7 @@ pub(super) struct Observer {
     joined: Option<decoder::Joined>,
     programme_start: Option<tokio::time::Instant>,
     video_receipts: Vec<Value>,
+    activation: Option<Value>,
 }
 impl Observer {
     pub async fn open(preparation: NativeReplacementReadiness, source: &Source) -> Result<Self> {
@@ -124,6 +125,7 @@ impl Observer {
             joined: None,
             programme_start: None,
             video_receipts: Vec::new(),
+            activation: None,
         })
     }
     pub fn bind_programme_start(&mut self, start: tokio::time::Instant) -> Result<()> {
@@ -298,7 +300,7 @@ impl Observer {
         self.frozen_epoch = self.epoch.clone();
         Ok(Some(proof))
     }
-    pub fn completed(&self, generation: u64, revision: u64) -> Result<()> {
+    pub fn completed(&mut self, generation: u64, revision: u64, status: &Value) -> Result<()> {
         if self.frozen.is_none()
             || generation != self.preparation.target_generation()
             || revision <= self.preparation.stream_revision()
@@ -308,6 +310,18 @@ impl Observer {
                     .into(),
             );
         }
+        let activation = self.preparation.activation_from_completed(status)?;
+        if !matches!(
+            activation.audience,
+            connect_protocol::replacement_activation::NativeActivationAudience::Public { .. }
+        ) {
+            return Err("this public programme has no public native activation cut".into());
+        }
+        let value = serde_json::to_value(activation)?;
+        if self.activation.as_ref().is_some_and(|old| old != &value) {
+            return Err("original native activation cut changed".into());
+        }
+        self.activation = Some(value);
         Ok(())
     }
     pub fn epoch(&self) -> Option<&VideoReceiveEpoch> {
@@ -330,8 +344,8 @@ impl Observer {
             "video_decoder":self.decoder.as_ref().map(|_|"owned-libvpx-vp8"),"video_decoded_frames":self.decoded_frames,
             "video_decoded_keyframes":self.decoded_keys,"actual_video_decode_outputs":self.actual_decode_outputs,
             "stale_decode_observations":self.stale_packets,"waiting_for_keyframe":self.incomplete_or_waiting_frames,
-            "readiness_frozen":self.frozen.is_some(),"frozen_private_observations":self.frozen_observations,"decoder_reset_on_root_completion":false,
-            "connection_id":self.preparation.connection_id(),"operation_id":self.preparation.operation_id(),
+            "native_activation":self.activation,"readiness_frozen":self.frozen.is_some(),"frozen_private_observations":self.frozen_observations,"decoder_reset_on_root_completion":false,
+            "record_id":self.preparation.record_id(),"connection_id":self.preparation.connection_id(),"operation_id":self.preparation.operation_id(),
             "source_generation":self.preparation.source_generation(),"target_generation":self.preparation.target_generation(),
             "stream_revision":self.preparation.stream_revision(),"video_epoch":self.epoch,"decoder_process":self.joined,
             "last_video_decode":self.last_decode,"video_decode_receipts":self.video_receipts,"program_start_unix_us":start,"full_media_quality_verified":false})

@@ -206,3 +206,12 @@ export type {
     ReplacementVideo,
     ReplacementVideoStream,
 } from "./replacement_video.js";
+
+export type {
+    NativeEgressIdentity,
+    NativeDecodedObservation,
+    NativeSequenceCut,
+    NativeActivationBoundary,
+} from "./browser_native_activation.js";
+
+export { nativeMembership } from "./browser_native_activation.js";

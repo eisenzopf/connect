@@ -1,4 +1,11 @@
 import {
+    nativeEgressIdentity,
+    sameNativeIdentity,
+    type NativeEgressIdentity,
+    type NativeDecodedObservation,
+    type NativeActivationBoundary,
+} from "./browser_native_activation.js";
+import {
     BrowserNativeReadiness,
     type CurrentNativePreparation,
     type NativeDecodeIdentity,
@@ -87,9 +94,17 @@ export interface BrowserConnectionOptions {
 export interface BrowserMediaCallbacks {
     /** Borrowed synchronously; timestamps use the local performance.now() timeline.
      * The SDK closes each decoded frame after this callback. */
-    audio?: (binding: Readonly<MediaBinding>, frame: AudioData) => void;
+    audio?: (
+        binding: Readonly<MediaBinding>,
+        frame: AudioData,
+        native?: NativeDecodedObservation,
+    ) => void;
     /** Same local receive timeline and borrowed lifetime as decoded audio. */
-    video?: (binding: Readonly<MediaBinding>, frame: VideoFrame) => void;
+    video?: (
+        binding: Readonly<MediaBinding>,
+        frame: VideoFrame,
+        native?: NativeDecodedObservation,
+    ) => void;
     data?: (message: {
         conversationId: string;
         sessionId: string;
@@ -103,6 +118,8 @@ export interface BrowserMediaCallbacks {
     error?: (error: Error) => void;
 }
 interface Route {
+    nativeEgress?: NativeEgressIdentity;
+    decodedObservation?: NativeDecodedObservation;
     receiveEpoch?: VideoNotice;
     audioSource?: NativeDecodeIdentity;
     binding: Readonly<MediaBinding>;
@@ -167,6 +184,7 @@ interface ReplacementPreparation {
     committed: (receipt: BrowserReplacementReceipt) => void;
 }
 interface Plan {
+    nativeEgress: Map<number, NativeEgressIdentity>;
     connectionGeneration: number;
     feedback: Map<number, ReturnType<typeof captureAllocation>>;
     notices: Map<string, VideoNotice>;
@@ -724,6 +742,7 @@ export class BrowserMediaPeer {
             : {};
         let connectionGeneration = state.connectionGeneration;
         const feedback: Plan["feedback"] = new Map();
+        const nativeEgress: Plan["nativeEgress"] = new Map();
         const media: MediaBinding[] = [],
             data = new Map<string, BrowserDataProtocol>(),
             received = new Set<string>(),
@@ -806,6 +825,20 @@ export class BrowserMediaPeer {
                 !declared.some((c) => jsonObject(c) && c.name === codec.name)
             )
                 return fail("Receiver codec was never declared");
+            const nativeIdentity =
+                direction !== "sendonly"
+                    ? nativeEgressIdentity(value.native_egress)
+                    : undefined;
+            if (nativeIdentity) {
+                if (
+                    connectionGeneration !== 0 &&
+                    nativeIdentity.connection_generation !==
+                        connectionGeneration
+                )
+                    fail("Native original generation changed");
+                connectionGeneration = nativeIdentity.connection_generation;
+                nativeEgress.set(Number(value.stream_local_id), nativeIdentity);
+            }
             const prior = state.routes.get(value.strm_id);
             const sameBinding =
                 prior &&
@@ -815,12 +848,13 @@ export class BrowserMediaPeer {
                 prior.binding.payloadType === Number(params.payload_type) &&
                 prior.binding.direction === direction;
             const generation =
-                state.caps.video_feedback === VIDEO_FEEDBACK_PROFILE &&
+                nativeIdentity?.stream_generation ??
+                (state.caps.video_feedback === VIDEO_FEEDBACK_PROFILE &&
                 value.kind === "video"
                     ? sameBinding
                         ? prior.binding.generation
                         : (state.generations.get(value.strm_id) ?? 0) + 1
-                    : 1;
+                    : 1);
             // A replacement starts without an observed physical generation.
             // Bind it once from the signed, original-operation parameter offer,
             // require every Video port to agree, then seal against its receipt.
@@ -873,6 +907,7 @@ export class BrowserMediaPeer {
             connectionGeneration,
             feedback,
             notices: new Map(),
+            nativeEgress,
             media,
             data,
             revision: Number(setup.revision),
@@ -895,6 +930,13 @@ export class BrowserMediaPeer {
         for (const binding of plan.media) {
             let route = this.routes.get(binding.handle);
             if (route) {
+                if (
+                    !sameNativeIdentity(
+                        route.nativeEgress,
+                        plan.nativeEgress.get(binding.handle),
+                    )
+                )
+                    fail("Native original writer incarnation changed");
                 if (
                     canonicalJson(
                         (route.video?.allocation as unknown as Json) ?? null,
@@ -921,6 +963,7 @@ export class BrowserMediaPeer {
                     binding.kind === "audio" ? 48000 : 90000,
                 );
                 route = {
+                    nativeEgress: plan.nativeEgress.get(binding.handle),
                     binding: Object.freeze({ ...binding }),
                     clock,
                     captureClock: state.captureClock,
@@ -993,7 +1036,13 @@ export class BrowserMediaPeer {
                         decoded: (frame) => {
                             this.counters.decodedAudio++;
                             route!.observed.decoded++;
-                            this.callbacks.audio?.(route!.binding, frame);
+                            const observation = route!.decodedObservation;
+                            route!.decodedObservation = undefined;
+                            this.callbacks.audio?.(
+                                route!.binding,
+                                frame,
+                                observation,
+                            );
                         },
                         error: (e) => this.die(e),
                     });
@@ -1023,7 +1072,13 @@ export class BrowserMediaPeer {
                         decoded: (frame) => {
                             this.counters.decodedVideo++;
                             route!.observed.decoded++;
-                            this.callbacks.video?.(route!.binding, frame);
+                            const observation = route!.decodedObservation;
+                            route!.decodedObservation = undefined;
+                            this.callbacks.video?.(
+                                route!.binding,
+                                frame,
+                                observation,
+                            );
                         },
                         error: (e) => this.die(e),
                     });
@@ -1279,29 +1334,39 @@ export class BrowserMediaPeer {
                 ssrc: packet.ssrc,
             };
             route.audioSource = identity;
-            route.opus.decode(
-                packet.payload,
-                timing.timestampUs,
-                readiness?.observing
-                    ? (frame) => {
-                          if (
-                              this.stopped ||
-                              this.routes.get(route.binding.handle) !== route ||
-                              state?.routes.get(route.binding.streamId) !==
-                                  route ||
-                              route.audioSource?.ssrc !== packet.ssrc
-                          )
-                              return;
-                          readiness.audioDecoded({
-                              identity,
-                              sequence: packet.sequence,
-                              timestamp: packet.timestamp,
-                              arrived,
-                              samples: frame.numberOfFrames,
-                          });
-                      }
-                    : undefined,
-            );
+            route.opus.decode(packet.payload, timing.timestampUs, (frame) => {
+                route.decodedObservation = route.nativeEgress
+                    ? Object.freeze({
+                          profile: "connect/native-decoded-sequence/1",
+                          identity: route.nativeEgress,
+                          datagramSequences: Object.freeze([
+                              packet.datagramSequence,
+                          ]),
+                          ssrc: packet.ssrc,
+                          rtpTimestamp: packet.timestamp,
+                          ...(timing.sourceNtp
+                              ? {
+                                    sourceNtp: timing.sourceNtp,
+                                    sourceClock: timing.sourceClock,
+                                }
+                              : {}),
+                      })
+                    : undefined;
+                if (
+                    readiness?.observing &&
+                    !this.stopped &&
+                    this.routes.get(route.binding.handle) === route &&
+                    state?.routes.get(route.binding.streamId) === route &&
+                    route.audioSource?.ssrc === packet.ssrc
+                )
+                    readiness.audioDecoded({
+                        identity,
+                        sequence: packet.sequence,
+                        timestamp: packet.timestamp,
+                        arrived,
+                        samples: frame.numberOfFrames,
+                    });
+            });
         } else {
             let complete;
             try {
@@ -1323,6 +1388,8 @@ export class BrowserMediaPeer {
                 return;
             }
             if (complete) {
+                complete.sourceNtp = timing.sourceNtp;
+                complete.sourceClock = timing.sourceClock;
                 route.observed.complete++;
                 route.order!.push(complete, timing.timestampUs);
             }
@@ -1347,33 +1414,48 @@ export class BrowserMediaPeer {
                 ssrc: frame.ssrc,
             };
             if (
-                route.vp8!.decode(
-                    frame,
-                    timestampUs,
-                    readiness?.observing && notice
-                        ? (decoded) => {
-                              if (
-                                  this.stopped ||
-                                  this.routes.get(route.binding.handle) !==
-                                      route ||
-                                  state?.routes.get(route.binding.streamId) !==
-                                      route ||
-                                  !route.video?.currentReceiver(notice)
-                              )
-                                  return;
-                              readiness.videoDecoded({
-                                  identity,
-                                  epoch: canonicalJson(
-                                      notice as unknown as JsonObject,
-                                  ),
-                                  arrived: frame.arrived,
-                                  key: frame.key,
-                                  width: decoded.displayWidth,
-                                  height: decoded.displayHeight,
-                              });
-                          }
-                        : undefined,
-                )
+                route.vp8!.decode(frame, timestampUs, (decoded) => {
+                    route.decodedObservation = route.nativeEgress
+                        ? Object.freeze({
+                              profile: "connect/native-decoded-sequence/1",
+                              identity: route.nativeEgress,
+                              datagramSequences: frame.datagramSequences,
+                              ssrc: frame.ssrc,
+                              rtpTimestamp: frame.timestamp,
+                              ...(frame.sourceNtp
+                                  ? {
+                                        sourceNtp: frame.sourceNtp,
+                                        sourceClock: frame.sourceClock,
+                                    }
+                                  : {}),
+                              ...(notice
+                                  ? {
+                                        videoEpoch: canonicalJson(
+                                            notice as unknown as JsonObject,
+                                        ),
+                                    }
+                                  : {}),
+                          })
+                        : undefined;
+                    if (
+                        readiness?.observing &&
+                        notice &&
+                        !this.stopped &&
+                        this.routes.get(route.binding.handle) === route &&
+                        state?.routes.get(route.binding.streamId) === route &&
+                        route.video?.currentReceiver(notice)
+                    )
+                        readiness.videoDecoded({
+                            identity,
+                            epoch: canonicalJson(
+                                notice as unknown as JsonObject,
+                            ),
+                            arrived: frame.arrived,
+                            key: frame.key,
+                            width: decoded.displayWidth,
+                            height: decoded.displayHeight,
+                        });
+                })
             )
                 route.observed.submitted++;
             else route.observed.skipped++;
@@ -2292,6 +2374,9 @@ export class BrowserMediaPeer {
             throw new ConnectError("closed", "Media Connection retired");
         return state;
     }
+    nativeActivationBoundary(id: string): NativeActivationBoundary | undefined {
+        return this.connections.get(id)?.nativeReadiness?.activationBoundary;
+    }
     streams(id: string): Readonly<MediaBinding>[] {
         return [...this.state(id).routes.values()].map((r) => r.binding);
     }
@@ -2617,6 +2702,10 @@ export class BrowserMediaConnection {
     ) {}
     ownCleanup(work: Promise<unknown>): void {
         this.peer.ownCleanup(work);
+    }
+    /** Immutable historical native cut; undefined for ordinary or uncompleted peers. */
+    get nativeActivationBoundary(): NativeActivationBoundary | undefined {
+        return this.peer.nativeActivationBoundary(this.id);
     }
     get streams(): Readonly<MediaBinding>[] {
         return this.peer.streams(this.id);

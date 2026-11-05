@@ -171,11 +171,61 @@ impl Runtime {
             // remains muted; this does not assert decoded video IO readiness.
             streams: started.resource_streams.clone(),
         };
-        let capture = Arc::new(
-            attempt
-                .committed(movement, &ready)?
-                .with_audience_revisions(revisions)?,
-        );
+        let mut committed = attempt
+            .committed(movement, &ready)?
+            .with_audience_revisions(revisions)?;
+        // No new conversion failure may erase an actual moved effect. The
+        // exact original capture remains intact until this attachment succeeds.
+        let activation_result = (|| -> Result<()> {
+            let boundary = outcome
+                .media
+                .replacement_activation
+                .as_ref()
+                .ok_or_else(Error::forbidden)?;
+            if boundary.operation() != actual.operation_id
+                || boundary.source() != &actual.replaced
+                || boundary.target() != &actual.admitted
+                || boundary.generation() != actual.generation
+                || boundary.revision() != ready.stream_revision
+            {
+                return Err(Error::forbidden());
+            }
+            use connect_protocol::replacement_activation::{
+                NativeActivationAudience as WireScope, NativeSequenceCut,
+            };
+            use rvoip_core::staged_streams::ReplacementActivationScope as CoreScope;
+            let audience = match boundary.scope() {
+                CoreScope::PublicNative => WireScope::Public {
+                    streams: boundary
+                        .streams()
+                        .iter()
+                        .map(|cut| {
+                            let id = cut.identity();
+                            NativeSequenceCut {
+                                stream_id: id.logical().as_str().to_owned(),
+                                stream_local_id: id.handle(),
+                                stream_generation: id.generation(),
+                                physical_incarnation: format!("{:032x}", id.incarnation()),
+                                sequence_space: "native-outer-u32".into(),
+                                public_sequence_floor: cut.public_sequence_floor(),
+                                cursor_ordinal: cut.ordinal(),
+                                submission_observed: false,
+                            }
+                        })
+                        .collect(),
+                },
+                CoreScope::PrivateConsultation { original_operation } => {
+                    WireScope::PrivateConsultation {
+                        original_operation: original_operation.clone(),
+                    }
+                }
+                CoreScope::UnsupportedAdapter => WireScope::Unsupported {
+                    reason: "non-native-adapter".into(),
+                },
+            };
+            committed.capture_native_activation(audience)
+        })();
+        let capture = Arc::new(committed);
         *started.commit.lock().map_err(|_| Error::storage())? =
             Some(Capture::Known(capture.clone()));
         let recorded = super::projection::record(
@@ -193,6 +243,12 @@ impl Runtime {
         )
         .await;
         if let Err(error) = recorded {
+            self.stop_unactivated_replacement(&capture).await;
+            return Err(error);
+        }
+        if let Err(error) = activation_result {
+            tracing::debug!(target:"connect_service::canonical_replacement",stage="native-activation-capture-refused",code=%error.code,
+                "Actual moved capture retained; refusing activation and reconciling exact target");
             self.stop_unactivated_replacement(&capture).await;
             return Err(error);
         }

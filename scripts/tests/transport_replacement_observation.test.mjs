@@ -1,16 +1,28 @@
+import {nativeIdentity,bindNativeStreams,nativeBoundary} from '../../sdk/tests/native_activation_fixture.mjs';
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { physicalAvSegment } from "../lib/transport_replacement_observation.mjs";
+import { DecodedRoute } from "../lib/browser_matrix_observation.mjs";
 import { encodeRtcpSenderReport } from "../../sdk/typescript/dist/browser_rtcp.js";
 
 const expected = { programStartUnixUs: 1_800_000_000_000_000, connectionId: "candidate", targetGeneration: 2,
-    audioStreamId: "own-audio", sendVideoStreamId: "own-video", receiveVideoStreamId: "remote-video" };
+    operationId:"move",sourceConnectionId:"old",audioStreamId: "own-audio", sendVideoStreamId: "own-video", receiveVideoStreamId: "remote-video" };
 function fixture(received) {
     const binding = (strm_id, kind, direction, stream_local_id) => ({ strm_id, kind, direction, stream_local_id,
         codec: { name: kind === "audio" ? "opus" : "vp8", params: {
             sample_rate: kind === "audio" ? 48000 : 90000, channels: kind === "audio" ? 1 : 0,
             payload_type: kind === "audio" ? 111 : 96 } } });
+    const streams=bindNativeStreams([binding("remote-video","video","sendonly",9),binding("own-video","video","recvonly",8),binding("own-audio","audio","sendrecv",7)],2);
+    const floors={};for(const s of streams.filter(s=>s.native_egress)){
+      const records=received.filter(r=>new DataView(Uint8Array.from(r.datagram).buffer).getUint16(2)===s.stream_local_id);
+      // Model constructors assign each original outer reservation. Preserve
+      // those bytes, including a tagged epoch's signed first_sequence.
+      const sequence=r=>new DataView(Uint8Array.from(r.datagram).buffer).getUint32(4);
+      const firstPublic=records.find(r=>r.original_root_completed_observed);
+      floors[s.strm_id]=firstPublic?sequence(firstPublic):records.length?Math.max(...records.map(sequence))+1:0;
+    }
+    const boundary=nativeBoundary({recordId:'record',operationId:expected.operationId,sourceConnectionId:expected.sourceConnectionId,targetConnectionId:expected.connectionId},streams,2,3,floors);
     return { format: "connect/native-replacement-peer-observation/1", passed: true,
         original_client_joined: true, video_enabled: true, original_root_completed_observed: true,
         video_transfer_admitted: true, operation_completed_inferred: false, decoded_media_verified: false,
@@ -18,29 +30,28 @@ function fixture(received) {
         // Parser fixtures model the shape of a separately bound decoder receipt;
         // these synthetic rows are not actual codec or cell qualification.
         private_decoded_readiness: { profile: "connect/native-private-decoded-readiness/1",
-            connection_id: expected.connectionId, source_generation: 1, target_generation: 2, stream_revision: 2,
+            operation_id:expected.operationId,record_id:"record",native_activation:boundary,connection_id: expected.connectionId, source_generation: 1, target_generation: 2, stream_revision: 2,
             readiness_frozen: true, decoder_reset_on_root_completion: false,
             frozen_private_observations: { audio_decoded_samples: 2880, audio_ssrc: 12,
                 video_decoded_frames: 1, video_decoded_keyframes: 1, video_epoch: null },
             decoder_process: { joined: true, clean: true, forced: false, exit_code: 0 }, video_decode_receipts: [] },
         root_completed_observed_programme_us: received.find(row => row.original_root_completed_observed)?.elapsed_us ?? 0,
-        negotiated_streams: [binding("remote-video", "video", "sendonly", 9),
-            binding("own-video", "video", "recvonly", 8), binding("own-audio", "audio", "sendrecv", 7)], received };
+        negotiated_streams: streams, received };
 }
-function rtp({ handle = 7, pt = 111, ssrc = 12, timestamp = 960, sequence = 1,
+function rtp({ handle = 7, pt = 111, ssrc = 12, timestamp = 960, sequence = 1, outer = sequence,
     marker = true, payload = [1, 2] } = {}) {
     const b = new Uint8Array(20 + payload.length), v = new DataView(b.buffer);
-    b.set([1, 0]); v.setUint16(2, handle); b[8] = 0x80; b[9] = pt | (marker ? 128 : 0);
+    b.set([1, 0]); v.setUint16(2, handle); v.setUint32(4, outer); b[8] = 0x80; b[9] = pt | (marker ? 128 : 0);
     v.setUint16(10, sequence); v.setUint32(12, timestamp); v.setUint32(16, ssrc); b.set(payload, 20);
     return [...b];
 }
 const row = (elapsed_us, datagram, completed = true) => ({ elapsed_us, datagram,
     original_root_completed_observed: completed });
 const video = options => rtp({ handle: 9, pt: 96, payload: [0x10, 0, 1, 2], ...options });
-function clock() {
+function clock(outer = 2) {
     const body = encodeRtcpSenderReport({ ssrc: 12, ntp: 1234n, rtpTimestamp: 960,
         packets: 2, octets: 4, cname: "synthetic" });
-    const b = new Uint8Array(body.length + 8); b[0] = 1; new DataView(b.buffer).setUint16(2, 7); b.set(body, 8);
+    const b = new Uint8Array(body.length + 8), v = new DataView(b.buffer); b[0] = 1; v.setUint16(2, 7); v.setUint32(4, outer); b.set(body, 8);
     return [...b];
 }
 
@@ -69,13 +80,13 @@ test("private packets without actual original decoder evidence cannot initialize
     const capture = fixture([
         row(100, rtp(), false), row(200, clock(), false),
         row(300, video({ marker: false, payload: [0x10, 0, 1] }), false),
-        row(400, video({ sequence: 2, payload: [0, 2, 3] })),
-        row(500, rtp({ timestamp: 1920 })), row(600, clock()),
+        row(400, video({ sequence: 2, payload: [0, 2, 3] }), false),
+        row(500, rtp({ timestamp: 1920, sequence: 2, outer: 3 })), row(600, clock(4)),
         row(700, video({ sequence: 3, timestamp: 3000 })),
     ]), original = structuredClone(capture);
     const result = physicalAvSegment(capture, expected);
     assert.deepEqual(capture, original);
-    assert.deepEqual(result.quarantined_precompletion_rows, [0, 1, 2]);
+    assert.deepEqual(result.quarantined_precompletion_rows, [0, 1, 2, 3]);
     assert.equal(result.audio[0].rows.length, 1);
     assert.equal(result.audio[0].rows[0].elapsed_ms, .5);
     assert.equal(result.audio[0].rows[0].timestamp, 1920);
@@ -88,8 +99,8 @@ test("private packets without actual original decoder evidence cannot initialize
 });
 
 test("physical SSRC histories stay separate even when RTP timestamps repeat", () => {
-    const capture = fixture([row(2_000_000, rtp()), row(2_000_010, rtp({ ssrc: 13 })),
-        row(2_000_020, video()), row(2_000_030, video({ ssrc: 13 }))]);
+    const capture = fixture([row(2_000_000, rtp()), row(2_000_010, rtp({ ssrc: 13, outer: 2 })),
+        row(2_000_020, video()), row(2_000_030, video({ ssrc: 13, outer: 2 }))]);
     const result = physicalAvSegment(capture, expected);
     for (const medium of ["audio", "video"]) {
         assert.deepEqual(result[medium].map(v => v.ssrc), [12, 13]);
@@ -131,7 +142,7 @@ test("a failed or unjoined original, changed program and regressed boundary refu
         c => { c.received[1].elapsed_us = 62_000_001; },
         c => { c.received.forEach(r => { r.original_root_completed_observed = false; }); },
     ]) {
-        const capture = fixture([row(100, rtp()), row(200, rtp())]); change(capture);
+        const capture = fixture([row(100, rtp()), row(200, rtp({ sequence: 2 }))]); change(capture);
         assert.throws(() => physicalAvSegment(capture, expected));
     }
 });
@@ -191,7 +202,7 @@ function retained() {
 test("same original private decoder context is retained while every private output stays explicitly excluded",()=>{
     const capture=retained(), before=structuredClone(capture), result=physicalAvSegment(capture,expected);
     assert.deepEqual(capture,before);
-    assert.equal(result.format,"connect/physical-av-segment/2");
+    assert.equal(result.format,"connect/physical-av-segment/3");
     assert.equal(result.root_completed_observed_programme_us,1000);
     assert.deepEqual(result.private_preparation_packet_rows,[0,1]);
     assert.deepEqual(result.private_decoder_context_rows,[0,1]);
@@ -235,4 +246,53 @@ test("decoder start and actual audio output gate private context without moving 
         const capture=retained();mutate(capture);const result=physicalAvSegment(capture,expected);
         assert.ok(result.quarantined_precompletion_rows.includes(0));assert.equal(result.audio.length,0);
     }
+});
+
+
+test("public native packet membership survives a delayed durable root reply without moving original arrival time",()=>{
+ const capture=retained();const originalRow=structuredClone(capture.received[2]);
+ capture.received[2].original_root_completed_observed=false;
+ const last=structuredClone(capture.received[2]);last.elapsed_us=2000;last.original_root_completed_observed=true;
+ // A later RTP source frame, with its own original outer reservation.
+ const bytes=Uint8Array.from(last.datagram),v=new DataView(bytes.buffer);v.setUint32(4,3);v.setUint16(26,3);v.setUint32(28,6960);last.datagram=[...bytes];
+ capture.received.push(last);capture.root_completed_observed_programme_us=2000;
+ const segment=physicalAvSegment(capture,expected);const row=segment.video[0].rows.find(r=>r.timestamp===3960);
+ assert.equal(row.elapsed_ms,originalRow.elapsed_us/1000);assert.equal(row.decoder_context_only,false);
+ assert.equal(segment.root_completed_observed_programme_us,2000);assert.equal(segment.cell_qualified,false);
+ const wrong=structuredClone(capture);wrong.private_decoded_readiness.native_activation.audience.scope='private-consultation';
+ assert.throws(()=>physicalAvSegment(wrong,expected));
+});
+
+
+test("modeled signed epochs preserve their original outer reservations through capture construction",()=>{
+    const one=epoch(1,1,960), received=[tagged(200,one,1,960,true,false),tagged(1000,one,2,3960,false,true)];
+    const original=structuredClone(received),capture=fixture(received);
+    assert.deepEqual(received,original);
+    assert.deepEqual(capture.received,original);
+    assert.deepEqual(capture.received.map(r=>new DataView(Uint8Array.from(r.datagram).buffer).getUint32(4)),[1,2]);
+    assert.deepEqual(capture.received.map(r=>r.video_epoch.first_sequence),[1,1]);
+    assert.equal(capture.private_decoded_readiness.native_activation.audience.streams.find(s=>s.stream_id==='remote-video').public_sequence_floor,2);
+});
+
+const sourceGray=()=>{const gray=Array(64).fill(100);gray[0]=200;gray[1]=40;gray[8]=40;gray[9]=200;return gray;};
+test("RTC and default route observations preserve changing pixels across the original owner switch",()=>{
+    for(const explicitNull of [false,true]){
+        const route=new DecodedRoute(0,1);route.start(0);
+        route.videoFrame('original',0,1000,sourceGray(),new Uint8Array([1]),640,360);
+        const args=['target',33333,1033.333,sourceGray(),new Uint8Array([2]),640,360];
+        if(explicitNull)args.push(null);
+        route.videoFrame(...args);
+        assert.deepEqual(route.video.map(r=>r.changed),[false,true]);
+        assert.equal(route.ownerPixels.size,0);
+    }
+});
+test("native private pixel history stays with its original physical owner",()=>{
+    const route=new DecodedRoute(0,1);route.start(0);
+    const provenance=(handle,sequence)=>({profile:'connect/native-decoded-sequence/1',identity:nativeIdentity(handle,2),datagramSequences:[sequence]});
+    route.videoFrame('original',0,1000,sourceGray(),new Uint8Array([1]),640,360,provenance(9,0));
+    route.videoFrame('target',33333,1033.333,sourceGray(),new Uint8Array([2]),640,360,provenance(10,0));
+    route.videoFrame('target',66667,1066.667,sourceGray(),new Uint8Array([3]),640,360,provenance(10,1));
+    assert.deepEqual(route.video.map(r=>r.changed),[false,false,true]);
+    assert.equal(route.ownerPixels.size,2);
+    assert.equal(route.lastPixels,null);
 });
