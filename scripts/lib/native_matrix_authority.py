@@ -95,8 +95,12 @@ def run_native_authority(*, root, directory, instance, admin, binary, env, execu
                 raise ValueError("Original native authority issuance differs")
             for key in ("trust_certificate", "signing_private_key", "server_public_key"):
                 native[key] = str(installation / native[key])
-            application = tomllib.loads((installation / "application.toml").read_text())
-            publish(case / "sdk.toml", toml_bytes(dict(tenant_id="tnt_default", control=native, application=application)))
+            # Both owners must reach native authentication with this exact
+            # credential. An optional HTTP config rejects its expiry locally
+            # before the fresh native owner can observe the server's refusal.
+            # Keep the entire original issuance in installation custody; this
+            # native-only SDK projection is fixed before the first owner opens.
+            publish(case / "sdk.toml", toml_bytes(dict(tenant_id="tnt_default", control=native)))
             issued_before = installation_files(installation)
             publish(case / "input.json", (json.dumps(dict(format="connect/native-matrix-authority-input/1",
                 kind=kind, config=str(case / "sdk.toml"), executable=str(selected_executable), binary_sha256=binary_hash,

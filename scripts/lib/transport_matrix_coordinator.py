@@ -1,4 +1,5 @@
 """One local run owns both ARM hosts and all 32 original cell attempts."""
+import copy
 import datetime
 import html
 import json
@@ -51,6 +52,27 @@ def render(matrix, path):
 
 
 
+
+def finalize_snapshot(report, host):
+    """An exited worker cannot provide more evidence for unfinished cells.
+
+    Keep the original snapshot immutable, including its recorded attempt flags.
+    Completed cells and requirement verdicts retain their original evidence.
+    """
+    report = copy.deepcopy(report)
+    for cell in report.get("cells", []):
+        if cell["server"] != host or cell["status"] not in {"running", "not-run"}:
+            continue
+        reason = "host-worker-exited-without-terminal-cell-evidence"
+        cell["terminal_snapshot"] = dict(host_worker_exited=True, original_cell_status=cell["status"])
+        cell.update(status="blocked", reason=reason)
+        results = cell.setdefault("check_results", {})
+        for name in cell["required_checks"]:
+            if results.get(name, {}).get("status") not in {"passed", "failed", "blocked"}:
+                results[name] = blocked(reason, category="environment")
+    return report
+
+
 def refresh_reports(root, revision, workers, reports, read_report):
     """A terminal decision requires snapshots read after every original exit.
 
@@ -62,7 +84,8 @@ def refresh_reports(root, revision, workers, reports, read_report):
     exited = {host: process.poll() is not None for host, process in workers.items()}
     for host in workers:
         try:
-            reports[host] = read_report(host)
+            report = read_report(host)
+            reports[host] = finalize_snapshot(report, host) if exited[host] else report
         except (OSError, ValueError, subprocess.SubprocessError):
             if not exited[host]:
                 continue

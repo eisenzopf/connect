@@ -51,14 +51,16 @@ class RemoteNativeAuthorityFactory:
         if (value["executable"] != self.client_executable or value["binary_sha256"] != self.client_binary_sha256
                 or value["source_revision"] != self.parent.revision or value["network_profile"] != "remote"):
             raise ValueError("Authority probe changed its verified original ARM executable")
-        # Keep the issuer-generated SDK file intact. This second config is a
-        # named guest transport projection, with only native control custody.
+        # Keep the original native-only SDK projection intact. Guest staging
+        # may relocate its control assets, but cannot silently remove another
+        # transport that would change the two authority cases' configuration.
         original_config = Path(value["config"]).resolve()
         if original_config.parent != case:
             raise ValueError("Original issued authority configuration required")
         guest_config = case / "guest-sdk.toml"
         config = tomllib.loads(original_config.read_text())
-        config.pop("application", None)
+        if set(config) != {"tenant_id", "control"}:
+            raise ValueError("Original authority SDK configuration must be native-only")
         publish(guest_config, toml_bytes(config))
         remote.stage_native_config(guest_config)
         remote.stage_json(source, dict(value, config=str(guest_config)))

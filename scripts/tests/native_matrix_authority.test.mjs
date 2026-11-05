@@ -34,6 +34,12 @@ test('a fresh transport timeout is not native current-authority refusal',async()
     assert.equal(value.passed,false);assert.equal(value.fresh_original_refusal.kind,'deadline');assert.equal(f.stats().mutations,1);
     assert.equal(value.original_owners_joined,true);
 });
+test('an expired optional configuration is not a fresh native authentication refusal',async()=>{
+    const f=fixture({freshKind:'configuration'}),value=await nativeAuthorityCase({kind:'expiry',...f.args});
+    assert.equal(value.passed,false);assert.equal(value.fresh_original_refusal.kind,'configuration');
+    assert.equal(value.original_owners_joined,true);assert.equal(f.stats().mutations,1);
+    assert.equal(f.stats().opens,2);assert.equal(f.stats().closes,2);
+});
 test('a live request deadline is not a positive lifetime refusal',async()=>{
     const f=fixture({liveKind:'deadline'}),value=await nativeAuthorityCase({kind:'revocation',...f.args});
     assert.equal(value.passed,false);assert.equal(f.stats().opens,1);assert.equal(f.stats().closes,1);

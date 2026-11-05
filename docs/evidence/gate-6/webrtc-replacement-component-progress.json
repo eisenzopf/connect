@@ -75,7 +75,7 @@
       }
     }
   },
-  "full_matrix": "latest completed v189, 0/32 qualified; next full run pending",
+  "full_matrix": "v190 interrupted by ARM VM root ENOSPC: 24 configurations returned evidence, 8 lack terminal evidence; 146 checks passed, 51 failed, 235 blocked after confirmed-exit interpretation; 0/32 qualified. v191 is next.",
   "adapter": {
     "host": "owned Ubuntu24 ARM64 VM",
     "passed": 5,
@@ -88,5 +88,24 @@
     "scope": "logical port directions, screen boundaries and no receive-egress fanout; no real handoff qualification",
     "log_sha256": "bac4475052636bbe83d562b8e69b6f8568881be315bc728ad5a887c397c2a111"
   },
-  "full_harness_batch": "docs/evidence/gate-6/complete-harness-batch-v190.json"
+  "full_harness_batch": "docs/evidence/gate-6/complete-harness-batch-v190.json",
+  "v190_followup": {
+    "storage": {
+      "owner_approved_old_cache_cleanup": true,
+      "internal_GiB_recovered": 66.9,
+      "existing_ARM_VM_root_disk_GiB": 64,
+      "guest_free_GiB_reported": 44,
+      "preserved_server_binary_sha256": "a88f3c15ab47cefe22cb1a7b653d1f860088e4f356ac1c3511d634c4bb2fde63"
+    },
+    "harness_fixes": [
+      "Finalize stale snapshots only after confirmed worker exit, preserving finished results and original attempt flags",
+      "Construct native-only authority SDK configuration before the first owner; retain original installation bytes and require actual fresh native authentication refusal"
+    ],
+    "focused_verification": {
+      "python_tests_passed": 11,
+      "node_tests_passed": 8
+    },
+    "production_library_changed": false,
+    "full_matrix_rerun": "pending next complete all-32 attempt"
+  }
 }

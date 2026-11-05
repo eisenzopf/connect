@@ -50,7 +50,7 @@ class RemoteNativeAuthorityTests(unittest.TestCase):
         self.assertIs(FakeFixture.instances[-1].lease_parent,parent)
         self.assertEqual(FakeFixture.instances[-1].events,["candidate-staged-before-issuance"])
         config=case/"sdk.toml"
-        config.write_text('tenant_id="tnt_default"\n[control]\nendpoint="192.168.1.2:5555"\n[application]\ncredential="test-private-administration"\n')
+        config.write_text('tenant_id="tnt_default"\n[control]\nendpoint="192.168.1.2:5555"\n')
         value=dict(executable=parent.client_binary,binary_sha256=parent.client_binary_sha256,
             source_revision=parent.revision,network_profile="remote",config=str(config))
         source=case/"input.json";source.write_text(json.dumps(value))
@@ -83,6 +83,18 @@ class RemoteNativeAuthorityTests(unittest.TestCase):
             factory,parent,case,config,source,command=self.fixture(temporary)
             value=json.loads(source.read_text());value["binary_sha256"]="c"*64;source.write_text(json.dumps(value))
             with self.assertRaises(ValueError):factory(command,case/"owner",case/"process.log",cwd=parent.root,env={})
+            self.assertNotIn("original-guest-probe-started",FakeFixture.instances[-1].events)
+
+    def test_optional_application_cannot_be_silently_removed_for_the_guest(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            factory,parent,case,config,source,command=self.fixture(temporary)
+            with config.open("a") as stream:
+                stream.write('[application]\ncredential="synthetic-expired-http"\nexpires_at=1970-01-01T00:00:00Z\n')
+            original=config.read_bytes()
+            with self.assertRaisesRegex(ValueError,"must be native-only"):
+                factory(command,case/"owner",case/"process.log",cwd=parent.root,env={})
+            self.assertEqual(config.read_bytes(),original)
+            self.assertNotIn("native-config-staged",FakeFixture.instances[-1].events)
             self.assertNotIn("original-guest-probe-started",FakeFixture.instances[-1].events)
 
     def test_guest_process_success_does_not_hide_unjoined_actual_sdk_helper(self):
