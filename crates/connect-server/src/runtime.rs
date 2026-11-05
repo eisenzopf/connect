@@ -540,7 +540,9 @@ impl RunningServer {
             .drain_prepared_outbound_connections()
             .await;
         stage("core-lifecycle");
-        self.orchestrator.drain_connection_lifecycle_tasks().await;
+        if let Err(error) = self.orchestrator.drain_connection_lifecycle_tasks().await {
+            failures.push(format!("Core lifecycle retirement: {error}"));
+        }
         stage("websocket");
         if let Some(websocket) = self.websocket.take() {
             if let Err(error) = websocket.shutdown().await {

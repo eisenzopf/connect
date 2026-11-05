@@ -490,7 +490,7 @@ async fn initial_sip_roundtrip(delayed_answer: bool, reject_answer: bool) {
         );
         assert!(captured_answer.lock().unwrap().is_none());
         core.drain_prepared_outbound_connections().await;
-        core.drain_connection_lifecycle_tasks().await;
+        core.drain_connection_lifecycle_tasks().await.unwrap();
         assert_eq!(core.participant_capacity(&sid).unwrap(), (0, 0));
         assert!(core.session_of(&connection).is_none());
         assert_eq!(calls.lock().unwrap().len(), 1);
@@ -606,7 +606,7 @@ async fn initial_sip_roundtrip(delayed_answer: bool, reject_answer: bool) {
     assert_eq!(core.participant_capacity(&sid).unwrap(), (1, 0));
     core.end_session(sid, EndReason::Normal).await.unwrap();
     core.drain_prepared_outbound_connections().await;
-    core.drain_connection_lifecycle_tasks().await;
+    core.drain_connection_lifecycle_tasks().await.unwrap();
     adapter.shutdown().await.unwrap();
     coordinator.shutdown();
     task.abort();

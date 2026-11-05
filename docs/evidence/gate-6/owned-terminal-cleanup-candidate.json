@@ -1,0 +1,42 @@
+{
+  "format": "connect/owned-terminal-cleanup-candidate/1",
+  "status": "implemented-awaiting-combined-runtime-verification",
+  "qualified_cell": false,
+  "qualified_gate": false,
+  "scope": "Coordinated Core lifecycle/terminal custody plus exact original WebRTC binding cleanup. Default dependency preparation and own-workspace formatting check pass; no runtime pass is claimed for these new changes.",
+  "source_lock_sha256": "0c49cfee5df49310f61f0236199b99d9da7d0ec45e906f514f4591a88b808298",
+  "patched_source_files_verified": 522,
+  "patches": [
+    {
+      "path": "patches/rvoip/connect-owned-terminal-lifecycle-drain.patch",
+      "sha256": "00fb557b9391dcd064db441825f4fee2a05c1fc29a080673cfefe09d9d40da2b"
+    },
+    {
+      "path": "patches/rvoip/connect-canonical-webrtc-original-binding-cleanup.patch",
+      "sha256": "720ad7cb6aae93f403bc579a86786e9c79f359853546b85af8434e02f0d81fcd"
+    }
+  ],
+  "behavior": [
+    "Close only the captured original connection and adapter/binding identity, including when Core has already retired its mapping.",
+    "Retain original physical/backend/controller cleanup results; reserve Core terminal custody before exact adapter route removal.",
+    "Preserve the original adapter FIFO position or owned direct fallback; repeat observers await the same actual acknowledgment.",
+    "Core retains accepted terminal tasks independently of observer cancellation; graceful normalizers finish in-flight and queued events.",
+    "Keep the original three-second service deadline and report unfinished, poisoned, panicked or degraded-event outcomes explicitly."
+  ],
+  "planned_checks": {
+    "new_core": 15,
+    "existing_core_controls": 8,
+    "rtc_cleanup_controls": 14,
+    "unchanged_before_witness": "lifecycle_queued_terminal::queued_terminal_is_retired_before_lifecycle_drain_returns",
+    "before_control": "direct_terminal_fallback_cleans_routes_and_emits_once"
+  },
+  "before_identity": {
+    "source_lock_sha256": "bcc8465ecb2b022ba1d0481b1f6afad2092d1a4283793918c6d029d3a59b3250",
+    "preserved_immutable_bcc_capture_sha256": "350d90d55bb07a566d9c69f50f5b85fdbcfeabea8c2e1bcf19a62dafef2a647f"
+  },
+  "limits": [
+    "The retained v194 DEBUG run identifies cleanup-unconfirmed after actual decoded AV/movement in both algorithms; its exact initiating stage remains unproven.",
+    "The earlier EdDSA remote-track timeout remains intermittent and unresolved.",
+    "No historical v191 verdict is changed and no new matrix pass is inferred."
+  ]
+}

@@ -164,6 +164,17 @@ fn denied<T: std::fmt::Debug>(e: T) -> Error {
     tracing::debug!(?e, "RTC replacement boundary refused");
     Error::forbidden()
 }
+// One diagnostic per failed owned stage, with original correlation only.
+// No media, credentials, new attempt or cleanup deadline is introduced.
+fn cleanup_diagnostic(owned: &Owned, stage: &'static str, error: &impl std::fmt::Debug) {
+    tracing::debug!(target: "connect_service::rtc_replacement_cleanup",
+        stage,
+        connection = ?owned.root.as_ref().map(|root| &root.handle.intent().replacement),
+        operation_id = ?owned.root.as_ref().map(|root| &root.handle.intent().operation_id),
+        operation_record = ?owned.source.as_ref().map(|s| s.origin.operation_record_id()),
+        ?error,
+        "RTC replacement original retirement stage refused");
+}
 impl Runtime {
     pub(crate) async fn webrtc_replacement_worker(
         self: Arc<Self>,
@@ -242,7 +253,9 @@ impl Runtime {
                 match allocated.failed_start.lock() {
                     Ok(mut slot) => *slot = Some(uncertain.clone()),
                     Err(_) => {
-                        failure.get_or_insert_with(Error::storage);
+                        let error = Error::storage();
+                        cleanup_diagnostic(&owned, "uncertain-start-custody", &error);
+                        failure.get_or_insert(error);
                     }
                 }
             }
@@ -250,47 +263,71 @@ impl Runtime {
             if let Err(error) =
                 store_call(move || store.native_replacement_start_uncertain(&uncertain)).await
             {
+                cleanup_diagnostic(&owned, "uncertain-start-record", &error);
                 failure.get_or_insert(error);
             }
         }
         if let Some(driver) = &owned.driver {
             if let Err(error) = driver.shutdown().await {
+                cleanup_diagnostic(&owned, "original-driver", &error);
                 failure.get_or_insert(error);
             }
         }
         if let Some(allocated) = &owned.allocated {
             if let Some(binding) = &allocated.webrtc {
                 if let Err(error) = binding.shutdown().await {
+                    cleanup_diagnostic(&owned, "original-physical", &error);
                     failure.get_or_insert_with(|| denied(error));
+                }
+            }
+        }
+        if owned.allocated.is_some() {
+            // The successful original allocation and root were captured before
+            // Source was installed. Retire that exact route even if constructing
+            // Source failed. This also avoids two racing Core map lookups after
+            // physical closure. Adapter retirement still joins backend/controller
+            // resources and publishes the original Core terminal event.
+            let binding = owned.allocated.as_ref().and_then(|a| a.webrtc.as_ref());
+            match (self.webrtc.get(), owned.root.as_ref(), binding) {
+                (Some(host), Some(root), Some(binding)) => {
+                    if let Err(error) = host
+                        .adapter()
+                        .end_original_binding(
+                            root.handle.intent().replacement.clone(),
+                            binding,
+                            rvoip_core::adapter::EndReason::Normal,
+                        )
+                        .await
+                    {
+                        cleanup_diagnostic(&owned, "original-route", &error);
+                        failure.get_or_insert_with(|| denied(error));
+                    }
+                }
+                _ => {
+                    let error = Error::new(
+                        "cleanup-unconfirmed",
+                        "RTC replacement original binding is unavailable",
+                    );
+                    cleanup_diagnostic(&owned, "original-binding", &error);
+                    failure.get_or_insert(error);
                 }
             }
         }
         if let Some(source) = &owned.source {
             let id = source.policy.pending.binding().connection();
-            // Core owns the route relationship as well as adapter resources.
-            // Ask Core to retire the exact original target even if its physical
-            // driver has already closed and the adapter liveness test is false.
-            if self.core.connection_transport(id).is_ok() {
-                if let Err(error) = self
-                    .core
-                    .end_connection(id.clone(), rvoip_core::adapter::EndReason::Normal)
-                    .await
-                {
-                    failure.get_or_insert_with(|| denied(error));
-                }
-            }
             if self.native_connection_live(id) {
-                failure.get_or_insert_with(|| {
-                    Error::new(
-                        "cleanup-unconfirmed",
-                        "RTC replacement original route remains live",
-                    )
-                });
+                let error = Error::new(
+                    "cleanup-unconfirmed",
+                    "RTC replacement original route remains live",
+                );
+                cleanup_diagnostic(&owned, "route-still-live", &error);
+                failure.get_or_insert(error);
             } else if let Some(origin) = source.adopted.get() {
                 // The movement watcher also settles this same receipt. Both
                 // paths are idempotent observations of the original lifetime;
                 // neither recreates a mutation or borrows the old credential.
                 if let Err(error) = self.settle_adopted_rtc_retirement(origin.clone()).await {
+                    cleanup_diagnostic(&owned, "durable-retirement", &error);
                     failure.get_or_insert(error);
                 }
             }

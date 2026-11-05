@@ -314,7 +314,10 @@ struct Sink<F: Fixture> {
 }
 #[async_trait::async_trait]
 impl<F: Fixture> AdapterLifecycleSink for Sink<F> {
-    async fn deliver_terminal(&self, event: AdapterEvent) {
+    async fn deliver_terminal(
+        &self,
+        event: AdapterEvent,
+    ) -> std::result::Result<(), rvoip_core::adapter::TerminalDeliveryError> {
         if let AdapterEvent::Ended { connection_id, .. } = event {
             self.retired.store(
                 !self
@@ -326,6 +329,8 @@ impl<F: Fixture> AdapterLifecycleSink for Sink<F> {
             );
             self.count.fetch_add(1, Ordering::AcqRel);
         }
+
+        Ok(())
     }
 }
 pub(crate) async fn closed_terminal_queue_uses_owned_fallback_and_restart_keeps_original_effect<
@@ -438,9 +443,14 @@ struct BlockingSink {
 }
 #[async_trait::async_trait]
 impl AdapterLifecycleSink for BlockingSink {
-    async fn deliver_terminal(&self, _: AdapterEvent) {
+    async fn deliver_terminal(
+        &self,
+        _: AdapterEvent,
+    ) -> std::result::Result<(), rvoip_core::adapter::TerminalDeliveryError> {
         self.entered.notify_one();
         self.release.notified().await;
+
+        Ok(())
     }
 }
 pub(crate) async fn cancelling_drain_retains_the_original_join_for_cleanup_retry<F: Fixture>() {
@@ -485,7 +495,7 @@ pub(crate) async fn cancelling_drain_retains_the_original_join_for_cleanup_retry
 
 pub(crate) async fn guarded_core_registers_atomic_outbound_fixture_and_host_cancel_is_terminal<
     F: Fixture,
->() {
+>() -> rvoip_core::error::Result<()> {
     let adapter = F::open(Arc::new(F::Backend::default())).await.unwrap();
     let core = rvoip_core::Orchestrator::new(Default::default());
     let mut inbound = core
@@ -516,6 +526,7 @@ pub(crate) async fn guarded_core_registers_atomic_outbound_fixture_and_host_canc
     );
     adapter.drain().await.unwrap();
     core.drain_prepared_outbound_connections().await;
-    core.drain_connection_lifecycle_tasks().await;
+    core.drain_connection_lifecycle_tasks().await?;
     assert_eq!(core.connection_lifecycle_task_count(), 0);
+    Ok(())
 }

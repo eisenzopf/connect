@@ -344,7 +344,7 @@ impl Fixture {
     }
     async fn finish(&self) {
         self.core.drain_prepared_outbound_connections().await;
-        self.core.drain_connection_lifecycle_tasks().await;
+        self.core.drain_connection_lifecycle_tasks().await.unwrap();
         self.empty();
         assert!(self.adapter.live.lock().unwrap().is_empty());
     }

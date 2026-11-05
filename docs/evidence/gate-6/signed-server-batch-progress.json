@@ -44,7 +44,7 @@
     ],
     "private_receipt_sha256": "7abd6eae06919cfeee71d4e417efc68bac720f7e301e5799482fc1b00253d5be"
   },
-  "next": "Review exact remaining remote-track/shutdown failures; integrate separately proven RTC ingress and pending queue cleanup patches into one freshly prepared candidate, then complete signed behavior proof before all32 matrix.",
+  "next": "Finish coordinated Core-owned terminal acknowledgment and original-binding cleanup, test actual failure/cancel/error controls, then the prepared v196 signed candidate and all32 full matrix.",
   "private_preparation_candidate": {
     "status": "actual-es256-media-readiness-passed-shutdown-still-failed",
     "source_mechanism": "The preparation loop previously generated local neutral audio only until Core had existential duplex proof, then waited for the signed decoder report. The signed AV receiver needs three actual 960-sample packets before submitting that report; stopping the producer can cause a circular wait.",
@@ -100,6 +100,43 @@
         "case": "server-2",
         "sha256": "3a077d375012fe0b035ec647e52cfce5cfa209470887a3cc11d70f7b3ac7496d"
       }
+    ]
+  },
+  "retained_shutdown_diagnostic": {
+    "scope": "One additional diagnostic execution of all3selectedcases on the exact immutable historical v194 binary, with selected DEBUG enabled. No rebuild or new-candidate qualification.",
+    "actual_tests": 3,
+    "passed": 1,
+    "failed": 2,
+    "all_original_groups_joined_without_force": true,
+    "binary_sha256": "bf24e6c6a6bc9cd14d28ea694aae1d14f472c6a2cdb11dbd9989514951dbc384",
+    "own_source_reconstructed_commit": "607be4eb",
+    "own_source_files_verified": 1466,
+    "preserved_upstream_patched_files_verified": 512,
+    "source_lock_sha256": "45ea02b4d4079ee60317c007222581f1f664d866d87d45d1c5f1cd23e86078f7",
+    "historical_inputs_unchanged": true,
+    "receipt_sha256": "b7dd5db766e37333aa091ad2f1117c174da2b17cdeb8cdc387536254215144fe",
+    "observations": [
+      {
+        "algorithm": "EdDSA",
+        "actual_private_decoded_readiness_and_managed_movement_reached": true,
+        "final_failure": "Canonical runtime retirement at replacement_av.rs:533",
+        "native_custodian_code": "cleanup-unconfirmed",
+        "typed_boundary_refusal_logged": false,
+        "log_sha256": "a9b1ad06d4d3dbbe0042193ec1d694c950aac1e954e7bd8d0c2a027aa6b3c57a"
+      },
+      {
+        "algorithm": "ES256",
+        "actual_private_decoded_readiness_and_managed_movement_reached": true,
+        "final_failure": "Canonical runtime retirement at replacement_av.rs:533",
+        "native_custodian_code": "cleanup-unconfirmed",
+        "typed_boundary_refusal_logged": false,
+        "log_sha256": "14586f6204cdb1cbe242d0c08304433ddcd3bf9b0d7ef4f0710acfa173c26fb3"
+      }
+    ],
+    "limits": [
+      "The earlier EdDSA remote-track timeout remains failed; its intermittent absence in this diagnostic is not a code fix.",
+      "The exact v194 initiating cleanup stage is still unproven: old logs give cleanup-unconfirmed but omit per-stage error context.",
+      "No current-source, transport-cell, quality or full matrix pass is inferred."
     ]
   }
 }

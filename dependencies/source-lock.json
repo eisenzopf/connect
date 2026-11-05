@@ -1699,6 +1699,16 @@
       "path": "patches/rvoip/gate6-retired-unclaimed-queues.patch",
       "sha256": "d9eeaa2e7297b7adbba5fc24941826f43673a9b9789151c7f9905ad6ce8683b5",
       "source": "G6-058 actual unclaimed ingress/egress queues retain their own Port after successful shutdown and dead controller owners. Release unclaimed queues outside controller/port/cleanup/inflight guards; preserve claimed consumer ownership and quarantined physical resources. Same13 actual ARM checks pass against fresh distinct binary; before has exactly2final WeakPort leaks and11passing controls. No canonical runtime shutdown or RSS/matrix attribution."
+    },
+    {
+      "path": "patches/rvoip/connect-owned-terminal-lifecycle-drain.patch",
+      "sha256": "00fb557b9391dcd064db441825f4fee2a05c1fc29a080673cfefe09d9d40da2b",
+      "source": "G6-058 Core cooperative accepted-event lifecycle drain and bounded original-terminal reservation/activation/acknowledgment. Preserves FIFO, explicit cancellation/expiry custody and original service deadline. Private regression sources are unexecuted; actual evidence required."
+    },
+    {
+      "path": "patches/rvoip/connect-canonical-webrtc-original-binding-cleanup.patch",
+      "sha256": "720ad7cb6aae93f403bc579a86786e9c79f359853546b85af8434e02f0d81fcd",
+      "source": "G6-058 exact original WebRTC cleanup captures adapter and binding identity, rejoins original physical errors and Core-owned terminal acknowledgment, and avoids the service two-lookup retirement race. Terminal admission/receipt precede exact route removal and quota release; cancellation/replay never substitutes absence or creates an adapter task. Fourteen focused controls are drafted, not compiled or executed; v194 typed attribution remains unproven."
     }
   ]
 }

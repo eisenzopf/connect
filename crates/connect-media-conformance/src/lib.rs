@@ -242,7 +242,7 @@ pub async fn run<F: Fixture>() -> Report {
         );
         let passed = match tokio::time::timeout(std::time::Duration::from_secs(5), &mut check).await
         {
-            Ok(result) => result.is_ok(),
+            Ok(result) => matches!(result, Ok(Ok(()))),
             Err(_) => {
                 check.abort();
                 let _ = check.await;

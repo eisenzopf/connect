@@ -1,0 +1,2572 @@
+--- a/crates/extensions/rvoip-harness/src/in_process.rs
++++ b/crates/extensions/rvoip-harness/src/in_process.rs
+@@ -2797,7 +2797,10 @@
+         orchestrator
+             .register(adapter as Arc<dyn ConnectionAdapter>)
+             .expect("outbound-only AI adapter should coexist with gated ingress");
+-        orchestrator.drain_connection_lifecycle_tasks().await;
++        orchestrator
++            .drain_connection_lifecycle_tasks()
++            .await
++            .unwrap();
+     }
+ 
+     #[tokio::test]
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -18,7 +18,8 @@
+ use crate::adapter::{
+     AdapterEvent, AdapterLifecycleSink, ConnectionAdapter, ConnectionHandle, EndReason,
+     InboundConnectionContext, OrchestratorAdapterEvent, OriginateRequest, PlaybackHandle,
+-    PlaybackOutcome, RejectReason, TransferAttemptId, TransferTarget,
++    PlaybackOutcome, PreparedTerminalDelivery, RejectReason, TerminalDeliveryError,
++    TransferAttemptId, TransferTarget,
+ };
+ use crate::addressed_messages::{self, MessageAccess, MessageDeliveryStage, MessageReceipt};
+ use crate::bridge::{
+@@ -492,11 +493,63 @@
+     state_changed: Arc<Notify>,
+ }
+ 
++/// Adapter normalizers own accepted events until their handlers finish. Other
++/// lifecycle tasks retain their existing abort-and-join shutdown behavior.
++#[derive(Default)]
++struct ConnectionLifecycleTasks {
++    normalizers: tokio::task::JoinSet<()>,
++    side_effects: tokio::task::JoinSet<()>,
++}
++
++impl ConnectionLifecycleTasks {
++    fn len(&self) -> usize {
++        self.normalizers.len() + self.side_effects.len()
++    }
++
++    fn reap(&mut self, supervisor: &ConnectionLifecycleTaskSupervisor) {
++        while let Some(result) = self.normalizers.try_join_next() {
++            supervisor.observe_join(result, true);
++        }
++        while let Some(result) = self.side_effects.try_join_next() {
++            supervisor.observe_join(result, false);
++        }
++    }
++}
++
+ struct ConnectionLifecycleTaskSupervisor {
+     capacity: usize,
+     draining: AtomicBool,
+-    tasks: Mutex<tokio::task::JoinSet<()>>,
++    normalizer_stop: CancellationToken,
++    tasks: Mutex<ConnectionLifecycleTasks>,
++    // Original terminal custody has a separate bounded pool: abortable media
++    // observers cannot consume the capacity required to retire their routes.
++    terminals: Mutex<tokio::task::JoinSet<()>>,
+     drain_lock: TokioMutex<()>,
++    draining_task_count: AtomicUsize,
++    failed: AtomicBool,
++}
++
++/// A cancelled/expired drain observer must return the original unfinished
++/// tasks to their supervisor, not drop a JoinSet and silently abort accepted
++/// terminal work. Admission is already closed while this guard exists.
++struct ConnectionLifecycleDrain<'a> {
++    supervisor: &'a ConnectionLifecycleTaskSupervisor,
++    tasks: ConnectionLifecycleTasks,
++}
++
++impl Drop for ConnectionLifecycleDrain<'_> {
++    fn drop(&mut self) {
++        let mut retained = self.supervisor.lock_tasks();
++        debug_assert_eq!(
++            retained.len(),
++            0,
++            "draining rejects all new lifecycle tasks"
++        );
++        *retained = std::mem::take(&mut self.tasks);
++        self.supervisor
++            .draining_task_count
++            .store(0, Ordering::Release);
++    }
+ }
+ 
+ impl ConnectionLifecycleTaskSupervisor {
+@@ -504,21 +557,100 @@
+         Self {
+             capacity: capacity.max(1),
+             draining: AtomicBool::new(false),
+-            tasks: Mutex::new(tokio::task::JoinSet::new()),
++            normalizer_stop: CancellationToken::new(),
++            tasks: Mutex::new(ConnectionLifecycleTasks::default()),
++            terminals: Mutex::new(tokio::task::JoinSet::new()),
+             drain_lock: TokioMutex::new(()),
++            draining_task_count: AtomicUsize::new(0),
++            failed: AtomicBool::new(false),
++        }
++    }
++
++    fn lock_tasks(&self) -> std::sync::MutexGuard<'_, ConnectionLifecycleTasks> {
++        self.tasks.lock().unwrap_or_else(|poisoned| {
++            // A synchronous ownership commit can panic under this mutex.
++            // Recover the actual handles for cleanup, but never turn damaged
++            // ownership metadata into a successful drain receipt.
++            self.failed.store(true, Ordering::Release);
++            poisoned.into_inner()
++        })
++    }
++
++    fn lock_terminals(&self) -> std::sync::MutexGuard<'_, tokio::task::JoinSet<()>> {
++        self.terminals.lock().unwrap_or_else(|poisoned| {
++            self.failed.store(true, Ordering::Release);
++            poisoned.into_inner()
++        })
++    }
++
++    fn spawn_terminal(
++        &self,
++        task: impl Future<Output = ()> + Send + 'static,
++    ) -> std::result::Result<(), TerminalDeliveryError> {
++        let mut tasks = self.terminals.lock().map_err(|_| {
++            self.failed.store(true, Ordering::Release);
++            TerminalDeliveryError::Poisoned
++        })?;
++        while let Some(result) = tasks.try_join_next() {
++            self.observe_join(result, true);
++        }
++        if tasks.len() >= self.capacity {
++            return Err(TerminalDeliveryError::Capacity);
++        }
++        // This narrow original-terminal path intentionally remains available
++        // after ordinary intake closes. It owns the actual task before the
++        // reservation is returned; no observer future can detach its custody.
++        tasks.spawn(task);
++        Ok(())
++    }
++
++    async fn join_terminals(&self) {
++        loop {
++            let next = std::future::poll_fn(|cx| {
++                // Poll the real retained JoinSet in place. No mutex guard
++                // crosses Pending, and concurrent original-terminal admission
++                // cannot be overwritten by a drain observer's restoration.
++                self.lock_terminals().poll_join_next(cx)
++            })
++            .await;
++            match next {
++                Some(result) => self.observe_join(result, true),
++                None => break,
++            }
++        }
++    }
++
++    fn observe_join(
++        &self,
++        result: std::result::Result<(), tokio::task::JoinError>,
++        normalizer: bool,
++    ) {
++        if let Err(error) = result {
++            // Only the pre-existing side-effect group is abortable. A lost
++            // normalizer can have accepted terminal custody and is a failure,
++            // including when a caller reaped it before starting the drain.
++            if normalizer || !error.is_cancelled() {
++                self.failed.store(true, Ordering::Release);
++                warn!(%error, normalizer, "connection lifecycle task failed");
++            }
+         }
+     }
+ 
+     fn spawn(&self, task: impl Future<Output = ()> + Send + 'static) -> bool {
+-        let mut tasks = self
+-            .tasks
+-            .lock()
+-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+-        while let Some(result) = tasks.try_join_next() {
+-            if let Err(error) = result {
+-                warn!(%error, "connection lifecycle task failed");
+-            }
+-        }
++        self.spawn_kind(task, false)
++    }
++
++    fn spawn_normalizer(&self, task: impl Future<Output = ()> + Send + 'static) -> bool {
++        self.spawn_kind(task, true)
++    }
++
++    fn spawn_kind(
++        &self,
++        task: impl Future<Output = ()> + Send + 'static,
++        normalizer: bool,
++    ) -> bool {
++        let mut tasks = self.lock_tasks();
++        tasks.reap(self);
+         if self.draining.load(Ordering::Acquire) {
+             return false;
+         }
+@@ -530,7 +662,11 @@
+             .increment(1);
+             return false;
+         }
+-        tasks.spawn(task);
++        if normalizer {
++            tasks.normalizers.spawn(task);
++        } else {
++            tasks.side_effects.spawn(task);
++        }
+         true
+     }
+ 
+@@ -542,15 +678,8 @@
+         task: impl Future<Output = ()> + Send + 'static,
+         commit: impl FnOnce() -> Result<T>,
+     ) -> Result<T> {
+-        let mut tasks = self
+-            .tasks
+-            .lock()
+-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+-        while let Some(result) = tasks.try_join_next() {
+-            if let Err(error) = result {
+-                warn!(%error, "connection lifecycle task failed");
+-            }
+-        }
++        let mut tasks = self.lock_tasks();
++        tasks.reap(self);
+         if self.draining.load(Ordering::Acquire) {
+             return Err(RvoipError::InvalidState(
+                 "connection lifecycle supervisor is draining",
+@@ -567,41 +696,97 @@
+             ));
+         }
+         let value = commit()?;
+-        tasks.spawn(task);
++        tasks.side_effects.spawn(task);
+         Ok(value)
+     }
+ 
+     fn task_count(&self) -> usize {
+-        let mut tasks = self
+-            .tasks
+-            .lock()
+-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+-        while let Some(result) = tasks.try_join_next() {
+-            if let Err(error) = result {
+-                warn!(%error, "connection lifecycle task failed");
+-            }
+-        }
+-        tasks.len()
+-    }
+-
+-    async fn drain(&self) {
+-        let _drain = self.drain_lock.lock().await;
+-        let mut tasks = {
+-            let mut owned = self
+-                .tasks
+-                .lock()
+-                .unwrap_or_else(|poisoned| poisoned.into_inner());
++        let mut tasks = self.lock_tasks();
++        tasks.reap(self);
++        let ordinary = tasks.len() + self.draining_task_count.load(Ordering::Acquire);
++        drop(tasks);
++        let mut terminals = self.lock_terminals();
++        while let Some(result) = terminals.try_join_next() {
++            self.observe_join(result, true);
++        }
++        ordinary + terminals.len()
++    }
++
++    async fn drain(&self, deadline: Option<tokio::time::Instant>) -> Result<()> {
++        let expired = || RvoipError::InvalidState("connection lifecycle drain deadline exceeded");
++        let is_expired = || deadline.is_some_and(|until| tokio::time::Instant::now() >= until);
++        if is_expired() {
++            return Err(expired());
++        }
++        let _drain = match deadline {
++            Some(until) => tokio::time::timeout_at(until, self.drain_lock.lock())
++                .await
++                .map_err(|_| expired())?,
++            None => self.drain_lock.lock().await,
++        };
++        if is_expired() {
++            return Err(expired());
++        }
++        let tasks = {
++            let mut owned = self.lock_tasks();
+             self.draining.store(true, Ordering::Release);
++            self.draining_task_count
++                .store(owned.len(), Ordering::Release);
+             std::mem::take(&mut *owned)
+         };
+-        tasks.abort_all();
+-        while let Some(result) = tasks.join_next().await {
+-            if let Err(error) = result {
+-                if !error.is_cancelled() {
+-                    warn!(%error, "connection lifecycle task failed during drain");
++        let mut retained = ConnectionLifecycleDrain {
++            supervisor: self,
++            tasks,
++        };
++        // The original normalizer closes its receiver, finishes any in-flight
++        // handler, and drains every accepted event in FIFO order. No accepted
++        // event handler is cancelled to make shutdown appear successful.
++        self.normalizer_stop.cancel();
++        retained.tasks.side_effects.abort_all();
++        let join_originals = async {
++            while retained.tasks.len() != 0 {
++                tokio::select! {
++                    result = retained.tasks.normalizers.join_next(), if !retained.tasks.normalizers.is_empty() => {
++                        if let Some(result) = result { self.observe_join(result, true); }
++                    }
++                    result = retained.tasks.side_effects.join_next(), if !retained.tasks.side_effects.is_empty() => {
++                        if let Some(result) = result { self.observe_join(result, false); }
++                    }
+                 }
+-            }
+-        }
++                self.draining_task_count
++                    .store(retained.tasks.len(), Ordering::Release);
++            }
++        };
++        let completed = match deadline {
++            Some(until) => tokio::time::timeout_at(until, join_originals).await.is_ok(),
++            None => {
++                join_originals.await;
++                true
++            }
++        };
++        // Dropping this guard restores even a partially joined task set when
++        // this observer times out or is cancelled. A later drain only joins
++        // those same original tasks; it does not recreate or replay events.
++        drop(retained);
++        if !completed || is_expired() {
++            return Err(expired());
++        }
++        let terminal_joined = match deadline {
++            Some(until) => tokio::time::timeout_at(until, self.join_terminals())
++                .await
++                .is_ok(),
++            None => {
++                self.join_terminals().await;
++                true
++            }
++        };
++        if !terminal_joined || is_expired() {
++            return Err(expired());
++        }
++        if self.failed.load(Ordering::Acquire) {
++            return Err(RvoipError::InvalidState("connection lifecycle task failed"));
++        }
++        Ok(())
+     }
+ }
+ 
+@@ -910,28 +1095,84 @@
+ 
+ #[async_trait::async_trait]
+ impl AdapterLifecycleSink for OrchestratorLifecycleSink {
+-    async fn deliver_terminal(&self, event: AdapterEvent) {
+-        let Some(orchestrator) = self.orchestrator.upgrade() else {
+-            return;
++    fn reserve_terminal(
++        &self,
++        event: AdapterEvent,
++    ) -> std::result::Result<PreparedTerminalDelivery, TerminalDeliveryError> {
++        let connection = match &event {
++            AdapterEvent::Ended { connection_id, .. }
++            | AdapterEvent::Failed { connection_id, .. } => connection_id,
++            _ => return Err(TerminalDeliveryError::InvalidEvent),
+         };
+-        match &event {
+-            AdapterEvent::Ended { .. } | AdapterEvent::Failed { .. } => {}
+-            _ => {
+-                metrics::counter!(
+-                    "rvoip_core_adapter_lifecycle_fallback_rejected_total",
+-                    "transport" => format!("{:?}", self.transport)
+-                )
+-                .increment(1);
+-                warn!(
+-                    ?self.transport,
+-                    "adapter lifecycle fallback rejected a non-terminal event"
+-                );
+-                return;
+-            }
+-        }
+-
++        let orchestrator = self
++            .orchestrator
++            .upgrade()
++            .ok_or(TerminalDeliveryError::OwnerGone)?;
++        if orchestrator.connection_owned_by_other_transport(connection, self.transport) {
++            return Err(TerminalDeliveryError::InvalidEvent);
++        }
++        let (prepared, activated, completion) = PreparedTerminalDelivery::new(event.clone());
++        let owner = self.orchestrator.clone();
+         let transport = self.transport;
+-        orchestrator.handle_adapter_event(transport, event).await;
++        orchestrator
++            .connection_lifecycle_tasks
++            .spawn_terminal(async move {
++                if activated.await.is_err() {
++                    completion.finish(Err(TerminalDeliveryError::Cancelled));
++                    return;
++                }
++                let Some(orchestrator) = owner.upgrade() else {
++                    completion.finish(Err(TerminalDeliveryError::OwnerGone));
++                    return;
++                };
++                #[cfg(any(test, feature = "test-support"))]
++                let _test_join = orchestrator
++                    .wait_at_original_terminal_test_gate(transport, &event)
++                    .await;
++                orchestrator.handle_adapter_event(transport, event).await;
++                let outcome = if orchestrator.operational_event_stream_health()
++                    == OperationalEventStreamHealth::Degraded
++                {
++                    Err(TerminalDeliveryError::OutcomeLost)
++                } else {
++                    Ok(())
++                };
++                completion.finish(outcome);
++            })?;
++        // Only a Weak Core entered the task until activation, and the returned
++        // receipt/token contain no Core/route owners. In particular, no
++        // upgraded Arc is retained across an adapter's receipt.wait().
++        Ok(prepared)
++    }
++}
++
++#[cfg(any(test, feature = "test-support"))]
++pub struct OriginalTerminalTestGate {
++    transport: Transport,
++    connection_id: ConnectionId,
++    used: AtomicBool,
++    entered: CancellationToken,
++    release: CancellationToken,
++    joined: CancellationToken,
++}
++#[cfg(any(test, feature = "test-support"))]
++impl OriginalTerminalTestGate {
++    pub async fn wait_entered(&self) {
++        self.entered.cancelled().await;
++    }
++    pub fn release(&self) {
++        self.release.cancel();
++    }
++    pub async fn wait_joined(&self) {
++        self.joined.cancelled().await;
++    }
++}
++#[cfg(any(test, feature = "test-support"))]
++struct OriginalTerminalTestJoin(Arc<OriginalTerminalTestGate>);
++#[cfg(any(test, feature = "test-support"))]
++impl Drop for OriginalTerminalTestJoin {
++    fn drop(&mut self) {
++        self.0.joined.cancel();
+     }
+ }
+ 
+@@ -1466,6 +1707,8 @@
+     /// Owns adapter normalizers and asynchronous connection side effects so
+     /// shutdown can abort and join them deterministically.
+     connection_lifecycle_tasks: ConnectionLifecycleTaskSupervisor,
++    #[cfg(any(test, feature = "test-support"))]
++    original_terminal_test_gate: OnceLock<Arc<OriginalTerminalTestGate>>,
+     dtmf_slots: Semaphore,
+     /// Safe self-reference used by opaque tickets without requiring every
+     /// existing command method to change its `&self` receiver to `&Arc<Self>`.
+@@ -1918,6 +2161,8 @@
+             connection_lifecycle_tasks: ConnectionLifecycleTaskSupervisor::new(
+                 setup_capacity.saturating_mul(4).max(64),
+             ),
++            #[cfg(any(test, feature = "test-support"))]
++            original_terminal_test_gate: OnceLock::new(),
+             self_weak: OnceLock::new(),
+             adapters: Arc::new(DashMap::new()),
+             adapter_registrations: Mutex::new(HashSet::new()),
+@@ -2000,6 +2245,8 @@
+             connection_lifecycle_tasks: ConnectionLifecycleTaskSupervisor::new(
+                 setup_capacity.saturating_mul(4).max(64),
+             ),
++            #[cfg(any(test, feature = "test-support"))]
++            original_terminal_test_gate: OnceLock::new(),
+             self_weak: OnceLock::new(),
+             adapters: Arc::new(DashMap::new()),
+             adapter_registrations: Mutex::new(HashSet::new()),
+@@ -2090,6 +2337,52 @@
+         gate.pause().await
+     }
+ 
++    #[cfg(any(test, feature = "test-support"))]
++    pub fn install_original_terminal_test_gate(
++        &self,
++        transport: Transport,
++        connection_id: ConnectionId,
++    ) -> Result<Arc<OriginalTerminalTestGate>> {
++        let gate = Arc::new(OriginalTerminalTestGate {
++            transport,
++            connection_id,
++            used: AtomicBool::new(false),
++            entered: CancellationToken::new(),
++            release: CancellationToken::new(),
++            joined: CancellationToken::new(),
++        });
++        self.original_terminal_test_gate
++            .set(gate.clone())
++            .map_err(|_| {
++                RvoipError::InvalidState("original terminal test gate already installed")
++            })?;
++        Ok(gate)
++    }
++
++    #[cfg(any(test, feature = "test-support"))]
++    async fn wait_at_original_terminal_test_gate(
++        &self,
++        transport: Transport,
++        event: &AdapterEvent,
++    ) -> Option<OriginalTerminalTestJoin> {
++        let connection_id = match event {
++            AdapterEvent::Ended { connection_id, .. }
++            | AdapterEvent::Failed { connection_id, .. } => connection_id,
++            _ => return None,
++        };
++        let gate = self.original_terminal_test_gate.get()?;
++        if gate.transport != transport
++            || &gate.connection_id != connection_id
++            || gate.used.swap(true, Ordering::AcqRel)
++        {
++            return None;
++        }
++        let joined = OriginalTerminalTestJoin(gate.clone());
++        gate.entered.cancel();
++        gate.release.cancelled().await;
++        Some(joined)
++    }
++
+     /// Register a transport adapter. Spawns a background task that pulls
+     /// `AdapterEvent`s from the adapter's subscribe channel and normalizes
+     /// them into rvoip-core [`Event`]s on the orchestrator's broadcast bus.
+@@ -2146,17 +2439,52 @@
+         // supervisor. A Weak owner avoids a task/Orchestrator reference cycle
+         // when callers drop an Orchestrator without an explicit drain.
+         let owner = Arc::downgrade(self);
+-        let spawned = self.connection_lifecycle_tasks.spawn(async move {
+-            while let Some(event) = events.recv().await {
+-                let Some(orchestrator) = owner.upgrade() else {
+-                    break;
+-                };
+-                orchestrator
+-                    .handle_orchestrator_adapter_event(transport, event)
+-                    .await;
+-            }
+-            debug!(?transport, "adapter event stream ended");
+-        });
++        let stop = self.connection_lifecycle_tasks.normalizer_stop.clone();
++        let spawned = self
++            .connection_lifecycle_tasks
++            .spawn_normalizer(async move {
++                let mut closed = false;
++                loop {
++                    let event = if closed {
++                        events.recv().await
++                    } else {
++                        tokio::select! {
++                            biased;
++                            _ = stop.cancelled() => {
++                                events.close();
++                                closed = true;
++                                events.recv().await
++                            }
++                            event = events.recv() => event,
++                        }
++                    };
++                    let Some(event) = event else {
++                        break;
++                    };
++                    let Some(orchestrator) = owner.upgrade() else {
++                        break;
++                    };
++                    let handler = orchestrator.handle_orchestrator_adapter_event(transport, event);
++                    tokio::pin!(handler);
++                    if closed {
++                        handler.await;
++                    } else {
++                        tokio::select! {
++                            biased;
++                            _ = stop.cancelled() => {
++                                // Close intake even while the original handler is
++                                // blocked. Keep that exact future alive; afterwards
++                                // recv drains all accepted items before returning None.
++                                events.close();
++                                closed = true;
++                                handler.await;
++                            }
++                            () = &mut handler => {}
++                        }
++                    }
++                }
++                debug!(?transport, "adapter event stream ended");
++            });
+         if !spawned {
+             self.adapters.remove(&transport);
+             self.adapter_registrations
+@@ -2251,15 +2579,34 @@
+             .store(true, Ordering::Release);
+     }
+ 
+-    /// Stop adapter event normalization and asynchronous connection side
+-    /// effects, then join every retained task.
++    /// Close adapter event intake, finish every accepted event in FIFO order,
++    /// and abort/join the existing connection-side-effect tasks. This full-join
++    /// contract waits for the actual original handlers, including downstream
++    /// publication backpressure. Cancellation retains unfinished task custody.
++    /// Use [`Self::drain_connection_lifecycle_tasks_until`] when shutdown has an
++    /// absolute deadline; an incomplete drain must not be reported as success.
+     ///
+-    /// This is a terminal shutdown operation: adapter registration and new
+-    /// connection-side background work are rejected after it begins. Drain
+-    /// prepared outbound connections first so their cleanup events can still
+-    /// be normalized before calling this method.
+-    pub async fn drain_connection_lifecycle_tasks(&self) {
+-        self.connection_lifecycle_tasks.drain().await;
++    /// This is terminal: registration and new background work are refused
++    /// once drain starts. Drain prepared outbound connections first. Adapter
++    /// terminal events submitted after receiver closure still use the installed
++    /// direct lifecycle sink and remain owned by their adapter caller.
++    pub async fn drain_connection_lifecycle_tasks(&self) -> Result<()> {
++        self.connection_lifecycle_tasks.drain(None).await?;
++        self.ensure_operational_event_stream_healthy()
++    }
++
++    /// The bounded full-join contract, using the caller's original absolute
++    /// deadline across both drain-lock acquisition and every original task.
++    /// On expiry/cancellation, unfinished normalizers stay in the supervisor;
++    /// they are never aborted, recreated, or replayed by a later observer.
++    pub async fn drain_connection_lifecycle_tasks_until(
++        &self,
++        deadline: tokio::time::Instant,
++    ) -> Result<()> {
++        self.connection_lifecycle_tasks
++            .drain(Some(deadline))
++            .await?;
++        self.ensure_operational_event_stream_healthy()
+     }
+ 
+     /// Number of retained adapter-normalizer and connection-side-effect
+@@ -7776,6 +8123,14 @@
+         event: OrchestratorAdapterEvent,
+     ) {
+         match event {
++            OrchestratorAdapterEvent::Terminal(prepared) => {
++                let receipt = prepared.receipt();
++                if prepared.activate().is_err() || receipt.wait().await.is_err() {
++                    self.connection_lifecycle_tasks
++                        .failed
++                        .store(true, Ordering::Release);
++                }
++            }
+             OrchestratorAdapterEvent::Public(event) => {
+                 self.handle_adapter_event(transport, event).await;
+             }
+@@ -9965,7 +10320,7 @@
+                 }
+             }
+             MessageOrigin::Ai(id) if id != &message.from_participant => {
+-                return Err(addressed_messages::denied())
++                return Err(addressed_messages::denied());
+             }
+             _ => {}
+         }
+@@ -13855,3 +14210,7 @@
+         assert!(!orchestrator.conversations.contains_key(&foreign));
+     }
+ }
++
++#[cfg(test)]
++#[path = "orchestrator/lifecycle_drain_tests.rs"]
++mod lifecycle_drain_tests;
+--- a/crates/foundation/rvoip-core/tests/bridge_pump.rs
++++ b/crates/foundation/rvoip-core/tests/bridge_pump.rs
+@@ -1230,7 +1230,7 @@
+     orch.unbridge_connections(receipt.bridge_id)
+         .await
+         .expect("remove replacement bridge");
+-    orch.drain_connection_lifecycle_tasks().await;
++    orch.drain_connection_lifecycle_tasks().await.unwrap();
+ }
+ 
+ #[tokio::test(flavor = "current_thread")]
+@@ -1320,7 +1320,7 @@
+     orch.unbridge_connections(replacement.bridge_id)
+         .await
+         .expect("remove replacement bridge");
+-    orch.drain_connection_lifecycle_tasks().await;
++    orch.drain_connection_lifecycle_tasks().await.unwrap();
+ }
+ 
+ #[tokio::test]
+@@ -1587,7 +1587,8 @@
+             fixture
+                 .orchestrator
+                 .drain_connection_lifecycle_tasks()
+-                .await;
++                .await
++                .unwrap();
+             assert_eq!(fixture.orchestrator.connection_lifecycle_task_count(), 0);
+             cases += 1;
+         }
+@@ -1947,7 +1948,10 @@
+     }
+     sampling.store(false, Ordering::Release);
+     sampler.await.expect("resource sampler task");
+-    orchestrator.drain_connection_lifecycle_tasks().await;
++    orchestrator
++        .drain_connection_lifecycle_tasks()
++        .await
++        .unwrap();
+     assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
+     assert_eq!(active_bridge_count(&orchestrator), 0);
+     eprintln!(
+@@ -3022,7 +3026,8 @@
+         orch.drain_connection_lifecycle_tasks(),
+     )
+     .await
+-    .expect("lifecycle supervisor drain");
++    .expect("lifecycle supervisor drain")
++    .expect("actual lifecycle retirement succeeded");
+     assert_eq!(orch.connection_lifecycle_task_count(), 0);
+     assert!(matches!(
+         orch.bridge_connections(conn_a, conn_b).await,
+@@ -3051,7 +3056,7 @@
+         .await
+         .expect("initial bridge");
+ 
+-    orch.drain_connection_lifecycle_tasks().await;
++    orch.drain_connection_lifecycle_tasks().await.unwrap();
+     assert!(matches!(
+         orch.replace_bridge_destination(
+             bridge.clone(),
+@@ -3644,7 +3649,7 @@
+     orch.unbridge_connections(receipt.bridge_id)
+         .await
+         .expect("cleanup");
+-    orch.drain_connection_lifecycle_tasks().await;
++    orch.drain_connection_lifecycle_tasks().await.unwrap();
+ }
+ 
+ #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+@@ -3711,7 +3716,7 @@
+         .await
+         .expect("stale rejection released the target");
+     orch.unbridge_connections(retry).await.expect("cleanup");
+-    orch.drain_connection_lifecycle_tasks().await;
++    orch.drain_connection_lifecycle_tasks().await.unwrap();
+ }
+ 
+ #[tokio::test]
+@@ -3767,7 +3772,7 @@
+         orch.unbridge_connections(winner.bridge_id)
+             .await
+             .expect("cleanup");
+-        orch.drain_connection_lifecycle_tasks().await;
++        orch.drain_connection_lifecycle_tasks().await.unwrap();
+     }
+ }
+ 
+@@ -3878,7 +3883,7 @@
+         .expect("rejected preparations reserved nothing");
+     orch.unbridge_connections(probe).await.expect("cleanup");
+ 
+-    orch.drain_connection_lifecycle_tasks().await;
++    orch.drain_connection_lifecycle_tasks().await.unwrap();
+     assert!(matches!(
+         orch.prepare_peer_handoff(
+             original.clone(),
+@@ -4041,7 +4046,7 @@
+     orch.unbridge_connections(replacement.bridge_id)
+         .await
+         .expect("cleanup");
+-    orch.drain_connection_lifecycle_tasks().await;
++    orch.drain_connection_lifecycle_tasks().await.unwrap();
+ }
+ 
+ /// Register two streams on one adapter and bridge them both ways.
+--- a/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
++++ b/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
+@@ -437,7 +437,8 @@
+         orchestrator.drain_connection_lifecycle_tasks(),
+     )
+     .await
+-    .expect("blocked DTMF forward and adapter normalizers were joined");
++    .expect("blocked DTMF forward and adapter normalizers were joined")
++    .expect("actual lifecycle retirement succeeded");
+     assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
+ }
+ 
+--- a/crates/foundation/rvoip-core/tests/operational_media_activity.rs
++++ b/crates/foundation/rvoip-core/tests/operational_media_activity.rs
+@@ -371,7 +371,10 @@
+ 
+     adapter.end(connection_id).await;
+     wait_until(|| orchestrator.connection_lifecycle_task_count() == 1).await;
+-    orchestrator.drain_connection_lifecycle_tasks().await;
++    orchestrator
++        .drain_connection_lifecycle_tasks()
++        .await
++        .unwrap();
+     assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
+ }
+ 
+@@ -412,7 +415,10 @@
+         "retired lifecycle cannot publish retained graph activity"
+     );
+     wait_until(|| orchestrator.connection_lifecycle_task_count() == 1).await;
+-    orchestrator.drain_connection_lifecycle_tasks().await;
++    orchestrator
++        .drain_connection_lifecycle_tasks()
++        .await
++        .unwrap();
+     assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
+ }
+ 
+@@ -498,7 +504,10 @@
+ 
+     adapter.end(connection_id).await;
+     let _ = operational.recv().await;
+-    orchestrator.drain_connection_lifecycle_tasks().await;
++    orchestrator
++        .drain_connection_lifecycle_tasks()
++        .await
++        .unwrap();
+ }
+ 
+ /// A degrading call is worth acting on while it is still up, so quality has
+--- a/crates/foundation/rvoip-core/tests/orchestrator_dispatch.rs
++++ b/crates/foundation/rvoip-core/tests/orchestrator_dispatch.rs
+@@ -1284,7 +1284,8 @@
+         orchestrator.drain_connection_lifecycle_tasks(),
+     )
+     .await
+-    .expect("adapter normalizer drain completed");
++    .expect("adapter normalizer drain completed")
++    .expect("actual lifecycle retirement succeeded");
+     assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
+     assert!(sender
+         .send(AdapterEvent::Dtmf {
+@@ -4247,7 +4248,8 @@
+         orchestrator.drain_connection_lifecycle_tasks(),
+     )
+     .await
+-    .expect("an idle health subscription cannot delay lifecycle drain");
++    .expect("an idle health subscription cannot delay lifecycle drain")
++    .expect("actual lifecycle retirement succeeded");
+     assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
+ 
+     drop(operational);
+@@ -4648,12 +4650,16 @@
+     );
+ 
+     adapter.mark_ended(&existing_id);
+-    adapter
+-        .deliver_terminal(AdapterEvent::Ended {
+-            connection_id: existing_id.clone(),
+-            reason: EndReason::Normal,
+-        })
+-        .await;
++    assert!(
++        !adapter
++            .lifecycle
++            .deliver_terminal(AdapterEvent::Ended {
++                connection_id: existing_id.clone(),
++                reason: EndReason::Normal,
++            })
++            .await,
++        "receiver loss must remain a failed terminal outcome even after logical cleanup"
++    );
+     assert!(matches!(
+         orchestrator.connection_transport(&existing_id),
+         Err(RvoipError::ConnectionNotFound(_))
+@@ -4662,6 +4668,11 @@
+         orchestrator.operational_event_stream_health(),
+         OperationalEventStreamHealth::Degraded
+     );
++    assert!(orchestrator
++        .drain_connection_lifecycle_tasks()
++        .await
++        .is_err());
++    assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
+ }
+ 
+ #[tokio::test]
+@@ -4825,3 +4836,8 @@
+     ));
+     assert!(!format!("{event:?}").contains("inbound accept failed"));
+ }
++
++#[path = "orchestrator_dispatch/lifecycle_drain.rs"]
++mod lifecycle_drain;
++#[path = "orchestrator_dispatch/lifecycle_queued_terminal.rs"]
++mod lifecycle_queued_terminal;
+--- a/crates/rvoip/src/app.rs
++++ b/crates/rvoip/src/app.rs
+@@ -1598,10 +1598,10 @@
+     pub async fn drain(&self, budget: Duration) -> DrainOutcome {
+         let orchestrator = &self.state.orchestrator;
+         orchestrator.drain_prepared_outbound_connections().await;
+-        let completed =
+-            tokio::time::timeout(budget, orchestrator.drain_connection_lifecycle_tasks())
+-                .await
+-                .is_ok();
++        let completed = orchestrator
++            .drain_connection_lifecycle_tasks_until(tokio::time::Instant::now() + budget)
++            .await
++            .is_ok();
+         DrainOutcome {
+             completed,
+             remaining_tasks: orchestrator.connection_lifecycle_task_count(),
+--- a/crates/sip/rvoip-sip/tests/dtmf_info_route.rs
++++ b/crates/sip/rvoip-sip/tests/dtmf_info_route.rs
+@@ -100,7 +100,9 @@
+                     response.headers.push(TypedHeader::ContentType(
+                         rvoip_sip_core::types::ContentType::sdp(),
+                     ));
+-                    response.body=Bytes::from(format!("v=0\r\no=info 1 1 IN IP4 127.0.0.1\r\ns=info\r\nc=IN IP4 127.0.0.1\r\nt=0 0\r\nm=audio {media_port} RTP/AVP 0 101\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:101 telephone-event/8000\r\na=fmtp:101 0-15\r\na=sendrecv\r\n"));
++                    response.body = Bytes::from(format!(
++                        "v=0\r\no=info 1 1 IN IP4 127.0.0.1\r\ns=info\r\nc=IN IP4 127.0.0.1\r\nt=0 0\r\nm=audio {media_port} RTP/AVP 0 101\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:101 telephone-event/8000\r\na=fmtp:101 0-15\r\na=sendrecv\r\n"
++                    ));
+                     response
+                         .headers
+                         .retain(|h| !matches!(h, TypedHeader::ContentLength(_)));
+@@ -312,7 +314,7 @@
+                 .end_connection(id.clone(), EndReason::Normal)
+                 .await;
+         }
+-        self.core.drain_connection_lifecycle_tasks().await;
++        self.core.drain_connection_lifecycle_tasks().await.unwrap();
+         self.adapter.drain().await.unwrap();
+         self.coordinator
+             .shutdown_gracefully(Some(Duration::from_secs(1)))
+@@ -724,7 +726,10 @@
+         vec![0, 0, 1]
+     );
+     let interval = times[2].1.duration_since(times[1].1);
+-    assert!(interval>=Duration::from_millis(228),"local successful UDP submissions collapsed160ms tone +70ms gap (2ms clock tolerance): {interval:?}");
++    assert!(
++        interval >= Duration::from_millis(228),
++        "local successful UDP submissions collapsed160ms tone +70ms gap (2ms clock tolerance): {interval:?}"
++    );
+     r.stop().await;
+ }
+ 
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -377,7 +377,8 @@
+             .core
+             .orch
+             .drain_connection_lifecycle_tasks()
+-            .await;
++            .await
++            .unwrap();
+     }
+ }
+ fn binding(leg: &Leg, medium: Medium) -> ReadyMediaBinding {
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+@@ -579,7 +579,11 @@
+                     .all(|adapter| adapter.route_count() == 0)
+         })
+         .await;
+-        self.core.orch.drain_connection_lifecycle_tasks().await;
++        self.core
++            .orch
++            .drain_connection_lifecycle_tasks()
++            .await
++            .unwrap();
+     }
+ }
+ #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+@@ -706,7 +710,11 @@
+                     .all(|adapter| adapter.route_count() == 0)
+         })
+         .await;
+-        s.core.orch.drain_connection_lifecycle_tasks().await;
++        s.core
++            .orch
++            .drain_connection_lifecycle_tasks()
++            .await
++            .unwrap();
+         assert_eq!(
+             s.core.orch.participant_capacity(&s.core.session).unwrap(),
+             (0, 0)
+@@ -724,7 +732,11 @@
+         for live in &s.live[1..] {
+             live.wire.server.shutdown().await.unwrap();
+         }
+-        s.core.orch.drain_connection_lifecycle_tasks().await;
++        s.core
++            .orch
++            .drain_connection_lifecycle_tasks()
++            .await
++            .unwrap();
+     }
+ }
+ 
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
+@@ -118,7 +118,9 @@
+                     response.headers.push(TypedHeader::ContentType(
+                         rvoip_sip_core::types::ContentType::sdp(),
+                     ));
+-                    response.body=Bytes::from(format!("v=0\r\no=info 1 1 IN IP4 127.0.0.1\r\ns=info\r\nc=IN IP4 127.0.0.1\r\nt=0 0\r\nm=audio {media_port} RTP/AVP 0 101\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:101 telephone-event/8000\r\na=fmtp:101 0-15\r\na=sendrecv\r\n"));
++                    response.body = Bytes::from(format!(
++                        "v=0\r\no=info 1 1 IN IP4 127.0.0.1\r\ns=info\r\nc=IN IP4 127.0.0.1\r\nt=0 0\r\nm=audio {media_port} RTP/AVP 0 101\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:101 telephone-event/8000\r\na=fmtp:101 0-15\r\na=sendrecv\r\n"
++                    ));
+                     response
+                         .headers
+                         .retain(|h| !matches!(h, TypedHeader::ContentLength(_)));
+@@ -369,7 +371,8 @@
+             .core
+             .orch
+             .drain_connection_lifecycle_tasks()
+-            .await;
++            .await
++            .unwrap();
+         self.adapter.drain().await.unwrap();
+         self.coordinator
+             .shutdown_gracefully(Some(Duration::from_secs(1)))
+@@ -1498,7 +1501,16 @@
+             let current = self.ingress.lock().unwrap();
+             let i = current.as_ref().unwrap();
+             let body = "Signal=5\r\nDuration=237\r\n";
+-            format!("INFO sip:native-signal-fixture@{} SIP/2.0\r\nVia: SIP/2.0/UDP {};branch=z9hG4bK-source-{index};rport\r\nFrom: {}\r\nTo: {}\r\nCall-ID: {}\r\nCSeq: {} INFO\r\nMax-Forwards: 70\r\nContent-Type: application/dtmf-relay\r\nContent-Length: {}\r\n\r\n{body}",i.sip,self.address(),i.to,i.from,i.call,index+2,body.len())
++            format!(
++                "INFO sip:native-signal-fixture@{} SIP/2.0\r\nVia: SIP/2.0/UDP {};branch=z9hG4bK-source-{index};rport\r\nFrom: {}\r\nTo: {}\r\nCall-ID: {}\r\nCSeq: {} INFO\r\nMax-Forwards: 70\r\nContent-Type: application/dtmf-relay\r\nContent-Length: {}\r\n\r\n{body}",
++                i.sip,
++                self.address(),
++                i.to,
++                i.from,
++                i.call,
++                index + 2,
++                body.len()
++            )
+         };
+         let target = self.ingress.lock().unwrap().as_ref().unwrap().sip;
+         self.socket
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
+@@ -683,7 +683,11 @@
+                 })
+         })
+         .await;
+-        self.core.orch.drain_connection_lifecycle_tasks().await;
++        self.core
++            .orch
++            .drain_connection_lifecycle_tasks()
++            .await
++            .unwrap();
+     }
+ }
+ 
+@@ -843,7 +847,11 @@
+             })
+     })
+     .await;
+-    s.core.orch.drain_connection_lifecycle_tasks().await;
++    s.core
++        .orch
++        .drain_connection_lifecycle_tasks()
++        .await
++        .unwrap();
+ }
+ 
+ #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+@@ -997,7 +1005,11 @@
+                 })
+         })
+         .await;
+-        s.core.orch.drain_connection_lifecycle_tasks().await;
++        s.core
++            .orch
++            .drain_connection_lifecycle_tasks()
++            .await
++            .unwrap();
+     }
+ }
+ 
+@@ -1067,7 +1079,11 @@
+             })
+     })
+     .await;
+-    s.core.orch.drain_connection_lifecycle_tasks().await;
++    s.core
++        .orch
++        .drain_connection_lifecycle_tasks()
++        .await
++        .unwrap();
+ }
+ 
+ #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+@@ -1224,7 +1240,11 @@
+             })
+     })
+     .await;
+-    s.core.orch.drain_connection_lifecycle_tasks().await;
++    s.core
++        .orch
++        .drain_connection_lifecycle_tasks()
++        .await
++        .unwrap();
+ }
+ 
+ #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+--- a/crates/uctp/rvoip-uctp/tests/support/media_control.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -627,7 +627,8 @@
+             .core
+             .orch
+             .drain_connection_lifecycle_tasks()
+-            .await;
++            .await
++            .unwrap();
+     }
+ }
+ 
+--- a/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
+@@ -1049,7 +1049,7 @@
+     let kind = Transport::Quic;
+     let (f, a) = fixture(kind).await;
+     let o = owner("alice", Default::default());
+-    f.orch.drain_connection_lifecycle_tasks().await;
++    f.orch.drain_connection_lifecycle_tasks().await.unwrap();
+     assert!(matches!(
+         prepare(&f, &o.peer(), intent(&f, kind), &physical(kind)),
+         Err(PeerNativeError::Closed)
+--- a/crates/webrtc/rvoip-webrtc/tests/dtmf_wire.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/dtmf_wire.rs
+@@ -13,10 +13,10 @@
+ use rvoip_core::capability::CodecInfo;
+ use rvoip_core::ids::StreamId;
+ use rvoip_core::stream::MediaStream;
++use rvoip_webrtc::media::dtmf::{send_dtmf, OutboundDtmfNegotiation, TelephoneEventCodec};
++use rvoip_webrtc::media::from_tracks_with_dtmf_codecs;
++use rvoip_webrtc::peer::{connect_loopback, PeerRole, RvoipPeerConnection};
+ use rvoip_webrtc::WebRtcConfig;
+-use rvoip_webrtc::media::dtmf::{OutboundDtmfNegotiation, TelephoneEventCodec, send_dtmf};
+-use rvoip_webrtc::media::from_tracks_with_dtmf_codecs;
+-use rvoip_webrtc::peer::{PeerRole, RvoipPeerConnection, connect_loopback};
+ use webrtc::media_stream::track_remote::TrackRemoteEvent;
+ 
+ const TELEPHONE_EVENT_PT: u8 = 101;
+@@ -289,11 +289,9 @@
+     assert!(!events.is_empty(), "expected PT110 packets on the wire");
+     assert!(events.iter().all(|(event, ..)| *event == 6));
+     assert!(events.first().is_some_and(|event| event.3));
+-    assert!(
+-        events
+-            .iter()
+-            .any(|(_, end, duration, _, _, _)| { *end && *duration == 5_760 })
+-    );
++    assert!(events
++        .iter()
++        .any(|(_, end, duration, _, _, _)| { *end && *duration == 5_760 }));
+     assert!(
+         events
+             .iter()
+@@ -399,11 +397,14 @@
+             panic!("unsupported negotiated suffix requested a prefix grant");
+         }
+     }
+-    assert!(
+-        rvoip_webrtc::media::dtmf::send_dtmf_authorized(&sender, "6*", 121, Arc::new(NoPrefix))
+-            .await
+-            .is_err()
+-    );
++    assert!(rvoip_webrtc::media::dtmf::send_dtmf_authorized(
++        &sender,
++        "6*",
++        121,
++        Arc::new(NoPrefix)
++    )
++    .await
++    .is_err());
+     // The remote track is opened by the first DTMF RTP packet. Start its
+     // waiter before sending, then give the public media constructor ownership
+     // of that one track so it can decode the queued PT 110 packets itself.
+@@ -744,7 +745,7 @@
+ mod owned_authority {
+     use super::*;
+     use rvoip_core::dtmf::{DtmfWriteAuthority, DtmfWriteError, DtmfWriteLease, DtmfWriteScope};
+-    use rvoip_webrtc::{WebRtcError, media::dtmf::send_dtmf_authorized};
++    use rvoip_webrtc::{media::dtmf::send_dtmf_authorized, WebRtcError};
+     use std::sync::atomic::{AtomicUsize, Ordering};
+     use tokio::sync::RwLock;
+ 
+@@ -864,11 +865,9 @@
+             .expect("loopback");
+         let capture = Capture::start(receiver.clone());
+         let policy = Policy::new(false);
+-        assert!(
+-            send_dtmf_authorized(&sender, "1x", 121, policy.clone())
+-                .await
+-                .is_err()
+-        );
++        assert!(send_dtmf_authorized(&sender, "1x", 121, policy.clone())
++            .await
++            .is_err());
+         assert_eq!(
+             policy.calls.load(Ordering::Acquire),
+             0,
+@@ -1082,8 +1081,8 @@
+     }
+ }
+ #[tokio::test]
+-async fn actual_srtp_received_source_routes_through_core_with_exact_timing_and_fresh_signal_authority()
+- {
++async fn actual_srtp_received_source_routes_through_core_with_exact_timing_and_fresh_signal_authority(
++) {
+     use rvoip_core::{adapter::ConnectionAdapter, dtmf::*};
+     let _ = rustls::crypto::ring::default_provider().install_default();
+     let core = rvoip_core::Orchestrator::new(rvoip_core::Config::default());
+@@ -1137,16 +1136,15 @@
+         allowed: Arc::new(tokio::sync::RwLock::new(false)),
+         calls: Default::default(),
+     });
+-    assert!(
+-        core.route_dtmf(
++    assert!(core
++        .route_dtmf(
+             &route,
+             policy.clone(),
+             Default::default(),
+             tokio::time::Instant::now() + Duration::from_secs(2)
+         )
+         .await
+-        .is_err()
+-    );
++        .is_err());
+     assert_eq!(policy.calls.load(std::sync::atomic::Ordering::Acquire), 0);
+     *policy.allowed.write().await = true;
+     core.route_dtmf(
+@@ -1192,16 +1190,15 @@
+         .subscribe_dtmf_source(&core, source_id.clone())
+         .unwrap();
+     assert!(sub.recv().await.is_none());
+-    assert!(
+-        core.route_dtmf(
++    assert!(core
++        .route_dtmf(
+             &route,
+             policy.clone(),
+             Default::default(),
+             tokio::time::Instant::now() + Duration::from_secs(1)
+         )
+         .await
+-        .is_err()
+-    );
++        .is_err());
+     drop(replacement);
+     core.end_connection(source_id, rvoip_core::adapter::EndReason::Normal)
+         .await
+@@ -1211,5 +1208,5 @@
+         .unwrap();
+     source.close().await.unwrap();
+     target.close().await.unwrap();
+-    core.drain_connection_lifecycle_tasks().await;
+-}
++    core.drain_connection_lifecycle_tasks().await.unwrap();
++}
+--- a/crates/webrtc/rvoip-webrtc/tests/sip_webrtc_acceptance.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/sip_webrtc_acceptance.rs
+@@ -713,7 +713,10 @@
+         .await
+         .expect("close three-adapter conversation");
+     orchestrator.drain_prepared_outbound_connections().await;
+-    orchestrator.drain_connection_lifecycle_tasks().await;
++    orchestrator
++        .drain_connection_lifecycle_tasks()
++        .await
++        .unwrap();
+     assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
+     ai_adapter
+         .drain(Duration::from_secs(3))
+@@ -1659,7 +1662,10 @@
+         .await
+         .expect("close acceptance conversation");
+     orchestrator.drain_prepared_outbound_connections().await;
+-    orchestrator.drain_connection_lifecycle_tasks().await;
++    orchestrator
++        .drain_connection_lifecycle_tasks()
++        .await
++        .unwrap();
+     assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
+ 
+     assert!(
+@@ -1862,7 +1868,10 @@
+         .await
+         .expect("close WHEP conversation");
+     orchestrator.drain_prepared_outbound_connections().await;
+-    orchestrator.drain_connection_lifecycle_tasks().await;
++    orchestrator
++        .drain_connection_lifecycle_tasks()
++        .await
++        .unwrap();
+     assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
+     assert!(
+         webrtc_adapter
+--- /dev/null
++++ b/crates/foundation/rvoip-core/tests/orchestrator_dispatch/lifecycle_queued_terminal.rs
+@@ -0,0 +1,67 @@
++use super::*;
++
++/// This source is intentionally valid against both the original void drain
++/// API and the corrected Result API. The negative-control assertion is the
++/// actual retained Core connection, not an API-shape or compilation failure.
++#[tokio::test(flavor = "current_thread")]
++async fn queued_terminal_is_retired_before_lifecycle_drain_returns() {
++    let orchestrator = Orchestrator::new(Config::default());
++    let mut operational = orchestrator.install_operational_event_stream(4).unwrap();
++    let (adapter, sender, _) = StubAdapter::new();
++    orchestrator.register(adapter.clone()).unwrap();
++    let connection_id = publish_operational_test_connection(
++        &orchestrator,
++        &adapter,
++        &sender,
++        Transport::Sip,
++        "tenant-queued-drain",
++    )
++    .await;
++    let mut public = orchestrator.subscribe_events();
++    assert_eq!(sender.0.capacity(), sender.0.max_capacity());
++    adapter.mark_ended(&connection_id);
++    sender
++        .0
++        .try_send(OrchestratorAdapterEvent::Public(AdapterEvent::Ended {
++            connection_id: connection_id.clone(),
++            reason: EndReason::Normal,
++        }))
++        .expect("original adapter queue accepted the terminal event");
++    // No await/yield between enqueue and drain: on this current-thread runtime
++    // the original normalizer cannot dequeue the terminal before drain starts.
++    let _completion = tokio::time::timeout(
++        Duration::from_secs(1),
++        orchestrator.drain_connection_lifecycle_tasks(),
++    )
++    .await
++    .expect("original drain observer completed");
++    assert!(
++        matches!(
++            orchestrator.connection_transport(&connection_id),
++            Err(RvoipError::ConnectionNotFound(_))
++        ),
++        "accepted terminal was discarded before Core logical retirement"
++    );
++    assert_eq!(orchestrator.connection_lifecycle_task_count(), 0);
++    assert_eq!(
++        orchestrator.operational_event_stream_health(),
++        OperationalEventStreamHealth::Healthy
++    );
++    let terminal = operational
++        .try_recv()
++        .expect("original authoritative terminal delivered");
++    assert_eq!(terminal.connection_id, connection_id);
++    assert!(matches!(terminal.kind, OperationalEventKind::Ended { .. }));
++    assert!(
++        operational.try_recv().is_err(),
++        "no duplicate authoritative terminal"
++    );
++    assert!(
++        matches!(public.try_recv(), Ok(Event::ConnectionEnded { connection_id: observed, .. }) if observed == connection_id)
++    );
++    assert!(public.try_recv().is_err(), "no duplicate public terminal");
++    assert!(
++        sender.0.is_closed(),
++        "normalizer intake is closed after joined drain"
++    );
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/tests/orchestrator_dispatch/lifecycle_drain.rs
+@@ -0,0 +1,450 @@
++use super::*;
++use rvoip_core::adapter::TerminalDelivery;
++use rvoip_core::operational_events::OperationalEvent;
++
++struct BlockedTerminal {
++    core: Arc<Orchestrator>,
++    sender: StubEventSender,
++    connection: ConnectionId,
++    operational: mpsc::Receiver<OperationalEvent>,
++    receipt: Option<rvoip_core::adapter::TerminalDeliveryReceipt>,
++}
++
++impl BlockedTerminal {
++    async fn new() -> Self {
++        Self::new_with_reserved_terminal(false).await
++    }
++
++    async fn new_with_reserved_terminal(reserved: bool) -> Self {
++        let core = Orchestrator::new(Config::default());
++        let operational = core.install_operational_event_stream(1).unwrap();
++        let (adapter, sender, _) = StubAdapter::new();
++        core.register(adapter.clone()).unwrap();
++        let connection = publish_operational_test_connection(
++            &core,
++            &adapter,
++            &sender,
++            Transport::Sip,
++            "tenant-drain-custody",
++        )
++        .await;
++        sender
++            .send(AdapterEvent::Dtmf {
++                connection_id: connection.clone(),
++                digits: "1".into(),
++                duration_ms: 40,
++            })
++            .await
++            .unwrap();
++        tokio::time::timeout(Duration::from_secs(1), async {
++            while operational.len() != 1 {
++                tokio::task::yield_now().await;
++            }
++        })
++        .await
++        .expect("first original event filled the real authoritative queue");
++        sender
++            .send(AdapterEvent::Dtmf {
++                connection_id: connection.clone(),
++                digits: "2".into(),
++                duration_ms: 50,
++            })
++            .await
++            .unwrap();
++        tokio::time::timeout(Duration::from_secs(1), async {
++            while sender.0.capacity() != sender.0.max_capacity() {
++                tokio::task::yield_now().await;
++            }
++        })
++        .await
++        .expect("normalizer consumed the second original event into its blocked handler");
++        // The single normalizer has dequeued DTMF 2 while DTMF 1 still occupies
++        // its capacity-one destination. The actual accepted terminal is next.
++        let terminal = AdapterEvent::Ended {
++            connection_id: connection.clone(),
++            reason: EndReason::Normal,
++        };
++        let receipt = if reserved {
++            let prepared = adapter
++                .lifecycle
++                .reserve_orchestrator_terminal(&sender.0, terminal)
++                .unwrap();
++            let receipt = prepared.receipt();
++            adapter.mark_ended(&connection);
++            prepared.activate().unwrap();
++            Some(receipt)
++        } else {
++            adapter.mark_ended(&connection);
++            sender
++                .0
++                .try_send(OrchestratorAdapterEvent::Public(terminal))
++                .unwrap();
++            None
++        };
++        Self {
++            core,
++            sender,
++            connection,
++            operational,
++            receipt,
++        }
++    }
++
++    fn assert_retained(&self) {
++        assert_eq!(
++            self.core.connection_lifecycle_task_count(),
++            1 + usize::from(self.receipt.is_some()),
++            "the original normalizer and any reserved terminal remain owned"
++        );
++        assert!(
++            self.core.connection_transport(&self.connection).is_ok(),
++            "queued terminal remains pending behind actual publication backpressure"
++        );
++        assert_eq!(
++            self.core.operational_event_stream_health(),
++            OperationalEventStreamHealth::Healthy,
++            "drain must not cancel the accepted in-flight send"
++        );
++        assert!(
++            self.sender.0.is_closed(),
++            "stop seals original intake even while its handler is blocked"
++        );
++    }
++
++    async fn release_and_join(mut self) {
++        let core = self.core.clone();
++        let original = tokio::spawn(async move {
++            core.drain_connection_lifecycle_tasks_until(
++                tokio::time::Instant::now() + Duration::from_secs(1),
++            )
++            .await
++        });
++        let first = self.operational.recv().await.unwrap();
++        let second = self.operational.recv().await.unwrap();
++        let terminal = self.operational.recv().await.unwrap();
++        assert!(
++            matches!(first.kind, OperationalEventKind::Dtmf { ref digits, .. } if digits == "1")
++        );
++        assert!(
++            matches!(second.kind, OperationalEventKind::Dtmf { ref digits, .. } if digits == "2")
++        );
++        assert!(matches!(terminal.kind, OperationalEventKind::Ended { .. }));
++        assert_eq!(terminal.connection_id, self.connection);
++        assert!(first.sequence < second.sequence && second.sequence < terminal.sequence);
++        original.await.unwrap().unwrap();
++        if let Some(receipt) = self.receipt.as_ref() {
++            receipt.wait().await.unwrap();
++        }
++        assert_eq!(self.core.connection_lifecycle_task_count(), 0);
++        assert!(matches!(
++            self.core.connection_transport(&self.connection),
++            Err(RvoipError::ConnectionNotFound(_))
++        ));
++        assert!(
++            self.operational.try_recv().is_err(),
++            "original FIFO events delivered exactly once"
++        );
++        self.core.drain_connection_lifecycle_tasks().await.unwrap();
++        assert_eq!(
++            self.core.operational_event_stream_health(),
++            OperationalEventStreamHealth::Healthy
++        );
++    }
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn lifecycle_deadline_retains_inflight_and_accepted_terminal_until_original_join() {
++    let fixture = BlockedTerminal::new().await;
++    let until = tokio::time::Instant::now() + Duration::from_millis(20);
++    assert!(fixture
++        .core
++        .drain_connection_lifecycle_tasks_until(until)
++        .await
++        .is_err());
++    fixture.assert_retained();
++    fixture.release_and_join().await;
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn cancelled_lifecycle_observer_preserves_original_handler_and_queued_terminal() {
++    let fixture = BlockedTerminal::new().await;
++    let core = fixture.core.clone();
++    let observer = tokio::spawn(async move { core.drain_connection_lifecycle_tasks().await });
++    tokio::time::timeout(Duration::from_secs(1), async {
++        while !fixture.sender.0.is_closed() {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .unwrap();
++    observer.abort();
++    assert!(observer.await.unwrap_err().is_cancelled());
++    fixture.assert_retained();
++    fixture.release_and_join().await;
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn concurrent_drain_and_registration_cannot_lose_the_moved_original_task_set() {
++    let fixture = BlockedTerminal::new().await;
++    let core = fixture.core.clone();
++    let first = tokio::spawn(async move { core.drain_connection_lifecycle_tasks().await });
++    tokio::time::timeout(Duration::from_secs(1), async {
++        while !fixture.sender.0.is_closed() {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .unwrap();
++    fixture.assert_retained();
++    let (late, _, _) = StubAdapter::new_for(Transport::WebRtc);
++    assert!(matches!(
++        fixture.core.register(late),
++        Err(RvoipError::InvalidState(
++            "connection lifecycle supervisor is draining"
++        ))
++    ));
++    assert!(
++        fixture
++            .core
++            .drain_connection_lifecycle_tasks_until(
++                tokio::time::Instant::now() + Duration::from_millis(20)
++            )
++            .await
++            .is_err(),
++        "a second observer cannot call the moved task set empty"
++    );
++    fixture.assert_retained();
++    first.abort();
++    assert!(first.await.unwrap_err().is_cancelled());
++    fixture.assert_retained();
++    fixture.release_and_join().await;
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn closed_normalizer_keeps_direct_terminal_fallback_and_original_attribution() {
++    let core = Orchestrator::new(Config::default());
++    let mut operational = core.install_operational_event_stream(4).unwrap();
++    let (adapter, sender, _) = StubAdapter::new();
++    core.register(adapter.clone()).unwrap();
++    let connection = publish_operational_test_connection(
++        &core,
++        &adapter,
++        &sender,
++        Transport::Sip,
++        "tenant-drain-fallback",
++    )
++    .await;
++    core.drain_connection_lifecycle_tasks().await.unwrap();
++    assert!(sender.0.is_closed());
++    adapter.mark_ended(&connection);
++    let event = AdapterEvent::Ended {
++        connection_id: connection.clone(),
++        reason: EndReason::Normal,
++    };
++    assert_eq!(
++        adapter
++            .lifecycle
++            .queue_or_deliver_orchestrator_terminal(&sender.0, event.clone())
++            .await,
++        TerminalDelivery::Fallback
++    );
++    assert!(matches!(
++        core.connection_transport(&connection),
++        Err(RvoipError::ConnectionNotFound(_))
++    ));
++    let original = operational.try_recv().unwrap();
++    assert_eq!(original.connection_id, connection);
++    assert!(matches!(original.kind, OperationalEventKind::Ended { .. }));
++    assert_eq!(
++        adapter
++            .lifecycle
++            .queue_or_deliver_orchestrator_terminal(&sender.0, event)
++            .await,
++        TerminalDelivery::Fallback
++    );
++    assert!(
++        operational.try_recv().is_err(),
++        "a repeated original terminal is not a second effect"
++    );
++    assert_eq!(core.connection_lifecycle_task_count(), 0);
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn expired_lifecycle_deadline_does_not_claim_an_unjoined_normalizer() {
++    let core = Orchestrator::new(Config::default());
++    let (adapter, sender, _) = StubAdapter::new();
++    core.register(adapter).unwrap();
++    assert!(core
++        .drain_connection_lifecycle_tasks_until(tokio::time::Instant::now())
++        .await
++        .is_err());
++    assert_eq!(core.connection_lifecycle_task_count(), 1);
++    assert!(!sender.0.is_closed());
++    core.drain_connection_lifecycle_tasks().await.unwrap();
++    assert_eq!(core.connection_lifecycle_task_count(), 0);
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn abandoned_terminal_reservation_has_no_effect_and_same_route_can_retire() {
++    let core = Orchestrator::new(Config::default());
++    let mut operational = core.install_operational_event_stream(4).unwrap();
++    let (adapter, sender, _) = StubAdapter::new();
++    core.register(adapter.clone()).unwrap();
++    let connection = publish_operational_test_connection(
++        &core,
++        &adapter,
++        &sender,
++        Transport::Sip,
++        "tenant-terminal-reservation",
++    )
++    .await;
++    sender
++        .send(AdapterEvent::Dtmf {
++            connection_id: connection.clone(),
++            digits: "7".into(),
++            duration_ms: 70,
++        })
++        .await
++        .unwrap();
++    let event = AdapterEvent::Ended {
++        connection_id: connection.clone(),
++        reason: EndReason::Normal,
++    };
++    let prepared = adapter
++        .lifecycle
++        .reserve_orchestrator_terminal(&sender.0, event.clone())
++        .unwrap();
++    let unused = prepared.receipt();
++    assert!(
++        core.connection_transport(&connection).is_ok(),
++        "reservation grants no terminal effect"
++    );
++    assert!(adapter.is_connection_live(&connection));
++    drop(prepared);
++    assert_eq!(
++        unused.wait().await,
++        Err(rvoip_core::adapter::TerminalDeliveryError::Cancelled)
++    );
++    assert!(core.connection_transport(&connection).is_ok());
++    // Complete the preceding original event before adapter retirement. The
++    // second event remains behind the reserved terminal's FIFO queue position.
++    assert!(
++        matches!(operational.recv().await.unwrap().kind, OperationalEventKind::Dtmf { ref digits, .. } if digits == "7")
++    );
++    let prepared = adapter
++        .lifecycle
++        .reserve_orchestrator_terminal(&sender.0, event)
++        .unwrap();
++    let receipt = prepared.receipt();
++    adapter.mark_ended(&connection);
++    prepared.activate().unwrap();
++    receipt.wait().await.unwrap();
++    let terminal = operational.recv().await.unwrap();
++    assert_eq!(terminal.connection_id, connection);
++    assert!(matches!(terminal.kind, OperationalEventKind::Ended { .. }));
++    assert!(matches!(
++        core.connection_transport(&connection),
++        Err(RvoipError::ConnectionNotFound(_))
++    ));
++    core.drain_connection_lifecycle_tasks().await.unwrap();
++    assert_eq!(core.connection_lifecycle_task_count(), 0);
++}
++
++#[cfg(feature = "test-support")]
++#[tokio::test(flavor = "current_thread")]
++async fn original_terminal_survives_observer_cancel_and_late_drain_under_exact_gate() {
++    let core = Orchestrator::new(Config::default());
++    let mut operational = core.install_operational_event_stream(2).unwrap();
++    let (adapter, sender, _) = StubAdapter::new();
++    core.register(adapter.clone()).unwrap();
++    let connection = publish_operational_test_connection(
++        &core,
++        &adapter,
++        &sender,
++        Transport::Sip,
++        "tenant-owned-terminal",
++    )
++    .await;
++    let gate = core
++        .install_original_terminal_test_gate(Transport::Sip, connection.clone())
++        .unwrap();
++    core.drain_connection_lifecycle_tasks().await.unwrap();
++    assert!(sender.0.is_closed());
++    let prepared = adapter
++        .lifecycle
++        .reserve_orchestrator_terminal(
++            &sender.0,
++            AdapterEvent::Ended {
++                connection_id: connection.clone(),
++                reason: EndReason::Normal,
++            },
++        )
++        .unwrap();
++    let receipt = prepared.receipt();
++    adapter.mark_ended(&connection);
++    prepared.activate().unwrap();
++    tokio::time::timeout(Duration::from_secs(1), gate.wait_entered())
++        .await
++        .unwrap();
++    assert_eq!(
++        core.connection_lifecycle_task_count(),
++        1,
++        "actual late terminal task is supervisor-owned"
++    );
++    let observer_receipt = receipt.clone();
++    let observer = tokio::spawn(async move { observer_receipt.wait().await });
++    tokio::task::yield_now().await;
++    observer.abort();
++    assert!(observer.await.unwrap_err().is_cancelled());
++    assert!(core
++        .drain_connection_lifecycle_tasks_until(
++            tokio::time::Instant::now() + Duration::from_millis(20)
++        )
++        .await
++        .is_err());
++    assert_eq!(core.connection_lifecycle_task_count(), 1);
++    assert!(
++        core.connection_transport(&connection).is_ok(),
++        "the actual handler is still at its original gate"
++    );
++    gate.release();
++    receipt.wait().await.unwrap();
++    gate.wait_joined().await;
++    core.drain_connection_lifecycle_tasks().await.unwrap();
++    assert_eq!(core.connection_lifecycle_task_count(), 0);
++    assert!(matches!(
++        core.connection_transport(&connection),
++        Err(RvoipError::ConnectionNotFound(_))
++    ));
++    assert!(matches!(
++        operational.recv().await.unwrap().kind,
++        OperationalEventKind::Ended { .. }
++    ));
++    let weak = Arc::downgrade(&core);
++    drop(core);
++    assert!(
++        weak.upgrade().is_none(),
++        "retained original receipt/gate does not own Core"
++    );
++    receipt.wait().await.unwrap();
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn reserved_terminal_waits_for_original_fifo_position_and_handler_before_ack() {
++    let fixture = BlockedTerminal::new_with_reserved_terminal(true).await;
++    assert!(tokio::time::timeout(
++        Duration::from_millis(20),
++        fixture.receipt.as_ref().unwrap().wait()
++    )
++    .await
++    .is_err());
++    assert!(fixture
++        .core
++        .drain_connection_lifecycle_tasks_until(
++            tokio::time::Instant::now() + Duration::from_millis(20)
++        )
++        .await
++        .is_err());
++    fixture.assert_retained();
++    fixture.release_and_join().await;
++}
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/lifecycle_drain_tests.rs
+@@ -0,0 +1,275 @@
++use super::*;
++use std::future::poll_fn;
++use std::task::Poll;
++
++#[tokio::test(flavor = "current_thread")]
++async fn reaped_normalizer_failure_remains_a_failed_drain() {
++    let supervisor = ConnectionLifecycleTaskSupervisor::new(2);
++    assert!(supervisor.spawn_normalizer(async {
++        panic!("intentional original normalizer failure");
++    }));
++    tokio::time::timeout(Duration::from_secs(1), async {
++        while supervisor.task_count() != 0 {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .unwrap();
++    assert!(matches!(
++        supervisor.drain(None).await,
++        Err(RvoipError::InvalidState("connection lifecycle task failed"))
++    ));
++    assert_eq!(supervisor.task_count(), 0);
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn poisoned_commit_preserves_existing_handles_but_cannot_report_success() {
++    let supervisor = ConnectionLifecycleTaskSupervisor::new(2);
++    let (drop_tx, dropped) = oneshot::channel();
++    struct OriginalOwner(Option<oneshot::Sender<()>>);
++    impl Drop for OriginalOwner {
++        fn drop(&mut self) {
++            if let Some(tx) = self.0.take() {
++                let _ = tx.send(());
++            }
++        }
++    }
++    let original_owner = OriginalOwner(Some(drop_tx));
++    assert!(supervisor.spawn(async move {
++        let _original_owner = original_owner;
++        std::future::pending::<()>().await;
++    }));
++    let failed_commit = catch_unwind(AssertUnwindSafe(|| {
++        let _: Result<()> = supervisor.spawn_with_commit(std::future::pending(), || {
++            panic!("intentional synchronous ownership-commit failure")
++        });
++    }));
++    assert!(failed_commit.is_err());
++    assert_eq!(
++        supervisor.task_count(),
++        1,
++        "poison does not erase the actual original side-effect owner"
++    );
++    assert!(matches!(
++        supervisor.drain(None).await,
++        Err(RvoipError::InvalidState("connection lifecycle task failed"))
++    ));
++    dropped
++        .await
++        .expect("the original side-effect owner actually dropped during abort/join");
++    assert_eq!(supervisor.task_count(), 0);
++}
++
++/// Exercise the real authoritative-send cancellation boundary used by media
++/// activity. This is not a claim that a graph observer reached that boundary:
++/// the actual original send future is explicitly polled Pending before drain.
++#[tokio::test(flavor = "current_thread")]
++async fn cancelled_side_effect_publication_cannot_hide_lost_terminal_outcome() {
++    let core = Orchestrator::new(Config::default());
++    let mut operational = core.install_operational_event_stream(1).unwrap();
++    let connection = ConnectionId::new();
++    core.connections.insert(
++        connection.clone(),
++        ConnectionEntry {
++            transport: Transport::Sip,
++            direction: Direction::Inbound,
++            principal: None,
++            inbound_context: None,
++            inbound_context_retired: false,
++            inbound_publication: InboundPublicationState::Published,
++            inbound_admission_terminal: None,
++            staged_inbound_data: None,
++            normalized_lifecycle_was_visible: true,
++            deferred_authentication: None,
++            deferred_principal_authentication: None,
++        },
++    );
++    assert!(core.ensure_connection_lifecycle(&connection));
++    assert!(
++        core.emit_operational(
++            connection.clone(),
++            Transport::Sip,
++            Utc::now(),
++            OperationalEventKind::Dtmf {
++                digits: "1".into(),
++                duration_ms: 40
++            }
++        )
++        .await
++    );
++    assert_eq!(operational.len(), 1);
++    let (entered, observed) = oneshot::channel();
++    let original_core = core.clone();
++    let original_connection = connection.clone();
++    assert!(core.connection_lifecycle_tasks.spawn(async move {
++        let _order = original_core.operational_event_order.lock().await;
++        let actual_send = original_core.emit_operational(
++            original_connection,
++            Transport::Sip,
++            Utc::now(),
++            OperationalEventKind::MediaActivity { generation: 1 },
++        );
++        tokio::pin!(actual_send);
++        poll_fn(|cx| {
++            assert!(
++                actual_send.as_mut().poll(cx).is_pending(),
++                "full original queue retains an armed actual send guard"
++            );
++            Poll::Ready(())
++        })
++        .await;
++        entered.send(()).unwrap();
++        actual_send.await;
++    }));
++    observed.await.unwrap();
++    let terminal_core = core.clone();
++    let terminal_connection = connection.clone();
++    assert!(core
++        .connection_lifecycle_tasks
++        .spawn_normalizer(async move {
++            terminal_core
++                .handle_adapter_event(
++                    Transport::Sip,
++                    AdapterEvent::Ended {
++                        connection_id: terminal_connection,
++                        reason: EndReason::Normal,
++                    },
++                )
++                .await;
++        }));
++    assert!(matches!(
++        core.drain_connection_lifecycle_tasks_until(
++            tokio::time::Instant::now() + Duration::from_secs(1)
++        )
++        .await,
++        Err(RvoipError::InvalidState(
++            "authoritative operational event stream is degraded"
++        ))
++    ));
++    assert!(
++        matches!(
++            core.connection_transport(&connection),
++            Err(RvoipError::ConnectionNotFound(_))
++        ),
++        "logical terminal cleanup still completes despite outcome failure"
++    );
++    assert_eq!(core.connection_lifecycle_task_count(), 0);
++    assert_eq!(
++        core.operational_event_stream_health(),
++        OperationalEventStreamHealth::Degraded
++    );
++    assert!(matches!(
++        operational.try_recv().unwrap().kind,
++        OperationalEventKind::Dtmf { .. }
++    ));
++    assert!(
++        operational.try_recv().is_err(),
++        "the lost authoritative terminal must be reported as failure"
++    );
++    assert!(
++        core.drain_connection_lifecycle_tasks().await.is_err(),
++        "failure remains visible on repeated join"
++    );
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn terminal_admission_has_independent_bounded_capacity_and_abandonment_joins() {
++    let core = Orchestrator::new(Config::default());
++    let supervisor = &core.connection_lifecycle_tasks;
++    for _ in 0..supervisor.capacity {
++        assert!(supervisor.spawn(std::future::pending()));
++    }
++    assert!(
++        !supervisor.spawn(std::future::pending()),
++        "ordinary task capacity is actually full"
++    );
++    let sink = OrchestratorLifecycleSink {
++        orchestrator: Arc::downgrade(&core),
++        transport: Transport::Sip,
++    };
++    let mut held = Vec::new();
++    let mut receipts = Vec::new();
++    for _ in 0..supervisor.capacity {
++        let prepared = sink
++            .reserve_terminal(AdapterEvent::Ended {
++                connection_id: ConnectionId::new(),
++                reason: EndReason::Normal,
++            })
++            .expect("original terminal capacity is independent of abortable activity");
++        receipts.push(prepared.receipt());
++        held.push(prepared);
++    }
++    assert!(matches!(
++        sink.reserve_terminal(AdapterEvent::Ended {
++            connection_id: ConnectionId::new(),
++            reason: EndReason::Normal
++        }),
++        Err(TerminalDeliveryError::Capacity)
++    ));
++    assert_eq!(supervisor.task_count(), 2 * supervisor.capacity);
++    drop(held);
++    for receipt in receipts {
++        assert_eq!(receipt.wait().await, Err(TerminalDeliveryError::Cancelled));
++    }
++    core.drain_connection_lifecycle_tasks().await.unwrap();
++    assert_eq!(supervisor.task_count(), 0);
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn original_terminal_task_failure_resolves_receipt_and_is_sticky() {
++    let supervisor = ConnectionLifecycleTaskSupervisor::new(1);
++    let (prepared, activated, completion) = PreparedTerminalDelivery::new(AdapterEvent::Ended {
++        connection_id: ConnectionId::new(),
++        reason: EndReason::Normal,
++    });
++    let receipt = prepared.receipt();
++    supervisor
++        .spawn_terminal(async move {
++            let _completion = completion;
++            activated.await.unwrap();
++            panic!("intentional supervised terminal failure");
++        })
++        .unwrap();
++    prepared.activate().unwrap();
++    assert_eq!(
++        receipt.wait().await,
++        Err(TerminalDeliveryError::HandlerFailed)
++    );
++    assert!(matches!(
++        supervisor.drain(None).await,
++        Err(RvoipError::InvalidState("connection lifecycle task failed"))
++    ));
++    assert_eq!(supervisor.task_count(), 0);
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn poisoned_terminal_pool_keeps_original_receipt_but_refuses_successful_drain() {
++    let supervisor = ConnectionLifecycleTaskSupervisor::new(1);
++    let (prepared, activated, completion) = PreparedTerminalDelivery::new(AdapterEvent::Ended {
++        connection_id: ConnectionId::new(),
++        reason: EndReason::Normal,
++    });
++    let receipt = prepared.receipt();
++    supervisor
++        .spawn_terminal(async move {
++            activated.await.unwrap();
++            completion.finish(Ok(()));
++        })
++        .unwrap();
++    assert!(catch_unwind(AssertUnwindSafe(|| {
++        let _owned = supervisor.terminals.lock().unwrap();
++        panic!("intentional terminal custody metadata failure");
++    }))
++    .is_err());
++    assert!(matches!(
++        supervisor.spawn_terminal(std::future::pending()),
++        Err(TerminalDeliveryError::Poisoned)
++    ));
++    prepared.activate().unwrap();
++    receipt.wait().await.unwrap();
++    assert!(matches!(
++        supervisor.drain(None).await,
++        Err(RvoipError::InvalidState("connection lifecycle task failed"))
++    ));
++    assert_eq!(supervisor.task_count(), 0);
++}
+--- a/crates/foundation/rvoip-core/src/adapter.rs
++++ b/crates/foundation/rvoip-core/src/adapter.rs
+@@ -1,4 +1,3 @@
+-use crate::DataMessage;
+ use crate::capability::{CapabilityDescriptor, NegotiatedCodecs};
+ use crate::commands::{AudioSource, MuteDirection};
+ use crate::connection::Transport;
+@@ -7,20 +6,21 @@
+ use crate::ids::ConnectionId;
+ use crate::message::Message;
+ use crate::stream::MediaStream;
++use crate::DataMessage;
+ use std::fmt;
+-use std::sync::{Arc, OnceLock};
+-use tokio::sync::mpsc;
++use std::sync::{Arc, Mutex, OnceLock};
++use tokio::sync::{mpsc, oneshot, watch};
+ 
+ pub use rvoip_core_traits::adapter::{
+     AdapterEvent, AdapterKind, ConnectionHandle, EndReason, ExternalConnectionReference,
+     ExternalConnectionReferenceError, InboundAssertedIdentity, InboundConnectionContext,
+-    InboundContextError, InboundRoutingHint, InboundSignalingMetadata,
++    InboundContextError, InboundRoutingHint, InboundSignalingMetadata, OriginateContext,
++    OriginateRequest, OutboundActivation, PlaybackCompletionSender, PlaybackHandle,
++    PlaybackOutcome, PlaybackWaitError, RejectReason, SignatureHeaders, TransferStatus,
++    TransferTarget, TrustedSignalingMetadata, TrustedSignalingProvenance,
+     MAX_EXTERNAL_CONNECTION_REFERENCES, MAX_EXTERNAL_REFERENCE_KIND_BYTES,
+     MAX_EXTERNAL_REFERENCE_VALUE_BYTES, MAX_INBOUND_ASSERTED_IDENTITY_BYTES,
+-    MAX_INBOUND_ROUTING_HINT_BYTES, OriginateContext, OriginateRequest, OutboundActivation,
+-    PlaybackCompletionSender, PlaybackHandle, PlaybackOutcome, PlaybackWaitError, RejectReason,
+-    SignatureHeaders, TransferStatus, TransferTarget, TrustedSignalingMetadata,
+-    TrustedSignalingProvenance,
++    MAX_INBOUND_ROUTING_HINT_BYTES,
+ };
+ pub use rvoip_core_traits::ids::TransferAttemptId;
+ 
+@@ -34,6 +34,8 @@
+ #[non_exhaustive]
+ pub enum OrchestratorAdapterEvent {
+     Public(AdapterEvent),
++    /// An already-reserved original Core terminal owner, activated at this FIFO position.
++    Terminal(PreparedTerminalDelivery),
+     AuthenticatedInboundConnection {
+         connection: crate::connection::Connection,
+         participant_id: String,
+@@ -45,6 +47,10 @@
+     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+         match self {
+             Self::Public(event) => formatter.debug_tuple("Public").field(event).finish(),
++            Self::Terminal(delivery) => formatter
++                .debug_tuple("Terminal")
++                .field(delivery.event())
++                .finish(),
+             Self::AuthenticatedInboundConnection { connection, .. } => formatter
+                 .debug_struct("AuthenticatedInboundConnection")
+                 .field("transport", &connection.transport)
+@@ -64,16 +70,189 @@
+     }
+ }
+ 
+-/// Direct fallback for terminal adapter events when the adapter's bounded
+-/// event queue is saturated or closed.
+-///
+-/// The Orchestrator implementation invalidates/removes the connection before
+-/// awaiting the remaining media cleanup. Adapters invoke this only after
+-/// removing their own route and stream state; the peer task retains its
+-/// bounded admission permit until cleanup converges.
++/// Failure to reserve, activate, or finish one original terminal cleanup.
++/// These bounded classes contain no credentials or provider error payloads.
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++pub enum TerminalDeliveryError {
++    Unavailable,
++    Unsupported,
++    Capacity,
++    InvalidEvent,
++    Cancelled,
++    OwnerGone,
++    HandlerFailed,
++    OutcomeLost,
++    Poisoned,
++}
++
++impl fmt::Display for TerminalDeliveryError {
++    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
++        write!(formatter, "{self:?}")
++    }
++}
++impl std::error::Error for TerminalDeliveryError {}
++
++/// A repeatable acknowledgment of one actual original Core handler. Its
++/// receiver contains no Core, adapter, route, or media-resource owner.
++#[derive(Clone)]
++pub struct TerminalDeliveryReceipt {
++    finished: watch::Receiver<Option<std::result::Result<(), TerminalDeliveryError>>>,
++}
++impl TerminalDeliveryReceipt {
++    pub async fn wait(&self) -> std::result::Result<(), TerminalDeliveryError> {
++        let mut finished = self.finished.clone();
++        loop {
++            if let Some(result) = *finished.borrow() {
++                return result;
++            }
++            if finished.changed().await.is_err() {
++                return Err(TerminalDeliveryError::HandlerFailed);
++            }
++        }
++    }
++}
++
++/// Reservation of a bounded, supervisor-owned original terminal task. No
++/// cleanup or publication occurs until activation. Dropping every unactivated
++/// token cancels only this reservation; dropping an activated observer cannot
++/// cancel the retained Core task.
++#[derive(Clone)]
++pub struct PreparedTerminalDelivery {
++    event: AdapterEvent,
++    activation: Arc<Mutex<Option<oneshot::Sender<()>>>>,
++    failure: watch::Sender<Option<std::result::Result<(), TerminalDeliveryError>>>,
++    receipt: TerminalDeliveryReceipt,
++}
++impl PreparedTerminalDelivery {
++    pub(crate) fn new(event: AdapterEvent) -> (Self, oneshot::Receiver<()>, TerminalCompletion) {
++        let (start, started) = oneshot::channel();
++        let (finished, receipt) = watch::channel(None);
++        (
++            Self {
++                event,
++                activation: Arc::new(Mutex::new(Some(start))),
++                failure: finished.clone(),
++                receipt: TerminalDeliveryReceipt { finished: receipt },
++            },
++            started,
++            TerminalCompletion {
++                finished,
++                armed: true,
++            },
++        )
++    }
++    pub fn event(&self) -> &AdapterEvent {
++        &self.event
++    }
++    pub fn receipt(&self) -> TerminalDeliveryReceipt {
++        self.receipt.clone()
++    }
++    pub fn activate(self) -> std::result::Result<(), TerminalDeliveryError> {
++        let start = match self.activation.lock() {
++            Ok(mut activation) => activation.take(),
++            Err(_) => {
++                self.fail(TerminalDeliveryError::Poisoned);
++                return Err(TerminalDeliveryError::Poisoned);
++            }
++        };
++        match start {
++            Some(start) => {
++                if start.send(()).is_err() {
++                    self.fail(TerminalDeliveryError::HandlerFailed);
++                    Err(TerminalDeliveryError::HandlerFailed)
++                } else {
++                    Ok(())
++                }
++            }
++            None => Ok(()), // all clones refer to the same original activation
++        }
++    }
++    fn fail(&self, error: TerminalDeliveryError) {
++        self.failure.send_if_modified(|finished| {
++            if finished.is_none() {
++                *finished = Some(Err(error));
++                true
++            } else {
++                false
++            }
++        });
++    }
++}
++
++pub(crate) struct TerminalCompletion {
++    finished: watch::Sender<Option<std::result::Result<(), TerminalDeliveryError>>>,
++    armed: bool,
++}
++impl TerminalCompletion {
++    pub(crate) fn finish(mut self, result: std::result::Result<(), TerminalDeliveryError>) {
++        self.finished.send_if_modified(|finished| {
++            if finished.is_none() {
++                *finished = Some(result);
++                true
++            } else {
++                false
++            }
++        });
++        self.armed = false;
++    }
++}
++impl Drop for TerminalCompletion {
++    fn drop(&mut self) {
++        if self.armed {
++            self.finished.send_if_modified(|finished| {
++                if finished.is_none() {
++                    *finished = Some(Err(TerminalDeliveryError::HandlerFailed));
++                    true
++                } else {
++                    false
++                }
++            });
++        }
++    }
++}
++
++/// Reserves normal-queue FIFO position when available, otherwise an original
++/// direct fallback. The Core terminal task is reserved before either choice
++/// can be activated, so callers may refuse before removing their route/quota.
++pub struct PreparedOrchestratorTerminal {
++    queue: Option<mpsc::OwnedPermit<OrchestratorAdapterEvent>>,
++    delivery: PreparedTerminalDelivery,
++}
++impl PreparedOrchestratorTerminal {
++    pub fn receipt(&self) -> TerminalDeliveryReceipt {
++        self.delivery.receipt()
++    }
++    pub fn activate(self) -> std::result::Result<(), TerminalDeliveryError> {
++        if let Some(queue) = self.queue {
++            queue.send(OrchestratorAdapterEvent::Terminal(self.delivery));
++            Ok(())
++        } else {
++            self.delivery.activate()
++        }
++    }
++}
++
++/// Direct terminal custody. A Core sink reserves an actual owned task before
++/// its first await; the receipt reports its eventual handler/authority-stream
++/// outcome. Other explicit sinks may implement direct awaited delivery only,
++/// and truthfully refuse the optional reservation contract as Unsupported.
+ #[async_trait::async_trait]
+ pub trait AdapterLifecycleSink: Send + Sync {
+-    async fn deliver_terminal(&self, event: AdapterEvent);
++    fn reserve_terminal(
++        &self,
++        _event: AdapterEvent,
++    ) -> std::result::Result<PreparedTerminalDelivery, TerminalDeliveryError> {
++        Err(TerminalDeliveryError::Unsupported)
++    }
++    async fn deliver_terminal(
++        &self,
++        event: AdapterEvent,
++    ) -> std::result::Result<(), TerminalDeliveryError> {
++        let prepared = self.reserve_terminal(event)?;
++        let receipt = prepared.receipt();
++        prepared.activate()?;
++        receipt.wait().await
++    }
+ }
+ 
+ /// Shareable, late-bound lifecycle sink used by adapters whose server loops
+@@ -144,8 +323,30 @@
+         let Some(sink) = self.inner.get().cloned() else {
+             return false;
+         };
+-        sink.deliver_terminal(event).await;
+-        true
++        sink.deliver_terminal(event).await.is_ok()
++    }
++
++    /// Reserve original Core custody without beginning terminal work.
++    pub fn reserve_terminal(
++        &self,
++        event: AdapterEvent,
++    ) -> std::result::Result<PreparedTerminalDelivery, TerminalDeliveryError> {
++        self.inner
++            .get()
++            .ok_or(TerminalDeliveryError::Unavailable)?
++            .reserve_terminal(event)
++    }
++
++    /// Preserve normal FIFO position without waiting for capacity. Full or
++    /// closed intake uses the independently bounded direct terminal group.
++    pub fn reserve_orchestrator_terminal(
++        &self,
++        events: &mpsc::Sender<OrchestratorAdapterEvent>,
++        event: AdapterEvent,
++    ) -> std::result::Result<PreparedOrchestratorTerminal, TerminalDeliveryError> {
++        let queue = events.clone().try_reserve_owned().ok();
++        let delivery = self.reserve_terminal(event)?;
++        Ok(PreparedOrchestratorTerminal { queue, delivery })
+     }
+ 
+     /// Prefer the adapter's normal bounded event queue so terminal events
+@@ -236,6 +437,16 @@
+                         break;
+                     }
+                 }
++                OrchestratorAdapterEvent::Terminal(delivery) => {
++                    let event = delivery.event().clone();
++                    let receipt = delivery.receipt();
++                    if delivery.activate().is_err() || receipt.wait().await.is_err() {
++                        break;
++                    }
++                    if events.send(event).await.is_err() {
++                        break;
++                    }
++                }
+                 OrchestratorAdapterEvent::Public(event) => {
+                     if events.send(event).await.is_err() {
+                         break;
+@@ -759,9 +970,13 @@
+ 
+     #[async_trait::async_trait]
+     impl AdapterLifecycleSink for RecordingSink {
+-        async fn deliver_terminal(&self, event: AdapterEvent) {
++        async fn deliver_terminal(
++            &self,
++            event: AdapterEvent,
++        ) -> std::result::Result<(), TerminalDeliveryError> {
+             assert!(matches!(event, AdapterEvent::Ended { .. }));
+             self.delivered.store(true, Ordering::Release);
++            Ok(())
+         }
+     }
+ 
+--- a/crates/sip/rvoip-sip/src/profiled_adapter.rs
++++ b/crates/sip/rvoip-sip/src/profiled_adapter.rs
+@@ -491,22 +491,30 @@
+ 
+ #[async_trait]
+ impl AdapterLifecycleSink for ProfileChildLifecycleSink {
+-    async fn deliver_terminal(&self, event: AdapterEvent) {
+-        let Some(pool) = self.pool.upgrade() else {
+-            return;
+-        };
+-        let Some(connection_id) = adapter_event_connection_id(&event).cloned() else {
+-            return;
+-        };
++    async fn deliver_terminal(
++        &self,
++        event: AdapterEvent,
++    ) -> std::result::Result<(), rvoip_core::adapter::TerminalDeliveryError> {
++        use rvoip_core::adapter::TerminalDeliveryError;
++        let pool = self
++            .pool
++            .upgrade()
++            .ok_or(TerminalDeliveryError::OwnerGone)?;
++        let connection_id = adapter_event_connection_id(&event)
++            .cloned()
++            .ok_or(TerminalDeliveryError::InvalidEvent)?;
+         let owned = pool
+             .owners
+             .get(&connection_id)
+             .is_some_and(|owner| owner.generation == self.generation);
+         if !owned {
+-            return;
+-        }
+-        pool.lifecycle.deliver_terminal(event).await;
++            return Err(TerminalDeliveryError::InvalidEvent);
++        }
++        if !pool.lifecycle.deliver_terminal(event).await {
++            return Err(TerminalDeliveryError::HandlerFailed);
++        }
+         pool.remove_owner_exact(&connection_id, self.generation);
++        Ok(())
+     }
+ }
+ 
+@@ -599,6 +607,7 @@
+         OrchestratorAdapterEvent::Public(
+             event @ (AdapterEvent::Ended { .. } | AdapterEvent::Failed { .. }),
+         ) => Some(event.clone()),
++        OrchestratorAdapterEvent::Terminal(delivery) => Some(delivery.event().clone()),
+         _ => None,
+     }
+ }
+@@ -609,6 +618,9 @@
+             Some(&connection.id)
+         }
+         OrchestratorAdapterEvent::Public(event) => adapter_event_connection_id(event),
++        OrchestratorAdapterEvent::Terminal(delivery) => {
++            adapter_event_connection_id(delivery.event())
++        }
+         _ => None,
+     }
+ }
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -5283,8 +5283,13 @@
+ 
+     #[async_trait::async_trait]
+     impl AdapterLifecycleSink for RecordingLifecycleSink {
+-        async fn deliver_terminal(&self, _event: AdapterEvent) {
++        async fn deliver_terminal(
++            &self,
++            _event: AdapterEvent,
++        ) -> std::result::Result<(), rvoip_core::adapter::TerminalDeliveryError> {
+             self.deliveries.fetch_add(1, Ordering::SeqCst);
++
++            Ok(())
+         }
+     }
+ 
+--- a/crates/webrtc/rvoip-webrtc/src/adapter.rs
++++ b/crates/webrtc/rvoip-webrtc/src/adapter.rs
+@@ -5693,8 +5693,13 @@
+ 
+     #[async_trait]
+     impl AdapterLifecycleSink for RecordingLifecycleSink {
+-        async fn deliver_terminal(&self, _event: AdapterEvent) {
++        async fn deliver_terminal(
++            &self,
++            _event: AdapterEvent,
++        ) -> std::result::Result<(), rvoip_core::adapter::TerminalDeliveryError> {
+             self.deliveries.fetch_add(1, Ordering::SeqCst);
++
++            Ok(())
+         }
+     }
+ 
+--- a/crates/webrtc/rvoip-amazon-connect/src/adapter.rs
++++ b/crates/webrtc/rvoip-amazon-connect/src/adapter.rs
+@@ -2341,7 +2341,9 @@
+                     // response is still ambiguous locally. Detach the sole
+                     // cleanup owner rather than aborting and losing the exact
+                     // stable-token reconciliation/StopContact authority.
+-                    warn!("Amazon activation cleanup exceeded its bounded reconciliation deadline; detaching exact cleanup owner");
++                    warn!(
++                        "Amazon activation cleanup exceeded its bounded reconciliation deadline; detaching exact cleanup owner"
++                    );
+                     drop(task);
+                 }
+             }
+@@ -2583,7 +2585,12 @@
+ 
+     #[async_trait]
+     impl AdapterLifecycleSink for NoopLifecycleSink {
+-        async fn deliver_terminal(&self, _event: AdapterEvent) {}
++        async fn deliver_terminal(
++            &self,
++            _event: AdapterEvent,
++        ) -> std::result::Result<(), rvoip_core::adapter::TerminalDeliveryError> {
++            Ok(())
++        }
+     }
+ 
+     #[derive(Default)]
+--- a/crates/uctp/rvoip-websocket/tests/lifecycle_capacity.rs
++++ b/crates/uctp/rvoip-websocket/tests/lifecycle_capacity.rs
+@@ -30,10 +30,15 @@
+ 
+ #[async_trait]
+ impl AdapterLifecycleSink for RecordingLifecycleSink {
+-    async fn deliver_terminal(&self, event: AdapterEvent) {
++    async fn deliver_terminal(
++        &self,
++        event: AdapterEvent,
++    ) -> std::result::Result<(), rvoip_core::adapter::TerminalDeliveryError> {
+         assert!(matches!(event, AdapterEvent::Ended { .. }));
+         self.terminals.fetch_add(1, Ordering::AcqRel);
+         self.notified.notify_one();
++
++        Ok(())
+     }
+ }
+ 

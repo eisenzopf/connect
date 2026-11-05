@@ -444,8 +444,13 @@ impl Service {
                 }
             }
 
-            runtime.core.drain_prepared_outbound_connections().await;
-            runtime.core.drain_connection_lifecycle_tasks().await;
+            if tokio::time::timeout_at(deadline, runtime.core.drain_prepared_outbound_connections())
+                .await
+                .is_err()
+            {
+                incomplete = true;
+                tracing::debug!(target: "connect_service::canonical_runtime_drain", stage = "prepared-core", "Original shutdown deadline expired");
+            }
             let mut work = {
                 std::mem::take(&mut *runtime.work.lock().unwrap_or_else(|poison| {
                     incomplete = true;
@@ -462,13 +467,21 @@ impl Service {
             .await;
             if !matches!(settled, Ok(true)) {
                 incomplete = true;
+                tracing::debug!(target: "connect_service::canonical_runtime_drain", stage = "native-workers", deadline_expired = settled.is_err(), retained_tasks = work.len(), "Original worker join remains incomplete");
                 work.abort_all();
                 while work.join_next().await.is_some() {}
             }
-            incomplete |= !runtime.drain_control_polls(deadline).await;
-            incomplete |= runtime
+            if !runtime.drain_control_polls(deadline).await {
+                incomplete = true;
+                tracing::debug!(target: "connect_service::canonical_runtime_drain", stage = "control-polls", "Original control poll retirement remains incomplete");
+            }
+            if runtime
                 .retirement_failed
-                .load(std::sync::atomic::Ordering::Acquire);
+                .load(std::sync::atomic::Ordering::Acquire)
+            {
+                incomplete = true;
+                tracing::debug!(target: "connect_service::canonical_runtime_drain", stage = "retirement-failed", "A retained original worker reported retirement failure");
+            }
             let telephone = runtime
                 .telephone
                 .lock()
@@ -485,6 +498,14 @@ impl Service {
                     incomplete = true;
                     tracing::debug!(target:"connect_service::telephone_replacement", "Telephone adapter drain remains incomplete");
                 }
+            }
+            if let Err(error) = runtime
+                .core
+                .drain_connection_lifecycle_tasks_until(deadline)
+                .await
+            {
+                incomplete = true;
+                tracing::debug!(target: "connect_service::canonical_runtime_drain", stage = "core-lifecycle", ?error, retained_tasks = runtime.core.connection_lifecycle_task_count(), "Original lifecycle drain remains incomplete");
             }
         }
         if incomplete {

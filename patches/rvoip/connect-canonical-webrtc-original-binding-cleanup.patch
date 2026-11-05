@@ -1,0 +1,531 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -44,6 +44,7 @@
+     Shared<BoxFuture<'static, std::result::Result<Arc<RvoipPeerConnection>, AllocationError>>>;
+ type Completion = Shared<BoxFuture<'static, std::result::Result<(), String>>>;
+ struct Owner {
++    adapter: Weak<()>,
+     peer: Weak<PeerAdmission>,
+     connection: ConnectionId,
+     cancel: CancellationToken,
+@@ -57,6 +58,7 @@
+     owner: Mutex<Option<Owner>>,
+     allocation: Mutex<Option<Allocation>>,
+     completion: OnceLock<Completion>,
++    terminal: Mutex<Option<TerminalDeliveryReceipt>>,
+ }
+ impl WebRtcPhysicalBinding {
+     pub fn new(peer: &Arc<PeerAdmission>, physical: CancellationToken) -> Arc<Self> {
+@@ -67,6 +69,7 @@
+             owner: Mutex::new(None),
+             allocation: Mutex::new(None),
+             completion: OnceLock::new(),
++            terminal: Mutex::new(None),
+         })
+     }
+     /// The deployment slot is retained by the original close worker and route,
+@@ -99,6 +102,7 @@
+         peer: &Arc<PeerAdmission>,
+         id: &ConnectionId,
+         cancel: CancellationToken,
++        adapter: &Arc<()>,
+     ) -> Result<()> {
+         if self.lifetime.is_cancelled()
+             || peer.is_closed()
+@@ -113,6 +117,7 @@
+             ));
+         }
+         *owner = Some(Owner {
++            adapter: Arc::downgrade(adapter),
+             peer: Arc::downgrade(peer),
+             connection: id.clone(),
+             cancel,
+@@ -303,6 +308,9 @@
+     activation: Arc<RtcMediaActivation>,
+ }
+ pub struct CanonicalWebRtcAdapter {
++    // Retained Weak identities cannot alias a different adapter, even after
++    // the original adapter has been dropped. This is not wire authority.
++    identity: Arc<()>,
+     handle_pools: Mutex<Vec<(Weak<PeerAdmission>, Arc<StreamHandleAllocator>)>>,
+     routes: Arc<DashMap<ConnectionId, Arc<Route>>>,
+     allocated: AtomicUsize,
+@@ -310,10 +318,17 @@
+     receiver: Mutex<Option<mpsc::Receiver<OrchestratorAdapterEvent>>>,
+     lifecycle: AdapterLifecycleSinkSlot,
+ }
++fn terminal_error(id: &ConnectionId, error: TerminalDeliveryError) -> RvoipError {
++    tracing::debug!(target: "rvoip_webrtc::canonical::cleanup",
++        connection = %id, stage = "original-terminal", ?error,
++        "Original RTC terminal receipt refused");
++    RvoipError::InvalidState("RTC Core terminal delivery unconfirmed")
++}
+ impl CanonicalWebRtcAdapter {
+     pub fn new() -> Arc<Self> {
+         let (tx, rx) = mpsc::channel(64);
+         Arc::new(Self {
++            identity: Arc::new(()),
+             handle_pools: Mutex::new(Vec::new()),
+             routes: Arc::new(DashMap::new()),
+             allocated: AtomicUsize::new(0),
+@@ -351,12 +366,78 @@
+         }
+         self.end_route(id, route, reason).await
+     }
++    /// Retire only the original Core-reserved physical binding. The retained
++    /// binding is a cleanup capability, not current authority to start media.
++    /// It remains usable after the peer or Core route has already retired.
++    ///
++    /// Even when a concurrent original cleanup removed the adapter route, join
++    /// the same physical completion and preserve its error. Absence by itself
++    /// is not proof of cleanup, and a new binding at this ID is never selected.
++    pub async fn end_original_binding(
++        &self,
++        id: ConnectionId,
++        original: &Arc<WebRtcPhysicalBinding>,
++        reason: EndReason,
++    ) -> Result<()> {
++        let bound_to_original_adapter = original
++            .owner
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .is_some_and(|owner| {
++                owner.connection == id
++                    && Weak::ptr_eq(&owner.adapter, &Arc::downgrade(&self.identity))
++            });
++        if !bound_to_original_adapter {
++            return Err(RvoipError::AdmissionRejected(
++                "Original WebRTC cleanup binding differs",
++            ));
++        }
++        let route = self.routes.get(&id).map(|r| r.value().clone());
++        match route {
++            Some(route) if Arc::ptr_eq(&route.binding, original) => {
++                self.end_route(id, route, reason).await
++            }
++            Some(_) => Err(RvoipError::AdmissionRejected(
++                "Original WebRTC cleanup binding differs",
++            )),
++            None => {
++                // Neither route absence nor an accepted terminal can erase an
++                // original physical failure. Rejoin that same completion first.
++                original.shutdown().await?;
++                let terminal = original
++                    .terminal
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .clone()
++                    .ok_or(RvoipError::InvalidState(
++                        "Original WebRTC terminal receipt is unavailable",
++                    ))?;
++                terminal
++                    .wait()
++                    .await
++                    .map_err(|error| terminal_error(&id, error))
++            }
++        }
++    }
+     async fn end_route(
+         &self,
+         id: ConnectionId,
+         route: Arc<Route>,
+         reason: EndReason,
+     ) -> Result<()> {
++        let previous = route
++            .binding
++            .terminal
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .clone();
++        if let Some(terminal) = previous {
++            return terminal
++                .wait()
++                .await
++                .map_err(|error| terminal_error(&id, error));
++        }
+         route.cancel.cancel();
+         let installation = route
+             .installation
+@@ -364,39 +445,80 @@
+             .unwrap_or_else(|p| p.into_inner())
+             .as_ref()
+             .map(|i| (i.controller.clone(), i.backend.clone()));
+-        // Parent transport destruction also resolves port IO whose original
+-        // driver receipt was lost; outcome uncertainty remains historical.
+-        route.binding.shutdown().await?;
++        // Preserve original physical/backend/controller joins and errors.
++        route.binding.shutdown().await.map_err(|error| {
++            tracing::debug!(target: "rvoip_webrtc::canonical::cleanup",
++                connection = %id, stage = "original-physical", ?error,
++                "Original RTC cleanup stage refused");
++            error
++        })?;
+         if let Some((controller, backend)) = installation {
+-            backend
+-                .close()
+-                .await
+-                .map_err(|_| RvoipError::InvalidState("RTC port cleanup unconfirmed"))?;
+-            if controller
++            backend.close().await.map_err(|error| {
++                tracing::debug!(target: "rvoip_webrtc::canonical::cleanup",
++                    connection = %id, stage = "original-backend", ?error,
++                    "Original RTC cleanup stage refused");
++                RvoipError::InvalidState("RTC port cleanup unconfirmed")
++            })?;
++            let remaining = controller
+                 .shutdown(tokio::time::Instant::now() + std::time::Duration::from_secs(1))
+-                .await
+-                != 0
+-            {
++                .await;
++            if remaining != 0 {
++                tracing::debug!(target: "rvoip_webrtc::canonical::cleanup",
++                    connection = %id, stage = "original-controller", remaining,
++                    "Original RTC cleanup stage refused");
+                 return Err(RvoipError::InvalidState("RTC Core cleanup unconfirmed"));
+             }
+         }
+-        self.capacity_release(&route.binding);
+-        if self
+-            .routes
+-            .remove_if(&id, |_, r| Arc::ptr_eq(r, &route))
+-            .is_some()
+-        {
+-            self.lifecycle
+-                .queue_or_deliver_orchestrator_terminal(
+-                    &self.events,
+-                    AdapterEvent::Ended {
+-                        connection_id: id,
+-                        reason,
+-                    },
+-                )
+-                .await;
+-        }
+-        Ok(())
++        let terminal = {
++            let mut original = route
++                .binding
++                .terminal
++                .lock()
++                .unwrap_or_else(|p| p.into_inner());
++            if let Some(terminal) = original.as_ref() {
++                terminal.clone()
++            } else {
++                // Fallible admission owns capacity/queue position only. No Core
++                // terminal effect is published before the exact receipt is
++                // installed and the original adapter route has been removed.
++                let prepared = self
++                    .lifecycle
++                    .reserve_orchestrator_terminal(
++                        &self.events,
++                        AdapterEvent::Ended {
++                            connection_id: id.clone(),
++                            reason,
++                        },
++                    )
++                    .map_err(|error| terminal_error(&id, error))?;
++                let terminal = prepared.receipt();
++                *original = Some(terminal.clone());
++                if self
++                    .routes
++                    .remove_if(&id, |_, r| Arc::ptr_eq(r, &route))
++                    .is_none()
++                {
++                    // Dropping this unactivated reservation resolves its exact
++                    // receipt as refused; a changed route is never selected.
++                    drop(prepared);
++                    return Err(RvoipError::InvalidState(
++                        "Original WebRTC route ownership changed",
++                    ));
++                }
++                self.capacity_release(&route.binding);
++                prepared
++                    .activate()
++                    .map_err(|error| terminal_error(&id, error))?;
++                terminal
++            }
++        };
++        // Core retains the actual accepted task. This receipt owns no Route,
++        // binding, backend, controller or strong Core; cancelling one observer
++        // cannot lose the terminal event or create a retained ownership cycle.
++        terminal
++            .wait()
++            .await
++            .map_err(|error| terminal_error(&id, error))
+     }
+     /// Borrow only the existing allocation bound to this original admitted
+     /// peer and live route. This never constructs/replaces a peer or starts an
+@@ -562,7 +684,12 @@
+                 .ok_or(RvoipError::AdmissionRejected(
+                     "original WebRTC physical context required",
+                 ))?;
+-        binding.bind(request.peer(), request.connection(), request.cancellation())?;
++        binding.bind(
++            request.peer(),
++            request.connection(),
++            request.cancellation(),
++            &self.identity,
++        )?;
+         let id = request.connection().clone();
+         let route = Arc::new(Route {
+             session: request.session().clone(),
+@@ -728,3 +855,6 @@
+         backend.initial_resources(deadline, cancel).await
+     }
+ }
++
++#[cfg(test)]
++mod cleanup_tests;
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/cleanup_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/cleanup_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/cleanup_tests.rs
+@@ -0,0 +1,246 @@
++//! Cleanup failures must retain the original owner even when no route remains.
++use super::*;
++use rvoip_core::{
++    identity::{AuthenticationMethod, CredentialKind},
++    peer_admission::PeerAdmissionOwner,
++};
++
++fn bound_original(
++    adapter: &CanonicalWebRtcAdapter,
++    id: &ConnectionId,
++) -> (PeerAdmissionOwner, Arc<WebRtcPhysicalBinding>) {
++    let principal = AuthenticatedPrincipal {
++        subject: "original-cleanup-fixture".into(),
++        tenant: Some("fixture-tenant".into()),
++        issuer: Some("fixture-issuer".into()),
++        scopes: vec![],
++        expires_at: Some(chrono::Utc::now() + chrono::Duration::minutes(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Identified {
++            credential_kind: CredentialKind::Oidc,
++        },
++    };
++    let physical = CancellationToken::new();
++    let owner = PeerAdmissionOwner::new(
++        &principal,
++        IdentityId::new(),
++        DeviceId::new(),
++        physical.child_token(),
++        Default::default(),
++    )
++    .unwrap();
++    let binding = WebRtcPhysicalBinding::new(&owner.peer(), physical.child_token());
++    binding
++        .bind(&owner.peer(), id, physical.child_token(), &adapter.identity)
++        .unwrap();
++    (owner, binding)
++}
++
++#[tokio::test]
++async fn absent_route_rejoins_original_close_failure_without_retry_or_success() {
++    let id = ConnectionId::new();
++    let adapter = CanonicalWebRtcAdapter::new();
++    let (_owner, binding) = bound_original(&adapter, &id);
++    let original_joined = Arc::new(AtomicUsize::new(0));
++    let joined = original_joined.clone();
++    // The actual retained allocation task returned an ownership failure.
++    // Its completion must be joined once and cannot be replaced by absence.
++    let original_task = tokio::spawn(async move {
++        joined.fetch_add(1, Ordering::AcqRel);
++        Err(AllocationError::Worker)
++    });
++    *binding.allocation.lock().unwrap() = Some(
++        async move { original_task.await.unwrap_or(Err(AllocationError::Worker)) }
++            .boxed()
++            .shared(),
++    );
++    assert!(matches!(
++        binding.shutdown().await,
++        Err(RvoipError::InvalidState("WebRTC cleanup unconfirmed"))
++    ));
++    let completion = binding.completion.get().unwrap() as *const Completion;
++    assert_eq!(adapter.route_count(), 0);
++    for _ in 0..2 {
++        assert!(matches!(
++            adapter
++                .end_original_binding(id.clone(), &binding, EndReason::Normal)
++                .await,
++            Err(RvoipError::InvalidState("WebRTC cleanup unconfirmed"))
++        ));
++        assert_eq!(
++            binding.completion.get().unwrap() as *const Completion,
++            completion
++        );
++    }
++    assert_eq!(original_joined.load(Ordering::Acquire), 1);
++    assert!(!binding.actual_close_confirmed());
++    assert_eq!(adapter.total_allocations(), 0);
++}
++
++#[tokio::test]
++async fn wrong_original_connection_refuses_without_cancelling_or_closing_owner() {
++    let id = ConnectionId::new();
++    let adapter = CanonicalWebRtcAdapter::new();
++    let (_owner, binding) = bound_original(&adapter, &id);
++    assert!(matches!(
++        adapter
++            .end_original_binding(ConnectionId::new(), &binding, EndReason::Normal)
++            .await,
++        Err(RvoipError::AdmissionRejected(
++            "Original WebRTC cleanup binding differs"
++        ))
++    ));
++    assert!(!binding.lifetime.is_cancelled());
++    assert!(binding.completion.get().is_none());
++    binding.shutdown().await.unwrap();
++    assert!(binding.actual_close_confirmed());
++}
++
++#[tokio::test]
++async fn unbound_pre_core_binding_is_not_a_route_cleanup_capability() {
++    let id = ConnectionId::new();
++    let adapter = CanonicalWebRtcAdapter::new();
++    let (owner, bound) = bound_original(&adapter, &id);
++    let unbound = WebRtcPhysicalBinding::new(&owner.peer(), CancellationToken::new());
++    assert!(matches!(
++        adapter
++            .end_original_binding(id, &unbound, EndReason::Normal)
++            .await,
++        Err(RvoipError::AdmissionRejected(
++            "Original WebRTC cleanup binding differs"
++        ))
++    ));
++    assert!(!unbound.lifetime.is_cancelled());
++    assert!(unbound.completion.get().is_none());
++    // A pre-Core factory owner has its own physical-only cancellation path.
++    // It cannot select a route via an unbound historical capability.
++    unbound.shutdown().await.unwrap();
++    bound.shutdown().await.unwrap();
++    assert!(unbound.actual_close_confirmed());
++    assert!(bound.actual_close_confirmed());
++}
++
++#[tokio::test]
++async fn same_adapter_same_id_different_binding_cannot_close_current_route() {
++    use rvoip_core::{
++        participant::{ParticipantKind, ParticipantRole},
++        relationships::IdentityBinding,
++    };
++    let id = ConnectionId::new();
++    let adapter = CanonicalWebRtcAdapter::new();
++    let (owner, current) = bound_original(&adapter, &id);
++    let slots = Arc::new(tokio::sync::Semaphore::new(1));
++    *current.capacity.lock().unwrap() = Some(slots.clone().acquire_owned().await.unwrap());
++    let shadow = WebRtcPhysicalBinding::new(&owner.peer(), CancellationToken::new());
++    shadow
++        .bind(
++            &owner.peer(),
++            &id,
++            CancellationToken::new(),
++            &adapter.identity,
++        )
++        .unwrap();
++    let principal = AuthenticatedPrincipal {
++        subject: "original-cleanup-fixture".into(),
++        tenant: Some("fixture-tenant".into()),
++        issuer: Some("fixture-issuer".into()),
++        scopes: vec![],
++        expires_at: Some(chrono::Utc::now() + chrono::Duration::minutes(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Identified {
++            credential_kind: CredentialKind::Oidc,
++        },
++    };
++    let identity =
++        IdentityBinding::from_authenticated(&principal, IdentityId::new(), chrono::Utc::now())
++            .unwrap();
++    let member = Membership::admit(
++        identity.clone(),
++        ConversationId::new(),
++        ParticipantId::new(),
++        ParticipantKind::Human,
++        ParticipantRole::Agent,
++    )
++    .unwrap();
++    let endpoint = EndpointBinding::provision(
++        identity,
++        EndpointId::new(),
++        DeviceId::new(),
++        Transport::WebRtc,
++        "isolated-cleanup-control".into(),
++    )
++    .unwrap();
++    // Exercise the exact-binding check independently of the adapter identity
++    // check, including a failed/conflicting reservation's bound context.
++    let route = Arc::new(Route {
++        session: SessionId::new(),
++        member,
++        endpoint,
++        installation: Mutex::new(None),
++        binding: current.clone(),
++        peer: Arc::downgrade(&owner.peer()),
++        cancel: CancellationToken::new(),
++    });
++    adapter.routes.insert(id.clone(), route.clone());
++    assert!(matches!(
++        adapter
++            .end_original_binding(id.clone(), &shadow, EndReason::Normal)
++            .await,
++        Err(RvoipError::AdmissionRejected(
++            "Original WebRTC cleanup binding differs"
++        ))
++    ));
++    assert!(!current.lifetime.is_cancelled());
++    assert!(!shadow.lifetime.is_cancelled());
++    assert!(Arc::ptr_eq(
++        adapter.routes.get(&id).unwrap().value(),
++        &route
++    ));
++    assert!(current.completion.get().is_none());
++    assert!(shadow.completion.get().is_none());
++    // This isolated guard fixture has no registered Core sink. Its exact
++    // owner must now refuse terminal admission BEFORE releasing the route.
++    // It is not permitted to manufacture an acknowledgment from an empty queue.
++    assert!(matches!(
++        adapter
++            .end_original_binding(id.clone(), &current, EndReason::Normal)
++            .await,
++        Err(RvoipError::InvalidState(
++            "RTC Core terminal delivery unconfirmed"
++        ))
++    ));
++    assert_eq!(adapter.route_count(), 1);
++    assert_eq!(
++        slots.available_permits(),
++        0,
++        "failed terminal admission retains original quota"
++    );
++    assert!(current.terminal.lock().unwrap().is_none());
++    shadow.shutdown().await.unwrap();
++    assert!(current.actual_close_confirmed());
++    assert!(shadow.actual_close_confirmed());
++    // No Core relationship was installed by this internal identity-only test.
++    // Drop its deliberately private Route after the refusal has been checked.
++    drop(route);
++    drop(current);
++    drop(adapter);
++    assert_eq!(slots.available_permits(), 1);
++}
++
++#[tokio::test]
++async fn absent_route_with_only_physical_close_never_confirms_terminal_retirement() {
++    let id = ConnectionId::new();
++    let adapter = CanonicalWebRtcAdapter::new();
++    let (_owner, binding) = bound_original(&adapter, &id);
++    binding.shutdown().await.unwrap();
++    assert!(binding.actual_close_confirmed());
++    assert!(matches!(
++        adapter
++            .end_original_binding(id, &binding, EndReason::Normal)
++            .await,
++        Err(RvoipError::InvalidState(
++            "Original WebRTC terminal receipt is unavailable"
++        ))
++    ));
++    assert!(binding.terminal.lock().unwrap().is_none());
++}

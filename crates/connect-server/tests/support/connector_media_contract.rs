@@ -343,9 +343,14 @@ struct CleanupSink {
 }
 #[async_trait::async_trait]
 impl rvoip_core::adapter::AdapterLifecycleSink for CleanupSink {
-    async fn deliver_terminal(&self, _: rvoip_core::adapter::AdapterEvent) {
+    async fn deliver_terminal(
+        &self,
+        _: rvoip_core::adapter::AdapterEvent,
+    ) -> std::result::Result<(), rvoip_core::adapter::TerminalDeliveryError> {
         self.entered.notify_one();
         self.release.notified().await;
+
+        Ok(())
     }
 }
 #[tokio::test]
