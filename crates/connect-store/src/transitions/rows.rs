@@ -1,4 +1,6 @@
 use super::*;
+mod authority_row;
+pub(super) use authority_row::AuthoritySaved;
 pub(crate) struct Saved {
     pub record: OperationRecord,
     pub tenant: String,
@@ -47,6 +49,16 @@ pub(super) fn find(c: &Connection, tenant: &str, owner: &str, id: &str) -> Resul
     record.map(|r| by_record(c, &r)).transpose()
 }
 pub(super) fn by_record(c: &Connection, id: &str) -> Result<Saved> {
+    load(c, id, true)
+}
+
+/// Same fresh authority facts/effects/kind dispatch, without public causal-page
+/// rendering. The opaque wrapper cannot be returned as a public operation view.
+pub(super) fn for_authority(c: &Connection, id: &str) -> Result<AuthoritySaved> {
+    load(c, id, false).map(AuthoritySaved::new)
+}
+
+fn load(c: &Connection, id: &str, render_causal_page: bool) -> Result<Saved> {
     let row=cached_row(c, "SELECT tenant_id,owner_id,digest,intent_json,ledger_version,tombstoned,worker_generation,lease_owner,lease_expires_at,worker_runtime,operation_id,command_type,conversation_id,session_id,connection_id,expected_revision,state,revision,expires_at,created_at,updated_at,cancel_requested,result_json,problem_json FROM operations WHERE record_id=?1",[id],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,Option<String>>(3)?,r.get::<_,bool>(4)?,r.get::<_,bool>(5)?,r.get::<_,u64>(6)?,r.get::<_,Option<String>>(7)?,r.get::<_,Option<i64>>(8)?,r.get::<_,Option<String>>(9)?,r.get::<_,String>(10)?,r.get::<_,String>(11)?,r.get::<_,Option<String>>(12)?,r.get::<_,Option<String>>(13)?,r.get::<_,Option<String>>(14)?,r.get::<_,Option<u64>>(15)?,r.get::<_,String>(16)?,r.get::<_,u64>(17)?,r.get::<_,Option<i64>>(18)?,r.get::<_,i64>(19)?,r.get::<_,i64>(20)?,r.get::<_,bool>(21)?,r.get::<_,Option<String>>(22)?,r.get::<_,Option<String>>(23)?))).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
     let (
         tenant,
@@ -158,14 +170,19 @@ pub(super) fn by_record(c: &Connection, id: &str) -> Result<Saved> {
         |r| r.get(0),
     )
     .map_err(|_| Error::storage())?;
-    let total:u64=cached_row(c, "SELECT (SELECT COUNT(*) FROM visible_journal WHERE recipient=?1 AND (operation_record_id=?2 OR json_extract(data_json,'$.decision_record_id')=?2 OR json_extract(data_json,'$.operation_id')=?3))+(SELECT COUNT(*) FROM operation_observations WHERE operation_record_id=?2)",params![owner,id,operation_id],|r|r.get(0)).map_err(|_|Error::storage())?;
-    let mut events=c.prepare_cached("SELECT id FROM (SELECT j.id,j.sequence position,0 family FROM visible_journal j WHERE recipient=?1 AND (operation_record_id=?2 OR json_extract(data_json,'$.decision_record_id')=?2 OR json_extract(data_json,'$.operation_id')=?3) UNION ALL SELECT id,observed_at position,1 family FROM operation_observations WHERE operation_record_id=?2) ORDER BY family,position,id LIMIT 100").map_err(|_|Error::storage())?;
-    let causal_event_ids = events
-        .query_map(params![owner, id, operation_id], |r| r.get::<_, String>(0))
-        .map_err(|_| Error::storage())?
-        .collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(|_| Error::storage())?;
-    let events_omitted = total.saturating_sub(causal_event_ids.len() as u64);
+    let (causal_event_ids, events_omitted) = if render_causal_page {
+        let total:u64=cached_row(c, "SELECT (SELECT COUNT(*) FROM visible_journal WHERE recipient=?1 AND (operation_record_id=?2 OR json_extract(data_json,'$.decision_record_id')=?2 OR json_extract(data_json,'$.operation_id')=?3))+(SELECT COUNT(*) FROM operation_observations WHERE operation_record_id=?2)",params![owner,id,operation_id],|r|r.get(0)).map_err(|_|Error::storage())?;
+        let mut events=c.prepare_cached("SELECT id FROM (SELECT j.id,j.sequence position,0 family FROM visible_journal j WHERE recipient=?1 AND (operation_record_id=?2 OR json_extract(data_json,'$.decision_record_id')=?2 OR json_extract(data_json,'$.operation_id')=?3) UNION ALL SELECT id,observed_at position,1 family FROM operation_observations WHERE operation_record_id=?2) ORDER BY family,position,id LIMIT 100").map_err(|_|Error::storage())?;
+        let causal_event_ids = events
+            .query_map(params![owner, id, operation_id], |r| r.get::<_, String>(0))
+            .map_err(|_| Error::storage())?
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(|_| Error::storage())?;
+        let events_omitted = total.saturating_sub(causal_event_ids.len() as u64);
+        (causal_event_ids, events_omitted)
+    } else {
+        (Vec::new(), 0)
+    };
     Ok(Saved {
         record: OperationRecord {
             operation_id,

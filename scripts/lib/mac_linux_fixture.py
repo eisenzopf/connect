@@ -88,6 +88,28 @@ def unpack_verified(raw, destination):
     return manifest
 
 
+def programme_source_files(root):
+    """Exact private source closure, including the programme's relative contract."""
+    root = Path(root)
+    contract = "contracts/gate6-transport-matrix.json"
+    names = subprocess.check_output(["git", "ls-files", "-z", "scripts", contract], cwd=root).decode().split("\0")
+    files = {}
+    for name in filter(None, names):
+        path = root / name
+        if path.is_file() and not path.is_symlink():
+            files[name] = (path.read_bytes(), bool(path.stat().st_mode & 0o100))
+    # transport_movement_profile.mjs reads this file during module import. Do
+    # not borrow another workspace's contract or let omission become a later
+    # unidentifiable Worker startup failure. stage() seals these original bytes.
+    if contract not in files:
+        raise ValueError("Original native programme contract required")
+    for path in (root / "sdk/typescript/dist").rglob("*"):
+        if path.is_file() and not path.is_symlink():
+            files[str(path.relative_to(root))] = (path.read_bytes(), False)
+    files["sdk/typescript/package.json"] = ((root / "sdk/typescript/package.json").read_bytes(), False)
+    return files
+
+
 class MacLinuxFixture:
     def __init__(self, root, directory, env, *, run_command=subprocess.run):
         self.root, self.directory, self.env = Path(root), Path(directory), env
@@ -148,18 +170,7 @@ print(json.dumps(dict(system=platform.system(),architecture=platform.machine(),r
             if value["Id"] != self.image or value["Architecture"] != "arm64" or value["Os"] != "linux":
                 raise ValueError("Exact installed ARM browser image required")
             self.topology["browser_image_id"] = self.image
-        names = subprocess.check_output(["git", "ls-files", "-z", "scripts"], cwd=self.root).decode().split("\0")
-        files = {}
-        for name in filter(None, names):
-            path = self.root / name
-            if path.is_file() and not path.is_symlink():
-                files[name] = (path.read_bytes(), bool(path.stat().st_mode & 0o100))
-        for path in (self.root / "sdk/typescript/dist").rglob("*"):
-            if path.is_file() and not path.is_symlink():
-                files[str(path.relative_to(self.root))] = (path.read_bytes(), False)
-        for name in ("sdk/typescript/package.json",):
-            files[name] = ((self.root / name).read_bytes(), False)
-        self.stage(files)
+        self.stage(programme_source_files(self.root))
         (self.directory / "actual-topology.json").write_text(json.dumps(self.topology, indent=2) + "\n")
         return self.topology
 

@@ -36,6 +36,17 @@ pub(super) enum ReplacementLifecycle {
     WebRtc(Arc<Source>),
 }
 impl ReplacementLifecycle {
+    pub(super) fn start_private(&self, policy: &Arc<TargetPolicy>) -> Result<()> {
+        match self {
+            Self::Native(n) => n.start_private(policy),
+            Self::WebRtc(_) => Ok(()),
+        }
+    }
+    pub(super) fn begin_movement(&self) {
+        if let Self::Native(n) = self {
+            n.begin_movement();
+        }
+    }
     pub(super) fn activate(&self, runtime: &Runtime) -> Result<()> {
         match self {
             Self::Native(n) => n.activate(runtime),
@@ -493,6 +504,7 @@ impl Runtime {
             public_continuation: OnceLock::new(),
             origin: OnceLock::new(),
             preparation_operation: OnceLock::new(),
+            receive_diagnostics: Default::default(),
             data_observer: None,
             readiness: Some(readiness.clone()),
         });

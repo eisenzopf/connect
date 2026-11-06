@@ -1,0 +1,185 @@
+--- a/crates/uctp/rvoip-uctp/src/native_flow/video_epochs.rs
++++ b/crates/uctp/rvoip-uctp/src/native_flow/video_epochs.rs
+@@ -111,6 +111,7 @@
+         &self,
+         active: &[ReadyMediaBinding],
+         sent: &BTreeMap<(StreamId, bool), u64>,
++        receiver_epochs_only: bool,
+     ) -> Option<VideoEpochObservation> {
+         if !self.current() {
+             return None;
+@@ -120,7 +121,8 @@
+             .values
+             .values()
+             .filter(|v| {
+-                (v.current)()
++                (!receiver_epochs_only || !v.epoch.publisher)
++                    && (v.current)()
+                     && sent.get(&v.key()).is_none_or(|old| *old < v.revision)
+                     && active.iter().any(|b| same_binding(b, &v.binding))
+             })
+@@ -138,3 +140,52 @@
+             })
+     }
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::sync::atomic::{AtomicBool, Ordering};
++    fn binding() -> ReadyMediaBinding {
++        ReadyMediaBinding {
++            negotiated: NegotiatedStream { requested: DesiredStream {
++                logical_id: StreamId::from_string("camera"), medium: Medium::Video, direction: StreamDirection::Both,
++            }, format: MediaFormat::Encoded { name:"vp8".into(), clock_rate_hz:90000, channels:0, fmtp:None } },
++            transport_id: StreamId::from_string("physical-camera"), stream_local_id:7,
++            generation:3, connection_generation:2, source_ready:true, sink_ready:true,
++        }
++    }
++    fn epoch(publisher: bool, id: u128) -> VideoFeedbackEpoch {
++        VideoFeedbackEpoch {publisher,epoch:id,ssrc:41,first_sequence:71,first_timestamp:9000}
++    }
++    #[test]
++    fn private_receiver_selection_skips_older_publisher_without_consuming_ordinary_history() {
++        let flow=NativeFlow::new(CancellationToken::new()); let binding=binding();
++        let profile=flow.video_feedback_profile(&binding,"original-op","original-offer");
++        profile.announce(&binding,epoch(true,1),Arc::new(||true)).unwrap();
++        assert!(flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),true).is_none());
++        profile.announce(&binding,epoch(false,2),Arc::new(||true)).unwrap();
++        let receiver=flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),true).unwrap();
++        assert!(!receiver.epoch().publisher); assert_eq!(receiver.epoch(),epoch(false,2));
++        assert_eq!(receiver.original_operation(),"original-op"); assert_eq!(receiver.original_offer(),"original-offer");
++        let sent=BTreeMap::from([(receiver.key(),receiver.revision())]);
++        assert!(flow.next_video_epoch(std::slice::from_ref(&binding),&sent,true).is_none());
++        let publisher=flow.next_video_epoch(std::slice::from_ref(&binding),&sent,false).unwrap();
++        assert_eq!(publisher.epoch(),epoch(true,1)); assert!(publisher.revision()<receiver.revision());
++        assert_eq!(publisher.original_operation(),receiver.original_operation());
++        assert!(flow.next_video_epoch(&[],&sent,false).is_none());
++    }
++    #[test]
++    fn private_receiver_selection_refuses_retired_route_and_changed_binding_generation() {
++        let stop=CancellationToken::new(); let flow=NativeFlow::new(stop.clone()); let binding=binding();
++        let current=Arc::new(AtomicBool::new(true)); let live=current.clone();
++        flow.video_feedback_profile(&binding,"original-op","original-offer").announce(
++            &binding,epoch(false,2),Arc::new(move||live.load(Ordering::Acquire))).unwrap();
++        let mut changed=binding.clone(); changed.generation+=1;
++        assert!(flow.next_video_epoch(&[changed],&BTreeMap::new(),true).is_none());
++        assert!(flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),true).is_some());
++        current.store(false,Ordering::Release);
++        assert!(flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),true).is_none());
++        stop.cancel();
++        assert!(flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),false).is_none());
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
+@@ -94,6 +94,10 @@
+ }
+ #[async_trait]
+ pub trait NativeLifecyclePolicy: Send + Sync {
++    /// Event selection only, never authority. A staged receiver needs genuine
++    /// epoch metadata before decoded readiness, without public lifecycle facts.
++    fn receiver_epochs_only(&self) -> bool { false }
++
+     async fn authorize(
+         &self,
+         scope: &NativeLifecycleScope,
+@@ -354,6 +358,7 @@
+                 &self.flow,
+                 &controller,
+                 &self.scope,
++                self.policy.receiver_epochs_only(),
+             );
+             let Some(event) = event else {
+                 drop(state);
+@@ -451,6 +456,7 @@
+     flow: &NativeFlow,
+     controller: &StreamController,
+     scope: &NativeLifecycleScope,
++    receiver_epochs_only: bool,
+ ) -> Option<NativeLifecycleEvent> {
+     // A receiver may need this history before its first decodable keyframe.
+     // It is independent of Connection readiness and never announces that state.
+@@ -458,10 +464,11 @@
+         state
+             .video_epochs
+             .retain(|(transport, _), _| active.iter().any(|b| &b.transport_id == transport));
+-        if let Some(observation) = flow.next_video_epoch(active, &state.video_epochs) {
++        if let Some(observation) = flow.next_video_epoch(active, &state.video_epochs, receiver_epochs_only) {
+             return Some(NativeLifecycleEvent::StreamEpoch { observation });
+         }
+     }
++    if receiver_epochs_only { return None; }
+     if !state.ready {
+         if !active.is_empty()
+             && flow.confirmed_at(revision)
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/video_epochs.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/video_epochs.rs
+@@ -465,3 +465,47 @@
+     s.wire.server.shutdown().await.unwrap();
+     other.server.shutdown().await.unwrap();
+ }
++
++/// Real signed notices and media on the same two registrations. Controlled
++/// relationship authority here does not stand in for Connect Store authority.
++#[tokio::test]
++async fn signed_receiver_only_registration_suppresses_public_ready_until_ordinary_adoption() {
++    let profile=Arc::new((*profile(false)).clone().with_video_feedback());
++    let mut s=Scene::new_profiled("quic",false,true,true,profile,None).await;
++    s.record.lifecycle.store(true,Ordering::Release);
++    s.record.receiver_epochs_only.store(true,Ordering::Release);
++    let mut offered=lifecycle_offer(&s,0,0,"sendonly");
++    offered["payload"]["streams_offered"]=json!([{"id":"camera","kind":"video","direction":"sendonly","codec_preferences":["vp8"]}]);
++    let (_,callback)=s.prepared(offered).await; let source_handle=subscriptions::stream_handle(&callback,"camera");
++    s.confirm(&callback).await; s.wait(1).await;
++    let mut other=s.second_wire().await;
++    let mut offered=lifecycle_offer(&s,1,0,"recvonly");
++    offered["payload"]["streams_offered"]=json!([{"id":"camera","kind":"video","direction":"recvonly","codec_preferences":["vp8"]}]);
++    let (_,callback)=other_prepared(&s,&mut other,offered).await;
++    let target_handle=subscriptions::stream_handle(&callback,"camera");
++    other.send(s.f.sign(s.confirmation(&callback))).await; s.wait(2).await;
++    let receiver=s.native.adapters[&s.kind].media_controller(&s.second_id).unwrap();
++    other.send(s.f.sign(subscriptions::command("stream.subscribe",receiver.revision(),json!({"subscriptions":[{"strm_id":"camera"}]})))).await;
++    assert_eq!(other.read().await.kind(),"ack");
++    send(&s.wire,subscriptions::video_sequence(source_handle,2,6000));
++    let delivered=received(&other).await; assert_eq!(delivered.stream_local_id,target_handle);
++    let private=epoch(&s.f,&mut other).await;
++    assert_eq!(private["payload"]["direction"],"receiver");
++    // Both actual directions of these one-way bindings have flowed. Despite
++    // that, neither public Ready/open nor publisher metadata may be announced.
++    no_event(&mut s.wire).await; no_event(&mut other).await;
++    assert_eq!(s.record.event_approvals.load(Ordering::Acquire),1);
++    s.record.receiver_epochs_only.store(false,Ordering::Release);
++    let publisher=epoch(&s.f,&mut s.wire).await;
++    assert_eq!(publisher["payload"]["direction"],"publisher");
++    assert_eq!(publisher["payload"]["first_timestamp"],6000);
++    for wire in [&mut s.wire,&mut other] {
++        let ready=tokio::time::timeout(Duration::from_secs(3),wire.read()).await.unwrap();
++        assert_eq!(ready.kind(),"connection.ready"); s.f.verify_server(&ready).await;
++        let opened=tokio::time::timeout(Duration::from_secs(3),wire.read()).await.unwrap();
++        assert_eq!(opened.kind(),"stream.opened"); s.f.verify_server(&opened).await;
++    }
++    // No reoffer or new registration was made to resume ordinary lifecycle.
++    assert_eq!(s.record.results.lock().unwrap().len(),2);
++    s.wire.server.shutdown().await.unwrap(); other.server.shutdown().await.unwrap();
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -485,6 +485,7 @@
+     results: Mutex<Vec<Result<NativeOfferOutcome, NativeOfferError>>>,
+     media: Mutex<Option<Arc<NativePeerMedia>>>,
+     lifecycle: AtomicBool,
++    receiver_epochs_only: AtomicBool,
+     bootstrap: AtomicBool,
+     server_requests: AtomicBool,
+     future_subscriptions: Mutex<Option<Arc<future_subscriptions::Policy>>>,
+@@ -1340,6 +1341,9 @@
+ }
+ #[async_trait]
+ impl NativeLifecyclePolicy for EventPolicy {
++    fn receiver_epochs_only(&self) -> bool {
++        self.record.receiver_epochs_only.load(Ordering::Acquire)
++    }
+     async fn authorize(
+         &self,
+         s: &NativeLifecycleScope,

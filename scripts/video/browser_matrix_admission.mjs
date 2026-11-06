@@ -186,7 +186,7 @@ try{
         };
         const {browserMatrixPlan,browserMatrixAdmission,retireBrowserMatrixAdmission}=await import('/_matrix/admission.mjs');
         const {browserMatrixSources}=await import('/_matrix/sources.mjs');
-        const {browserMatrixProgramme,browserMatrixKeepalive}=await import('/_matrix/programme.mjs');
+        const {browserMatrixProgramme,browserMatrixKeepalive,retireBrowserMatrixProgramme,closeBrowserMatrixProgramme}=await import('/_matrix/programme.mjs');
         const pin=Uint8Array.from(spec.tls.leafSha256.match(/../g),value=>parseInt(value,16));
         let pinRefusal;
         if(selected==='webtransport'){
@@ -257,15 +257,16 @@ try{
                 window.matrixPhase='four-move-programme';
                 await browserMatrixProgramme({state,actors,plan,sources,journal:event=>window.matrixJournal(event),
                     keepalive,report:programmeReport,observer,selectedTransport:selected});
-                await keepalive.close();
             }
-            window.matrixPhase='original-retirement';
-            if(spec.stage==='quality'){
-                resourceTerminalRequested=true;
-                await window.matrixResources('terminal',resourceClock.host+(programmeReport.terminal_ms-resourceClock.browser)/1000);
-            }
-            const retirement=await retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event),
-                ...(spec.stage!=='admission'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
+            const retirement=await retireBrowserMatrixProgramme({keepalive,report:programmeReport,retire:async()=>{
+                window.matrixPhase='original-retirement';
+                if(spec.stage==='quality'){
+                    resourceTerminalRequested=true;
+                    await window.matrixResources('terminal',resourceClock.host+(programmeReport.terminal_ms-resourceClock.browser)/1000);
+                }
+                return retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event),
+                    ...(spec.stage!=='admission'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
+            }});
             let idleResources;
             if(spec.stage==='quality'){
                 const renderer=await observer.close();await sources.close();
@@ -296,6 +297,7 @@ try{
             return {passed:retirement.passed&&selection.passed&&currentAuthority.passed&&(spec.stage==='admission'||programmeReport.passed)&&(!observer||programmeReport.decoded_media.passed)&&(!idleResources||idleResources.passed),
                 ...(observer?{decoded_media:programmeReport.decoded_media,
                     ...(programmeReport.decoded_media.passed?{}:{failure:{stage:'decoded-media-quality',name:'ProfileBudgetsFailed'}})}:{}),wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,admission:state.report,
+                ...(programmeReport.keepalive_failure?{failure:{stage:'original-keepalive',...programmeReport.keepalive_failure}}:{}),
                 actual_connections:state.connections.length,source_startup:sourceStartup,retirement,idle_resources:idleResources,selection,current_authority:currentAuthority,
                 ...(spec.stage!=='admission'?{programme:programmeReport,keepalive:keepalive.observation()}:{}),
                 ...(spec.stage!=='admission'?{scope:'Actual admission and four-move programme; decoded quality and idle resources are explicit when requested. Capture/expiry/fallback require separate evidence.'}:{})};
@@ -312,7 +314,7 @@ try{
                 catch(failure){cleanupErrors.push({stage:'terminal',name:failure.name});}
             }
             const closes=await Promise.allSettled(Object.values(actors).map(actor=>actor.client.close({timeoutMs:5000})));
-            const local=await Promise.allSettled([keepalive?.close(),observer?.close(),sources?.close()]);
+            const {outcomes:local}=await closeBrowserMatrixProgramme({keepalive,observer,sources,report:programmeReport,previousFailure:true});
             local.forEach((value,index)=>{if(value.status==='rejected')cleanupErrors.push({stage:['keepalive','renderer','source'][index],name:value.reason?.name??'Error'});});
             let failedIdle;
             if(spec.stage==='quality'&&resourceClock&&resourceTerminalRequested&&!resourceRetiredRequested){
@@ -330,13 +332,14 @@ try{
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
-                programme:programmeReport,keepalive:keepalive?.observation(),selection,current_authority:currentAuthority,
+                programme:programmeReport,...(programmeReport.decoded_media?{decoded_media:programmeReport.decoded_media}:{}),
+                keepalive:keepalive?.observation(),selection,current_authority:currentAuthority,
                 idle_resources:failedIdle,original_cleanup_errors:cleanupErrors,original_client_closes:closes.map(value=>value.status)};
         } finally {
-            const closed=await Promise.allSettled([keepalive?.close(),observer?.close(),sources?.close()]);
+            const closed=await closeBrowserMatrixProgramme({keepalive,observer,sources,report:programmeReport,previousFailure:failureHandled});
             BrowserMediaPeer.prototype.shutdown=originalShutdown;BrowserMediaPeer.prototype.beginReplacementConnection=beginReplacement;
             BrowserRtcConnection.prototype.shutdown=originalRtcShutdown;
-            if(!failureHandled){const failed=closed.find(value=>value.status==='rejected');if(failed)throw failed.reason;}}
+            if('failure' in closed)throw closed.failure;}
         })().then(value=>{original.value=value;original.state='fulfilled';},error=>{
             original.error={name:error.name,message:String(error.message??error),stack:String(error.stack??error)};
             original.state='rejected';

@@ -101,3 +101,65 @@ where
         "Replacement metadata retry phase observed");
     result
 }
+
+/// Numeric attribution owned by the existing original target, not a worker or
+/// a reader. A fixed leaf bitset bounds output to fourteen lines per target.
+#[derive(Default)]
+pub(super) struct PrivateReceive {
+    seen: AtomicU64,
+}
+impl PrivateReceive {
+    pub(super) fn refused(
+        &self,
+        leaf: u32,
+        target: &super::media::TargetPolicy,
+        scope: &rvoip_core::staged_streams::MediaScope<'_>,
+        source: &rvoip_core::staged_streams::MediaSource,
+        medium: Option<rvoip_core::stream_lifecycle::Medium>,
+        error: &rvoip_core::staged_streams::StreamControlError,
+    ) {
+        const LEAVES: [&str; 14] = [
+            "scope",
+            "readiness-gate",
+            "current-preroll-source",
+            "scene-registry",
+            "original-media-origin",
+            "current-scene-read",
+            "scene-read-current",
+            "selected-source-permission",
+            "source-entry",
+            "source-projection",
+            "source-descriptor",
+            "current-replacement-owners",
+            "original-activation",
+            "current-replacement-activation",
+        ];
+        if !tracing::enabled!(target:"connect_service::private_receive_refusal",tracing::Level::DEBUG)
+            || leaf as usize >= LEAVES.len()
+        {
+            return;
+        }
+        let bit = 1u64 << leaf;
+        if self.seen.fetch_or(bit, Ordering::Relaxed) & bit != 0 {
+            return;
+        }
+        let root = target.root.upgrade();
+        let receiver = target
+            .readiness
+            .as_ref()
+            .and_then(|gate| gate.diagnostic_video_receiver(source));
+        tracing::debug!(target:"connect_service::private_receive_refusal",
+            leaf=LEAVES[leaf as usize], connection=%scope.connection,
+            target_generation=target.pending.generation(),
+            operation_id=?root.as_ref().map(|root|&root.handle.intent().operation_id),
+            source_connection=%source.connection, source_generation=source.connection_generation,
+            source_logical=%source.logical_id, source_transport=%source.transport_id,
+            source_stream_generation=source.stream_generation,
+            medium=?medium.or(receiver.map(|_|rvoip_core::stream_lifecycle::Medium::Video)),
+            target_logical=?receiver,
+            preroll_current=target.readiness.as_ref().and_then(|gate|gate.preroll.get()).is_some_and(|p|p.is_current()),
+            core_committed=root.as_ref().is_some_and(|root|root.handle.is_committed()),
+            root_cancelled=root.as_ref().is_none_or(|root|root.handle.cancellation().is_cancelled()),
+            ?error,"Original private receive authority leaf refused");
+    }
+}

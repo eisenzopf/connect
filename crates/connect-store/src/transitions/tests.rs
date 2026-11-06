@@ -1,5 +1,6 @@
 #![allow(clippy::unwrap_used)]
 use super::*;
+mod authority_rows;
 mod authority_tests;
 mod consultation;
 mod peer_operations;

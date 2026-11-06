@@ -5,11 +5,13 @@ import {browserMatrixObservation} from '../lib/browser_matrix_observation.mjs';
 import {nativeIdentity,bindNativeStreams,nativeBoundary} from '../../sdk/tests/native_activation_fixture.mjs';
 const deferred=()=>{let resolve;const promise=new Promise(value=>resolve=value);return {promise,resolve};};
 const flush=async()=>{for(let i=0;i<80;i++)await Promise.resolve();};
-async function fixture({invalidReceipt=false,oldRefusal=false}={}){
+async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=false,snapshotRefusal=false}={}){
  const originalClock=globalThis.performance,originalTimer=globalThis.setTimeout,originalDocument=globalThis.document;
  let now=0;const timers=[],timeOrigin=1_800_000_000_000;globalThis.performance={now:()=>now,timeOrigin};globalThis.setTimeout=(resolve,ms)=>{timers.push({at:now+ms,resolve});};
  globalThis.document={createElement:()=>({getContext:()=>({})})};
  const commit=deferred(),oldRead=deferred(),prepared=deferred(),journals=[],byOperation=new Map(),renderers=new Map(),actors={};
+ const reachabilityError=Object.assign(Error('Original reachability failure'),{kind:'transport-uncertain',certainty:'read-only'});
+ const snapshotError=Object.assign(Error('Original snapshot refusal'),{kind:'authentication',certainty:'read-only'});
  const plan={programmeMs:62000,sessions:[{id:'session-a'},{id:'session-b'}],routes:Array.from({length:6},(_,index)=>({index,session:index<4?0:1,
   role:`member-${index%4+1}`,audio:`audio-${index}`,video:`video-${index}`,connection:`initial-${index}`})),moves:[]};
  // Members0 and4 need distinct original control owners even though media IDs repeat.
@@ -42,7 +44,7 @@ async function fixture({invalidReceipt=false,oldRefusal=false}={}){
    return {reference:{operation:intent.operation},referenceJson:()=>({operation:intent.operation}),wait:()=>completion};},
   async refresh(){if(id.startsWith('initial-')&&[0,4].includes(index)){await oldRead.promise;return {state:oldRefusal&&index===0?'active':'retired'};}return {state:'retired'};}});
  for(const role of [...plan.routes.map(route=>route.role),'target']){
-  const session={refresh:async()=>({topologyRevision:1}),connections:{prepareReplacement:async({operation})=>{
+  const session={refresh:async()=>{if(snapshotRefusal&&role==='member-1'&&now<40000)throw snapshotError;return {topologyRevision:1};},connections:{prepareReplacement:async({operation})=>{
    prepared.resolve();return byOperation.get(operation.operation);
   }}};
   actors[role]={deviceId:role+'-device',endpointId:role+'-endpoint',client:{conversations:{byId:()=>({sessions:{byId:()=>session}})}}};
@@ -51,7 +53,8 @@ async function fixture({invalidReceipt=false,oldRefusal=false}={}){
  for(const route of plan.routes)sources.sources[route.index].attachments.push({connectionId:route.connection,capture:{closed:false}});
  class Renderer{audio(){return true;}video(){return true;}}
  const observer=browserMatrixObservation(Renderer,plan),report={};
- const work=browserMatrixProgramme({state,actors,plan,sources,journal:async value=>journals.push(value),keepalive:{check(){}},report,observer,selectedTransport:'webtransport'});
+ const work=browserMatrixProgramme({state,actors,plan,sources,journal:async value=>journals.push(value),
+  keepalive:{check(){if(keepaliveFailure&&now>=20000)throw reachabilityError;}},report,observer,selectedTransport:'webtransport'});
  const advance=async at=>{now=at;for(const timer of timers.splice(0).filter(timer=>timer.at<=at))timer.resolve();await flush();};
  const audio=(connectionId,timestamp,sequence=1)=>{
   const entry=byOperation.get(connectionId.slice('target-'.length)),index=entry.index;
@@ -66,17 +69,38 @@ async function fixture({invalidReceipt=false,oldRefusal=false}={}){
  };
  try{
   await flush();await advance(15000);await prepared.promise;await flush();
-  audio('target-move-0-0',0,0);assert.equal(observer.report().routes[0].audio.decoded_seconds,0,'Prepared private output stays excluded');
-  commit.resolve();await flush();now=15020;audio('target-move-0-0',20000);
-  const observed=observer.report().routes[0];
-  assert.equal(observed.audio.decoded_seconds,invalidReceipt?0:.02,'Only a validated postcommit target is observed while old refresh is blocked');
-  if(!invalidReceipt){assert.equal(observed.sync.audio_envelope.raw_threshold_transitions[0].at,15.02,'Keep actual receive callback time');
-   audio('target-move-0-0',20000);assert.equal(observer.report().routes[0].audio.duplicate_frames,1,'Original duplicate detection remains strict');}
+  if(!snapshotRefusal)audio('target-move-0-0',0,0);
+  assert.equal(observer.report().routes[0].audio.decoded_seconds,0,'Prepared private output stays excluded');
+  commit.resolve();await flush();now=15020;
+  if(!snapshotRefusal){
+   audio('target-move-0-0',20000);
+   const observed=observer.report().routes[0];
+   assert.equal(observed.audio.decoded_seconds,invalidReceipt?0:.02,'Only a validated postcommit target is observed while old refresh is blocked');
+   if(!invalidReceipt){assert.equal(observed.sync.audio_envelope.raw_threshold_transitions[0].at,15.02,'Keep actual receive callback time');
+    audio('target-move-0-0',20000);assert.equal(observer.report().routes[0].audio.duplicate_frames,1,'Original duplicate detection remains strict');}
+  }else assert.equal(byOperation.has('move-0-0'),false,'A refused fresh snapshot must not submit a replacement');
   oldRead.resolve();await flush();await advance(40000);await advance(62000);await work;
-  if(invalidReceipt||oldRefusal)assert.ok(report.failures.some(value=>value.operation_id==='move-0-0'),'Verification failure remains a failed original move');
+  if(invalidReceipt||oldRefusal||snapshotRefusal)assert.ok(report.failures.some(value=>value.operation_id==='move-0-0'),'Verification failure remains a failed original move');
   else assert.equal(report.moves.length,4);
+  if(keepaliveFailure){
+   assert.equal(report.passed,false,'Original reachability failure cannot pass the programme');
+   assert.equal(report.keepalive_failure.kind,reachabilityError.kind);
+   assert.equal(report.keepalive_failure.certainty,'read-only');
+   assert.equal(report.finished_ms,62000,'An unrelated owner failure cannot shorten the original clock');
+   assert.ok(report.decoded_media,'Collect the independent observer even on a failed programme');
+   assert.equal(journals.at(-1).kind,'programme-terminal');
+  }
+  if(snapshotRefusal){
+   assert.deepEqual(report.blocked_moves.map(value=>value.operation_id),['move-0-1']);
+   assert.equal(byOperation.has('move-0-1'),false,'No return mutation follows a failed outbound root');
+   assert.ok(byOperation.has('move-4-1'),'The independent original route still executes its return');
+   assert.equal(report.failed_move_attempts,1);
+   assert.equal(report.failures[0].kind,snapshotError.kind,'Preserve a refusal before mutation submission');
+  }
  }finally{commit.resolve();oldRead.resolve();await flush();await advance(40000);await advance(62000);await work.catch(()=>{});await observer.close();globalThis.performance=originalClock;globalThis.setTimeout=originalTimer;globalThis.document=originalDocument;}
 }
 test('validated target output is observed before a slow old-owner verification read',()=>fixture());
 test('invalid ready receipt never activates prepared output',()=>fixture({invalidReceipt:true}));
 test('old-owner verification refusal still fails after actual postcommit output is observed',()=>fixture({oldRefusal:true}));
+test('reachability failure keeps both independent move slots and the original measurement terminal',()=>fixture({keepaliveFailure:true}));
+test('refused outbound snapshot blocks only its own return despite a reachability failure',()=>fixture({keepaliveFailure:true,snapshotRefusal:true}));

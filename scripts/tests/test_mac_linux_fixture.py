@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
-from lib.mac_linux_fixture import MacLinuxFixture, archive_files, rewrite_paths, unpack_verified
+from lib.mac_linux_fixture import MacLinuxFixture, archive_files, programme_source_files, rewrite_paths, unpack_verified
 from lib.vm_workload_lease import VmWorkloadLease, cleanup_evidence
 import mac_linux_guest
 
@@ -30,6 +30,38 @@ class MacLinuxPlumbing(unittest.TestCase):
         for key in ("operation_id","credential","endpoint","other"):
             self.assertEqual(value[key],source[key])
         self.assertEqual(source["config"],"/host/root/.local/actor.toml")
+
+    def test_programme_transfer_keeps_its_exact_relative_contract_and_sdk(self):
+        contract = "contracts/gate6-transport-matrix.json"
+        module = "scripts/lib/transport_movement_profile.mjs"
+        payloads = {contract: b'{"workload":{"movement":{"original":"pinned"}}}\n',
+                    module: b'const original = new URL("../../contracts/gate6-transport-matrix.json", import.meta.url);\n',
+                    "sdk/typescript/dist/index.js": b'export const original = "sdk";\n',
+                    "sdk/typescript/package.json": b'{"type":"module"}\n'}
+        for name, body in payloads.items():
+            p = self.root / name
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_bytes(body)
+        tracked = (module + "\0" + contract + "\0").encode()
+        with patch("lib.mac_linux_fixture.subprocess.check_output", return_value=tracked) as tracked_call:
+            files = programme_source_files(self.root)
+        tracked_call.assert_called_once_with(["git", "ls-files", "-z", "scripts", contract], cwd=self.root)
+        self.assertEqual(set(files), set(payloads))
+        with tarfile.open(fileobj=io.BytesIO(archive_files(files)), mode="r:") as archive:
+            for name, body in payloads.items():
+                self.assertEqual(archive.extractfile(name).read(), body)
+                self.assertEqual((self.root / name).read_bytes(), body)
+        # A missing contract cannot be substituted from /workspace or another
+        # run. A symlink is not an ordinary sealed source dependency either.
+        for tracked_value in [(module + "\0").encode(), tracked]:
+            if tracked_value == tracked:
+                (self.root / contract).unlink()
+                outside = self.root / "another-contract.json"
+                outside.write_bytes(payloads[contract])
+                (self.root / contract).symlink_to(outside)
+            with patch("lib.mac_linux_fixture.subprocess.check_output", return_value=tracked_value), \
+                    self.assertRaisesRegex(ValueError, "Original native programme contract required"):
+                programme_source_files(self.root)
 
     def test_verified_results_require_exact_manifest_before_writing(self):
         body=b'{"operation_id":"original"}'

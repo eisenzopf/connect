@@ -299,6 +299,7 @@ impl Runtime {
             .preparation_operation
             .set(context.operation_id().to_owned())
             .map_err(|_| Error::forbidden())?;
+        started.lifecycle.start_private(&started.policy)?;
         tracing::debug!(target: "connect_service::replacement_phase_trace",
             operation = %root.origin.request().operation_id, "Replacement decoder preparation requested");
         let preparation = retry_metadata(&self.stop, || async {

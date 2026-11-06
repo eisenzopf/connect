@@ -371,3 +371,40 @@ mod decoder_contract_tests {
         );
     }
 }
+
+impl ReadyGate {
+    pub(super) fn receiver_epoch_preroll(
+        &self,
+        binding: &rvoip_core::stream_lifecycle::ReadyMediaBinding,
+    ) -> Option<Arc<VideoReplacementPreparation>> {
+        if tokio::time::Instant::now() >= self.deadline
+            || binding.negotiated.requested.medium != Medium::Video
+            || self.video.as_deref() != Some(binding.negotiated.requested.logical_id.as_str())
+            || binding.connection_generation != self.target_generation
+        {
+            return None;
+        }
+        self.preroll.get().filter(|p| p.is_current()).cloned()
+    }
+}
+
+impl ReadyGate {
+    /// Immutable route identifiers for diagnostics only, including a retired
+    /// original mapping. This cannot authorize delivery or infer media flow.
+    pub(super) fn diagnostic_video_receiver(&self, source: &MediaSource) -> Option<&str> {
+        self.preroll.get().filter(|p| {
+            p.sources().iter().any(|old| {
+                old.conversation == source.conversation
+                    && old.session == source.session
+                    && old.connection == source.connection
+                    && old.participant == source.participant
+                    && old.membership_epoch == source.membership_epoch
+                    && old.connection_generation == source.connection_generation
+                    && old.logical_id == source.logical_id
+                    && old.transport_id == source.transport_id
+                    && old.stream_generation == source.stream_generation
+            })
+        })?;
+        self.video.as_deref()
+    }
+}

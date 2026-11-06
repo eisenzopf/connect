@@ -18,7 +18,7 @@ from .transport_matrix_verdict import blocked, summarize
 
 
 VM_ENV = dict(PATH="/opt/cargo/bin:/opt/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-    RUSTUP_HOME="/opt/rustup", CARGO_HOME="/opt/cargo", CARGO_BUILD_JOBS="4",
+    RUSTUP_HOME="/opt/rustup", CARGO_HOME="/opt/cargo", CARGO_BUILD_JOBS="6",
     CARGO_TARGET_DIR="/workspace/.local/target-arm64", CARGO_PROFILE_RELEASE_DEBUG="0",
     CARGO_NET_OFFLINE="true", CONNECT_GATE6_OWNED_LINUX_VM="connect-gate6")
 IMAGE = "sha256:2856c7b7ae4eea13ba0fb4a5605b4f182557f0b1842f45efebd2c03ea66e9e6c"
@@ -132,7 +132,10 @@ def run(root, args):
         for host, command in (("macos-arm64", mac_command), ("ubuntu24-arm64", linux_command)):
             log = (output / (host + ".log")).open("xb")
             logs.append(log)
-            workers[host] = subprocess.Popen(command, cwd=root, stdout=log, stderr=subprocess.STDOUT,
+            worker_env = dict(os.environ)
+            if host == "macos-arm64":
+                worker_env["CARGO_BUILD_JOBS"] = "8"
+            workers[host] = subprocess.Popen(command, cwd=root, env=worker_env, stdout=log, stderr=subprocess.STDOUT,
                                               stdin=subprocess.DEVNULL, start_new_session=True)
         def read_report(host):
             if host == "macos-arm64":

@@ -1779,6 +1779,11 @@
       "path": "patches/rvoip/connect-native-composite-activation-capability.patch",
       "sha256": "983abdff244e8c2ee74950b42506755cf5281cbea38722387589c4310190650b",
       "source": "G6-058 forward original StagedRtpMedia native sequence-cursor capability through the production NativeMedia composite. Preserve Data/unsupported behavior; exact native activation and physical-reader validation remain required. Retained release diagnostic identifies post-Core capture conflict; normal-runtime verification pending."
+    },
+    {
+      "path": "patches/rvoip/connect-private-receiver-lifecycle-epochs.patch",
+      "sha256": "f4afc47910002df88e6155347c0512052cf56d01c9a387b8ce520ff0c45ac14d",
+      "source": "G6-058 private receiver-only signed epoch selection through original captured lifecycle registration. Filter publisher history before selection; public readiness/open/quality remains suppressed until ordinary activation. Service derives fresh private/committing/ordinary authority separately; no new worker, frame, grant, deadline or SDK downgrade. Behavioral validation pending. Includes metadata selector controls for publisher starvation/stale generations and actual signed receiver-only/public lifecycle suppression on original registrations; tests unrun."
     }
   ]
 }

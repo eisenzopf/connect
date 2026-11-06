@@ -182,6 +182,7 @@ impl Runtime {
             public_continuation: OnceLock::new(),
             origin: OnceLock::new(),
             preparation_operation: OnceLock::new(),
+            receive_diagnostics: Default::default(),
             data_observer,
             readiness: Some(gate),
         });

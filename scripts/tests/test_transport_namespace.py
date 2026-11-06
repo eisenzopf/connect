@@ -73,6 +73,24 @@ class NamespaceBoundary(unittest.TestCase):
             with self.subTest(suffix=suffix), self.assertRaises(AssertionError):
                 self.owner.server_command("/owned/connect", "/private/server.toml", dict(self.env, RUST_LOG=commit + suffix))
 
+    def test_shared_retention_events_preserve_each_bounded_server_profile(self):
+        self.owner.created = True
+        base = "info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug"
+        retention = ",connect_service::runtime_retention=debug"
+        for suffix in ["", ",connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug",
+                       ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug"]:
+            selected = base + retention + suffix
+            with self.subTest(profile=suffix):
+                command = self.owner.server_command("/owned/connect", "/private/server.toml", dict(self.env, RUST_LOG=selected))
+                self.assertIn("--setenv=RUST_LOG=" + selected, command)
+                self.assertIn("--property=NoNewPrivileges=yes", command)
+                self.assertIn("--property=RuntimeMaxSec=600", command)
+                self.assertFalse(any("secret" in value or "API_KEY" in value for value in command))
+        for suffix in [retention, ",connect_service::runtime_retention=trace", ",connect_service::canonical_packet=trace",
+                       ",connect_store::sql_custody=trace", ",private-token=trace", ",trace"]:
+            with self.subTest(refused=suffix), self.assertRaises(AssertionError):
+                self.owner.server_command("/owned/connect", "/private/server.toml", dict(self.env, RUST_LOG=base + retention + suffix))
+
     def test_names_are_fresh_bounded_kernel_identifiers(self):
         second = NativeNamespace(self.root / ".local/another", self.root, {})
         self.assertNotEqual(self.owner.name, second.name)

@@ -1,0 +1,69 @@
+{
+  "format": "connect/g6-058-private-epoch-correction-batch/1",
+  "base_revision": "fcae89eecb45bfc634a9f7be1ac1fe5e0f67bd1f",
+  "prior_matrix": "matrix-full-v193.json",
+  "source_files": {
+    "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery.rs": "adf1e69e9b70a242bfe2345d38266bd9797067cd5f7d83f8ddab91ec25b9fb41",
+    "crates/connect-service/src/canonical_media/public_continuation.rs": "9bf8936abbfff353884f7298809d90666e547cfb7499b6afa72a5543bb536c12",
+    "crates/connect-service/src/canonical_native_lifecycle.rs": "984364fc7169f5eca92ea78fb3ba9d37c80dfd7335d4db77d40d24b9f52bbd99",
+    "crates/connect-service/src/canonical_native_lifecycle/replacement.rs": "3f1d9802523b64639ba362a92c06e70d3c79ef8d15763af3cf5baf8477eba0ef",
+    "crates/connect-service/src/canonical_replacement/diagnostics.rs": "2510698ca584a4104c2ccafc847c5cceacc9e5eeef748226b3509ecd064a4a4a",
+    "crates/connect-service/src/canonical_replacement/media.rs": "d03a92812ee2fd96e77da5830022177211f9ed590247d4e48ec9f5234f852827",
+    "crates/connect-service/src/canonical_replacement/movement.rs": "de79ee95bc71dabbd680c4a360172193a0b15b1d6385228828055a48959c2c2f",
+    "crates/connect-service/src/canonical_replacement/preparation.rs": "4461092936943dcaa9d55bbb2fc7f679cb2d80897aaaa8de9b0dcaa906c5b1b9",
+    "crates/connect-service/src/canonical_replacement/readiness.rs": "2997b1a9e737cf2e082395ba053bfb85a1dc72abbed6275d7825ff28c0e8c4eb",
+    "crates/connect-service/src/canonical_replacement/start.rs": "da0411c961d9b698242cdb9dd7323b7814ba555bec27b5facb5abfd0bd1c6a4e",
+    "crates/connect-service/src/canonical_replacement/webrtc.rs": "0854b805f2a98576e4c3790e10e6864e7cd0fa5bdaba4857e530dcd7dd863a47",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/commit/continuation.rs": "2b2452d769caac16d04d5e381528dc5a1dfef3a0cefb2b591d9ec55d7c50f4a2",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/start.rs": "5c0b538d109a49173cb282b08183a898c281eba8d2672bb83a6cefe2526dde53",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/start/receiver_epoch.rs": "e3a52956a2f1e2ca3f628a896e9e5da3d24e15aee423be1a7cc5f319fb822389",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start.rs": "f8114f80147b092dc4192e5226c8b7933d706d51ca52ddaacf2108cba336135c",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start/receiver_epoch.rs": "c27b5c81d23e0c10da71814c34c234f7479fa2bd763abf8ec01a6e0b3d817f43",
+    "crates/connect-store/src/transitions/replacement_source.rs": "25856cbe8cd5a5c2d6031cb9ddb446c1795ef432a28b286d48a25d9fd7615596",
+    "crates/connect-store/src/transitions/rows.rs": "01b83ba3631305d985ab5752691d066d2f7bf72cfae1beba26cc574f6bde847a",
+    "crates/connect-store/src/transitions/rows/authority_row.rs": "21e006104945750dfbfc6e53a921900ccb3dc1d0a2172741404e8ed831ca9767",
+    "crates/connect-store/src/transitions/tests.rs": "44487d35e0d275f7d18131f8bbbdbaf1633c06818fa8dee73ca4bd8ee469413d",
+    "crates/connect-store/src/transitions/tests/authority_rows.rs": "5d701489d228f2cab70644a86da5e303406233fee71837442f05973d55124872",
+    "dependencies/source-lock.json": "d766df74a9d42b2d9657ef8a392bc92aa9736d8999874c923b967d4d5df13dd6",
+    "patches/rvoip/connect-private-receiver-lifecycle-epochs.patch": "f4afc47910002df88e6155347c0512052cf56d01c9a387b8ce520ff0c45ac14d",
+    "scripts/lib/browser_matrix_programme.mjs": "0e200af4d48584fa60e3c5ad951a0b3c78ea6a004a5f8a76af2248fe1b17e07d",
+    "scripts/lib/mac_linux_fixture.py": "dd5889faf50e5597adbb4c8c6c780ba0dfc8a24bc191e1064da714276f0296dd",
+    "scripts/lib/matrix_macos_resources.py": "8c5e4925102d27ea6d86001dc136dc32b27ca0dc6deb39cd489b8b38581f6aef",
+    "scripts/lib/transport_matrix_coordinator.py": "3cf3eaac51451e21d5e4ab1a047bfe3d5f15340021798c4e0c2d1976c708e9dd",
+    "scripts/lib/transport_namespace.py": "51ddb9a70892a75d3f1125cdec8582cc27a3566fd11514ff7d0c8264e12fb1dd",
+    "scripts/tests/browser_matrix_keepalive.test.mjs": "90a0d6f9d888955eaa78bf6e440d8df83c59d1e3955f0acdd00d22d9f0a236e5",
+    "scripts/tests/browser_matrix_programme.test.mjs": "8646d2f855059abd397a18b74482c242809dec9a0f2d524cc73fda9776b6a408",
+    "scripts/tests/test_mac_linux_fixture.py": "6ac8b53a7d078d6327e2bb001bdf5a8006dc4208898f7976336942e8c7afa338",
+    "scripts/tests/test_matrix_macos_resources.py": "b8c630d78ef1aaf68154710364a0b51e79c0b3b051a013daf9fcf1e8e14f1d13",
+    "scripts/tests/test_transport_namespace.py": "b6a8f9fa72b1408443e4488d766cf7dd233eba5b6f09adc744de74b96d4a64dd",
+    "scripts/video/browser_matrix_admission.mjs": "4ec18be0b220c59aa95add7ef380ae388c4e93c0a5ba8e61db8ade5ee482ee41"
+  },
+  "dependency_preparation": {
+    "recorded_files_verified": 535,
+    "source_lock_sha256": "d766df74a9d42b2d9657ef8a392bc92aa9736d8999874c923b967d4d5df13dd6",
+    "old_graph_preserved": true,
+    "direct_deps_edits": false
+  },
+  "combined_fixture_validation": {
+    "node": {
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0
+    },
+    "python": {
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0
+    },
+    "normal_runtime": "pending",
+    "full_matrix": "pending"
+  },
+  "current_matrix_qualified": false,
+  "thresholds_relaxed": false,
+  "runtime_test_scope": "Fresh private receiver epoch + subscribe withdrawal, authority-only row equivalence/refusals, signed receiver-only metadata suppression, actual VP8 private decoding/commit and same original registration beyond preparation expiry.",
+  "cargo_jobs": {
+    "mac": 8,
+    "arm_vm": 6
+  },
+  "independent_review": "Moving/ordinary receiver subscription gap and report-loss cleanup bug found and corrected before validation."
+}

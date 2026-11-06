@@ -49,6 +49,7 @@ impl Runtime {
                 tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="current-owner",?error,"Replacement pre-commit refused");
                 Error::forbidden()
             })?;
+        started.lifecycle.begin_movement();
         let attempt = {
             let store = self.media.store.clone();
             let origin = started

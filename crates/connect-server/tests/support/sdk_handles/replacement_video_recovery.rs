@@ -389,6 +389,15 @@ async fn signed_replacement_initial_mute_retains_current_owners_under_registry_c
         .await
         .unwrap();
 }
+#[tokio::test]
+async fn signed_replacement_original_registration_outlives_its_preparation_cutoff() {
+    // Same cap as every actual signed replacement case; do not renew either
+    // the preparation, original operation or physical native connection.
+    tokio::time::timeout(Duration::from_secs(90), exercise(7))
+        .await
+        .unwrap();
+}
+
 async fn codec_change(
     owner: &mut CanonicalClient,
     scope: &CommandScope,
@@ -908,7 +917,30 @@ async fn exercise(mode: u8) {
     assert_eq!(same, epoch);
     assert_eq!(bytes, fresh);
     decode(f.temp.path(), &bytes, 6).await;
-    if mode == 1 || mode == 5 {
+    if mode == 7 {
+        let original_expiry: i64 = rusqlite::Connection::open(&f.config.database)
+            .unwrap()
+            .query_row(
+                "SELECT expires_at FROM operations WHERE record_id=?1",
+                [root.record_id.as_ref().unwrap().as_str()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        tokio::time::sleep_until(original_cutoff + Duration::from_millis(20)).await;
+        assert!(chrono::Utc::now().timestamp() >= original_expiry);
+        let (record,expiry,generation): (String,i64,u64) = rusqlite::Connection::open(&f.config.database).unwrap()
+            .query_row("SELECT o.record_id,o.expires_at,c.generation FROM operations o JOIN connections c ON c.id=?2 WHERE o.record_id=?1",
+                rusqlite::params![root.record_id.as_ref().unwrap().as_str(),scope.connection_id.as_ref().unwrap()],
+                |row|Ok((row.get(0)?,row.get(1)?,row.get(2)?))).unwrap();
+        assert_eq!(record, root.record_id.as_ref().unwrap().as_str());
+        assert_eq!(
+            expiry, original_expiry,
+            "ordinary lifecycle must not renew the original preparation"
+        );
+        assert_eq!(generation, 2);
+        eprintln!("production replacement phase: original-cutoff-elapsed unchanged_root={record} unchanged_expiry={expiry} generation={generation}");
+    }
+    if mode == 1 || mode == 5 || mode == 7 {
         eprintln!("production replacement phase: signed-hold-resume");
         let revision: u64 = rusqlite::Connection::open(&f.config.database)
             .unwrap()
@@ -943,6 +975,10 @@ async fn exercise(mode: u8) {
         let (bytes, resumed_receive) = raw_receive(&mut io, 7, incoming).await;
         assert_eq!(bytes, delta);
         assert_ne!(resumed_receive.epoch, before_gate_receive.epoch);
+        assert_eq!(
+            resumed_receive.incarnation, before_gate_receive.incarnation,
+            "ordinary receiver history must retain the original physical registration"
+        );
         let hint = retained_send
             .receive_video_feedback(options())
             .await
@@ -960,6 +996,7 @@ async fn exercise(mode: u8) {
         let (bytes, resumed_publish) = receive(&retained_recv, 9).await;
         assert_eq!(bytes, delta);
         assert_ne!(resumed_publish.epoch, epoch.epoch);
+        assert_eq!(resumed_publish.incarnation, epoch.incarnation);
         retained_recv.request_keyframe(options()).await.unwrap();
         let _ = tokio::time::timeout(Duration::from_millis(50), io.receive()).await;
         let requested = io.take_keyframe_request(camera, 0x74657374).unwrap();

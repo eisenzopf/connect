@@ -116,7 +116,13 @@ class NativeNamespace:
         if "RUST_LOG" in env:
             base = "info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug"
             commit = base + ",connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug"
-            assert env["RUST_LOG"] in {base, commit, base + ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug"}
+            # The shared producer now records the approved bounded retention
+            # events too. Validate that one exact directive without permitting
+            # arbitrary extra packet, SQL, account or global trace selectors.
+            retention = ",connect_service::runtime_retention=debug"
+            assert env["RUST_LOG"].count(retention) <= 1
+            profile = env["RUST_LOG"].replace(retention, "")
+            assert profile in {base, commit, base + ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug"}
             selected["RUST_LOG"] = env["RUST_LOG"]
         return ["sudo", "-n", "systemd-run", "--quiet", "--collect", "--wait", "--pipe",
             "--unit=" + self.unit, "--uid=" + str(os.getuid()), "--gid=" + str(os.getgid()),

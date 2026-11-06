@@ -6,6 +6,7 @@ pub use audience::NativeReplacementAudienceCapture;
 mod commit;
 mod phase;
 mod projection;
+mod receiver_epoch;
 mod webrtc;
 use crate::{AuthorityGuardSet, AuthorityScope, PeerConnectionProjection};
 pub use commit::{
@@ -393,6 +394,25 @@ impl Store {
         &self,
         origin: &NativeReplacementMediaOrigin,
     ) -> Result<NativeReplacementMediaRead> {
+        self.replacement_media_read(origin, false)
+    }
+
+    /// Current eligibility for receiver-epoch metadata during this exact private
+    /// preparation. No public Ready, ordinary origin, or media route is granted.
+    /// The Service must additionally bind a genuine receiver StreamEpoch to the
+    /// actual Core preroll/source/stream incarnation and original writer.
+    pub fn try_native_replacement_receiver_epoch_read(
+        &self,
+        origin: &NativeReplacementMediaOrigin,
+    ) -> Result<NativeReplacementMediaRead> {
+        self.replacement_media_read(origin, true)
+    }
+
+    fn replacement_media_read(
+        &self,
+        origin: &NativeReplacementMediaOrigin,
+        receiver_epoch: bool,
+    ) -> Result<NativeReplacementMediaRead> {
         // Decoder input/output must not race command/status SQL custody. Use
         // the same independently observed, version-sealed current admission as
         // ordinary packets, then build every source/retained/target fact under
@@ -402,6 +422,9 @@ impl Store {
         self.try_current_packet_projection(
             |c| {
                 let (member, saved, scopes, expires) = media_facts(self, c, origin)?;
+                if receiver_epoch {
+                    receiver_epoch::require_current(c, origin, &saved)?;
+                }
                 Ok(((member, saved), scopes, expires))
             },
             |c, (member, saved), held, expires| {

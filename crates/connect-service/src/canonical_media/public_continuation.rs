@@ -63,3 +63,41 @@ impl crate::canonical_replacement::TargetPolicy {
         Ok(root.handle.is_committed().then(|| continuation.clone()))
     }
 }
+
+impl Continuation {
+    /// Fresh continuation authority for receiver metadata only. The actual
+    /// Core publication is retained through the same original reliable write.
+    pub(crate) fn receiver_epoch_read(
+        &self,
+        principal: &rvoip_core::AuthenticatedPrincipal,
+    ) -> ControlResult<(
+        Arc<Connection>,
+        Arc<NativeMediaRead>,
+        CurrentReplacementPublication,
+    )> {
+        let domain = self
+            .entry
+            .domain
+            .upgrade()
+            .ok_or(StreamControlError::Cancelled)?;
+        let read = Arc::new(
+            domain
+                .store
+                .try_native_replacement_continuation_media_read(
+                    &self.entry.origin,
+                    Some(&self.metadata),
+                    None,
+                    None,
+                )
+                .map_err(super::packet_authority_error)?,
+        );
+        let owner = self.entry.owner(read.target(), principal, false)?;
+        let owner = self
+            .entry
+            .activation()?
+            .ok_or(StreamControlError::NotReady)?
+            .current(owner)?;
+        let publication = self.current(&owner)?;
+        Ok((self.entry.clone(), read, publication))
+    }
+}

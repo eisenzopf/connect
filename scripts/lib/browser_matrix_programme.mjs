@@ -4,26 +4,59 @@ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,Math.max(0,ms)));
 /** Application-owned reachability cadence. No reconnect, credential refresh,
  * operation retry or overlapping renewal batch. Close joins the original batch. */
 export function browserMatrixKeepalive(actors) {
-    const owners=Object.values(actors).map(actor=>({client:actor.client,epoch:actor.client.transport.physicalEpoch}));
-    let timer,wake,stopped=false,failure,rounds=0,requests=0;
+    const owners=Object.entries(actors).map(([role,actor])=>({role,client:actor.client,
+        epoch:actor.client.transport.physicalEpoch,failed:false}));
+    check(owners.length>0&&owners.length<=7,'Bounded original reachability owners required');
+    const failures=[];let timer,wake,stopped=false,failed=false,failure,rounds=0,requests=0,closing;
+    const refuse=(owner,error)=>{
+        owner.failed=true;
+        if(!failed){failed=true;failure=error;}
+        failures.push({owner:owner.role,...failureDetails(error)});
+    };
     const work=(async()=>{
         try{
             while(!stopped){
+                const current=owners.filter(owner=>!owner.failed);
+                if(!current.length)break;
                 await new Promise(resolve=>{wake=resolve;timer=setTimeout(resolve,20000);});wake=undefined;
                 if(stopped)break;
-                const outcomes=await Promise.allSettled(owners.map(async({client,epoch})=>{
+                const outcomes=await Promise.allSettled(current.map(async({client,epoch})=>{
                     check(client.transport.physicalEpoch===epoch,'Keepalive may not reconnect the original Device');
                     requests++;await client.keepAlive({timeoutMs:3000});
                     check(client.transport.physicalEpoch===epoch,'Keepalive changed the physical owner');
                 }));
-                const rejected=outcomes.find(outcome=>outcome.status==='rejected');
-                if(rejected)throw rejected.reason;
+                // Never retry the failed original owner or change its epoch.
+                // Its rejection must not stop the other original owners' cadence.
+                outcomes.forEach((outcome,index)=>{if(outcome.status==='rejected')refuse(current[index],outcome.reason);});
                 rounds++;
             }
-        }catch(error){failure=error;}
+        }catch(error){if(!failed){failed=true;failure=error;}}
     })();
-    return {check(){if(failure)throw failure;},observation:()=>({rounds,requests,failed:Boolean(failure),stopped}),
-        async close(){stopped=true;clearTimeout(timer);wake?.();await work;if(failure)throw failure;}};
+    return {check(){if(failed)throw failure;},observation:()=>({rounds,requests,failed,stopped,
+            failures:failures.map(value=>({...value}))}),
+        close(){return closing??=(async()=>{stopped=true;clearTimeout(timer);wake?.();await work;if(failed)throw failure;})();}};
+}
+
+function failureDetails(error){return {name:error?.name??'Error',kind:error?.kind??null,certainty:error?.certainty??null,
+    problem:error?.problem?{code:error.problem.code,reason:error.problem.reason}:null};}
+function retainKeepaliveFailure(report,error){report.keepalive_failure??=failureDetails(error);report.passed=false;}
+
+/** Join the original reachability batch, retain its failure, then attempt the
+ * original retirement exactly once. A failure grants no new owner or deadline. */
+export async function retireBrowserMatrixProgramme({keepalive,report,retire}){
+    try{await keepalive?.close();}catch(error){retainKeepaliveFailure(report,error);}
+    return retire();
+}
+
+/** Join every original local cleanup even if another close rejects. A repeated
+ * keepalive close is the same joined promise already recorded by retirement;
+ * any unrecorded reachability, renderer or source failure remains an error. */
+export async function closeBrowserMatrixProgramme({keepalive,observer,sources,report,previousFailure=false}){
+    const outcomes=await Promise.allSettled([keepalive,observer,sources].map(owner=>
+        Promise.resolve().then(()=>owner?.close())));
+    const unrecorded=previousFailure?undefined:outcomes.find((value,index)=>value.status==='rejected'
+        &&(index!==0||!report.keepalive_failure));
+    return {outcomes,...(unrecorded?{failure:unrecorded.reason}:{})};
 }
 
 /** Real six-source, two-Session programme and four original device moves.
@@ -55,20 +88,20 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
                 reason:'outbound-move-failed; no return mutation submitted'});return;
         }
         const began=performance.now(),cutoff=Math.min(began+8000,original.deadlineMs);
-        const options=()=>{keepalive.check();const timeoutMs=Math.floor(cutoff-performance.now());check(timeoutMs>0,'Original movement deadline');return {timeoutMs};};
-        const sid=plan.sessions[route.session].id,cid=state.conversation.id;
-        const sourceSession=actors[before.role].client.conversations.byId(cid).sessions.byId(sid);
-        const targetSession=target.client.conversations.byId(cid).sessions.byId(sid);
-        const peers=plan.routes.filter(other=>other.session===route.session),retained=peers.find(other=>other.index!==route.index);
-        check(typeof target.endpointId==='string'&&target.endpointId.length,'Actual provisioned target Endpoint required');
-        const snapshot=await sourceSession.refresh(options());
-        const command={retain:current[retained.index].connection.id,target:{endpoint:target.endpointId},
-            expectedTopologyRevision:snapshot.topologyRevision,video:{publications:[{previous:before.video,replacement:intent.video}],
-                receivers:[{previous:before.receiveVideo,replacement:intent.receiveVideo}]}};
-        await journal({kind:'move-intent',name:`move-${route.index}-${intent.ordinal}`,operationId:intent.operation,
-            sourceConnectionId:before.connection.id,command,scheduledStartMs:intent.scheduledStartMs,actualStartMs:began-original.originMs});
+        const options=()=>{const timeoutMs=Math.floor(cutoff-performance.now());check(timeoutMs>0,'Original movement deadline');return {timeoutMs};};
         let operation,targetOwner;
         try{
+            const sid=plan.sessions[route.session].id,cid=state.conversation.id;
+            const sourceSession=actors[before.role].client.conversations.byId(cid).sessions.byId(sid);
+            const targetSession=target.client.conversations.byId(cid).sessions.byId(sid);
+            const peers=plan.routes.filter(other=>other.session===route.session),retained=peers.find(other=>other.index!==route.index);
+            check(typeof target.endpointId==='string'&&target.endpointId.length,'Actual provisioned target Endpoint required');
+            const snapshot=await sourceSession.refresh(options());
+            const command={retain:current[retained.index].connection.id,target:{endpoint:target.endpointId},
+                expectedTopologyRevision:snapshot.topologyRevision,video:{publications:[{previous:before.video,replacement:intent.video}],
+                    receivers:[{previous:before.receiveVideo,replacement:intent.receiveVideo}]}};
+            await journal({kind:'move-intent',name:`move-${route.index}-${intent.ordinal}`,operationId:intent.operation,
+                sourceConnectionId:before.connection.id,command,scheduledStartMs:intent.scheduledStartMs,actualStartMs:began-original.originMs});
             operation=await before.connection.replaceDevice(command,{...options(),operationId:intent.operation});
             const reference=operation.referenceJson();
             await journal({kind:'move-accepted',operationId:intent.operation,reference});
@@ -115,16 +148,19 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
         }
     }
     for(const offset of [15000,40000]){
-        await sleep(original.originMs+offset-performance.now());keepalive.check();
+        await sleep(original.originMs+offset-performance.now());
         const outcomes=await Promise.allSettled(plan.moves.filter(move=>move.scheduledStartMs===offset).map(move));
         // Keep the fixed original programme and every independent observer
         // running after a failed move. Its return depends on that move and is
         // recorded as blocked above, never retried or submitted against self.
         report.failed_move_attempts=(report.failed_move_attempts??0)+outcomes.filter(outcome=>outcome.status==='rejected').length;
     }
-    await sleep(original.deadlineMs-performance.now());keepalive.check();
+    await sleep(original.deadlineMs-performance.now());
     report.finished_ms=performance.now()-original.originMs;
     report.sources=sources.observation();report.passed=report.moves.length===4;
+    // Aggregate the original failure only after the fixed programme finishes.
+    // Each actual SDK operation still performs its own current authorization.
+    try{keepalive.check();}catch(error){retainKeepaliveFailure(report,error);}
     if(observer)report.decoded_media=observer.report();
     await journal({kind:'programme-terminal',elapsedMs:report.finished_ms,moves:report.moves.length});
     return report;

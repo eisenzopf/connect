@@ -26,6 +26,7 @@ class MacProcessResources:
 
     def read(self, pid, flavor, size):
         buffer = ctypes.create_string_buffer(size)
+        ctypes.set_errno(0)
         length = self.lib.proc_pidinfo(pid, flavor, 0, buffer, size)
         if length <= 0:
             raise OSError(ctypes.get_errno(), "Original process observation unavailable")
@@ -46,7 +47,7 @@ class MacProcessResources:
         for row in listing.splitlines():
             pid, parent = map(int, row.split())
             children.setdefault(parent, []).append(pid)
-        values, missing, retired = {}, set(), set()
+        values, missing, retired, unavailable = {}, set(), set(), {}
         pending, checked = list(self.known), set()
         while pending:
             key = pending.pop()
@@ -54,17 +55,21 @@ class MacProcessResources:
                 continue
             checked.add(key)
             pid, start = key
+            stage = "identity-before"
             try:
                 identity = self.identity(pid)
                 if identity["start"] != start:
                     retired.add(key)
                     continue
+                stage = "task-info"
                 task = self.read(pid, 4, 96)  # PROC_PIDTASKINFO
                 if len(task) != 96:
                     raise ValueError("Task observation shape differs")
+                stage = "descriptor-count"
                 fds = self.read(pid, 1, 4097 * 8)  # PROC_PIDLISTFDS; no descriptor targets
                 if len(fds) % 8 or len(fds) >= 4097 * 8:
                     raise ValueError("Original descriptor observation bound")
+                stage = "identity-after"
                 if self.identity(pid)["start"] != start:
                     retired.add(key)
                     continue
@@ -83,12 +88,20 @@ class MacProcessResources:
                         raise ValueError("Original process tree observation bound")
                     self.known[child_key] = self.known[key]
                     pending.append(child_key)
-            except OSError:
+            except OSError as error:
                 try:
                     os.kill(pid, 0)
                     missing.add(key)
                 except ProcessLookupError:
                     retired.add(key)
+                except PermissionError:
+                    missing.add(key)
+                if key in missing:
+                    # Numeric, bounded attribution only. A live PID with an
+                    # unreadable libproc field must still fail complete usage
+                    # observation; never substitute a zero resource count.
+                    unavailable[key] = dict(pid=pid, start=list(start), stage=stage,
+                        errno=error.errno, error_class=type(error).__name__)
         groups = {}
         for role in self.roles:
             keys = {key for key, value in self.known.items() if value == role}
@@ -97,6 +110,7 @@ class MacProcessResources:
                 observed_cpu_seconds=sum(self.cpu.get(k, 0) for k in keys),
                 root_state="available" if self.roots[role] in values else "unavailable" if self.roots[role] in missing else "retired",
                 open_resource_unavailable_processes=len(keys & missing),
+                unavailable_observations=[unavailable[key] for key in sorted(keys & missing)],
                 sampled_open_descriptors=None if keys & missing else sum(v["fds"] for k, v in values.items() if k in keys),
                 sampled_threads=sum(v["threads"] for k, v in values.items() if k in keys))
         sample = dict(elapsed_seconds=time.monotonic() - self.started, groups=groups)

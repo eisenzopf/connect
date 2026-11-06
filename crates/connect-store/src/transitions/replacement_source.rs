@@ -89,22 +89,19 @@ impl NativeReplacementOrigin {
         if actor.identity_id != target_identity {
             actor.require("connection.replace.any")?;
         }
-        let row = rows::by_record(c, &self.record)?;
-        if row.digest != self.digest
-            || rows::request(&row)? != self.request
-            || !row.ledger
-            || !row.native_replacement
-            || row.tombstoned
-            || row.record.state != OperationState::Preparing
-            || row.record.cancel_requested
-            || row
-                .record
-                .expires_at
-                .is_none_or(|until| crate::now() >= until)
+        let row = rows::for_authority(c, &self.record)?;
+        if row.digest() != self.digest
+            || row.request()? != self.request
+            || !row.is_ledger()
+            || !row.is_native_replacement()
+            || row.tombstoned()
+            || row.state() != OperationState::Preparing
+            || row.cancel_requested()
+            || row.expires_at().is_none_or(|until| crate::now() >= until)
         {
             return Err(Error::forbidden());
         }
-        authority::read(c, &actor, &row)?;
+        row.require_read(c, &actor)?;
         // The original reservation belongs to this database-bound worker, while
         // the native resource epoch remains separately pinned above.
         let expires: Option<i64> = c.query_row(
@@ -174,31 +171,30 @@ impl NativeReplacementOrigin {
         }
         let actor = actor_from_connection(c, &self.credential)?;
         actor.require("connection.replace")?;
-        let row = rows::by_record(c, &self.record)?;
-        if row.digest != self.digest || rows::request(&row)? != self.request {
+        let row = rows::for_authority(c, &self.record)?;
+        if row.digest() != self.digest || row.request()? != self.request {
             return Err(Error::forbidden());
         }
-        if row.native_replacement {
+        if row.is_native_replacement() {
             let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND n.credential_id=?2 AND n.runtime_epoch=?3 AND n.original_digest=?4 AND n.reservation_id=o.lease_owner AND n.expires_at>?5 AND o.lease_expires_at=n.expires_at)",params![self.record,self.credential,self.runtime,self.digest,crate::now()],|r|r.get(0)).map_err(|_|Error::storage())?;
-            if !exact || row.record.state != OperationState::Preparing {
+            if !exact || row.state() != OperationState::Preparing {
                 return Err(Error::forbidden());
             }
         } else {
             let claimed = super::native_replacements::candidate::unreserved(c, self)?;
-            if row.worker.is_some()
+            if row.worker().is_some()
                 || (!claimed
-                    && (row.record.state != OperationState::Accepted
-                        || !row.record.effects.is_empty()))
+                    && (row.state() != OperationState::Accepted || !row.effects().is_empty()))
                 || (claimed
                     && !matches!(
-                        row.record.state,
+                        row.state(),
                         OperationState::Accepted | OperationState::Preparing
                     ))
             {
                 return Err(Error::forbidden());
             }
         }
-        authority::execution(c, &actor, &row, store)?;
+        row.require_execution(c, &actor, store)?;
         Ok(actor)
     }
 }

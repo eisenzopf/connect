@@ -1,5 +1,6 @@
 """The Mac idle collector must report original live, retired and unavailable owners."""
 from pathlib import Path
+import errno
 import select
 import subprocess
 import sys
@@ -55,6 +56,27 @@ class MacProcessSummary(unittest.TestCase):
         self.assertEqual(measured["open_resource_unavailable_samples"], 1)
         self.assertIsNone(measured["peak_sampled_open_descriptors"])
         self.assertEqual(report["samples"][0]["groups"]["browser"]["root_state"], "unavailable")
+
+    def test_task_observation_refusal_names_exact_original_owner_and_stage(self):
+        original_read = self.sampler.read
+
+        def refuse_task(pid, flavor, size):
+            if flavor == 4:
+                raise PermissionError(errno.EPERM, "fixture task observation denied")
+            return original_read(pid, flavor, size)
+
+        with patch.object(self.sampler, "read", side_effect=refuse_task):
+            sample = self.sampler.sample()
+        group = sample["groups"]["browser"]
+        self.assertEqual(group["root_state"], "unavailable")
+        self.assertIsNone(group["sampled_open_descriptors"])
+        self.assertEqual(group["unavailable_observations"], [dict(
+            pid=self.owner.pid, start=list(self.sampler.roots["browser"][1]),
+            stage="task-info", errno=errno.EPERM, error_class="PermissionError")])
+        # A later readable sample is independent; the original failed sample
+        # and unavailable summary remain retained.
+        self.assertEqual(self.sampler.sample()["groups"]["browser"]["unavailable_observations"], [])
+        self.assertEqual(self.sampler.summary()["groups"]["browser"]["unavailable_samples"], 1)
 
 
 if __name__ == "__main__":

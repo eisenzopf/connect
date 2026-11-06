@@ -260,3 +260,64 @@ fn pending_pair_refuses_foreign_worker_attempt_and_current_authority_loss() {
         assert_eq!(m.f.count("native_replacement_lifetimes"), 0);
     }
 }
+
+#[test]
+fn pending_receiver_metadata_observes_subscribe_withdrawal_on_the_same_actor() {
+    let m = fixture_scoped(true, &["stream.subscribe"]);
+    let scene =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let attempt =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &scene)
+            .unwrap();
+    let activation = attempt.activation().clone();
+    drop(scene);
+    let read = |paired: bool| {
+        m.f.store.try_native_replacement_continuation_media_read(
+            activation.origin(),
+            Some(&activation),
+            paired.then_some((m.sources[1].as_ref(), None)),
+            None,
+        )
+    };
+    for paired in [false, true] {
+        let current = read(paired).unwrap();
+        assert!(current.current() && current.permits_subscriptions());
+    }
+    let c = m.f.store.connection().unwrap();
+    let raw: String = c
+        .query_row(
+            "SELECT operations FROM credentials WHERE id=?1",
+            [&m.target_request.credentials[0]],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let mut operations: Vec<String> = serde_json::from_str(&raw).unwrap();
+    assert!(operations.iter().any(|v| v == "stream.subscribe"));
+    operations.retain(|v| v != "stream.subscribe");
+    c.execute(
+        "UPDATE credentials SET operations=?2 WHERE id=?1",
+        params![
+            m.target_request.credentials[0],
+            serde_json::to_string(&operations).unwrap()
+        ],
+    )
+    .unwrap();
+    drop(c);
+    let actor =
+        m.f.store
+            .revalidate(&m.target_request.credentials[0])
+            .unwrap();
+    assert!(actor.permits("connection.offer") && !actor.permits("stream.subscribe"));
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    for paired in [false, true] {
+        let current = read(paired).unwrap();
+        assert!(current.current());
+        assert!(!current.permits_subscriptions(),
+            "receiver metadata must check current subscription permission, not only current connection eligibility");
+    }
+    assert_eq!(m.f.count("native_replacement_lifetimes"), 0);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+}

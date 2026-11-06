@@ -34,6 +34,7 @@ pub(crate) struct TargetPolicy {
     pub preparation_operation: OnceLock<String>,
     pub data_observer: Option<Arc<crate::canonical_media::data_writes::PendingObserver>>,
     pub(super) readiness: Option<Arc<super::readiness::ReadyGate>>,
+    pub(super) receive_diagnostics: super::diagnostics::PrivateReceive,
 }
 /// Both adapters retain their exact sealed Core resource observation. The enum
 /// only dispatches typed operations; it cannot manufacture readiness or replace
@@ -388,44 +389,10 @@ impl MediaPolicy for TargetPolicy {
         self.preparation_authority(scope, purpose, true)
     }
     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
-        self.scope(scope)?;
         if let MediaPurpose::Receive { source } = scope.purpose {
-            let gate = self
-                .readiness
-                .as_ref()
-                .ok_or(StreamControlError::NotReady)?;
-            if !gate.permits(source) {
-                return Err(StreamControlError::Authority);
-            }
-            let entries = self.base.scene_entries(scope.session.as_str())?;
-            let origins = entries
-                .values()
-                .map(|entry| entry.origin.clone())
-                .collect::<Vec<_>>();
-            let read = self
-                .base
-                .store
-                .try_native_replacement_scene_read(
-                    self.origin.get().ok_or(StreamControlError::NotReady)?,
-                    &origins,
-                )
-                .map_err(crate::canonical_media::packet_authority_error)?;
-            if !read.current()
-                || !read.permits_receive(scope.connection.as_str(), source.connection.as_str())
-            {
-                return Err(StreamControlError::Authority);
-            }
-            let entry = entries
-                .get(&source.connection)
-                .ok_or(StreamControlError::Authority)?;
-            let source_read = read
-                .existing(source.connection.as_str(), None)
-                .ok_or(StreamControlError::Authority)?;
-            crate::canonical_media::source_matches(source, entry, source_read.target())?;
-            let mut owner = self.current_owner(read.media())?;
-            owner.may_route_source = true;
-            return Ok(Box::new(PrivateReceive { owner, _read: read }));
+            return self.private_receive(scope, source);
         }
+        self.scope(scope)?;
         // Resource preparation grants no public speaking/subscription route.
         // Explicit quarantined input/output is installed by a later phase.
         if !matches!(scope.purpose, MediaPurpose::Control) {
@@ -554,5 +521,140 @@ impl MediaAuthorityLease for PrivateReceive {
     }
     fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
         chrono::DateTime::from_timestamp(self._read.media().source().expires_at(), 0)
+    }
+}
+
+impl TargetPolicy {
+    pub(crate) fn receiver_epoch_preparation(
+        &self,
+        scope: &rvoip_uctp::v2::native_lifecycle::NativeLifecycleScope,
+        observation: &rvoip_uctp::v2::native_lifecycle::VideoEpochObservation,
+    ) -> Result<(
+        MediaOwner,
+        Arc<connect_store::NativeReplacementMediaRead>,
+        Weak<rvoip_core::staged_streams::device_replacement::VideoReplacementPreparation>,
+    )> {
+        let read = Arc::new(self.base.store.try_native_replacement_receiver_epoch_read(
+            self.origin.get().ok_or_else(|| {
+                Error::new(
+                    "authority-busy",
+                    "Original target is not ready for receiver metadata",
+                )
+            })?,
+        )?);
+        let context = read.source().context();
+        let target = read.target();
+        let binding = observation.binding();
+        let root = self.root.upgrade().ok_or_else(Error::forbidden)?;
+        let gate = self.readiness.as_ref().ok_or_else(Error::forbidden)?;
+        let preroll = gate.receiver_epoch_preroll(binding).ok_or_else(|| {
+            Error::new("authority-busy", "Original receiver preroll is not current")
+        })?;
+        if observation.epoch().publisher
+            || !read.current()
+            || root.handle.cancellation().is_cancelled()
+            || root.handle.is_committed()
+            || scope.media.connection != *self.pending.binding().connection()
+            || scope.media.connection.as_str() != target.runtime_connection_id
+            || binding.connection_generation != target.connection.generation
+            || scope.media.session.as_str() != context.session_id
+            || scope.media.wire_conversation.as_deref() != Some(context.conversation_id.as_str())
+            || scope.media.wire_session != context.session_id
+            || scope.media.wire_connection != target.connection.connection_id
+            || scope.media.owner != self.principal.ownership_key()
+            || scope.participant.as_str() != context.participant_id
+            || scope.membership_epoch != context.membership_epoch
+            || scope.device.as_str() != target.device_id
+            || scope.endpoint.as_str() != target.connection.endpoint_id
+            || scope.identity.as_str() != target.session.actor.identity_id
+            || !reliable_data::same_credential(&scope.principal, &self.principal)
+        {
+            return Err(Error::forbidden());
+        }
+        let owner = self.current_owner(&read).map_err(|error| match error {
+            StreamControlError::NotReady | StreamControlError::MetadataBusy => {
+                Error::new("authority-busy", "Original receiver owner is busy")
+            }
+            _ => Error::forbidden(),
+        })?;
+        Ok((owner, read, Arc::downgrade(&preroll)))
+    }
+}
+
+impl TargetPolicy {
+    fn private_receive(
+        &self,
+        scope: &MediaScope<'_>,
+        source: &MediaSource,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        let mut leaf = 0;
+        let mut medium = None;
+        let result = (|| {
+            self.scope(scope)?;
+            leaf = 1;
+            let gate = self
+                .readiness
+                .as_ref()
+                .ok_or(StreamControlError::NotReady)?;
+            leaf = 2;
+            if !gate.permits(source) {
+                return Err(StreamControlError::Authority);
+            }
+            leaf = 3;
+            let entries = self.base.scene_entries(scope.session.as_str())?;
+            medium = entries.get(&source.connection).and_then(|entry| {
+                entry
+                    .plan
+                    .selected()
+                    .iter()
+                    .find(|binding| binding.requested.logical_id == source.logical_id)
+                    .map(|binding| binding.requested.medium)
+            });
+            let origins = entries
+                .values()
+                .map(|entry| entry.origin.clone())
+                .collect::<Vec<_>>();
+            leaf = 4;
+            let origin = self.origin.get().ok_or(StreamControlError::NotReady)?;
+            leaf = 5;
+            let read = self
+                .base
+                .store
+                .try_native_replacement_scene_read(origin, &origins)
+                .map_err(crate::canonical_media::packet_authority_error)?;
+            leaf = 6;
+            if !read.current() {
+                return Err(StreamControlError::Authority);
+            }
+            leaf = 7;
+            if !read.permits_receive(scope.connection.as_str(), source.connection.as_str()) {
+                return Err(StreamControlError::Authority);
+            }
+            leaf = 8;
+            let entry = entries
+                .get(&source.connection)
+                .ok_or(StreamControlError::Authority)?;
+            leaf = 9;
+            let source_read = read
+                .existing(source.connection.as_str(), None)
+                .ok_or(StreamControlError::Authority)?;
+            leaf = 10;
+            crate::canonical_media::source_matches(source, entry, source_read.target())?;
+            leaf = 11;
+            let (owner, old) = self.owners(read.media().source(), read.media().target())?;
+            leaf = 12;
+            let activation = self.activation.get().ok_or(StreamControlError::NotReady)?;
+            leaf = 13;
+            let mut owner = activation.current_replacement(owner, &old, &self.pending)?;
+            owner.may_route_source = true;
+            Ok(Box::new(PrivateReceive { owner, _read: read }) as Box<dyn MediaAuthorityLease>)
+        })();
+        // Failed admission has already dropped all SQL/current-owner readers.
+        // Each original target emits at most one diagnostic per exact leaf.
+        if let Err(error) = &result {
+            self.receive_diagnostics
+                .refused(leaf, self, scope, source, medium, error);
+        }
+        result
     }
 }
