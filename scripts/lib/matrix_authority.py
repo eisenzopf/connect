@@ -44,7 +44,9 @@ class MatrixAuthority:
                 issued = json.loads((installation / "issued.json").read_text())
                 self.issued[kind] = issued["credential_id"]
                 actor, _ = browser_actor(installation, scope=self.actors_root, algorithm=self.algorithm)
-                response = dict(actor=actor, expires_at=expires)
+                if issued["expires_at"] != expires:
+                    raise ValueError("Original issued expiry differs")
+                response = dict(actor=actor, issued_at=issued["issued_at"], expires_at=issued["expires_at"])
             elif kind == "revoke" and "revocation" in self.issued:
                 outcome = json.loads(self.cli("authority-revoke", ["revoke", "--config", self.admin,
                     "--operation-id", "matrix-revoke-" + uuid.uuid4().hex, self.issued["revocation"]]))

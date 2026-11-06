@@ -35,7 +35,8 @@ async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=f
    Object.defineProperty(renderer,'nativeActivationBoundary',{get:()=>entry.completed?boundary:null});
    audio(id,0,0);entry.preparedIO.resolve();
   }
-  return {close(){renderers.delete(id);},finished:Promise.resolve()};},
+  return {close(){renderers.delete(id);},finished:Promise.resolve(),
+   retirement:Promise.resolve(Object.freeze({connectionId:id,scope:'renderer-local',audioGraph:'not-created',outputsDetached:true}))};},
   async replaceDevice(command,options){const intent=plan.moves.find(value=>value.operation===options.operationId),target=actors[intent.targetRole],replacement=makeConnection('target-'+intent.operation,index);
    const receipt={connection:{id:replacement.id},activationState:'ready',binding:{deviceId:target.deviceId,endpointId:invalidReceipt&&index===0?'wrong':target.endpointId},retired:[id],retained:[{id:command.retain}]};
    const entry={connection:replacement,source:id,index,intent,completed:false,preparedIO:deferred()};

@@ -1,4 +1,6 @@
 import { type BrowserRawCanonical } from "./browser_sdk_raw.js";
+import { type BrowserRenderRetirement } from "./browser_render_retirement.js";
+export type { BrowserRenderRetirement } from "./browser_render_retirement.js";
 export type { BrowserRawCanonical, BrowserValidatedEnvelope, } from "./browser_sdk_raw.js";
 import { type BrowserHandoffInput, type BrowserHandoffResult, type BrowserMoveInput, type BrowserMoveResult } from "./browser_sdk_movements.js";
 export type { EndpointId, DeviceId, BrowserHandoffRole, BrowserHandoffInput, BrowserHandoffResult, BrowserHandoffRoleChange, BrowserMoveTarget, BrowserMoveInput, BrowserMoveResult, BrowserMoveBindingObservation, } from "./browser_sdk_movements.js";
@@ -394,7 +396,10 @@ export interface BrowserCaptureHandle {
     close(): void;
 }
 export interface BrowserRenderHandle {
+    /** Original playback result, including semantic failure after cleanup. */
     readonly finished: Promise<void>;
+    /** Exact-owner local graph/output cleanup; rejects actual cleanup failure. */
+    readonly retirement: Promise<BrowserRenderRetirement>;
     readonly diagnostics: Readonly<{
         closed: boolean;
         paused: boolean;

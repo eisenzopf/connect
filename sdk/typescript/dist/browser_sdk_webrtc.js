@@ -642,6 +642,12 @@ export class BrowserRtcConnection {
         let stopped = false, paused = false, count = 0, context, source, gain, playout, detach = () => { };
         const outputs = [];
         let finish, fail;
+        let retired, retirementFailed;
+        const retirement = new Promise((resolve, reject) => {
+            retired = resolve;
+            retirementFailed = reject;
+        });
+        void retirement.catch(() => { });
         const finished = new Promise((yes, no) => {
             finish = yes;
             fail = no;
@@ -671,10 +677,28 @@ export class BrowserRtcConnection {
             if (context) {
                 const cleanup = context.close();
                 this.tasks.track(cleanup, true);
-                void cleanup.then(() => (error ? fail(error) : finish()), () => fail(new ConnectError("media", "Playback graph cleanup failed")));
+                void cleanup.then(() => {
+                    retired(Object.freeze({
+                        connectionId: this.input.connectionId,
+                        scope: "renderer-local",
+                        audioGraph: "closed",
+                        outputsDetached: true,
+                    }));
+                    error ? fail(error) : finish();
+                }, (cleanupError) => {
+                    retirementFailed(cleanupError);
+                    fail(new ConnectError("media", "Playback graph cleanup failed"));
+                });
             }
-            else
+            else {
+                retired(Object.freeze({
+                    connectionId: this.input.connectionId,
+                    scope: "renderer-local",
+                    audioGraph: "not-created",
+                    outputsDetached: true,
+                }));
                 error ? fail(error) : finish();
+            }
         };
         const pause = () => {
             if (stopped || paused)
@@ -691,6 +715,7 @@ export class BrowserRtcConnection {
         };
         const handle = Object.freeze({
             finished,
+            retirement,
             get diagnostics() {
                 return Object.freeze({
                     closed: stopped,

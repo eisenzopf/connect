@@ -1,3 +1,4 @@
+import type { BrowserRenderRetirement } from "./browser_render_retirement.js";
 import type { NativeDecodedObservation, NativeActivationBoundary } from "./browser_native_activation.js";
 import { type BrowserMediaConnection } from "./browser_media.js";
 import { type MediaBinding } from "./browser_rtp.js";
@@ -30,6 +31,11 @@ export declare class BrowserMediaRenderer {
     private paused;
     private failure?;
     private finish;
+    private retireFinish;
+    private retireFail;
+    /** Fulfills only after original outputs detach and the original graph closes.
+     * Playback failure remains independently observable through finished. */
+    readonly retirement: Promise<BrowserRenderRetirement>;
     private failFinish;
     /** Settles only after the owned audio graph closes, including startup failure. */
     readonly finished: Promise<void>;

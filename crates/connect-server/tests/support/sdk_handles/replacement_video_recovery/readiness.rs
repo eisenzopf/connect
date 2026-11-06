@@ -348,7 +348,7 @@ pub(super) async fn activate(
                 "actual private decoder output cannot commit without signed proof");
             let ready=preparation.with_decoded(samples,Some(NativeDecodedVideoReadiness{decoded_frames:1,decoded_keyframes:1})).unwrap();
             submit(client,&ready,controller,command,root,cutoff).await;
-            let done=phase(f,controller,command,7).await;
+            let done=completed(f,controller,command).await;
             assert_eq!(done.record_id,root.record_id);
             assert_eq!(done.operation_id,root.operation_id);
             let done=serde_json::to_value(done).unwrap();assert_eq!(done["state"],"completed");

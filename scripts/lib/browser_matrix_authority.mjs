@@ -16,27 +16,41 @@ export async function browserMatrixAuthority({Sdk,provision,endpoints,selected,p
     };
     report.conflict=state.report.conflict??{passed:false};
     for(const kind of ['expiry','revocation']){
-        const result=report[kind]={passed:false};let owner,reopened;
+        const result=report[kind]={passed:false};let owner,reopened,stage='original-issue';
         try{
-            const issued=await provision(kind);owner=await connect(issued.actor);
+            const issued=await provision(kind);
+            result.original_issued_at=issued.issued_at;result.original_expires_at=issued.expires_at;
+            stage='original-open';owner=await connect(issued.actor);
+            stage='original-current-read';
             await owner.conversations.byId(state.conversation.id).refresh({timeoutMs:3000});
             result.current_read_before_boundary=true;
             if(kind==='expiry'){
-                const wait=issued.expires_at*1000-Date.now()+100;
+                stage='original-expiry-wait';
+                const startedDate=Date.now(),startedPerformance=performance.now();
+                const wait=issued.expires_at*1000-startedDate+100;
+                result.expiry_boundary={started_date_ms:startedDate,started_performance_ms:startedPerformance,
+                    original_issued_at:issued.issued_at,original_expires_at:issued.expires_at,requested_wait_ms:wait};
                 check(wait>0&&wait<=13000,'Original current expiry window');
                 await new Promise(resolve=>setTimeout(resolve,wait));
-                result.original_expiry_elapsed=Date.now()>=issued.expires_at*1000;
-            }else check((await provision('revoke')).revoked===true,'Original credential revocation');
+                const observedDate=Date.now(),observedPerformance=performance.now();
+                Object.assign(result.expiry_boundary,{observed_date_ms:observedDate,observed_performance_ms:observedPerformance,
+                    observed_wall_elapsed_ms:observedDate-startedDate,observed_monotonic_elapsed_ms:observedPerformance-startedPerformance});
+                result.original_expiry_elapsed=observedDate>=issued.expires_at*1000;
+                stage='original-expiry-boundary';
+                check(result.original_expiry_elapsed,'Original credential expiry has not elapsed');
+            }else {stage='original-revocation';check((await provision('revoke')).revoked===true,'Original credential revocation');}
+            stage='original-live-read';
             try{await owner.conversations.byId(state.conversation.id).refresh({timeoutMs:3000});}
             catch(error){result.live_read_refusal={kind:error.kind??null,certainty:error.certainty??null};}
             check(result.live_read_refusal,'Current live read remained authorized');
             // A fresh physical open with the exact same credential must refuse
             // authentication; a request timeout alone cannot pass this case.
+            stage='original-fresh-open';
             try{reopened=await connect(issued.actor);}
             catch(error){result.authentication_refusal={kind:error.kind??null,certainty:error.certainty??null};}
             check(!reopened&&result.authentication_refusal?.kind==='authentication','Expired/revoked credential must explicitly fail authentication');
             result.passed=true;
-        }catch(error){result.failure={name:error.name,kind:error.kind??null};}
+        }catch(error){result.failure={stage,name:error.name,kind:error.kind??null,certainty:error.certainty??null,message:String(error.message??'').slice(0,256)};}
         finally{
             const joins=await Promise.allSettled([owner,reopened].filter(Boolean).map(client=>client.close({timeoutMs:5000})));
             result.original_owners_joined=joins.every(value=>value.status==='fulfilled');

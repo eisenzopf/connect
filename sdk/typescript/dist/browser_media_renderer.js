@@ -20,6 +20,14 @@ export class BrowserMediaRenderer {
     paused = false;
     failure;
     finish;
+    retireFinish;
+    retireFail;
+    /** Fulfills only after original outputs detach and the original graph closes.
+     * Playback failure remains independently observable through finished. */
+    retirement = new Promise((resolve, reject) => {
+        this.retireFinish = resolve;
+        this.retireFail = reject;
+    });
     failFinish;
     /** Settles only after the owned audio graph closes, including startup failure. */
     finished = new Promise((resolve, reject) => {
@@ -42,6 +50,7 @@ export class BrowserMediaRenderer {
         this.connection = connection;
         this.options = options;
         void this.finished.catch(() => { });
+        void this.retirement.catch(() => { });
     }
     static async open(connection, options = {}) {
         const timeout = options.timeoutMs ?? 10000, volume = options.volume ?? 1;
@@ -461,11 +470,18 @@ export class BrowserMediaRenderer {
             const cleanup = this.context.close();
             this.connection.ownCleanup(cleanup);
             void cleanup.then(() => {
+                this.retireFinish(Object.freeze({
+                    connectionId: this.connection.id,
+                    scope: "renderer-local",
+                    audioGraph: "closed",
+                    outputsDetached: true,
+                }));
                 if (this.failure)
                     this.failFinish(this.failure);
                 else
                     this.finish();
             }, (error) => {
+                this.retireFail(error);
                 this.failure =
                     error instanceof Error
                         ? error
@@ -473,9 +489,17 @@ export class BrowserMediaRenderer {
                 this.failFinish(this.failure);
             });
         }
-        else if (this.failure)
-            this.failFinish(this.failure);
-        else
-            this.finish();
+        else {
+            this.retireFinish(Object.freeze({
+                connectionId: this.connection.id,
+                scope: "renderer-local",
+                audioGraph: "not-created",
+                outputsDetached: true,
+            }));
+            if (this.failure)
+                this.failFinish(this.failure);
+            else
+                this.finish();
+        }
     }
 }

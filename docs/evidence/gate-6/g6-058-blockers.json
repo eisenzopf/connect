@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-05T18:34:08-08:00",
-  "run_status": "v193 complete: 293 passed / 85 failed / 54 blocked; zero unrun and zero complete cells. Next parallel batch is implemented and formatted; fresh preparation verifies 535 recorded files. Combined fixture checks pass 28 Node + 35 Python, zero skips. Normal-release ARM signed/authority controls and fresh full32 runtime are next.",
+  "updated": "2026-11-05T19:09:33-08:00",
+  "run_status": "Follow-up batch implemented: full SDK855/855, fixture Node34/34, Python37/37 and public browser types pass, zero skips. Prior1382 normal runtime executed12:9 pass,3 fixture assertions fail;3 upstream controls unexecuted due offline cache now provisioned. Both signed cases genuinely decoded private VP8; full movement and fresh all32 matrix remain unqualified. Latest full v193 remains293/85/54, zero complete cells.",
   "blockers": [
     {
       "id": "B01",
@@ -71,8 +71,8 @@
       "id": "B09",
       "title": "Cleanup and resource reclamation",
       "status": "Open \u2014 resource failures retained",
-      "change": "Release SDK-owned camera scratch canvas after callback retirement; release fixture-owned source/render/diagnostic surfaces after original joins. Observe actual browser failure cleanup boundaries while retaining failed retirement. Attribute original Store/retirement blocking calls using existing diagnostic wrapper.",
-      "evidence": "v193 retains 30 resource failures. One Mac WT sample confirms cleanup completed and server FD returned 25\u219225; server thread/RSS and browser observations still fail. No general resource fix or pass is claimed.",
+      "change": "Release SDK-owned camera scratch canvas after callback retirement; release fixture-owned source/render/diagnostic surfaces after original joins. Observe actual browser failure cleanup boundaries while retaining failed retirement. Attribute original Store/retirement blocking calls using existing diagnostic wrapper. Typed renderer-local retirement now separates actual graph/output close from unchanged playback failure. Per-owner surfaces release only on exact fulfilled immutable original receipt; rejected/pending/foreign cleanup retains backing.",
+      "evidence": "v193 retains 30 resource failures. One Mac WT sample confirms cleanup completed and server FD returned 25\u219225; server thread/RSS and browser observations still fail. No general resource fix or pass is claimed. Follow-up SDK855, fixture34 and Python37 controls pass, including delayed/rejected close and preserved playback failures; real resource retest pending.",
       "next": "Preserve original failures; complete independent-owner fixture observations and attribute surviving resource owners."
     },
     {
@@ -89,7 +89,7 @@
       "status": "Open \u2014 Store control passes; live RTC still fails",
       "change": "Reobserve only effect-free native replacement origin acquisition on authority-busy after the same actual WebRTC start, using original cutoff and cancellation. No configure/mute/record or operation replay.",
       "evidence": "fcae89ee original Started SQL exclusion/recovery/revocation control passes. v193 RTC sends audio/video but target receives sparse audio and no reported inbound video; exact authority leaf still needs attribution.",
-      "next": "Remove avoidable internal journal rendering, add bounded exact refusal diagnostics, and preserve original readiness deadlines."
+      "next": "Current receive leaf diagnostics are bounded14 per target. Rerun full matrix after combined library/fixture fixes; no speculative error-class changes."
     },
     {
       "id": "B12",
@@ -102,25 +102,25 @@
     {
       "id": "B13",
       "title": "Signed private video epoch startup",
-      "status": "Implemented \u2014 normal runtime pending",
+      "status": "Private epoch + keyframe verified \u2014 movement retest pending",
       "change": "Issue genuine receiver epochs during private preparation using the same registration and fresh Store/Core authorization. Preserve private\u2192moving\u2192ordinary phase boundaries and keep original route active.",
-      "evidence": "v193 private target stops before readiness/Core commit; current lifecycle waits until completion to emit the epoch required for decoder readiness.",
-      "next": "Run actual signed epoch/VP8 regression including same decoder/epoch through commit, then full 32."
+      "evidence": "1382fac0: both actual signed server cases receive verified receiver epoch and independently decode VP8 keyframe (548/564us), then fail an immediate completed-versus-preparing fixture assertion. Same-original completed wait corrected within unchanged10s/original cutoff. See g6-058-private-epoch-runtime.json.",
+      "next": "Rerun both exact signed cases including actual completion, same epoch/decoder through commit and original registration after preparation cutoff; full matrix next."
     },
     {
       "id": "B14",
       "title": "Internal authority read cost",
-      "status": "Implemented \u2014 normal runtime pending",
+      "status": "Authority read behavior verified \u2014 expiry fixture retest pending",
       "change": "Use opaque internal authority records with all current facts/effects but without public causal journal count/page rendering; public records unchanged.",
-      "evidence": "Current private read invokes at least five public row renderings under four SQL observers; archived query plan confirms correlated display work. Sole-cause timing not claimed.",
-      "next": "Authority equivalence, poisoned display-view and current refusal controls, then fresh full matrix."
+      "evidence": "Normal ARM opaque/full row equality and poisoned public display-view controls pass. Permission/epoch/cancel refusal case reaches immutable-expiry mutation and fails; fixture now waits a short original deadline. No authority relaxation or observed contention timing claim.",
+      "next": "Rerun exact current refusal case plus retained private/B02 controls; measure real transport behavior in full matrix."
     },
     {
       "id": "B15",
       "title": "Remote fixture prerequisites",
       "status": "Implemented \u2014 fixture controls pass; real transport pending",
       "change": "Include exact movement contract in Mac guest input staging; permit only approved runtime-retention log directive in strict Linux namespace guard.",
-      "evidence": "Mac guest import fails before programme body due to omitted contract. Both Linux remote native cells stop at stale RUST_LOG allowlist before seed launch. Combined batch: 28 Node and 35 Python checks pass, zero skips; no real remote or decoded-media qualification.",
+      "evidence": "Mac guest import fails before programme body due to omitted contract. Both Linux remote native cells stop at stale RUST_LOG allowlist before seed launch. Combined batch: 28 Node and 35 Python checks pass, zero skips; no real remote or decoded-media qualification. Follow-up full SDK855 + fixture34 + Python37 checks pass; no inherited transport qualification.",
       "next": "Byte-preservation and strict allowlist controls, then actual remote programmes."
     },
     {
@@ -128,8 +128,16 @@
       "title": "Independent browser owner observation",
       "status": "Implemented \u2014 fixture controls pass; real transport pending",
       "change": "Keep sticky per-owner reachability failure while continuing fixed-cadence renewal of unaffected originals and independent programme observations; preserve failed overall outcome.",
-      "evidence": "v193 keepalive failure globally aborts remaining observations before fixed programme completion. Combined batch: 28 Node and 35 Python checks pass, zero skips; no real remote or decoded-media qualification.",
+      "evidence": "v193 keepalive failure globally aborts remaining observations before fixed programme completion. Combined batch: 28 Node and 35 Python checks pass, zero skips; no real remote or decoded-media qualification. Follow-up full SDK855 + fixture34 + Python37 checks pass; no inherited transport qualification.",
       "next": "Failure-isolation controls and full runtime; no subset promotion, deadline extension or reconnection."
+    },
+    {
+      "id": "B17",
+      "title": "Renderer playback result vs physical cleanup",
+      "status": "Implemented \u2014 model/type checks pass; real runtime pending",
+      "change": "Expose immutable exact-owner renderer-local retirement only after original graph close and output detachment. Keep finished playback error independent. Fixture releases only proven original backing, reports semantic errors and requires playback success for overall cell.",
+      "evidence": "Actual v193 RTC physical shutdowns join but renderer.finished rejects; reason previously discarded. New full SDK855 and fixture34 controls cover delayed/failed cleanup, exact original promise, immutable foreign receipt refusal, independent borrowers and preserved semantic failures.",
+      "next": "Fresh browser full matrix must show actual same-owner graph/output retirement, original resource budgets and independent playback results."
     }
   ]
 }

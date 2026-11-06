@@ -211,3 +211,13 @@ await client.close();
 
 // @ts-expect-error Preparation selects a supported purpose, never an injected ready claim.
 room.sessions.byId(sdkId<'session'>('session')).connections.offer({connectionId:sdkId<'connection'>('prepared'),purpose:'ready',streams:{first:{id:sdkId<'stream'>('audio'),kind:'audio',direction:'sendrecv',codecs:{first:'opus',rest:[]}},rest:[]}},{timeoutMs:1000,operationId});
+
+// Exact-owner cleanup is a separate read-only receipt, not playback success.
+const retired: import('../typescript/dist/browser.js').BrowserRenderRetirement=await renderer.retirement;
+const rendererOwner: string=retired.connectionId;
+const graphState:'closed'|'not-created'=retired.audioGraph;
+// @ts-expect-error Cleanup facts cannot be changed into a successful receipt.
+retired.audioGraph='closed';
+// @ts-expect-error A renderer-local receipt contains no Connection readiness.
+const ready:boolean=retired.ready;
+void [rendererOwner,graphState,ready];

@@ -327,6 +327,25 @@ async fn phase(
     command: &TransitionCommand,
     needed: usize,
 ) -> connect_client::canonical::payloads::OperationUpdated {
+    phase_state(f, controller, command, needed, false).await
+}
+async fn completed(
+    f: &Fixture,
+    controller: &mut CanonicalHttpClient,
+    command: &TransitionCommand,
+) -> connect_client::canonical::payloads::OperationUpdated {
+    phase_state(f, controller, command, 7, true).await
+}
+// Confirmed effects can precede the original journal/public projection. The
+// final decoder continuity phase needs both, under the same original ten-second
+// phase wait and the caller's unchanged original replacement cutoff.
+async fn phase_state(
+    f: &Fixture,
+    controller: &mut CanonicalHttpClient,
+    command: &TransitionCommand,
+    needed: usize,
+    require_completed: bool,
+) -> connect_client::canonical::payloads::OperationUpdated {
     tokio::time::timeout(Duration::from_secs(10),async {
         loop {
             let root=controller.operation_get(&command.operation_id,CommandScope{conversation_id:Some(command.conversation_id.clone()),session_id:Some(command.session_id.clone()),connection_id:command.connection_id.clone(),..Default::default()}).await.unwrap();
@@ -334,7 +353,7 @@ async fn phase(
             assert!(!matches!(state["state"].as_str(),Some("failed"|"cancelled"|"unknown")),"{state}");
             let db=rusqlite::Connection::open(&f.config.database).unwrap();
             let confirmed:usize=db.query_row("SELECT count(*) FROM operation_effects WHERE operation_record_id=?1 AND state='confirmed'",[root.record_id.as_ref().unwrap().as_str()],|r|r.get(0)).unwrap();
-            if confirmed>=needed {return root}
+            if confirmed>=needed && (!require_completed || state["state"]=="completed") {return root}
             drop(db);
             tokio::time::sleep(Duration::from_millis(20)).await;
         }

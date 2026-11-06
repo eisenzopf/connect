@@ -120,3 +120,14 @@ for(const phase of ['deadline','abort','retire'])test(`WSS pending audio play ${
  if(phase==='abort')abort.abort();if(phase==='retire')owner.close();await assert.rejects(work,phase==='retire'?undefined:{code:phase==='deadline'?'timeout':'cancelled'});await new Promise(setImmediate);
  assert.equal(elements[0].srcObject,null);assert.equal(contexts[0].closes,1);late.resolve();await new Promise(setImmediate);assert.equal(elements[0].srcObject,null);assert.equal(f.sent.length,requests);
 })));
+
+for(const rejected of [false,true])test(`WSS render retirement separately joins original graph after semantic failure${rejected?' and refuses rejected cleanup':''}`,()=>scenario(async({begun,peer})=>audioGraph(async contexts=>{
+ const owner=await begun.ready,renderer=await owner.render({audio:true},{timeoutMs:100}),cleanup=deferred();
+ const semantic=Error('original RTC playback failed'),graphFailure=Error('original RTC graph refused');
+ contexts[0].close=()=>cleanup.promise;owner.close(semantic);
+ let settled=false;void renderer.retirement.then(()=>settled=true,()=>settled=true);await new Promise(setImmediate);
+ assert.equal(settled,false);assert.equal(peer().connectionState,'closed');
+ if(rejected){cleanup.reject(graphFailure);await assert.rejects(renderer.retirement,error=>error===graphFailure);await assert.rejects(renderer.finished,{code:'media'});await assert.rejects(owner.shutdown(),error=>error===graphFailure);}
+ else{contexts[0].state='closed';cleanup.resolve();const receipt=await renderer.retirement;await assert.rejects(renderer.finished,error=>error===semantic);await owner.shutdown();
+  assert.deepEqual(receipt,{connectionId:input.connectionId,scope:'renderer-local',audioGraph:'closed',outputsDetached:true});assert.equal(Object.isFrozen(receipt),true);}
+})));

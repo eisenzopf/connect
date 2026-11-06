@@ -519,6 +519,18 @@ const unsubscribe = await connection.streams.unsubscribe({
 }, { ...wait, operationId: savedUnsubscribeOperationId });
 ```
 
+A render handle has two independent completion results. `finished` preserves the
+original playback failure, including a control/transport failure after local
+cleanup. After `close()`, `retirement` fulfills only after this exact renderer's
+outputs detach and its original AudioContext close fulfills (or no audio graph
+was created). Its immutable `BrowserRenderRetirement` names `connectionId`,
+`scope: "renderer-local"`, `audioGraph: "closed" | "not-created"`, and
+`outputsDetached: true`. A graph-close rejection rejects `retirement`; an
+unsettled cleanup supplies no receipt. A caller may release its borrowed output
+canvas only after the exact owner's retirement fulfills. This receipt does not
+prove playback success, Connection/peer retirement, or process memory return.
+Applications must continue to observe `finished` and report its original failure.
+
 `BrowserNonEmpty<T>` uses `{ first, rest }`. Selectors name one exact Stream or
 one Participant with optional nonempty `kinds`; omitted kinds mean all supported
 media for that Participant. WT supports correlated counteroffers, including

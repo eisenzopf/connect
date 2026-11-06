@@ -1,0 +1,61 @@
+{
+  "format": "connect/g6-058-private-epoch-runtime-observation/1",
+  "source_revision": "1382fac065065c8feecea7d1c879a097a5e6dbe3",
+  "original_runtime_receipt_sha256": "43807cab9d39f8bd5008b60c5d074f5bbad357723e0f704f37b004ac8db0ff3b",
+  "planned": 15,
+  "executed": 12,
+  "passed": 9,
+  "failed": 3,
+  "unexecuted": 3,
+  "normal_release": true,
+  "original_owners_joined": true,
+  "store_failure": "New expiry fixture attempted forbidden immutable admission-deadline rewrite; current correction uses real original expiry.",
+  "upstream_unexecuted_reason": "Missing offline ref-cast1.0.26 cache. Exact locked target cache subsequently provisioned; dependency source/lock unchanged.",
+  "signed_observations": [
+    {
+      "original_log_sha256": "0f6968153d1d41f00e02c8cd05a3fafca8853c85d29dd158539e6b8833b127d2",
+      "signed_receiver_epoch_verified": true,
+      "actual_private_vp8_keyframe_decoded": true,
+      "receive_to_decode_us": 548,
+      "overall_case_passed": false,
+      "failed_boundary": "fixture expects completed while original public projection still preparing"
+    },
+    {
+      "original_log_sha256": "56386cddfa6286c567ec779ac2d86194abca6f2a8061c7dacf05e3d942a0fe12",
+      "signed_receiver_epoch_verified": true,
+      "actual_private_vp8_keyframe_decoded": true,
+      "receive_to_decode_us": 564,
+      "overall_case_passed": false,
+      "failed_boundary": "fixture expects completed while original public projection still preparing"
+    }
+  ],
+  "mac_production_builds": {
+    "passed": 2,
+    "receipt_sha256": "7cc42642700edea881c779b7295a556cc2855febf5c31cb0b92d182eec2638d3",
+    "test_support": false,
+    "optimization": "3"
+  },
+  "matrix_qualification": false,
+  "full_movement_qualification": false,
+  "follow_up_batch": {
+    "sdk": {
+      "passed": 855,
+      "failed": 0,
+      "skipped": 0
+    },
+    "fixture_node": {
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0
+    },
+    "python": {
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0
+    },
+    "public_browser_types": "pass",
+    "production_clock_or_schema_changed": false,
+    "normal_runtime": "pending"
+  },
+  "next": "Corrected same-original completed wait, real expiry fixture, typed exact renderer cleanup and strict diagnostic/refusal controls. Run normal ARM controls then fresh all32/432 local matrix."
+}

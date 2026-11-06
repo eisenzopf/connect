@@ -1,3 +1,4 @@
+import type { BrowserRenderRetirement } from "./browser_render_retirement.js";
 import type {
     NativeDecodedObservation,
     NativeActivationBoundary,
@@ -47,6 +48,16 @@ export class BrowserMediaRenderer {
     private paused = false;
     private failure?: Error;
     private finish!: () => void;
+    private retireFinish!: (receipt: BrowserRenderRetirement) => void;
+    private retireFail!: (error: unknown) => void;
+    /** Fulfills only after original outputs detach and the original graph closes.
+     * Playback failure remains independently observable through finished. */
+    readonly retirement = new Promise<BrowserRenderRetirement>(
+        (resolve, reject) => {
+            this.retireFinish = resolve;
+            this.retireFail = reject;
+        },
+    );
     private failFinish!: (error: Error) => void;
     /** Settles only after the owned audio graph closes, including startup failure. */
     readonly finished = new Promise<void>((resolve, reject) => {
@@ -70,6 +81,7 @@ export class BrowserMediaRenderer {
         private readonly options: BrowserMediaRendererOptions,
     ) {
         void this.finished.catch(() => {});
+        void this.retirement.catch(() => {});
     }
     static async open(
         connection: BrowserMediaConnection,
@@ -601,10 +613,19 @@ export class BrowserMediaRenderer {
             this.connection.ownCleanup(cleanup);
             void cleanup.then(
                 () => {
+                    this.retireFinish(
+                        Object.freeze({
+                            connectionId: this.connection.id,
+                            scope: "renderer-local",
+                            audioGraph: "closed",
+                            outputsDetached: true,
+                        }),
+                    );
                     if (this.failure) this.failFinish(this.failure);
                     else this.finish();
                 },
                 (error) => {
+                    this.retireFail(error);
                     this.failure =
                         error instanceof Error
                             ? error
@@ -612,7 +633,17 @@ export class BrowserMediaRenderer {
                     this.failFinish(this.failure);
                 },
             );
-        } else if (this.failure) this.failFinish(this.failure);
-        else this.finish();
+        } else {
+            this.retireFinish(
+                Object.freeze({
+                    connectionId: this.connection.id,
+                    scope: "renderer-local",
+                    audioGraph: "not-created",
+                    outputsDetached: true,
+                }),
+            );
+            if (this.failure) this.failFinish(this.failure);
+            else this.finish();
+        }
     }
 }

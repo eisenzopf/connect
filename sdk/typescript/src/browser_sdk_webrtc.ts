@@ -28,6 +28,7 @@ import type {
     BrowserCaptureHandle,
     BrowserCaptureInput,
     BrowserRenderHandle,
+    BrowserRenderRetirement,
 } from "./browser_sdk.js";
 import type { BrowserMediaCaptureOptions } from "./browser_media_capture.js";
 
@@ -858,6 +859,15 @@ export class BrowserRtcConnection {
             canvas: CanvasRenderingContext2D;
         }[] = [];
         let finish!: () => void, fail!: (error: Error) => void;
+        let retired!: (receipt: BrowserRenderRetirement) => void,
+            retirementFailed!: (error: unknown) => void;
+        const retirement = new Promise<BrowserRenderRetirement>(
+            (resolve, reject) => {
+                retired = resolve;
+                retirementFailed = reject;
+            },
+        );
+        void retirement.catch(() => {});
         const finished = new Promise<void>((yes, no) => {
             finish = yes;
             fail = no;
@@ -886,16 +896,38 @@ export class BrowserRtcConnection {
                 const cleanup = context.close();
                 this.tasks.track(cleanup, true);
                 void cleanup.then(
-                    () => (error ? fail(error) : finish()),
-                    () =>
+                    () => {
+                        retired(
+                            Object.freeze({
+                                connectionId: this.input.connectionId,
+                                scope: "renderer-local",
+                                audioGraph: "closed",
+                                outputsDetached: true,
+                            }),
+                        );
+                        error ? fail(error) : finish();
+                    },
+                    (cleanupError) => {
+                        retirementFailed(cleanupError);
                         fail(
                             new ConnectError(
                                 "media",
                                 "Playback graph cleanup failed",
                             ),
-                        ),
+                        );
+                    },
                 );
-            } else error ? fail(error) : finish();
+            } else {
+                retired(
+                    Object.freeze({
+                        connectionId: this.input.connectionId,
+                        scope: "renderer-local",
+                        audioGraph: "not-created",
+                        outputsDetached: true,
+                    }),
+                );
+                error ? fail(error) : finish();
+            }
         };
         const pause = () => {
             if (stopped || paused) return;
@@ -909,6 +941,7 @@ export class BrowserRtcConnection {
         };
         const handle: BrowserRenderHandle = Object.freeze({
             finished,
+            retirement,
             get diagnostics() {
                 return Object.freeze({
                     closed: stopped,

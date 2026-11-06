@@ -3,6 +3,11 @@ import {
     type BrowserRawCanonical,
 } from "./browser_sdk_raw.js";
 import { BrowserTasks } from "./browser_tasks.js";
+import {
+    preserveRenderRetirement,
+    type BrowserRenderRetirement,
+} from "./browser_render_retirement.js";
+export type { BrowserRenderRetirement } from "./browser_render_retirement.js";
 export type {
     BrowserRawCanonical,
     BrowserValidatedEnvelope,
@@ -3349,7 +3354,10 @@ export interface BrowserCaptureHandle {
     close(): void;
 }
 export interface BrowserRenderHandle {
+    /** Original playback result, including semantic failure after cleanup. */
     readonly finished: Promise<void>;
+    /** Exact-owner local graph/output cleanup; rejects actual cleanup failure. */
+    readonly retirement: Promise<BrowserRenderRetirement>;
     readonly diagnostics: Readonly<{
         closed: boolean;
         paused: boolean;
@@ -3919,8 +3927,16 @@ export class BrowserConnection {
                 throw translated(error, "read-only");
             });
             void finished.catch(() => {});
+            const retirement = preserveRenderRetirement(
+                this.id,
+                owner.retirement,
+            ).catch((error) => {
+                throw translated(error, "read-only");
+            });
+            void retirement.catch(() => {});
             return Object.freeze({
                 finished,
+                retirement,
                 get diagnostics() {
                     const v = owner.diagnostics;
                     return Object.freeze({

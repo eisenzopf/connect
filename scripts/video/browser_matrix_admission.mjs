@@ -294,7 +294,7 @@ try{
                         {rtc_owners:rtc,media_peers:rtc.length,active_bindings:rtc.filter(p=>!p.closed).length,
                             queue_observation:'RTC has no SDK datagram queues; original RTCPeerConnections must be closed and shutdown joined'})};
             }
-            return {passed:retirement.passed&&selection.passed&&currentAuthority.passed&&(spec.stage==='admission'||programmeReport.passed)&&(!observer||programmeReport.decoded_media.passed)&&(!idleResources||idleResources.passed),
+            return {passed:retirement.passed&&selection.passed&&currentAuthority.passed&&(spec.stage==='admission'||programmeReport.passed)&&(!observer||(programmeReport.decoded_media.passed&&idleResources?.renderer.playback_passed===true))&&(!idleResources||idleResources.passed),
                 ...(observer?{decoded_media:programmeReport.decoded_media,
                     ...(programmeReport.decoded_media.passed?{}:{failure:{stage:'decoded-media-quality',name:'ProfileBudgetsFailed'}})}:{}),wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,admission:state.report,
                 ...(programmeReport.keepalive_failure?{failure:{stage:'original-keepalive',...programmeReport.keepalive_failure}}:{}),
@@ -324,7 +324,8 @@ try{
                     failedIdle={passed:false,localOwnersJoined:false,original_failure_cleanup_observed:true,
                         resource_restoration:measured.passed,
                         original_client_closes:closes.map(value=>value.status),
-                        local_cleanup:local.map(value=>value.status),errors:cleanupErrors};
+                        local_cleanup:local.map(value=>value.status),
+                        renderer:local[1].status==='fulfilled'?local[1].value:{joined:false,playback_passed:false},errors:cleanupErrors};
                 }catch(failure){cleanupErrors.push({stage:'retired',name:failure.name});}
             }
             return {passed:false,wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,

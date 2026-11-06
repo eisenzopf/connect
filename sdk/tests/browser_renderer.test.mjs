@@ -50,3 +50,24 @@ test('renderer close failure is observable after all local buffers and ownership
   contexts[0].close=async()=>{throw Error('fixture graph close refused');};renderer.close();
   await assert.rejects(renderer.finished,/graph close refused/);assert.equal(renderer.diagnostics.pendingAudio,0);assert.equal(connection.closed.size,0);assert.match(renderer.diagnostics.error,/graph close refused/);
 }));
+
+test('renderer retirement waits for the original graph while finished retains playback failure',()=>environment(undefined,async contexts=>{
+  const connection=owner(),renderer=await BrowserMediaRenderer.open(connection);let resolve;
+  contexts[0].close=()=>new Promise(yes=>{resolve=()=>{contexts[0].state='closed';yes();};});
+  const failure=Error('original playback failed');renderer.close(failure);
+  let retired=false,finished=false;void renderer.retirement.then(()=>retired=true);void renderer.finished.catch(()=>finished=true);
+  await new Promise(setImmediate);assert.equal(retired,false);assert.equal(finished,false);
+  resolve();const receipt=await renderer.retirement;await assert.rejects(renderer.finished,error=>error===failure);
+  assert.deepEqual(receipt,{connectionId:connection.id,scope:'renderer-local',audioGraph:'closed',outputsDetached:true});
+  assert.equal(Object.isFrozen(receipt),true);assert.equal(connection.closed.size,0);assert.equal(renderer.diagnostics.pendingAudio,0);
+}));
+test('renderer graph rejection never produces a successful retirement receipt',()=>environment(undefined,async contexts=>{
+  const connection=owner(),renderer=await BrowserMediaRenderer.open(connection),failure=Error('original graph close rejected');
+  contexts[0].close=async()=>{throw failure;};renderer.close();
+  await assert.rejects(renderer.retirement,error=>error===failure);await assert.rejects(renderer.finished,error=>error===failure);
+}));
+test('video-only renderer retirement identifies the exact original owner without inventing a graph',()=>environment(undefined,async()=>{
+  const connection=owner(),renderer=await BrowserMediaRenderer.open(connection,{audio:false});renderer.close();
+  const receipt=await renderer.retirement;await renderer.finished;
+  assert.equal(receipt.connectionId,connection.id);assert.equal(receipt.audioGraph,'not-created');assert.equal(receipt.outputsDetached,true);
+}));

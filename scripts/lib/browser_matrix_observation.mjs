@@ -162,7 +162,8 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc) {
             bindings.set(connection.id,{index,audio,video,sendVideo,context,initial:active,sourceId:Number(plan.routes[index].role.split('-').at(-1))-1});
             const output=document.createElement('canvas');surfaces.add(output);rtc?.attach(connection.id,output);
             const owner=await connection.render({audio:true,video:[{stream:connection.streams.byId(video),canvas:output}]},options);
-            owners.push(owner);if(active)routes[index].active=connection.id;
+            owners.push({owner,index,connectionId:connection.id,finished:owner.finished,retirement:owner.retirement,
+                surfaces:[canvas,output]});if(active)routes[index].active=connection.id;
         },
         async initial(state,options){for(const route of plan.routes){const selected=routes[route.index].selected;
             await this.attach(route.index,state.connections[route.index],{audio:route.audio,video:Rtc?route.video:selected.video,sendVideo:route.video,active:true},options);}},
@@ -190,14 +191,36 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc) {
             // Stop scheduling diagnostics at original close, before joining
             // render owners. A pending original getStats is never a fake join.
             const statisticsWork=rtcStages?.close();
-            for(const owner of owners)owner.close();const outcomes=await Promise.allSettled(owners.map(owner=>owner.finished));
-            await rtc?.close();const statistics=await statisticsWork,count=owners.length;owners.length=0;bindings.clear();for(const route of routes)route.measure.ownerPixels.clear();
-            const joined=outcomes.every(value=>value.status==='fulfilled')&&(!rtcStages||statistics?.joined===true);
-            // Both the diagnostic surface and public renderer target belong to
-            // this fixture. Borrowers have now joined; release actual backing
-            // stores without changing any original decoded observation.
-            if(joined){for(const canvas of surfaces){canvas.width=0;canvas.height=0;}surfaces.clear();}
-            return {owners:count,statistics,joined};
+            for(const {owner} of owners)owner.close();
+            const finishedWork=Promise.allSettled(owners.map(entry=>entry.finished));
+            // Retain each exact original promise at attach. A replacement
+            // property or another owner's same-ID receipt proves no cleanup.
+            const retirements=await Promise.allSettled(owners.map(async entry=>{
+                check(entry.retirement&&typeof entry.retirement.then==='function','Original renderer retirement promise required');
+                const receipt=await entry.retirement;
+                check(receipt&&Object.isFrozen(receipt)&&receipt.connectionId===entry.connectionId
+                    &&receipt.scope==='renderer-local'&&receipt.outputsDetached===true
+                    &&['closed','not-created'].includes(receipt.audioGraph),'Original renderer retirement receipt differs');
+                return receipt;
+            }));
+            await rtc?.close();const statistics=await statisticsWork;
+            const diagnosticOwnersJoined=!rtcStages||statistics?.joined===true;
+            if(diagnosticOwnersJoined)retirements.forEach((result,index)=>{
+                if(result.status!=='fulfilled')return;
+                for(const canvas of owners[index].surfaces){canvas.width=0;canvas.height=0;surfaces.delete(canvas);}
+            });
+            const outcomes=await finishedWork,bounded=value=>typeof value==='string'?value.slice(0,64):null;
+            const details=(outcome,ordinal,stage)=>({owner_index:ordinal,route_index:owners[ordinal].index,
+                connection_id:owners[ordinal].connectionId,status:outcome.status,stage,
+                ...(outcome.status==='rejected'?{name:bounded(outcome.reason?.name),code:bounded(outcome.reason?.code),kind:bounded(outcome.reason?.kind),
+                    certainty:bounded(outcome.reason?.certainty)}:{})});
+            const ownerOutcomes=outcomes.map((outcome,index)=>details(outcome,index,'original-render-finished'));
+            const retirementOutcomes=retirements.map((outcome,index)=>details(outcome,index,'original-render-retirement'));
+            const count=owners.length;owners.length=0;bindings.clear();for(const route of routes)route.measure.ownerPixels.clear();
+            const playbackPassed=outcomes.every(value=>value.status==='fulfilled');
+            const joined=retirements.every(value=>value.status==='fulfilled')&&diagnosticOwnersJoined&&surfaces.size===0;
+            return {owners:count,statistics,joined,playback_passed:playbackPassed,
+                owner_outcomes:ownerOutcomes,retirement_outcomes:retirementOutcomes,retained_surfaces:surfaces.size};
         })();},
     };
 }

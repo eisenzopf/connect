@@ -1,5 +1,6 @@
 import { createBrowserRaw, } from "./browser_sdk_raw.js";
 import { BrowserTasks } from "./browser_tasks.js";
+import { preserveRenderRetirement, } from "./browser_render_retirement.js";
 import { handoffIntent, moveIntent, movementCompletion, } from "./browser_sdk_movements.js";
 import { transitionCommand, transitionContinuation, transitionObservation, consultationCompletion, consultBody, } from "./browser_sdk_consultations.js";
 import { operationDecisionResult, } from "./browser_sdk_decisions.js";
@@ -2432,8 +2433,13 @@ export class BrowserConnection {
                 throw translated(error, "read-only");
             });
             void finished.catch(() => { });
+            const retirement = preserveRenderRetirement(this.id, owner.retirement).catch((error) => {
+                throw translated(error, "read-only");
+            });
+            void retirement.catch(() => { });
             return Object.freeze({
                 finished,
+                retirement,
                 get diagnostics() {
                     const v = owner.diagnostics;
                     return Object.freeze({

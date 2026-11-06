@@ -147,6 +147,7 @@ export type {
     BrowserCaptureHandle,
     BrowserCaptureInput,
     BrowserRenderHandle,
+    BrowserRenderRetirement,
     BrowserConnection,
     BrowserStream,
     BrowserNonEmpty,

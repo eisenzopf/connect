@@ -21,7 +21,9 @@ test('receive reports share one clock across audio/video and later per-track arr
 });
 test('receive clocks retain signed RTP wrap, including a valid computed zero NTP',()=>{
  let now=1000000;const c=new RtcpReceiveClock(()=>now);c.register(1,48000);c.report(1,report(11,1n<<32n,48000));
- assert.deepEqual(c.timestamp(1,11,0),{timestampUs:0,synchronized:true});
+ const zero=c.timestamp(1,11,0);
+ assert.deepEqual(zero,{timestampUs:0,synchronized:true,sourceNtp:'0',sourceClock:{ntp:'4294967296',rtpTimestamp:48000}});
+ assert.equal(Object.isFrozen(zero.sourceClock),true);
  const w=new RtcpReceiveClock(()=>now);w.register(1,48000);w.report(1,report(11,100n<<32n,0xfffffc40));w.timestamp(1,11,0xfffffc40);
  assert.ok(Math.abs(w.timestamp(1,11,0).timestampUs-1020000)<=1);
 });

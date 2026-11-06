@@ -89,7 +89,15 @@ fn authority_rows_do_not_render_the_public_journal_page() {
 fn authority_rows_still_refuse_current_scope_and_connection_epoch_changes() {
     for change in ["permission", "epoch", "cancel", "expiry"] {
         let f = Fixture::new();
-        let accepted = f.admit("authority-row-current-loss");
+        let accepted = if change == "expiry" {
+            // Pin a short original deadline at admission; the immutable record
+            // must never be rewritten to manufacture an expiry boundary.
+            let mut request = f.request("authority-row-current-loss");
+            request.expires_at = crate::now() + 2;
+            f.store.admit_transition(&f.keys[0], request).unwrap()
+        } else {
+            f.admit("authority-row-current-loss")
+        };
         {
             let c = f.store.connection().unwrap();
             let actor = actor_from_connection(&c, &f.keys[0]).unwrap();
@@ -97,6 +105,15 @@ fn authority_rows_still_refuse_current_scope_and_connection_epoch_changes() {
                 .unwrap()
                 .require_execution(&c, &actor, &f.store)
                 .unwrap();
+        }
+        if change == "expiry" {
+            let original_deadline = accepted.expires_at.unwrap();
+            // No SQL or authority reader is retained while real time advances.
+            // The positive read above and fresh refusals below use the same
+            // original immutable intent and expiry, without clock injection.
+            while crate::now() < original_deadline {
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
         }
         let c = f.store.connection().unwrap();
         match change {
@@ -121,13 +138,7 @@ fn authority_rows_still_refuse_current_scope_and_connection_epoch_changes() {
                 )
                 .unwrap();
             }
-            "expiry" => {
-                c.execute(
-                    "UPDATE operations SET expires_at=?2 WHERE record_id=?1",
-                    params![accepted.record_id, crate::now() - 1],
-                )
-                .unwrap();
-            }
+            "expiry" => assert!(crate::now() >= accepted.expires_at.unwrap()),
             _ => unreachable!(),
         }
         let actor = actor_from_connection(&c, &f.keys[0]).unwrap();
