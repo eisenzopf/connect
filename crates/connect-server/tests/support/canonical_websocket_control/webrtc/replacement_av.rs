@@ -1,6 +1,8 @@
 //! Real signed same-root RTC replacement, decoded private readiness and retirement.
 //! Source media is local synthetic Opus/VP8; decoder observations use actual PCM/pixels.
 use super::*;
+#[path = "replacement_av/private_marker.rs"]
+mod private_marker;
 use connect_client::canonical::CanonicalHttpClient;
 use connect_protocol::{
     replacement_video::{ReplacementVideo, ReplacementVideoStream},
@@ -124,7 +126,7 @@ async fn original_av(
     drain(b);
     opus::tone(&mut a.audio, 880.0, false).await;
     opus::tone(&mut b.audio, 440.0, false).await;
-    picture(
+    private_marker::picture_once(
         &mut a.video,
         blue,
         &format!("{label}-original-receives-blue"),
@@ -132,7 +134,7 @@ async fn original_av(
         false,
     )
     .await;
-    picture(
+    private_marker::picture_once(
         &mut b.video,
         red,
         &format!("{label}-retained-receives-red"),
@@ -142,6 +144,12 @@ async fn original_av(
     .await;
 }
 async fn full_replacement(algorithm: &str) {
+    full_replacement_with_private_delay(algorithm, false).await;
+}
+async fn full_replacement_with_private_delay(algorithm: &str, delay_after_admit: bool) {
+    full_replacement_case(algorithm, delay_after_admit, None).await;
+}
+async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negative: Option<&str>) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
@@ -155,6 +163,15 @@ async fn full_replacement(algorithm: &str) {
     assert_eq!((red.len(), blue.len()), (64, 64));
     assert_eq!(red[0] & 1, 0);
     assert_eq!(blue[0] & 1, 0);
+    let green = if delay_after_admit {
+        let encoded = std::fs::read(fixtures.join("green.vp8")).unwrap();
+        assert!(!encoded.is_empty() && encoded.len() < 1200 && encoded[0] & 1 == 0);
+        assert_ne!(encoded, red);
+        assert_ne!(encoded, blue);
+        Some(encoded)
+    } else {
+        None
+    };
     let directory = fixtures.join(format!("replacement-{algorithm}-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir(&directory).unwrap();
     tracing::debug!(
@@ -183,6 +200,7 @@ async fn full_replacement(algorithm: &str) {
     let mut second = Peer::open_config(&f, &other).await;
     let mut peers = vec![];
     let mut senders = vec![];
+    let mut retained_marker = None;
     for (i, ws, credential) in [(0, &mut first, &f.client), (1, &mut second, &other)] {
         let peer = RvoipPeerConnection::new(&config(), PeerRole::Offerer)
             .await
@@ -208,11 +226,17 @@ async fn full_replacement(algorithm: &str) {
         .await
         .unwrap();
         peer.wait_connected(Duration::from_secs(5)).await.unwrap();
-        senders.push(opus::producer(&peer, if i == 0 { 440.0 } else { 880.0 }));
-        senders.push(video_producer(
-            &peer,
-            if i == 0 { red.clone() } else { blue.clone() },
-        ));
+        if i == 1 && delay_after_admit {
+            let (original, marker) = private_marker::producers(&peer, 880.0, blue.clone());
+            senders.extend(original);
+            retained_marker = Some(marker);
+        } else {
+            senders.push(opus::producer(&peer, if i == 0 { 440.0 } else { 880.0 }));
+            senders.push(video_producer(
+                &peer,
+                if i == 0 { red.clone() } else { blue.clone() },
+            ));
+        }
         completed(&f, credential, &format!("rtc-offer-{i}")).await;
         peers.push(peer);
     }
@@ -301,6 +325,17 @@ async fn full_replacement(algorithm: &str) {
     .await
     .expect("original replacement preparation");
     let candidate = format!("replacement_{}", prepared.record_id);
+    let original_reservation = || {
+        rusqlite::Connection::open_with_flags(&f.config.database,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap().query_row(
+            "SELECT operation_record_id,reservation_id,expires_at,candidate_runtime_id,generation FROM native_replacements WHERE operation_record_id=?1",
+            [&prepared.record_id], |row| Ok((row.get::<_,String>(0)?, row.get::<_,String>(1)?,
+                row.get::<_,i64>(2)?, row.get::<_,String>(3)?, row.get::<_,u64>(4)?))).unwrap()
+    };
+    let captured_reservation = original_reservation();
+    assert_eq!(captured_reservation.0, prepared.record_id);
+    assert_eq!(captured_reservation.4, 2);
+
     let replacement = RvoipPeerConnection::new(&config(), PeerRole::Offerer)
         .await
         .unwrap();
@@ -330,8 +365,10 @@ async fn full_replacement(algorithm: &str) {
     assert!(host.adapter().is_connection_live(&retained_runtime));
     let mut media = renew(allocation);
     media["payload"]["replacement_preparation"]["profile"] = json!("connect-replacement-media-v1");
-    let id = target_peer.send(media.clone(), true).await;
-    let answer = target_peer.read().await;
+    let original_target_until = tokio::time::Instant::now() + Duration::from_secs(8);
+    let private_cutoff = delay_after_admit.then_some(original_target_until);
+    let id = private_marker::until(private_cutoff, target_peer.send(media.clone(), true)).await;
+    let answer = private_marker::until(private_cutoff, target_peer.read()).await;
     assert_eq!(
         answer.kind(),
         "connection.answer",
@@ -346,26 +383,203 @@ async fn full_replacement(algorithm: &str) {
     assert_eq!(challenge["stream_revision"], 2);
     assert_eq!(payload["streams_answered"][1]["direction"], "recvonly");
     assert_eq!(payload["streams_answered"][2]["direction"], "sendonly");
-    replacement
-        .set_remote_answer(payload["substrate_setup"]["sdp"].as_str().unwrap())
-        .await
-        .unwrap();
-    replacement
-        .wait_connected(Duration::from_secs(5))
-        .await
-        .unwrap();
+    // Every negative uses the actual original route, socket, peer and Store
+    // record, then joins those exact owners. No substitute decoder/connection.
+    macro_rules! finish_failed_original {
+        ($received:expr, $physical_closed:expr) => {{
+            tokio::time::timeout(Duration::from_secs(5), async {
+                loop {
+                    let current = record(&f, &target_config, operation);
+                    if matches!(
+                        current.state,
+                        OperationState::Failed | OperationState::Cancelled
+                    ) && host.adapter().route_count() == 2
+                        && host.available_slots() == 1
+                    {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+            })
+            .await
+            .expect("same original failed RTC target and worker must retire");
+            let current = record(&f, &target_config, operation);
+            assert_eq!(current.record_id, prepared.record_id);
+            assert!(current.result.is_none());
+            assert!(!current.effects.iter().any(|effect| {
+                ["native-replacement-readiness", "native-replacement-commit"]
+                    .contains(&effect.provider.as_str())
+                    && effect.state == EffectState::Confirmed
+            }));
+            assert!(current.effects.iter().all(|effect| effect.attempt <= 1));
+            assert_eq!(original_reservation(), captured_reservation);
+            assert_eq!(host.adapter().total_allocations(), 3);
+            assert!(!host.adapter().is_connection_live(
+                &rvoip_core::ids::ConnectionId::from_string(captured_reservation.3.clone())
+            ));
+            assert!(host.adapter().is_connection_live(&old_runtime));
+            assert!(host.adapter().is_connection_live(&retained_runtime));
+            assert_eq!(connection_state(&f, "rtc-connection-0").1, 1);
+            original_av(
+                &mut a,
+                &mut b,
+                &red,
+                &blue,
+                &directory,
+                "after-private-refusal",
+            )
+            .await;
+            for received in $received {
+                for stream in received.streams {
+                    stream.close().await.unwrap();
+                }
+            }
+            for (stop, sender) in senders {
+                stop.cancel();
+                assert!(sender.await.unwrap() > 0);
+            }
+            for peer in peers {
+                peer.close().await.unwrap();
+            }
+            if !$physical_closed {
+                replacement.close().await.unwrap();
+            }
+            first.socket.close(None).await.unwrap();
+            second.socket.close(None).await.unwrap();
+            target_peer.socket.close(None).await.unwrap();
+            drop(first);
+            drop(second);
+            drop(target_peer);
+            f.server.shutdown().await.unwrap();
+            assert_eq!(host.adapter().route_count(), 0);
+            assert_eq!(host.available_slots(), 3);
+            return;
+        }};
+    }
+    private_marker::until(
+        private_cutoff,
+        replacement.set_remote_answer(payload["substrate_setup"]["sdp"].as_str().unwrap()),
+    )
+    .await
+    .unwrap();
+    private_marker::until(
+        private_cutoff,
+        replacement.wait_connected(Duration::from_secs(5)),
+    )
+    .await
+    .unwrap();
     senders.push(opus::producer(&replacement, 660.0));
     senders.push(video_producer(&replacement, red.clone()));
-    let mut c = receive(&replacement, 2).await;
-    let decoded_samples = decoded_private_audio(&mut c.audio).await;
-    picture(
-        &mut c.video,
-        &blue,
-        "private-target-first-blue-keyframe",
-        &directory,
-        false,
-    )
-    .await;
+    let mut c = private_marker::until(private_cutoff, receive(&replacement, 2)).await;
+    if delay_after_admit || negative.is_some() {
+        // Observe actual signed Store admission, never infer DTLS/resource
+        // success from elapsed time or fabricate a ready decoder observation.
+        private_marker::until(
+            private_cutoff,
+            tokio::time::timeout(Duration::from_secs(2), async {
+                loop {
+                    let current = record(&f, &target_config, operation);
+                    if [
+                        "native-replacement-start",
+                        "native-replacement-attach",
+                        "native-replacement-activate",
+                    ]
+                    .iter()
+                    .all(|provider| {
+                        current.effects.iter().any(|effect| {
+                            effect.provider == *provider && effect.state == EffectState::Confirmed
+                        })
+                    }) {
+                        assert_eq!(current.state, OperationState::Preparing);
+                        assert!(current.result.is_none());
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+            }),
+        )
+        .await
+        .expect("actual original RTC resource admission before private delay");
+        let original_reservation_expiry = || {
+            rusqlite::Connection::open_with_flags(
+                &f.config.database,
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            )
+            .unwrap()
+            .query_row(
+                "SELECT expires_at FROM native_replacements WHERE operation_record_id=?1",
+                [&prepared.record_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap()
+        };
+        let original_expiry = original_reservation_expiry();
+        // This is an actual wait after admission, not a modified clock/read
+        // expiry. It crosses every <=5s start capture before this boundary.
+        if delay_after_admit {
+            private_marker::until(
+                private_cutoff,
+                tokio::time::sleep(Duration::from_millis(5100)),
+            )
+            .await;
+            // This SAME original retained publisher has never used these PCM
+            // or VP8 inputs before the real boundary. Pending old packets may
+            // be discarded but cannot decode as the new tone/green marker.
+            retained_marker
+                .as_ref()
+                .unwrap()
+                .select(private_marker::MARKER_HZ, green.as_ref().unwrap());
+        }
+        assert_eq!(original_reservation_expiry(), original_expiry);
+        assert!(
+            chrono::Utc::now().timestamp() < original_expiry,
+            "the exact original reservation must still be valid"
+        );
+        let current = record(&f, &target_config, operation);
+        assert_eq!(current.record_id, prepared.record_id);
+        assert_eq!(current.state, OperationState::Preparing);
+        assert!(current.result.is_none());
+        assert!(!current
+            .effects
+            .iter()
+            .any(|effect| effect.provider == "native-replacement-readiness"
+                && effect.state == EffectState::Confirmed));
+        assert_eq!(host.adapter().total_allocations(), 3);
+        assert_eq!(host.adapter().route_count(), 3);
+        assert!(host.adapter().is_connection_live(&old_runtime));
+        assert!(host.adapter().is_connection_live(&retained_runtime));
+        // Draining alone is not freshness proof; the genuine new marker below
+        // must independently decode before this original eight-second cutoff.
+        drain(&mut c);
+    }
+    let decoded_samples = if delay_after_admit {
+        private_marker::audio(&mut c.audio, original_target_until).await
+    } else {
+        decoded_private_audio(&mut c.audio).await
+    };
+    if delay_after_admit {
+        private_marker::picture(
+            &mut c.video,
+            green.as_ref().unwrap(),
+            "private-target-post-boundary-green",
+            &directory,
+            1,
+            original_target_until,
+        )
+        .await;
+        // Restore the SAME original publisher before proving both ordinary
+        // original routes still deliver their original tone/color below.
+        retained_marker.as_ref().unwrap().select(880.0, &blue);
+    } else {
+        private_marker::picture_once(
+            &mut c.video,
+            &blue,
+            "private-target-first-blue-keyframe",
+            &directory,
+            false,
+        )
+        .await;
+    }
     let mut observation = challenge.clone();
     observation["audio"] =
         json!({"stream_id":"replacement-audio","decoded_samples":decoded_samples});
@@ -375,6 +589,80 @@ async fn full_replacement(algorithm: &str) {
     let mut ready = renew(media);
     ready["payload"]["replacement_preparation"]["profile"] = json!("connect-replacement-ready-v1");
     ready["payload"]["replacement_preparation"]["readiness"] = observation;
+    if let Some(boundary) = negative {
+        match boundary {
+            "expiry" => {
+                let remaining = captured_reservation.2 - chrono::Utc::now().timestamp();
+                assert!(remaining > 0);
+                tokio::time::sleep(
+                    Duration::from_secs(remaining as u64) + Duration::from_millis(20),
+                )
+                .await;
+                assert!(chrono::Utc::now().timestamp() >= captured_reservation.2);
+            }
+            "operator-revoked" => {
+                assert!(chrono::Utc::now().timestamp() < captured_reservation.2);
+                let admin = f.server.store.authenticate(&f.admin).unwrap();
+                let store = f.server.store.clone();
+                let credential = key.id.clone();
+                tokio::task::spawn_blocking(move || store.revoke(&admin, &credential))
+                    .await
+                    .unwrap()
+                    .unwrap();
+                assert!(f.server.store.revalidate(&key.id).is_err());
+            }
+            "physical-cancel" => {
+                assert!(chrono::Utc::now().timestamp() < captured_reservation.2);
+                replacement.close().await.unwrap();
+            }
+            _ => unreachable!(),
+        }
+        assert_eq!(original_reservation(), captured_reservation);
+        // This observation came from the actual pre-boundary Opus/VP8 decoder.
+        // Even a genuine signed history cannot revive current authority.
+        let id = target_peer.send(renew(ready.clone()), true).await;
+        let refused_current = tokio::time::timeout(Duration::from_secs(5), async {
+            let mut refused_current = false;
+            for _ in 0..128 {
+                let event = target_peer.read().await;
+                assert_eq!(event.original()["in_reply_to"], id);
+                match event.kind() {
+                    "error" => {
+                        let code = event.original()["payload"]["code"].as_u64().unwrap();
+                        assert!(
+                            [403, 404, 409, 410].contains(&code),
+                            "{:?}",
+                            event.original()
+                        );
+                        refused_current = true;
+                        break;
+                    }
+                    "operation.updated" => {
+                        assert!(
+                            matches!(
+                                event.original()["payload"]["state"].as_str(),
+                                Some("failed" | "cancelled")
+                            ),
+                            "{:?}",
+                            event.original()
+                        );
+                    }
+                    _ => panic!(
+                        "stale private Ready acquired an unexpected receipt: {:?}",
+                        event.original()
+                    ),
+                }
+            }
+            refused_current
+        })
+        .await
+        .expect("same original signed stale Ready refusal is bounded");
+        assert!(
+            refused_current,
+            "actual signed stale Ready must receive a definitive authority refusal"
+        );
+        finish_failed_original!(vec![a, b, c], boundary == "physical-cancel");
+    }
     for invalid in ["nonce", "generation", "audio", "video"] {
         let mut bad = renew(ready.clone());
         let value = &mut bad["payload"]["replacement_preparation"]["readiness"];
@@ -385,7 +673,11 @@ async fn full_replacement(algorithm: &str) {
             "video" => value["video"]["decoded_keyframes"] = json!(0),
             _ => unreachable!(),
         }
-        refused(&mut target_peer, bad, "forbidden", 403).await;
+        private_marker::until(
+            private_cutoff,
+            refused(&mut target_peer, bad, "forbidden", 403),
+        )
+        .await;
         let pending = record(&f, &target_config, operation);
         assert_eq!(pending.state, OperationState::Preparing);
         assert!(pending.result.is_none());
@@ -393,9 +685,24 @@ async fn full_replacement(algorithm: &str) {
         assert!(host.adapter().is_connection_live(&old_runtime));
         assert_eq!(host.adapter().route_count(), 3);
     }
-    original_av(&mut a, &mut b, &red, &blue, &directory, "waiting-for-ready").await;
-    command(&mut target_peer, renew(ready.clone())).await;
-    let done = completed(&f, &target_config, operation).await;
+    if delay_after_admit {
+        private_marker::originals(
+            &mut a,
+            &mut b,
+            &red,
+            &blue,
+            &directory,
+            original_target_until,
+        )
+        .await;
+    } else {
+        original_av(&mut a, &mut b, &red, &blue, &directory, "waiting-for-ready").await;
+    }
+    let original_ready = async {
+        command(&mut target_peer, renew(ready.clone())).await;
+        completed(&f, &target_config, operation).await
+    };
+    let done = private_marker::until(private_cutoff, original_ready).await;
     assert_eq!(done.record_id, prepared.record_id);
     assert_eq!(done.result.as_ref().unwrap()["generation"], 2);
     let activation: connect_protocol::replacement_activation::NativeActivationBoundary =
@@ -488,7 +795,7 @@ async fn full_replacement(algorithm: &str) {
     drain(&mut c);
     opus::tone(&mut b.audio, 660.0, false).await;
     opus::tone(&mut c.audio, 880.0, false).await;
-    picture(
+    private_marker::picture_once(
         &mut b.video,
         &red,
         "retained-receives-new-target-red",
@@ -496,7 +803,7 @@ async fn full_replacement(algorithm: &str) {
         true,
     )
     .await;
-    picture(
+    private_marker::picture_once(
         &mut c.video,
         &blue,
         "new-target-receives-retained-blue",
@@ -557,4 +864,27 @@ async fn signed_webrtc_av_replacement_waits_for_decoded_target_before_retiring_o
 #[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
 async fn signed_webrtc_av_replacement_waits_for_decoded_target_before_retiring_original_es256() {
     full_replacement("ES256").await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
+async fn signed_webrtc_av_private_readiness_survives_original_start_capture_after_actual_admission()
+{
+    full_replacement_with_private_delay("EdDSA", true).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
+async fn signed_webrtc_av_original_reservation_expiry_refuses_genuine_private_observation() {
+    full_replacement_case("EdDSA", false, Some("expiry")).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
+async fn signed_webrtc_av_current_operator_revocation_refuses_genuine_private_observation() {
+    full_replacement_case("EdDSA", false, Some("operator-revoked")).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
+async fn signed_webrtc_av_original_physical_cancel_refuses_genuine_private_observation() {
+    full_replacement_case("EdDSA", false, Some("physical-cancel")).await;
 }

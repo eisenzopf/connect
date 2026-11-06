@@ -1,3 +1,4 @@
+import { recordPrivateTargetCleanup } from "./transport_failure_isolation.mjs";
 import { fileSha256 } from "./transport_file_hash.mjs";
 import { validateProgrammeClock, programmeElapsed } from "./transport_programme_clock.mjs";
 // Public SDK metadata controller and an independently owned physical Rust peer.
@@ -197,7 +198,7 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
         source_input_sha256: hash(Buffer.from(JSON.stringify(input.media))), video_enabled: Boolean(intent.source.video),
         decoded_media_verified: false, cell_qualified: false, task_complete: false, whole_gate_qualified: false };
     let phase = "original-submission", worker, completed, log, exited, admittedConnectionId;
-    let transferred = false, finishPromise, stopPromise;
+    let transferred = false, finishPromise, stopPromise, originalFailure;
     const stopPath = output.replace(/\.json$/, ".owner-stop.json");
     const readyPath = output.replace(/\.json$/, ".owner-ready.json");
     const recordFailure = error => {
@@ -336,6 +337,7 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             target: { endpoint: intent.target.endpointId }, expectedTopologyRevision: intent.expectedTopologyRevision,
             ...(input.command.intent.video ? { video: input.command.intent.video } : {}) },
         { timeoutMs: remaining(), operationId: intent.operationId });
+        phase = "original-submission-returned";
         const reference = operation.referenceJson();
         assert.equal(reference.command, "connection.replace"); assert.equal(reference.operation_id, intent.operationId);
         assert.deepEqual(Object.keys(reference.scope).sort(), ["connection_id", "conversation_id", "session_id"]);
@@ -398,11 +400,13 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             ]);
         } finally { observingCompletion = false; if (targetFailed) waiting.abort(); }
         assert.equal(done.snapshot.state, "completed");
+        // Observed completion precedes every result dereference/validation.
+        // Malformed completed output must never be classified as unsubmitted.
+        report.original_root_completed = true;
         const moved = done.value;
         admittedConnectionId = moved.connection.id;
         assert.deepEqual(moved.retired, [intent.connectionId]);
         assert.deepEqual(moved.retained.map(v => v.id), [intent.retainedConnectionId]);
-        report.original_root_completed = true;
         phase = "retained-current-observation";
         const retained = await moved.retained[0].refresh({ timeoutMs: 5000 });
         assert.equal(retained.id, intent.retainedConnectionId); assert.equal(retained.generation, intent.retainedGeneration);
@@ -466,6 +470,27 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
             });
         }
         return await finish();
-    } catch (error) { recordFailure(error); throw error; }
-    finally { if (!transferred && !finishPromise) await cleanup(); }
+    } catch (error) { originalFailure = error; recordFailure(error); throw error; }
+    finally {
+        let cleanupError;
+        try { if (!transferred && !finishPromise) await cleanup(); }
+        catch (error) { cleanupError = error; }
+        if (originalFailure) recordPrivateTargetCleanup(originalFailure, {
+            format: "connect/original-private-target-cleanup/1", transferred,
+            completion_observed: report.original_root_completed,
+            submission_definitively_refused: originalFailure.certainty === "refused" &&
+                phase === "original-submission" && !worker && !report.original_root_completed,
+            logical_outcome: report.original_root_completed ? "completed-observed" :
+                originalFailure.certainty === "refused" && phase === "original-submission" && !worker ? "not-submitted" : "unknown",
+            worker_started: Boolean(worker), target_worker_joined: report.target_worker_joined,
+            target_worker_forced: report.target_worker_forced,
+            original_root_completed: report.original_root_completed,
+            original_source_owner_joined: report.original_source_owner_joined,
+            target_config_unchanged: report.target_config_unchanged,
+            target_executable_unchanged: report.target_executable_unchanged,
+        }, cleanupError);
+        // A cleanup refusal is fatal but cannot replace the original operation
+        // error. Its exact identity is retained alongside the cleanup receipt.
+        if (cleanupError) throw originalFailure ?? cleanupError;
+    }
 }

@@ -1,14 +1,15 @@
+import { recordPrivateTargetCleanup, isolatedPrivateTargetFailure } from "../lib/transport_failure_isolation.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { joinMediaProgramme } from "../lib/transport_programme_lifetime.mjs";
 
 const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
 const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
-function fixture({ control = deferred(), stop = () => {} } = {}) {
+function fixture({ control = deferred(), stop = () => {}, isolateFailure = () => false, observe = () => {} } = {}) {
     let time = 0, next = 0, stops = 0;
     const controller = new AbortController(), timers = new Map(), packet = deferred();
     const run = joinMediaProgramme({ startedAt: 0, signal: controller.signal, abort: reason => controller.abort(reason),
-        owners: [{ async stopAndJoin() { stops++; await stop(); packet.resolve(); } }], packetTasks: [packet.promise], controlTask: control.promise,
+        isolateFailure, observe, owners: [{ async stopAndJoin() { stops++; await stop(); packet.resolve(); } }], packetTasks: [packet.promise], controlTask: control.promise,
         now: () => time, setTimer: (fn, ms) => { const id = ++next; timers.set(id, { at: time + ms, fn }); return id; },
         clearTimer: id => timers.delete(id) });
     let complete = false;
@@ -94,4 +95,49 @@ test("early cancellation narrows cleanup to5s and a late one cannot renew the or
         f.control.resolve(); await assert.rejects(f.run, error => error === original);
         assert.equal(f.timers.size, 0);
     }
+});
+
+test("certified private failure preserves unaffected original packet window and original Error through final joins", async () => {
+    const original = Object.assign(Error("original submission refused"), { kind: "deadline", certainty: "read-only" });
+    recordPrivateTargetCleanup(original, { format: "connect/original-private-target-cleanup/1", logical_outcome: "not-submitted", submission_definitively_refused: true, completion_observed: false,
+        transferred: false, original_root_completed: false, original_source_owner_joined: false,
+        worker_started: false, target_worker_joined: true, target_worker_forced: false,
+        target_executable_unchanged: true, target_config_unchanged: true });
+    const f = fixture({ isolateFailure: isolatedPrivateTargetFailure });
+    await f.advance(23000); f.control.reject(original); await flush();
+    assert.equal(f.controller.signal.aborted, false); assert.equal(f.stops, 0); assert.equal(f.complete, false);
+    await f.advance(62000); assert.equal(f.stops, 0);
+    await f.advance(62200); await assert.rejects(f.run, failure => failure === original);
+    assert.equal(f.stops, 1); assert.equal(f.timers.size, 0);
+});
+
+test("a forced candidate cleanup remains fatal even when its worker eventually exits", async () => {
+    const original=Error("original root with forced close");
+    recordPrivateTargetCleanup(original, { format: "connect/original-private-target-cleanup/1", logical_outcome: "not-submitted", submission_definitively_refused: true, completion_observed: false,
+        transferred:false,original_root_completed:false,original_source_owner_joined:false,
+        worker_started:false,target_worker_joined:true,target_worker_forced:true,
+        target_executable_unchanged:true,target_config_unchanged:true });
+    const f=fixture({isolateFailure:isolatedPrivateTargetFailure});
+    f.control.reject(original);await assert.rejects(f.run,error=>error===original);
+    assert.equal(f.controller.signal.reason,original);assert.equal(f.stops,1);assert.equal(f.timers.size,0);
+});
+
+test("a late cleanup cannot turn early cancellation into a completed original programme window", async () => {
+    let observation;const joining=deferred();
+    const f=fixture({stop:()=>joining.promise,observe:value=>{observation=value;}});
+    await f.advance(23000);const original=Error("early actual cancellation");
+    f.controller.abort(original);f.control.resolve();await flush();
+    await f.advance(70000);joining.resolve();await assert.rejects(f.run,error=>error===original);
+    assert.equal(observation.programme_window_observed,false);
+});
+
+test("an original packet-owner join refusal is fatal even if the same error has unrelated isolation evidence", async () => {
+    const original=Error("actual packet join refused");
+    recordPrivateTargetCleanup(original, {format:"connect/original-private-target-cleanup/1",logical_outcome:"not-submitted",submission_definitively_refused:true,completion_observed:false,
+        transferred:false,original_root_completed:false,original_source_owner_joined:false,
+        worker_started:false,target_worker_joined:true,target_worker_forced:false,
+        target_executable_unchanged:true,target_config_unchanged:true});
+    const f=fixture({stop:()=>{throw original;},isolateFailure:isolatedPrivateTargetFailure});
+    await f.advance(62200);assert.equal(f.controller.signal.reason,original);
+    f.packet.resolve();f.control.resolve();await assert.rejects(f.run,error=>error===original);
 });

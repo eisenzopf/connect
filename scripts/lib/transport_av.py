@@ -385,11 +385,15 @@ def decode_paired_markers(directory, index, audio_rows, all_video_rows, ivf):
 
 
 def verify(directory, manifest):
+    return _verify_original(directory, manifest, range(6), 'decoded.json')
+
+
+def _verify_original(directory, manifest, indices, output):
     """Decode bytes independently; retain explicit measurement limits."""
     if manifest.get('format') == 'connect/native-av-sources/2' and manifest.get('markers') != marker_profile():
         raise ValueError('Native source marker programme differs from the frozen source profile')
     results = []
-    for index in range(6):
+    for index in indices:
         path = directory / f'received-{index}.json'
         if path.stat().st_size > MAX_FILE:
             raise ValueError('Native media observation size')
@@ -469,7 +473,7 @@ def verify(directory, manifest):
         source_manifest=manifest, connections=6, participants=4, sessions=2, observation_seconds=60, warmup_seconds=2,
         routes=results, scope='Independent decoded native Opus/VP8 source identity and moving-frame component in the named six-Connection workload. RTP arrival times bind observation-window membership. When the source manifest declares markers, decoded content must also pass nonperiodic ordinal-paired receive alignment. Live decoder completion/device presentation, live upgrade/replacement, impairment and complete transport cell qualification remain open.',
         task_complete=False, cell_qualified=False, matrix_qualified=False, whole_gate_qualified=False)
-    (directory / 'decoded.json').write_text(json.dumps(report, indent=2) + '\n')
+    (directory / output).write_text(json.dumps(report, indent=2) + '\n')
     return report
 
 
@@ -477,7 +481,33 @@ def decode_completed(observed, directory, manifest):
     """A late control failure does not erase a completed media observation."""
     if observed.get('native_av', {}).get('original_receive_tasks_joined') is not True:
         return None
-    if 'device_movement' in observed:
+    if observed.get('native_av', {}).get('observation_receipt', {}).get('persisted') is False:
+        return None
+    if 'device_movement' in observed or observed.get('native_av', {}).get('movement_requested') is True:
+        # Missing moving capture cannot silently fall back to an original-only
+        # qualification. Independently decode each genuine joined original
+        # route for diagnostics, retaining every missing/partial window failure.
+        if 'native_movement_capture' not in observed:
+            diagnostics = diagnose_original_routes(directory, manifest)
+            return dict(format='connect/native-moving-av-prerequisite-failure/1', passed=False,
+                failure='original-moving-capture-prerequisite-missing',
+                original_route_diagnostics=diagnostics, cell_qualified=False,
+                task_complete=False, whole_gate_qualified=False)
         from .transport_moving_av import verify as moving_verify
         return moving_verify(directory, manifest, observed['native_movement_capture'])
     return verify(directory, manifest)
+
+
+def diagnose_original_routes(directory, manifest):
+    results = []
+    for index in range(6):
+        try:
+            report = _verify_original(directory, manifest, [index], f'diagnostic-original-{index}.json')
+            assert len(report['routes']) == 1 and report['routes'][0]['index'] == index
+            results.append(report['routes'][0])
+        except Exception as error:
+            results.append(dict(index=index, passed=False, available=False, failure=type(error).__name__))
+    return dict(format='connect/native-original-route-diagnostics/1', routes=results,
+        observation_seconds=60, warmup_seconds=2,
+        scope='Independent original-route diagnostic windows only. A retired or partial original route remains failed/unavailable; these are not reconstructed movement histories or handoff qualification.',
+        cell_qualified=False, task_complete=False, whole_gate_qualified=False)

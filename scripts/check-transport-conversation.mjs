@@ -1,3 +1,4 @@
+import { observationFailure } from "./lib/transport_failure_isolation.mjs";
 import { fileSha256 } from "./lib/transport_file_hash.mjs";
 import { nativeControlRecovery } from "./lib/native_control_recovery.mjs";
 import { nativeMatrixLifecycle } from "./lib/native_matrix_lifecycle.mjs";
@@ -419,8 +420,14 @@ try {
             }
             try {
                 report.native_av = await nativeAv(connections, sessionRoles, input.media_source_directory, input.media_output_directory, plan,
-                observation => { report.native_av_observation = observation; }, async workload => {
+                (observation, joinedProgramme) => {
+                    report.native_av_observation = observation;
+                    // Failure still carries actual joined original captures.
+                    // This is observation custody, never a media/control pass.
+                    if (joinedProgramme) report.native_av = joinedProgramme;
+                }, async workload => {
                     const observed = await observeMovementSessions({ workload, primarySessions: sessions,
+                        observe: observation => { report.current_control_session_observation = observation; },
                         controllerSessions: controllers.map((client, index) => client.conversations.byId(cid).sessions.byId(sessions[index].id)),
                         run: async current => {
                             await waitForProgrammeOffset(current, 2000);
@@ -435,6 +442,7 @@ try {
                             directory: join(privateDirectory, "movement"), executable: input.physical_peer_executable,
                             executableSha256: input.physical_peer_sha256,
                             currentEnds: connections.map((item, index) => ({ index, operationId: plan[item.prefix + "-end"] })),
+                            observe: observation => { report.device_movement = observation; },
                             });
                         } });
                     report.current_control_session_observation = observed.observation;
@@ -538,6 +546,10 @@ try {
     }
     report.passed = !mediaWorkload || report.replacement_activation.passed === true;
 } catch (error) {
+    const observerFailure = observationFailure(error);
+    if (observerFailure) report.original_observation_failure = { fatal: true,
+        original_error_preserved: error !== observerFailure, name: observerFailure.name,
+        kind: observerFailure.kind ?? null, certainty: observerFailure.certainty ?? null };
     report.failure = { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null, ...operationFailure(error) };
     if (dataFailures.has(error)) report.failure.data_context = dataFailures.get(error);
     if (["message.send", "operation.get", "connection.offer", "stream.subscribe"].includes(error.operation?.command))

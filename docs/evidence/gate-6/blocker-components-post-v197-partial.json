@@ -1,0 +1,374 @@
+{
+  "format": "connect/g6-058-post-v197-focused-partial/1",
+  "updated": "2026-11-06T22:27:48.065350+00:00",
+  "source_revision": "b9bf29c133fdaf91779cf225b49728e77cc233c1",
+  "tested_workspace_sha256": "33ca9b22cc933625b048227f70e9c68f83783033a53954b77dab719c3fc2da8a",
+  "source_lock_sha256": "89aad799bb2a929b6a9d216158c004815a865a874754750561e91cf70259c940",
+  "original_controller_joined": true,
+  "original_controller_exit_code": 1,
+  "all_test_processes_joined": true,
+  "any_process_forced": false,
+  "original_vm_lease_released_joined": true,
+  "default_feature_check_passed": false,
+  "actual_default_feature_check": {
+    "executed": true,
+    "exit_code": 101,
+    "qualified": false,
+    "compiler_codes": [
+      "E0599"
+    ],
+    "missing_test_support_helpers": [
+      "canonical_session_metadata_for_test",
+      "canonical_session_role_for_test",
+      "test_webrtc_host",
+      "with_canonical_media_activation_for_test",
+      "with_canonical_media_registry_for_test"
+    ],
+    "error_occurrences": 11,
+    "log_sha256": "3051f475df6078ce01d9c00a02f30e104f23e62225c4adaa31bc9610ba292d91",
+    "default_shipping_lib_bins_checked": false,
+    "automatic_cargo_skip_counts_as_pass": false
+  },
+  "independent_source_after": {
+    "worker_source_after_recorded": false,
+    "reason": "Known default check101 ended worker before final source-after recording",
+    "post_join_source_proof_sha256": "cc12570569fd88a5a95ac3db45d021d3287e811800bbda384f6defd6862cb0d4",
+    "host_and_arm_exact_tested_source": true
+  },
+  "original_arm_receipt_sha256": "b2d31f08e3560b29fdc1d94a4fb3c276405abb36f230d790212485254b0ae455",
+  "original_controller_receipt_sha256": "8fbb0b276a204c085d69d9c2d8b32dde57e71d3673c6ff943fd8f98b60350045",
+  "original_outer_join_receipt_sha256": "4e037ba52f041cf17ce5275e0eb7735f4a299829fe83d6e1e2bf3203f9b1c14e",
+  "actual_arm_rust": {
+    "planned": 20,
+    "executed": 19,
+    "passed": 13,
+    "failed": 6,
+    "missing_selectors": 1,
+    "ignored": 0,
+    "cases": [
+      {
+        "name": "orchestrator::participant_control::end_session_tests::aborted_session_end_fences_media_and_pending_before_wait_and_retry_finishes_once",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "6e80b76245793a10f05ab95be9e911e3676e8c2c809f70026ab930c30735a956"
+      },
+      {
+        "name": "orchestrator::participant_control::end_session_tests::concurrent_session_end_keeps_first_reason_and_emits_one_completion",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "5d58a079459e81047041ecad47c96f01b68abb6b75e809fccffd7958a6b4a663"
+      },
+      {
+        "name": "orchestrator::participant_control::end_session_tests::cancelled_force_close_resumes_ending_session_before_closing_conversation",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "cfb2423444e55aed0b8ed2d5acc0a099943e6d72dcbb9aa324ea068a7e0a3ce0"
+      },
+      {
+        "name": "orchestrator::participant_control::end_session_tests::cancelled_session_end_leaves_other_session_audio_and_membership_live",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "d8f674daa2c4373fe50e66575d4c1c24c1fcdd212e3490b869fa9f3675a64e7c"
+      },
+      {
+        "name": "orchestrator::participant_control::end_session_tests::ending_session_rejects_legacy_route_probe_and_both_commit_paths",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "83c181df201ebac9aeaac8f125d842d18da786c6d691ba355ecddb74330c9ff7"
+      },
+      {
+        "name": "orchestrator::participant_control::end_session_tests::session_end_waits_for_the_actual_original_mixer_finalizer_and_releases_handle",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "0dd7aa52a4f0bf7bcf95a98878f0419f1959b0b652e4ff31ec047c95ee15fbcc"
+      },
+      {
+        "name": "orchestrator::participant_control::end_session_tests::cancelled_session_end_resumes_the_same_original_mixer_join_after_finalizer_release",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "81962d382473df3b0587aa69c722d897713ad6b8943b75facde93b4b13d9a5d8"
+      },
+      {
+        "name": "orchestrator::participant_control::end_session_tests::concurrent_session_ends_join_one_original_mixer_before_one_terminal_event",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "fb7eb0c11058c95586a4ad15f5db2e31d507f5b596d45ae61ddb3693df1369e8"
+      },
+      {
+        "name": "orchestrator::participant_control::end_session_tests::original_mixer_finalizer_failure_is_not_normalized_to_completed_session_end",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "479d797a89a5e328b4a4f979c267a809065720393a9687c612fdd6a6c23ae0a2"
+      },
+      {
+        "name": "canonical_replacement::diagnostics::private_scene_busy_tests::private_scene_busy_known_store_messages_keep_closed_subtypes_and_original_mapping",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "3480bd9fd1040767e2b9d56df4fe9d447460ed69b4c4454ee808eeb4a1a646d6"
+      },
+      {
+        "name": "canonical_replacement::diagnostics::private_scene_busy_tests::actual_private_scene_emitter_uses_runner_filters_once_per_leaf_and_same_fourteen_cap",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "63537c0701745dfbf5d2276d7c6b03623920e73a582c159368314f46d353b648"
+      },
+      {
+        "name": "canonical_replacement::diagnostics::private_scene_busy_tests::actual_store_busy_guard_is_released_before_private_refusal_event",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "fad69f5b831478f46176065fcc4c3a30f485049479ecfaf0b578e9186e96dfe9"
+      },
+      {
+        "name": "canonical_replacement::diagnostics::private_scene_busy_tests::unknown_busy_and_nonbusy_refusals_emit_no_raw_error_text_or_reclassification",
+        "executed": true,
+        "qualified": true,
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "exit_code": 0,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "25783670db674a2f7a6a7acce0e4beb9064a529b287e1b7b07ef0c201c106a77"
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_replacement_waits_for_decoded_target_before_retiring_original_eddsa",
+        "executed": true,
+        "qualified": false,
+        "actual": [
+          0,
+          1,
+          0
+        ],
+        "exit_code": 101,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "fcb57af84a5e34335ede159751ce1eeaccdafc98610792846678b254b186cc18"
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_replacement_waits_for_decoded_target_before_retiring_original_es256",
+        "executed": true,
+        "qualified": false,
+        "actual": [
+          0,
+          1,
+          0
+        ],
+        "exit_code": 101,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "18378a1c2d38bc9b13372d675a3bbc9cde4daf9537e9f12933d12990c4495c6e"
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_private_readiness_survives_original_start_capture_after_actual_admission",
+        "executed": true,
+        "qualified": false,
+        "actual": [
+          0,
+          1,
+          0
+        ],
+        "exit_code": 101,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "2934ec26b0aa2831ed5de1f8af6b4e8460196ff9f31ca387d3c75b9275fb4eb8"
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_original_reservation_expiry_refuses_genuine_private_observation",
+        "executed": true,
+        "qualified": false,
+        "actual": [
+          0,
+          1,
+          0
+        ],
+        "exit_code": 101,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "3d8472a7f8ddf2ede97d3a427e45087efbe80978688da1a191477325e084d1ea"
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_current_operator_revocation_refuses_genuine_private_observation",
+        "executed": true,
+        "qualified": false,
+        "actual": [
+          0,
+          1,
+          0
+        ],
+        "exit_code": 101,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "cad46f3f987d84d68a831ef76030b01d760275192292c24e175160ba89e430a5"
+      },
+      {
+        "name": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_original_physical_cancel_refuses_genuine_private_observation",
+        "executed": true,
+        "qualified": false,
+        "actual": [
+          0,
+          1,
+          0
+        ],
+        "exit_code": 101,
+        "test_process_joined": true,
+        "forced": false,
+        "log_sha256": "7fc78d40ef53ee0bb6ae9dbb40a1638a0aad731780d386715b6f0b6501260758"
+      }
+    ],
+    "unexecuted_selector": "canonical_websocket_control::webrtc::replacement::signed_webrtc_replacement_reserves_once_preserves_decoded_old_audio_and_cancels_target",
+    "corrected_selector_prepared_unrun": "canonical_websocket_control::webrtc::subscriptions::replacement::signed_webrtc_replacement_reserves_once_preserves_decoded_old_audio_and_cancels_target"
+  },
+  "actual_arm_node": {
+    "executed": 7,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "log_sha256": "d00275d3f104cb5b35c5e8b0cf657233914f5e0a2a417739b3da25b47a5fcd58"
+  },
+  "retained_script_scope": {
+    "original_workspace_sha256": "0362df1c116ed1492c5822d4e6920894d8fef7798cc09695e064e68ce8e8053e",
+    "only_workspace_delta": "scripts/tests/transport_av_lifetime.test.mjs",
+    "exact_new_file_sha256": "83808e283e305e362d2f842bd5cb6a00858d48857041efb2d7f0841ec407e49c",
+    "mac_node": {
+      "original_executed": 69,
+      "retained_passed": 62,
+      "historical_failed_preserved": 7,
+      "skipped": 0,
+      "whole_suite_qualified": false,
+      "log_sha256": "5624a96ff49ae19803c37b86c47d89bc0c87d46b5b04b2f5a9abdc986f77a0d5"
+    },
+    "python": {
+      "retained_passed": 19,
+      "log_sha256": "27ea189fe8d06b1dd32159aa4e5036a79e316005badeee9a04e61157d763a513"
+    },
+    "original_receipt_sha256": "cbebef3d4dc3e66f3dc7ad04cb905626121c0cd2f6b84d182013c0fdf217df39",
+    "limitation": "Script-only retention under exact workspace delta. No Mac Rust claim or prepared Rust graph equivalence; no69newMac/allpassclaim."
+  },
+  "diagnosis": {
+    "signed_rtc_all_six_failed": true,
+    "known_oracle_and_wiring_fixes_prepared_unrun": true,
+    "strict_delayed_real_media_failure_preserved": true,
+    "private_audio_source_gap_prepared_unrun": true,
+    "observer_reseal_slot_race_fix_prepared_unrun": true,
+    "probe_remote_clock_witness_prepared_unrun": true
+  },
+  "full_matrix_v197": {
+    "passed": 336,
+    "failed": 88,
+    "blocked": 8,
+    "complete_cells": 0,
+    "required_cells": 32,
+    "required_checks": 432,
+    "unchanged": true
+  },
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "all_focused_checks_qualified": false,
+  "v198_allpass_gate_unchanged": true,
+  "limits": [
+    "These are actual partial component results, not matrix readiness; default automatic integration-target compilation failed101 and shipping default lib/bins are not checked.",
+    "All six original signed RTC failures and one unexecuted selector remain failed/unexecuted.",
+    "Known7Macplatform failures preserved; ARM7passes qualify their actual Linux scope only.",
+    "Future private audio/observer reservation/clock candidates are source preparations, not executed passes.",
+    "G6-054 remains deferred; Gate6 remains open and29downstream tasks wait."
+  ]
+}

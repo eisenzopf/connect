@@ -1829,6 +1829,11 @@
       "path": "patches/rvoip/connect-private-video-revocation-fixture.patch",
       "sha256": "c6fe2491544866ed933d6f3d0e59966d903746e6fbd7a07069e3c5ea4987d5b7",
       "source": "Connect private video regression queues real packet before source revocation/root cancellation and requires exact new-publication Authority refusal; test-only correction"
+    },
+    {
+      "path": "patches/rvoip/connect-core-original-mixer-task-join.patch",
+      "sha256": "b0876e0ca4a5e9c3415aa03e04135970a08156bb2dd7add83e390c7da570875b",
+      "source": "Join the exact original managed Session conference mixer across cancellation and concurrent teardown; retain terminal replay facts and propagate genuine finalizer failure"
     }
   ]
 }

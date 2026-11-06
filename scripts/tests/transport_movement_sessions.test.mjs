@@ -32,7 +32,7 @@ function scenario(mode) {
             });
         },
         async run(workload) {
-            if (["refused", "foreign", "ended", "late"].includes(mode)) {
+            if (["foreign", "ended", "late"].includes(mode)) {
                 await new Promise(done => workload.signal.addEventListener("abort", done, { once: true }));
                 throw workload.signal.reason;
             }
@@ -52,10 +52,11 @@ test("both original Sessions remain observed through primary and independent con
     assert.equal(result.observation.original_cutoff_monotonic_ms, 67000);
     assert.equal(s.allReadsJoined, 4); assert.deepEqual(s.waits, [8000]);
 });
-test("current authorization failure cancels the live original workload and joins every read", async () => {
+test("one settled current authorization read failure remains failed while independent original workload joins", async () => {
     const s = scenario("refused");
     await assert.rejects(observeMovementSessions(s.args), error => error === s.refusal);
-    assert.equal(s.reads.length, 4); assert.equal(s.allReadsJoined, 4); assert.equal(s.waits.length, 0);
+    assert.equal(s.reads.length, 4); assert.equal(s.allReadsJoined, 4); assert.deepEqual(s.waits, [8000]);
+    assert.equal(s.parent.signal.aborted, false);
     assert.equal(s.reported.length, 1); assert.equal(s.reported[0].failure, s.refusal);
     assert.equal(s.reported[0].readsJoined, 4);
 });
@@ -79,4 +80,27 @@ test("an already cancelled parent starts no workload or read", async () => {
     const s = scenario("normal"); s.parent.abort(s.refusal);
     await assert.rejects(observeMovementSessions(s.args), error => error === s.refusal);
     assert.equal(s.reads.length, 0);
+});
+
+test("a failed original observer is never retried while the remaining original observers keep their cadence", async () => {
+    const parent=new AbortController(),calls=[0,0,0,0],original=Object.assign(Error("observer timeout"),{certainty:"read-only"});
+    let clock=0,waits=0,finish;
+    const done=new Promise(resolve=>{finish=resolve;});
+    const owners=Array.from({length:4},(_,index)=>({id:"session-"+(index%2),async refresh(){
+        calls[index]++;if(index===3)throw original;
+        return {id:this.id,state:"active",isMain:index%2===0};
+    }}));
+    let observation;
+    const run=observeMovementSessions({workload:{signal:parent.signal,startedAt:0},
+        primarySessions:owners.slice(0,2),controllerSessions:owners.slice(2),now:()=>clock,
+        observe:value=>{observation=value;},
+        async wait(ms,signal){
+            assert.equal(ms,8000);waits++;
+            if(waits===1){clock+=ms;return;}
+            finish();await new Promise(resolve=>signal.addEventListener("abort",resolve,{once:true}));
+        },async run(workload){await done;assert.equal(workload.signal.aborted,false);return "actual original run";}});
+    await assert.rejects(run,error=>error===original);
+    assert.deepEqual(calls,[2,2,2,1]);assert.equal(observation.current_session_reads,7);
+    assert.deepEqual(observation.failed_observers,[3]);assert.equal(observation.passed,false);
+    assert.equal(observation.observers_joined,true);assert.equal(parent.signal.aborted,false);
 });

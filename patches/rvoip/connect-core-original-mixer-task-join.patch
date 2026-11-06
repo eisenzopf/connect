@@ -1,0 +1,722 @@
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/conference/task_owner.rs
+@@ -0,0 +1,139 @@
++//! Custody of the one original mixer task through cancelled/concurrent ends.
++use crate::error::{Result, RvoipError};
++use std::sync::atomic::{AtomicBool, Ordering};
++use tokio::sync::Mutex;
++use tokio::task::{AbortHandle, JoinHandle};
++
++struct JoinState {
++    original: Option<JoinHandle<()>>,
++    completed: Option<bool>,
++}
++pub(crate) struct ConferenceTask {
++    abort: AbortHandle,
++    stop_requested: AtomicBool,
++    state: Mutex<JoinState>,
++    #[cfg(test)]
++    original_id: tokio::task::Id,
++}
++impl ConferenceTask {
++    pub(super) fn new(original: JoinHandle<()>) -> Self {
++        Self {
++            abort: original.abort_handle(),
++            stop_requested: AtomicBool::new(false),
++            #[cfg(test)]
++            original_id: original.id(),
++            state: Mutex::new(JoinState {
++                original: Some(original),
++                completed: None,
++            }),
++        }
++    }
++    /// Fence synchronously before the first cleanup await, as before.
++    pub(crate) fn abort(&self) {
++        self.stop_requested.store(true, Ordering::Release);
++        self.abort.abort();
++    }
++    pub(crate) async fn join(&self) -> Result<()> {
++        let mut state = self.state.lock().await;
++        let completed = match state.completed {
++            Some(completed) => completed,
++            None => {
++                // Borrow in place: dropping this caller cannot detach or lose
++                // the original handle. Another caller resumes this same join.
++                let result = state
++                    .original
++                    .as_mut()
++                    .expect("original mixer task custody")
++                    .await;
++                let completed = match result {
++                    Ok(()) => true,
++                    Err(error) => {
++                        error.is_cancelled() && self.stop_requested.load(Ordering::Acquire)
++                    }
++                };
++                state.original.take();
++                state.completed = Some(completed);
++                completed
++            }
++        };
++        if completed {
++            Ok(())
++        } else {
++            Err(RvoipError::InvalidState(
++                "original conference mixer task failed during retirement",
++            ))
++        }
++    }
++    #[cfg(test)]
++    pub(crate) fn original_id(&self) -> tokio::task::Id {
++        self.original_id
++    }
++    #[cfg(test)]
++    pub(crate) async fn joined_and_released_for_test(&self) -> bool {
++        let state = self.state.lock().await;
++        state.original.is_none() && state.completed == Some(true)
++    }
++}
++impl Drop for ConferenceTask {
++    fn drop(&mut self) {
++        self.abort();
++    }
++}
++
++#[cfg(test)]
++pub(super) type FinalizerHook = std::sync::Arc<std::sync::Mutex<Option<Box<dyn FnOnce() + Send>>>>;
++#[cfg(test)]
++pub(super) fn new_finalizer_hook() -> FinalizerHook {
++    Default::default()
++}
++#[cfg(test)]
++pub(super) struct TaskFinalizer(pub(super) FinalizerHook);
++#[cfg(test)]
++impl Drop for TaskFinalizer {
++    fn drop(&mut self) {
++        let hook = self.0.lock().unwrap().take();
++        if let Some(hook) = hook {
++            hook();
++        }
++    }
++}
++#[cfg(test)]
++pub(crate) struct FinalizerHold {
++    entered: std::sync::Arc<tokio::sync::Notify>,
++    release: Option<std::sync::mpsc::Sender<()>>,
++}
++#[cfg(test)]
++impl FinalizerHold {
++    pub(crate) async fn entered(&self) {
++        self.entered.notified().await;
++    }
++    pub(crate) fn release(&mut self) {
++        if let Some(release) = self.release.take() {
++            let _ = release.send(());
++        }
++    }
++}
++#[cfg(test)]
++impl Drop for FinalizerHold {
++    fn drop(&mut self) {
++        self.release();
++    }
++}
++#[cfg(test)]
++pub(super) fn hold_finalizer(hook: &FinalizerHook) -> FinalizerHold {
++    let entered = std::sync::Arc::new(tokio::sync::Notify::new());
++    let signal = entered.clone();
++    let (release, waiting) = std::sync::mpsc::channel();
++    let mut original = hook.lock().unwrap();
++    assert!(original.is_none());
++    *original = Some(Box::new(move || {
++        signal.notify_one();
++        // The test owner releases on both normal completion and unwinding.
++        // This blocks only a deliberate test finalizer, never production IO.
++        let _ = waiting.recv();
++    }));
++    FinalizerHold {
++        entered,
++        release: Some(release),
++    }
++}
+--- a/crates/foundation/rvoip-core/src/conference.rs
++++ b/crates/foundation/rvoip-core/src/conference.rs
+@@ -22,8 +22,9 @@
+ use std::sync::Arc;
+ use std::time::Duration;
+ 
+-use tokio::sync::{mpsc, Mutex};
+-use tokio::task::JoinHandle;
++use tokio::sync::{Mutex, mpsc};
++mod task_owner;
++use task_owner::ConferenceTask;
+ 
+ use crate::error::{Result, RvoipError};
+ use crate::ids::ConnectionId;
+@@ -233,7 +234,13 @@
+     pub(crate) members: Arc<Mutex<HashMap<ConnectionId, ConferenceMember>>>,
+     pub(crate) mix_rate_hz: u32,
+     pub(crate) staged: Option<Arc<crate::staged_streams::media_scene::GuardedMediaScene>>,
+-    pub(crate) task: JoinHandle<()>,
++    pub(crate) task: ConferenceTask,
++    #[cfg(test)]
++    pub(crate) future_owner_for_test: std::sync::Weak<()>,
++    #[cfg(test)]
++    finalizer_hook_for_test: task_owner::FinalizerHook,
++    #[cfg(test)]
++    pub(crate) started_for_test: Arc<tokio::sync::Notify>,
+ }
+ 
+ impl Conference {
+@@ -266,7 +273,25 @@
+         let task_members = Arc::clone(&members);
+         let samples_per_tick = (mix_rate_hz / 50).max(1) as usize;
+         let task_staged = staged.clone();
++        #[cfg(test)]
++        let original_future_owner = Arc::new(());
++        #[cfg(test)]
++        let future_owner_for_test = Arc::downgrade(&original_future_owner);
++        #[cfg(test)]
++        let finalizer_hook_for_test = task_owner::new_finalizer_hook();
++        #[cfg(test)]
++        let original_finalizer = task_owner::TaskFinalizer(finalizer_hook_for_test.clone());
++        #[cfg(test)]
++        let started_for_test = Arc::new(tokio::sync::Notify::new());
++        #[cfg(test)]
++        let original_started = started_for_test.clone();
+         let task = tokio::spawn(async move {
++            #[cfg(test)]
++            let _original_future_owner = original_future_owner;
++            #[cfg(test)]
++            let _original_finalizer = original_finalizer;
++            #[cfg(test)]
++            original_started.notify_one();
+             let mut ticker = tokio::time::interval(MIX_INTERVAL);
+             ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+             loop {
+@@ -286,8 +311,26 @@
+             members,
+             mix_rate_hz,
+             staged,
+-            task,
+-        }
++            task: ConferenceTask::new(task),
++            #[cfg(test)]
++            future_owner_for_test,
++            #[cfg(test)]
++            finalizer_hook_for_test,
++            #[cfg(test)]
++            started_for_test,
++        }
++    }
++    #[cfg(test)]
++    pub(crate) fn hold_original_finalizer_for_test(&self) -> task_owner::FinalizerHold {
++        task_owner::hold_finalizer(&self.finalizer_hook_for_test)
++    }
++    #[cfg(test)]
++    pub(crate) fn panic_original_finalizer_for_test(&self) {
++        let mut hook = self.finalizer_hook_for_test.lock().unwrap();
++        assert!(hook.is_none());
++        *hook = Some(Box::new(|| {
++            panic!("original conference finalizer test failure")
++        }));
+     }
+ }
+ 
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/end_session_tests.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/end_session_tests.rs
+@@ -2,7 +2,7 @@
+ #[allow(dead_code)]
+ #[path = "../../../tests/support/participant_control_fixture.rs"]
+ mod fixture;
+-use fixture::{participant, principal, until, Fixture};
++use fixture::{Fixture, participant, principal, until};
+ 
+ fn ended_events(events: &mut broadcast::Receiver<Event>, session: &SessionId) -> usize {
+     let mut count = 0;
+@@ -70,10 +70,11 @@
+     assert_eq!(f.orch.subscribers_for(&f.session, &live, &stream).len(), 1);
+     let mut events = f.orch.subscribe_events();
+     let end = start_blocked_end(&f, EndReason::Cancelled).await;
+-    assert!(f
+-        .orch
+-        .subscribers_for(&f.session, &live, &stream)
+-        .is_empty());
++    assert!(
++        f.orch
++            .subscribers_for(&f.session, &live, &stream)
++            .is_empty()
++    );
+     assert_eq!(f.orch.session_of(&live), None);
+     assert!(
+         runtime.state.lock().unwrap().ended,
+@@ -88,11 +89,13 @@
+             .unwrap()
+             .active
+     );
+-    assert!(tokio::time::timeout(Duration::from_secs(1), admission)
+-        .await
+-        .unwrap()
+-        .unwrap()
+-        .is_err());
++    assert!(
++        tokio::time::timeout(Duration::from_secs(1), admission)
++            .await
++            .unwrap()
++            .unwrap()
++            .is_err()
++    );
+     end.abort();
+     assert!(end.await.unwrap_err().is_cancelled());
+     assert_eq!(
+@@ -194,11 +197,12 @@
+             .state,
+         ConversationState::Open
+     );
+-    assert!(f
+-        .orch
+-        .close_conversation(f.conversation.clone(), false)
+-        .await
+-        .is_err());
++    assert!(
++        f.orch
++            .close_conversation(f.conversation.clone(), false)
++            .await
++            .is_err()
++    );
+     drop(held);
+     f.orch
+         .close_conversation(f.conversation.clone(), true)
+@@ -297,13 +301,179 @@
+         Err(RvoipError::InvalidState(_))
+     ));
+     assert_eq!(f.orch.session_of(&conn), None);
+-    assert!(f
+-        .orch
+-        .session(&sid)
+-        .unwrap()
+-        .read()
+-        .unwrap()
+-        .connections
+-        .is_empty());
++    assert!(
++        f.orch
++            .session(&sid)
++            .unwrap()
++            .read()
++            .unwrap()
++            .connections
++            .is_empty()
++    );
+     f.orch.end_session(sid, EndReason::Normal).await.unwrap();
+ }
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn session_end_waits_for_the_actual_original_mixer_finalizer_and_releases_handle() {
++    let f = Fixture::new().await;
++    let (live, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &live).await;
++    let runtime = f.orch.participant_runtime(&f.session).unwrap();
++    tokio::time::timeout(
++        Duration::from_secs(2),
++        runtime.mixer.started_for_test.notified(),
++    )
++    .await
++    .unwrap();
++    let original = runtime.mixer.task.original_id();
++    let mut finalizer = runtime.mixer.hold_original_finalizer_for_test();
++    let mut events = f.orch.subscribe_events();
++    let owner = f.orch.clone();
++    let sid = f.session.clone();
++    let end = tokio::spawn(async move { owner.end_session(sid, EndReason::Normal).await });
++    tokio::time::timeout(Duration::from_secs(2), finalizer.entered())
++        .await
++        .unwrap();
++    assert!(
++        !end.is_finished(),
++        "finalizer still owns the original mixer future"
++    );
++    assert!(runtime.mixer.future_owner_for_test.upgrade().is_some());
++    assert_eq!(
++        f.orch.session(&f.session).unwrap().read().unwrap().state,
++        SessionState::Ending
++    );
++    assert_eq!(ended_events(&mut events, &f.session), 0);
++    finalizer.release();
++    end.await.unwrap().unwrap();
++    assert!(runtime.mixer.future_owner_for_test.upgrade().is_none());
++    assert!(runtime.mixer.task.joined_and_released_for_test().await);
++    assert_eq!(runtime.mixer.task.original_id(), original);
++    assert_eq!(ended_events(&mut events, &f.session), 1);
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (0, 0));
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn cancelled_session_end_resumes_the_same_original_mixer_join_after_finalizer_release() {
++    let f = Fixture::new().await;
++    let runtime = f.orch.participant_runtime(&f.session).unwrap();
++    tokio::time::timeout(
++        Duration::from_secs(2),
++        runtime.mixer.started_for_test.notified(),
++    )
++    .await
++    .unwrap();
++    let original = runtime.mixer.task.original_id();
++    let mut finalizer = runtime.mixer.hold_original_finalizer_for_test();
++    let mut events = f.orch.subscribe_events();
++    let owner = f.orch.clone();
++    let sid = f.session.clone();
++    let end = tokio::spawn(async move { owner.end_session(sid, EndReason::Cancelled).await });
++    tokio::time::timeout(Duration::from_secs(2), finalizer.entered())
++        .await
++        .unwrap();
++    end.abort();
++    assert!(end.await.unwrap_err().is_cancelled());
++    assert_eq!(runtime.mixer.task.original_id(), original);
++    assert!(runtime.mixer.future_owner_for_test.upgrade().is_some());
++    assert_eq!(
++        f.orch.session(&f.session).unwrap().read().unwrap().state,
++        SessionState::Ending
++    );
++    assert_eq!(ended_events(&mut events, &f.session), 0);
++    finalizer.release();
++    f.orch
++        .end_session(f.session.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert!(runtime.mixer.future_owner_for_test.upgrade().is_none());
++    assert!(runtime.mixer.task.joined_and_released_for_test().await);
++    assert_eq!(runtime.mixer.task.original_id(), original);
++    assert_eq!(ended_events(&mut events, &f.session), 1);
++    assert!(matches!(
++        f.orch
++            .session(&f.session)
++            .unwrap()
++            .read()
++            .unwrap()
++            .end_reason,
++        Some(EndReason::Cancelled)
++    ));
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn concurrent_session_ends_join_one_original_mixer_before_one_terminal_event() {
++    let f = Fixture::new().await;
++    let runtime = f.orch.participant_runtime(&f.session).unwrap();
++    tokio::time::timeout(
++        Duration::from_secs(2),
++        runtime.mixer.started_for_test.notified(),
++    )
++    .await
++    .unwrap();
++    let original = runtime.mixer.task.original_id();
++    let mut finalizer = runtime.mixer.hold_original_finalizer_for_test();
++    let mut events = f.orch.subscribe_events();
++    let mut ends = Vec::new();
++    for _ in 0..4 {
++        let owner = f.orch.clone();
++        let sid = f.session.clone();
++        ends.push(tokio::spawn(async move {
++            owner.end_session(sid, EndReason::Normal).await
++        }));
++    }
++    tokio::time::timeout(Duration::from_secs(2), finalizer.entered())
++        .await
++        .unwrap();
++    assert!(ends.iter().all(|end| !end.is_finished()));
++    assert_eq!(ended_events(&mut events, &f.session), 0);
++    finalizer.release();
++    for end in ends {
++        end.await.unwrap().unwrap();
++    }
++    assert!(runtime.mixer.future_owner_for_test.upgrade().is_none());
++    assert!(runtime.mixer.task.joined_and_released_for_test().await);
++    assert_eq!(runtime.mixer.task.original_id(), original);
++    assert_eq!(ended_events(&mut events, &f.session), 1);
++    f.orch
++        .end_session(f.session.clone(), EndReason::Timeout)
++        .await
++        .unwrap();
++    assert_eq!(ended_events(&mut events, &f.session), 0);
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn original_mixer_finalizer_failure_is_not_normalized_to_completed_session_end() {
++    let f = Fixture::new().await;
++    let runtime = f.orch.participant_runtime(&f.session).unwrap();
++    tokio::time::timeout(
++        Duration::from_secs(2),
++        runtime.mixer.started_for_test.notified(),
++    )
++    .await
++    .unwrap();
++    let original = runtime.mixer.task.original_id();
++    runtime.mixer.panic_original_finalizer_for_test();
++    let mut events = f.orch.subscribe_events();
++    assert!(
++        f.orch
++            .end_session(f.session.clone(), EndReason::Normal)
++            .await
++            .is_err()
++    );
++    assert!(runtime.mixer.future_owner_for_test.upgrade().is_none());
++    assert_eq!(runtime.mixer.task.original_id(), original);
++    assert!(!runtime.mixer.task.joined_and_released_for_test().await);
++    assert_eq!(
++        f.orch.session(&f.session).unwrap().read().unwrap().state,
++        SessionState::Ending
++    );
++    assert_eq!(ended_events(&mut events, &f.session), 0);
++    assert!(
++        f.orch
++            .end_session(f.session.clone(), EndReason::Timeout)
++            .await
++            .is_err()
++    );
++    assert_eq!(ended_events(&mut events, &f.session), 0);
++}
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -2274,13 +2274,13 @@
+         }
+     }
+ 
+-    pub(super) async fn end_managed_participant_session(&self, session: &SessionId) {
++    pub(super) async fn end_managed_participant_session(&self, session: &SessionId) -> Result<()> {
+         let Some(runtime) = self
+             .participant_sessions
+             .get(session)
+             .map(|e| Arc::clone(e.value()))
+         else {
+-            return;
++            return Ok(());
+         };
+         // Fence admission, pending work and every live generation before the
+         // first await. Cancellation of the caller must not leave audio running
+@@ -2309,6 +2309,10 @@
+         if let Some(staged) = &runtime.mixer.staged {
+             staged.clear();
+         }
++        // No member/Core/authority lock crosses the original task join. A
++        // cancelled caller leaves that exact aborted handle for the next end.
++        drop(members);
++        runtime.mixer.task.join().await
+     }
+ }
+ 
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -15,6 +15,7 @@
+ pub mod peer_native;
+ pub mod peer_sessions;
+ 
++use crate::DataMessage;
+ use crate::adapter::{
+     AdapterEvent, AdapterLifecycleSink, ConnectionAdapter, ConnectionHandle, EndReason,
+     InboundConnectionContext, OrchestratorAdapterEvent, OriginateRequest, PlaybackHandle,
+@@ -23,8 +24,8 @@
+ };
+ use crate::addressed_messages::{self, MessageAccess, MessageDeliveryStage, MessageReceipt};
+ use crate::bridge::{
+-    resolve_payload_type, BridgeDestinationReplacement, BridgeManager, CrossBridgeHandle,
+-    DirectionalMediaBridgePlan,
++    BridgeDestinationReplacement, BridgeManager, CrossBridgeHandle, DirectionalMediaBridgePlan,
++    resolve_payload_type,
+ };
+ use crate::capability::{CapabilityDescriptor, CapabilityIntersection, CodecInfo};
+ use crate::commands::{AudioSource, InboundAction, MuteDirection};
+@@ -43,8 +44,8 @@
+     InboundAdmissionTermination, ProvisionalMediaRoute, StagedInboundDataPolicy,
+ };
+ use crate::media_graph::{
+-    start_media_graph, validate_media_graph_codec, ManagedMediaRoute, MediaGraphHandle,
+-    MediaGraphPolicy, MediaGraphRouteStatus, MediaGraphSourceState,
++    ManagedMediaRoute, MediaGraphHandle, MediaGraphPolicy, MediaGraphRouteStatus,
++    MediaGraphSourceState, start_media_graph, validate_media_graph_codec,
+ };
+ use crate::message::{ContentType, Message, MessageOrigin, MessageRecipients};
+ use crate::operational_events::{
+@@ -61,7 +62,6 @@
+ };
+ #[cfg(feature = "vcon")]
+ use crate::vcon::VconBuilderHandle;
+-use crate::DataMessage;
+ use bytes::Bytes;
+ use chrono::Utc;
+ use dashmap::DashMap;
+@@ -69,14 +69,14 @@
+ use rvoip_infra_common::events::cross_crate::RvoipCrossCrateEvent;
+ use std::collections::{HashMap, HashSet};
+ use std::future::Future;
+-use std::panic::{catch_unwind, AssertUnwindSafe};
++use std::panic::{AssertUnwindSafe, catch_unwind};
++use std::sync::Weak;
+ use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
+-use std::sync::Weak;
+ use std::sync::{Arc, Mutex, OnceLock, RwLock};
+ use std::time::Duration;
+ use tokio::sync::{
+-    broadcast, mpsc, oneshot, watch, Mutex as TokioMutex, Notify, OwnedSemaphorePermit,
+-    RwLock as TokioRwLock, Semaphore,
++    Mutex as TokioMutex, Notify, OwnedSemaphorePermit, RwLock as TokioRwLock, Semaphore, broadcast,
++    mpsc, oneshot, watch,
+ };
+ use tokio_util::sync::CancellationToken;
+ use tracing::{debug, instrument, warn};
+@@ -6492,7 +6492,7 @@
+         self.drop_session_subscriptions(&session_id);
+         self.sessions_by_connection
+             .retain(|_, sid| sid != &session_id);
+-        self.end_managed_participant_session(&session_id).await;
++        self.end_managed_participant_session(&session_id).await?;
+ 
+         // No suspension follows this completion decision. Only one concurrent
+         // caller owns finalization/events; cancellation before here leaves an
+@@ -12444,36 +12444,36 @@
+             ));
+         }
+ 
+-        let (old_a, old_b, bridge_plan, expected_peer) =
+-            self.cross_bridges
+-                .get(&expected_bridge_id)
+-                .map(|entry| -> Result<_> {
+-                    let handle = entry.value();
+-                    Ok((
+-                        handle.a.clone(),
+-                        handle.b.clone(),
+-                        handle.directional_media_plan()?,
+-                        {
+-                            // A bridge with no peer ticket was never transport
+-                            // fenced, which is a capability error. A ticket that
+-                            // exists but is no longer active was retired by a
+-                            // replacement that already committed, which is a lost
+-                            // race. Keep the two apart so a glare loser reports
+-                            // the same rejection wherever it is detected.
+-                            let ticket = handle
+-                                .peer_route_ticket()
+-                                .ok_or(RvoipError::NotImplemented(
++        let (old_a, old_b, bridge_plan, expected_peer) = self
++            .cross_bridges
++            .get(&expected_bridge_id)
++            .map(|entry| -> Result<_> {
++                let handle = entry.value();
++                Ok((
++                    handle.a.clone(),
++                    handle.b.clone(),
++                    handle.directional_media_plan()?,
++                    {
++                        // A bridge with no peer ticket was never transport
++                        // fenced, which is a capability error. A ticket that
++                        // exists but is no longer active was retired by a
++                        // replacement that already committed, which is a lost
++                        // race. Keep the two apart so a glare loser reports
++                        // the same rejection wherever it is detected.
++                        let ticket = handle.peer_route_ticket().ok_or(
++                            RvoipError::NotImplemented(
+                                 "bridge destination replacement requires a transport-fenced bridge",
+-                            ))?;
+-                            if !ticket.is_active() {
+-                                return Err(RvoipError::BridgeNotFound(expected_bridge_id.clone()));
+-                            }
+-                            ticket
+-                        },
+-                    ))
+-                })
+-                .transpose()?
+-                .ok_or_else(|| RvoipError::BridgeNotFound(expected_bridge_id.clone()))?;
++                            ),
++                        )?;
++                        if !ticket.is_active() {
++                            return Err(RvoipError::BridgeNotFound(expected_bridge_id.clone()));
++                        }
++                        ticket
++                    },
++                ))
++            })
++            .transpose()?
++            .ok_or_else(|| RvoipError::BridgeNotFound(expected_bridge_id.clone()))?;
+         // The retiring peer is whichever bridge endpoint is not retained. A
+         // caller-supplied expectation is checked against it, never used in
+         // its place.
+@@ -14144,15 +14144,17 @@
+             .start_session(ordinary_conversation.clone(), SessionMedium::Voice, vec![])
+             .await
+             .unwrap();
+-        assert!(orchestrator
+-            .project_external_session(
+-                ordinary_conversation.clone(),
+-                ordinary.clone(),
+-                tenant,
+-                SessionMedium::Voice,
+-                []
+-            )
+-            .is_err());
++        assert!(
++            orchestrator
++                .project_external_session(
++                    ordinary_conversation.clone(),
++                    ordinary.clone(),
++                    tenant,
++                    SessionMedium::Voice,
++                    []
++                )
++                .is_err()
++        );
+         let conn = attach_fixture(&orchestrator, &ordinary);
+         orchestrator.detach_connection_from_session(&conn, EndReason::Normal);
+         assert_eq!(
+@@ -14182,15 +14184,17 @@
+             )
+             .unwrap();
+         let foreign = ConversationId::new();
+-        assert!(orchestrator
+-            .project_external_session(
+-                foreign.clone(),
+-                sid,
+-                tenant.clone(),
+-                SessionMedium::VoiceVideo,
+-                []
+-            )
+-            .is_err());
++        assert!(
++            orchestrator
++                .project_external_session(
++                    foreign.clone(),
++                    sid,
++                    tenant.clone(),
++                    SessionMedium::VoiceVideo,
++                    []
++                )
++                .is_err()
++        );
+         assert!(!orchestrator.conversations.contains_key(&foreign));
+         {
+             let mut retained = orchestrator.externally_projected_sessions.lock().unwrap();
+@@ -14198,15 +14202,17 @@
+                 retained.insert(SessionId::new());
+             }
+         }
+-        assert!(orchestrator
+-            .project_external_session(
+-                foreign.clone(),
+-                SessionId::new(),
+-                tenant,
+-                SessionMedium::VoiceVideo,
+-                []
+-            )
+-            .is_err());
++        assert!(
++            orchestrator
++                .project_external_session(
++                    foreign.clone(),
++                    SessionId::new(),
++                    tenant,
++                    SessionMedium::VoiceVideo,
++                    []
++                )
++                .is_err()
++        );
+         assert!(!orchestrator.conversations.contains_key(&foreign));
+     }
+ }

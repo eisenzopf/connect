@@ -1,3 +1,4 @@
+import { isolatedProgrammeFailure, emitOriginalObservation } from "./transport_failure_isolation.mjs";
 import { monotonicNow, startProgrammeClock } from "./transport_programme_clock.mjs";
 // Owned native SDK packet workers. Control authority and decoding stay with the caller.
 import assert from "node:assert/strict";
@@ -100,19 +101,19 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             if (route.videoEncoder) route.encoderJoin = await route.videoEncoder.stopAndJoin();
         }));
         for (const route of routes) releasePayloadArrays(route);
-        observe({ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
+        emitOriginalObservation(observe, [{ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
             fixture_payload_arrays_released: routes.every(route => payloadArrays(route).every(array => array.length === 0)),
             original_tasks_started: 0, elapsed_ms: monotonicNow() - setupStarted,
             failure: { route_index: setupRoute, medium: null, direction: "setup", stage: setupStage },
             prepared_routes: routes.length, routes: [],
             encoder_processes_joined: routes.filter(route => route.encoderJoin?.joined).length,
-            scope: "Original setup failure before media tasks or source clocks start. No retries, payloads, identities or quality qualification." });
+            scope: "Original setup failure before media tasks or source clocks start. No retries, payloads, identities or quality qualification." }], failure);
         throw failure;
     }
     const controller = new AbortController(), programClock = startProgrammeClock(),
         start = Number(BigInt(programClock.origin_ns)) / 1e6, unixStart = Date.now();
     const end = start + 62000, tasks = [], packetTasks = []; let error, workFailure;
-    let controlResult, controlTask, routeResults;
+    let controlResult, controlTask, routeResults, programmeWindowObserved = false;
     for (const route of routes) {
         route.owner = new ConnectionMediaOwner(controller.signal);
         const peer = connections[route.peerIndex];
@@ -267,12 +268,14 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         });
         packetTasks.push(owned); tasks.push(owned);
     };
-    const reportControlFailure = failure => {
+    const reportControlFailure = (failure, context = {}) => {
         if (!error) {
             error = failure;
             workFailure = { route_index: null, medium: null, direction: "control", stage: "during-workload" };
         }
-        controller.abort(error);
+        // Only an exact certified private-target cleanup or settled original
+        // read-only observer refusal can leave independent owners running.
+        if (context.fatal || !isolatedProgrammeFailure(failure)) controller.abort(error);
     };
     try {
         for (const route of routes) for (const medium of ["audio", "video"]) {
@@ -322,7 +325,8 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
         }
         await joinMediaProgramme({ now: monotonicNow, startedAt: start, signal: controller.signal,
             abort: failure => controller.abort(failure), owners: routes.map(route => route.owner),
-            packetTasks, controlTask });
+            packetTasks, controlTask, isolateFailure: isolatedProgrammeFailure,
+            observe: result => { programmeWindowObserved = result.programme_window_observed; } });
     } catch (failure) {
         if (!error) {
             error = failure;
@@ -358,12 +362,25 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
             // timestamp and clock before its in-memory copy is released.
             releasePayloadArrays(route);
         }
-        observe({ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
+        const observationReceipt = { persisted: false };
+        const emitted = emitOriginalObservation(observe, [{ format: "connect/native-av-work-observation/1", original_tasks_joined: true,
             fixture_payload_arrays_released: routes.every(route => payloadArrays(route).every(array => array.length === 0)),
             encoder_processes_joined: routes.filter(route => route.encoderJoin?.joined).length,
             original_tasks_started: routes.reduce((n, r) => n + 4 + Number(Boolean(r.videoFeedback)), 0), control_task_started: Boolean(during), elapsed_ms: monotonicNow() - start, failure: workFailure ?? null,
             routes: routeResults.map(({ peer_index, ...counters }) => counters),
-            scope: "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification." });
+            scope: "Bounded original work counters after all original tasks join. No payloads, identities, media clocks, decoded quality or cell qualification." }, Object.freeze({
+            passed: !error, original_receive_tasks_joined: true,
+            programme_window_observed: programmeWindowObserved,
+            observation_receipt: observationReceipt,
+            movement_requested: Boolean(during), seconds: 62, warmup_seconds: 2,
+            observation_seconds: 60, routes: routeResults,
+            control_workload: controlResult ?? null,
+            failure_observed: Boolean(error), cell_qualified: false,
+        })], error);
+        observationReceipt.persisted = emitted.emitted;
+        Object.freeze(observationReceipt);
+        if (!emitted.emitted) { error = emitted.error; controller.abort(error); throw error; }
+
     }
     if (error) throw error;
     return { connections: 6, participants: 4, sessions: 2, source_manifest_sha256: sha(await readFile(join(sourceDirectory, "manifest.json"))),

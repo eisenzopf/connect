@@ -1,3 +1,4 @@
+import { isolatedPrivateTargetFailure, privateTargetCleanup } from "../lib/transport_failure_isolation.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
@@ -7,7 +8,7 @@ import { startPhysicalReplacementTarget } from "../lib/transport_replacement_tar
 
 // A real separately owned process exercises controller lifecycle only. It is
 // explicitly synthetic and performs no native negotiation or media IO.
-async function fixture(body, failBeforeCompletion = false, preparationStates = null) {
+async function fixture(body, failBeforeCompletion = false, preparationStates = null, malformedCompleted = null) {
     const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
     const root = await mkdtemp(join(parent, "replacement-owner-test-"));
     const executable = join(root, "synthetic-target"), config = join(root, "client.toml");
@@ -42,7 +43,8 @@ const poll = setInterval(() => {
         retained: [{ id: "retained", refresh: async () => ({ id: "retained", generation: 1 }) }],
         topologyRevision: 2, conversationRevision: 3, binding: { deviceId: "device" } };
     const operation = { referenceJson: () => reference, wait: async options => {
-        if (!failBeforeCompletion) return { snapshot: { state: "completed" }, value: moved };
+        if (!failBeforeCompletion) return { snapshot: { state: "completed" }, value: malformedCompleted ?
+            { get connection() { throw malformedCompleted; } } : moved };
         return new Promise((_, reject) => {
             const timer = setTimeout(() => reject(Error("synthetic-read-deadline")), 1000);
             options.signal?.addEventListener("abort", () => {
@@ -85,7 +87,7 @@ const poll = setInterval(() => {
         assert.equal(failBeforeCompletion, false, "failed target unexpectedly admitted");
         await body({ owner, directory, preparationReads, counters: () => ({ submitted, retired, restored }) });
     } catch (error) {
-        if (!failBeforeCompletion) throw error;
+        if (!failBeforeCompletion && !malformedCompleted) throw error;
         await body({ error, directory, waitAborted, counters: () => ({ submitted, retired, restored }) });
     } finally {
         await owner?.stopAndJoin().catch(() => {});
@@ -158,4 +160,17 @@ test("preparation confirmation precedes target spawn without retaining allocatio
         assert.equal(result.target_worker_joined, true);
         assert.equal(result.target_worker_forced, false);
     }, false, observations);
+});
+
+test("a verified completed snapshot remains completion-observed before malformed result access throws", async () => {
+    const original=Error("original malformed completed result");
+    await fixture(async ({error,directory,counters}) => {
+        assert.equal(error,original);
+        const stage=JSON.parse(await readFile(join(directory,"stage.json"),"utf8"));
+        assert.equal(stage.original_root_completed,true);assert.equal(stage.passed,false);
+        const proof=privateTargetCleanup(error).facts;
+        assert.equal(proof.completion_observed,true);assert.equal(proof.logical_outcome,"completed-observed");
+        assert.equal(proof.target_worker_joined,true);assert.equal(isolatedPrivateTargetFailure(error),false);
+        assert.deepEqual(counters(),{submitted:1,retired:0,restored:0});
+    },false,null,original);
 });

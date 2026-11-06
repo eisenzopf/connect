@@ -492,7 +492,10 @@ impl Runtime {
                     (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64
                 ),
         );
-        let readiness = super::readiness::ReadyGate::new(&read, &plan, deadline)?;
+        // The original start reader still bounds SDP and resource admission.
+        // Later private readiness belongs to the unchanged reservation lifetime;
+        // every packet continues to require fresh current authority.
+        let readiness = super::readiness::ReadyGate::new(&read, &plan, root.deadline)?;
         let policy = Arc::new(TargetPolicy {
             base: self.media.clone(),
             pending: root.handle.prepared_binding(),

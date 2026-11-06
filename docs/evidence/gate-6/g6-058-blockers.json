@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-06T19:20:24.539478+00:00",
-  "run_status": "Completed v196 remains 336 passed, 88 failed, 8 blocked; all 32 attempted, 0 complete cells. Post-v196 v4 component coverage: 36 fresh normal-release Core passes (18 Mac, 18 ARM) plus 28 retained v3 passes (16 Service, 12 signed), verifying 64 controls under rederived unchanged production/retained-test inputs. All 30 Node and 32 Python controls rerun and pass, zero skips; the original v3 default-feature check is retained. Original v1/v2/v3 failures and the 56/58 partial proof remain intact. Full matrix retest pending; lifecycle edges unobserved and OS attribution pending. G6-054 deferred; 29 downstream tasks wait on G6-058.",
+  "updated": "2026-11-06T22:27:48.065350+00:00",
+  "run_status": "Completed v197: 336 passed, 88 failed, 8 blocked; all 32 attempted, 0/32 complete cells. No requirements unrun. Both original host workers and controller joined. G6-058 remains open; G6-054 stays deferred and 29 downstream tasks still wait.",
   "blockers": [
     {
       "id": "B01",
@@ -158,10 +158,10 @@
     {
       "id": "B20",
       "title": "Independent native helper recovery coverage",
-      "status": "Addressed \u2014 all eight native recovery requirements pass",
+      "status": "v197 native recovery 8/8",
       "change": "Compare exact SDK canonicalJson reference values instead of JS strict prototype identity. Actual SDK parseCanonicalJson returns null-prototype objects; JSON.parse fixture clones ordinary prototypes.",
-      "evidence": "Completed v196 at5127fc43: all eight native service-contract/original-operation recovery verdicts pass. The first verified native extract contains both real recovery markers, unchanged config/reference/current authorization/history and original helper joins. docs/evidence/gate-6/matrix-full-v196.json.",
-      "next": "Preserve these current-authorization and recovery controls while fixing movement/media/resource requirements. This does not close G6-058."
+      "evidence": "Current v197 native service-contract/original-operation recovery: 8/8 passed, 0 failed, 0 blocked. Previous v196 evidence remains immutable. docs/evidence/gate-6/matrix-full-v197.json.",
+      "next": "Preserve current authorization and original operation IDs while resolving remaining actual matrix outcomes."
     },
     {
       "id": "B21",
@@ -254,34 +254,98 @@
     {
       "id": "B32",
       "title": "Transient private video preparation contention becomes fatal",
-      "status": "Component verified \u2014 full matrix retest pending",
+      "status": "Component verified \u2014 v197 handoff 0/32",
       "change": "Preserve typed pre-effect MetadataBusy and retry only that safe video-plan metadata refusal with fresh current reads, the pinned original target revision and unchanged existing five-second preparation budget. No repeated negotiation, mute or installed-route effect.",
-      "evidence": "64 component controls are verified: 36 fresh normal-release Core passes (18 Mac, 18 ARM) plus 28 retained original-v3 passes (16 Service, 12 signed), including actual signed same-original-operation contention recovery. Exact current production and retained-test inputs are rederived unchanged; the only source-byte change is the declared cfg(test) Core fixture. The prior v1 compile, v2 signed-runtime and v3 source-refusal fixture failures remain recorded. docs/evidence/gate-6/blocker-components-post-v196-v4.json.",
-      "next": "Retest all 32 configurations under load; preserve pinned revision, safe pre-effect retry, current authority and unchanged short preparation/MetadataBusy cutoff. Component success does not clear matrix or OS resource failures."
+      "evidence": "Completed original v197: handoff 0/32 passed, 32 failed, 0 blocked; decoded-media 0/32 passed, 24 failed, 8 blocked. All 32 actual attempts and verifier integrity checks complete. Counts do not establish whether every specific contention/lifetime branch triggered. docs/evidence/gate-6/matrix-full-v197.json. Component scope remains 36 fresh Core plus 28 equivalent retained Service/signed checks; original failures are preserved.",
+      "next": "Retain current authority and original lifetime/short retry boundaries. Diagnose remaining original failed/blocked cells, then validate fixes and rerun the complete matrix."
     },
     {
       "id": "B33",
       "title": "Readiness lifetime incorrectly uses a five-second start snapshot",
-      "status": "Component verified \u2014 full matrix retest pending",
+      "status": "Component verified \u2014 v197 handoff 0/32",
       "change": "Bind ReadyGate and the sealed Core private video binding to the unchanged original preparation/root lifetime. Keep installation/current-capture authority and MetadataBusy retry under their original shorter cutoffs. Every queued packet and signed Ready still requires fresh current authorization; no deadline or original lifetime is renewed.",
-      "evidence": "All 18 Core controls pass fresh on both platforms. Actual signed delayed-readiness, genuine private audio/keyframe and strict original expiry/revocation/physical-cancellation controls are retained original-v3 passes under rederived identical production/retained-test inputs; overall coverage is 36 fresh plus 28 retained, not 64 newly executed. Original failed attempts and the public 56/58 partial proof remain intact. docs/evidence/gate-6/blocker-components-post-v196-v4.json.",
-      "next": "Retest actual native/WebTransport/WebRTC movement in all 32 configurations. Preserve original root expiry/cancellation, short installation and busy retry bounds, and fresh source/target authority at every media boundary."
+      "evidence": "Completed original v197: handoff 0/32 passed, 32 failed, 0 blocked; decoded-media 0/32 passed, 24 failed, 8 blocked. All 32 actual attempts and verifier integrity checks complete. Counts do not establish whether every specific contention/lifetime branch triggered. docs/evidence/gate-6/matrix-full-v197.json. Component scope remains 36 fresh Core plus 28 equivalent retained Service/signed checks; original failures are preserved.",
+      "next": "Retain current authority and original lifetime/short retry boundaries. Diagnose remaining original failed/blocked cells, then validate fixes and rerun the complete matrix."
     },
     {
       "id": "B34",
       "title": "Partial browser initialization owner cleanup",
-      "status": "Component verified \u2014 unobserved lifecycle edge",
+      "status": "Component verified \u2014 lifecycle edge observation unestablished",
       "change": "Close an already created first encoder if a later encoder constructor fails; retire exact peer-owned RTC receiver tracks rejected before accepted-map ownership. Preserve accepted owners and real cleanup failures.",
-      "evidence": "All 30 Node lifecycle controls pass with zero skips/cancellations. The two generated SDK files are traced to the original successful stage-1 TypeScript build and are unchanged through v2/v3/v4. These constructor/rejected-track failure edges remain unobserved in actual v195/v196 runs; no OS FD/RSS cause is established. docs/evidence/gate-6/blocker-components-post-v196-v4.json.",
-      "next": "Preserve exact-owner lifecycle regressions and qualify actual browser resource reclamation in the full matrix. Passing lifecycle controls do not clear resource failures."
+      "evidence": "Actual v197 browser resource requirements: 0/24 passed, 24 failed, 0 blocked. Original 30 Node owner controls remain verified. The matrix aggregate does not establish an actual constructor/rejected-track failure-edge observation or its OS cause. docs/evidence/gate-6/matrix-full-v197.json.",
+      "next": "Keep exact-owner cleanup controls; use actual resource verdicts and concrete owner evidence to address remaining failures."
     },
     {
       "id": "B35",
       "title": "Selected regular-FD mapping attribution",
-      "status": "Component verified \u2014 actual OS attribution pending",
+      "status": "Diagnostic component verified \u2014 resources 0/32",
       "change": "Add bounded numeric file-size and exact selected-inode VMA/RSS attribution under the original process-birth identity and existing post-counter census. Keep truncated, raced or unavailable observations explicit.",
-      "evidence": "All 28 owner-diagnostic and 4 idle Python controls pass, including selected-FD identity/privacy/race/bounds controls. Partial or unavailable observations stay explicit; actual OS attribution and all resource budgets remain unqualified. docs/evidence/gate-6/blocker-components-post-v196-v4.json.",
-      "next": "Use the next full run to attribute actual original descriptors/mappings under unchanged resource budgets. Diagnostic unit results do not establish an OS cause or resource pass."
+      "evidence": "Actual v197 resource requirements: 0/32 passed, 32 failed, 0 blocked. Original 28 owner-diagnostic and 4 idle Python controls remain verified. These unit results do not qualify OS budgets; actual matrix verdicts are recorded separately and no per-inode cause is inferred. docs/evidence/gate-6/matrix-full-v197.json.",
+      "next": "Attribute actual remaining owner/mapping failures from original evidence; preserve unchanged resource budgets and explicit unknown/partial diagnostics."
+    },
+    {
+      "id": "B36",
+      "title": "Private full-scene authority refusal loses the Store subtype",
+      "status": "Diagnostic component verified \u2014 four ARM controls pass",
+      "change": "Preserve a closed static Store authority-busy subtype in the existing bounded private receive diagnostic. Preserve current authorization, original packet error mapping, retry behavior and event budget.",
+      "evidence": "Four exact normal-release ARM diagnostic controls pass,0ignored: actual emitter/filter/cap, static subtype mapping, privacy and guard release. Actual failed RTC leaves now identify original SQL observer ownership/reseal exclusion. docs/evidence/gate-6/blocker-components-post-v197-partial.json.",
+      "next": "Use precise actual subtype evidence to validate the separately prepared original-slot reservation fix; full matrix still required."
+    },
+    {
+      "id": "B37",
+      "title": "WebRTC readiness still uses the expired start-admission cutoff",
+      "status": "Open \u2014 six signed RTC failures and one missing selector",
+      "change": "After successful original admission, bind private readiness to the unchanged original reservation deadline. Keep the short SDP/resource admission deadline and fresh per-packet authority.",
+      "evidence": "Six actual signed RTC controls execute and fail; the seventh cancellation selector misses its subscriptions namespace and executes0. Baseline malformed-ready oracles, closed state-problem/progress expectations and local-vs-server cancellation need guarded fixture corrections; delayed fresh1230Hz/green test genuinely reaches original8s deadline and remains failed. docs/evidence/gate-6/blocker-components-post-v197-partial.json.",
+      "next": "Correct exact fixture oracles/selector, fix private audio and concrete original observer-slot/clock gaps, run focused controls and require allpass before full matrix readiness. Causal unadmitted start-cutoff negative remains unverified."
+    },
+    {
+      "id": "B38",
+      "title": "A native movement failure aborts retained-source decoder evidence",
+      "status": "Script component verified \u2014 full matrix pending",
+      "change": "Persist actual joined decoder captures even when the original operation fails. Isolate only definitively refused original submissions before a physical target starts; unobserved or uncertain completion remains fatal. Preserve the exact first failure when an observation callback also fails.",
+      "evidence": "Original Mac Node69:62pass and7platform-specific failures preserved;19Python pass. Exact later workspace delta is only reviewed Linux lifetime test correction; actual ARM7Node nowpass. These are retainedMac62/Python19 +freshARM7, not69newMacpasses. docs/evidence/gate-6/blocker-components-post-v197-partial.json.",
+      "next": "Retain original failed movement result and exact first error; verify full native programme decoder diagnostics under the next committed complete matrix."
+    },
+    {
+      "id": "B39",
+      "title": "Managed Session cleanup aborts but does not join the original Core mixer",
+      "status": "Component verified \u2014 nine ARM teardown controls pass",
+      "change": "Await completion of the same original mixer task during Session teardown, preserving cancellation/retry behavior and terminal replay metadata.",
+      "evidence": "Nine exact normal-release ARM Core controls pass,0ignored: actual same-original mixer finalizer join, cancellation/retry, concurrent end, failure preservation and existing Session teardown. docs/evidence/gate-6/blocker-components-post-v197-partial.json. No OS resource improvement or whole-cell qualification claimed.",
+      "next": "Preserve original task ownership/replay semantics and validate unchanged OS budgets in the next complete matrix."
+    },
+    {
+      "id": "B40",
+      "title": "Private replacement audio has no receiver-only copy of old selections",
+      "status": "Source gap proven \u2014 guarded candidate prepared, unrun",
+      "change": "Prepare a receiver-only audio selection from exact old programme/audience metadata; preserve ordinary candidate mute, all-origin current Store authorization and same-root explicit adoption.",
+      "evidence": "Actual v197 targets decode only neutralF8FFFE probes. Source proves empty isolated target programme rejects remote mix before policy, and ReadyGate whitelist accepts video descriptors only. Guarded audio candidate and9Core controls are prepared, not compiled or executed.",
+      "next": "Review/merge candidate with clock and full-scene ownership changes; execute genuine remote-audio, current revoke, selection/generation, cancellation/expiry and actual commit/return controls."
+    },
+    {
+      "id": "B41",
+      "title": "Compound scene reseal loses its original SQL observer slot",
+      "status": "Actual subtype observed \u2014 reservation fix prepared, unrun",
+      "change": "Reserve only the same original observer slot through transaction-local SQL unlock and file admission, then atomically reclaim that slot for exact reseal. No retained IO grant, waiting pool expansion or authority caching.",
+      "evidence": "Actual delayed RTC leaf reports observer-original-slot-reseal-occupied; expiry cohort reports observer-ownership. Bounded diagnostics are not event counts or proof of sole cause. Guarded seven-file reservation candidate/five new controls prepared, not executed.",
+      "next": "Validate no-ABA/original-owner retirement/cancel/errorrelease and complete current-scene derive/reseal, including guarded under-custody merge; then full matrix."
+    },
+    {
+      "id": "B42",
+      "title": "Neutral probe and real private mix use separate egress clocks",
+      "status": "Source mechanism proven \u2014 clock witness fix prepared, unrun",
+      "change": "Serialize the same original egress clock owner using explicit producer/quantum metadata and actual writer certainty; refuse uncertainty and preserve original grants/packet age. Neutral probes stop only after actual same-preparation remote writer completion.",
+      "evidence": "Independent local-probe/mixer timestamps can duplicate at first transition; a queued probe can remain after first remote delivery. Source proof does not establish observed packet impact. Narrow clock/writer candidate is being prepared; no runtime pass or seamless-transition claim.",
+      "next": "Review exact native/RTC IO certainty boundaries, test queued/failed/partial-IO transitions and unchanged source clocks, then execute strict real1230Hz+green RTC oracle under original8s."
+    },
+    {
+      "id": "B43",
+      "title": "Instrumented automatic integration target lacks required test-support declaration",
+      "status": "Open \u2014 default target compilation failed101",
+      "change": "Declare the instrumented target required-features=test-support; separately check default shipping --lib --bins. The actual instrumented integration target must still compile and execute every exact selected case with test-support enabled.",
+      "evidence": "Original default automatic gate6_canonical_webtransport check fails101 with11E0599 occurrences across5 helper methods actually guarded by test-support. These helper declarations are absent in the default library build; the automatic target currently has no required-features declaration. docs/evidence/gate-6/blocker-components-post-v197-partial.json. No shipping-profile qualification or fixed-feature pass claimed.",
+      "next": "Review feature declaration, run actual default shipping lib/bins check, and explicitly compile+execute all instrumented selectors with test-support. An automatic Cargo target skip is never counted as a test pass; full v198 readiness remains allpass-only."
     }
   ]
 }

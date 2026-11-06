@@ -589,6 +589,7 @@ impl TargetPolicy {
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         let mut leaf = 0;
         let mut medium = None;
+        let mut store_busy = None;
         let result = (|| {
             self.scope(scope)?;
             leaf = 1;
@@ -617,11 +618,12 @@ impl TargetPolicy {
             leaf = 4;
             let origin = self.origin.get().ok_or(StreamControlError::NotReady)?;
             leaf = 5;
-            let read = self
-                .base
-                .store
-                .try_native_replacement_scene_read(origin, &origins)
-                .map_err(crate::canonical_media::packet_authority_error)?;
+            let read = super::diagnostics::private_scene_result(
+                self.base
+                    .store
+                    .try_native_replacement_scene_read(origin, &origins),
+                &mut store_busy,
+            )?;
             leaf = 6;
             if !read.current() {
                 return Err(StreamControlError::Authority);
@@ -653,7 +655,7 @@ impl TargetPolicy {
         // Each original target emits at most one diagnostic per exact leaf.
         if let Err(error) = &result {
             self.receive_diagnostics
-                .refused(leaf, self, scope, source, medium, error);
+                .refused(leaf, self, scope, source, medium, error, store_busy);
         }
         result
     }

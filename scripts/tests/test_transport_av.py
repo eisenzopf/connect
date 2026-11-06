@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from lib.package_environment import fixture_environment
 from lib.transport_av import (opus_packets, decode_audio, ivf_frames, decode_completed,
     rtp_timing, source_pixels, clock_observation, submission_observation,
-    marker_edges, marker_profile, paired_marker_observation, verify)
+    marker_edges, marker_profile, paired_marker_observation, verify, diagnose_original_routes)
 
 
 @unittest.skipUnless(shutil.which('ffmpeg'), 'Independent FFmpeg calibration requires the named prerequisite')
@@ -213,3 +213,52 @@ class NativePairedMarkers(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class FailedMovingObservationDiagnostics(unittest.TestCase):
+    def test_failed_joined_movement_decodes_original_diagnostics_without_qualifying_handoff(self):
+        observed = dict(passed=False, native_av=dict(original_receive_tasks_joined=True,
+            movement_requested=True, programme_window_observed=True), device_movement=dict(passed=False))
+        diagnostics = dict(routes=[dict(index=1, passed=True)], cell_qualified=False)
+        with patch('lib.transport_av.diagnose_original_routes', return_value=diagnostics) as diagnostic, \
+                patch('lib.transport_av.verify') as baseline, patch('lib.transport_moving_av.verify') as moving:
+            value = decode_completed(observed, Path('private-observation'), {})
+        diagnostic.assert_called_once_with(Path('private-observation'), {})
+        moving.assert_not_called(); baseline.assert_not_called()
+        self.assertFalse(value['passed']); self.assertFalse(value['cell_qualified'])
+        self.assertEqual(value['failure'], 'original-moving-capture-prerequisite-missing')
+        self.assertIs(value['original_route_diagnostics'], diagnostics)
+        self.assertFalse(observed['passed'])
+
+    def test_movement_requested_cannot_fall_back_when_failure_precedes_movement_report(self):
+        observed = dict(native_av=dict(original_receive_tasks_joined=True, movement_requested=True))
+        with patch('lib.transport_av.diagnose_original_routes', return_value={'routes': []}), \
+                patch('lib.transport_av.verify') as baseline:
+            self.assertFalse(decode_completed(observed, Path('private-observation'), {})['passed'])
+        baseline.assert_not_called()
+
+    def test_one_original_route_decoder_failure_does_not_skip_other_original_windows(self):
+        calls = []
+        def actual_route(directory, manifest, indices, output):
+            calls.append((tuple(indices), output))
+            if indices == [0]:
+                raise ValueError('original retired window incomplete')
+            return dict(routes=[dict(index=indices[0], passed=indices[0] != 4)])
+        with patch('lib.transport_av._verify_original', side_effect=actual_route):
+            value = diagnose_original_routes(Path('private-observation'), {})
+        self.assertEqual([indices for indices, _ in calls], [(i,) for i in range(6)])
+        self.assertEqual([name for _, name in calls], [f'diagnostic-original-{i}.json' for i in range(6)])
+        self.assertEqual(len(value['routes']), 6)
+        self.assertFalse(value['routes'][0]['passed']); self.assertFalse(value['routes'][0]['available'])
+        self.assertTrue(value['routes'][1]['passed']); self.assertFalse(value['routes'][4]['passed'])
+        self.assertNotIn('passed', value, 'per-original diagnostic routes must not become a handoff verdict')
+        self.assertFalse(value['cell_qualified']); self.assertEqual(value['observation_seconds'], 60)
+
+
+class ObservationPersistenceRefusal(unittest.TestCase):
+    def test_a_throwing_callback_cannot_lend_joined_capture_facts_to_decoder(self):
+        observed = dict(native_av=dict(original_receive_tasks_joined=True,
+            movement_requested=True, observation_receipt=dict(persisted=False)))
+        with patch('lib.transport_av.diagnose_original_routes') as diagnostic, patch('lib.transport_av.verify') as baseline:
+            self.assertIsNone(decode_completed(observed, Path('private-observation'), {}))
+        diagnostic.assert_not_called(); baseline.assert_not_called()

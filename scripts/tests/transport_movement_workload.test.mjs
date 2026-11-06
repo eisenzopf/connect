@@ -1,3 +1,4 @@
+import { recordPrivateTargetCleanup } from "../lib/transport_failure_isolation.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
@@ -36,7 +37,8 @@ async function scenario(mode) {
     }));
     const sessions = [0, 1].map(i => ({ id: "session-" + i,
         async refresh() { return { state: "accepted", topologyRevision: revisions[i] }; } }));
-    const original = Object.assign(Error("original unknown move"), { kind: "deadline", certainty: "uncertain" });
+    const original = Object.assign(Error("original unknown move"), mode === "isolated-outbound" ?
+        { kind: "authorization", certainty: "refused" } : { kind: "deadline", certainty: "uncertain" });
     const reported = [];
     const workload = { routes, signal: signal.signal, reportFailure(failure) {
         reported.push({ failure, stopped: stopped.length });
@@ -83,6 +85,13 @@ async function scenario(mode) {
             assert.equal(saved.find(step => step.operationId === options.operationId).dataId, options.dataStreamId);
         }
         assert.equal(options.target.deviceId, ordinal % 2 ? "original-device" : "replacement-device");
+        if (mode === "isolated-outbound" && sid === 0 && ordinal === 0) {
+            recordPrivateTargetCleanup(original, { format: "connect/original-private-target-cleanup/1", logical_outcome: "not-submitted", submission_definitively_refused: true, completion_observed: false,
+                transferred: false, original_root_completed: false, original_source_owner_joined: false,
+                worker_started: false, target_worker_joined: true, target_worker_forced: false,
+                target_executable_unchanged: true, target_config_unchanged: true });
+            throw original;
+        }
         if (mode === "unknown" && sid === 0 && ordinal === 1) throw original;
         revisions[sid]++;
         const moved = { retired: [options.connectionId], binding: { generation: options.originalGeneration + 1 } };
@@ -120,7 +129,9 @@ async function scenario(mode) {
                 if (!result) { joined.push(options.operationId); result = stage; }
                 return new Promise(done => {
                     finalWaits.set(options.operationId, () => { physicalRetired.add("candidate-" + sid + "-" + ordinal); done(result); });
-                    if (finalWaits.size === 2) { clock = 62500; for (const finish of finalWaits.values()) finish(); }
+                    if (finalWaits.size === (mode === "isolated-outbound" ? 1 : 2)) {
+                        clock = 62500; for (const finish of finalWaits.values()) finish();
+                    }
                 });
             } };
     };
@@ -150,6 +161,27 @@ async function scenario(mode) {
                 if (mode === "data-failure") throw original;
                 return { messages: Object.values(args.contract).map(message => ({ message_id: message.message_id })) };
             } });
+        if (mode === "isolated-outbound") {
+            await assert.rejects(run, failure => failure === original);
+            assert.equal(signal.signal.aborted, false);
+            assert.deepEqual(starts.map(value => value.sessionId).sort(), ["session-0", "session-1", "session-1"]);
+            assert.equal(starts.filter(value => value.sessionId === "session-0").length, 1,
+                "the failed outbound must never submit its prewritten return");
+            const plan = JSON.parse(await readFile(join(directory, "run/plan.json"), "utf8"));
+            const failure = JSON.parse(await readFile(join(directory, "run/movement-failure.json"), "utf8"));
+            assert.equal(failure.passed, false); assert.equal(failure.failure_isolated, true);
+            assert.equal(failure.original_moves_completed, 2);
+            assert.equal(failure.failed_slots.length, 1); assert.equal(failure.failed_slots[0].ordinal, 0);
+            assert.deepEqual(failure.blocked_moves.map(slot => slot.operation_id),
+                [plan.find(step => step.sourceIndex === 0 && step.ordinal === 1).operationId]);
+            assert.equal(failure.blocked_moves[0].mutation_submissions, 0);
+            assert.equal(failure.original_cutoff_monotonic_ms, 67000);
+            assert.equal(clock, 62500); assert.equal(retainedJoined, true);
+            assert.equal(reported[0].failure, original);
+            assert.equal(new Set(starts.map(value => value.operationId)).size, 3);
+            assert.equal(new Set([...stopped, ...joined]).size, admitted.length);
+            return;
+        }
         if (mode === "partial-data") {
             await assert.rejects(run, { code: "ERR_ASSERTION" });
             assert.equal(starts.length, 0); return;
@@ -250,3 +282,5 @@ test("two Session chains cannot silently share one serialized ordinary control h
 
  test("prepared video mappings follow both original owners without a post-move video command", () => scenario("prepared-video"));
  test("prepared video keeps its receiver while separately authorized Data subscriptions complete", () => scenario("prepared-video-data"));
+
+ test("a definitively refused original outbound blocks only its own return while the original sibling reaches40s and62s cleanup", () => scenario("isolated-outbound"));

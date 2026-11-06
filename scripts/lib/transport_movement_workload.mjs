@@ -1,3 +1,4 @@
+import { isolatedPrivateTargetFailure, blockedMovementSlots, privateTargetCleanup, emitOriginalObservation } from "./transport_failure_isolation.mjs";
 // One switch and return per Session while the six-route AV owner is live.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -22,7 +23,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
     connections, streamIds, participantIds, targets, sourcePrograms, privateRoot, directory,
     executable, executableSha256, currentEnds, dataClients, startTarget = startPhysicalReplacementTarget,
     endRetained = endRetainedConnections, exchangeData = exchangeMovementData, now = workload.now ?? (() => performance.now()),
-    wait = (ms, signal) => sleep(ms, undefined, { signal }) }) {
+    wait = (ms, signal) => sleep(ms, undefined, { signal }), observe = () => {} }) {
     assert.equal(workload.routes.length, 6);
     assert.equal(connections.length, 6);
     assert.equal(sessions.length, 2);
@@ -91,6 +92,8 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         original_cutoff_monotonic_ms: workload.startedAt + 67000,
     });
     const owners = new Set(), completed = [], segments = [], physicalEnds = [], dataExchanges = [], earlyJoins = new Map();
+    const blocked = [], failedSlots = [];
+    let isolatedFailure;
     const stopOwners = () => {
         for (const owner of owners) if (!earlyJoins.has(owner)) {
             const joining = Promise.resolve().then(() => owner.stopAndJoin());
@@ -281,7 +284,23 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 firstFailureStage = stages.get(sources[index]) ?? { stage: "retained-current-end" };
                 workload.reportFailure?.(firstFailure);
             }
-            abort(failure); throw failure;
+            const failedStage = stages.get(sources[index]);
+            if (index < sources.length && failedStage?.stage === "physical-target" && isolatedPrivateTargetFailure(failure)) {
+                isolatedFailure ??= failure;
+                const originalStep = plan.find(step => step.sourceIndex === sources[index] && step.ordinal === failedStage.ordinal);
+                failedSlots.push({ ...failedStage, operation_id: originalStep.operationId,
+                    scheduled_start_ms: originalStep.scheduled_start_ms, status: "failed",
+                    failure: { name: failure.name, kind: failure.kind ?? null, certainty: failure.certainty ?? null,
+                        ...operationFailure(failure) }, original_error_preserved: true,
+                    cleanup: privateTargetCleanup(failure).facts });
+                blocked.push(...blockedMovementSlots(plan, sources[index], failedStage.ordinal, now() - workload.startedAt));
+                // No new root can follow a missing actual admitted predecessor.
+                // The other Session and original retained62s owners stay live.
+            } else {
+                if (firstFailure !== failure) workload.reportFailure?.(failure, { fatal: true });
+                abort(failure);
+            }
+            throw failure;
         })));
         if (firstFailure) throw firstFailure;
         assertCurrent();
@@ -317,7 +336,9 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         stopOwners();
         const joins = await Promise.allSettled([...earlyJoins.values()]);
         const failure = joins.find(v => v.status === "rejected");
-        if (firstFailure) await save(join(directory, "movement-failure.json"), {
+        if (failure) { workload.reportFailure?.(failure.reason, { fatal: true }); abort(failure.reason); }
+        if (firstFailure) {
+        const failureObservation = {
             passed: false, original_moves_completed: completed.length, moves: completed,
             movement_profile: MOVEMENT_PROFILE, movement_profile_sha256: MOVEMENT_PROFILE_SHA256,
             scheduled_start_offsets_ms: MOVE_START_OFFSETS_MS,
@@ -325,8 +346,15 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
                 kind: firstFailure.kind ?? null, certainty: firstFailure.certainty ?? null,
                 observation: firstFailureStage ?? null, ...operationFailure(firstFailure) },
             target_joins_failed: joins.filter(v => v.status === "rejected").length,
+            failed_slots: failedSlots, blocked_moves: blocked,
+            failure_isolated: Boolean(isolatedFailure && !stop.signal.aborted),
+            original_cutoff_monotonic_ms: workload.startedAt + 67000,
             task_complete: false, whole_gate_qualified: false,
-        });
+        };
+        await save(join(directory, "movement-failure.json"), failureObservation);
+        const emitted = emitOriginalObservation(observe, [Object.freeze(failureObservation)], firstFailure);
+        if (!emitted.emitted) { workload.reportFailure?.(emitted.error, { fatal: true }); abort(emitted.error); throw emitted.error; }
+        }
         if (failure && !firstFailure) throw failure.reason;
     }
 }
