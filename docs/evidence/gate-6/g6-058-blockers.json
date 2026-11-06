@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-05T15:51:14-08:00",
-  "run_status": "Current ARM regression run:43 passed,1 failed across44 completed checks; final service capability check compiling. All10 native-cut controls pass. Full matrix v192 totals remain unchanged.",
+  "updated": "2026-11-05T16:06:18-08:00",
+  "run_status": "Completed normal-release ARM regression run:44 passed,1 failed,0 ignored across45 executed checks; all original processes and VM lease joined. Paused audio root cause proven from read-only SQL snapshot:worker ID compared with installation ID. Correction implemented; runtime retest next. Full matrix v192 totals remain unchanged.",
   "blockers": [
     {
       "id": "B01",
@@ -14,10 +14,10 @@
     {
       "id": "B02",
       "title": "Post-Core audio continuation",
-      "status": "Investigating \u2014 Store admission isolated",
-      "change": "Correct the pending-target current-authority boundary after Core commit and before SQL projection; preserve all current actor/key/epoch/recipient checks and live Core publication.",
-      "evidence": "Release diagnostic:100 marked packets decoded into96000 mix samples;100 target captures;100 Store Authority refusals;0 encoder/writer packets;0 missed observations.",
-      "next": "Identify exact failing pending-facts condition; test original commit only plus wrong-root, revocation, expiry and private-floor refusals; rerun paused controls."
+      "status": "Implemented \u2014 exact runtime-owner correction; retest pending",
+      "change": "Validate installation epoch and the distinct process-bound transition worker separately in both pending-target and original-operation lease queries. Keep all current attempt, actor/key, membership, recipient, expiry and Core publication checks.",
+      "evidence": "43b failed paused control retained. Read-only boundary snapshot proves original SQL refuses and corrected exact-owner SQL matches with every other predicate unchanged. See g6-058-pending-worker-identity.json. New positive/foreign-owner/current-revocation Store controls implemented.",
+      "next": "Run normal-release ARM Store boundary controls, all paused duplex/authority/AV controls, then full32/432 matrix."
     },
     {
       "id": "B03",
@@ -48,7 +48,7 @@
       "title": "Opus cadence session fixture",
       "status": "Verified \u2014 native cadence runtime",
       "change": "Negotiate Opus in both original Session invitation and acceptance; physical PCMU prerequisites unchanged.",
-      "evidence": "43b1276a, normal-release ARM:all4 signed G711/Opus emission/contiguity cases pass,0 ignored. Prior signed501 fixture negotiation blocker resolved.",
+      "evidence": "43b1276a, normal-release ARM:all4 signed G711/Opus emission/contiguity cases plus service missing-session-capability refusal pass,0 ignored.",
       "next": "Retain capability-refusal check and complete transport matrix; no cadence, frame-count or deadline changes."
     },
     {

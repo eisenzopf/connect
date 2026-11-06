@@ -37,5 +37,14 @@
     "conclusion": "Marked audio reaches and decodes at source, then reaches target capture. Fresh target Store admission refuses authority before encoder/writer; exact pending-facts cause still under investigation."
   },
   "matrix_qualified": false,
-  "whole_run_complete": false
+  "whole_run_complete": true,
+  "regression_run": {
+    "executed": 45,
+    "passed": 44,
+    "failed": 1,
+    "ignored": 0,
+    "all_original_processes_joined": true,
+    "lease_released_and_joined": true,
+    "receipt_sha256": "2a82400d1aea431f08421a9d6313a0c5a5a1ad0329e0e589662bb49fda7c10b2"
+  }
 }

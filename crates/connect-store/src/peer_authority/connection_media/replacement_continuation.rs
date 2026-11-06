@@ -9,8 +9,9 @@ fn pending_facts(
     activation: &NativeReplacementActivation,
 ) -> Result<(PeerConnectionProjection, Vec<AuthorityScope>, i64)> {
     let origin = activation.origin();
-    current_owner(store, origin)?;
-    credential_refresh::require_epoch(store, c, origin)?;
+    current_owner(store, origin).map_err(|e| native_view_error("continuation owner", e))?;
+    credential_refresh::require_epoch(store, c, origin)
+        .map_err(|e| native_view_error("continuation credential epoch", e))?;
     let NativeMediaAdmission::Replacement {
         record,
         attempt,
@@ -25,7 +26,9 @@ fn pending_facts(
     };
     // No mere receipt/Ready row is accepted. This is the same one started
     // original commit and local runtime, before any durable ordinary lifetime.
-    let exact: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements r JOIN operations o ON o.record_id=r.operation_record_id JOIN native_replacement_steps s ON s.operation_record_id=o.record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=o.record_id WHERE o.record_id=?1 AND s.attempt_id=?2 AND s.effect_id=?3 AND r.runtime_epoch=?4 AND r.candidate_connection_id=?5 AND r.candidate_runtime_id=?6 AND r.generation=?7 AND s.started=1 AND e.provider='native-replacement-commit' AND e.attempt=1 AND e.submission_generation=1 AND e.state IN ('submitting','confirmed') AND o.state='preparing' AND o.cancel_requested=0 AND o.expires_at>?8 AND r.expires_at>?8 AND o.worker_runtime=r.runtime_epoch AND o.lease_owner=r.reservation_id AND o.lease_expires_at=r.expires_at AND json_extract(e.observation_json,'$.candidate')=?6 AND json_extract(e.observation_json,'$.generation')=?7 AND (s.observation_json IS NULL OR (json_extract(s.observation_json,'$.movement.candidate')=?6 AND json_extract(s.observation_json,'$.movement.generation')=?7)) AND NOT EXISTS(SELECT 1 FROM native_replacement_lifetimes l WHERE l.operation_record_id=o.record_id))",params![record,attempt,effect,runtime,connection,core,generation,crate::now()],|r|r.get(0)).map_err(|_| Error::storage())?;
+    // The installation epoch identifies native resources. The transition worker
+    // has a distinct, process-bound runtime; validate both exact owners.
+    let exact: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements r JOIN operations o ON o.record_id=r.operation_record_id JOIN native_replacement_steps s ON s.operation_record_id=o.record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=o.record_id WHERE o.record_id=?1 AND s.attempt_id=?2 AND s.effect_id=?3 AND r.runtime_epoch=?4 AND r.candidate_connection_id=?5 AND r.candidate_runtime_id=?6 AND r.generation=?7 AND s.started=1 AND e.provider='native-replacement-commit' AND e.attempt=1 AND e.submission_generation=1 AND e.state IN ('submitting','confirmed') AND o.state='preparing' AND o.cancel_requested=0 AND o.expires_at>?8 AND r.expires_at>?8 AND o.worker_runtime=?9 AND o.lease_owner=r.reservation_id AND o.lease_expires_at=r.expires_at AND json_extract(e.observation_json,'$.candidate')=?6 AND json_extract(e.observation_json,'$.generation')=?7 AND (s.observation_json IS NULL OR (json_extract(s.observation_json,'$.movement.candidate')=?6 AND json_extract(s.observation_json,'$.movement.generation')=?7)) AND NOT EXISTS(SELECT 1 FROM native_replacement_lifetimes l WHERE l.operation_record_id=o.record_id))",params![record,attempt,effect,runtime,connection,core,generation,crate::now(),store.transition_runtime],|r|r.get(0)).map_err(|_| Error::storage())?;
     if !exact {
         // An in-flight packet can straddle the exact final SQL publication.
         // Signal only this known phase edge as retryable. The caller starts a
@@ -37,25 +40,27 @@ fn pending_facts(
                 "Exact replacement policy publication advanced",
             )
         } else {
-            Error::forbidden()
+            native_view_error("continuation original commit", Error::forbidden())
         });
     }
-    let (meta, key, mut scopes, mut expiry) = checked(store, c, &origin.binding)?;
+    let (meta, key, mut scopes, mut expiry) = checked(store, c, &origin.binding)
+        .map_err(|e| native_view_error("continuation target binding", e))?;
     if key.public_key != origin.public_key {
         return Err(Error::forbidden());
     }
     meta.actor.require("connection.offer")?;
-    let recipients = crate::connection_control::intent_resources(c, &meta.actor, &origin.intent)?;
+    let recipients = crate::connection_control::intent_resources(c, &meta.actor, &origin.intent)
+        .map_err(|e| native_view_error("continuation recipients", e))?;
     if recipients
         .iter()
         .any(|id| !meta.actor.permits_recipient(id))
     {
         return Err(Error::forbidden());
     }
-    let (original_scopes, original_expiry) =
-        activation
-            .original
-            .continuation_authority(store, c, &meta.actor.identity_id)?;
+    let (original_scopes, original_expiry) = activation
+        .original
+        .continuation_authority(store, c, &meta.actor.identity_id)
+        .map_err(|e| native_view_error("continuation original authority", e))?;
     scopes.extend(original_scopes);
     expiry = expiry.min(original_expiry).min(origin.expires_at);
     let member =
@@ -159,7 +164,10 @@ fn current_facts(
     match activation {
         Some(activation) => {
             if !std::ptr::eq(origin, activation.origin().as_ref()) {
-                return Err(Error::forbidden());
+                return Err(native_view_error(
+                    "continuation activation identity",
+                    Error::forbidden(),
+                ));
             }
             pending_facts(store, c, activation)
         }
@@ -199,15 +207,18 @@ impl Store {
         let memo = snapshot::Memo::default();
         let derive = |c: &Connection| {
             let (target_view, mut scopes, mut expiry) =
-                current_facts(self, c, target, target_activation)?;
+                current_facts(self, c, target, target_activation)
+                    .map_err(|e| native_view_error("continuation target facts", e))?;
             let source_view = if let Some((origin, activation)) = source {
                 if origin.conversation_id() != target.conversation_id()
                     || origin.session_id() != target.session_id()
                 {
                     return Err(Error::forbidden());
                 }
-                let (view, extra, until) = current_facts(self, c, origin, activation)?;
-                require_current_pair(self, c, target, origin, &target_view, &view)?;
+                let (view, extra, until) = current_facts(self, c, origin, activation)
+                    .map_err(|e| native_view_error("continuation source facts", e))?;
+                require_current_pair(self, c, target, origin, &target_view, &view)
+                    .map_err(|e| native_view_error("continuation current pair", e))?;
                 scopes.extend(extra);
                 expiry = expiry.min(until);
                 Some(view)

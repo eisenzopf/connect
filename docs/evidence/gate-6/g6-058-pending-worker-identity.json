@@ -1,0 +1,16 @@
+{
+  "format": "connect/g6-058-pending-runtime-identity-diagnosis/1",
+  "baseline_revision": "43b1276a0626a1c0eb2d4a83c8ee24182e94c913",
+  "binary_sha256": "5f6332dbc18b5ad17876e0dec12c385ae7044b07070010d76e9b5be389e754d2",
+  "snapshot_sha256": "92788ac223ee78abeb313e7fb4b42baf07f6374f288ad3785796e55562ad01b1",
+  "snapshot_read_only": true,
+  "source_legacy_predicate_sha256": "cdc24c71c446d67f76a040d6c30d94df6a4833d65109219a3ed64f5ee5dac31c",
+  "legacy_commit_match": false,
+  "correct_owner_commit_match": true,
+  "legacy_original_lease_found": false,
+  "correct_worker_original_lease_found": true,
+  "worker_and_installation_runtime_ids_differ": true,
+  "all_other_predicates_unchanged": true,
+  "actual_runtime_retest_pending": true,
+  "matrix_qualified": false
+}
