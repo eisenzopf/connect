@@ -220,3 +220,173 @@ async fn decoder_restart_quarantines_old_keyframes_and_preserves_feedback_bounds
         .unwrap()
         .unwrap();
 }
+
+// Real signed allocation/history and real QUIC feedback bytes. The controlled
+// peer deliberately loses the first request and sends NO more media until a
+// distinct new request arrives on the same original authenticated connection.
+pub(crate) async fn emit_recovery(
+    connection: &quinn::Connection,
+    request: Envelope,
+    writer: &mut quinn::SendStream,
+    reader: &mut quinn::RecvStream,
+    signer: &Sig9421Signer,
+    lose_first: bool,
+) {
+    super::super::tests::emit(request.clone(), writer, reader, signer, false).await;
+    let receiver = signer
+        .sign(epoch(request.id(), 1, false).original())
+        .unwrap();
+    let raw = serde_json::to_vec(&receiver).unwrap();
+    writer
+        .write_all(&(raw.len() as u32).to_be_bytes())
+        .await
+        .unwrap();
+    writer.write_all(&raw).await.unwrap();
+    connection.send_datagram(video().into()).unwrap();
+    if !lose_first {
+        return;
+    }
+    let first = tokio::time::timeout(Duration::from_secs(2), connection.read_datagram())
+        .await
+        .unwrap()
+        .unwrap();
+    let first = observe_video_feedback_datagram(&first).unwrap();
+    assert_eq!(
+        (
+            first.stream_local_id,
+            first.seq,
+            first.activation_epoch,
+            first.media_ssrc
+        ),
+        (7, 0, 1, 83)
+    );
+    let received = Instant::now();
+    // The first request is intentionally not acknowledged or routed. This
+    // controlled loss must not require another video/audio/clock datagram.
+    let second = tokio::time::timeout(Duration::from_secs(2), connection.read_datagram())
+        .await
+        .unwrap()
+        .unwrap();
+    let second = observe_video_feedback_datagram(&second).unwrap();
+    assert_eq!(
+        (
+            second.stream_local_id,
+            second.seq,
+            second.activation_epoch,
+            second.media_ssrc
+        ),
+        (7, 1, 1, 83)
+    );
+    assert!(
+        received.elapsed() >= Duration::from_millis(90),
+        "100ms sender cooldown was bypassed"
+    );
+    connection.send_datagram(audio().into()).unwrap();
+}
+async fn recovery_owner(
+    loss: bool,
+    budget: Duration,
+) -> (
+    CanonicalClient,
+    NativeVideoDatagrams,
+    tokio::task::JoinHandle<()>,
+) {
+    use crate::canonical::tests::{controlled, Fault};
+    let (mut client, server, _) = controlled(Fault::NativeVideoRecovery(loss)).await;
+    client.start_signaling_reader().unwrap();
+    let request = command_value("connection.offer", original(), scope()).unwrap();
+    client
+        .native_video
+        .begin(request["id"].as_str().unwrap().into(), scope(), original())
+        .unwrap();
+    client.write(request, true).await.unwrap();
+    assert_eq!(client.receive().await.unwrap().kind(), "connection.answer");
+    let callback = client.receive().await.unwrap();
+    let expected = {
+        let guard = client.native_video.state.lock().unwrap();
+        protocol(guard.as_ref().unwrap().negotiating.confirmation(&callback)).unwrap()
+    };
+    client
+        .answer_connection_offer(&callback, expected, &scope())
+        .await
+        .unwrap();
+    client.deadline = budget;
+    let mut io = client.claim_native_video_datagrams().unwrap();
+    io.reset_video_receive_decoder(7).unwrap();
+    assert_eq!(io.receive().await.unwrap().bytes, video());
+    (client, io, server)
+}
+#[tokio::test]
+async fn private_bootstrap_lost_request_retries_new_sequence_during_complete_receive_silence() {
+    let (mut client, mut io, server) = recovery_owner(true, Duration::from_secs(2)).await;
+    let history = io.recovery[&7].history.clone();
+    let first = io.recovery[&7].last_request.unwrap();
+    let packet = tokio::time::timeout(Duration::from_millis(500), io.receive())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(packet.bytes, audio());
+    assert_eq!(io.recovery[&7].history, history);
+    assert_eq!(io.recovery[&7].sequence, 2);
+    assert!(
+        io.recovery[&7].last_request.unwrap().duration_since(first) >= Duration::from_millis(100)
+    );
+    assert!(io.recovery[&7].waiting);
+    client.close();
+    drop(io);
+    client.shutdown().await.unwrap();
+    server.await.unwrap();
+}
+#[tokio::test]
+async fn recovery_wake_does_not_renew_original_receive_timeout_or_survive_cancelled_poll() {
+    let (mut client, mut io, server) = recovery_owner(false, Duration::from_millis(260)).await;
+    let began = Instant::now();
+    assert!(matches!(
+        tokio::time::timeout(Duration::from_secs(1), io.receive())
+            .await
+            .unwrap(),
+        Err(ClientError::Timeout)
+    ));
+    assert!(
+        began.elapsed() >= Duration::from_millis(250)
+            && began.elapsed() < Duration::from_millis(600)
+    );
+    assert!(io.recovery[&7].sequence >= 3);
+    let before = io.recovery[&7].sequence;
+    tokio::time::sleep(Duration::from_millis(140)).await;
+    assert_eq!(
+        io.recovery[&7].sequence, before,
+        "receive owner spawned detached recovery"
+    );
+    client.close();
+    drop(io);
+    client.shutdown().await.unwrap();
+    server.await.unwrap();
+}
+#[tokio::test]
+async fn recovery_silence_refuses_withdrawn_signed_history_suspended_owner_and_closed_peer() {
+    for suspended in [false, true] {
+        let (mut client, mut io, server) = recovery_owner(false, Duration::from_secs(2)).await;
+        let before = io.recovery[&7].sequence;
+        {
+            let mut guard = io.shared.state.lock().unwrap();
+            if suspended {
+                guard.as_mut().unwrap().suspended = true;
+            } else {
+                guard.as_mut().unwrap().active.remove(&(7, false));
+            }
+        }
+        assert!(
+            tokio::time::timeout(Duration::from_millis(160), io.receive())
+                .await
+                .is_err()
+        );
+        assert_eq!(io.recovery[&7].sequence, before);
+        client.close();
+        assert!(io.retry_waiting_receivers().is_err());
+        assert_eq!(io.recovery[&7].sequence, before);
+        drop(io);
+        client.shutdown().await.unwrap();
+        server.await.unwrap();
+    }
+}

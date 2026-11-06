@@ -1,0 +1,1832 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -172,6 +172,7 @@
+     pub(super) disclosure_changed_at: Mutex<std::time::Instant>,
+     audio: Arc<GuardedAudioMixer>,
+     tick_summary: Mutex<TickSummary>,
++    pub(super) preparation_refusals: AtomicU32,
+ }
+ impl GuardedMediaScene {
+     #[cfg(feature = "test-support")]
+@@ -205,6 +206,7 @@
+         Arc::new(Self {
+             id: uuid::Uuid::new_v4().as_u128(),
+             tick_summary: Mutex::new(TickSummary::default()),
++            preparation_refusals: AtomicU32::new(0),
+             audio: GuardedAudioMixer::new(rate),
+             conversation,
+             session,
+@@ -570,10 +572,6 @@
+         let woke = Instant::now();
+         let mut members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+         let acquired = Instant::now();
+-        let controllers = members
+-            .values()
+-            .map(|m| m.controller.clone())
+-            .collect::<Vec<_>>();
+         for (id, member) in &mut *members {
+             // A control operation may be suspended with its in-flight permit.
+             // Adoption never reenters that invocation or takes an idle grant.
+@@ -632,8 +630,22 @@
+             }
+         }
+         let audio_started = Instant::now();
++        // Audio owns a separate member map and current consumer/port tickets.
++        // Avoid excluding private decoder preparation while audio reacquires
++        // its independent source and target authority. Removal retires both
++        // consumers before waiting for the audio map, so its old PCM cannot
++        // gain eligibility during this unlocked interval.
++        drop(members);
+         self.audio.tick();
++        let audio_ended = Instant::now();
++        let mut members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+         let direct_started = Instant::now();
++        // Membership may change while audio runs; never use pre-audio owners
++        // to construct new direct destinations after reacquisition.
++        let controllers = members
++            .values()
++            .map(|m| m.controller.clone())
++            .collect::<Vec<_>>();
+         for member in members.values_mut() {
+             for (logical, input) in &mut member.inputs {
+                 for _ in 0..32 {
+@@ -779,7 +791,14 @@
+         self.tick_summary
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+-            .record(woke, acquired, audio_started, direct_started, ended);
++            .record(
++                woke,
++                acquired,
++                audio_started,
++                audio_ended,
++                direct_started,
++                ended,
++            );
+     }
+ }
+ 
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene/tick_summary.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene/tick_summary.rs
+@@ -49,6 +49,7 @@
+         woke: Instant,
+         acquired: Instant,
+         audio: Instant,
++        audio_ended: Instant,
+         direct: Instant,
+         ended: Instant,
+     ) {
+@@ -57,10 +58,14 @@
+             self.stages[0].record(woke.saturating_duration_since(previous), at);
+         }
+         for (index, duration) in [
+-            acquired.saturating_duration_since(woke),
+-            ended.saturating_duration_since(acquired),
++            acquired
++                .saturating_duration_since(woke)
++                .saturating_add(direct.saturating_duration_since(audio_ended)),
++            audio
++                .saturating_duration_since(acquired)
++                .saturating_add(ended.saturating_duration_since(direct)),
+             audio.saturating_duration_since(acquired),
+-            direct.saturating_duration_since(audio),
++            audio_ended.saturating_duration_since(audio),
+             ended.saturating_duration_since(direct),
+         ]
+         .into_iter()
+@@ -99,36 +104,92 @@
+ #[cfg(test)]
+ mod terminal_filter_tests {
+     use super::*;
+-    use std::sync::{Arc,Mutex};
+-    use tracing_subscriber::{layer::{Context,SubscriberExt},Layer};
++    use std::sync::{Arc, Mutex};
++    use tracing_subscriber::{
++        Layer,
++        layer::{Context, SubscriberExt},
++    };
+     struct Stages(Arc<Mutex<Vec<String>>>);
+     struct StageVisitor(Option<String>);
+     impl tracing::field::Visit for StageVisitor {
+-        fn record_str(&mut self,field:&tracing::field::Field,value:&str) {
+-            if field.name()=="stage" {self.0=Some(value.to_owned());}
++        fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
++            if field.name() == "stage" {
++                self.0 = Some(value.to_owned());
++            }
+         }
+-        fn record_debug(&mut self,_:&tracing::field::Field,_:&dyn std::fmt::Debug) {}
++        fn record_debug(&mut self, _: &tracing::field::Field, _: &dyn std::fmt::Debug) {}
+     }
+-    impl<S:tracing::Subscriber> Layer<S> for Stages {
+-        fn on_event(&self,event:&tracing::Event<'_>,_:Context<'_,S>) {
+-            assert_eq!(event.metadata().target(),"rvoip_core::audio_summary");
+-            let mut visitor=StageVisitor(None);event.record(&mut visitor);
+-            self.0.lock().unwrap().push(visitor.0.expect("original terminal stage"));
++    impl<S: tracing::Subscriber> Layer<S> for Stages {
++        fn on_event(&self, event: &tracing::Event<'_>, _: Context<'_, S>) {
++            assert_eq!(event.metadata().target(), "rvoip_core::audio_summary");
++            let mut visitor = StageVisitor(None);
++            event.record(&mut visitor);
++            self.0
++                .lock()
++                .unwrap()
++                .push(visitor.0.expect("original terminal stage"));
+         }
+     }
+     #[test]
+     fn original_terminal_summary_emits_exactly_six_stages_through_audio_summary_filter() {
+-        let observed=Arc::new(Mutex::new(Vec::new()));
+-        let subscriber=tracing_subscriber::registry()
+-            .with(tracing_subscriber::EnvFilter::new("warn,rvoip_core::audio_summary=debug"))
++        let observed = Arc::new(Mutex::new(Vec::new()));
++        let subscriber = tracing_subscriber::registry()
++            .with(tracing_subscriber::EnvFilter::new(
++                "warn,rvoip_core::audio_summary=debug",
++            ))
+             .with(Stages(observed.clone()));
+-        let mut summary=TickSummary::default();let start=Instant::now();
+-        for offset in [0,20] {
+-            let woke=start+Duration::from_millis(offset);
+-            summary.record(woke,woke+Duration::from_micros(1),woke+Duration::from_micros(2),
+-                woke+Duration::from_micros(3),woke+Duration::from_micros(4));
++        let mut summary = TickSummary::default();
++        let start = Instant::now();
++        for offset in [0, 20] {
++            let woke = start + Duration::from_millis(offset);
++            summary.record(
++                woke,
++                woke + Duration::from_micros(1),
++                woke + Duration::from_micros(2),
++                woke + Duration::from_micros(3),
++                woke + Duration::from_micros(4),
++                woke + Duration::from_micros(5),
++            );
+         }
+-        tracing::subscriber::with_default(subscriber,||summary.emit(1,&SessionId::from_string("original-scene-filter")));
+-        assert_eq!(*observed.lock().unwrap(),vec!["wake-gap","members-lock-wait","members-lock-held","adopt-metadata","audio","direct"]);
++        tracing::subscriber::with_default(subscriber, || {
++            summary.emit(1, &SessionId::from_string("original-scene-filter"))
++        });
++        assert_eq!(
++            *observed.lock().unwrap(),
++            vec![
++                "wake-gap",
++                "members-lock-wait",
++                "members-lock-held",
++                "adopt-metadata",
++                "audio",
++                "direct"
++            ]
++        );
+     }
+ }
++
++#[cfg(test)]
++mod split_timing_tests {
++    use super::*;
++    #[test]
++    fn audio_interval_is_excluded_from_both_scene_lock_segments() {
++        let mut summary = TickSummary::default();
++        let start = Instant::now();
++        summary.record(
++            start,
++            start + Duration::from_millis(2),
++            start + Duration::from_millis(5),
++            start + Duration::from_millis(105),
++            start + Duration::from_millis(112),
++            start + Duration::from_millis(123),
++        );
++        assert_eq!(summary.stages[1].total_us, 9_000);
++        assert_eq!(summary.stages[2].total_us, 14_000);
++        assert_eq!(summary.stages[3].total_us, 3_000);
++        assert_eq!(summary.stages[4].total_us, 100_000);
++        assert_eq!(summary.stages[5].total_us, 11_000);
++        assert_eq!(summary.stages[2].maximum_us, 14_000);
++        assert_eq!(summary.stages[2].over_20ms, 0);
++        assert_eq!(summary.stages[4].over_20ms, 1);
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -8,10 +8,55 @@
+ struct Domain {
+     base: Arc<Policy>,
+     fresh: AtomicUsize,
++    audio_current_gate: Mutex<Option<AudioCurrentGate>>,
+     deny_handoff: AtomicBool,
+     deny_replacement: AtomicBool,
+     resources: Mutex<BTreeMap<ConnectionId, ReplacementResources>>,
+     local_preparations: Mutex<BTreeMap<ConnectionId, String>>,
++}
++struct AudioCurrentGate {
++    entered: std::sync::mpsc::SyncSender<()>,
++    release: std::sync::mpsc::Receiver<()>,
++}
++// The original blocked tick and any removal must join even if an assertion or
++// entered wait fails. Release first, then join every owned worker on unwind.
++struct AudioGateWorkers {
++    release: Option<std::sync::mpsc::SyncSender<()>>,
++    workers: Vec<std::thread::JoinHandle<()>>,
++}
++impl AudioGateWorkers {
++    fn new(release: std::sync::mpsc::SyncSender<()>, tick: std::thread::JoinHandle<()>) -> Self {
++        Self {
++            release: Some(release),
++            workers: vec![tick],
++        }
++    }
++    fn finish(&mut self) {
++        let released = self.release.take().map(|release| release.send(()));
++        let joined = self
++            .workers
++            .drain(..)
++            .map(|worker| worker.join())
++            .collect::<Vec<_>>();
++        assert!(
++            released.is_none_or(|result| result.is_ok()),
++            "original callback receiver exited before release"
++        );
++        assert!(
++            joined.into_iter().all(|result| result.is_ok()),
++            "original scene worker failed"
++        );
++    }
++}
++impl Drop for AudioGateWorkers {
++    fn drop(&mut self) {
++        if let Some(release) = self.release.take() {
++            let _ = release.send(());
++        }
++        for worker in self.workers.drain(..) {
++            let _ = worker.join();
++        }
++    }
+ }
+ enum Approval {
+     Resources {
+@@ -182,6 +227,15 @@
+ 
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+         self.fresh.fetch_add(1, Ordering::AcqRel);
++        if scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish) {
++            let gate = self.audio_current_gate.lock().unwrap().take();
++            if let Some(gate) = gate {
++                gate.entered.send(()).unwrap();
++                gate.release
++                    .recv_timeout(Duration::from_secs(2))
++                    .expect("original test owner releases callback");
++            }
++        }
+         let guard = self
+             .base
+             .0
+@@ -386,6 +440,7 @@
+         let domain = Arc::new(Domain {
+             base,
+             fresh: AtomicUsize::new(0),
++            audio_current_gate: Mutex::new(None),
+             deny_handoff: AtomicBool::new(false),
+             deny_replacement: AtomicBool::new(false),
+             resources: Mutex::new(BTreeMap::new()),
+@@ -644,7 +699,7 @@
+             .unwrap();
+     }
+     fn publish(&mut self, name: &str, sample: i16) -> ControlResult<()> {
+-        use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++        use rvoip_media_core::{AudioFrame, codec::factory::CodecFactory};
+         let n = self.nodes.get_mut(name).unwrap();
+         n.sequence += 1;
+         let p = n.adapter.port(Medium::Audio);
+@@ -775,10 +830,11 @@
+     r.heard("public", 800).await;
+     let (started, handle) = r.apply(r.begin_plan()).await.unwrap();
+     assert!(!started.restored);
+-    assert!(old
+-        .deliver(|_| async { panic!("old main audio crossed audience boundary") })
+-        .await
+-        .is_err());
++    assert!(
++        old.deliver(|_| async { panic!("old main audio crossed audience boundary") })
++            .await
++            .is_err()
++    );
+     r.publish("alice", 800).unwrap();
+     r.tick();
+     r.heard("consult", 800).await;
+@@ -801,20 +857,21 @@
+         ("consult", "public"),
+     ] {
+         let c = &r.nodes[target].controller;
+-        assert!(r
+-            .scene
+-            .change_subscriptions(
+-                &c.connection,
+-                c.revision(),
+-                AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Connection(
+-                    ConnectionId::from_string(source)
+-                )]),
+-                deadline(),
+-                CancellationToken::new(),
+-                None
+-            )
+-            .await
+-            .is_err());
++        assert!(
++            r.scene
++                .change_subscriptions(
++                    &c.connection,
++                    c.revision(),
++                    AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Connection(
++                        ConnectionId::from_string(source)
++                    )]),
++                    deadline(),
++                    CancellationToken::new(),
++                    None
++                )
++                .await
++                .is_err()
++        );
+     }
+     r.publish("consult", 5200).unwrap();
+     r.tick();
+@@ -825,10 +882,12 @@
+         .unwrap();
+     let (restored, _) = r.apply(plan).await.unwrap();
+     assert!(restored.restored);
+-    assert!(private
+-        .deliver(|_| async { panic!("private tail crossed restore") })
+-        .await
+-        .is_err());
++    assert!(
++        private
++            .deliver(|_| async { panic!("private tail crossed restore") })
++            .await
++            .is_err()
++    );
+     r.publish("alice", 800).unwrap();
+     r.tick();
+     r.heard("bob", 800).await;
+@@ -1088,10 +1147,11 @@
+         outcome.departed_connections,
+         BTreeSet::from([ConnectionId::from_string("bob")])
+     );
+-    assert!(tail
+-        .deliver(|_| async { panic!("private tail survived recovery") })
+-        .await
+-        .is_err());
++    assert!(
++        tail.deliver(|_| async { panic!("private tail survived recovery") })
++            .await
++            .is_err()
++    );
+     r.publish("alice", 800).unwrap();
+     r.tick();
+     r.heard("public", 800).await;
+@@ -1300,8 +1360,8 @@
+             .iter()
+             .map(|(id, n)| (id.clone(), n.controller.revision()))
+             .collect::<BTreeMap<_, _>>();
+-        assert!(c
+-            .change(
++        assert!(
++            c.change(
+                 0,
+                 &[desired(Medium::Audio)],
+                 &BTreeSet::new(),
+@@ -1309,21 +1369,23 @@
+                 CancellationToken::new()
+             )
+             .await
+-            .is_err());
++            .is_err()
++        );
+         assert_eq!(r.scene.audience_revision(), 0);
+-        assert!(r
+-            .scene
+-            .plan_audio_audience(AudioAudienceRequest {
+-                operation_id: "cannot-start".into(),
+-                expected_revision: 0,
+-                private_connections: BTreeSet::from([
+-                    ConnectionId::from_string("alice"),
+-                    ConnectionId::from_string("consult")
+-                ]),
+-                receivers: BTreeMap::from([(ConnectionId::from_string("alice"), vec![])]),
+-                activate_muted: Some(ConnectionId::from_string("consult"))
+-            })
+-            .is_err());
++        assert!(
++            r.scene
++                .plan_audio_audience(AudioAudienceRequest {
++                    operation_id: "cannot-start".into(),
++                    expected_revision: 0,
++                    private_connections: BTreeSet::from([
++                        ConnectionId::from_string("alice"),
++                        ConnectionId::from_string("consult")
++                    ]),
++                    receivers: BTreeMap::from([(ConnectionId::from_string("alice"), vec![])]),
++                    activate_muted: Some(ConnectionId::from_string("consult"))
++                })
++                .is_err()
++        );
+         for (id, revision) in before {
+             assert_eq!(r.nodes[&id].controller.revision(), revision);
+         }
+@@ -1344,20 +1406,21 @@
+     let handle = r.start_consultation().await;
+     r.add("eve", None, false).await;
+     let c = &r.nodes["eve"].controller;
+-    assert!(r
+-        .scene
+-        .change_subscriptions(
+-            &c.connection,
+-            c.revision(),
+-            AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Connection(
+-                ConnectionId::from_string("alice")
+-            )]),
+-            deadline(),
+-            CancellationToken::new(),
+-            None
+-        )
+-        .await
+-        .is_err());
++    assert!(
++        r.scene
++            .change_subscriptions(
++                &c.connection,
++                c.revision(),
++                AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Connection(
++                    ConnectionId::from_string("alice")
++                )]),
++                deadline(),
++                CancellationToken::new(),
++                None
++            )
++            .await
++            .is_err()
++    );
+     r.select(
+         "eve",
+         vec![AudioSubscription::Connection(ConnectionId::from_string(
+@@ -1395,19 +1458,23 @@
+         (before, before + 1)
+     );
+     let foreign = Room::new().await;
+-    assert!(handle
+-        .commit()
+-        .revisions_for(&foreign.nodes["alice"].controller)
+-        .is_err());
++    assert!(
++        handle
++            .commit()
++            .revisions_for(&foreign.nodes["alice"].controller)
++            .is_err()
++    );
+     let restore = r
+         .scene
+         .plan_restore_audio_audience(&handle, "restore-proof".into(), r.scene.audience_revision())
+         .unwrap();
+     let (_, restored) = r.apply(restore).await.unwrap();
+-    assert!(handle
+-        .commit()
+-        .revisions_for(&r.nodes["alice"].controller)
+-        .is_err());
++    assert!(
++        handle
++            .commit()
++            .revisions_for(&r.nodes["alice"].controller)
++            .is_err()
++    );
+     assert_eq!(
+         restored
+             .commit()
+@@ -1460,13 +1527,15 @@
+             .prepare_private(c.clone(), "unmuted-prepare", &grant),
+         Err(StreamControlError::Unsupported)
+     ));
+-    assert!(adapter
+-        .port(Medium::Audio)
+-        .0
+-        .input
+-        .lock()
+-        .unwrap()
+-        .is_some());
++    assert!(
++        adapter
++            .port(Medium::Audio)
++            .0
++            .input
++            .lock()
++            .unwrap()
++            .is_some()
++    );
+     assert_eq!(r.scene.audience_revision(), 0);
+     drop(grant);
+     c.set_media_gate(
+@@ -1571,10 +1640,12 @@
+     assert_eq!(outcome.observer, Some(ConnectionId::from_string("alice")));
+     assert!(outcome.retiring.is_empty());
+     assert_eq!(outcome.cleanup, HandoffCleanupOutcome::NotRequested);
+-    assert!(private_tail
+-        .deliver(|_| async { panic!("old private tail crossed handoff") })
+-        .await
+-        .is_err());
++    assert!(
++        private_tail
++            .deliver(|_| async { panic!("old private tail crossed handoff") })
++            .await
++            .is_err()
++    );
+     assert!(r.publish("alice", 800).is_err());
+     r.publish("bob", 2400).unwrap();
+     r.tick();
+@@ -1603,22 +1674,24 @@
+     .await
+     .unwrap();
+     assert!(r.publish("alice", 800).is_err());
+-    assert!(r
+-        .scene
+-        .plan_restore_audio_audience(
+-            context.audience(),
+-            "old-private-restore".into(),
+-            r.scene.audience_revision()
+-        )
+-        .is_err());
+-    assert!(r
+-        .scene
+-        .plan_restore_audio_audience(
+-            handle.audience(),
+-            "implicit-rollback".into(),
+-            r.scene.audience_revision()
+-        )
+-        .is_err());
++    assert!(
++        r.scene
++            .plan_restore_audio_audience(
++                context.audience(),
++                "old-private-restore".into(),
++                r.scene.audience_revision()
++            )
++            .is_err()
++    );
++    assert!(
++        r.scene
++            .plan_restore_audio_audience(
++                handle.audience(),
++                "implicit-rollback".into(),
++                r.scene.audience_revision()
++            )
++            .is_err()
++    );
+     drop(
+         tokio::time::timeout(Duration::from_secs(1), r.domain.base.0.write())
+             .await
+@@ -1626,8 +1699,8 @@
+     );
+ }
+ #[tokio::test]
+-async fn handoff_leave_fences_old_media_only_after_commit_and_reports_uncertain_cleanup_without_rollback(
+-) {
++async fn handoff_leave_fences_old_media_only_after_commit_and_reports_uncertain_cleanup_without_rollback()
++ {
+     let mut r = Room::new().await;
+     let context = r.handoff_ready().await;
+     let before = r.nodes["bob"].controller.active_bindings()[0].clone();
+@@ -1713,10 +1786,12 @@
+     r.publish("alice", 800).unwrap();
+     r.tick();
+     let queued = r.nodes.get_mut("consult").unwrap().out.try_recv().unwrap();
+-    assert!(queued
+-        .deliver(|_| async { Err(StreamControlError::NotReady) })
+-        .await
+-        .is_err());
++    assert!(
++        queued
++            .deliver(|_| async { Err(StreamControlError::NotReady) })
++            .await
++            .is_err()
++    );
+     assert!(matches!(
+         r.scene.plan_audio_handoff(
+             context.audience(),
+@@ -1773,8 +1848,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn handoff_cancelled_or_timed_out_actual_send_drain_preserves_private_bridge_and_retry_intent(
+-) {
++async fn handoff_cancelled_or_timed_out_actual_send_drain_preserves_private_bridge_and_retry_intent()
++ {
+     for timeout in [false, true] {
+         let mut r = Room::new().await;
+         let context = r.handoff_ready().await;
+@@ -1876,8 +1951,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn handoff_fresh_whole_plan_approval_rejects_substitution_and_current_revocation_before_effects(
+-) {
++async fn handoff_fresh_whole_plan_approval_rejects_substitution_and_current_revocation_before_effects()
++ {
+     let mut r = Room::new().await;
+     let context = r.handoff_ready().await;
+     let plan = r
+@@ -1952,8 +2027,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn handoff_remote_termination_refuses_stale_acceptance_without_retiring_healthy_private_route(
+-) {
++async fn handoff_remote_termination_refuses_stale_acceptance_without_retiring_healthy_private_route()
++ {
+     let mut r = Room::new().await;
+     let context = r.handoff_ready().await;
+     let plan = r
+@@ -1966,13 +2041,14 @@
+     r.scene.remove(&ConnectionId::from_string("bob"));
+     assert!(r.handoff(plan).await.is_err());
+     assert!(!r.nodes["alice"].controller.shutdown.is_cancelled());
+-    assert!(r
+-        .scene
+-        .plan_audio_handoff(
+-            context.audience(),
+-            r.handoff_request(OldHandoffDisposition::Leave)
+-        )
+-        .is_err());
++    assert!(
++        r.scene
++            .plan_audio_handoff(
++                context.audience(),
++                r.handoff_request(OldHandoffDisposition::Leave)
++            )
++            .is_err()
++    );
+     r.publish("alice", 800).unwrap();
+     r.tick();
+     r.heard("consult", 800).await;
+@@ -1980,9 +2056,11 @@
+     r.tick();
+     r.heard("alice", 5200).await;
+     let restored = r.restore_consultation(&context).await;
+-    assert!(restored
+-        .departed_connections
+-        .contains(&ConnectionId::from_string("bob")));
++    assert!(
++        restored
++            .departed_connections
++            .contains(&ConnectionId::from_string("bob"))
++    );
+     r.publish("alice", 800).unwrap();
+     r.tick();
+     r.heard("public", 800).await;
+@@ -1990,8 +2068,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn handoff_competing_acceptances_commit_one_bridge_and_duplicate_old_plan_has_no_second_effect(
+-) {
++async fn handoff_competing_acceptances_commit_one_bridge_and_duplicate_old_plan_has_no_second_effect()
++ {
+     let mut r = Room::new().await;
+     let context = r.handoff_ready().await;
+     r.publish("alice", 800).unwrap();
+@@ -2195,8 +2273,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn handoff_later_consultation_and_second_handoff_keep_remote_binding_and_fence_old_controllers(
+-) {
++async fn handoff_later_consultation_and_second_handoff_keep_remote_binding_and_fence_old_controllers()
++ {
+     let mut r = Room::new().await;
+     let first = r.handoff_ready().await;
+     let retained = r.nodes["bob"].controller.active_bindings()[0].clone();
+@@ -2311,10 +2389,11 @@
+             ConnectionId::from_string("consult")
+         ])
+     );
+-    assert!(tail
+-        .deliver(|_| async { panic!("private tail survived restoration") })
+-        .await
+-        .is_err());
++    assert!(
++        tail.deliver(|_| async { panic!("private tail survived restoration") })
++            .await
++            .is_err()
++    );
+     r.publish("public", 1600).unwrap();
+     r.tick();
+     r.heard("bob", 1600).await;
+@@ -2333,14 +2412,15 @@
+         ))],
+     )
+     .await;
+-    assert!(r
+-        .scene
+-        .plan_restore_audio_audience(
+-            &handle,
+-            "replayed-ended-origins".into(),
+-            r.scene.audience_revision()
+-        )
+-        .is_err());
++    assert!(
++        r.scene
++            .plan_restore_audio_audience(
++                &handle,
++                "replayed-ended-origins".into(),
++                r.scene.audience_revision()
++            )
++            .is_err()
++    );
+ }
+ 
+ #[tokio::test]
+@@ -2369,8 +2449,8 @@
+ // Controlled engine callbacks only; actual native socket custody is qualified
+ // separately through Connect. These real scene handles preserve original groups.
+ #[tokio::test]
+-async fn capability_disclosure_preserves_original_private_audience_after_return_and_checks_current_scene(
+-) {
++async fn capability_disclosure_preserves_original_private_audience_after_return_and_checks_current_scene()
++ {
+     let mut room = Room::new().await;
+     let alice = room.nodes["alice"].controller.clone();
+     let bob = room.nodes["bob"].controller.clone();
+@@ -2404,11 +2484,12 @@
+         calls.fetch_add(1, Ordering::SeqCst);
+         std::task::Poll::Ready(())
+     };
+-    assert!(room
+-        .scene
+-        .poll_capability_io(&public_descriptor, &bob_listener, &effect)
+-        .unwrap()
+-        .is_ready());
++    assert!(
++        room.scene
++            .poll_capability_io(&public_descriptor, &bob_listener, &effect)
++            .unwrap()
++            .is_ready()
++    );
+     assert_eq!(calls.load(Ordering::SeqCst), 1);
+     room.add("consult", Some("public"), true).await;
+     let consult = room.nodes["consult"].controller.clone();
+@@ -2421,10 +2502,11 @@
+         )
+         .unwrap();
+     // Prepared private endpoints are already quarantined from public metadata.
+-    assert!(room
+-        .scene
+-        .poll_capability_io(&public_descriptor, &consult_listener, &effect)
+-        .is_err());
++    assert!(
++        room.scene
++            .poll_capability_io(&public_descriptor, &consult_listener, &effect)
++            .is_err()
++    );
+     let (_, handle) = room.apply(room.begin_plan()).await.unwrap();
+     let (_, private_descriptor) = room
+         .scene
+@@ -2436,25 +2518,29 @@
+             || (),
+         )
+         .unwrap();
+-    assert!(room
+-        .scene
+-        .poll_capability_io(&private_descriptor, &consult_listener, &effect)
+-        .unwrap()
+-        .is_ready());
++    assert!(
++        room.scene
++            .poll_capability_io(&private_descriptor, &consult_listener, &effect)
++            .unwrap()
++            .is_ready()
++    );
+     assert_eq!(calls.load(Ordering::SeqCst), 2);
+-    assert!(room
+-        .scene
+-        .poll_capability_io(&private_descriptor, &bob_listener, &effect)
+-        .is_err());
++    assert!(
++        room.scene
++            .poll_capability_io(&private_descriptor, &bob_listener, &effect)
++            .is_err()
++    );
+     // Same Participant and credential at another exact Connection are outside.
+-    assert!(room
+-        .scene
+-        .poll_capability_io(&private_descriptor, &public_listener, &effect)
+-        .is_err());
+-    assert!(room
+-        .scene
+-        .poll_capability_io(&public_descriptor, &bob_listener, &effect)
+-        .is_err());
++    assert!(
++        room.scene
++            .poll_capability_io(&private_descriptor, &public_listener, &effect)
++            .is_err()
++    );
++    assert!(
++        room.scene
++            .poll_capability_io(&public_descriptor, &bob_listener, &effect)
++            .is_err()
++    );
+     let restore = room
+         .scene
+         .plan_restore_audio_audience(
+@@ -2466,19 +2552,22 @@
+     room.apply(restore).await.unwrap();
+     // Current main routing is public again. Original private metadata remains
+     // private, even though a check against only the current group would pass.
+-    assert!(room
+-        .scene
+-        .poll_capability_io(&public_descriptor, &bob_listener, &effect)
+-        .unwrap()
+-        .is_ready());
+-    assert!(room
+-        .scene
+-        .poll_capability_io(&private_descriptor, &bob_listener, &effect)
+-        .is_err());
+-    assert!(room
+-        .scene
+-        .poll_capability_io(&private_descriptor, &public_listener, &effect)
+-        .is_err());
++    assert!(
++        room.scene
++            .poll_capability_io(&public_descriptor, &bob_listener, &effect)
++            .unwrap()
++            .is_ready()
++    );
++    assert!(
++        room.scene
++            .poll_capability_io(&private_descriptor, &bob_listener, &effect)
++            .is_err()
++    );
++    assert!(
++        room.scene
++            .poll_capability_io(&private_descriptor, &public_listener, &effect)
++            .is_err()
++    );
+     assert_eq!(calls.load(Ordering::SeqCst), 3);
+     let held = room.scene.audiences.lock().unwrap();
+     assert!(matches!(
+@@ -2489,10 +2578,11 @@
+     drop(held);
+     assert_eq!(calls.load(Ordering::SeqCst), 3);
+     alice.retire();
+-    assert!(room
+-        .scene
+-        .poll_capability_io(&public_descriptor, &bob_listener, &effect)
+-        .is_err());
++    assert!(
++        room.scene
++            .poll_capability_io(&public_descriptor, &bob_listener, &effect)
++            .is_err()
++    );
+     assert_eq!(calls.load(Ordering::SeqCst), 3);
+ }
+ 
+@@ -2678,8 +2768,8 @@
+     assert_eq!(calls.load(Ordering::SeqCst), 3);
+ }
+ #[tokio::test]
+-async fn native_dtmf_audience_binding_requires_exact_actual_recipient_relationship_and_credential_metadata(
+-) {
++async fn native_dtmf_audience_binding_requires_exact_actual_recipient_relationship_and_credential_metadata()
++ {
+     let room = Room::new().await;
+     let alice = room.nodes["alice"].controller.clone();
+     let bob = room.nodes["bob"].controller.clone();
+@@ -2923,72 +3013,80 @@
+     let phone = room.nodes["phone"].controller.clone();
+     let bob = room.nodes["bob"].controller.clone();
+     let disclosure = original_dtmf_scene(&room, &alice);
+-    assert!(room
+-        .scene
+-        .sip_dtmf_audience(
+-            &disclosure,
+-            &phone.connection,
+-            &phone,
+-            &phone.credential_snapshot().principal
+-        )
+-        .is_ok());
+-    assert!(room
+-        .scene
+-        .sip_dtmf_audience(
+-            &disclosure,
+-            &phone.connection,
+-            &phone,
+-            &bob.credential_snapshot().principal
+-        )
+-        .is_err());
+-    assert!(room
+-        .scene
+-        .sip_dtmf_audience(
+-            &disclosure,
+-            &bob.connection,
+-            &bob,
+-            &bob.credential_snapshot().principal
+-        )
+-        .is_err());
+-    assert!(room
+-        .scene
+-        .sip_dtmf_audience(
+-            &disclosure,
+-            &bob.connection,
+-            &phone,
+-            &phone.credential_snapshot().principal
+-        )
+-        .is_err());
+-    assert!(room
+-        .scene
+-        .sip_dtmf_audience(
+-            &disclosure,
+-            &phone.connection,
+-            &bob,
+-            &bob.credential_snapshot().principal
+-        )
+-        .is_err());
++    assert!(
++        room.scene
++            .sip_dtmf_audience(
++                &disclosure,
++                &phone.connection,
++                &phone,
++                &phone.credential_snapshot().principal
++            )
++            .is_ok()
++    );
++    assert!(
++        room.scene
++            .sip_dtmf_audience(
++                &disclosure,
++                &phone.connection,
++                &phone,
++                &bob.credential_snapshot().principal
++            )
++            .is_err()
++    );
++    assert!(
++        room.scene
++            .sip_dtmf_audience(
++                &disclosure,
++                &bob.connection,
++                &bob,
++                &bob.credential_snapshot().principal
++            )
++            .is_err()
++    );
++    assert!(
++        room.scene
++            .sip_dtmf_audience(
++                &disclosure,
++                &bob.connection,
++                &phone,
++                &phone.credential_snapshot().principal
++            )
++            .is_err()
++    );
++    assert!(
++        room.scene
++            .sip_dtmf_audience(
++                &disclosure,
++                &phone.connection,
++                &bob,
++                &bob.credential_snapshot().principal
++            )
++            .is_err()
++    );
+     let mut other = Room::new().await;
+     add_sip_dtmf_node(&mut other, "phone", None, false).await;
+     let foreign = other.nodes["phone"].controller.clone();
+-    assert!(room
+-        .scene
+-        .sip_dtmf_audience(
+-            &disclosure,
+-            &foreign.connection,
+-            &foreign,
+-            &phone.credential_snapshot().principal
+-        )
+-        .is_err());
+-    assert!(other
+-        .scene
+-        .sip_dtmf_audience(
+-            &disclosure,
+-            &foreign.connection,
+-            &foreign,
+-            &phone.credential_snapshot().principal
+-        )
+-        .is_err());
++    assert!(
++        room.scene
++            .sip_dtmf_audience(
++                &disclosure,
++                &foreign.connection,
++                &foreign,
++                &phone.credential_snapshot().principal
++            )
++            .is_err()
++    );
++    assert!(
++        other
++            .scene
++            .sip_dtmf_audience(
++                &disclosure,
++                &foreign.connection,
++                &foreign,
++                &phone.credential_snapshot().principal
++            )
++            .is_err()
++    );
+ }
+ #[tokio::test]
+ async fn sip_dtmf_original_and_current_audiences_survive_private_return_without_leaks() {
+@@ -3083,8 +3181,8 @@
+     )
+ }
+ #[tokio::test]
+-async fn received_dtmf_audience_owns_sip_source_without_reentering_native_target_and_releases_pending(
+-) {
++async fn received_dtmf_audience_owns_sip_source_without_reentering_native_target_and_releases_pending()
++ {
+     use crate::dtmf::*;
+     let mut room = Room::new().await;
+     add_sip_dtmf_node(&mut room, "phone", None, false).await;
+@@ -3242,32 +3340,36 @@
+     let source = room.nodes["phone"].controller.clone();
+     let native = room.nodes["alice"].controller.clone();
+     assert!(received_sip_disclosure(&room, &native, std::time::Instant::now()).is_err());
+-    assert!(room
+-        .scene
+-        .capture_received_dtmf_disclosure(
+-            &source.connection,
+-            &source,
+-            &native.credential_snapshot().principal,
+-            std::time::Instant::now()
+-        )
+-        .is_err());
++    assert!(
++        room.scene
++            .capture_received_dtmf_disclosure(
++                &source.connection,
++                &source,
++                &native.credential_snapshot().principal,
++                std::time::Instant::now()
++            )
++            .is_err()
++    );
+     let boundary = *room.scene.disclosure_changed_at.lock().unwrap();
+     assert!(received_sip_disclosure(&room, &source, boundary).is_err());
+-    assert!(received_sip_disclosure(
+-        &room,
+-        &source,
+-        std::time::Instant::now() + std::time::Duration::from_secs(1)
+-    )
+-    .is_err());
+-    assert!(room
+-        .scene
+-        .capture_received_dtmf_disclosure(
+-            &native.connection,
++    assert!(
++        received_sip_disclosure(
++            &room,
+             &source,
+-            &source.credential_snapshot().principal,
+-            std::time::Instant::now()
+-        )
+-        .is_err());
++            std::time::Instant::now() + std::time::Duration::from_secs(1)
++        )
++        .is_err()
++    );
++    assert!(
++        room.scene
++            .capture_received_dtmf_disclosure(
++                &native.connection,
++                &source,
++                &source.credential_snapshot().principal,
++                std::time::Instant::now()
++            )
++            .is_err()
++    );
+ }
+ #[tokio::test]
+ async fn received_dtmf_fresh_io_refuses_changed_source_credential_and_retired_member() {
+@@ -3328,3 +3430,302 @@
+     assert!(received_sip_disclosure(&room, &source, during).is_err());
+     assert!(received_sip_disclosure(&room, &source, std::time::Instant::now()).is_ok());
+ }
++
++#[tokio::test]
++async fn audio_authority_callback_does_not_exclude_original_private_decoder_preparation() {
++    let mut room = Room::new().await;
++    room.add("fresh", Some("public"), true).await;
++    room.domain
++        .local_preparations
++        .lock()
++        .unwrap()
++        .insert(ConnectionId::from_string("fresh"), "prepare-fresh".into());
++    room.publish("alice", 800).unwrap();
++    let (entered_tx, entered_rx) = std::sync::mpsc::sync_channel(1);
++    let (release_tx, release_rx) = std::sync::mpsc::sync_channel(1);
++    *room.domain.audio_current_gate.lock().unwrap() = Some(AudioCurrentGate {
++        entered: entered_tx,
++        release: release_rx,
++    });
++    let scene = room.scene.clone();
++    let tick = std::thread::spawn(move || scene.tick());
++    let mut original = AudioGateWorkers::new(release_tx, tick);
++    entered_rx.recv_timeout(Duration::from_secs(1)).unwrap();
++    let original_preparation = room
++        .scene
++        .prepare_audio_endpoint(&ConnectionId::from_string("fresh"), "prepare-fresh");
++    // The blocked callback has not captured a current lease yet. A real
++    // revocation here must still exclude this same original PCM after release.
++    room.domain
++        .base
++        .0
++        .write()
++        .await
++        .revoked
++        .insert("alice".into());
++    original.finish();
++    assert!(
++        original_preparation.is_ok(),
++        "audio callback held the scene member mutex"
++    );
++    room.silent(&["alice", "bob", "public", "hold", "fresh"]);
++}
++
++#[tokio::test]
++async fn removal_during_audio_callback_retires_original_consumer_before_direct_reacquisition() {
++    let mut room = Room::new().await;
++    room.publish("alice", 800).unwrap();
++    let stamp = room.nodes["alice"]
++        .controller
++        .audio_consumer
++        .lock()
++        .unwrap()
++        .as_ref()
++        .unwrap()
++        .upgrade()
++        .unwrap()
++        .stamp();
++    let (entered_tx, entered_rx) = std::sync::mpsc::sync_channel(1);
++    let (release_tx, release_rx) = std::sync::mpsc::sync_channel(1);
++    *room.domain.audio_current_gate.lock().unwrap() = Some(AudioCurrentGate {
++        entered: entered_tx,
++        release: release_rx,
++    });
++    let scene = room.scene.clone();
++    let tick = std::thread::spawn(move || scene.tick());
++    let mut original = AudioGateWorkers::new(release_tx, tick);
++    entered_rx.recv_timeout(Duration::from_secs(1)).unwrap();
++    let scene = room.scene.clone();
++    let removal = std::thread::spawn(move || scene.remove(&ConnectionId::from_string("alice")));
++    original.workers.push(removal);
++    let retired =
++        tokio::time::timeout(Duration::from_secs(1), stamp.cancellation.cancelled()).await;
++    original.finish();
++    assert!(
++        retired.is_ok(),
++        "removal could not retire the original consumer during audio callback"
++    );
++    assert!(!stamp.is_current());
++    room.silent(&["alice", "bob", "public", "hold"]);
++}
++
++#[cfg(test)]
++mod preparation_refusal_diagnostics {
++    use super::*;
++    use tracing_subscriber::{
++        Layer,
++        layer::{Context, SubscriberExt},
++    };
++    struct Fields {
++        stage: Option<String>,
++        kind: Option<String>,
++    }
++    impl tracing::field::Visit for Fields {
++        fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
++            match field.name() {
++                "stage" => self.stage = Some(value.to_owned()),
++                "kind" => self.kind = Some(value.to_owned()),
++                _ => {}
++            }
++        }
++        fn record_debug(&mut self, _: &tracing::field::Field, _: &dyn std::fmt::Debug) {}
++    }
++    struct OriginalGuards {
++        scene: Arc<GuardedMediaScene>,
++        controller: Arc<StreamController>,
++        port: Arc<Port>,
++        domain: Arc<Domain>,
++        externally_held: usize,
++        events: Arc<Mutex<Vec<(String, String)>>>,
++    }
++    impl<S: tracing::Subscriber> Layer<S> for OriginalGuards {
++        fn on_event(&self, event: &tracing::Event<'_>, _: Context<'_, S>) {
++            let mut fields = Fields {
++                stage: None,
++                kind: None,
++            };
++            event.record(&mut fields);
++            let Some(stage) = fields.stage else {
++                return;
++            };
++            assert_eq!(event.metadata().target(), "rvoip_core::audio_summary");
++            // The one deliberately held external guard is not owned by the
++            // refused invocation. Every other original guard must be gone
++            // before tracing can run this observer synchronously.
++            if self.externally_held != 0 {
++                assert!(self.scene.members.try_lock().is_ok());
++            }
++            if self.externally_held != 1 {
++                assert!(self.scene.audiences.try_lock().is_ok());
++            }
++            if self.externally_held != 2 {
++                assert!(self.controller.state.try_lock().is_ok());
++            }
++            if self.externally_held != 4 {
++                assert!(self.port.state.try_lock().is_ok());
++            }
++            if self.externally_held != 5 {
++                assert!(self.controller.audio_preparation.try_lock().is_ok());
++            }
++            assert!(
++                self.domain.base.0.try_write().is_ok(),
++                "refused invocation retained its current authority reader into tracing"
++            );
++            assert_eq!(
++                self.scene.preparation_refusals.load(Ordering::Relaxed),
++                1 << self.externally_held
++            );
++            self.events
++                .lock()
++                .unwrap()
++                .push((stage, fields.kind.expect("normalized refusal kind")));
++        }
++    }
++    async fn fresh() -> Room {
++        let mut room = Room::new().await;
++        room.add("fresh", Some("public"), true).await;
++        room.domain
++            .local_preparations
++            .lock()
++            .unwrap()
++            .insert(ConnectionId::from_string("fresh"), "prepare-fresh".into());
++        assert_eq!(room.scene.preparation_refusals.load(Ordering::Relaxed), 0);
++        room
++    }
++    fn observer(
++        room: &Room,
++        held: usize,
++        events: Arc<Mutex<Vec<(String, String)>>>,
++    ) -> impl tracing::Subscriber + Send + Sync {
++        let controller = room.nodes["fresh"].controller.clone();
++        let port = {
++            let state = controller.state.lock().unwrap();
++            state
++                .active
++                .values()
++                .find(|port| port.binding.negotiated.requested.medium == Medium::Audio)
++                .unwrap()
++                .clone()
++        };
++        tracing_subscriber::registry()
++            .with(tracing_subscriber::EnvFilter::new(
++                "warn,rvoip_core::audio_summary=debug",
++            ))
++            .with(OriginalGuards {
++                scene: room.scene.clone(),
++                controller,
++                port,
++                domain: room.domain.clone(),
++                externally_held: held,
++                events,
++            })
++    }
++    fn conflict(room: &Room) {
++        assert!(matches!(
++            room.scene
++                .prepare_audio_endpoint(&ConnectionId::from_string("fresh"), "prepare-fresh"),
++            Err(StreamControlError::Model(MediaTransitionError::Conflict))
++        ));
++    }
++    #[tokio::test]
++    async fn actual_endpoint_lock_refusals_emit_one_fixed_leaf_after_all_other_owned_guards_drop() {
++        for (leaf, expected) in [
++            (0, "scene-members-lock"),
++            (1, "audience-registry-lock"),
++            (2, "controller-state-lock"),
++            (4, "audio-port-lock"),
++            (5, "audio-preparation-slot-lock"),
++        ] {
++            let room = fresh().await;
++            let controller = room.nodes["fresh"].controller.clone();
++            let port = {
++                let state = controller.state.lock().unwrap();
++                state
++                    .active
++                    .values()
++                    .find(|port| port.binding.negotiated.requested.medium == Medium::Audio)
++                    .unwrap()
++                    .clone()
++            };
++            let events = Arc::new(Mutex::new(Vec::new()));
++            tracing::subscriber::with_default(
++                observer(&room, leaf, events.clone()),
++                || match leaf {
++                    0 => {
++                        let _held = room.scene.members.lock().unwrap();
++                        conflict(&room);
++                        conflict(&room);
++                    }
++                    1 => {
++                        let _held = room.scene.audiences.lock().unwrap();
++                        conflict(&room);
++                        conflict(&room);
++                    }
++                    2 => {
++                        let _held = controller.state.lock().unwrap();
++                        conflict(&room);
++                        conflict(&room);
++                    }
++                    4 => {
++                        let _held = port.state.lock().unwrap();
++                        conflict(&room);
++                        conflict(&room);
++                    }
++                    5 => {
++                        let _held = controller.audio_preparation.lock().unwrap();
++                        conflict(&room);
++                        conflict(&room);
++                    }
++                    _ => unreachable!(),
++                },
++            );
++            assert_eq!(
++                *events.lock().unwrap(),
++                vec![(expected.to_owned(), "would-block".to_owned())]
++            );
++            assert_eq!(
++                room.scene.preparation_refusals.load(Ordering::Relaxed),
++                1 << leaf
++            );
++            let original = room
++                .scene
++                .prepare_audio_endpoint(&ConnectionId::from_string("fresh"), "prepare-fresh");
++            assert!(
++                original.is_ok(),
++                "temporary lock contention cannot permanently consume the original preparation"
++            );
++        }
++    }
++    #[tokio::test]
++    async fn actual_live_original_probe_duplicate_keeps_conflict_and_emits_only_its_own_fixed_leaf()
++    {
++        let room = fresh().await;
++        let original = room
++            .scene
++            .prepare_audio_endpoint(&ConnectionId::from_string("fresh"), "prepare-fresh")
++            .unwrap();
++        let events = Arc::new(Mutex::new(Vec::new()));
++        tracing::subscriber::with_default(observer(&room, 6, events.clone()), || {
++            conflict(&room);
++            conflict(&room);
++        });
++        assert_eq!(
++            *events.lock().unwrap(),
++            vec![(
++                "existing-live-probe".to_owned(),
++                "existing-owner".to_owned()
++            )]
++        );
++        assert_eq!(
++            room.scene.preparation_refusals.load(Ordering::Relaxed),
++            1 << 6
++        );
++        drop(original);
++        assert!(
++            room.scene
++                .prepare_audio_endpoint(&ConnectionId::from_string("fresh"), "prepare-fresh")
++                .is_ok(),
++            "dropping the actual original probe releases only its original slot"
++        );
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -487,18 +487,24 @@
+         })
+     }
+     pub(super) fn commit(&mut self, state: &mut AudienceState, controller: &Arc<StreamController>) {
+-        assert!(state
+-            .pending
+-            .get(&self.group.operation)
+-            .is_some_and(|old| Weak::ptr_eq(old, &self.controller)));
+-        assert!(state
+-            .groups
+-            .insert(self.group.operation.clone(), self.group.clone())
+-            .is_none());
+-        assert!(state
+-            .preparations
+-            .insert(controller.connection.clone(), self.group.clone())
+-            .is_none());
++        assert!(
++            state
++                .pending
++                .get(&self.group.operation)
++                .is_some_and(|old| Weak::ptr_eq(old, &self.controller))
++        );
++        assert!(
++            state
++                .groups
++                .insert(self.group.operation.clone(), self.group.clone())
++                .is_none()
++        );
++        assert!(
++            state
++                .preparations
++                .insert(controller.connection.clone(), self.group.clone())
++                .is_none()
++        );
+         state.pending.remove(&self.group.operation);
+         state.revision += 1;
+         self.committed = true;
+@@ -528,140 +534,170 @@
+         connection: &ConnectionId,
+         operation: &str,
+     ) -> ControlResult<super::endpoint_preparation::AudioEndpointPreparation> {
+-        let members = self
+-            .members
+-            .try_lock()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
+-        let registry = self
+-            .audiences
+-            .try_lock()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
+-        let member = members
+-            .get(connection)
+-            .ok_or(StreamControlError::NotReady)?;
+-        let controller = &member.controller;
+-        let group = registry
+-            .preparations
+-            .get(connection)
+-            .or_else(|| registry.groups.get(operation))
+-            .ok_or(StreamControlError::Authority)?;
+-        if group.operation != operation
+-            || group.origins.len() != 1
+-            || !group.contains(controller)
+-            || !registry
+-                .groups
+-                .get(operation)
+-                .is_some_and(|g| Arc::ptr_eq(g, group))
+-        {
+-            return Err(StreamControlError::Authority);
+-        }
+-        let state = controller
+-            .state
+-            .try_lock()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
+-        if state.closed || controller.shutdown.is_cancelled() {
+-            return Err(StreamControlError::NotReady);
+-        }
+-        super::endpoint_preparation::check_quarantined_auxiliary(&state)?;
+-        let mut audio = state
+-            .active
+-            .iter()
+-            .filter(|(_, port)| port.binding.negotiated.requested.medium == Medium::Audio);
+-        let (logical, port) = audio.next().ok_or(StreamControlError::NotReady)?;
+-        if audio.next().is_some() {
+-            return Err(StreamControlError::Unsupported);
+-        }
+-        let stream = &state.model.streams()[logical];
+-        if stream.negotiated.requested.medium != Medium::Audio
+-            || stream.negotiated.requested.direction != StreamDirection::Both
+-            || stream.state != LogicalStreamState::Active
+-            || !stream.source_muted
+-            || stream.hold_direction.is_some()
+-        {
+-            return Err(StreamControlError::NotReady);
+-        }
+-        let credential = controller.credential_snapshot();
+-        let scope = controller.scope(&credential.principal, MediaPurpose::Control);
+-        let purpose = super::local_audio::LocalAudioPurpose::EndpointPreparation {
+-            operation_id: operation.into(),
+-        };
+-        let lease = controller
+-            .policy
+-            .current_audio_preparation(&scope, &purpose)?;
+-        let owner = lease.authority();
+-        StreamController::check(&scope, owner)?;
+-        state.model.authorize_binding(&owner.current())?;
+-        if !owner.may_control
+-            || !owner.receive_media.contains(&Medium::Audio)
+-            || !owner.send_media.contains(&Medium::Audio)
+-        {
+-            return Err(StreamControlError::Authority);
+-        }
+-        let pt = {
+-            let ps = port
+-                .state
+-                .try_lock()
+-                .map_err(|_| MediaTransitionError::Conflict)?;
+-            if !ps.ready || ps.status != PortStatus::Active {
++        fn lock_kind<T>(error: &std::sync::TryLockError<T>) -> &'static str {
++            match error {
++                std::sync::TryLockError::WouldBlock => "would-block",
++                std::sync::TryLockError::Poisoned(_) => "poisoned",
++            }
++        }
++        let failure = std::cell::Cell::new(None);
++        let result = (|| {
++            let members = self.members.try_lock().map_err(|error| {
++                failure.set(Some((0, "scene-members-lock", lock_kind(&error))));
++                MediaTransitionError::Conflict
++            })?;
++            let registry = self.audiences.try_lock().map_err(|error| {
++                failure.set(Some((1, "audience-registry-lock", lock_kind(&error))));
++                MediaTransitionError::Conflict
++            })?;
++            let member = members
++                .get(connection)
++                .ok_or(StreamControlError::NotReady)?;
++            let controller = &member.controller;
++            let group = registry
++                .preparations
++                .get(connection)
++                .or_else(|| registry.groups.get(operation))
++                .ok_or(StreamControlError::Authority)?;
++            if group.operation != operation
++                || group.origins.len() != 1
++                || !group.contains(controller)
++                || !registry
++                    .groups
++                    .get(operation)
++                    .is_some_and(|g| Arc::ptr_eq(g, group))
++            {
++                return Err(StreamControlError::Authority);
++            }
++            let state = controller.state.try_lock().map_err(|error| {
++                failure.set(Some((2, "controller-state-lock", lock_kind(&error))));
++                MediaTransitionError::Conflict
++            })?;
++            if state.closed || controller.shutdown.is_cancelled() {
+                 return Err(StreamControlError::NotReady);
+             }
+-            ps.payload_type.ok_or(StreamControlError::NotReady)?
+-        };
+-        let decoder =
+-            super::guarded_audio::Codecs::new(&port.binding.negotiated.format, pt, self.rate)?;
+-        let mut slot = controller
+-            .audio_preparation
+-            .try_lock()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
+-        if slot.as_ref().and_then(Weak::upgrade).is_some() {
+-            return Err(MediaTransitionError::Conflict.into());
+-        }
+-        let audience = AudioAudienceHandle {
+-            scene: self.id,
+-            group: group.clone(),
+-            original: BTreeMap::new(),
+-            receivers: BTreeMap::from([(connection.clone(), AudienceOrigin::new(controller))]),
+-            muted_source: Some(AudienceOrigin::new(controller)),
+-            committed_at: Instant::now(),
+-            commit: AudioAudienceCommit {
+-                targets: BTreeMap::from([(
+-                    connection.clone(),
+-                    AudienceCommitTarget {
+-                        controller: Arc::downgrade(controller),
+-                        credential: credential.clone(),
+-                        previous: state.model.revision(),
+-                        revision: state.model.revision(),
+-                        ports: state.active.values().map(Arc::downgrade).collect(),
+-                        gates: Vec::new(),
+-                    },
+-                )]),
+-            },
+-            restore_allowed: false,
+-            endpoint_preparation: true,
+-        };
+-        let probe = Arc::new(super::endpoint_preparation::Probe {
+-            controller: Arc::downgrade(controller),
+-            port: Arc::downgrade(port),
+-            auxiliary_ports: state
++            super::endpoint_preparation::check_quarantined_auxiliary(&state).map_err(|error| {
++                failure.set(Some((3, "quarantined-auxiliary", "returned-error")));
++                error
++            })?;
++            let mut audio = state
+                 .active
+-                .values()
+-                .filter(|p| {
+-                    matches!(
+-                        p.binding.negotiated.requested.medium,
+-                        Medium::Video | Medium::Data
+-                    )
+-                })
+-                .map(Arc::downgrade)
+-                .collect(),
+-            group: group.clone(),
+-            registry: self.audiences.clone(),
+-            consumer: member.audio_consumer.clone(),
+-            decoder: Mutex::new(decoder),
+-            cancel: CancellationToken::new(),
+-        });
+-        *slot = Some(Arc::downgrade(&probe));
+-        Ok(super::endpoint_preparation::AudioEndpointPreparation { audience, probe })
+-    }
++                .iter()
++                .filter(|(_, port)| port.binding.negotiated.requested.medium == Medium::Audio);
++            let (logical, port) = audio.next().ok_or(StreamControlError::NotReady)?;
++            if audio.next().is_some() {
++                return Err(StreamControlError::Unsupported);
++            }
++            let stream = &state.model.streams()[logical];
++            if stream.negotiated.requested.medium != Medium::Audio
++                || stream.negotiated.requested.direction != StreamDirection::Both
++                || stream.state != LogicalStreamState::Active
++                || !stream.source_muted
++                || stream.hold_direction.is_some()
++            {
++                return Err(StreamControlError::NotReady);
++            }
++            let credential = controller.credential_snapshot();
++            let scope = controller.scope(&credential.principal, MediaPurpose::Control);
++            let purpose = super::local_audio::LocalAudioPurpose::EndpointPreparation {
++                operation_id: operation.into(),
++            };
++            let lease = controller
++                .policy
++                .current_audio_preparation(&scope, &purpose)
++                .map_err(|error| {
++                    failure.set(Some((7, "current-purpose-authority", "returned-error")));
++                    error
++                })?;
++            let owner = lease.authority();
++            StreamController::check(&scope, owner)?;
++            state.model.authorize_binding(&owner.current())?;
++            if !owner.may_control
++                || !owner.receive_media.contains(&Medium::Audio)
++                || !owner.send_media.contains(&Medium::Audio)
++            {
++                return Err(StreamControlError::Authority);
++            }
++            let pt = {
++                let ps = port.state.try_lock().map_err(|error| {
++                    failure.set(Some((4, "audio-port-lock", lock_kind(&error))));
++                    MediaTransitionError::Conflict
++                })?;
++                if !ps.ready || ps.status != PortStatus::Active {
++                    return Err(StreamControlError::NotReady);
++                }
++                ps.payload_type.ok_or(StreamControlError::NotReady)?
++            };
++            let decoder =
++                super::guarded_audio::Codecs::new(&port.binding.negotiated.format, pt, self.rate)?;
++            let mut slot = controller.audio_preparation.try_lock().map_err(|error| {
++                failure.set(Some((5, "audio-preparation-slot-lock", lock_kind(&error))));
++                MediaTransitionError::Conflict
++            })?;
++            if slot.as_ref().and_then(Weak::upgrade).is_some() {
++                failure.set(Some((6, "existing-live-probe", "existing-owner")));
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            let audience = AudioAudienceHandle {
++                scene: self.id,
++                group: group.clone(),
++                original: BTreeMap::new(),
++                receivers: BTreeMap::from([(connection.clone(), AudienceOrigin::new(controller))]),
++                muted_source: Some(AudienceOrigin::new(controller)),
++                committed_at: Instant::now(),
++                commit: AudioAudienceCommit {
++                    targets: BTreeMap::from([(
++                        connection.clone(),
++                        AudienceCommitTarget {
++                            controller: Arc::downgrade(controller),
++                            credential: credential.clone(),
++                            previous: state.model.revision(),
++                            revision: state.model.revision(),
++                            ports: state.active.values().map(Arc::downgrade).collect(),
++                            gates: Vec::new(),
++                        },
++                    )]),
++                },
++                restore_allowed: false,
++                endpoint_preparation: true,
++            };
++            let probe = Arc::new(super::endpoint_preparation::Probe {
++                controller: Arc::downgrade(controller),
++                port: Arc::downgrade(port),
++                auxiliary_ports: state
++                    .active
++                    .values()
++                    .filter(|p| {
++                        matches!(
++                            p.binding.negotiated.requested.medium,
++                            Medium::Video | Medium::Data
++                        )
++                    })
++                    .map(Arc::downgrade)
++                    .collect(),
++                group: group.clone(),
++                registry: self.audiences.clone(),
++                consumer: member.audio_consumer.clone(),
++                decoder: Mutex::new(decoder),
++                cancel: CancellationToken::new(),
++            });
++            *slot = Some(Arc::downgrade(&probe));
++            Ok(super::endpoint_preparation::AudioEndpointPreparation { audience, probe })
++        })();
++        // The invocation's scene, registry, controller, port and probe guards
++        // have all dropped before diagnostics. At most one event per actual
++        // failure leaf for this scene; no new reader, task, retry or grant.
++        if let (Err(error), Some((index, stage, kind))) = (&result, failure.get()) {
++            let bit = 1u32 << index;
++            if self.preparation_refusals.fetch_or(bit, Ordering::Relaxed) & bit == 0 {
++                tracing::debug!(target: "rvoip_core::audio_summary", scene = %self.id,
++                    stage, kind, ?error,
++                    "Original private decoder preparation refused");
++            }
++        }
++        result
++    }
++
+     pub(crate) fn audience_revision(&self) -> u64 {
+         self.audiences
+             .lock()
+@@ -965,7 +1001,9 @@
+             } else {
+                 MediaControlIntent::AudioAudience { plan: &plan }
+             };
+-            let control = controller.policy.current_control(&scope, &intent, held)
++            let control = controller
++                .policy
++                .current_control(&scope, &intent, held)
+                 .map_err(|error| refused("current-control", id, error))?;
+             deadline = deadline
+                 .min(control.deadline)
+@@ -1106,7 +1144,8 @@
+                     })?;
+                 }
+                 let scope = controller.scope(&credential.principal, MediaPurpose::Control);
+-                let owner = control.authority()
++                let owner = control
++                    .authority()
+                     .map_err(|error| refused("prepare-owner", id, error))?;
+                 StreamController::check(&scope, &owner)?;
+                 state
+@@ -1149,7 +1188,8 @@
+                     rules,
+                     &control,
+                     plan.replacement.is_some(),
+-                ).map_err(|error| refused("prepare-audio", id, error))?;
++                )
++                .map_err(|error| refused("prepare-audio", id, error))?;
+                 let direct = plan
+                     .replacement
+                     .as_ref()
+@@ -1355,7 +1395,9 @@
+                         error
+                     })?;
+                 }
+-                let owner = target.control.authority()
++                let owner = target
++                    .control
++                    .authority()
+                     .map_err(|error| refused("validate-owner", id, error))?;
+                 StreamController::check(&scope, &owner)?;
+                 state
+@@ -1461,12 +1503,26 @@
+             // Every original private/audio/direct/port writer remains quiesced.
+             // Reserve immutable metadata before the first infallible publication;
+             // muted streams need no later IO to complete this historical receipt.
+-            let replacement_activation = plan.replacement.as_ref().map(|replacement| {
+-                let index = targets.iter().position(|target| target.controller.connection == replacement.request.admitted)
+-                    .ok_or(StreamControlError::Authority)?;
+-                native_activation::capture(replacement, &targets[index].controller, &states[index], !plan.group.origins.is_empty(),
+-                    &targets[index].inherited_gates, revisions[&replacement.request.admitted])
+-            }).transpose()?;
++            let replacement_activation = plan
++                .replacement
++                .as_ref()
++                .map(|replacement| {
++                    let index = targets
++                        .iter()
++                        .position(|target| {
++                            target.controller.connection == replacement.request.admitted
++                        })
++                        .ok_or(StreamControlError::Authority)?;
++                    native_activation::capture(
++                        replacement,
++                        &targets[index].controller,
++                        &states[index],
++                        !plan.group.origins.is_empty(),
++                        &targets[index].inherited_gates,
++                        revisions[&replacement.request.admitted],
++                    )
++                })
++                .transpose()?;
+             // No fallible work after the first model or programme is published.
+             for ((((target, state), model), commit), direct_commit) in targets
+                 .iter()

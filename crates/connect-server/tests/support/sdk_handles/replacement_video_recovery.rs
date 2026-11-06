@@ -444,6 +444,18 @@ async fn signed_data_session_upgraded_to_av_opus_replacement_decodes_private_aud
         .await
         .unwrap();
 }
+#[tokio::test]
+async fn signed_private_delta_bootstrap_requires_actual_current_hint_before_ready() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(11))
+        .await
+        .unwrap();
+}
+#[tokio::test]
+async fn signed_private_delta_bootstrap_recovers_lost_hint_without_another_video_frame() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(12))
+        .await
+        .unwrap();
+}
 async fn codec_change(
     owner: &mut CanonicalClient,
     scope: &CommandScope,
@@ -1076,6 +1088,30 @@ async fn exercise(mode: u8) {
     phase(&f, &mut controller, &command, 5).await;
     let mut io = replacement.claim_native_video_datagrams().unwrap();
     let mut sequence = 0u16;
+    if mode == 11 || mode == 12 {
+        readiness::private_bootstrap(
+            &f,
+            &mut controller,
+            &command,
+            &root,
+            &mut replacement,
+            &mut io,
+            &mut encoder,
+            &retained_send,
+            &mut retained_sequence,
+            incoming,
+            original_cutoff,
+            mode == 12,
+        )
+        .await;
+        encoder.close().await;
+        replacement.shutdown().await.unwrap();
+        drop(io);
+        publisher.close(options()).await.unwrap();
+        subscriber.close(options()).await.unwrap();
+        f.server.shutdown().await.unwrap();
+        return;
+    }
     let (done, original_receiver_history) = readiness::activate(
         &f,
         &mut controller,

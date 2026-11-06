@@ -35,12 +35,18 @@ struct Recovery {
     last_frame: Option<u16>,
     sequence: u32,
     last_request: Option<Instant>,
+    // Only a fresh packet admitted after the latest decoder reset can start
+    // recovery. Retained history alone cannot solicit a bootstrap request.
+    requestable: bool,
 }
 /// The sole datagram reader of the already authenticated replacement peer.
 /// Its signed reader validates allocations/epochs independently of application
 /// control polling. Cancellation retains original packet/hint arrival ages.
-/// There is no implicit retry or clock rewrite. Dropping this owner drops all
-/// queued feedback/history; physical close and captured expiry still apply.
+/// No media or feedback request is replayed and no clock is rewritten. While
+/// receive is polled, a decoder waiting for its first keyframe may issue new
+/// current-history requests at the existing 100ms cooldown, including silence.
+/// Dropping this owner drops all queued feedback/history; physical close and
+/// captured expiry still apply.
 pub struct NativeVideoDatagrams {
     io: super::super::native_io::NativeDatagrams,
     shared: Arc<Shared>,
@@ -123,6 +129,7 @@ impl NativeVideoDatagrams {
         recovery.assembler = VideoFrameAssembler::default();
         recovery.last_frame = None;
         recovery.waiting = true;
+        recovery.requestable = false;
         Ok(at)
     }
     /// Check the exact receiver history against the current verified physical
@@ -299,25 +306,53 @@ impl NativeVideoDatagrams {
                 recovery.waiting = false;
             }
         }
-        if recovery.waiting
-            && recovery
+        recovery.requestable = true;
+        self.retry_waiting_receivers()?;
+        Ok(NativeVideoDatagram {
+            bytes: item.bytes,
+            video_epoch: Some(notice.history),
+            received_at: item.arrived,
+        })
+    }
+    // Every retry is a NEW feedback sequence under current signed history,
+    // original physical ownership and the existing 100ms cooldown. No frame,
+    // current permission or successful server admission is retained here.
+    fn retry_waiting_receivers(&mut self) -> Result<Option<Instant>> {
+        self.io.current()?;
+        let guard = self
+            .shared
+            .state
+            .lock()
+            .map_err(|_| ClientError::Protocol)?;
+        let Some(state) = guard
+            .as_ref()
+            .filter(|state| !state.ended && !state.suspended)
+        else {
+            return Ok(None);
+        };
+        let mut next = None;
+        for (&handle, recovery) in &mut self.recovery {
+            if !recovery.waiting || !recovery.requestable {
+                continue;
+            }
+            let Some(notice) = state.active.get(&(handle, false)).filter(|notice| {
+                recovery.history.as_ref() == Some(&notice.history)
+                    && state.selected.as_ref().is_some_and(|selected| {
+                        selected.streams.iter().any(|stream| {
+                            stream.stream_local_id == Some(handle)
+                                && stream.medium == crate::sdk::Medium::Video
+                                && stream.direction != crate::sdk::Direction::Sendonly
+                                && selected.video_feedback.contains_key(&stream.id)
+                        })
+                    })
+            }) else {
+                continue;
+            };
+            let now = Instant::now();
+            let due = recovery
                 .last_request
-                .is_none_or(|at| at.elapsed() >= Duration::from_millis(100))
-        {
-            // No await between matching current signed history and atomic QUIC
-            // submission. A failed/uncertain send consumes the sequence once.
-            let guard = self
-                .shared
-                .state
-                .lock()
-                .map_err(|_| ClientError::Protocol)?;
-            if guard.as_ref().is_some_and(|s| {
-                !s.ended
-                    && !s.suspended
-                    && s.active
-                        .get(&(handle, false))
-                        .is_some_and(|n| n.history == notice.history)
-            }) {
+                .map(|at| at + Duration::from_millis(100));
+            if due.is_none_or(|due| now >= due) {
                 let bytes = pack_video_feedback_datagram(&VideoFeedbackDatagram {
                     stream_local_id: handle,
                     seq: recovery.sequence,
@@ -326,20 +361,25 @@ impl NativeVideoDatagrams {
                     activation_epoch: notice.tag,
                 })
                 .map_err(|_| ClientError::Protocol)?;
+                // A failed/uncertain local send consumes this request exactly
+                // once. Later recovery uses a new sequence and fresh server
+                // authority, never a retransmission of this request.
                 recovery.sequence = recovery.sequence.wrapping_add(1);
-                recovery.last_request = Some(Instant::now());
+                recovery.last_request = Some(now);
                 self.io.submit(&bytes)?;
             }
+            let due = recovery.last_request.unwrap() + Duration::from_millis(100);
+            next = Some(next.map_or(due, |old: Instant| old.min(due)));
         }
-        Ok(NativeVideoDatagram {
-            bytes: item.bytes,
-            video_epoch: Some(notice.history),
-            received_at: item.arrived,
-        })
+        Ok(next)
     }
     pub async fn receive(&mut self) -> Result<NativeVideoDatagram> {
+        let deadline = self.io.receive_deadline()?;
         loop {
             self.io.current()?;
+            if Instant::now() >= deadline {
+                return Err(ClientError::Timeout);
+            }
             let shared = self.shared.clone();
             let changed = shared.changed.notified();
             tokio::pin!(changed);
@@ -348,9 +388,12 @@ impl NativeVideoDatagrams {
                 return self.receive_video(item, notice);
             }
             let expiry = self.pending.iter().map(|v| v.arrived + AGE).min();
+            let feedback = self.retry_waiting_receivers()?;
             let bytes = tokio::select! {
                 biased;
+                _=tokio::time::sleep_until(deadline)=>return Err(ClientError::Timeout),
                 _=&mut changed=>continue,
+                _=tokio::time::sleep_until(feedback.unwrap_or(deadline)),if feedback.is_some()=>continue,
                 _=tokio::time::sleep_until(expiry.unwrap_or_else(||Instant::now()+AGE)),if expiry.is_some()=>continue,
                 bytes=self.io.read_raw()=>bytes?,
             };

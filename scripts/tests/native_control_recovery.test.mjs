@@ -1,11 +1,13 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {nativeControlRecovery} from '../lib/native_control_recovery.mjs';
+import {canonicalJson,parseCanonicalJson} from '../../sdk/typescript/dist/uctp_json.js';
 
 function fixture(fault={}){
     const live=new Set([1,2,3,4,5]),observed=new Set(live),events=[],checks=[],report={},clients=new Map();let next=6;
     const errors=[];let releaseReserve;const reserveGate=new Promise(resolve=>{releaseReserve=resolve;});
-    const reference={operationId:'original-create',recordId:'original-record',digest:'original-digest'};
+    const originalJson={schema:'connect-operation-reference/1',operation_id:'original-create',command:'conversation.create',scope:{}};
+    const reference=fault.canonicalReference?parseCanonicalJson(Buffer.from(canonicalJson(originalJson))):originalJson;
     const expectedParticipants=['p1','p2','p3','p4'],expectedHistory=['before','included','from4','after'];
     const failure=kind=>{const error=Object.assign(Error('Original authority or close refusal'),{name:'NodeSdkError',kind,certainty:'read-only'});
         errors.push(error);return error;};
@@ -15,8 +17,17 @@ function fixture(fault={}){
     }},operations:{restore(value,kind){
         events.push('restore:'+role);assert.equal(role,'replacement-1');assert.equal(kind,'conversation_create');
         assert.equal(value,reference,'Use the original retained logical reference');
-        if(fault.mutateReference)value.recordId='changed-record';
-        return {referenceJson:()=>fault.reference?{...value,digest:'changed-digest'}:value};
+        if(fault.mutateReference)value.operation_id='changed-original-id';
+        return {referenceJson:()=>{
+            if(fault.reference)return {...value,operation_id:'changed-original-id'};
+            if(fault.changedField){const changed=JSON.parse(JSON.stringify(value));
+                if(fault.changedField==='scope')changed.scope={conversation_id:'foreign-conversation'};
+                else if(fault.changedField==='extra')changed.continuation={record_id:'foreign-record'};
+                else changed[fault.changedField]='changed-original-value';return changed;}
+            if(fault.portableReference)return JSON.parse(JSON.stringify(value));
+            if(fault.reorderedReference)return Object.fromEntries(Object.entries(value).reverse());
+            return value;
+        }};
     }},operationKinds:{conversation_create:'conversation_create'},async close(options){
         assert.equal(options.timeoutMs,5000);events.push('close-start:'+role+':'+pid);
         if(fault.delayReserve&&pid===5)await reserveGate;
@@ -107,5 +118,33 @@ test('each original helper-close refusal reaches the caller as the exact origina
         const original=pid===6?f.report.cleanup_failure:f.report.failure;
         assert.equal(original.kind,f.errors[0].kind);assert.equal(original.certainty,f.errors[0].certainty);
         assert.equal(f.events.some(value=>value==='open:participant-1:7'),false);
+    }
+});
+
+
+test('actual SDK null-prototype reference JSON recovers by exact canonical values across portable object representations',async()=>{
+    for(const representation of [{canonicalReference:true},{canonicalReference:true,portableReference:true},
+        {canonicalReference:true,reorderedReference:true}]){
+        const f=fixture(representation),reference=f.arguments_.originalReference;
+        assert.equal(Object.getPrototypeOf(reference),null,'Use the actual SDK canonical parser representation');
+        assert.equal(Object.getPrototypeOf(reference.scope),null,'Keep the actual nested canonical JSON representation');
+        const original=canonicalJson(reference);
+        await nativeControlRecovery(f.arguments_);
+        assert.equal(f.report.passed,true);assert.equal(f.report.original_create_reference_preserved,true);
+        assert.ok(f.checks.includes(markerRecovery));assert.equal(canonicalJson(reference),original);
+        assert.equal(f.report.mutation_replayed,false);assert.equal(f.events.filter(value=>value.startsWith('restore:')).length,1);
+        assert.equal(f.live.size,4);assert.equal(f.observed.size,7);
+    }
+});
+
+test('canonical comparison still refuses changed schema, logical ID, command, scope or added recovery context',async()=>{
+    for(const changedField of ['schema','operation_id','command','scope','extra']){
+        const f=fixture({canonicalReference:true,changedField}),original=canonicalJson(f.arguments_.originalReference);
+        await nativeControlRecovery(f.arguments_);
+        assert.equal(f.report.passed,false,changedField);assert.equal(f.report.original_create_reference_preserved,false,changedField);
+        assert.equal(f.report.failure.stage,'recovery-original-create-reference');assert.equal(f.checks.includes(markerRecovery),false);
+        assert.equal(canonicalJson(f.arguments_.originalReference),original,'Original retained JSON is never rewritten');
+        assert.equal(f.report.mutation_replayed,false);assert.equal(f.clients.has('replacement-1'),false);
+        assert.equal(f.live.size,4,'Failed reference proof never skips original recovery-helper cleanup');
     }
 });

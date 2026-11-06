@@ -456,6 +456,23 @@ pub(super) fn media_facts(
     Vec<AuthorityScope>,
     i64,
 )> {
+    media_facts_with_packet_capture(store, c, origin, None)
+}
+
+// Private to this module. Some is supplied only inside the exact-version scene
+// capture callback below; generic media/start/control callers retain their
+// existing independent context and scope resolution with None.
+fn media_facts_with_packet_capture(
+    store: &Store,
+    c: &Connection,
+    origin: &NativeReplacementMediaOrigin,
+    captured: Option<(&crate::NativeReplacementContext, &[AuthorityScope])>,
+) -> Result<(
+    connect_protocol::membership::MemberView,
+    serde_json::Value,
+    Vec<AuthorityScope>,
+    i64,
+)> {
     let start = &origin.started.attempt;
     let prepared = &start.allocated.attempt.prepared;
     let saved = allocated_current(store, c, &start.allocated)?;
@@ -473,7 +490,10 @@ pub(super) fn media_facts(
     {
         return Err(Error::forbidden());
     }
-    let context = prepared.selection.context(store, c)?;
+    let context = match captured {
+        Some((context, _)) => context.clone(),
+        None => prepared.selection.context(store, c)?,
+    };
     let member =
         crate::audience::member(c, &meta.actor.identity_id, &context.conversation_id, true)?;
     if member.participant_id != context.participant_id
@@ -481,7 +501,10 @@ pub(super) fn media_facts(
     {
         return Err(Error::forbidden());
     }
-    scopes.extend(prepared.selection.scopes(store, c, false)?);
+    scopes.extend(match captured {
+        Some((_, scopes)) => scopes.to_vec(),
+        None => prepared.selection.scopes(store, c, false)?,
+    });
     Ok((member, saved, AuthorityScope::merged(&scopes)?, expiry))
 }
 
@@ -690,36 +713,46 @@ impl Store {
             serde_json::from_str(&origin.started.attempt.target).map_err(|_| Error::storage())?;
         self.try_current_packet_projection(
             |c| {
-                let context = prepared.selection.context(self, c)?;
-                if ![
-                    context.source_runtime_connection_id.as_str(),
-                    context.retained_runtime_connection_id.as_str(),
-                ]
-                .iter()
-                .all(|id| {
-                    sources.iter().any(|s| s.runtime_connection_id() == *id)
-                        || (*id == context.source_runtime_connection_id
-                            && matches!(
-                                prepared.selection.source(),
-                                crate::NativeReplacementSourceOrigin::Telephone(_)
-                            ))
-                }) {
-                    return Err(Error::forbidden());
-                }
-                let (member, saved, mut scopes, expiry) = media_facts(self, c, origin)?;
-                let (facts, scene_scopes, scene_expiry) = self
-                    .native_scene_facts_in_packet_projection(
-                        c,
-                        sources,
-                        &context.conversation_id,
-                        &context.session_id,
-                    )?;
-                scopes.extend(scene_scopes);
-                Ok((
-                    (context, member, saved, facts),
-                    AuthorityScope::merged(&scopes)?,
-                    expiry.min(scene_expiry),
-                ))
+                prepared.selection.with_packet_capture_context(
+                    self,
+                    c,
+                    |context, captured_scopes| {
+                        if ![
+                            context.source_runtime_connection_id.as_str(),
+                            context.retained_runtime_connection_id.as_str(),
+                        ]
+                        .iter()
+                        .all(|id| {
+                            sources.iter().any(|s| s.runtime_connection_id() == *id)
+                                || (*id == context.source_runtime_connection_id
+                                    && matches!(
+                                        prepared.selection.source(),
+                                        crate::NativeReplacementSourceOrigin::Telephone(_)
+                                    ))
+                        }) {
+                            return Err(Error::forbidden());
+                        }
+                        let (member, saved, mut scopes, expiry) = media_facts_with_packet_capture(
+                            self,
+                            c,
+                            origin,
+                            Some((context, captured_scopes)),
+                        )?;
+                        let (facts, scene_scopes, scene_expiry) = self
+                            .native_scene_facts_in_packet_projection(
+                                c,
+                                sources,
+                                &context.conversation_id,
+                                &context.session_id,
+                            )?;
+                        scopes.extend(scene_scopes);
+                        Ok((
+                            (context.clone(), member, saved, facts),
+                            AuthorityScope::merged(&scopes)?,
+                            expiry.min(scene_expiry),
+                        ))
+                    },
+                )
             },
             |c, (context, member, saved, facts), held, expiry| {
                 let mut facts = facts.clone();

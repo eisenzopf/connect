@@ -1804,6 +1804,11 @@
       "path": "patches/rvoip/connect-video-receiver-pruned-history.patch",
       "sha256": "0f7d2aa55b3d5dda0faba14df7aed74f694a4a127cfca0e9cdc768e5aff35f9b",
       "source": "G6-058 retain one immutable receiver history/minted revision per original physical Profile; genuine current postcommit receiver delivery can restore a row pruned by intervening current publisher announcement. No cached predicate/route/permission; original128capacity and newhistory revisionlimits remain. Unit and actual signed interleave regressions staged, unrun."
+    },
+    {
+      "path": "patches/rvoip/connect-scene-audio-lock-boundary.patch",
+      "sha256": "b2c7228f57597dbce99a621fc18e22eeb73c201313cafbd75f2b80adb642db5f",
+      "source": "Connect scene audio lock boundary and bounded after-guard preparation refusal diagnostics; preserve current authority, generations, original cadence and direct route custody"
     }
   ]
 }

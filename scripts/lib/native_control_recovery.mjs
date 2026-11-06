@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {canonicalJson} from '../../sdk/typescript/dist/uctp_json.js';
 
 /** One original create recovery before any media ownership. All opens use the
  * unchanged enrolled configuration; recovery never submits a mutation. */
@@ -7,7 +8,7 @@ export async function nativeControlRecovery({clients,configuration,configDigest,
     Object.assign(report,{format:'connect/native-independent-control-recovery/1',passed:false,mutation_replayed:false,
         new_helper_created:false,original_create_reference_preserved:false});
     const originalOwner=clients.get('participant-1'),reserve=clients.get('replacement-1');
-    const originalReferenceJson=JSON.stringify(originalReference),originalReferenceValue=JSON.parse(originalReferenceJson);
+    const originalReferenceJson=canonicalJson(originalReference);
     report.original_creator_config_sha256=configuration['participant-1'].sha256;
     assert.ok(originalOwner&&reserve,'Both original enrolled owners are required');
     const boundedFailure=(error,at)=>({stage:at,name:error.name,kind:error.kind??null,certainty:error.certainty??null});
@@ -41,8 +42,8 @@ export async function nativeControlRecovery({clients,configuration,configDigest,
         check('independent-device-explicitly-activates-original-config-after-original-sdk-owner-joins');
         enter('recovery-original-create-reference');
         const restoredOperation=recovery.operations.restore(originalReference,recovery.operationKinds.conversation_create);
-        assert.deepEqual(restoredOperation.referenceJson(),originalReferenceValue);
-        assert.equal(JSON.stringify(originalReference),originalReferenceJson);report.original_create_reference_preserved=true;
+        assert.equal(canonicalJson(restoredOperation.referenceJson()),originalReferenceJson);
+        assert.equal(canonicalJson(originalReference),originalReferenceJson);report.original_create_reference_preserved=true;
         const conversation=await complete(restoredOperation);assert.equal(conversation.id,conversationId);
         enter('recovery-current-membership');
         const snapshot=await conversation.refresh(options),active=snapshot.participants.filter(p=>p.active);

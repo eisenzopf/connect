@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,existsSync,rmSync,openSync,closeSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,existsSync,rmSync,openSync,closeSync,realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {setTimeout as sleep} from 'node:timers/promises';
@@ -26,7 +26,8 @@ test('sealed work report digest changes for changed bytes and rejects nonprivate
  }finally{rmSync(root,{recursive:true,force:true});}
 });
 for (const qualityPassed of [true,false]) test(`one original Node parent retains quality=${qualityPassed} independently of natural Worker/child joins and original T+10`,{timeout:25000},async()=>{
- const root=mkdtempSync(join(tmpdir(),'native-worker-original-')),resources=join(root,'resources'),input=join(root,'input.json'),output=join(root,'report.json');mkdirSync(resources);
+ const root=realpathSync(mkdtempSync(join(tmpdir(),'native-worker-original-'))),work=join(root,'work');mkdirSync(work);
+ const resources=join(work,'resources'),input=join(work,'input.json'),output=join(work,'report.json');mkdirSync(resources);
  const fd=openSync(join(root,'original.log'),'wx',0o600),pid=process.pid;
  writeFileSync(input,JSON.stringify({format:'connect/transport-conversation-input/1',matrix_programme_profile:NATIVE_PROGRAMME_PROFILE,
   matrix_programme_budget_seconds:20,matrix_resource_directory:resources,reported_quality_passed:qualityPassed}),{mode:0o600});

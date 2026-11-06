@@ -57,5 +57,11 @@ export function ownWorkerStdio(stream,fd,{limit=8*1024*1024}={}){
   stream.once('end',()=>{ended=true;resolve();});
   stream.once('close',()=>{if(!ended){failure??='worker-stdio-incomplete';resolve();}});
  });
- return {joined,receipt:()=>({bytes,ended,failure}),release(){stream.off('data',data);stream.off('error',error);}};
+ return {joined,receipt:()=>({bytes,ended,failure,reference_released:stream===undefined}),release(){
+  if(stream===undefined)return true;
+  // A completed original stream no longer needs a diagnostic strong owner.
+  // Missing end/error/bound proof remains failed and retains its reference.
+  if(!ended||failure)return false;
+  stream.off('data',data);stream.off('error',error);stream=undefined;return true;
+ }};
 }

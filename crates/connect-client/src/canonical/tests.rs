@@ -99,6 +99,7 @@ pub(super) enum Fault {
     NativeDuplexDuringControl,
     NativeVideoOwner(bool),
     NativeVideoIo,
+    NativeVideoRecovery(bool),
 }
 pub(super) async fn controlled(
     fault: Fault,
@@ -147,6 +148,19 @@ pub(super) async fn controlled(
         let mut bytes = vec![0; u32::from_be_bytes(prefix) as usize];
         reader.read_exact(&mut bytes).await.unwrap();
         let request = Envelope::parse(&bytes).unwrap();
+        if let Fault::NativeVideoRecovery(loss) = fault {
+            super::native_video::io::tests::emit_recovery(
+                &connection,
+                request,
+                &mut writer,
+                &mut reader,
+                &signer,
+                loss,
+            )
+            .await;
+            connection.closed().await;
+            return;
+        }
         if matches!(fault, Fault::NativeVideoIo) {
             super::native_video::io::tests::emit(
                 &connection,

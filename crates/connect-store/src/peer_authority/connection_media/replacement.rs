@@ -234,6 +234,19 @@ impl NativeReplacementSelection {
         }
         AuthorityScope::merged(&resolved.scopes)
     }
+    /// Invocation-local SQL facts for one exact-version packet capture only.
+    /// The caller must enclose this callback in try_current_packet_projection.
+    /// No authority interval, media read, execution lease or reusable grant is
+    /// created here. A later admission or finish must still resolve afresh.
+    pub(crate) fn with_packet_capture_context<T>(
+        &self,
+        store: &Store,
+        c: &Connection,
+        capture: impl FnOnce(&NativeReplacementContext, &[AuthorityScope]) -> Result<T>,
+    ) -> Result<T> {
+        let resolved = resolve(store, c, &self.origin, &self.source, &self.retained)?;
+        capture(&resolved.context, &resolved.scopes)
+    }
     pub(crate) fn context(
         &self,
         store: &Store,

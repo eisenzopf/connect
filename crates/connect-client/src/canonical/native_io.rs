@@ -61,6 +61,15 @@ impl NativeDatagrams {
             .send_datagram(bytes.to_vec().into())
             .map_err(|_| ClientError::Transport)
     }
+    /// One original receive budget, also used by the video reader's existing
+    /// wait loop. Feedback wakeups must not renew its physical read timeout.
+    pub(super) fn receive_deadline(&self) -> Result<tokio::time::Instant> {
+        self.current()?;
+        let remaining = (self.expires_at - chrono::Utc::now())
+            .to_std()
+            .unwrap_or_default();
+        Ok(tokio::time::Instant::now() + self.timeout.min(remaining))
+    }
     pub async fn receive(&mut self) -> Result<Vec<u8>> {
         let bytes = self.read_raw().await?;
         super::native::datagram(&bytes)?;

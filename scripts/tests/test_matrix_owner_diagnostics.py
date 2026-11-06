@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from lib.matrix_owner_diagnostics import idle_owner_diagnostics, memory_fields, vmmap_summary, mac_vmmap, browser_labels
+from lib.matrix_owner_diagnostics import idle_owner_diagnostics, memory_fields, vmmap_summary, mac_vmmap, browser_labels, executable_label, stat_identity
 from lib.operational_process_resources import ProcessResources
 from lib.matrix_macos_resources import MacProcessResources
 
@@ -343,6 +343,81 @@ class LinuxBrowserAttributionTests(unittest.TestCase):
         self.assertEqual(restoration(original, observed), [])
         self.assertEqual((POLICY["idle_seconds"], POLICY["rss_retention_bytes"],
             POLICY["extra_descriptors"], POLICY["extra_threads"]), (10, 0, 0, 0))
+
+
+class BrowserTaxonomyAndDescriptorIdentityTests(unittest.TestCase):
+    setUp = DiagnosticsTests.setUp
+    browser = LinuxBrowserAttributionTests.browser
+    def test_closed_executable_labels_redact_paths_and_unknown_names(self):
+        self.assertEqual(executable_label("/private/path/chrome"), "chrome")
+        self.assertEqual(executable_label("/private/path/chrome (deleted)"), "chrome")
+        self.assertEqual(executable_label("/private/path/unknown-secret"), "unrecognized")
+
+    def test_chromium_single_flattened_title_preserves_only_known_title_tokens(self):
+        raw = b"/private/path/chrome --type=utility --utility-sub-type=audio.mojom.AudioService --private-token=secret\0\0\0"
+        observed = browser_labels(raw, executable="chrome")
+        self.assertEqual(observed, {"state": "available", "process_type": "utility",
+            "utility_sub_type": "audio.mojom.AudioService", "representation": "flattened-process-title"})
+        self.assertNotIn("private", json.dumps(observed))
+        self.assertNotIn("secret", json.dumps(observed))
+        self.assertIsNone(browser_labels(raw)["process_type"])
+        self.assertEqual(browser_labels(b"/private/chrome --profile=secret --type=renderer\0", executable="chrome")["state"], "partial")
+        with self.assertRaises(ValueError):
+            browser_labels(b"/private/chrome --type=renderer --private=secret --type=utility\0", executable="chrome")
+
+    def test_fd_stat_identity_distinguishes_same_label_different_inodes_without_paths(self):
+        from types import SimpleNamespace
+        a = SimpleNamespace(st_dev=1, st_ino=2, st_mode=0o100600)
+        b = SimpleNamespace(st_dev=1, st_ino=3, st_mode=0o100600)
+        self.assertNotEqual(stat_identity(a), stat_identity(b))
+        self.assertEqual(stat_identity(a), stat_identity(a))
+        sampler = self.browser()
+        (self.base / "fd/7").symlink_to(self.base / "status")
+        observed = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        descriptors = {fd["fd"]: fd for fd in observed["processes"][0]["descriptors"]}
+        self.assertEqual(descriptors[3]["stat_identity_sha256"], descriptors[7]["stat_identity_sha256"])
+        self.assertIsNotNone(descriptors[3]["stat_identity_sha256"])
+        self.assertIsNone(descriptors[4]["stat_identity_sha256"])
+        self.assertNotIn(str(self.proc), json.dumps(observed))
+
+    def test_changed_executable_on_same_pid_birth_discards_original_process_details(self):
+        sampler = self.browser()
+        directory = self.proc / "private-bin"
+        directory.mkdir()
+        one, two = directory / "chrome", directory / "firefox"
+        one.write_bytes(b"synthetic-original-executable")
+        two.write_bytes(b"synthetic-other-executable")
+        exe = self.base / "exe"
+        exe.symlink_to(one)
+        from lib.matrix_owner_diagnostics import bounded_bytes
+        def changing(path, maximum):
+            value = bounded_bytes(path, maximum)
+            if Path(path).name == "cmdline": exe.unlink(); exe.symlink_to(two)
+            return value
+        with patch("lib.matrix_owner_diagnostics.bounded_bytes", side_effect=changing):
+            observed = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        self.assertEqual(observed["processes"], [])
+        self.assertEqual(observed["state"], "unavailable")
+
+    def test_raced_descriptor_target_keeps_stat_identity_unavailable(self):
+        sampler = self.browser()
+        original = os.readlink
+        reads = 0
+        def raced(path):
+            nonlocal reads
+            value = original(path)
+            if str(path).endswith("/fd/3"):
+                reads += 1
+                if reads > 1: return "/private/changed-file"
+            return value
+        with patch("lib.matrix_owner_diagnostics.os.readlink", side_effect=raced):
+            observed = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        process = observed["processes"][0]
+        self.assertIsNone(process["descriptor_classes"]["counts"])
+        descriptor = next(fd for fd in process["descriptors"] if fd["fd"] == 3)
+        self.assertIsNone(descriptor["stat_identity_sha256"])
+        self.assertEqual(descriptor["classification"], "unavailable")
+        self.assertNotIn("changed-file", json.dumps(observed))
 
 
 if __name__ == "__main__":

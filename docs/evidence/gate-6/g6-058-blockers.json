@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-06T06:35:46.934934+00:00",
-  "run_status": "Fix bundle component validation complete:33/33normal-release ARM Rust,69/69Node and30/30Python pass,0skips; prior Mac13/13 controls retained. Full32/432 post-bundle qualification remains pending. Latest completedv194:320passed,96failed,16blocked verdicts; all32attempted,0completecells. G6-058 remains open.",
+  "updated": "2026-11-06T08:39:29.462397+00:00",
+  "run_status": "Completed v195 remains 328 passed, 96 failed, 8 blocked; all32 attempted, 0 complete cells. Component validation: original batch: 84 passed, 1 failed; corrected Store assertion rerun separately and passed. All other tested files are unchanged. All 16 Node and 23 Python controls pass. Full32 retest pending; G6-054 deferred.",
   "blockers": [
     {
       "id": "B01",
@@ -150,18 +150,18 @@
     {
       "id": "B19",
       "title": "Native failure skips Session ends",
-      "status": "Unit controls verified \u2014 full matrix cleanup pending",
+      "status": "Failure-path Session cleanup observed \u2014 OS reclamation still fails",
       "change": "Success and failure share same original end0/end1 attempts, current scopes and immutable first intent, within original terminal5s/global cutoff.",
-      "evidence": "Fresh terminal DB has same original2Sessions accepted, all10connections retired, no session.end operations. Core keeps per-session mixers legitimately for these live Sessions. Native end0/end1 custody and original5s shared cleanup; current unit cases cover uncertainty, no resubmission and cutoff. Six original-session cleanup controls pass in the40Node suite, including shared cutoff and no resubmission after uncertainty. Final69Node includes all6original-session retirement controls; no retry after uncertainty or renewed5scutoff.",
-      "next": "Unit original-owner/unknown/cutoff cases, then actual failure cleanup and original resource observation."
+      "evidence": "v195 first ARM native EdDSA:both originalSessions ended,all9helpers+Worker joined1199ms;Tokio14\u219214. Extra7serverthreads and server/helperRSS remain. No full resource pass.",
+      "next": "Preserve same Session handles/end IDs; investigate OS ownership separately."
     },
     {
       "id": "B20",
       "title": "Independent native helper recovery coverage",
-      "status": "Unit controls verified \u2014 full matrix recovery pending",
-      "change": "Actually perform required original-creator/reserve joins, fresh original-config current create/history recovery, recovery join and creator reactivation before Session/AV.",
-      "evidence": "Frozen two verifier markers are genuinely missing after AV abort; earlier13control/data replay checks cannot substitute. No verifier predicate relaxed. Actual independent recovery before media, exact original joins/config/reference/current authority/history; no synthetic verifier markers. Six native recovery controls pass, including actual join sequencing and preservation of original close errors; real matrix helper sequence remains pending. Final69Node includes strict original helper/config/reference/auth/history/join controls and exact original close-error propagation.",
-      "next": "Unit strict config/reference/current-auth/membership/history/join negatives and exact live/cumulative topology counts."
+      "status": "Component verified \u2014 full matrix retest pending",
+      "change": "Compare exact SDK canonicalJson reference values instead of JS strict prototype identity. Actual SDK parseCanonicalJson returns null-prototype objects; JSON.parse fixture clones ordinary prototypes.",
+      "evidence": "All 16 Node controls pass with zero skips/cancellations, including actual SDK canonical JSON representation, strict changed-reference/config/current-authority/history refusals and original helper joins. All eight v195 native service-contract verdicts remain failed. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
+      "next": "Require both genuine recovery markers in all eight native cells; preserve original IDs/config, current authorization and helper ownership."
     },
     {
       "id": "B21",
@@ -190,10 +190,10 @@
     {
       "id": "B24",
       "title": "Firefox current authority qualification",
-      "status": "Unit controls verified \u2014 actual Firefox retest pending",
+      "status": "Verified \u2014 all eight actual Firefox authority checks pass",
       "change": "Inspect original expiry/revocation/conflict subcases and exact authenticated refusal, preserving single original wait and current credentials.",
-      "evidence": "Final v194 has8Firefox current-authority blocked results; other authority cohorts pass. Original Firefox expiry/revocation/conflict facts passed inpage; pinned BiDi loses repeated conflict object. Browser-realm JSON snapshot preserves original finished report; no authority predicate relaxed. All6original-report transfer controls pass. Closed inpage facts and genuine failures survive the pinned BiDi boundary; no missing authority subcase invented. Final69Node retains all6original report-value/timeout/rejection controls; no genuine inpage authority failure is rewritten.",
-      "next": "Identify precise failed prerequisite and add positive/negative regression before claiming fix."
+      "evidence": "v195 source73e6a9e5:all8Firefox current-revocation/expiry/conflicting-operation checks pass, including each current-authority subcase. Total matrix improves320\u2192328passedchecks;Firefox movement/media/resources remainfailed.",
+      "next": "Preserve exact in-page JSON snapshot; verify remaining independent requirements."
     },
     {
       "id": "B25",
@@ -206,26 +206,50 @@
     {
       "id": "B26",
       "title": "Repeated unary facts in sealed scene reads",
-      "status": "Store controls verified \u2014 full-load effect pending",
-      "change": "Resolve each origin once inside the exact-version replacement packet projection, retaining every ordered-pair check, complete scopes and earliest original expiry. Generic callers unchanged.",
-      "evidence": "Two independent source reviews find structural native-fact calls25\u219213 at3peers. This is not a measured speedup or established explanation for every private-media failure. All20normal-release Store controls pass. Actual required browser topology is4+2, with structural native-fact counts38\u219214 at4sources and16\u219212 at2sources;3source regression counts25\u219213. No measured speedup or full-load pass inferred.",
-      "next": "Five real3source Store regressions, original clock/version/custody and current-authority controls, actual signed replacements, then fullmatrix."
+      "status": "Component verified \u2014 full matrix retest pending",
+      "change": "Keep all current original actors/pairs/scopes/minexpiry and actual observer version/clock/writer checks. New exact-capture helper derives context+scope once, reducing5\u21923selection resolves only within one synchronous sealed projection; generic reads and mandatory post-admission revalidation unchanged.",
+      "evidence": "Original normal-release ARM Store selection:25 passed,1 failed. The corrected Store assertion was rerun separately and passed; its original failure is retained. All other tested files, production, source-lock and prepared inputs are unchanged. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
+      "next": "Full matrix must measure the same-invocation consolidation with unchanged authority/version/clock/writer checks; no performance pass inferred."
     },
     {
       "id": "B27",
       "title": "Retired browser fixture references remain rooted",
-      "status": "Implemented \u2014 script controls pass; OS effect pending",
+      "status": "Actual browser roots released \u2014 OS growth remains",
       "change": "Join the exact original client/source/keepalive batches, preserve closed reports and dynamic counts, then release only matching global/local SDK wrappers and source nodes. Added cleanup remains inside the original5s accounting.",
-      "evidence": "Final69Node verifies actor role and state-handle identity, pending/failed/foreign joins, missing keepalive proof, sampler errors after release, cached source observations and original error/deadline preservation. No forced collection, process restart or public SDK reconnect change.",
-      "next": "All32 real programmes with unchanged62s observation, retirement5s and idle10s sampled OS limits."
+      "evidence": "v195 firstARM WT EdDSA:all8renderer owners joined;5sharednativepeer shutdowns joined;bindings/queues/surfaces0;diagnosticowners/actorclients/statehandles0;6Connections/2Sessions/7clients closed517.5ms. Chrome tree still+2processes/+134FD/+24threads/+557830144RSSbytes;no liveJSowner cause established.",
+      "next": "Use exact OS descendant/inode attribution; preserve original10s/5s bounds and failed verdict."
     },
     {
       "id": "B28",
       "title": "Linux browser process/descriptor attribution missing",
-      "status": "Implemented \u201418owner diagnostic tests pass",
-      "change": "Include already-adopted original Linux browser descendants at the existing baseline/final post-counter hook. Record closed browser labels, thread names,FD categories and exact before/afterbirth identity within existing50ms/16process bounds.",
-      "evidence": "Final30Python includes18owner diagnostics tests, including8new privacy/identity/race/bounds/no-extra-sample controls. Truncated/unavailable counts remain explicit; cross-host guest detail stays unavailable. Resource policy and verdict are unchanged.",
-      "next": "Use actual next-run ownership evidence to identify residual browser children/descriptors and server blocking workers; do not infer heap ownership from RSS alone."
+      "status": "Component verified \u2014 full matrix retest pending",
+      "change": "Bounded existing census records browser-owned descendants. New closed executable/flattened Chromium process-title taxonomy plus hashed(dev,ino,type) identity separates descriptor label hashes from actual objects; racy/partial/unavailable stays explicit.",
+      "evidence": "All 23 Python owner-diagnostic controls pass. Closed taxonomy/redaction, actual hashed inode/type identity, process reuse, races and unavailable observations remain strict. Actual OS growth in v195 is unchanged. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
+      "next": "Use next full run to attribute original descendants/descriptors; keep OS budgets and unavailable facts unchanged."
+    },
+    {
+      "id": "B29",
+      "title": "Private keyframe recovery stalls during receive silence",
+      "status": "Component verified \u2014 full matrix retest pending",
+      "change": "Existing receive select sends new cooldown-bound feedback under current signed history while decoder waits. Captures one absolute original receive deadline; no detachedtask, packet/sequence replay, authority cache or age/timeout extension.",
+      "evidence": "Five normal-release signed client controls pass on each Mac/ARM platform; all seven actual signed ARM replacement-video server controls pass, including private delta-first current-hint and lost-hint/no-extra-frame cases. Original v195 media failures remain. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
+      "next": "Retest all32 original transport cells; preserve signed history, original receive deadline, keyframe proof and current authority."
+    },
+    {
+      "id": "B30",
+      "title": "Audio work excludes private decoder preparation from scene members",
+      "status": "Component verified \u2014 full matrix retest pending",
+      "change": "Drop scene membership lock only around independent audio mixer; reacquire and rebuild direct controllers afterward. Preserve current consumers/ports/authority,originalcadence/work limits. Bounded failure-leaf diagnostics emit only after ownedguardsdrop.",
+      "evidence": "All21 normal-release Core selections pass on each Mac/ARM platform, including actual callback preparation/revocation/removal concurrency, exact two-lock-segment timing, bounded refusal diagnostics and original endpoint/feedback controls. Direct-phase holds remain a separate unresolved cause. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
+      "next": "Full matrix must measure actual effect; no complete Core contention, A/V or resource qualification inferred."
+    },
+    {
+      "id": "B31",
+      "title": "Closed Worker stdio remains referenced by diagnostic closures",
+      "status": "Component verified \u2014 full matrix retest pending",
+      "change": "Release only original ended,errorfree stdio stream references after actual writes/endjoin; retain pending/failed streams and errors.",
+      "evidence": "All three original stdio ownership controls and two natural Worker/T+10 controls pass within the16-case Node selection. Pending/error/bound ownership stays failed; no measured RSS improvement is claimed. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
+      "next": "Retest original idle/resource observation without forced collection, process restart or budget changes."
     }
   ]
 }

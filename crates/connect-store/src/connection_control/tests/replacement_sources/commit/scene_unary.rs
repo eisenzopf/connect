@@ -300,3 +300,199 @@ fn consolidated_scene_refuses_duplicate_missing_and_foreign_originals_without_ef
         .is_err());
     assert_eq!(counts(&m), before);
 }
+
+#[test]
+fn packet_capture_source_context_matches_independent_generic_media_read_without_publication() {
+    let m = scene();
+    let before = counts(&m);
+    let snapshot = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    for _ in 0..2 {
+        let scene =
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .unwrap();
+        let generic =
+            m.f.store
+                .try_native_replacement_media_read(&m.origin)
+                .unwrap();
+        assert!(scene.current() && generic.current());
+        let current = scene.media().source();
+        assert_eq!(current.context(), generic.source().context());
+        assert_eq!(
+            fingerprint(current.retained().target()),
+            fingerprint(generic.source().retained().target())
+        );
+        assert_eq!(
+            fingerprint(current.source().native().unwrap().target()),
+            fingerprint(generic.source().source().native().unwrap().target())
+        );
+        assert_eq!(
+            current.retained().permits_subscriptions(),
+            generic.source().retained().permits_subscriptions()
+        );
+        assert_eq!(
+            fingerprint(scene.media().target()),
+            fingerprint(generic.target())
+        );
+        assert_eq!(m.f.count("native_replacement_lifetimes"), 0);
+    }
+    assert_eq!(counts(&m), before);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), snapshot);
+}
+
+#[test]
+fn completed_packet_capture_does_not_reuse_operator_endpoint_key_or_cancel_authority() {
+    // Expired/revoked credentials fail current authentication; a missing
+    // permission or invalid signed key/endpoint/operation remains forbidden.
+    // Keep a strict code for every original mutation, not any-error success.
+    for (mutation, expected_code) in [
+        ("operator-scope", "forbidden"),
+        ("operator-expiry", "unauthorized"),
+        ("retained-credential", "unauthorized"),
+        ("target-key", "forbidden"),
+        ("target-endpoint", "forbidden"),
+        ("original-cancel", "forbidden"),
+    ] {
+        let m = scene();
+        drop(
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .unwrap(),
+        );
+        if mutation == "original-cancel" {
+            cancel(&m.f, &m.key, &m.command);
+        } else {
+            let c = m.f.store.connection().unwrap();
+            match mutation {
+                "operator-scope" => {
+                    let raw: String = c
+                        .query_row(
+                            "SELECT operations FROM credentials WHERE id=?1",
+                            [&m.key],
+                            |row| row.get(0),
+                        )
+                        .unwrap();
+                    let mut operations: Vec<String> = serde_json::from_str(&raw).unwrap();
+                    assert!(operations.iter().any(|op| op == "connection.replace"));
+                    operations.retain(|op| op != "connection.replace");
+                    c.execute(
+                        "UPDATE credentials SET operations=?2 WHERE id=?1",
+                        params![m.key, serde_json::to_string(&operations).unwrap()],
+                    )
+                    .unwrap();
+                }
+                "operator-expiry" => {
+                    c.execute(
+                        "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+                        params![m.key, crate::now() - 1],
+                    )
+                    .unwrap();
+                }
+                "retained-credential" => {
+                    c.execute(
+                        "UPDATE credentials SET revoked=1 WHERE id=?1",
+                        [&m.f.keys[1]],
+                    )
+                    .unwrap();
+                }
+                "target-key" => {
+                    c.execute(
+                        "UPDATE peer_signing_keys SET revoked=1 WHERE key_id=?1",
+                        [&m.target_request.key_id],
+                    )
+                    .unwrap();
+                }
+                "target-endpoint" => {
+                    let TransitionIntent::Replace {
+                        endpoint_id: Some(endpoint),
+                        ..
+                    } = &m.command.intent
+                    else {
+                        panic!("fixture must retain the original provisioned target");
+                    };
+                    c.execute(
+                        "UPDATE endpoints SET verification_state='unverified' WHERE id=?1",
+                        [endpoint],
+                    )
+                    .unwrap();
+                }
+                _ => unreachable!(),
+            }
+        }
+        let before = counts(&m);
+        let snapshot = Store::inspect_snapshot(m.f.store.path()).unwrap();
+        assert_eq!(
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .err()
+                .unwrap()
+                .code,
+            expected_code,
+            "{mutation}"
+        );
+        assert_eq!(counts(&m), before, "{mutation}");
+        assert_eq!(
+            Store::inspect_snapshot(m.f.store.path()).unwrap(),
+            snapshot,
+            "{mutation}"
+        );
+    }
+}
+
+#[test]
+fn packet_capture_retained_receiver_permission_changes_are_fresh_without_replaying_effects() {
+    let m = scene();
+    let before = counts(&m);
+    let retained = m.sources[1].runtime_connection_id();
+    let third = m.sources[2].runtime_connection_id();
+    let original: String =
+        m.f.store
+            .connection()
+            .unwrap()
+            .query_row(
+                "SELECT operations FROM credentials WHERE id=?1",
+                [&m.f.keys[1]],
+                |row| row.get(0),
+            )
+            .unwrap();
+    let mut operations: Vec<String> = serde_json::from_str(&original).unwrap();
+    assert!(operations.iter().any(|op| op == "stream.subscribe"));
+    operations.retain(|op| op != "stream.subscribe");
+    for (encoded, expected) in [
+        (original.clone(), true),
+        (serde_json::to_string(&operations).unwrap(), false),
+        (original, true),
+    ] {
+        m.f.store
+            .connection()
+            .unwrap()
+            .execute(
+                "UPDATE credentials SET operations=?2 WHERE id=?1",
+                params![m.f.keys[1], encoded],
+            )
+            .unwrap();
+        let scene =
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .unwrap();
+        assert!(scene.current());
+        assert_eq!(
+            scene.media().source().retained().permits_subscriptions(),
+            expected
+        );
+        assert_eq!(scene.permits_receive(retained, third), expected);
+        let generic =
+            m.f.store
+                .try_native_replacement_media_read(&m.origin)
+                .unwrap();
+        assert_eq!(
+            generic.source().retained().permits_subscriptions(),
+            expected
+        );
+        assert!(
+            scene.permits_receive(&scene.media().target().runtime_connection_id, third),
+            "retained receiver scope cannot replace the independent candidate receiver permission"
+        );
+        assert_eq!(counts(&m), before);
+    }
+}

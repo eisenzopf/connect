@@ -434,3 +434,147 @@ pub(super) async fn activate(
     io.reset_video_receive_decoder(incoming).unwrap();
     done
 }
+
+// The source is already running: the candidate receives a genuine interframe
+// first. No private keyframe is encoded until its actual current PLI is received
+// by the retained source. This happens before any target audio is sent and
+// before signed decoded readiness/ordinary public ownership can exist.
+pub(super) async fn private_bootstrap(
+    f: &Fixture,
+    controller: &mut CanonicalHttpClient,
+    command: &TransitionCommand,
+    root: &connect_client::canonical::payloads::OperationUpdated,
+    client: &mut CanonicalClient,
+    io: &mut NativeVideoDatagrams,
+    encoder: &mut Encoder,
+    source: &sdk::Stream,
+    sequence: &mut u16,
+    incoming: u16,
+    original_cutoff: Instant,
+    lose_first_hint: bool,
+) {
+    let cutoff = original_cutoff.min(Instant::now() + Duration::from_secs(8));
+    let preparation = client.native_replacement_readiness().unwrap();
+    assert_eq!(preparation.video().unwrap().stream_local_id, incoming);
+    io.reset_video_receive_decoder(incoming).unwrap();
+    let mut decoder = Decoder::open(encoder, cutoff);
+    let pid = decoder.pid;
+    let work = AssertUnwindSafe(async {
+        timeout_at(cutoff, async {
+            assert!(matches!(source.receive_video_feedback(
+                sdk::RequestOptions::new(Duration::from_millis(30)).unwrap(),
+            ).await, Err(error) if error.kind == sdk::ErrorKind::Deadline),
+                "a cached source hint cannot qualify private bootstrap");
+            let delta = encoder.frame(1, false).await;
+            assert_eq!(delta[0] & 1, 1);
+            publish(source, &delta, 1, sequence).await;
+            // Keep the SAME native reader polled even after the delta frame
+            // completes while its fresh source hint is still pending.
+            let mut assembler = VideoFrameAssembler::default();
+            let mut captured = None;
+            let mut first = None;
+            let mut history = None;
+            let pending_hint = source.receive_video_feedback(options());
+            tokio::pin!(pending_hint);
+            loop {
+                tokio::select! {
+                    hint = &mut pending_hint, if first.is_none() => { first = Some(hint.unwrap()); },
+                    packet = io.receive() => {
+                        let packet = packet.unwrap();
+                        if let Some(epoch) = packet.video_epoch {
+                            assert_eq!(u16::from_be_bytes(packet.bytes[2..4].try_into().unwrap()), incoming);
+                            let rtp = NativeVideoPacket::parse(packet.bytes[24..].to_vec()).unwrap();
+                            assert_eq!((rtp.payload_type, rtp.timestamp_rtp, rtp.ssrc), (96, 3000, epoch.ssrc));
+                            assert!(io.is_current_video_receive_epoch(incoming, &epoch).unwrap());
+                            if let Some(old) = &history { assert_eq!(old, &epoch); } else { history = Some(epoch.clone()); }
+                            if let Some(frame) = assembler.push(&rtp).unwrap() {
+                                assert!(captured.replace((frame, epoch, packet.received_at)).is_none());
+                            }
+                        }
+                    },
+                }
+                if captured.is_some() && first.is_some() { break; }
+            }
+            let (frame, epoch, _) = captured.unwrap();
+            let first_hint = first.unwrap();
+            assert_eq!(frame.encoded, delta); assert!(!frame.keyframe);
+            assert_eq!(first_hint.ssrc(), 0x74657374);
+            assert!(source.video_feedback_is_current(&first_hint).unwrap());
+            let first_sequence = first_hint.datagram_sequence();
+            let hint = if lose_first_hint {
+                // Intentionally lose ONE actual source hint. Keep the same
+                // original receiver polling while NO additional video frame
+                // exists. No request, frame, timestamp or root is replayed.
+                let expired = Instant::now() + first_hint.expires_in() + Duration::from_millis(5);
+                loop {
+                    tokio::select! {biased;
+                        _ = tokio::time::sleep_until(expired) => break,
+                        packet = io.receive() => {
+                            assert!(packet.unwrap().video_epoch.is_none(), "source video was not withheld");
+                        },
+                    }
+                }
+                assert!(!source.video_feedback_is_current(&first_hint).unwrap());
+                drop(first_hint);
+                let next = source.receive_video_feedback(options());
+                tokio::pin!(next);
+                let hint = loop {
+                    tokio::select! {biased;
+                        hint = &mut next => break hint.unwrap(),
+                        packet = io.receive() => {
+                            assert!(packet.unwrap().video_epoch.is_none(), "another video frame rescued bootstrap");
+                        },
+                    }
+                };
+                assert!(hint.datagram_sequence().wrapping_sub(first_sequence) > 0);
+                hint
+            } else { first_hint };
+            assert!(source.video_feedback_is_current(&hint).unwrap());
+            assert!(hint.expires_in() > Duration::ZERO && hint.expires_in() <= Duration::from_millis(200));
+            // Fresh current hint is the only reason to force this keyframe.
+            // The preceding interframe was never submitted to the cold decoder.
+            let key = encoder.frame(2, source.video_feedback_is_current(&hint).unwrap()).await;
+            assert_eq!(key[0] & 1, 0);
+            drop(hint);
+            publish(source, &key, 2, sequence).await;
+            let (frame, private_epoch, arrived) = video(io, incoming, 2, cutoff).await;
+            assert_eq!(private_epoch, epoch); assert_eq!(frame.encoded, key); assert!(frame.keyframe);
+            decoder.frame(&frame, 2, arrived, cutoff).await;
+            assert_eq!(decoder.outputs, 1);
+            let before = controller.operation_get(&command.operation_id, scope(command)).await.unwrap();
+            assert_eq!(before.record_id, root.record_id);
+            assert_eq!(serde_json::to_value(before).unwrap()["state"], "preparing");
+            let confirmed: u64 = rusqlite::Connection::open(&f.config.database).unwrap().query_row(
+                "SELECT count(*) FROM native_replacement_media_steps WHERE operation_record_id=?1 AND phase='readiness' AND observation_json IS NOT NULL",
+                [root.record_id.as_ref().unwrap().as_str()], |row| row.get(0),
+            ).unwrap();
+            assert_eq!(confirmed, 0, "bootstrap hint inferred decoded readiness");
+            // Only AFTER genuine private video decoding do we pump target
+            // audio and build the unchanged signed private readiness proof.
+            let samples = audio(io, &preparation, cutoff).await;
+            let ready = preparation.with_decoded(samples, Some(NativeDecodedVideoReadiness {
+                decoded_frames: 1, decoded_keyframes: 1,
+            })).unwrap();
+            submit(client, &ready, controller, command, root, cutoff).await;
+            let done = completed(f, controller, command).await;
+            assert_eq!(done.record_id, root.record_id); assert_eq!(done.operation_id, root.operation_id);
+            let done = serde_json::to_value(done).unwrap();
+            assert_eq!(done["state"], "completed"); assert_eq!(done["result"]["generation"], 2);
+            let delta = encoder.frame(3, false).await; assert_eq!(delta[0] & 1, 1);
+            publish(source, &delta, 3, sequence).await;
+            let (frame, public_epoch, arrived) = video(io, incoming, 3, cutoff).await;
+            assert_eq!(public_epoch, private_epoch); assert_eq!(frame.encoded, delta);
+            assert_eq!(decoder.pid, pid); decoder.frame(&frame, 3, arrived, cutoff).await;
+            assert_eq!(decoder.outputs, 2);
+            eprintln!("private delta bootstrap: first_hint_lost={lose_first_hint} genuine_private_hint=true key_only_after_hint=true video_before_target_audio=true same_root=true same_epoch=true same_decoder=true");
+        }).await.expect("private bootstrap exceeded the unchanged original eight-second/captured preparation bound");
+    }).catch_unwind().await;
+    let joined = decoder.close(cutoff).await;
+    if let Err(panic) = work {
+        std::panic::resume_unwind(panic);
+    }
+    assert!(
+        joined,
+        "original private bootstrap decoder did not join naturally"
+    );
+}

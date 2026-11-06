@@ -38,12 +38,40 @@ THREAD_LABELS = {"CrRendererMain", "Chrome_IOThread", "Chrome_ChildIOT", "Compos
     "webrtc_worker", "webrtc_signali", "GeckoMain", "Socket Thread", "MediaDecoderSta"}
 
 
-def browser_labels(raw):
+CHROME_EXECUTABLES = {"chrome", "chromium", "chrome-headless-shell", "headless_shell"}
+BROWSER_EXECUTABLES = CHROME_EXECUTABLES | {"firefox", "node", "python3", "pulseaudio"}
+
+
+def executable_label(value):
+    leaf = value.removesuffix(" (deleted)").rsplit("/", 1)[-1]
+    return leaf if leaf in BROWSER_EXECUTABLES else "unrecognized"
+
+
+def stat_identity(info):
+    # Target-label equality does not identify a shared-memory object. Distinct
+    # same-named memfds need their actual observed device/inode/type identity.
+    return hashlib.sha256(f"{info.st_dev}:{info.st_ino}:{stat.S_IFMT(info.st_mode)}".encode()).hexdigest()
+
+
+def browser_labels(raw, *, executable=None):
     """Retain only two whitelisted switch values, never argv or unknown values."""
     if not raw or not raw.endswith(b"\0"):
         raise ValueError("Incomplete owned command metadata")
     args = raw.split(b"\0")[:-1]
     result = dict(state="available", process_type=None, utility_sub_type=None)
+    nonempty = [arg for arg in args if arg]
+    if executable in CHROME_EXECUTABLES and len(nonempty) == 1:
+        # Chromium's Linux setproctitle flattens argv into one space-separated
+        # title. Treat labels here as title observations, not original argv or
+        # authority. Require the actual known executable and first child flag;
+        # do not search arbitrary private argument text for a guessed role.
+        parts = nonempty[0].split()
+        if len(parts) > 1:
+            result["representation"] = "flattened-process-title"
+            if executable_label(parts[0].decode("utf8", errors="replace")) not in CHROME_EXECUTABLES \
+                    or not parts[1].startswith(b"--type="):
+                return dict(result, state="partial")
+            args = parts[1:]
     for flag, key, allowed in [(b"--type", "process_type", BROWSER_TYPES),
             (b"--utility-sub-type", "utility_sub_type", BROWSER_UTILITIES)]:
         values = []
@@ -166,10 +194,19 @@ def linux_process(sampler, pid, started, check, *, browser=False):
     base = sampler.proc / str(pid)
     result = dict(pid=pid, start_ticks=started, state=original["state"], threads=[],
         identity_before=dict(pid=pid, start_ticks=started))
+    original_executable = None
     if browser:
         check()
         try:
-            result["browser_labels"] = browser_labels(bounded_bytes(base / "cmdline", 16384))
+            label = executable_label(os.readlink(base / "exe"))
+            original_executable = stat_identity(os.stat(base / "exe"))
+            result["executable_label"] = dict(state="available", label=label,
+                stat_identity_sha256=original_executable)
+        except OSError as error:
+            label = None
+            result["executable_label"] = dict(state="unavailable", error=type(error).__name__)
+        try:
+            result["browser_labels"] = browser_labels(bounded_bytes(base / "cmdline", 16384), executable=label)
         except (OSError, ValueError) as error:
             result["browser_labels"] = dict(state="unavailable", error=type(error).__name__)
     with os.scandir(base / "task") as entries:
@@ -202,17 +239,25 @@ def linux_process(sampler, pid, started, check, *, browser=False):
                 continue
             kind = "socket" if value.startswith("socket:[") else "pipe" if value.startswith("pipe:[") else "anonymous-inode" if value.startswith("anon_inode:") else "file"
             classification = kind
+            file_identity = None
             if kind == "file":
                 check()
                 try:
-                    classification = "regular" if stat.S_ISREG(os.stat(entry.path).st_mode) else "other"
+                    file_info = os.stat(entry.path)
+                    classification = "regular" if stat.S_ISREG(file_info.st_mode) else "other"
+                    file_identity = stat_identity(file_info)
+                    if os.readlink(entry.path) != value:
+                        classification = "unavailable"
+                        file_identity = None
                 except OSError:
                     classification = "unavailable"
+                    file_identity = None
             if classification == "unavailable":
                 fd_unavailable += 1
             else:
                 fd_counts[classification] += 1
             result["descriptors"].append(dict(fd=int(entry.name), kind=kind, classification=classification,
+                stat_identity_sha256=file_identity,
                 object_sha256=hashlib.sha256(value.encode()).hexdigest()))
     result["descriptor_classes"] = dict(state="partial" if fd_unavailable else "available",
         counts=None if fd_unavailable else fd_counts, observed_counts=fd_counts,
@@ -227,6 +272,12 @@ def linux_process(sampler, pid, started, check, *, browser=False):
     final_identity = sampler._stat(pid)
     if final_identity["start_ticks"] != started or final_identity["state"] in {"Z", "X"}:
         raise ValueError("Original process identity changed during diagnostics")
+    if original_executable is not None:
+        check()
+        if stat_identity(os.stat(base / "exe")) != original_executable:
+            raise ValueError("Original executable changed during diagnostics")
+        result["executable_identity_after_sha256"] = original_executable
+    result["descriptor_target_hash_semantics"] = "readlink-label-only; use stat_identity_sha256 for observed device/inode/type"
     result["identity_after"] = dict(pid=pid, start_ticks=final_identity["start_ticks"])
     result["threads"].sort(key=lambda value: value["tid"])
     result["descriptors"].sort(key=lambda value: value["fd"])
