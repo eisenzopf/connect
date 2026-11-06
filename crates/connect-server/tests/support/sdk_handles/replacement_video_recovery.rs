@@ -107,7 +107,7 @@ fn single<T>(first: T) -> NonEmpty<T> {
         rest: vec![],
     }
 }
-fn offered(id: &str, direction: Direction) -> NonEmpty<sdk::OfferedStream> {
+fn offered(id: &str, direction: Direction, audio_codec: &str) -> NonEmpty<sdk::OfferedStream> {
     NonEmpty {
         first: sdk::OfferedStream {
             id: id.parse().unwrap(),
@@ -119,7 +119,7 @@ fn offered(id: &str, direction: Direction) -> NonEmpty<sdk::OfferedStream> {
             id: format!("{id}-voice").parse().unwrap(),
             kind: Medium::Audio,
             direction: Direction::Sendrecv,
-            codecs: single("g.711-mu".into()),
+            codecs: single(audio_codec.into()),
         }],
     }
 }
@@ -234,19 +234,28 @@ use connect_protocol::{
     transitions::{TransitionCommand, TransitionIntent},
 };
 
-async fn sound(stream: &sdk::Stream) {
+async fn sound(stream: &sdk::Stream, opus: bool) {
+    let selected = if opus {
+        json!({"name":"opus","params":{"sample_rate":48000,"channels":1,"payload_type":111}})
+    } else {
+        json!({"name":"pcmu","params":{"sample_rate":8000,"channels":1,"payload_type":0}})
+    };
+    let decoder = readiness_audio::Decoder::selected(&selected).unwrap();
+    let payload = decoder.encoded_silence().unwrap();
+    let pt = if opus { 111 } else { 0 };
+    let quantum = decoder.rate() / 50;
     for sequence in 1..=12u16 {
         stream
             .send_rtp(
                 sdk::RtpPacket::new(
                     u32::from(sequence),
                     rtp(
-                        0,
+                        pt,
                         sequence,
-                        u32::from(sequence) * 160,
+                        u32::from(sequence) * quantum,
                         0x71717171,
                         false,
-                        &[0xff; 160],
+                        &payload,
                     ),
                 )
                 .unwrap(),
@@ -417,6 +426,24 @@ async fn signed_replacement_original_registration_outlives_its_preparation_cutof
         .unwrap();
 }
 
+#[tokio::test]
+async fn signed_three_participant_replacement_reads_nonretained_source_in_current_scene() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(8))
+        .await
+        .unwrap();
+}
+#[tokio::test]
+async fn signed_opus_replacement_decodes_private_audio_and_preserves_video_epoch() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(9))
+        .await
+        .unwrap();
+}
+#[tokio::test]
+async fn signed_data_session_upgraded_to_av_opus_replacement_decodes_private_audio_and_video() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(10))
+        .await
+        .unwrap();
+}
 async fn codec_change(
     owner: &mut CanonicalClient,
     scope: &CommandScope,
@@ -495,7 +522,7 @@ async fn gate(
 }
 async fn exercise(mode: u8) {
     let _ = tracing_subscriber::fmt()
-        .with_env_filter("connect_client::canonical::native_video=debug,connect_service::canonical_flow_ready=debug")
+        .with_env_filter("connect_client::canonical::native_video=debug,connect_service::canonical_flow_ready=debug,connect_service::canonical_replacement=debug")
         .with_test_writer()
         .try_init();
     let f = Fixture::with_native_end_scope("EdDSA", 12).await;
@@ -523,7 +550,7 @@ async fn exercise(mode: u8) {
         &f.client.identity_id,
         296,
         vec!["audio".into(), "video".into()],
-        scope,
+        scope.clone(),
     );
     let endpoint: String = rusqlite::Connection::open(&f.config.database)
         .unwrap()
@@ -533,6 +560,48 @@ async fn exercise(mode: u8) {
             |r| r.get(0),
         )
         .unwrap();
+    let third_identity = if mode == 8 {
+        let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
+        let ProvisioningOutcome::Identity { identity_id, .. } = f
+            .server
+            .store
+            .execute_provisioning(
+                &admin,
+                ProvisioningCommand::Identity {
+                    operation_id: "replacement-third-identity".into(),
+                    alias: "replacement-third".into(),
+                    kind: IdentityKind::Human,
+                    display_name: None,
+                },
+            )
+            .unwrap()
+        else {
+            panic!("third identity")
+        };
+        Some(identity_id)
+    } else {
+        None
+    };
+    let third_client = if let Some(identity) = &third_identity {
+        let config = super::super::canonical_native_connections::party_with_scope(
+            &f,
+            identity,
+            297,
+            vec!["audio".into(), "video".into()],
+            scope.clone(),
+        );
+        Some(
+            Client::connect_configured(configured(config))
+                .await
+                .unwrap(),
+        )
+    } else {
+        None
+    };
+    let mut invitees = vec![f.peer.identity_id.parse().unwrap()];
+    if let Some(identity) = &third_identity {
+        invitees.push(identity.parse().unwrap());
+    }
     let publisher = Client::connect_configured(configured(f.client.clone()))
         .await
         .unwrap();
@@ -541,7 +610,7 @@ async fn exercise(mode: u8) {
         .unwrap();
     let room = publisher
         .create_conversation(
-            vec![f.peer.identity_id.parse().unwrap()],
+            invitees,
             ConversationPolicy::Persistent,
             mutation("replacement-feedback-room"),
         )
@@ -551,24 +620,43 @@ async fn exercise(mode: u8) {
         .await
         .unwrap()
         .value;
-    let recipient = room
-        .refresh(options())
-        .await
+    let participants = room.refresh(options()).await.unwrap().participants;
+    let recipient = participants
+        .iter()
+        .find(|peer| peer.identity_id.as_str() == f.peer.identity_id)
         .unwrap()
-        .participants
-        .into_iter()
-        .find(|p| p.identity_id.as_str() == f.peer.identity_id)
-        .unwrap()
-        .id;
+        .id
+        .clone();
+    let mut recipients = vec![recipient];
+    if let Some(identity) = &third_identity {
+        recipients.push(
+            participants
+                .iter()
+                .find(|peer| peer.identity_id.as_str() == identity.as_str())
+                .unwrap()
+                .id
+                .clone(),
+        );
+    }
     let mut caps = json!({"audio":["g.711-mu"],"video":["vp8"]});
+    if mode >= 9 {
+        caps["audio"] = json!(["opus"]);
+    }
+    if mode == 10 {
+        caps["data"] = json!(["reliable-ordered"]);
+    }
     if mode == 2 {
         caps["audio"] = json!(["g.711-mu", "g.711-a"]);
     }
     let session = room
         .invite(
             "native-session".parse().unwrap(),
-            vec![recipient],
-            sdk::SessionMedium::VoiceVideo,
+            recipients,
+            if mode == 10 {
+                sdk::SessionMedium::TextChat
+            } else {
+                sdk::SessionMedium::VoiceVideo
+            },
             "replacement feedback".into(),
             caps.clone(),
             mutation("replacement-feedback-invite"),
@@ -584,7 +672,7 @@ async fn exercise(mode: u8) {
         .session_by_id(session.id().clone());
     target_session
         .accept(
-            caps,
+            caps.clone(),
             sdk::TopologyRevision::try_from(0).unwrap(),
             mutation("replacement-feedback-accept"),
         )
@@ -593,11 +681,57 @@ async fn exercise(mode: u8) {
         .wait(options())
         .await
         .unwrap();
+    let third_session = if let Some(client) = &third_client {
+        let session = client
+            .conversation_by_id(room.id().clone())
+            .session_by_id(session.id().clone());
+        let topology = session.refresh(options()).await.unwrap().topology_revision;
+        session
+            .accept(caps.clone(), topology, mutation("replacement-third-accept"))
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        Some(session)
+    } else {
+        None
+    };
+    if mode == 10 {
+        let before = session.refresh(options()).await.unwrap();
+        assert_eq!(before.media, vec![Medium::Data]);
+        session
+            .update(
+                sdk::SessionUpdate::MediumUpgrade(NonEmpty {
+                    first: Medium::Audio,
+                    rest: vec![Medium::Video],
+                }),
+                before.topology_revision,
+                mutation("replacement-data-av-upgrade"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        let after = session.refresh(options()).await.unwrap();
+        assert_eq!(after.id, before.id);
+        assert!(after.topology_revision.get() > before.topology_revision.get());
+        assert_eq!(
+            after.media,
+            vec![Medium::Audio, Medium::Data, Medium::Video]
+        );
+        eprintln!("production replacement phase: original-data-session-additive-av-upgrade");
+    }
     eprintln!("production replacement phase: initial-media-offers");
     let source = session
         .offer_connection(
             "feedback-source".parse().unwrap(),
-            offered("feedback-camera", Direction::Sendrecv),
+            offered(
+                "feedback-camera",
+                Direction::Sendrecv,
+                if mode >= 9 { "opus" } else { "g.711-mu" },
+            ),
             mutation("feedback-source-offer"),
         )
         .await
@@ -609,7 +743,11 @@ async fn exercise(mode: u8) {
     let target = target_session
         .offer_connection(
             "feedback-target".parse().unwrap(),
-            offered("feedback-monitor", Direction::Sendrecv),
+            offered(
+                "feedback-monitor",
+                Direction::Sendrecv,
+                if mode >= 9 { "opus" } else { "g.711-mu" },
+            ),
             mutation("feedback-target-offer"),
         )
         .await
@@ -618,10 +756,40 @@ async fn exercise(mode: u8) {
         .await
         .unwrap()
         .value;
-    for (connection, remote, operation) in [
-        (&source, "feedback-monitor", "feedback-source-select"),
+    let third_connection = if let Some(session) = &third_session {
+        Some(
+            session
+                .offer_connection(
+                    "feedback-third".parse().unwrap(),
+                    offered("feedback-third-camera", Direction::Sendrecv, "g.711-mu"),
+                    mutation("feedback-third-offer"),
+                )
+                .await
+                .unwrap()
+                .wait(options())
+                .await
+                .unwrap()
+                .value,
+        )
+    } else {
+        None
+    };
+    let mut selections = vec![
+        (
+            &source,
+            if mode == 8 {
+                "feedback-third-camera"
+            } else {
+                "feedback-monitor"
+            },
+            "feedback-source-select",
+        ),
         (&target, "feedback-camera", "feedback-target-select"),
-    ] {
+    ];
+    if let Some(third) = &third_connection {
+        selections.push((third, "feedback-camera", "feedback-third-select"));
+    }
+    for (connection, remote, operation) in selections {
         connection
             .subscribe(
                 NonEmpty {
@@ -706,11 +874,35 @@ async fn exercise(mode: u8) {
     }
     let source_audio = source.stream_by_id("feedback-camera-voice".parse().unwrap());
     let target_audio = target.stream_by_id("feedback-monitor-voice".parse().unwrap());
-    tokio::join!(sound(&source_audio), sound(&target_audio));
+    tokio::join!(
+        sound(&source_audio, mode >= 9),
+        sound(&target_audio, mode >= 9),
+        async {
+            if let Some(third) = &third_connection {
+                sound(
+                    &third.stream_by_id("feedback-third-camera-voice".parse().unwrap()),
+                    false,
+                )
+                .await;
+            }
+        }
+    );
     let old_send = source.stream_by_id("feedback-camera".parse().unwrap());
     let retained_recv = target.stream_by_id("feedback-camera".parse().unwrap());
-    let retained_send = target.stream_by_id("feedback-monitor".parse().unwrap());
-    let old_recv = source.stream_by_id("feedback-monitor".parse().unwrap());
+    // In the three-party control, receive Carol even though Bob is retained.
+    let retained_send = third_connection
+        .as_ref()
+        .map(|third| third.stream_by_id("feedback-third-camera".parse().unwrap()))
+        .unwrap_or_else(|| target.stream_by_id("feedback-monitor".parse().unwrap()));
+    let old_recv = source.stream_by_id(
+        (if mode == 8 {
+            "feedback-third-camera"
+        } else {
+            "feedback-monitor"
+        })
+        .parse()
+        .unwrap(),
+    );
     eprintln!("production replacement phase: initial-codec-history");
     let mut encoder = Encoder::open(f.temp.path()).await;
     let first = encoder.frame(0, true).await;
@@ -762,7 +954,12 @@ async fn exercise(mode: u8) {
                     replacement: "replacement-camera".into(),
                 }],
                 receivers: vec![ReplacementVideoStream {
-                    previous: "feedback-monitor".into(),
+                    previous: (if mode == 8 {
+                        "feedback-third-camera"
+                    } else {
+                        "feedback-monitor"
+                    })
+                    .into(),
                     replacement: "replacement-incoming-camera".into(),
                 }],
             }),
@@ -804,11 +1001,17 @@ async fn exercise(mode: u8) {
         None
     };
     let root = controller.transition(command.clone()).await.unwrap();
-    let original_cutoff = readiness::original_cutoff(&f, &root);
     phase(&f, &mut controller, &command, 1).await;
+    let original_preparation = readiness::original_cutoff(&f, &root);
+    let original_cutoff = original_preparation.cutoff;
     eprintln!("production replacement phase: replacement-allocate");
     let mut replacement = CanonicalClient::open(replacement_config).await.unwrap();
     let mut offer = json!({"substrate":"quic","capabilities":{"audio_codecs":[{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}],"video_codecs":[{"name":"vp8","params":{"sample_rate":90000,"channels":0}}],"max_streams_per_connection":8,"video_feedback":"rtcp-pli-epoch/1"},"streams_offered":[{"id":"replacement-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]},{"id":"replacement-camera","kind":"video","direction":"sendonly","codec_preferences":["vp8"]},{"id":"replacement-incoming-camera","kind":"video","direction":"recvonly","codec_preferences":["vp8"]}]});
+    if mode >= 9 {
+        offer["capabilities"]["audio_codecs"] =
+            json!([{"name":"opus","params":{"sample_rate":48000,"channels":1}}]);
+        offer["streams_offered"][0]["codec_preferences"] = json!(["opus"]);
+    }
     if mode == 2 {
         offer["capabilities"]["audio_codecs"]
             .as_array_mut()
@@ -841,6 +1044,16 @@ async fn exercise(mode: u8) {
     for binding in bindings.iter().filter(|b| b["kind"] == "video") {
         assert_eq!(binding["video_feedback"]["connection_generation"], 2)
     }
+    if mode >= 9 {
+        let selected = bindings
+            .iter()
+            .find(|binding| binding["strm_id"] == "replacement-voice")
+            .unwrap();
+        assert_eq!(selected["codec"]["name"], "opus");
+        assert_eq!(selected["codec"]["params"]["sample_rate"], 48000);
+        assert_eq!(selected["codec"]["params"]["channels"], 1);
+        assert_eq!(selected["codec"]["params"]["payload_type"], 111);
+    }
     let handle = |id: &str| {
         bindings.iter().find(|b| b["strm_id"] == id).unwrap()["stream_local_id"]
             .as_u64()
@@ -862,7 +1075,8 @@ async fn exercise(mode: u8) {
     eprintln!("production replacement phase: replacement-resource-capture");
     phase(&f, &mut controller, &command, 5).await;
     let mut io = replacement.claim_native_video_datagrams().unwrap();
-    let done = readiness::activate(
+    let mut sequence = 0u16;
+    let (done, original_receiver_history) = readiness::activate(
         &f,
         &mut controller,
         &command,
@@ -874,6 +1088,9 @@ async fn exercise(mode: u8) {
         &mut retained_sequence,
         voice,
         incoming,
+        camera,
+        &retained_recv,
+        &mut sequence,
         original_cutoff,
     )
     .await;
@@ -892,17 +1109,29 @@ async fn exercise(mode: u8) {
     // private-key/public-interframe continuity proof. Now it receives an
     // interframe from the unchanged retained source. Only actual signed history can solicit source recovery.
     eprintln!("production replacement phase: replacement-receiver-recovery");
+    assert!(
+        matches!(retained_send.receive_video_feedback(RequestOptions::new(Duration::from_millis(30)).unwrap()).await,
+        Err(error) if error.kind==sdk::ErrorKind::Deadline),
+        "cached publisher feedback cannot qualify fresh postcommit receiver recovery"
+    );
     let delta = encoder.frame(3, false).await;
     assert_eq!(delta[0] & 1, 1);
     publish(&retained_send, &delta, 3, &mut retained_sequence).await;
     let (bytes, epoch) = raw_receive(&mut io, 3, incoming).await;
     assert_eq!(bytes, delta);
     assert_ne!(epoch.epoch, previous_target_epoch.epoch);
+    assert_eq!(
+        epoch, original_receiver_history,
+        "cold recovery must preserve the entire actually signed private/public decoder history"
+    );
     let hint = retained_send
         .receive_video_feedback(options())
         .await
         .unwrap();
     assert!(retained_send.video_feedback_is_current(&hint).unwrap());
+    assert_eq!(hint.ssrc(), 0x74657374);
+    assert!(hint.expires_in() > Duration::ZERO && hint.expires_in() <= Duration::from_millis(200));
+    let first_recovery_feedback_sequence = hint.datagram_sequence();
     let fresh = encoder
         .frame(4, retained_send.video_feedback_is_current(&hint).unwrap())
         .await;
@@ -918,7 +1147,6 @@ async fn exercise(mode: u8) {
     eprintln!("production replacement phase: replacement-publisher-recovery");
     let delta = encoder.frame(5, false).await;
     assert_eq!(delta[0] & 1, 1);
-    let mut sequence = 0;
     raw_publish(&io, camera, &delta, 5, &mut sequence);
     let (bytes, epoch) = receive(&retained_recv, 5).await;
     assert_eq!(bytes, delta);
@@ -937,27 +1165,27 @@ async fn exercise(mode: u8) {
     assert_eq!(bytes, fresh);
     decode(f.temp.path(), &bytes, 6).await;
     if mode == 7 {
-        let original_expiry: i64 = rusqlite::Connection::open(&f.config.database)
-            .unwrap()
-            .query_row(
-                "SELECT expires_at FROM operations WHERE record_id=?1",
-                [root.record_id.as_ref().unwrap().as_str()],
-                |row| row.get(0),
-            )
-            .unwrap();
         tokio::time::sleep_until(original_cutoff + Duration::from_millis(20)).await;
-        assert!(chrono::Utc::now().timestamp() >= original_expiry);
-        let (record,expiry,generation): (String,i64,u64) = rusqlite::Connection::open(&f.config.database).unwrap()
-            .query_row("SELECT o.record_id,o.expires_at,c.generation FROM operations o JOIN connections c ON c.id=?2 WHERE o.record_id=?1",
-                rusqlite::params![root.record_id.as_ref().unwrap().as_str(),scope.connection_id.as_ref().unwrap()],
-                |row|Ok((row.get(0)?,row.get(1)?,row.get(2)?))).unwrap();
+        assert!(chrono::Utc::now().timestamp() >= original_preparation.expires_at);
+        let (record,reservation,expiry,candidate,runtime,reserved_generation,generation,observed_runtime):
+            (String,String,i64,String,String,u64,u64,String)=rusqlite::Connection::open(&f.config.database).unwrap()
+            .query_row("SELECT n.operation_record_id,n.reservation_id,n.expires_at,n.candidate_connection_id,n.candidate_runtime_id,n.generation,c.generation,m.runtime_connection_id FROM native_replacements n JOIN connections c ON c.id=n.candidate_connection_id JOIN connection_offers m ON m.connection_id=c.id WHERE n.operation_record_id=?1",
+                [&original_preparation.record_id],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?,row.get(5)?,row.get(6)?,row.get(7)?))).unwrap();
+        assert_eq!(record, original_preparation.record_id);
         assert_eq!(record, root.record_id.as_ref().unwrap().as_str());
+        assert_eq!(reservation, original_preparation.reservation_id);
         assert_eq!(
-            expiry, original_expiry,
+            expiry, original_preparation.expires_at,
             "ordinary lifecycle must not renew the original preparation"
         );
+        assert_eq!(candidate, original_preparation.candidate_connection_id);
+        assert_eq!(candidate, scope.connection_id.as_ref().unwrap().as_str());
+        assert_eq!(runtime, original_preparation.candidate_runtime_id);
+        assert_eq!(observed_runtime, original_preparation.candidate_runtime_id);
+        assert_eq!(reserved_generation, original_preparation.generation);
+        assert_eq!(generation, original_preparation.generation);
         assert_eq!(generation, 2);
-        eprintln!("production replacement phase: original-cutoff-elapsed unchanged_root={record} unchanged_expiry={expiry} generation={generation}");
+        eprintln!("production replacement phase: original-cutoff-elapsed unchanged_root={record} unchanged_preparation_expiry={expiry} generation={generation}");
     }
     if mode == 1 || mode == 5 || mode == 7 {
         eprintln!("production replacement phase: signed-hold-resume");
@@ -1003,6 +1231,13 @@ async fn exercise(mode: u8) {
             .await
             .unwrap();
         assert!(retained_send.video_feedback_is_current(&hint).unwrap());
+        let distance = hint
+            .datagram_sequence()
+            .wrapping_sub(first_recovery_feedback_sequence);
+        assert!(
+            distance > 0 && distance < (1u32 << 31),
+            "same publisher feedback cursor was reset or replayed"
+        );
         let fresh = encoder.frame(8, true).await;
         publish(&retained_send, &fresh, 8, &mut retained_sequence).await;
         let (bytes, current) = raw_receive(&mut io, 8, incoming).await;
@@ -1091,6 +1326,9 @@ async fn exercise(mode: u8) {
     drop(io);
     publisher.close(options()).await.unwrap();
     subscriber.close(options()).await.unwrap();
+    if let Some(third) = third_client {
+        third.close(options()).await.unwrap();
+    }
     f.server.shutdown().await.unwrap();
     #[cfg(feature = "test-support")]
     if let Some(probe) = start_registry_probe {

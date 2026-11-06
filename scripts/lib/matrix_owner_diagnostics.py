@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import struct
+import stat
 import subprocess
 import time
 
@@ -26,6 +27,39 @@ MEMORY_FIELDS = {"Rss", "Pss", "Shared_Clean", "Shared_Dirty", "Private_Clean", 
     "Anonymous", "LazyFree", "Swap", "VmRSS", "RssAnon", "RssFile", "RssShmem", "VmData", "VmStk", "VmSwap"}
 FD_KINDS = {0: "atalk", 1: "vnode", 2: "socket", 3: "shared-memory", 4: "semaphore", 5: "kqueue",
     6: "pipe", 7: "fsevents", 9: "netpolicy", 10: "channel", 11: "nexus"}
+
+
+BROWSER_TYPES = {"renderer", "gpu-process", "utility", "zygote", "broker"}
+BROWSER_UTILITIES = {"network.mojom.NetworkService", "audio.mojom.AudioService",
+    "storage.mojom.StorageService", "video_capture.mojom.VideoCaptureService",
+    "data_decoder.mojom.DataDecoderService", "media.mojom.VideoEncodeAcceleratorProvider"}
+THREAD_LABELS = {"CrRendererMain", "Chrome_IOThread", "Chrome_ChildIOT", "Compositor",
+    "VizCompositorTh", "ThreadPoolForeg", "ThreadPoolSingl", "AudioThread", "webrtc_network",
+    "webrtc_worker", "webrtc_signali", "GeckoMain", "Socket Thread", "MediaDecoderSta"}
+
+
+def browser_labels(raw):
+    """Retain only two whitelisted switch values, never argv or unknown values."""
+    if not raw or not raw.endswith(b"\0"):
+        raise ValueError("Incomplete owned command metadata")
+    args = raw.split(b"\0")[:-1]
+    result = dict(state="available", process_type=None, utility_sub_type=None)
+    for flag, key, allowed in [(b"--type", "process_type", BROWSER_TYPES),
+            (b"--utility-sub-type", "utility_sub_type", BROWSER_UTILITIES)]:
+        values = []
+        for i, arg in enumerate(args):
+            if arg == flag:
+                if i + 1 == len(args):
+                    raise ValueError("Incomplete owned switch")
+                values.append(args[i + 1])
+            elif arg.startswith(flag + b"="):
+                values.append(arg[len(flag) + 1:])
+        if len(values) > 1:
+            raise ValueError("Ambiguous owned switch")
+        if values:
+            value = values[0].decode("ascii", errors="replace")
+            result[key] = value if value in allowed else "unrecognized"
+    return result
 
 
 class ObservationDeadline(ValueError):
@@ -45,7 +79,8 @@ def thread_name(value):
     # observed label, not evidence identifying which pool owns the thread.
     value = value.split(b"\0", 1)[0].strip()
     return dict(name_sha256=hashlib.sha256(value).hexdigest(),
-        recognized_label="tokio-runtime-worker" if value in {b"tokio-runtime-worker", b"tokio-runtime-w"} else "other")
+        recognized_label="tokio-runtime-worker" if value in {b"tokio-runtime-worker", b"tokio-runtime-w"}
+        else value.decode("ascii") if value in {label.encode("ascii") for label in THREAD_LABELS} else "other")
 
 
 def memory_fields(raw):
@@ -124,12 +159,19 @@ def mac_vmmap(sampler, pid, birth, directory, stage):
     return observed
 
 
-def linux_process(sampler, pid, started, check):
+def linux_process(sampler, pid, started, check, *, browser=False):
     original = sampler._stat(pid)
     if original["start_ticks"] != started or original["state"] in {"Z", "X"}:
         return None
     base = sampler.proc / str(pid)
-    result = dict(pid=pid, start_ticks=started, state=original["state"], threads=[])
+    result = dict(pid=pid, start_ticks=started, state=original["state"], threads=[],
+        identity_before=dict(pid=pid, start_ticks=started))
+    if browser:
+        check()
+        try:
+            result["browser_labels"] = browser_labels(bounded_bytes(base / "cmdline", 16384))
+        except (OSError, ValueError) as error:
+            result["browser_labels"] = dict(state="unavailable", error=type(error).__name__)
     with os.scandir(base / "task") as entries:
         for entry in entries:
             check()
@@ -146,26 +188,46 @@ def linux_process(sampler, pid, started, check):
             except FileNotFoundError:
                 result["retired_during_observation"] = result.get("retired_during_observation", 0) + 1
     result["descriptors"] = []
+    fd_counts = {kind: 0 for kind in ("socket", "pipe", "anonymous-inode", "regular", "other")}
+    fd_unavailable = 0
     with os.scandir(base / "fd") as entries:
-        for entry in entries:
+        for inspected, entry in enumerate(entries, 1):
             check()
-            if len(result["descriptors"]) >= MAX_DESCRIPTORS:
+            if inspected > MAX_DESCRIPTORS:
                 raise ValueError("Original descriptor diagnostic bound")
             try:
                 value = os.readlink(entry.path)
             except FileNotFoundError:
+                fd_unavailable += 1
                 continue
             kind = "socket" if value.startswith("socket:[") else "pipe" if value.startswith("pipe:[") else "anonymous-inode" if value.startswith("anon_inode:") else "file"
-            result["descriptors"].append(dict(fd=int(entry.name), kind=kind,
+            classification = kind
+            if kind == "file":
+                check()
+                try:
+                    classification = "regular" if stat.S_ISREG(os.stat(entry.path).st_mode) else "other"
+                except OSError:
+                    classification = "unavailable"
+            if classification == "unavailable":
+                fd_unavailable += 1
+            else:
+                fd_counts[classification] += 1
+            result["descriptors"].append(dict(fd=int(entry.name), kind=kind, classification=classification,
                 object_sha256=hashlib.sha256(value.encode()).hexdigest()))
+    result["descriptor_classes"] = dict(state="partial" if fd_unavailable else "available",
+        counts=None if fd_unavailable else fd_counts, observed_counts=fd_counts,
+        unavailable_or_retired=fd_unavailable)
     for name in ["status", "smaps_rollup"]:
         check()
         try:
             result[name] = dict(state="available", **memory_fields(bounded_bytes(base / name, 65536)))
         except OSError as error:
             result[name] = dict(state="unavailable", error=type(error).__name__)
-    if sampler._stat(pid)["start_ticks"] != started:
+    check()
+    final_identity = sampler._stat(pid)
+    if final_identity["start_ticks"] != started or final_identity["state"] in {"Z", "X"}:
         raise ValueError("Original process identity changed during diagnostics")
+    result["identity_after"] = dict(pid=pid, start_ticks=final_identity["start_ticks"])
     result["threads"].sort(key=lambda value: value["tid"])
     result["descriptors"].sort(key=lambda value: value["fd"])
     return result
@@ -231,10 +293,19 @@ def idle_owner_diagnostics(sampler, *, roles=("server",), clock=time.monotonic, 
         if len(known) > MAX_KNOWN:
             raise ValueError("Original diagnostic identity bound")
         report["roots"] = {role: list(sampler.roots[role]) for role in roles}
-        for (pid, birth), role in known:
+        # Exact original roots first, then newest already-owned descendants.
+        # No fresh /proc scan or child adoption occurs in this diagnostic hook.
+        known.sort(key=lambda item: (item[0] != sampler.roots[item[1]],
+            {"server": 0, "helper": 1, "browser": 2}[item[1]], -item[0][0]))
+        for index, ((pid, birth), role) in enumerate(known):
             check()
+            if len(report["processes"]) >= MAX_LIVE:
+                report["unexamined_known_identities"] = [dict(pid=key[0], birth=key[1], role=kind)
+                    for key, kind in known[index:]]
+                report["truncated"] = True
+                break
             try:
-                observed = mac_process(sampler, pid, birth, check) if hasattr(sampler, "lib") else linux_process(sampler, pid, birth, check)
+                observed = mac_process(sampler, pid, birth, check) if hasattr(sampler, "lib") else linux_process(sampler, pid, birth, check, browser=role == "browser")
             except ProcessLookupError:
                 observed = None
             except FileNotFoundError:
@@ -247,7 +318,7 @@ def idle_owner_diagnostics(sampler, *, roles=("server",), clock=time.monotonic, 
         report["original_root_states"] = {role: "observed" if any(
             value["role"] == role and value["pid"] == sampler.roots[role][0]
             for value in report["processes"]) else "retired-or-reused" for role in roles}
-        report["state"] = "available" if not report.get("unavailable_roles") and all(value == "observed" for value in report["original_root_states"].values()) else "partial"
+        report["state"] = "available" if not report.get("unavailable_roles") and not report.get("truncated") and all(value == "observed" for value in report["original_root_states"].values()) else "partial"
     except (OSError, ValueError, KeyError, TypeError) as error:
         report["state"] = "partial" if report["processes"] else "unavailable"
         report["error"] = type(error).__name__

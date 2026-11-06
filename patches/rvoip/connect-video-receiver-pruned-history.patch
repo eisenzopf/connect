@@ -1,0 +1,175 @@
+--- a/crates/uctp/rvoip-uctp/src/native_flow/video_epochs.rs
++++ b/crates/uctp/rvoip-uctp/src/native_flow/video_epochs.rs
+@@ -50,6 +50,9 @@
+     binding: ReadyMediaBinding,
+     operation: String,
+     offer: String,
++    // One bounded immutable receiver identity and its already-minted notice
++    // revision. No current predicate, route, lease or permission is cached.
++    receiver_history: Mutex<Option<(VideoFeedbackEpoch, u64)>>,
+ }
+ impl VideoFeedbackProfile for Profile {
+     fn announce(
+@@ -62,6 +65,11 @@
+         if !flow.current() || !same_binding(binding, &self.binding) || !current() {
+             return Err(StreamControlError::NotReady);
+         }
++        let mut receiver_history = if epoch.publisher {
++            None
++        } else {
++            Some(self.receiver_history.try_lock().map_err(|_| StreamControlError::Backpressure)?)
++        };
+         let mut state = flow
+             .video_epochs
+             .0
+@@ -81,6 +89,9 @@
+                     && previous.offer == self.offer
+                 {
+                     previous.current = current;
++                    if let Some(history) = receiver_history.as_mut() {
++                        **history = Some((epoch, previous.revision));
++                    }
+                     drop(state);
+                     flow.changed.notify_waiters();
+                     return Ok(());
+@@ -88,14 +99,35 @@
+             }
+         }
+         state.values.retain(|_, v| (v.current)());
+-        if state.values.get(&key).is_some_and(|v| v.epoch == epoch) {
++        if epoch.publisher && state.values.get(&key).is_some_and(|v| v.epoch == epoch) {
+             return Ok(());
+         }
+-        if state.values.len() >= 128 || state.revision >= crate::v2::MAX_SAFE_REVISION {
++        // An unrelated genuine publisher announcement may have pruned the
++        // retired private receiver callback. Restore ONLY this exact Profile's
++        // immutable original history/revision, using the fresh current callback
++        // supplied by actual guarded delivery. Never replace another current
++        // history with an older revision or reserve a new global revision.
++        let restored = if !epoch.publisher && !state.values.contains_key(&key) {
++            receiver_history.as_ref().and_then(|history| **history)
++                .filter(|(previous, revision)| *previous == epoch && *revision > 0 && *revision <= state.revision)
++                .map(|(_, revision)| revision)
++        } else { None };
++        if state.values.len() >= 128 {
+             return Err(StreamControlError::Backpressure);
+         }
+-        state.revision += 1;
+-        let revision = state.revision;
++        let revision = match restored {
++            Some(revision) => revision,
++            None => {
++                if state.revision >= crate::v2::MAX_SAFE_REVISION {
++                    return Err(StreamControlError::Backpressure);
++                }
++                state.revision += 1;
++                state.revision
++            }
++        };
++        if let Some(history) = receiver_history.as_mut() {
++            **history = Some((epoch, revision));
++        }
+         state.values.insert(
+             key,
+             VideoEpochObservation {
+@@ -124,6 +156,7 @@
+             binding: binding.clone(),
+             operation: operation.into(),
+             offer: offer.into(),
++            receiver_history: Mutex::new(None),
+         })
+     }
+     pub(crate) fn next_video_epoch(
+@@ -263,3 +296,92 @@
+         assert_eq!(changed.original_offer(),"other-offer");assert!(!flow.video_epoch_current(&before));
+     }
+ }
++
++#[cfg(test)]
++mod pruned_receiver_history_tests {
++    use super::*;
++    use std::sync::atomic::{AtomicBool,Ordering};
++    fn binding(name:&str,handle:u16)->ReadyMediaBinding {
++        ReadyMediaBinding {negotiated:NegotiatedStream{requested:DesiredStream{logical_id:StreamId::from_string(name),
++            medium:Medium::Video,direction:StreamDirection::Both},format:MediaFormat::Encoded{name:"vp8".into(),clock_rate_hz:90000,channels:0,fmtp:None}},
++            transport_id:StreamId::from_string(format!("physical-{name}")),stream_local_id:handle,generation:3,
++            connection_generation:2,source_ready:true,sink_ready:true}
++    }
++    fn receiver()->VideoFeedbackEpoch {VideoFeedbackEpoch{publisher:false,epoch:41,ssrc:83,first_sequence:71,first_timestamp:9000}}
++    fn publish(flow:&Arc<NativeFlow>) {
++        let b=binding("actual-uplink",8);flow.video_feedback_profile(&b,"original-op","original-offer")
++            .announce(&b,VideoFeedbackEpoch{publisher:true,epoch:59,..receiver()},Arc::new(||true)).unwrap();
++    }
++    #[test]
++    fn pruned_private_receiver_restores_original_revision_with_only_fresh_current_scope() {
++        let flow=NativeFlow::new(CancellationToken::new());let b=binding("downlink",7);
++        let profile=flow.video_feedback_profile(&b,"original-op","original-offer");
++        let private=Arc::new(AtomicBool::new(true));let old=private.clone();
++        profile.announce(&b,receiver(),Arc::new(move||old.load(Ordering::Acquire))).unwrap();
++        let before=flow.next_video_epoch(std::slice::from_ref(&b),&BTreeMap::new(),true).unwrap();
++        private.store(false,Ordering::Release);publish(&flow);
++        assert!(!flow.video_epochs.0.lock().unwrap().values.contains_key(&before.key()),"intervening publisher must exercise real prune");
++        let global=flow.video_epochs.0.lock().unwrap().revision;
++        assert!(profile.announce(&b,receiver(),Arc::new(||false)).is_err());
++        assert!(!flow.video_epochs.0.lock().unwrap().values.contains_key(&before.key()),"stale predicate restored metadata");
++        assert!(!flow.video_epoch_current(&before));
++        let public=Arc::new(AtomicBool::new(true));let next=public.clone();
++        profile.announce(&b,receiver(),Arc::new(move||next.load(Ordering::Acquire))).unwrap();
++        let after=flow.next_video_epoch(std::slice::from_ref(&b),&BTreeMap::new(),true).unwrap();
++        assert_eq!(after.revision(),before.revision());assert_eq!(after.epoch(),before.epoch());
++        assert_eq!(after.original_operation(),before.original_operation());assert_eq!(after.original_offer(),before.original_offer());
++        assert_eq!(flow.video_epochs.0.lock().unwrap().revision,global,"restoration minted global revision");
++        assert!(flow.video_epoch_current(&after));assert!(!flow.video_epoch_current(&before));
++        assert!(flow.next_video_epoch(std::slice::from_ref(&b),&BTreeMap::from([(before.key(),before.revision())]),true).is_none(),
++            "already-sent immutable history was reannounced");
++        public.store(false,Ordering::Release);assert!(!flow.video_epoch_current(&after));
++    }
++    #[test]
++    fn pruned_receiver_refresh_at_revision_limit_preserves_capacity_and_refuses_new_history() {
++        let flow=NativeFlow::new(CancellationToken::new());let b=binding("downlink",7);
++        let profile=flow.video_feedback_profile(&b,"original-op","original-offer");let live=Arc::new(AtomicBool::new(true));let old=live.clone();
++        profile.announce(&b,receiver(),Arc::new(move||old.load(Ordering::Acquire))).unwrap();
++        let before=flow.next_video_epoch(std::slice::from_ref(&b),&BTreeMap::new(),true).unwrap();
++        live.store(false,Ordering::Release);publish(&flow);
++        let removable=Arc::new(AtomicBool::new(true));let release_rest=Arc::new(AtomicBool::new(true));
++        for i in 0..127 {let other=binding(&format!("occupied-{i}"),i+9);let current=if i==0{removable.clone()}else{release_rest.clone()};
++            flow.video_feedback_profile(&other,"other-op","other-offer")
++                .announce(&other,VideoFeedbackEpoch{publisher:true,epoch:u128::from(i)+100,..receiver()},
++                    Arc::new(move||current.load(Ordering::Acquire))).unwrap();}
++        {let mut state=flow.video_epochs.0.lock().unwrap();assert_eq!(state.values.len(),128);state.revision=crate::v2::MAX_SAFE_REVISION;}
++        assert!(matches!(profile.announce(&b,receiver(),Arc::new(||true)),Err(StreamControlError::Backpressure)));
++        assert!(!flow.video_epoch_current(&before));removable.store(false,Ordering::Release);
++        profile.announce(&b,receiver(),Arc::new(||true)).unwrap();
++        let after=flow.next_video_epoch(std::slice::from_ref(&b),&BTreeMap::new(),true).unwrap();
++        assert_eq!(after.revision(),before.revision());assert_eq!(flow.video_epochs.0.lock().unwrap().values.len(),128);
++        assert_eq!(flow.video_epochs.0.lock().unwrap().revision,crate::v2::MAX_SAFE_REVISION);
++        release_rest.store(false,Ordering::Release);
++        let other=flow.video_feedback_profile(&b,"different-op","different-offer");
++        assert!(matches!(other.announce(&b,receiver(),Arc::new(||true)),Err(StreamControlError::Backpressure)));
++        for changed in [VideoFeedbackEpoch{epoch:42,..receiver()},VideoFeedbackEpoch{ssrc:84,..receiver()},
++            VideoFeedbackEpoch{first_sequence:72,..receiver()},VideoFeedbackEpoch{first_timestamp:9001,..receiver()}] {
++            assert!(matches!(profile.announce(&b,changed,Arc::new(||true)),Err(StreamControlError::Backpressure)));
++        }
++        assert!(flow.video_epochs.0.lock().unwrap().values.len()<128,"new-history refusal must also exercise MAX revision without capacity pressure");
++        assert!(flow.video_epoch_current(&after));
++    }
++    #[test]
++    fn receiver_changed_history_and_original_profile_provenance_mint_new_revisions() {
++        for change in 0..7 {
++            let flow=NativeFlow::new(CancellationToken::new());let b=binding("downlink",7);
++            let profile=flow.video_feedback_profile(&b,"original-op","original-offer");let live=Arc::new(AtomicBool::new(true));let old=live.clone();
++            profile.announce(&b,receiver(),Arc::new(move||old.load(Ordering::Acquire))).unwrap();
++            let before=flow.next_video_epoch(std::slice::from_ref(&b),&BTreeMap::new(),true).unwrap();
++            if change<4 || change==6 {live.store(false,Ordering::Release);}
++            publish(&flow);let global=flow.video_epochs.0.lock().unwrap().revision;
++            let changed=match change {0=>VideoFeedbackEpoch{epoch:42,..receiver()},1=>VideoFeedbackEpoch{ssrc:84,..receiver()},
++                2=>VideoFeedbackEpoch{first_sequence:72,..receiver()},3=>VideoFeedbackEpoch{first_timestamp:9001,..receiver()},_=>receiver()};
++            let mut next_binding=b.clone();if change==6{next_binding.generation+=1;}
++            if change>=4 {flow.video_feedback_profile(&next_binding,if change==4{"different-op"}else{"original-op"},
++                if change==5{"different-offer"}else{"original-offer"}).announce(&next_binding,changed,Arc::new(||true)).unwrap();}
++            else {profile.announce(&b,changed,Arc::new(||true)).unwrap();}
++            let after=flow.next_video_epoch(std::slice::from_ref(&next_binding),&BTreeMap::new(),true).unwrap();
++            assert!(after.revision()>global);assert!(after.revision()>before.revision());assert!(!flow.video_epoch_current(&before));
++        }
++    }
++}

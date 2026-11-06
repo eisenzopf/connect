@@ -1,0 +1,157 @@
+--- a/crates/foundation/rvoip-core/src/runtime_diagnostics.rs
++++ b/crates/foundation/rvoip-core/src/runtime_diagnostics.rs
+@@ -5,7 +5,8 @@
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+ pub struct OsThreadIdentity {
+     pub tid: u64,
+-    /// Darwin's pthread handle is separate from its numeric kernel thread ID.
++    /// Darwin's libproc handle from `THREAD_IDENTIFIER_INFO`, separate from
++    /// both the numeric kernel thread ID and the opaque `pthread_self()` value.
+     /// `PROC_PIDLISTTHREADS`/`PROC_PIDTHREADINFO` consume this handle.
+     pub pthread_handle: Option<u64>,
+ }
+@@ -32,6 +33,13 @@
+             fn pthread_threadid_np(thread: *mut std::ffi::c_void, tid: *mut u64)
+                 -> std::ffi::c_int;
+             fn pthread_self() -> *mut std::ffi::c_void;
++            fn pthread_mach_thread_np(thread: *mut std::ffi::c_void) -> u32;
++            fn thread_info(
++                thread: u32,
++                flavor: i32,
++                info: *mut i32,
++                count: *mut u32,
++            ) -> i32;
+         }
+         let mut tid = 0;
+         // SAFETY: Darwin documents a null pthread argument as the current
+@@ -40,12 +48,27 @@
+         if result != 0 || tid == 0 {
+             return None;
+         }
+-        // SAFETY: pthread_self has no preconditions. Its opaque result is only
+-        // converted to a numeric diagnostic handle and is never dereferenced.
+-        let handle = unsafe { pthread_self() } as usize as u64;
++        // SDK mach/thread_info.h defines THREAD_IDENTIFIER_INFO as three u64
++        // fields: thread_id, libproc thread_handle and dispatch_qaddr. Its count
++        // is expressed in natural_t (u32) units. pthread_self() is an opaque
++        // pthread address, not that libproc handle; never adjust its address.
++        let mut info = [0u64; 3];
++        let mut count = 6u32;
++        // SAFETY: pthread_mach_thread_np observes the existing calling pthread's
++        // Mach thread; it neither creates a port right nor transfers ownership.
++        let thread = unsafe { pthread_mach_thread_np(pthread_self()) };
++        if thread == 0 {
++            return None;
++        }
++        // SAFETY: info is aligned and writable for the six u32 SDK units.
++        // Both identity observations target the same still-running caller.
++        let result = unsafe { thread_info(thread, 4, info.as_mut_ptr().cast(), &mut count) };
++        if result != 0 || count != 6 || info[0] != tid || info[1] == 0 {
++            return None;
++        }
+         return Some(OsThreadIdentity {
+             tid,
+-            pthread_handle: (handle != 0).then_some(handle),
++            pthread_handle: Some(info[1]),
+         });
+     }
+     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+@@ -85,9 +108,8 @@
+         assert_eq!(identity.pthread_handle, None);
+     }
+ 
+-    #[test]
+-    #[cfg(target_os = "macos")]
+-    fn darwin_kernel_id_and_pthread_handle_match_separate_libproc_queries() {
++    #[cfg(target_os = "macos")]
++    fn assert_original_darwin_libproc_mapping(identity: OsThreadIdentity) {
+         #[link(name = "proc")]
+         extern "C" {
+             fn proc_pidinfo(
+@@ -98,14 +120,36 @@
+                 size: i32,
+             ) -> i32;
+         }
+-        let identity = current_os_thread_identity().expect("Darwin OS identity");
+-        let handle = identity.pthread_handle.expect("original pthread handle");
++        let handle = identity.pthread_handle.expect("original libproc handle");
++        let mut original_handles = [0u64; 256];
++        // SAFETY: the same-process enumeration writes only into this bounded,
++        // aligned buffer. Each test caller retains the observed original thread.
++        let read = unsafe {
++            proc_pidinfo(
++                std::process::id() as i32,
++                6,
++                0,
++                original_handles.as_mut_ptr().cast(),
++                std::mem::size_of_val(&original_handles) as i32,
++            )
++        };
++        assert!(read > 0 && (read as usize) < std::mem::size_of_val(&original_handles));
++        assert_eq!(read as usize % std::mem::size_of::<u64>(), 0);
++        assert_eq!(
++            original_handles[..read as usize / std::mem::size_of::<u64>()]
++                .iter()
++                .filter(|&&original| original == handle)
++                .count(),
++            1,
++            "genuine libproc handle must occur in the original process enumeration"
++        );
++        let mut names = Vec::new();
+         for (flavor, value) in [(5, handle), (15, identity.tid)] {
+-            // macOS SDK proc_threadinfo is 112 bytes. Separate flavors consume
+-            // the pthread handle and numeric ID; neither is a Rust ThreadId.
++            // SDK proc_threadinfo is 112 bytes. The two flavors independently
++            // consume the genuine libproc handle and the numeric kernel ID.
+             let mut info = [0u64; 14];
+             // SAFETY: the buffer is writable, aligned and exactly the declared
+-            // size; the selected same-process queries are read-only.
++            // size. This read targets the same retained original OS thread.
+             let read = unsafe {
+                 proc_pidinfo(
+                     std::process::id() as i32,
+@@ -116,6 +160,43 @@
+                 )
+             };
+             assert_eq!(read, 112, "original OS thread is observable by libproc");
+-        }
++            // proc_threadinfo.pth_name is the final 64 bytes. CPU/state fields
++            // can change between reads; the original thread name is stable.
++            names.push(info[6..].to_vec());
++        }
++        assert_eq!(names[0], names[1], "both IDs select the same original thread");
++    }
++
++    #[test]
++    #[cfg(target_os = "macos")]
++    fn darwin_kernel_id_and_pthread_handle_match_separate_libproc_queries() {
++        let identity = current_os_thread_identity().expect("Darwin OS identity");
++        assert_original_darwin_libproc_mapping(identity);
++        assert_eq!(Some(identity), current_os_thread_identity());
++    }
++
++    #[test]
++    #[cfg(target_os = "macos")]
++    fn darwin_live_original_child_has_its_own_enumerated_libproc_handle() {
++        let parent = current_os_thread_identity().expect("original parent identity");
++        std::thread::scope(|scope| {
++            let (observed, capture) = std::sync::mpsc::sync_channel(1);
++            let (release, released) = std::sync::mpsc::sync_channel(0);
++            let child = scope.spawn(move || {
++                let original = current_os_thread_identity().expect("original child identity");
++                observed.send(original).expect("parent retains capture");
++                // On a parent assertion failure, sender Drop also releases this
++                // original scope so std::thread::scope can always join it.
++                let _ = released.recv();
++                original
++            });
++            let original = capture.recv().expect("child supplies its own identity");
++            assert_ne!(parent.tid, original.tid);
++            assert_ne!(parent.pthread_handle, original.pthread_handle);
++            assert_original_darwin_libproc_mapping(parent);
++            assert_original_darwin_libproc_mapping(original);
++            release.send(()).expect("original child remains alive");
++            assert_eq!(child.join().expect("original child joins"), original);
++        });
+     }
+ }

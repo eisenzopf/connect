@@ -7,7 +7,7 @@ export function browserMatrixKeepalive(actors) {
     const owners=Object.entries(actors).map(([role,actor])=>({role,client:actor.client,
         epoch:actor.client.transport.physicalEpoch,failed:false}));
     check(owners.length>0&&owners.length<=7,'Bounded original reachability owners required');
-    const failures=[];let timer,wake,stopped=false,failed=false,failure,rounds=0,requests=0,closing;
+    const failures=[];let timer,wake,stopped=false,failed=false,failure,rounds=0,requests=0,closing,originalBatchJoined=false;
     const refuse=(owner,error)=>{
         owner.failed=true;
         if(!failed){failed=true;failure=error;}
@@ -32,9 +32,9 @@ export function browserMatrixKeepalive(actors) {
             }
         }catch(error){if(!failed){failed=true;failure=error;}}
     })();
-    return {check(){if(failed)throw failure;},observation:()=>({rounds,requests,failed,stopped,
+    return {check(){if(failed)throw failure;},observation:()=>({rounds,requests,failed,stopped,original_batch_joined:originalBatchJoined,retained_client_references:owners.length,
             failures:failures.map(value=>({...value}))}),
-        close(){return closing??=(async()=>{stopped=true;clearTimeout(timer);wake?.();await work;if(failed)throw failure;})();}};
+        close(){return closing??=(async()=>{stopped=true;clearTimeout(timer);wake?.();await work;originalBatchJoined=true;owners.length=0;if(failed)throw failure;})();}};
 }
 
 function failureDetails(error){return {name:error?.name??'Error',kind:error?.kind??null,certainty:error?.certainty??null,

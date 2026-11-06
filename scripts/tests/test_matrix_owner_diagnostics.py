@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from lib.matrix_owner_diagnostics import idle_owner_diagnostics, memory_fields, vmmap_summary, mac_vmmap
+from lib.matrix_owner_diagnostics import idle_owner_diagnostics, memory_fields, vmmap_summary, mac_vmmap, browser_labels
 from lib.operational_process_resources import ProcessResources
 from lib.matrix_macos_resources import MacProcessResources
 
@@ -177,6 +177,172 @@ class DiagnosticsTests(unittest.TestCase):
             child.stdin.close()
             self.assertEqual(child.wait(timeout=3), 0)
             child.stdout.close(); child.stderr.close()
+
+
+class LinuxBrowserAttributionTests(unittest.TestCase):
+    setUp = DiagnosticsTests.setUp
+    def browser(self):
+        (self.base / "cmdline").write_bytes(b"/private/browser\0--type=utility\0--utility-sub-type=network.mojom.NetworkService\0--private-token=never-record\0")
+        (self.base / "task/123/comm").write_text("Chrome_IOThread\n")
+        (self.base / "fd/3").unlink()
+        (self.base / "fd/3").symlink_to(self.base / "status")
+        for number, target in [(4, "socket:[471]"), (5, "pipe:[815]"), (6, "anon_inode:[eventpoll]")]:
+            (self.base / "fd" / str(number)).symlink_to(target)
+        return ProcessResources({"browser": 123}, self.proc, 100, 4096, roles=("browser",))
+
+    def child(self, pid):
+        base = self.proc / str(pid)
+        task = base / "task" / str(pid)
+        task.mkdir(parents=True)
+        (base / "stat").write_text(raw_stat(pid, pid).replace(") S 0 ", ") S 123 "))
+        (task / "stat").write_text(raw_stat(pid, pid))
+        (task / "comm").write_text("private-thread-label\n")
+        (task / "wchan").write_text("futex_wait_queue")
+        (task / "children").write_text("")
+        (base / "fd").mkdir()
+        (base / "status").write_text("VmRSS: 1 kB\n")
+        (base / "smaps_rollup").write_text("Rss: 1 kB\n")
+        (base / "cmdline").write_bytes(b"/private/browser\0--type=renderer\0")
+        return base
+
+    def test_original_browser_labels_fd_classes_and_names_are_closed_and_pid_bound(self):
+        sampler = self.browser()
+        result = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        self.assertEqual(result["state"], "available")
+        process = result["processes"][0]
+        self.assertEqual(process["identity_before"], {"pid": 123, "start_ticks": 17})
+        self.assertEqual(process["identity_after"], process["identity_before"])
+        self.assertEqual(process["browser_labels"], {"state": "available", "process_type": "utility",
+            "utility_sub_type": "network.mojom.NetworkService"})
+        self.assertEqual(process["descriptor_classes"]["counts"],
+            {"socket": 1, "pipe": 1, "anonymous-inode": 1, "regular": 1, "other": 0})
+        self.assertEqual(process["threads"][0]["recognized_label"], "Chrome_IOThread")
+        self.assertNotIn("private-token", json.dumps(result))
+        self.assertNotIn("never-record", json.dumps(result))
+        self.assertNotIn(str(self.proc), json.dumps(result))
+        self.assertNotIn("/private/browser", json.dumps(result))
+
+    def test_unknown_switch_values_are_redacted_missing_switches_stay_explicit(self):
+        result = browser_labels(b"browser\0--type=private-user-label\0--utility-sub-type=private-endpoint\0")
+        self.assertEqual(result["process_type"], "unrecognized")
+        self.assertEqual(result["utility_sub_type"], "unrecognized")
+        self.assertNotIn("private", json.dumps(result))
+        absent = browser_labels(b"browser\0--private-token=secret\0")
+        self.assertIsNone(absent["process_type"])
+        self.assertIsNone(absent["utility_sub_type"])
+        with self.assertRaises(ValueError):
+            browser_labels(b"browser\0--type=renderer\0--type=gpu-process\0")
+        with self.assertRaises(ValueError):
+            browser_labels(b"browser\0--type\0")
+        with self.assertRaises(ValueError):
+            browser_labels(b"browser\0--type=renderer")
+
+    def test_missing_or_oversize_argv_is_unavailable_without_fabricated_class(self):
+        sampler = self.browser()
+        for content in (None, b"x" * 16385):
+            path = self.base / "cmdline"
+            if path.exists(): path.unlink()
+            if content is not None: path.write_bytes(content)
+            result = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+            labels = result["processes"][0]["browser_labels"]
+            self.assertEqual(labels["state"], "unavailable")
+            self.assertNotIn("process_type", labels)
+
+    def test_only_already_adopted_original_descendants_are_observed(self):
+        sampler = self.browser()
+        self.child(456); self.child(789)
+        (self.base / "task/123/children").write_text("456")
+        sampler.sample()
+        self.assertIn((456, 456), sampler.known)
+        original = sampler._stat
+        visited = []
+        def tracked(pid):
+            visited.append(pid)
+            return original(pid)
+        sampler._stat = tracked
+        result = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        self.assertEqual({p["pid"] for p in result["processes"]}, {123, 456})
+        self.assertNotIn(789, visited)
+
+    def test_pid_reuse_after_labels_discards_all_unbound_browser_details(self):
+        sampler = self.browser()
+        from lib.matrix_owner_diagnostics import bounded_bytes
+        def changing(path, maximum):
+            value = bounded_bytes(path, maximum)
+            if Path(path).name == "cmdline":
+                (self.base / "stat").write_text(raw_stat(123, 99))
+            return value
+        with patch("lib.matrix_owner_diagnostics.bounded_bytes", side_effect=changing):
+            result = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        self.assertEqual(result["state"], "unavailable")
+        self.assertEqual(result["processes"], [])
+        self.assertNotIn("NetworkService", json.dumps(result))
+
+    def test_descriptor_retirement_or_unreadable_target_is_partial_never_zero(self):
+        sampler = self.browser()
+        (self.base / "fd/3").unlink()
+        (self.base / "fd/3").symlink_to("/nonexistent/private-target")
+        result = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        classes = result["processes"][0]["descriptor_classes"]
+        self.assertEqual(classes["state"], "partial")
+        self.assertIsNone(classes["counts"])
+        self.assertEqual(classes["unavailable_or_retired"], 1)
+        self.assertEqual(classes["observed_counts"]["socket"], 1)
+        self.assertNotIn("private-target", json.dumps(result))
+
+    def test_process_and_descriptor_bounds_are_explicit_without_new_discovery(self):
+        sampler = self.browser()
+        self.child(456); self.child(789)
+        (self.base / "task/123/children").write_text("456 789")
+        sampler.sample()
+        with patch("lib.matrix_owner_diagnostics.MAX_LIVE", 2):
+            result = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        self.assertEqual(result["state"], "partial")
+        self.assertTrue(result["truncated"])
+        self.assertEqual([p["pid"] for p in result["processes"]], [123, 789])
+        self.assertEqual(result["unexamined_known_identities"],
+            [{"pid": 456, "birth": 456, "role": "browser"}])
+        self.assertNotIn("descriptors", result["unexamined_known_identities"][0])
+        with patch("lib.matrix_owner_diagnostics.MAX_DESCRIPTORS", 2):
+            result = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        self.assertEqual(result["state"], "unavailable")
+        self.assertEqual(result["processes"], [])
+        self.assertNotIn("counts", result)
+
+    def test_browser_diagnostics_remain_post_counter_only_with_same_zero_retention_policy(self):
+        from lib.matrix_idle import MatrixIdle, POLICY, restoration
+        calls = []
+        groups = {role: dict(root_state="available", unavailable_processes=0,
+            open_resource_unavailable_processes=0, live_processes=1,
+            sampled_threads=2, sampled_open_descriptors=3, sampled_rss_bytes=4)
+            for role in ("server", "browser")}
+        class Sampler:
+            def sample(self):
+                calls.append("original-counters")
+                return {"groups": groups}
+        def diagnose(*args, **kwargs):
+            calls.append("diagnostics")
+            self.assertEqual(kwargs["roles"], ("server", "browser"))
+            return {"state": "unavailable", "truncated": True}
+        idle = MatrixIdle(self.proc, 123, 456, "http://127.0.0.1:1/v1/operations",
+            "synthetic", sampler=Sampler())
+        with patch("lib.matrix_idle.urllib.request.build_opener") as opener, \
+                patch("lib.matrix_idle.owned_usage", return_value={"physical_owners": 0}), \
+                patch("lib.matrix_idle.time.monotonic", return_value=100), \
+                patch("lib.matrix_idle.idle_owner_diagnostics", side_effect=diagnose):
+            opener.return_value.open.return_value.__enter__.return_value.read.return_value = \
+                json.dumps({"result": {"Ok": {"kind": "health", "data": {}}}}).encode()
+            original = idle.take("baseline")
+            self.assertEqual(calls, ["original-counters", "diagnostics"])
+            self.assertEqual(original["monotonic_seconds"], 100)
+            self.assertEqual(idle.next_sample, 101)
+            calls.clear()
+            idle.take("idle")
+            self.assertEqual(calls, ["original-counters"])
+        observed = dict(original, owner_diagnostics={"state": "unavailable", "truncated": True})
+        self.assertEqual(restoration(original, observed), [])
+        self.assertEqual((POLICY["idle_seconds"], POLICY["rss_retention_bytes"],
+            POLICY["extra_descriptors"], POLICY["extra_threads"]), (10, 0, 0, 0))
 
 
 if __name__ == "__main__":

@@ -97,6 +97,8 @@ try{
             else if(url.pathname==='/_matrix/browser_matrix_rtc_observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_rtc_observation.mjs');
             else if(url.pathname==='/_matrix/observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_observation.mjs');
             else if(url.pathname==='/video/audio_envelope.mjs')file=path.join(root,'scripts/video/audio_envelope.mjs');
+            else if(url.pathname==='/_matrix/retired-references.mjs')file=path.join(root,'scripts/lib/browser_matrix_retired_references.mjs');
+            else if(url.pathname==='/_matrix/retirement-hooks.mjs')file=path.join(root,'scripts/lib/browser_matrix_retirement_hooks.mjs');
             else if(url.pathname==='/_matrix/programme.mjs')file=path.join(root,'scripts/lib/browser_matrix_programme.mjs');
             else if(url.pathname==='/video/marker_calibration.mjs')file=path.join(root,'scripts/video/marker_calibration.mjs');
             else if(url.pathname==='/video/source_identity.mjs')file=path.join(root,'scripts/video/source_identity.mjs');
@@ -159,31 +161,8 @@ try{
         // bodies, credentials, retries or altered promise outcomes.
         const {BrowserMediaPeer}=await import('/sdk/browser_media.js');
         const {BrowserRtcConnection}=await import('/sdk/browser_sdk_webrtc.js');
-        const retiredPeers=new Set(),originalShutdown=BrowserMediaPeer.prototype.shutdown;
-        BrowserMediaPeer.prototype.shutdown=function(...args){
-            if(!retiredPeers.has(this)&&retiredPeers.size>=7)throw Error('Bounded original media owners');
-            retiredPeers.add(this);return originalShutdown.apply(this,args);
-        };
-        const rtcRetirements=new Map(),originalRtcShutdown=BrowserRtcConnection.prototype.shutdown;
-        BrowserRtcConnection.prototype.shutdown=function(...args){
-            let receipt=rtcRetirements.get(this);
-            if(!receipt){
-                if(rtcRetirements.size>=10)throw Error('Bounded original RTC owners');
-                receipt={owner:this,pending:0,failed:false};rtcRetirements.set(this,receipt);
-            }
-            receipt.pending++;
-            let original;
-            try{original=originalRtcShutdown.apply(this,args);}catch(error){receipt.pending--;receipt.failed=true;throw error;}
-            void original.then(()=>{receipt.pending--;},()=>{receipt.pending--;receipt.failed=true;});
-            return original;
-        };
-        const beginReplacement=BrowserMediaPeer.prototype.beginReplacementConnection;
-        BrowserMediaPeer.prototype.beginReplacementConnection=function(...args){
-            const original=beginReplacement.apply(this,args);
-            void original.completed.catch(error=>console.error('Original replacement rejection',
-                String(error.code??error.name),String(error.message),String(error.stack)));
-            return original;
-        };
+        const {browserMatrixRetirementHooks,finishBrowserMatrixRetirement}=await import('/_matrix/retirement-hooks.mjs');
+        const retirementHooks=browserMatrixRetirementHooks(BrowserMediaPeer,BrowserRtcConnection);
         const {browserMatrixPlan,browserMatrixAdmission,retireBrowserMatrixAdmission}=await import('/_matrix/admission.mjs');
         const {browserMatrixSources}=await import('/_matrix/sources.mjs');
         const {browserMatrixProgramme,browserMatrixKeepalive,retireBrowserMatrixProgramme,closeBrowserMatrixProgramme}=await import('/_matrix/programme.mjs');
@@ -207,8 +186,10 @@ try{
         }
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
         const actors={};window.matrixActors=actors;let state={},sources,keepalive,observer,selectionEnrollment;
+        const {browserMatrixRetiredReferences}=await import('/_matrix/retired-references.mjs');
+        const retiredReferences=browserMatrixRetiredReferences({actors,state});
         const selection={},currentAuthority={};
-        const programmeReport={};let resourceClock,resourceTerminalRequested=false,resourceRetiredRequested=false,failureHandled=false;
+        const programmeReport={};let resourceClock,resourceTerminalRequested=false,resourceRetiredRequested=false,failureHandled=false,diagnosticHooksReported=false;
         try{
             if(spec.stage==='quality'){
                 const baseline=await window.matrixResources('baseline');
@@ -265,30 +246,31 @@ try{
                     await window.matrixResources('terminal',resourceClock.host+(programmeReport.terminal_ms-resourceClock.browser)/1000);
                 }
                 return retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event),
+                    closeOriginalClients:perform=>retiredReferences.closeClients(perform),
                     ...(spec.stage!=='admission'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
             }});
             let idleResources;
             if(spec.stage==='quality'){
                 const renderer=await observer.close();await sources.close();
-                const source=sources.observation();
-                const peers=[...retiredPeers].map(peer=>peer.diagnostics);
-                const rtc=[...rtcRetirements.values()].map(receipt=>({original_shutdown_joined:receipt.pending===0&&!receipt.failed,
-                    ...receipt.owner.diagnostics}));
-                const transportOwnersJoined=selected==='webtransport'
+                const sourceReferences=await sources.retireReferences(),source=sources.observation();
+                const diagnosticHooks=await retirementHooks.finish();diagnosticHooksReported=true;
+                const peers=diagnosticHooks.peers,rtc=diagnosticHooks.rtc;
+                const transportOwnersJoined=diagnosticHooks.joined&&(selected==='webtransport'
                     ?peers.length>=4&&peers.every(p=>p.activeBindings===0&&p.queuedPackets===0&&p.queuedBytes===0)
                     :rtc.length>=6&&rtc.every(p=>p.original_shutdown_joined&&p.closed&&p.peerConnectionState==='closed'
-                        &&p.remoteTracks===0&&p.liveRemoteTracks===0&&!p.captureActive&&!p.renderActive);
+                        &&p.remoteTracks===0&&p.liveRemoteTracks===0&&!p.captureActive&&!p.renderActive));
                 const localOwnersJoined=renderer.joined&&source.source_terminal&&source.real_time_audio_state==='closed'
                     &&source.sources.every(s=>s.original_source_owner_live===false&&s.original_source_timer_active===false
                         &&s.original_source_retired===true&&s.attachments.every(a=>a.retired))
                     &&transportOwnersJoined;
+                const fixtureReferences=retiredReferences.release({renderer,source:sourceReferences,transport:diagnosticHooks,keepalive:keepalive?.observation()});
                 const completedMs=performance.now()-programmeReport.terminal_ms;
-                retirement.passed&&=completedMs<=5000&&localOwnersJoined;
+                retirement.passed&&=completedMs<=5000&&localOwnersJoined&&fixtureReferences.released;
                 retirement.allLocalOwnersElapsedMs=completedMs;
                 window.matrixPhase='ten-second-idle-observation';
                 resourceRetiredRequested=true;
                 const measured=await window.matrixResources('retired');
-                idleResources={passed:measured.passed&&localOwnersJoined,localOwnersJoined,renderer,
+                idleResources={passed:measured.passed&&localOwnersJoined&&fixtureReferences.released,localOwnersJoined,renderer,diagnostic_hooks:diagnosticHooks,fixture_reference_retirement:fixtureReferences,
                     ...(selected==='webtransport'?{media_peers:peers.length,active_bindings:peers.reduce((n,p)=>n+p.activeBindings,0),
                         queued_packets:peers.reduce((n,p)=>n+p.queuedPackets,0),queued_bytes:peers.reduce((n,p)=>n+p.queuedBytes,0)}:
                         {rtc_owners:rtc,media_peers:rtc.length,active_bindings:rtc.filter(p=>!p.closed).length,
@@ -296,9 +278,9 @@ try{
             }
             return {passed:retirement.passed&&selection.passed&&currentAuthority.passed&&(spec.stage==='admission'||programmeReport.passed)&&(!observer||(programmeReport.decoded_media.passed&&idleResources?.renderer.playback_passed===true))&&(!idleResources||idleResources.passed),
                 ...(observer?{decoded_media:programmeReport.decoded_media,
-                    ...(programmeReport.decoded_media.passed?{}:{failure:{stage:'decoded-media-quality',name:'ProfileBudgetsFailed'}})}:{}),wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,admission:state.report,
+                    ...(programmeReport.decoded_media.passed?{}:{failure:{stage:'decoded-media-quality',name:'ProfileBudgetsFailed'}})}:{}),wrong_pin_refusal:pinRefusal,authenticated_owners:retiredReferences.counts().authenticated_owners,admission:state.report,
                 ...(programmeReport.keepalive_failure?{failure:{stage:'original-keepalive',...programmeReport.keepalive_failure}}:{}),
-                actual_connections:state.connections.length,source_startup:sourceStartup,retirement,idle_resources:idleResources,selection,current_authority:currentAuthority,
+                actual_connections:retiredReferences.counts().actual_connections,source_startup:sourceStartup,retirement,idle_resources:idleResources,selection,current_authority:currentAuthority,
                 ...(spec.stage!=='admission'?{programme:programmeReport,keepalive:keepalive.observation()}:{}),
                 ...(spec.stage!=='admission'?{scope:'Actual admission and four-move programme; decoded quality and idle resources are explicit when requested. Capture/expiry/fallback require separate evidence.'}:{})};
         }catch(error){
@@ -313,9 +295,15 @@ try{
                 try{await window.matrixResources('terminal',resourceClock.host+(performance.now()-resourceClock.browser)/1000);}
                 catch(failure){cleanupErrors.push({stage:'terminal',name:failure.name});}
             }
-            const closes=await Promise.allSettled(Object.values(actors).map(actor=>actor.client.close({timeoutMs:5000})));
+            const closes=await retiredReferences.closeClients(client=>client.close({timeoutMs:5000}));
             const {outcomes:local}=await closeBrowserMatrixProgramme({keepalive,observer,sources,report:programmeReport,previousFailure:true});
             local.forEach((value,index)=>{if(value.status==='rejected')cleanupErrors.push({stage:['keepalive','renderer','source'][index],name:value.reason?.name??'Error'});});
+            const diagnosticHooks=await retirementHooks.finish();diagnosticHooksReported=true;
+            if(!diagnosticHooks.joined)cleanupErrors.push({stage:'diagnostic-hooks',name:'OriginalShutdownNotJoined'});
+            let sourceReferences;
+            try{sourceReferences=await sources?.retireReferences();}catch(error){cleanupErrors.push({stage:'source-references',name:error.name});}
+            const fixtureReferences=retiredReferences.release({renderer:local[1].status==='fulfilled'?local[1].value:undefined,
+                source:sourceReferences,transport:diagnosticHooks,keepalive:keepalive?.observation()});
             let failedIdle;
             if(spec.stage==='quality'&&resourceClock&&resourceTerminalRequested&&!resourceRetiredRequested){
                 resourceRetiredRequested=true;
@@ -325,11 +313,12 @@ try{
                         resource_restoration:measured.passed,
                         original_client_closes:closes.map(value=>value.status),
                         local_cleanup:local.map(value=>value.status),
-                        renderer:local[1].status==='fulfilled'?local[1].value:{joined:false,playback_passed:false},errors:cleanupErrors};
+                        renderer:local[1].status==='fulfilled'?local[1].value:{joined:false,playback_passed:false},
+                        diagnostic_hooks:diagnosticHooks,fixture_reference_retirement:fixtureReferences,errors:cleanupErrors};
                 }catch(failure){cleanupErrors.push({stage:'retired',name:failure.name});}
             }
-            return {passed:false,wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,
-                admission:state.report,actual_connections:state.connections?.length??0,failure:{stage:window.matrixPhase,
+            return {passed:false,wrong_pin_refusal:pinRefusal,authenticated_owners:retiredReferences.counts().authenticated_owners,
+                admission:state.report,actual_connections:retiredReferences.counts().actual_connections,failure:{stage:window.matrixPhase,
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
@@ -338,9 +327,7 @@ try{
                 idle_resources:failedIdle,original_cleanup_errors:cleanupErrors,original_client_closes:closes.map(value=>value.status)};
         } finally {
             const closed=await closeBrowserMatrixProgramme({keepalive,observer,sources,report:programmeReport,previousFailure:failureHandled});
-            BrowserMediaPeer.prototype.shutdown=originalShutdown;BrowserMediaPeer.prototype.beginReplacementConnection=beginReplacement;
-            BrowserRtcConnection.prototype.shutdown=originalRtcShutdown;
-            if('failure' in closed)throw closed.failure;}
+            await finishBrowserMatrixRetirement({hooks:retirementHooks,closed,reported:diagnosticHooksReported,previousFailure:failureHandled});}
         })().then(value=>{original.value=value;original.state='fulfilled';},error=>{
             original.error={name:error.name,message:String(error.message??error),stack:String(error.stack??error)};
             original.state='rejected';

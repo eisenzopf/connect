@@ -108,6 +108,37 @@ where
 pub(super) struct PrivateReceive {
     seen: AtomicU64,
 }
+const PRIVATE_RECEIVE_TARGET: &str = "connect_service::canonical_replacement";
+const PRIVATE_RECEIVE_LEAVES: [&str; 14] = [
+    "scope",
+    "readiness-gate",
+    "current-preroll-source",
+    "scene-registry",
+    "original-media-origin",
+    "current-scene-read",
+    "scene-read-current",
+    "selected-source-permission",
+    "source-entry",
+    "source-projection",
+    "source-descriptor",
+    "current-replacement-owners",
+    "original-activation",
+    "current-replacement-activation",
+];
+impl PrivateReceive {
+    fn observe(&self, leaf: u32, emit: impl FnOnce(&'static str)) {
+        if !tracing::enabled!(target:PRIVATE_RECEIVE_TARGET,tracing::Level::DEBUG)
+            || leaf as usize >= PRIVATE_RECEIVE_LEAVES.len()
+        {
+            return;
+        }
+        let bit = 1u64 << leaf;
+        if self.seen.fetch_or(bit, Ordering::Relaxed) & bit != 0 {
+            return;
+        }
+        emit(PRIVATE_RECEIVE_LEAVES[leaf as usize]);
+    }
+}
 impl PrivateReceive {
     pub(super) fn refused(
         &self,
@@ -118,38 +149,14 @@ impl PrivateReceive {
         medium: Option<rvoip_core::stream_lifecycle::Medium>,
         error: &rvoip_core::staged_streams::StreamControlError,
     ) {
-        const LEAVES: [&str; 14] = [
-            "scope",
-            "readiness-gate",
-            "current-preroll-source",
-            "scene-registry",
-            "original-media-origin",
-            "current-scene-read",
-            "scene-read-current",
-            "selected-source-permission",
-            "source-entry",
-            "source-projection",
-            "source-descriptor",
-            "current-replacement-owners",
-            "original-activation",
-            "current-replacement-activation",
-        ];
-        if !tracing::enabled!(target:"connect_service::private_receive_refusal",tracing::Level::DEBUG)
-            || leaf as usize >= LEAVES.len()
-        {
-            return;
-        }
-        let bit = 1u64 << leaf;
-        if self.seen.fetch_or(bit, Ordering::Relaxed) & bit != 0 {
-            return;
-        }
+        self.observe(leaf, |leaf| {
         let root = target.root.upgrade();
         let receiver = target
             .readiness
             .as_ref()
             .and_then(|gate| gate.diagnostic_video_receiver(source));
-        tracing::debug!(target:"connect_service::private_receive_refusal",
-            leaf=LEAVES[leaf as usize], connection=%scope.connection,
+        tracing::debug!(target:PRIVATE_RECEIVE_TARGET,
+            leaf, connection=%scope.connection,
             target_generation=target.pending.generation(),
             operation_id=?root.as_ref().map(|root|&root.handle.intent().operation_id),
             source_connection=%source.connection, source_generation=source.connection_generation,
@@ -161,5 +168,131 @@ impl PrivateReceive {
             core_committed=root.as_ref().is_some_and(|root|root.handle.is_committed()),
             root_cancelled=root.as_ref().is_none_or(|root|root.handle.cancellation().is_cancelled()),
             ?error,"Original private receive authority leaf refused");
+        });
+    }
+}
+
+#[cfg(test)]
+mod private_receive_filter_tests {
+    use super::*;
+    use std::sync::{atomic::AtomicUsize, Arc};
+    use tracing_subscriber::{
+        layer::{Context, SubscriberExt},
+        Layer,
+    };
+    struct CountEvents(Arc<AtomicUsize>);
+    impl<S: tracing::Subscriber> Layer<S> for CountEvents {
+        fn on_event(&self, _: &tracing::Event<'_>, _: Context<'_, S>) {
+            self.0.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+    fn required_runner_filters() -> [String; 2] {
+        let browser = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../scripts/rehearse-gate6-browser-matrix.py"
+        ));
+        let native = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../scripts/check-transport-fixtures.py"
+        ));
+        let browser_filter = browser
+            .lines()
+            .find(|line| line.contains("env[\"RUST_LOG\"] = "))
+            .unwrap()
+            .split('"')
+            .nth(3)
+            .unwrap();
+        let native_base = native
+            .lines()
+            .find(|line| line.contains("server_env = dict(env, RUST_LOG="))
+            .unwrap()
+            .split('"')
+            .nth(1)
+            .unwrap();
+        let native_append = native
+            .lines()
+            .find(|line| {
+                line.contains("server_env[\"RUST_LOG\"] += ")
+                    && line.contains("canonical_replacement=debug")
+            })
+            .unwrap()
+            .split('"')
+            .nth(3)
+            .unwrap();
+        let native_filter = format!("{native_base}{native_append}");
+        [browser_filter.to_owned(), native_filter]
+    }
+    #[test]
+    fn required_native_and_browser_runner_filters_admit_each_private_receive_leaf_once() {
+        for directives in required_runner_filters() {
+            let diagnostic = PrivateReceive::default();
+            let events = Arc::new(AtomicUsize::new(0));
+            // Disabled collection must not consume an original owner's budget.
+            tracing::subscriber::with_default(tracing::subscriber::NoSubscriber::default(), || {
+                diagnostic.observe(0,|leaf|
+                tracing::debug!(target:PRIVATE_RECEIVE_TARGET,leaf,"Private receive test observation"))
+            });
+            let filter = tracing_subscriber::EnvFilter::try_new(&directives).unwrap();
+            let subscriber = tracing_subscriber::registry()
+                .with(filter)
+                .with(CountEvents(events.clone()));
+            tracing::subscriber::with_default(subscriber, || {
+                for _ in 0..2 {
+                    for leaf in 0..PRIVATE_RECEIVE_LEAVES.len() as u32 {
+                        diagnostic.observe(leaf,|leaf|tracing::debug!(target:PRIVATE_RECEIVE_TARGET,leaf,"Private receive test observation"));
+                    }
+                }
+                diagnostic.observe(PRIVATE_RECEIVE_LEAVES.len() as u32, |_| {
+                    panic!("out-of-range diagnostic emitted")
+                });
+            });
+            assert_eq!(
+                events.load(Ordering::Relaxed),
+                14,
+                "actual runner log filter omitted or flooded bounded leaves: {directives}"
+            );
+            assert_eq!(diagnostic.seen.load(Ordering::Relaxed).count_ones(), 14);
+        }
+    }
+    #[test]
+    fn required_native_and_browser_filters_admit_original_six_terminal_scene_stages() {
+        const TARGET: &str = "rvoip_core::audio_summary";
+        // The prepared upstream source is part of the locked dependency graph.
+        // Pair this exact production topic check with Core's actual emitter
+        // regression; neither merely accepting a stale topic nor a parallel
+        // test-only logger can qualify the combined contract.
+        let production=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
+            "/../../.deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/media_scene/tick_summary.rs"));
+        assert_eq!(
+            production
+                .matches("target: \"rvoip_core::audio_summary\"")
+                .count(),
+            1
+        );
+        assert!(!production.contains("target: \"rvoip_core::scene_summary\""));
+        for directives in required_runner_filters() {
+            let events = Arc::new(AtomicUsize::new(0));
+            let subscriber = tracing_subscriber::registry()
+                .with(tracing_subscriber::EnvFilter::try_new(&directives).unwrap())
+                .with(CountEvents(events.clone()));
+            tracing::subscriber::with_default(subscriber, || {
+                for stage in [
+                    "wake-gap",
+                    "members-lock-wait",
+                    "members-lock-held",
+                    "adopt-metadata",
+                    "audio",
+                    "direct",
+                ] {
+                    tracing::debug!(target:TARGET,stage,"Original terminal scene filter observation");
+                }
+                tracing::debug!(target:"rvoip_core::scene_summary","Old disabled topic must remain excluded");
+            });
+            assert_eq!(
+                events.load(Ordering::Relaxed),
+                6,
+                "required actual runner filter omits terminal scene records: {directives}"
+            );
+        }
     }
 }

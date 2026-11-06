@@ -66,3 +66,26 @@ test("browser terminal ends both original Sessions before client closure without
         assert.equal(events.filter(e=>e.kind==='session-end-accepted').length,2);
     }
 });
+
+
+test('reference ownership joins the original cleanup callback and preserves a missed teardown deadline',async()=>{
+    const {browserMatrixRetiredReferences}=await import('../lib/browser_matrix_retired_references.mjs');
+    const plan=browserMatrixPlan(),options=[];let clock=0,finish;
+    const pending=new Promise(resolve=>{finish=resolve;});
+    const client={async close(value){options.push(value.timeoutMs);if(options.length===1)throw Error('Original deadline');await pending;}};
+    const actors={owner:{client}},connection={id:plan.routes[0].connection,refresh:async()=>({streamRevision:1}),
+        end:async()=>({referenceJson:()=>({operation_id:plan.routes[0].end}),wait:async()=>{clock=6000;return {snapshot:{state:'completed'}};}})};
+    const state={conversation:{id:'original-conversation'},sessions:[],connections:[connection],report:{checks:['original']}},root={matrixActors:actors};
+    const refs=browserMatrixRetiredReferences({actors,state,root}),proof={renderer:{joined:true},source:{joined:true,released:true},transport:{joined:true},
+        keepalive:{stopped:true,original_batch_joined:true,retained_client_references:0}};
+    const original=retireBrowserMatrixAdmission({state,actors,plan,journal:async()=>{},now:()=>clock,
+        closeOriginalClients:perform=>refs.closeClients(perform)});
+    for(let i=0;i<20;i++)await Promise.resolve();
+    assert.deepEqual(options,[1,60000],'Preserve existing missed-deadline original cleanup waits exactly');
+    assert.equal(refs.release(proof).released,false);assert.equal(actors.owner.client,client);
+    finish();const result=await original;
+    assert.equal(result.passed,false);assert.equal(result.originalClientsClosed,1);assert.equal(result.elapsedMs,6000);
+    assert.equal(refs.release(proof).released,true,'Actual local cleanup can release refs without changing the failed deadline');
+    assert.equal(result.passed,false);assert.deepEqual(refs.counts(),{authenticated_owners:1,actual_connections:1});
+    await refs.closeClients(()=>{throw Error('No new close after release');});assert.deepEqual(options,[1,60000]);
+});

@@ -1,0 +1,197 @@
+--- a/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs
+@@ -154,6 +154,19 @@
+                 first_timestamp,
+                 announced: false,
+             });
++        } else if let Some(receiver) = state.as_mut() {
++            // Core may preserve decoder identity while retiring its private
++            // ticket and issuing a fresh public route. This method is inside
++            // the actual guarded target delivery: only that current new route
++            // can replace retired metadata. Preserve the original wire history
++            // and Core's promoted replay/rate cursor; never reuse the old scope.
++            if !receiver.route.is_current() {
++                if !route.is_current() {
++                    return Err(StreamControlError::NotReady);
++                }
++                receiver.route = route;
++                receiver.announced = false;
++            }
+         }
+         let receiver = state.as_mut().unwrap();
+         if !receiver.announced {
+--- a/crates/uctp/rvoip-uctp/src/native_flow/video_epochs.rs
++++ b/crates/uctp/rvoip-uctp/src/native_flow/video_epochs.rs
+@@ -67,8 +67,27 @@
+             .0
+             .try_lock()
+             .map_err(|_| StreamControlError::Backpressure)?;
++        let key = (binding.transport_id.clone(), epoch.publisher);
++        // An actually delivered public copy can carry the same immutable
++        // decoder history as its retired private predecessor, under fresh Core
++        // route tickets. Rebind only this exact receiver allocation/provenance
++        // and equal first packet boundaries. Do not issue another revision or
++        // revive an already captured observation's old current predicate.
++        if !epoch.publisher {
++            if let Some(previous) = state.values.get_mut(&key) {
++                if previous.epoch == epoch
++                    && same_binding(&previous.binding, binding)
++                    && previous.operation == self.operation
++                    && previous.offer == self.offer
++                {
++                    previous.current = current;
++                    drop(state);
++                    flow.changed.notify_waiters();
++                    return Ok(());
++                }
++            }
++        }
+         state.values.retain(|_, v| (v.current)());
+-        let key = (binding.transport_id.clone(), epoch.publisher);
+         if state.values.get(&key).is_some_and(|v| v.epoch == epoch) {
+             return Ok(());
+         }
+@@ -189,3 +208,58 @@
+         assert!(flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),false).is_none());
+     }
+ }
++
++#[cfg(test)]
++mod public_route_refresh_tests {
++    use super::*;
++    use std::sync::atomic::{AtomicBool, Ordering};
++    fn binding() -> ReadyMediaBinding {
++        ReadyMediaBinding { negotiated: NegotiatedStream { requested: DesiredStream {
++            logical_id: StreamId::from_string("camera"), medium: Medium::Video, direction: StreamDirection::Both,
++        }, format: MediaFormat::Encoded {name:"vp8".into(),clock_rate_hz:90000,channels:0,fmtp:None}},
++        transport_id:StreamId::from_string("physical-camera"),stream_local_id:7,generation:3,connection_generation:2,source_ready:true,sink_ready:true }
++    }
++    fn history() -> VideoFeedbackEpoch { VideoFeedbackEpoch {publisher:false,epoch:41,ssrc:83,first_sequence:71,first_timestamp:9000} }
++    #[test]
++    fn same_receiver_history_rebinds_only_new_current_scope_without_new_revision_or_old_scope_revival() {
++        let flow=NativeFlow::new(CancellationToken::new());let binding=binding();
++        let profile=flow.video_feedback_profile(&binding,"original-op","original-offer");
++        let private=Arc::new(AtomicBool::new(true));let old=private.clone();
++        profile.announce(&binding,history(),Arc::new(move||old.load(Ordering::Acquire))).unwrap();
++        let before=flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),true).unwrap();
++        private.store(false,Ordering::Release);
++        assert!(!flow.video_epoch_current(&before));
++        let public=Arc::new(AtomicBool::new(true));let next=public.clone();
++        profile.announce(&binding,history(),Arc::new(move||next.load(Ordering::Acquire))).unwrap();
++        let after=flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),true).unwrap();
++        assert!(flow.video_epoch_current(&after));assert!(!flow.video_epoch_current(&before));
++        assert_eq!(after.revision(),before.revision());assert_eq!(after.epoch(),before.epoch());
++        assert_eq!(after.original_operation(),before.original_operation());assert_eq!(after.original_offer(),before.original_offer());
++        assert_eq!(after.epoch().first_sequence,71);assert_eq!(after.epoch().first_timestamp,9000);
++        let sent=BTreeMap::from([(before.key(),before.revision())]);
++        assert!(flow.next_video_epoch(std::slice::from_ref(&binding),&sent,true).is_none(),"same history was reannounced");
++        public.store(false,Ordering::Release);
++        assert!(!flow.video_epoch_current(&after));
++        assert!(flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),true).is_none());
++    }
++    #[test]
++    fn receiver_history_refresh_refuses_stale_or_foreign_binding_and_changed_provenance_is_new_revision() {
++        let flow=NativeFlow::new(CancellationToken::new());let binding=binding();
++        let profile=flow.video_feedback_profile(&binding,"original-op","original-offer");
++        let live=Arc::new(AtomicBool::new(true));let current=live.clone();
++        profile.announce(&binding,history(),Arc::new(move||current.load(Ordering::Acquire))).unwrap();
++        let before=flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),true).unwrap();
++        live.store(false,Ordering::Release);
++        assert!(profile.announce(&binding,history(),Arc::new(||false)).is_err());
++        let mut foreign=binding.clone();foreign.generation+=1;
++        assert!(profile.announce(&foreign,history(),Arc::new(||true)).is_err());
++        assert!(flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),true).is_none());
++        // A new negotiated original operation/offer must never inherit the old
++        // announcement revision just because a supplied epoch value matches.
++        flow.video_feedback_profile(&binding,"other-op","other-offer")
++            .announce(&binding,history(),Arc::new(||true)).unwrap();
++        let changed=flow.next_video_epoch(std::slice::from_ref(&binding),&BTreeMap::new(),true).unwrap();
++        assert!(changed.revision()>before.revision());assert_eq!(changed.original_operation(),"other-op");
++        assert_eq!(changed.original_offer(),"other-offer");assert!(!flow.video_epoch_current(&before));
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -1119,60 +1119,38 @@
+                             }
+                         }
+                     } else {
+-                        let mut boundary = None;
+                         let mut send = |frame: MediaFrame, origin, epoch| {
+-                            packetizer
+-                                .as_mut()
+-                                .expect("owned packetizer")
+-                                .feedback_epoch = epoch;
+-                            boundary = Some((
+-                                packetizer.as_ref().expect("owned packetizer").outer,
+-                                frame.timestamp_rtp,
+-                            ));
++                            packetizer.as_mut().expect("owned packetizer").feedback_epoch = epoch;
++                            let boundary = (packetizer.as_ref().expect("owned packetizer").outer,frame.timestamp_rtp);
+                             let result = packetizer.as_mut().expect("owned packetizer").send(
+-                                frame,
+-                                origin,
+-                                &binding,
+-                                pt,
+-                                transport.as_ref(),
+-                                |bytes| {
++                                frame,origin,&binding,pt,transport.as_ref(),|bytes| {
+                                     counters.local_sends.fetch_add(1, Ordering::AcqRel);
+                                     if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
+-                                        flow.sent(&port);
+-                                        flow.record_rtp(&port, false, bytes);
++                                        flow.sent(&port); flow.record_rtp(&port,false,bytes);
+                                     }
+-                                },
+-                            );
+-                            std::future::ready(result.map(|_| ()))
++                                });
++                            result.map(|_| {
++                                let packetizer=packetizer.as_ref().expect("owned packetizer");
++                                packetizer.previous_video.as_ref().map(|source|
++                                    (packetizer.ssrc,source.ssrc,boundary.0,boundary.1))
++                            })
+                         };
+                         if let Some(feedback) = &feedback {
+-                            let delivered = queued
+-                                .deliver_video_with_feedback(|frame, origin, route| {
+-                                    send(frame, origin, Some(route.epoch()))
+-                                })
+-                                .await;
+-                            match delivered {
+-                                Ok(route) => {
+-                                    let packetizer = packetizer.as_ref().expect("owned packetizer");
+-                                    if let Some(source) = &packetizer.previous_video {
+-                                        // Feedback metadata failure never replays media already sent.
+-                                        let _ = feedback.delivered(
+-                                            route,
+-                                            packetizer.ssrc,
+-                                            source.ssrc,
+-                                            boundary.expect("successful submission").0,
+-                                            boundary.expect("successful submission").1,
+-                                        );
+-                                    }
+-                                    Ok(())
++                            queued.deliver_video_with_feedback(|frame,origin,route| {
++                                let result=send(frame,origin,Some(route.epoch()));
++                                if let Ok(Some((ssrc,source_ssrc,sequence,timestamp)))=&result {
++                                    // This is AFTER this original send succeeded,
++                                    // and BEFORE its fresh Core guards release.
++                                    // A metadata refusal cannot replay sent media.
++                                    let _=feedback.delivered(route,*ssrc,*source_ssrc,*sequence,*timestamp);
+                                 }
+-                                Err(error) => Err(error),
+-                            }
++                                std::future::ready(result.map(|_|()))
++                            }).await.map(|_|())
+                         } else {
+-                            queued
+-                                .deliver_with_origin(|frame, origin| send(frame, origin, None))
+-                                .await
++                            queued.deliver_with_origin(|frame,origin|
++                                std::future::ready(send(frame,origin,None).map(|_|()))).await
+                         }
++
+                     };
+                     if let Err(problem) = &result {
+                         tracing::trace!(target: "rvoip_uctp::native_egress", connection=connection.as_str(), stream=binding.transport_id.as_str(), source_ready=binding.source_ready, sink_ready=binding.sink_ready, ?problem, "Native guarded egress refused");

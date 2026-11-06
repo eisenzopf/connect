@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-05T19:09:33-08:00",
-  "run_status": "Follow-up batch implemented: full SDK855/855, fixture Node34/34, Python37/37 and public browser types pass, zero skips. Prior1382 normal runtime executed12:9 pass,3 fixture assertions fail;3 upstream controls unexecuted due offline cache now provisioned. Both signed cases genuinely decoded private VP8; full movement and fresh all32 matrix remain unqualified. Latest full v193 remains293/85/54, zero complete cells.",
+  "updated": "2026-11-06T06:35:46.934934+00:00",
+  "run_status": "Fix bundle component validation complete:33/33normal-release ARM Rust,69/69Node and30/30Python pass,0skips; prior Mac13/13 controls retained. Full32/432 post-bundle qualification remains pending. Latest completedv194:320passed,96failed,16blocked verdicts; all32attempted,0completecells. G6-058 remains open.",
   "blockers": [
     {
       "id": "B01",
@@ -94,33 +94,33 @@
     {
       "id": "B12",
       "title": "Mac remote fixture candidate integrity",
-      "status": "Verified \u2014 candidate identity; remote programme setup open",
+      "status": "Remote candidate setup verified \u2014 full-load media open",
       "change": "Seal the exact prepared SDK manifest before seed runtime commands; preserve final exact digest comparison on every outcome.",
-      "evidence": "All v193 verifier integrity fields pass; Mac remote seed create/list/replay/issuance succeeds. Guest programme fails because eagerly read public movement contract was omitted from its sealed transfer.",
-      "next": "Stage exact public contract with worker inputs and verify real remote media programme; no seed/network fix inferred."
+      "evidence": "All v193 verifier integrity fields pass; Mac remote seed create/list/replay/issuance succeeds. Guest programme fails because eagerly read public movement contract was omitted from its sealed transfer. All v194 remote profiles entered their real programmes; candidate integrity no longer prevents setup.",
+      "next": "Independent native helper recovery is a genuine unexecuted subcase after AV abort; stage it before Session/AV using actual original-helper joins and original signed create/current-history proof. Verifier predicates remain intact."
     },
     {
       "id": "B13",
       "title": "Signed private video epoch startup",
-      "status": "Private epoch + keyframe verified \u2014 movement retest pending",
+      "status": "Native signed scenarios verified \u2014 full-load preparation open",
       "change": "Issue genuine receiver epochs during private preparation using the same registration and fresh Store/Core authorization. Preserve private\u2192moving\u2192ordinary phase boundaries and keep original route active.",
-      "evidence": "1382fac0: both actual signed server cases receive verified receiver epoch and independently decode VP8 keyframe (548/564us), then fail an immediate completed-versus-preparing fixture assertion. Same-original completed wait corrected within unchanged10s/original cutoff. See g6-058-private-epoch-runtime.json.",
-      "next": "Rerun both exact signed cases including actual completion, same epoch/decoder through commit and original registration after preparation cutoff; full matrix next."
+      "evidence": "4d4bbe80 normal ARM: actual private keyframe and postcommit interframe use SAME signed epoch and SAME real decoder, then both cases fail feedback recovery. Full6source native/WT/RTC targets still fail private downlink/readiness; minimal2peer proof is not full-load qualification. Phase2 all5 actual signed cases pass: baseline, original registration after its true30spreparation expiry, nonretained3rd-source selection,Opus andData\u2192AV. These do not reproduce the full concurrent4+2 workload.",
+      "next": "Fix proven feedback route promotion; run3peer/Opus/Data\u2192AV discriminators and actual RTC under admitted bounded diagnostics, then all32."
     },
     {
       "id": "B14",
       "title": "Internal authority read cost",
-      "status": "Authority read behavior verified \u2014 expiry fixture retest pending",
+      "status": "Verified \u2014 all10 normal ARM Store controls pass",
       "change": "Use opaque internal authority records with all current facts/effects but without public causal journal count/page rendering; public records unchanged.",
-      "evidence": "Normal ARM opaque/full row equality and poisoned public display-view controls pass. Permission/epoch/cancel refusal case reaches immutable-expiry mutation and fails; fixture now waits a short original deadline. No authority relaxation or observed contention timing claim.",
-      "next": "Rerun exact current refusal case plus retained private/B02 controls; measure real transport behavior in full matrix."
+      "evidence": "4d4bbe80: all10 exact Store cases pass, joined/unforced/0ignored. Includes real original expiry, exact source/target/permission/phase gates, opaque/full row equality and no public journal-page rendering.",
+      "next": "Preserve these current-authority controls with the next shared runtime batch; real full-load private receive remains unresolved."
     },
     {
       "id": "B15",
       "title": "Remote fixture prerequisites",
-      "status": "Implemented \u2014 fixture controls pass; real transport pending",
+      "status": "Remote prerequisites verified \u2014 full-load media open",
       "change": "Include exact movement contract in Mac guest input staging; permit only approved runtime-retention log directive in strict Linux namespace guard.",
-      "evidence": "Mac guest import fails before programme body due to omitted contract. Both Linux remote native cells stop at stale RUST_LOG allowlist before seed launch. Combined batch: 28 Node and 35 Python checks pass, zero skips; no real remote or decoded-media qualification. Follow-up full SDK855 + fixture34 + Python37 checks pass; no inherited transport qualification.",
+      "evidence": "Mac guest import fails before programme body due to omitted contract. Both Linux remote native cells stop at stale RUST_LOG allowlist before seed launch. Combined batch: 28 Node and 35 Python checks pass, zero skips; no real remote or decoded-media qualification. Follow-up full SDK855 + fixture34 + Python37 checks pass; no inherited transport qualification. v194 attempts all32cells with0unrun and0setup-blocked cells; media and sampled resource failures remain.",
       "next": "Byte-preservation and strict allowlist controls, then actual remote programmes."
     },
     {
@@ -134,10 +134,98 @@
     {
       "id": "B17",
       "title": "Renderer playback result vs physical cleanup",
-      "status": "Implemented \u2014 model/type checks pass; real runtime pending",
+      "status": "Physical browser cleanup verified \u2014 OS resources still fail",
       "change": "Expose immutable exact-owner renderer-local retirement only after original graph close and output detachment. Keep finished playback error independent. Fixture releases only proven original backing, reports semantic errors and requires playback success for overall cell.",
-      "evidence": "Actual v193 RTC physical shutdowns join but renderer.finished rejects; reason previously discarded. New full SDK855 and fixture34 controls cover delayed/failed cleanup, exact original promise, immutable foreign receipt refusal, independent borrowers and preserved semantic failures.",
-      "next": "Fresh browser full matrix must show actual same-owner graph/output retirement, original resource budgets and independent playback results."
+      "evidence": "Fresh v194 WT/RTC original8retirement promises fulfill, physical retirement<500ms, localOwnersJoined=true and retained_surfaces=0. RTC prepared playback deadline errors remain visible and failed. Both cells still fail sampled OS restoration; no resource waiver.",
+      "next": "Release diagnostic-held owner references only after exact shutdown joins and retain numeric evidence; investigate remaining OS ownership and full-load media."
+    },
+    {
+      "id": "B18",
+      "title": "Same-epoch feedback route promotion",
+      "status": "Native feedback recovery verified \u2014 full matrix pending",
+      "change": "Rebind only successful guarded receiver delivery to fresh current public route and exact existing history; keep epoch/replay/rate/firstpacket unchanged.",
+      "evidence": "Both actual signed cases complete movement/decoder continuity then PLI times out; endpoint and registry retain retired private route/current predicate. Recorded feedback refresh patch and fresh dependency preparation; actual same-history route/cursor and cold PLI cases pending. Phase1 actual bidirectional,3party,Opus andData\u2192AV signed cases pass. Mode7 also reaches private/public decode and recovery before its wrong journal-expiry assertion fails. This does not qualify the fullmatrix. Phase2 normal-release registry/Core-boundary regressions and actual signed bidirectional cold recovery pass. Decoder identity/history stays unchanged through real private/public delivery.",
+      "next": "Run registry and Core promotion negatives plus uncached actual signed recovery."
+    },
+    {
+      "id": "B19",
+      "title": "Native failure skips Session ends",
+      "status": "Unit controls verified \u2014 full matrix cleanup pending",
+      "change": "Success and failure share same original end0/end1 attempts, current scopes and immutable first intent, within original terminal5s/global cutoff.",
+      "evidence": "Fresh terminal DB has same original2Sessions accepted, all10connections retired, no session.end operations. Core keeps per-session mixers legitimately for these live Sessions. Native end0/end1 custody and original5s shared cleanup; current unit cases cover uncertainty, no resubmission and cutoff. Six original-session cleanup controls pass in the40Node suite, including shared cutoff and no resubmission after uncertainty. Final69Node includes all6original-session retirement controls; no retry after uncertainty or renewed5scutoff.",
+      "next": "Unit original-owner/unknown/cutoff cases, then actual failure cleanup and original resource observation."
+    },
+    {
+      "id": "B20",
+      "title": "Independent native helper recovery coverage",
+      "status": "Unit controls verified \u2014 full matrix recovery pending",
+      "change": "Actually perform required original-creator/reserve joins, fresh original-config current create/history recovery, recovery join and creator reactivation before Session/AV.",
+      "evidence": "Frozen two verifier markers are genuinely missing after AV abort; earlier13control/data replay checks cannot substitute. No verifier predicate relaxed. Actual independent recovery before media, exact original joins/config/reference/current authority/history; no synthetic verifier markers. Six native recovery controls pass, including actual join sequencing and preservation of original close errors; real matrix helper sequence remains pending. Final69Node includes strict original helper/config/reference/auth/history/join controls and exact original close-error propagation.",
+      "next": "Unit strict config/reference/current-auth/membership/history/join negatives and exact live/cumulative topology counts."
+    },
+    {
+      "id": "B21",
+      "title": "Diagnostic references retain closed browser owners",
+      "status": "Unit controls verified \u2014 full matrix references pending",
+      "change": "Snapshot numeric evidence then restore exact original shutdown hooks and release diagnostic strong references only after actual original joins.",
+      "evidence": "Prototype wrapper closures retain retiredPeers/rtcRetirements owner objects through idle; physical cleanup already passes. OS retention effect remains unproved. Original shutdown joins, immutable numeric snapshots and exact hook restoration release diagnostic roots; OS effect remains unproved. Nine hook controls pass, including delayed/rejected joins, exact original error preservation, foreign hooks and bounded references; this proves diagnostic release semantics, not RSS restoration. Final69Node verifies exact original shutdown joins and diagnostic roots release; failed playback remains failed and resources remain measured.",
+      "next": "Unit delayed/rejected joins and hook restoration/ownership negatives, then actual same-process resources."
+    },
+    {
+      "id": "B22",
+      "title": "Darwin diagnostic thread identity",
+      "status": "Verified \u2014 actual Mac parent/child identity controls",
+      "change": "Read genuine SDK THREAD_IDENTIFIER_INFO.thread_handle and independently check numeric kernelTID.",
+      "evidence": "pthread_self and libproc handles differ; no guessed-offset or false exact identity match is accepted. Fresh prepared SDK-backed Darwin identity; actual Mac parent/live-child controls pending. All3actual Mac identity cases pass; both Linux current-identity controls pass. Remaining OS retention requires attribution, not guessed handle offsets.",
+      "next": "Real same-process parent/child libproc queries on Mac; Linux identity control unchanged."
+    },
+    {
+      "id": "B23",
+      "title": "Private media refusal diagnostics filtered out",
+      "status": "Verified \u2014 actual filter and emitter controls",
+      "change": "Use existing enabled canonical_replacement topic with unchanged14event cap; admit fixed scene terminal summaries under existing audio_summary filter.",
+      "evidence": "v194 configured topics omit private_receive_refusal and scene_summary, so exact private gate leaf/starvation attribution is currently unavailable. Fresh prepared bounded private refusal and terminal scene topics; no full-load attribution yet. Both Service actual-runner filter cases and Core actual six-stage emitter case pass on Mac andARM; private receive logger remains bounded14events/target. Full-load runtime attribution pending.",
+      "next": "Real tracing EnvFilter tests against actual runner literals, then focused full-load preparation diagnosis."
+    },
+    {
+      "id": "B24",
+      "title": "Firefox current authority qualification",
+      "status": "Unit controls verified \u2014 actual Firefox retest pending",
+      "change": "Inspect original expiry/revocation/conflict subcases and exact authenticated refusal, preserving single original wait and current credentials.",
+      "evidence": "Final v194 has8Firefox current-authority blocked results; other authority cohorts pass. Original Firefox expiry/revocation/conflict facts passed inpage; pinned BiDi loses repeated conflict object. Browser-realm JSON snapshot preserves original finished report; no authority predicate relaxed. All6original-report transfer controls pass. Closed inpage facts and genuine failures survive the pinned BiDi boundary; no missing authority subcase invented. Final69Node retains all6original report-value/timeout/rejection controls; no genuine inpage authority failure is rewritten.",
+      "next": "Identify precise failed prerequisite and add positive/negative regression before claiming fix."
+    },
+    {
+      "id": "B25",
+      "title": "Publisher interleave prunes receiver history",
+      "status": "Native interleave verified \u2014 full matrix pending",
+      "change": "Keep one immutable receiver history/revision per exact original Profile. Restore pruned identity only under fresh current guarded delivery; preserve capacity and revision limits. No permission, route or current predicate is cached.",
+      "evidence": "Source audit: a genuine publisher announce can prune the retired private receiver row; both SDKs reset decoder history on the resulting newer receiver revision. Phase1 schedule did not exercise this interleave. Phase2 all3new pruned-history controls pass, including actual prune/current predicate/capacity/MAX/provenance. All5actual signed cases causally publish/decode target video and consume signed current feedback before same-decoder public interframe continuity.",
+      "next": "Three pruning/capacity/provenance controls and actual target publication, remote decode and signed feedback before the same original decoder receives its public interframe; then fullmatrix."
+    },
+    {
+      "id": "B26",
+      "title": "Repeated unary facts in sealed scene reads",
+      "status": "Store controls verified \u2014 full-load effect pending",
+      "change": "Resolve each origin once inside the exact-version replacement packet projection, retaining every ordered-pair check, complete scopes and earliest original expiry. Generic callers unchanged.",
+      "evidence": "Two independent source reviews find structural native-fact calls25\u219213 at3peers. This is not a measured speedup or established explanation for every private-media failure. All20normal-release Store controls pass. Actual required browser topology is4+2, with structural native-fact counts38\u219214 at4sources and16\u219212 at2sources;3source regression counts25\u219213. No measured speedup or full-load pass inferred.",
+      "next": "Five real3source Store regressions, original clock/version/custody and current-authority controls, actual signed replacements, then fullmatrix."
+    },
+    {
+      "id": "B27",
+      "title": "Retired browser fixture references remain rooted",
+      "status": "Implemented \u2014 script controls pass; OS effect pending",
+      "change": "Join the exact original client/source/keepalive batches, preserve closed reports and dynamic counts, then release only matching global/local SDK wrappers and source nodes. Added cleanup remains inside the original5s accounting.",
+      "evidence": "Final69Node verifies actor role and state-handle identity, pending/failed/foreign joins, missing keepalive proof, sampler errors after release, cached source observations and original error/deadline preservation. No forced collection, process restart or public SDK reconnect change.",
+      "next": "All32 real programmes with unchanged62s observation, retirement5s and idle10s sampled OS limits."
+    },
+    {
+      "id": "B28",
+      "title": "Linux browser process/descriptor attribution missing",
+      "status": "Implemented \u201418owner diagnostic tests pass",
+      "change": "Include already-adopted original Linux browser descendants at the existing baseline/final post-counter hook. Record closed browser labels, thread names,FD categories and exact before/afterbirth identity within existing50ms/16process bounds.",
+      "evidence": "Final30Python includes18owner diagnostics tests, including8new privacy/identity/race/bounds/no-extra-sample controls. Truncated/unavailable counts remain explicit; cross-host guest detail stays unavailable. Resource policy and verdict are unchanged.",
+      "next": "Use actual next-run ownership evidence to identify residual browser children/descriptors and server blocking workers; do not infer heap ownership from RSS alone."
     }
   ]
 }

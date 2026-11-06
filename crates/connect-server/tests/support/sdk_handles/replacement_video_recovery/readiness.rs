@@ -23,25 +23,40 @@ pub(super) fn file_sha256(path: &Path) -> String {
     }
     format!("{:x}", hash.finalize())
 }
+pub(super) struct OriginalPreparation {
+    pub(super) record_id: String,
+    pub(super) reservation_id: String,
+    pub(super) expires_at: i64,
+    pub(super) candidate_connection_id: String,
+    pub(super) candidate_runtime_id: String,
+    pub(super) generation: u64,
+    pub(super) cutoff: Instant,
+}
 pub(super) fn original_cutoff(
     f: &Fixture,
     root: &connect_client::canonical::payloads::OperationUpdated,
-) -> Instant {
-    let expires: i64 = rusqlite::Connection::open(&f.config.database)
-        .unwrap()
-        .query_row(
-            "SELECT expires_at FROM operations WHERE record_id=?1",
-            [root.record_id.as_ref().unwrap().as_str()],
-            |r| r.get(0),
-        )
-        .unwrap();
+) -> OriginalPreparation {
+    let (record_id,reservation_id,expires_at,candidate_connection_id,candidate_runtime_id,generation):
+        (String,String,i64,String,String,u64)=rusqlite::Connection::open(&f.config.database).unwrap()
+        .query_row("SELECT operation_record_id,reservation_id,expires_at,candidate_connection_id,candidate_runtime_id,generation FROM native_replacements WHERE operation_record_id=?1",
+            [root.record_id.as_ref().unwrap().as_str()],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?,row.get(5)?))).unwrap();
+    assert_eq!(record_id, root.record_id.as_ref().unwrap().as_str());
+    assert_eq!(generation, 2);
     let wall = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap();
-    let remaining = Duration::from_secs(u64::try_from(expires).unwrap())
+    let remaining = Duration::from_secs(u64::try_from(expires_at).unwrap())
         .checked_sub(wall)
-        .expect("original replacement expiry already passed");
-    Instant::now() + remaining
+        .expect("original replacement preparation expiry already passed");
+    OriginalPreparation {
+        record_id,
+        reservation_id,
+        expires_at,
+        candidate_connection_id,
+        candidate_runtime_id,
+        generation,
+        cutoff: Instant::now() + remaining,
+    }
 }
 struct Decoder {
     child: tokio::process::Child,
@@ -177,11 +192,17 @@ async fn audio(
     use rvoip_uctp::substrate::{
         observe_native_media_datagram, pack, MediaDatagram, ObservedNativeMediaDatagram,
     };
-    assert_eq!(preparation.audio().payload_type, 0);
-    let mut decoder = readiness_audio::Decoder::selected(
-        &json!({"name":"pcmu","params":{"sample_rate":8000,"channels":1,"payload_type":0}}),
-    )
-    .unwrap();
+    let pt = preparation.audio().payload_type;
+    let codec = match pt {
+        0 => json!({"name":"pcmu","params":{"sample_rate":8000,"channels":1,"payload_type":0}}),
+        111 => {
+            json!({"name":"opus","params":{"sample_rate":48000,"channels":1,"payload_type":111}})
+        }
+        _ => panic!("actual fixture codec differs from original selected PCMU/Opus"),
+    };
+    let mut decoder = readiness_audio::Decoder::selected(&codec).unwrap();
+    let payload = decoder.encoded_silence().unwrap();
+    let quantum = decoder.rate() / 50;
     let mut tick = tokio::time::interval(Duration::from_millis(20));
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut sequence = 0u16;
@@ -191,21 +212,21 @@ async fn audio(
                 _=tick.tick()=>{
                     sequence=sequence.wrapping_add(1);
                     io.send(&pack(&MediaDatagram{flags:0,stream_local_id:preparation.audio().stream_local_id,
-                        seq:u32::from(sequence),payload:rtp(0,sequence,u32::from(sequence)*160,0x72727272,false,&[0xff;160]).into()})).unwrap();
+                        seq:u32::from(sequence),payload:rtp(pt,sequence,u32::from(sequence)*quantum,0x72727272,false,&payload).into()})).unwrap();
                 }
                 received=io.receive()=>{
                     let packet=received.unwrap();
                     assert!(packet.video_epoch.is_none(),"no private source video has been published yet");
                     let ObservedNativeMediaDatagram::Rtp(packet)=observe_native_media_datagram(&packet.bytes).unwrap() else{continue;};
                     if packet.stream_local_id!=preparation.audio().stream_local_id {continue;}
-                    let packet=packet.rtp.into_packet();assert_eq!(packet.header.payload_type,0);
+                    let packet=packet.rtp.into_packet();assert_eq!(packet.header.payload_type,pt);
                     decoder.decode(packet.header.ssrc,packet.header.sequence_number,packet.header.timestamp,&packet.payload).unwrap();
                 }
             }
         }
     }).await.expect("original private audio did not actually decode before expiry");
     assert!(sequence > 0);
-    assert!(decoder.samples() >= 480);
+    assert!(decoder.samples() >= u64::from(decoder.rate()) * 60 / 1000);
     decoder.samples()
 }
 async fn video(
@@ -313,8 +334,11 @@ pub(super) async fn activate(
     sequence: &mut u16,
     voice: u16,
     incoming: u16,
+    camera: u16,
+    publisher_receiver: &sdk::Stream,
+    target_sequence: &mut u16,
     cutoff: Instant,
-) -> Value {
+) -> (Value, sdk::VideoReceiveEpoch) {
     let preparation = client.native_replacement_readiness().unwrap();
     assert_eq!(preparation.audio().stream_local_id, voice);
     assert_eq!(preparation.video().unwrap().stream_local_id, incoming);
@@ -354,6 +378,34 @@ pub(super) async fn activate(
             let done=serde_json::to_value(done).unwrap();assert_eq!(done["state"],"completed");
             assert_eq!(done["result"]["connection_id"],preparation.connection_id().unwrap());
             assert_eq!(done["result"]["generation"],2);
+            // Deliberately interleave the other actual current publisher before
+            // first public downlink. This used to prune the retired private
+            // receiver registry row and mint a different decoder revision.
+            assert!(!io.take_keyframe_request(camera,0x74657374).unwrap(),"no cached publisher hint may qualify");
+            raw_publish(io,camera,&key,1,target_sequence);
+            let (uplink,uplink_epoch)=receive(publisher_receiver,1).await;
+            assert_eq!(uplink,key);decode(f.temp.path(),&uplink,1).await;
+            // An actually received PLI must match the target's current SIGNED
+            // publisher notice; remote decode alone cannot prove that notice.
+            let metadata_until=cutoff.min(Instant::now()+Duration::from_secs(2));let mut observed=false;
+            for _ in 0..8 {
+                let requested=Instant::now();assert!(requested<metadata_until);
+                timeout_at(metadata_until,publisher_receiver.request_keyframe(options())).await.unwrap().unwrap();
+                let until=metadata_until.min(requested+Duration::from_millis(100));
+                loop {
+                    let read=timeout_at(until,io.receive()).await;
+                    if let Ok(result)=read {result.unwrap();}
+                    if io.take_keyframe_request(camera,0x74657374).unwrap(){observed=true;break;}
+                    if Instant::now()>=until{break;}
+                }
+                if observed {break;}
+            }
+            assert!(observed,"actual target publisher signed metadata/feedback did not become current");
+            assert!(!io.take_keyframe_request(camera,0x74657374).unwrap(),"original hint must be consumed once");
+            // Preserve the shared source's existing 100ms feedback limit before
+            // the later cold-decoder control. This consumes the SAME cutoff.
+            timeout_at(cutoff,tokio::time::sleep(Duration::from_millis(100))).await.unwrap();
+            eprintln!("replacement public publisher interleave: remote_key_decoded=true current_signed_publisher_hint=true consumed_once=true receiver_epoch={} receiver_revision={}",uplink_epoch.epoch,uplink_epoch.revision);
             // Decoder and actual signed receive epoch remain unchanged across
             // commit. A real interframe, not another keyframe, must decode.
             let delta=encoder.frame(2,false).await;assert_eq!(delta[0]&1,1);
@@ -365,7 +417,7 @@ pub(super) async fn activate(
             decoder.frame(&frame,2,arrived,cutoff).await;
             assert_eq!(decoder.outputs,2);
             eprintln!("replacement private/public decode: pid={original_pid} audio_samples={samples} same_epoch=true same_decoder=true original_private_rtp=3000 original_public_interframe_rtp=6000");
-            done
+            (done, public_epoch)
         }).await.expect("original replacement decoder phase exceeded its original cutoff")
     }).catch_unwind().await;
     let joined = decoder.close(cutoff).await;

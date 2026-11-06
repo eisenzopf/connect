@@ -1054,6 +1054,69 @@ impl Store {
         }
         Ok((rows, AuthorityScope::merged(&scopes)?, expiry))
     }
+    /// Invocation-local capture for the exact-version packet projection only.
+    /// Generic primary-SQL callers must continue using native_scene_facts.
+    pub(crate) fn native_scene_facts_in_packet_projection(
+        &self,
+        c: &Connection,
+        sources: &[Arc<NativeMediaOrigin>],
+        conversation: &str,
+        session: &str,
+    ) -> Result<(SceneFacts, Vec<AuthorityScope>, i64)> {
+        let mut rows = SceneFacts::new();
+        let mut scopes = Vec::new();
+        let mut expiry = crate::now() + 5;
+        let mut seen = std::collections::BTreeSet::new();
+        // Invocation-local immutable SQL facts only. The enclosing projection
+        // checks the exact observer/version before and after this whole capture,
+        // admits the complete current scope set, and seals that same version.
+        // Nothing here survives another call or carries an authority reader.
+        let mut unary = std::collections::BTreeMap::new();
+        for target in sources {
+            if target.conversation_id() != conversation
+                || target.session_id() != session
+                || !seen.insert(target.runtime_connection_id())
+            {
+                return Err(Error::forbidden());
+            }
+            let (view, _, required, until) = views(self, c, target, None)?;
+            let may = subscription_permission(c, target)?;
+            unary.insert(target.runtime_connection_id(), (view.clone(), may));
+            rows.insert(
+                (target.runtime_connection_id().into(), None),
+                (view, None, may),
+            );
+            scopes.extend(required);
+            expiry = expiry.min(until);
+        }
+        for target in sources {
+            let (view, may) = &unary[target.runtime_connection_id()];
+            for source in sources {
+                if Arc::ptr_eq(target, source) {
+                    continue;
+                }
+                let (other, _) = &unary[source.runtime_connection_id()];
+                // These pair-specific checks remain current for EVERY ordered
+                // pair. Only repeated unary reconstruction under this same
+                // sealed SQL observation is removed. Both originals' scopes
+                // and minimum expiries were already included above.
+                match require_current_pair(self, c, target, source, view, other) {
+                    Ok(()) => {
+                        rows.insert(
+                            (
+                                target.runtime_connection_id().into(),
+                                Some(source.runtime_connection_id().into()),
+                            ),
+                            (view.clone(), Some(other.clone()), *may),
+                        );
+                    }
+                    Err(e) if e.code == "forbidden" => {}
+                    Err(e) => return Err(e),
+                }
+            }
+        }
+        Ok((rows, AuthorityScope::merged(&scopes)?, expiry))
+    }
     pub(crate) fn native_scene_reads(
         &self,
         facts: SceneFacts,

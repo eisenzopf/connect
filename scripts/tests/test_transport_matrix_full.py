@@ -144,6 +144,45 @@ class FullMatrix(unittest.TestCase):
         evaluate_cell(cell, report, "d" * 64, environment=matrix["execution_environment"], revision="a" * 40)
         self.assertEqual(cell["check_results"]["identified-candidate-client-server-versions"]["status"], "failed")
 
+    def test_native_data_replay_and_prior_controls_cannot_substitute_original_helper_recovery(self):
+        matrix = self.configured("macos-arm64")
+        cell = next(c for c in matrix["cells"] if c["execution"]["runnable"]
+                    and c["network"] == "local" and c["transport"] == "native-quic")
+        recovery = ["independent-device-explicitly-activates-original-config-after-original-sdk-owner-joins",
+                    "independent-device-recovers-original-create-and-history-after-original-helper-close"]
+        controls = ["scoped-native-conversation-and-nonmember-current-access-refusal",
+                    "four-active-participants-and-addition-does-not-expand-older-message-audience",
+                    "membership-update-original-replay-changed-intent-and-stale-revision-guards",
+                    "remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay",
+                    "two-current-accepted-session-intents-coexist-with-one-main-session",
+                    "additive-session-capability-intent-and-unoffered-screen-refusal-without-state-change",
+                    "native-data-original-replay-recovers-receipt-without-second-delivery"]
+        original = dict(source_revision="a" * 40, host=dict(platform=cell["server"]), network_profile="local",
+            signing_algorithm=cell["signing"], source_inputs_unchanged=True,
+            sdk_dist_inputs_unchanged=True, executables_unchanged=True, passed=False,
+            conversation_control=dict(passed=False, checks=controls),
+            movement=dict(passed=False, original_moves_completed=0, moves=[]), native_av_decoded=dict(passed=False))
+        for absent in [None, *recovery]:
+            report = copy.deepcopy(original)
+            report["conversation_control"]["checks"] += [] if absent is None else [v for v in recovery if v != absent]
+            evaluate_cell(cell, report, "b" * 64, environment=matrix["execution_environment"], revision="a" * 40)
+            self.assertEqual(cell["check_results"]["one-service-contract-and-original-operation-recovery"]["status"], "failed")
+            self.assertEqual(cell["check_results"]["participant-add-update-remove-and-current-audiences"]["status"], "passed")
+            self.assertEqual(cell["check_results"]["session-upgrade-and-current-capability-refusal"]["status"], "passed")
+            self.assertNotEqual(cell["status"], "passed")
+        report = copy.deepcopy(original)
+        report["conversation_control"]["checks"] += recovery
+        evaluate_cell(cell, report, "b" * 64, environment=matrix["execution_environment"], revision="a" * 40)
+        self.assertEqual(cell["check_results"]["one-service-contract-and-original-operation-recovery"]["status"], "passed")
+        self.assertEqual(cell["check_results"]["device-replacement-and-old-owner-retirement"]["status"], "failed")
+        self.assertEqual(cell["check_results"]["independently-decoded-duplex-media-and-profile-budgets"]["status"], "failed")
+        self.assertNotEqual(cell["check_results"]["current-revocation-expiry-and-conflicting-operation-refusals"]["status"], "passed")
+        self.assertEqual(cell["status"], "failed", "Successful original control recovery never qualifies later AV failure")
+        report["sdk_dist_inputs_unchanged"] = False
+        evaluate_cell(cell, report, "c" * 64, environment=matrix["execution_environment"], revision="a" * 40)
+        self.assertEqual(cell["check_results"]["one-service-contract-and-original-operation-recovery"]["status"], "failed")
+        self.assertEqual(cell["check_results"]["one-service-contract-and-original-operation-recovery"]["category"], "integrity")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,108 @@
+{
+  "format": "connect/g6-058-final-script-evidence/1",
+  "updated": "2026-11-06T06:35:46.934934+00:00",
+  "base_revision": "4d4bbe80809863f15f22901a09bee01fa04cdb59",
+  "source_lock_sha256": "1c7c84e21eef91390b8c03848d5b88df1f05619f638d1789d5dd33be4747bc64",
+  "component_workspace_sha256": "1c6b5a55e8035787c16305dccb581074c7916e7f1d0f80b31c95b69cdd023515",
+  "node_passed": 69,
+  "python_passed": 30,
+  "skipped": 0,
+  "all_original_owners_joined": true,
+  "source_seal_unchanged_during_checks": true,
+  "rust_dependency_sources_unchanged_since_33_control_run": true,
+  "post_rust_changed_source_files": [
+    "scripts/lib/browser_matrix_admission.mjs",
+    "scripts/lib/browser_matrix_programme.mjs",
+    "scripts/lib/browser_matrix_retired_references.mjs",
+    "scripts/lib/browser_matrix_sources.mjs",
+    "scripts/lib/matrix_idle.py",
+    "scripts/lib/matrix_owner_diagnostics.py",
+    "scripts/tests/browser_matrix_admission.test.mjs",
+    "scripts/tests/browser_matrix_keepalive.test.mjs",
+    "scripts/tests/browser_matrix_retired_references.test.mjs",
+    "scripts/tests/browser_matrix_sources.test.mjs",
+    "scripts/tests/test_matrix_owner_diagnostics.py",
+    "scripts/video/browser_matrix_admission.mjs"
+  ],
+  "matrix_qualified": false,
+  "commands": [
+    {
+      "label": "node",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=1",
+        "scripts/tests/native_control_recovery.test.mjs",
+        "scripts/tests/native_session_retirement.test.mjs",
+        "scripts/tests/browser_matrix_retirement_hooks.test.mjs",
+        "scripts/tests/browser_matrix_result.test.mjs",
+        "scripts/tests/browser_matrix_programme.test.mjs",
+        "scripts/tests/browser_matrix_observation.test.mjs",
+        "scripts/tests/browser_matrix_retired_references.test.mjs",
+        "scripts/tests/browser_matrix_keepalive.test.mjs",
+        "scripts/tests/browser_matrix_sources.test.mjs",
+        "scripts/tests/browser_matrix_admission.test.mjs"
+      ],
+      "original_pid": 90696,
+      "exit_code": 0,
+      "joined": true,
+      "elapsed_seconds": 0.977977991104126,
+      "log_sha256": "741692532a20654ecbdcab7de400abd40a1d709278f721e5da5181871904c01c"
+    },
+    {
+      "label": "python-owner",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_matrix_owner_diagnostics.py"
+      ],
+      "original_pid": 90723,
+      "exit_code": 0,
+      "joined": true,
+      "elapsed_seconds": 0.13510918617248535,
+      "log_sha256": "7724ad2bf18e436061d2fa53e37f3cda2f78b2d008fb672f650c9aa757ccb9c4"
+    },
+    {
+      "label": "python-idle",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_matrix_idle.py"
+      ],
+      "original_pid": 90727,
+      "exit_code": 0,
+      "joined": true,
+      "elapsed_seconds": 0.06491804122924805,
+      "log_sha256": "120fcf1e1b1ef6883b716f1b33b4fbea79c7089f1d1ff950e98c9608d82abb42"
+    },
+    {
+      "label": "python-matrix",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_transport_matrix_full.py"
+      ],
+      "original_pid": 90728,
+      "exit_code": 0,
+      "joined": true,
+      "elapsed_seconds": 0.12332010269165039,
+      "log_sha256": "174f73311db407ab971f6d83724f703588626473a65f7701c386bb4b85a7c3e0"
+    }
+  ],
+  "scope": "Post-join fixture reference release, exact reports/counts/errors and bounded Linux browser diagnostics. Real OS restoration is not inferred from these tests."
+}

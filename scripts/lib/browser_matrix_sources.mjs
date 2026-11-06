@@ -22,11 +22,12 @@ export function matrixSourceFrame(elapsedMs) {
  * The SDK creates and retires each derived track. The original six sources and
  * fixed clock stay here; generated input never qualifies decoded quality. */
 export async function browserMatrixSources() {
-    const audio=new AudioContext({sampleRate:48000});
+    let audio=new AudioContext({sampleRate:48000});
     try{await audio.resume();if(audio.state!=='running')throw Error('Owned real-time audio output did not start');}
     catch(error){await audio.close();throw error;}
     const sources=[];
-    const bindings=new Map();
+    const bindings=new Map(),starts=new Set();
+    let retiredSnapshot,referenceRetirement;
     let stopped=false,closing,programme,terminalTimer,terminal=false,cleanupFailures=0;
     const retireConnection=connectionId=>{
         const binding=bindings.get(connectionId);if(!binding)return;
@@ -42,8 +43,9 @@ export async function browserMatrixSources() {
             source.oscillator.stop();source.oscillator.disconnect();source.gain.disconnect();
         }
     };
-    return {sources,
-        async start({route,connection,options}) {
+    const owner={sources,
+        start(input) {
+            const work=(async({route,connection,options})=>{
             if(stopped||terminal)throw Error('Original media source owner retired');
             if(!Number.isInteger(route.index)||route.index<0||route.index>=6||typeof connection.id!=='string'||bindings.has(connection.id))
                 throw Error('Six original routes and distinct physical captures required');
@@ -106,6 +108,8 @@ export async function browserMatrixSources() {
                 }
                 record.capture=binding.capture;
             }catch(error){retireConnection(connection.id);throw error;}
+            })(input);
+            starts.add(work);void work.then(()=>starts.delete(work),()=>starts.delete(work));return work;
         },
         retireConnection,
         beginProgramme() {
@@ -142,7 +146,18 @@ export async function browserMatrixSources() {
                 for(const source of sources){source.canvas.width=0;source.canvas.height=0;}
             })();
         },
-        observation:()=>({capture_input_mode:'caller-owned-audio-node+caller-owned-canvas',video_track_ownership:'sdk-per-connection',audio_context_ownership:'original-source-owner',real_time_audio_state:audio.state,programme:programme??null,source_terminal:terminal,cleanup_failures:cleanupFailures,
+        retireReferences(){return referenceRetirement??=(async()=>{
+            await owner.close();await Promise.allSettled([...starts]);
+            if(starts.size||bindings.size||sources.some(source=>source.attachments.some(binding=>
+                !binding.retired||(binding.capture&&binding.capture.closed!==true))))
+                throw Error('Original source capture ownership still pending');
+            const snapshot=owner.observation();
+            const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
+            retiredSnapshot=freeze(snapshot);
+            sources.length=0;audio=undefined;
+            return Object.freeze({joined:true,released:true,source_snapshot:retiredSnapshot});
+        })();},
+        observation:()=>retiredSnapshot??({capture_input_mode:'caller-owned-audio-node+caller-owned-canvas',video_track_ownership:'sdk-per-connection',audio_context_ownership:'original-source-owner',real_time_audio_state:audio.state,programme:programme??null,source_terminal:terminal,cleanup_failures:cleanupFailures,
             source_audio_elapsed_ms:programme?(audio.currentTime-programme.audioOriginSeconds)*1000:null,
             sources:sources.map(source=>({index:source.index,source_id:source.sourceId,draws:source.draws,
                 canvas_capture_mode:source.canvasCaptureMode,
@@ -156,4 +171,5 @@ export async function browserMatrixSources() {
                     capture_started:Boolean(binding.capture)}))})),
             scope:'Generated source and capture ownership only. No decoded receive, movement or profile-quality pass.'}),
     };
+    return owner;
 }

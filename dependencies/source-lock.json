@@ -1784,6 +1784,26 @@
       "path": "patches/rvoip/connect-private-receiver-lifecycle-epochs.patch",
       "sha256": "f4afc47910002df88e6155347c0512052cf56d01c9a387b8ce520ff0c45ac14d",
       "source": "G6-058 private receiver-only signed epoch selection through original captured lifecycle registration. Filter publisher history before selection; public readiness/open/quality remains suppressed until ordinary activation. Service derives fresh private/committing/ordinary authority separately; no new worker, frame, grant, deadline or SDK downgrade. Behavioral validation pending. Includes metadata selector controls for publisher starvation/stale generations and actual signed receiver-only/public lifecycle suppression on original registrations; tests unrun."
+    },
+    {
+      "path": "patches/rvoip/connect-video-feedback-public-route-refresh.patch",
+      "sha256": "8f6318dc3335c289ba7ab3e7fd272d998a44c84e6788acaad76cfa050fdb73d5",
+      "source": "G6-058 same-epoch private-to-public decoder continuation: actual guarded delivery refreshes only retired receiver route to fresh current Core scope; exact native signed-history allocation/provenance rebinds current predicate without changing epoch/revision/first packet metadata or reviving old observations. Core promotion retains rate/replay; source-only targeted validation pending."
+    },
+    {
+      "path": "patches/rvoip/connect-scene-summary-runner-filter.patch",
+      "sha256": "5f7164b40648a0f6b336720d5ecde2bddbd932bac1dd21f6e56ae77d6392d547",
+      "source": "G6-058 preserve original fixed six-stage terminal scene timing records while routing to audio_summary already enabled in required native/browser profiles. No timer, worker, packet log, timing or acceptance changes. Actual terminal emitter and required runner EnvFilter regressions added; validation pending."
+    },
+    {
+      "path": "patches/rvoip/connect-darwin-libproc-thread-identity.patch",
+      "sha256": "9077bccd7c8a6ef9042cdedf65909c7821f8584f47a0ac1ab9d60669ce268016",
+      "source": "G6-058 current Darwin thread diagnostic identity: use SDK THREAD_IDENTIFIER_INFO.thread_handle from the original pthread Mach thread, independently match numeric kernel TID and exact six-natural_t result; no pthread address offsets. Same-original parent/live-child libproc enumeration and separate handle/TID controls; Linux behavior unchanged. Diagnostic only; no allocator, pool, authority, timer or acceptance changes. Validation pending."
+    },
+    {
+      "path": "patches/rvoip/connect-video-receiver-pruned-history.patch",
+      "sha256": "0f7d2aa55b3d5dda0faba14df7aed74f694a4a127cfca0e9cdc768e5aff35f9b",
+      "source": "G6-058 retain one immutable receiver history/minted revision per original physical Profile; genuine current postcommit receiver delivery can restore a row pruned by intervening current publisher announcement. No cached predicate/route/permission; original128capacity and newhistory revisionlimits remain. Unit and actual signed interleave regressions staged, unrun."
     }
   ]
 }

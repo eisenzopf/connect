@@ -143,3 +143,40 @@ test('quantized audio clock polling emits each current source frame once without
     }
     assert.strictEqual(f.owner.observation().programme,original);
 }));
+
+
+test('retired source observation stays immutable and exact after original graph/node references release',()=>fixture(async f=>{
+    for(let i=0;i<6;i++)await f.owner.start({route:f.route(i),connection:f.connection('original-'+i),options:{}});
+    const original=f.owner.beginProgramme(),closing=f.owner.close();await closing;
+    const before=f.owner.observation(),references=f.owner.retireReferences(),receipt=await references;
+    assert.equal(f.owner.retireReferences(),references);assert.equal(f.owner.close(),closing,'Reuse original AudioContext close');
+    assert.equal(receipt.joined,true);assert.equal(receipt.released,true);assert.equal(f.owner.sources.length,0);
+    const after=f.owner.observation();assert.deepEqual(after,before);assert.equal(after.programme,original);
+    assert.equal(after,receipt.source_snapshot);assert.ok(Object.isFrozen(after)&&Object.isFrozen(after.sources)&&Object.isFrozen(after.sources[0]));
+    assert.equal(f.audio.closed,1);assert.ok(f.captures.every(capture=>capture.closed));
+    await assert.rejects(()=>f.owner.start({route:f.route(0),connection:f.connection('after-release'),options:{}}),/retired/);
+    assert.deepEqual(f.owner.observation(),before,'Illegal later start cannot erase original source evidence');
+}));
+
+test('source reference release waits for the exact pending capture admission after graph close',()=>fixture(async f=>{
+    let accept;const admitted=new Promise(resolve=>{accept=resolve;});
+    const pending=f.owner.start({route:f.route(0),connection:{id:'pending',capture:()=>admitted},options:{}});
+    const refusal=assert.rejects(pending,/retired during capture/);
+    await f.owner.close();const originalRecord=f.owner.sources[0],references=f.owner.retireReferences();let settled=false;
+    references.then(()=>{settled=true;});for(let i=0;i<8;i++)await Promise.resolve();
+    assert.equal(settled,false);assert.equal(f.owner.sources[0],originalRecord);
+    const handle={closed:false,close(){this.closed=true;}};accept(handle);await refusal;
+    const receipt=await references;assert.equal(handle.closed,true);assert.equal(receipt.joined,true);
+    assert.equal(f.owner.sources.length,0);assert.equal(f.owner.observation().sources.length,1);
+}));
+
+test('actual original source graph-close failure retains reference records and exact failure',async()=>{
+    const original=Error('Original AudioContext close refusal');
+    await assert.rejects(fixture(async f=>{
+        await f.owner.start({route:f.route(0),connection:f.connection('original'),options:{}});
+        const record=f.owner.sources[0];f.audio.close=async()=>{throw original;};
+        await assert.rejects(f.owner.retireReferences(),error=>error===original);
+        await assert.rejects(f.owner.close(),error=>error===original);
+        assert.equal(f.owner.sources[0],record);assert.equal(f.audio.closed,0);
+    }),error=>error===original);
+});

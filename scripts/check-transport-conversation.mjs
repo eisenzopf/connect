@@ -1,6 +1,8 @@
 import { fileSha256 } from "./lib/transport_file_hash.mjs";
+import { nativeControlRecovery } from "./lib/native_control_recovery.mjs";
 import { nativeMatrixLifecycle } from "./lib/native_matrix_lifecycle.mjs";
 import { nativeProgrammeBridge } from "./lib/native_programme_bridge.mjs";
+import { originalSessionRetirement } from "./lib/native_session_retirement.mjs";
 import { NATIVE_PROGRAMME_PROFILE } from "./lib/native_programme_profile.mjs";
 import { waitForProgrammeOffset } from "./lib/transport_programme_clock.mjs";
 import { liveVideoProgramFromManifest } from "./lib/transport_live_video_program.mjs";
@@ -78,6 +80,7 @@ const directory = await open(privateDirectory, "r"); try { await directory.sync(
 const options = { timeoutMs: 8000 };
 const mutation = name => ({ ...options, operationId: plan[name] });
 const clients = new Map();
+const originalSessions = originalSessionRetirement({globalDeadlineMs:(programmeWorker?.cutoff ?? Infinity)*1000});
 const observedHelpers = new Set();
 const dataFailures = new WeakMap();
 const ownerNativeMessageIds = [];
@@ -138,11 +141,12 @@ try {
         report.actual_topology_verified = true;
         check("actual-systemd-server-listener-and-distinct-ordinary-user-client-network-namespace-observed");
     }
-    const owner = clients.get("participant-1"), late = clients.get("participant-4");
+    let owner = clients.get("participant-1");
+    const late = clients.get("participant-4");
     const others = ["participant-2", "participant-3"].map(role => input.actors[role].identity_id);
     const create = await owner.conversations.create({ participants: others, policy: "persistent" }, mutation("create"));
     const originalReference = create.referenceJson();
-    const conversation = await complete(create);
+    let conversation = await complete(create);
     const cid = conversation.id;
     await writeFile(join(privateDirectory, "original-operation.json"), encode(originalReference), { flag: "wx", mode: 0o600 });
     let view = await conversation.refresh(options);
@@ -230,10 +234,28 @@ try {
     await send(owner, cid, "after", recipients(view));
     assert.deepEqual(await history(late), [plan.afterMessage]);
     check("remove-and-readmit-preserve-participant-id-and-fence-old-epoch-history-and-replay");
+    if (mediaWorkload) {
+        report.replacement_activation = {};
+        report.native_helper_ownership = [{stage:"initial-enrolled-owners",live_helpers:5,cumulative_helpers:observedHelpers.size}];
+        owner = await nativeControlRecovery({clients,
+            configuration:Object.fromEntries(["participant-1","replacement-1"].map(role=>[role,
+                {path:input.actors[role].config,sha256:report.sdk_config_hashes[role]}])),
+            configDigest:async path=>hash(await readFile(path)),
+            openClient:config=>new NodeClient({config,executable:input.executable}),helpers,helperExists:processExists,
+            complete,history,originalReference,conversationId:cid,
+            expectedHistory:[plan.beforeMessage,plan.includedMessage,plan.from4Message,plan.afterMessage],
+            expectedParticipants:view.participants.filter(p=>p.active).map(p=>p.id),options,
+            observe:(stage,live)=>report.native_helper_ownership.push({stage,live_helpers:live.size,cumulative_helpers:observedHelpers.size}),
+            check,stage:value=>{phase=value;},report:report.replacement_activation});
+        conversation = owner.conversations.byId(cid);
+        report.replacement_activation.observed_cumulative_helpers_after_recovery=observedHelpers.size;
+        assert.equal((await helpers()).size,4);assert.equal(clients.has("replacement-1"),false);
+    }
     const caps = mediaWorkload ? { data: ["reliable-ordered"], audio: ["opus"], video: ["vp8"] } : { data: ["reliable-ordered"], audio: ["g.711-mu"] };
     for (const [index, roles] of sessionRoles.entries()) {
         const session = await complete(conversation.sessions.invite({ sessionId: plan["session" + index],
             to: roles.slice(1).map(role => member(view, role).id), medium: "text-chat", intent: "synchronous-engagement", capabilities: caps }, mutation("invite" + index)));
+        originalSessions.own(session,plan["end" + index]);
         for (const role of roles.slice(1)) {
             const peerSession = clients.get(role).conversations.byId(cid).sessions.byId(session.id);
             const before = await peerSession.refresh(options);
@@ -351,9 +373,10 @@ try {
             payload_sha256: flows.map(v => hash(v.payload)), audio_video_workload_verified: false };
         check("six-live-native-data-connections-carry-six-independent-full-size-payloads-across-four-participants-two-sessions");
         phase = "owned-local-topology-observation";
+        const topologyHelpers=mediaWorkload?await helpers():observedHelpers,expectedTopologyHelpers=mediaWorkload?4:5;
         report.topology = input.network_profile === "local" ?
-            await observeLocalTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256) :
-            await (input.server_ownership?.kind==="macos-linux-guest" ? observeMacLinuxTopology(input.server_ownership, observedHelpers, input.native_endpoint, input.binary_sha256, input.client_ip, input.source_revision, input.server_binary_sha256) : observeRemoteTopology(input.server_pid, observedHelpers, input.native_endpoint, input.binary_sha256, input.client_ip));
+            await observeLocalTopology(input.server_pid, topologyHelpers, input.native_endpoint, input.binary_sha256,expectedTopologyHelpers) :
+            await (input.server_ownership?.kind==="macos-linux-guest" ? observeMacLinuxTopology(input.server_ownership, topologyHelpers, input.native_endpoint, input.binary_sha256, input.client_ip, input.source_revision, input.server_binary_sha256,expectedTopologyHelpers) : observeRemoteTopology(input.server_pid, topologyHelpers, input.native_endpoint, input.binary_sha256, input.client_ip,expectedTopologyHelpers));
         report.actual_topology_verified = true;
         check(input.network_profile === "local" ? "actual-server-loopback-listener-and-original-helper-network-namespace-observed" : "actual-server-owned-veth-listener-and-distinct-original-client-network-namespace-observed");
         phase = "native-data-original-replay";
@@ -372,20 +395,9 @@ try {
         report.data_workload.frozen_message_history_audiences_verified = true;
         check("native-data-history-preserves-exact-original-sender-and-addressed-recipient-audiences");
         if (mediaWorkload) {
-            // The reserve Device has no workload. Do not hold its fixed SDK
-            // owner unused across the native transport's30second idle bound.
-            phase = "reserved-device-initial-helper-close-before-native-av";
-            const beforeClose = await helpers();
-            await clients.get("replacement-1").close({ timeoutMs: 5000 });
-            clients.delete("replacement-1");
-            const afterClose = await helpers();
-            const retired = [...beforeClose].filter(pid => !afterClose.has(pid));
-            assert.equal(beforeClose.size, 5); assert.equal(afterClose.size, 4);
-            assert.equal(retired.length, 1); assert.equal(await processExists(retired[0]), false);
-            report.replacement_activation = { initial_helper_joined_before_workload: true,
-                original_device_config_sha256: report.sdk_config_hashes["replacement-1"], new_helper_created: false,
-                original_create_reference_preserved: false, mutation_replayed: false };
-            check("reserved-device-initial-helper-joins-before-sixty-second-workload");
+            // Both original reserve/recovery owners joined before Session
+            // creation; only four current participant helpers enter this phase.
+            assert.equal((await helpers()).size,4);assert.equal(clients.has("replacement-1"),false);
             phase = "six-native-opus-vp8-sixty-second-workload";
             const controllers = [];
             for (const role of controllerRoles) {
@@ -393,7 +405,9 @@ try {
                 clients.set(role, client); controllers.push(client);
                 assert.equal((await client.capabilities.refresh(options)).selectedTransport, "quic");
             }
-            await helpers(); assert.equal(observedHelpers.size, 7);
+            const programmeHelpers=await helpers();assert.equal(programmeHelpers.size,6);
+            assert.equal(observedHelpers.size,report.replacement_activation.observed_cumulative_helpers_after_recovery+2);
+            report.native_helper_ownership.push({stage:"six-native-programme-owners",live_helpers:programmeHelpers.size,cumulative_helpers:observedHelpers.size});
             const sourceManifest = JSON.parse(await readFile(join(input.media_source_directory, "manifest.json"), "utf8"));
             const sourcePrograms = {};
             for (const index of [0, 4]) {
@@ -502,39 +516,27 @@ try {
             assert.equal((await clients.get(role).media.dataStats(options)).queuedBytes, 0);
         check("all-six-original-native-connections-retire-and-owned-data-queues-drain");
     }
-    for (const [index, session] of sessions.entries()) {
-        const current = await session.refresh(options);
-        await complete(session.end({ expectedTopologyRevision: current.topologyRevision, reasonCode: 200, reason: "Synthetic fixture complete" }, mutation("end" + index)));
-        assert.equal((await session.refresh(options)).state, "ended");
+    for (const session of sessions) {
+        assert.equal((await originalSessions.end(session.id,options)).state,"ended");
     }
     check("both-original-session-intents-end-through-public-sdk");
-    phase = "original-owner-sdk-close-before-independent-device-recovery";
-    await owner.close({ timeoutMs: 5000 });
-    clients.delete("participant-1");
-    let replacement = clients.get("replacement-1");
-    if (mediaWorkload) {
-        phase = "independent-device-explicit-current-sdk-activation";
-        const actor = input.actors["replacement-1"];
-        assert.equal(hash(await readFile(actor.config)), report.replacement_activation.original_device_config_sha256);
-        replacement = new NodeClient({ config: actor.config, executable: input.executable });
-        clients.set("replacement-1", replacement);
-        assert.equal((await replacement.capabilities.refresh(options)).selectedTransport, "quic");
-        await helpers(); assert.equal(observedHelpers.size, 8);
-        report.replacement_activation.new_helper_created = true;
-        check("independent-device-explicitly-activates-original-config-after-original-sdk-owner-joins");
+    if (!mediaWorkload) {
+        phase = "original-owner-sdk-close-before-independent-device-recovery";
+        await owner.close({ timeoutMs: 5000 });
+        clients.delete("participant-1");
+        let replacement = clients.get("replacement-1");
+        phase = "independent-device-original-create-receipt-recovery";
+        const originalRecovery = replacement.operations.restore(originalReference, replacement.operationKinds.conversation_create);
+        assert.deepEqual(originalRecovery.referenceJson(), originalReference);
+        const restored = await complete(originalRecovery);
+        assert.equal(restored.id, cid);
+        phase = "independent-device-current-membership-read";
+        assert.equal((await restored.refresh(options)).participants.filter(p => p.active).length, 4);
+        phase = "independent-device-original-history-audience-read";
+        assert.deepEqual(await history(replacement), [plan.beforeMessage, plan.includedMessage, plan.from4Message, plan.afterMessage, ...ownerNativeMessageIds].sort());
+        check("independent-device-recovers-original-create-and-history-after-original-helper-close");
     }
-    phase = "independent-device-original-create-receipt-recovery";
-    const originalRecovery = replacement.operations.restore(originalReference, replacement.operationKinds.conversation_create);
-    assert.deepEqual(originalRecovery.referenceJson(), originalReference);
-    if (mediaWorkload) report.replacement_activation.original_create_reference_preserved = true;
-    const restored = await complete(originalRecovery);
-    assert.equal(restored.id, cid);
-    phase = "independent-device-current-membership-read";
-    assert.equal((await restored.refresh(options)).participants.filter(p => p.active).length, 4);
-    phase = "independent-device-original-history-audience-read";
-    assert.deepEqual(await history(replacement), [plan.beforeMessage, plan.includedMessage, plan.from4Message, plan.afterMessage, ...ownerNativeMessageIds].sort());
-    check("independent-device-recovers-original-create-and-history-after-original-helper-close");
-    report.passed = true;
+    report.passed = !mediaWorkload || report.replacement_activation.passed === true;
 } catch (error) {
     report.failure = { phase, name: error.name, kind: error.kind ?? null, certainty: error.certainty ?? null, ...operationFailure(error) };
     if (dataFailures.has(error)) report.failure.data_context = dataFailures.get(error);
@@ -563,9 +565,14 @@ try {
     if (error.name === "AssertionError") report.failure.assertion = { actual: shape(error.actual), expected: shape(error.expected) };
     await writeFile(join(privateDirectory, "failure.log"), String(error.stack), { mode: 0o600 });
 } finally {
+    // Keep the actual original failure/success terminal before cleanup. Session
+    // retirement and original SDK closes share the existing5s/global cutoff.
+    const originalCleanupCutoff=originalSessions.cleanupDeadline();
     if (matrixLifecycle) await matrixLifecycle.terminal();
+    report.original_session_retirement=await originalSessions.cleanup(originalCleanupCutoff);
+    report.passed=Boolean(report.passed&&report.original_session_retirement.passed);
     for (const client of clients.values()) {
-        try { await client.close({ timeoutMs: 5000 }); }
+        try { await client.close({ timeoutMs: originalSessions.remainingCloseMs(originalCleanupCutoff) }); }
         catch { report.passed = false; report.helper_close_failed = true; }
     }
     for (const pid of observedHelpers) {

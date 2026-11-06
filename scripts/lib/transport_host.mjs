@@ -49,10 +49,11 @@ export async function processExists(pid) {
         throw error;
     }
 }
-export async function observeLocalTopology(server, helpers, endpoint, expectedBinary) {
+export async function observeLocalTopology(server, helpers, endpoint, expectedBinary,expectedHelperCount=5) {
     const host = nativeHost();
     assert.equal(await executableHash(server), expectedBinary);
-    assert.equal(helpers.size, 5);
+    assert.ok(expectedHelperCount===4||expectedHelperCount===5);
+    assert.equal(helpers.size,expectedHelperCount);
     for (const pid of helpers) assert.equal(await executableHash(pid), expectedBinary);
     assert.match(endpoint, /^127\.0\.0\.1:[1-9][0-9]{0,4}$/);
     const port = Number(endpoint.split(":")[1]); assert.ok(port <= 65535);
@@ -81,7 +82,7 @@ export async function observeLocalTopology(server, helpers, endpoint, expectedBi
         server_executable_sha256: expectedBinary, native_kernel_identity_sha256: hash(boot) };
 }
 
-export async function observeRemoteTopology(server, helpers, endpoint, expectedBinary, clientIp) {
+export async function observeRemoteTopology(server, helpers, endpoint, expectedBinary, clientIp,expectedHelperCount=5) {
     const host = nativeHost();
     assert.equal(host.platform, "ubuntu24-arm64");
     assert.equal(clientIp, "10.203.0.2");
@@ -92,7 +93,8 @@ export async function observeRemoteTopology(server, helpers, endpoint, expectedB
     const serverNamespace = await readlink(`/proc/${server}/ns/net`);
     const clientNamespace = await readlink(`/proc/${process.pid}/ns/net`);
     assert.notEqual(clientNamespace, serverNamespace);
-    assert.equal(helpers.size, 5);
+    assert.ok(expectedHelperCount===4||expectedHelperCount===5);
+    assert.equal(helpers.size,expectedHelperCount);
     for (const pid of helpers) {
         assert.equal(await executableHash(pid), expectedBinary);
         assert.equal((await stat(`/proc/${pid}`)).uid, process.getuid());
@@ -120,7 +122,7 @@ export async function observeRemoteTopology(server, helpers, endpoint, expectedB
         server_executable_sha256: expectedBinary };
 }
 
-export async function observeMacLinuxTopology(proof, helpers, endpoint, expectedBinary, clientIp, sourceRevision, serverBinary) {
+export async function observeMacLinuxTopology(proof, helpers, endpoint, expectedBinary, clientIp, sourceRevision, serverBinary,expectedHelperCount=5) {
     const host = nativeHost();
     assert.equal(host.platform, "ubuntu24-arm64");
     assert.equal(proof.kind, "macos-linux-guest");
@@ -137,7 +139,8 @@ export async function observeMacLinuxTopology(proof, helpers, endpoint, expected
     assert.equal(route.prefsrc, clientIp);
     assert.notEqual(serverIp, clientIp);
     const namespace = await readlink(`/proc/${process.pid}/ns/net`);
-    assert.equal(helpers.size, 5);
+    assert.ok(expectedHelperCount===4||expectedHelperCount===5);
+    assert.equal(helpers.size,expectedHelperCount);
     for (const pid of helpers) {
         assert.equal(await executableHash(pid), expectedBinary);
         assert.equal((await stat(`/proc/${pid}`)).uid, process.getuid());

@@ -123,7 +123,7 @@ class MatrixIdle:
         if stage in {"baseline", "idle-final"}:
             # Diagnostic only, after the original quantitative sample. No extra
             # health request, workload owner, deadline, allowance or verdict.
-            sample["owner_diagnostics"] = idle_owner_diagnostics(self.sampler, roles=("server",),
+            sample["owner_diagnostics"] = idle_owner_diagnostics(self.sampler, roles=("server",) if hasattr(self.sampler, "lib") else ("server", "browser"),
                 directory=self.directory / "owner-diagnostics", stage=stage)
         return sample
 

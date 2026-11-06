@@ -125,3 +125,34 @@ test('known reachability failure never hides a new cleanup refusal or skips anot
     const failed=await closeBrowserMatrixProgramme({report,previousFailure:true,observer:{close(){throw renderer;}}});
     assert.equal('failure' in failed,false);assert.equal(failed.outcomes[1].status,'rejected','Failure-path diagnostics retain the actual refusal');
 });
+
+
+test('keepalive drops only its own client references after the exact pending original batch joins',async()=>{
+    const batch=deferred(),calls=[];
+    const actors={original:{client:{transport:{physicalEpoch:1},async keepAlive(){calls.push('original');await batch.promise;}}}};
+    await fixture(actors,async f=>{
+        await f.advance(20000);assert.deepEqual(calls,['original']);
+        const closing=f.owner.close();let settled=false;closing.then(()=>{settled=true;});await flush();
+        assert.equal(settled,false);assert.equal(f.owner.observation().retained_client_references,1);
+        assert.equal(f.owner.observation().original_batch_joined,false);
+        batch.resolve();await closing;
+        assert.equal(f.owner.close(),closing,'One exact original close remains idempotent');
+        assert.equal(f.owner.observation().retained_client_references,0);
+        assert.equal(f.owner.observation().original_batch_joined,true);
+        assert.ok(actors.original.client,'Only the keepalive closure owns this reference release');
+        await f.advance(80000);assert.deepEqual(calls,['original']);
+    });
+});
+
+test('joined keepalive rejection preserves its exact original error after diagnostic client references release',async()=>{
+    const original=Object.assign(Error('Original reachability refusal'),{kind:'transport-uncertain',certainty:'read-only'});
+    const actors={original:{client:{transport:{physicalEpoch:1},async keepAlive(){throw original;}}}};
+    await fixture(actors,async f=>{
+        await f.advance(20000);const closing=f.owner.close();
+        await assert.rejects(closing,error=>error===original);
+        assert.equal(f.owner.observation().retained_client_references,0);
+        assert.equal(f.owner.observation().original_batch_joined,true);
+        assert.equal(f.owner.observation().failed,true);assert.throws(()=>f.owner.check(),error=>error===original);
+        assert.equal(f.owner.close(),closing);await assert.rejects(f.owner.close(),error=>error===original);
+    });
+});

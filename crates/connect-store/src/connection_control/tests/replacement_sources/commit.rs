@@ -1289,3 +1289,5 @@ impl crate::NativeReplacementInstallationGuard for MetadataOnlyInstallationGuard
 }
 
 mod private_successor;
+
+mod scene_unary;

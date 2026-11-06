@@ -707,12 +707,13 @@ impl Store {
                     return Err(Error::forbidden());
                 }
                 let (member, saved, mut scopes, expiry) = media_facts(self, c, origin)?;
-                let (facts, scene_scopes, scene_expiry) = self.native_scene_facts(
-                    c,
-                    sources,
-                    &context.conversation_id,
-                    &context.session_id,
-                )?;
+                let (facts, scene_scopes, scene_expiry) = self
+                    .native_scene_facts_in_packet_projection(
+                        c,
+                        sources,
+                        &context.conversation_id,
+                        &context.session_id,
+                    )?;
                 scopes.extend(scene_scopes);
                 Ok((
                     (context, member, saved, facts),

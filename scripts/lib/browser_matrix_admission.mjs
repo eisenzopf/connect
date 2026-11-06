@@ -182,7 +182,7 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
 
 // The admission-only caller requests one terminal intent here. Future full media
 // callers retain these same owners until the unchanged programme terminal.
-export async function retireBrowserMatrixAdmission({state,actors,plan,journal,now=()=>performance.now(),terminalMs,reason='matrix-admission-complete'}) {
+export async function retireBrowserMatrixAdmission({state,actors,plan,journal,now=()=>performance.now(),terminalMs,reason='matrix-admission-complete',closeOriginalClients}) {
     const terminal=terminalMs??now(),cutoff=terminal+5000;
     const left=()=>{const timeoutMs=Math.floor(cutoff-now());check(timeoutMs>0,"original browser teardown deadline");return {timeoutMs};};
     const ends=await Promise.allSettled(state.connections.map(async(connection,index)=>{
@@ -204,14 +204,16 @@ export async function retireBrowserMatrixAdmission({state,actors,plan,journal,no
         await journal({kind:"session-end-accepted",operationId:original,reference:operation.referenceJson()});
         const result=await operation.wait(left());check(result.snapshot.state==="completed","original Session end must complete");
     }));
-    const closes=await Promise.allSettled(Object.values(actors).map(async actor=>{
-        try {await actor.client.close({timeoutMs:Math.max(1,Math.floor(cutoff-now()))});return {deadlineMet:true};}
+    const closeClient=async client=>{
+        try {await client.close({timeoutMs:Math.max(1,Math.floor(cutoff-now()))});return {deadlineMet:true};}
         catch(error){
             // A missed acceptance deadline remains failed. Retain and join the
             // original cleanup; this is another wait, never another mutation.
-            await actor.client.close({timeoutMs:60000});return {deadlineMet:false};
+            await client.close({timeoutMs:60000});return {deadlineMet:false};
         }
-    }));
+    };
+    const closes=closeOriginalClients?await closeOriginalClients(closeClient):
+        await Promise.allSettled(Object.values(actors).map(actor=>closeClient(actor.client)));
     const elapsedMs=now()-terminal;
     const passed=elapsedMs<=5000&&ends.every(value=>value.status==="fulfilled")&&sessionEnds.every(value=>value.status==="fulfilled")
         &&closes.every(value=>value.status==="fulfilled"&&value.value.deadlineMet);

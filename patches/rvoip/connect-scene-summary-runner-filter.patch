@@ -1,0 +1,52 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene/tick_summary.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene/tick_summary.rs
+@@ -84,7 +84,7 @@
+             if value.count == 0 {
+                 continue;
+             }
+-            tracing::debug!(target: "rvoip_core::scene_summary", scene = %scene, %session, stage,
++            tracing::debug!(target: "rvoip_core::audio_summary", scene = %scene, %session, stage,
+                 created_unix_us = self.created_unix_us,
+                 lifetime_us = micros(self.started.elapsed()), count = value.count,
+                 total_us = value.total_us, maximum_us = value.maximum_us,
+@@ -95,3 +95,40 @@
+         }
+     }
+ }
++
++#[cfg(test)]
++mod terminal_filter_tests {
++    use super::*;
++    use std::sync::{Arc,Mutex};
++    use tracing_subscriber::{layer::{Context,SubscriberExt},Layer};
++    struct Stages(Arc<Mutex<Vec<String>>>);
++    struct StageVisitor(Option<String>);
++    impl tracing::field::Visit for StageVisitor {
++        fn record_str(&mut self,field:&tracing::field::Field,value:&str) {
++            if field.name()=="stage" {self.0=Some(value.to_owned());}
++        }
++        fn record_debug(&mut self,_:&tracing::field::Field,_:&dyn std::fmt::Debug) {}
++    }
++    impl<S:tracing::Subscriber> Layer<S> for Stages {
++        fn on_event(&self,event:&tracing::Event<'_>,_:Context<'_,S>) {
++            assert_eq!(event.metadata().target(),"rvoip_core::audio_summary");
++            let mut visitor=StageVisitor(None);event.record(&mut visitor);
++            self.0.lock().unwrap().push(visitor.0.expect("original terminal stage"));
++        }
++    }
++    #[test]
++    fn original_terminal_summary_emits_exactly_six_stages_through_audio_summary_filter() {
++        let observed=Arc::new(Mutex::new(Vec::new()));
++        let subscriber=tracing_subscriber::registry()
++            .with(tracing_subscriber::EnvFilter::new("warn,rvoip_core::audio_summary=debug"))
++            .with(Stages(observed.clone()));
++        let mut summary=TickSummary::default();let start=Instant::now();
++        for offset in [0,20] {
++            let woke=start+Duration::from_millis(offset);
++            summary.record(woke,woke+Duration::from_micros(1),woke+Duration::from_micros(2),
++                woke+Duration::from_micros(3),woke+Duration::from_micros(4));
++        }
++        tracing::subscriber::with_default(subscriber,||summary.emit(1,&SessionId::from_string("original-scene-filter")));
++        assert_eq!(*observed.lock().unwrap(),vec!["wake-gap","members-lock-wait","members-lock-held","adopt-metadata","audio","direct"]);
++    }
++}
