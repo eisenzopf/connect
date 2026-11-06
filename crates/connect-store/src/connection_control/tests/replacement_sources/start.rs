@@ -455,6 +455,97 @@ fn resource_fixture() -> (
         .unwrap();
     (f, key, command, started, origin)
 }
+
+#[test]
+fn replacement_media_origin_busy_reread_preserves_started_capture_and_refuses_revocation() {
+    let (f, _, command, started, original) = resource_fixture();
+    let expected = {
+        let read = f
+            .store
+            .try_native_replacement_media_read(&original)
+            .unwrap();
+        assert!(read.current());
+        assert_eq!(read.target().connection.generation, 2);
+        read.target().clone()
+    };
+    let target_credential: String = f.store.connection().unwrap().query_row(
+        "SELECT json_extract(e.observation_json,'$.credential_id') FROM operations o JOIN native_replacement_steps s ON s.operation_record_id=o.record_id AND s.phase='start' JOIN operation_effects e ON e.id=s.effect_id WHERE o.operation_id=?1 AND o.command_type='connection.replace'",
+        [&command.operation_id], |row| row.get(0),
+    ).unwrap();
+    let counts = || {
+        (
+            f.count("operations"),
+            f.count("operation_effects"),
+            f.count("native_replacements"),
+            f.count("native_replacement_steps"),
+            f.count("native_replacement_media_steps"),
+        )
+    };
+    let before_counts = counts();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+
+    // Real primary SQL exclusion, not a synthetic busy result. Acquiring this
+    // immutable origin repeats no start/allocation effect and grants no Core IO.
+    let command_sql = f.store.connection().unwrap();
+    assert_eq!(
+        f.store
+            .native_replacement_media_origin(started.clone())
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(command_sql);
+    let recovered = f
+        .store
+        .native_replacement_media_origin(started.clone())
+        .unwrap();
+    let read = f
+        .store
+        .try_native_replacement_media_read(&recovered)
+        .unwrap();
+    assert!(read.current());
+    assert_eq!(read.target().connection, expected.connection);
+    assert_eq!(
+        read.target().runtime_connection_id,
+        expected.runtime_connection_id
+    );
+    drop(read);
+    assert_eq!(counts(), before_counts);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+
+    // A separately live installation cannot lend this Store a started capture.
+    let (foreign, _, _, foreign_started, _) = resource_fixture();
+    let refused = f
+        .store
+        .native_replacement_media_origin(foreign_started)
+        .unwrap_err();
+    assert!(
+        matches!(refused.code.as_str(), "forbidden" | "unauthorized"),
+        "{refused:?}"
+    );
+    drop(foreign);
+    assert_eq!(counts(), before_counts);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+
+    let admin = f.store.revalidate(&f.admin).unwrap();
+    f.store.revoke(&admin, &target_credential).unwrap();
+    let revoked = Store::inspect_snapshot(f.store.path()).unwrap();
+    let refused = f
+        .store
+        .native_replacement_media_origin(started)
+        .unwrap_err();
+    assert!(
+        matches!(refused.code.as_str(), "forbidden" | "unauthorized"),
+        "{refused:?}"
+    );
+    assert!(f
+        .store
+        .try_native_replacement_media_read(&recovered)
+        .is_err());
+    assert_eq!(counts(), before_counts);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), revoked);
+}
+
 #[test]
 fn replacement_private_media_phases_are_ordered_once_only_and_capture_without_projection() {
     use crate::NativeReplacementMediaPhase as Phase;

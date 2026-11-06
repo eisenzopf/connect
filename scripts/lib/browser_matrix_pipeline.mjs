@@ -76,5 +76,6 @@ export function browserMatrixPipeline(Peer,lookup,lookupAll=null){
                     original_audio_input_to_decode:pipelineEnvelopeLatency(edges(routes[source].input.edges),edges(audio),routes[source].input.report(),audioEnvelope),
                     video_input_to_decode:pipelineLatency(edges(routes[source].videoEdges),edges(video))}))};},
         snapshot(connection){return stages.owners.get(connection)?.snapshots.at(-1)??null;},
-        close(){if(closed)return;closed=true;Peer.prototype.encodeAudio=audio;Peer.prototype.encodeVideo=video;}};
+        close(){if(closed)return;closed=true;Peer.prototype.encodeAudio=audio;Peer.prototype.encodeVideo=video;
+            canvas.width=0;canvas.height=0;}};
 }

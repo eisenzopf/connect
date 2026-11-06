@@ -127,6 +127,23 @@ class FullMatrix(unittest.TestCase):
         self.assertEqual(cell["check_results"]["actual-private-packet-capture"]["category"], "environment")
         self.assertEqual(cell["status"], "failed")
 
+    def test_early_native_setup_failure_keeps_sealed_identity_independent(self):
+        matrix = self.configured("macos-arm64")
+        cell = next(c for c in matrix["cells"] if c["execution"]["runnable"]
+                    and c["network"] == "remote-profile-fixture" and c["transport"] == "native-quic")
+        report = dict(source_revision="a" * 40, host=dict(platform=cell["server"]),
+            network_profile="remote", signing_algorithm=cell["signing"],
+            source_inputs_unchanged=True, sdk_dist_inputs_unchanged=True, executables_unchanged=True,
+            binary_sha256="c" * 64, runtime_versions=dict(passed=True),
+            failure=dict(phase="seed-create", name="AssertionError"), native_programme_started=False)
+        evaluate_cell(cell, report, "b" * 64, environment=matrix["execution_environment"], revision="a" * 40)
+        self.assertEqual(cell["check_results"]["identified-candidate-client-server-versions"]["status"], "passed")
+        self.assertEqual(cell["check_results"]["declared-concurrent-workload"]["status"], "blocked")
+        self.assertNotEqual(cell["status"], "passed")
+        report["sdk_dist_inputs_unchanged"] = False
+        evaluate_cell(cell, report, "d" * 64, environment=matrix["execution_environment"], revision="a" * 40)
+        self.assertEqual(cell["check_results"]["identified-candidate-client-server-versions"]["status"], "failed")
+
 
 if __name__ == "__main__":
     unittest.main()

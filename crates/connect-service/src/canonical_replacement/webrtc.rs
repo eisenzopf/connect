@@ -175,6 +175,9 @@ fn cleanup_diagnostic(owned: &Owned, stage: &'static str, error: &impl std::fmt:
         ?error,
         "RTC replacement original retirement stage refused");
 }
+type OriginalWorker<'a, T> =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<T>> + Send + 'a>>;
+
 impl Runtime {
     pub(crate) async fn webrtc_replacement_worker(
         self: Arc<Self>,
@@ -184,8 +187,11 @@ impl Runtime {
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
     ) -> Result<()> {
         let mut owned = Owned::default();
-        let result =
-            Box::pin(self.webrtc_replacement_start(&a, &physical, &credential, &mut owned)).await;
+        // The original child already owns one Box. Erase its concrete coroutine
+        // shape at this Send-checked boundary without changing poll/drop custody.
+        let start: OriginalWorker<'_, Reply> =
+            Box::pin(self.webrtc_replacement_start(&a, &physical, &credential, &mut owned));
+        let result = start.await;
         if let Err(error) = &result {
             tracing::debug!(target: "connect_service::canonical_replacement",
                 operation_id = ?owned.root.as_ref().map(|root| &root.handle.intent().operation_id),
@@ -208,7 +214,9 @@ impl Runtime {
                 _=tokio::time::sleep_until(deadline)=>false,_=handler_finished.cancelled()=>true,
             };
             if finished {
-                match Box::pin(self.webrtc_replacement_admit(&mut owned, &physical)).await {
+                let admission: OriginalWorker<'_, ()> =
+                    Box::pin(self.webrtc_replacement_admit(&mut owned, &physical));
+                match admission.await {
                     Ok(()) => true,
                     Err(error) => {
                         tracing::debug!(code=%error.code, "RTC replacement resource admission refused");
@@ -802,10 +810,37 @@ impl Runtime {
         self.media
             .store
             .record_native_replacement_started_with_peer(&started.receipt, &proof)?;
-        let origin = self
-            .media
-            .store
-            .native_replacement_media_origin(started.receipt.clone())?;
+        // The original resources and their immutable capture already exist.
+        // Temporary command-SQL exclusion must reobserve only this origin read,
+        // never configure/mute, start recording, or the once-only physical IO.
+        // Reuse the SAME admission cutoff and cancellation owner.
+        let origin = admission::read_busy(
+            until,
+            &wait,
+            async {
+                tokio::select! { biased;
+                    _ = self.stop.cancelled() => {},
+                    _ = physical.lifetime.cancelled() => {},
+                    _ = root_cancelled.cancelled() => {},
+                    _ = driver.closed() => {},
+                }
+            },
+            || {
+                std::future::ready(
+                    self.media
+                        .store
+                        .native_replacement_media_origin(started.receipt.clone()),
+                )
+            },
+        )
+        .await
+        .map_err(|error| {
+            tracing::debug!(target: "connect_service::canonical_replacement",
+                operation_record = source.origin.operation_record_id(),
+                stage = "started-media-origin", code = %error.code,
+                "RTC replacement original metadata refused");
+            error
+        })?;
         source
             .policy
             .origin

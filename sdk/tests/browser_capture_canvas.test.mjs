@@ -132,10 +132,28 @@ test('canvas selections reject wrong dimensions, device/screen ambiguity and sup
 test('WT explicit canvas retains original decoded frame timing and normal capture retirement',()=>environment(async e=>{
  const c=e.wt(),canvas=new e.Canvas(),capture=await BrowserMediaCapture.open(c.owner,{videoStreamId:'video',videoCanvas:canvas});
  const track=e.videos[0].srcObject.getVideoTracks()[0];assert.equal(track.constraints,0);
+ const internal=e.canvases.filter(c=>c!==canvas);assert.equal(internal.length,1);assert.deepEqual([internal[0].width,internal[0].height],[640,360]);
  e.videos[0].callback(1000,{captureTime:1.5,mediaTime:9,presentationTime:1000});
  assert.deepEqual(c.frames,[{id:'video',timestamp:1500}]);capture.close();
  assert.equal(track.readyState,'ended');assert.equal(track.stops,1);assert.equal(e.videos[0].srcObject,null);assert.equal(e.videos[0].callback,undefined);
  assert.equal(c.listeners.size,0);assert.ok(e.watchers.every(w=>w.disconnected));assert.deepEqual(canvas.requests,[undefined]);
+ assert.deepEqual([internal[0].width,internal[0].height],[0,0]);assert.deepEqual([canvas.width,canvas.height],[640,360]);
+ capture.close();assert.equal(track.stops,1);
+}));
+test('WT failed camera startup releases its drawing surface while preserving borrowed canvas',()=>environment(async e=>{
+ const c=e.wt(),canvas=new e.Canvas();HTMLVideoElement.prototype.play=async()=>{throw new Error('original playback refused');};
+ await assert.rejects(()=>BrowserMediaCapture.open(c.owner,{videoStreamId:'video',videoCanvas:canvas}));
+ const internal=e.canvases.filter(value=>value!==canvas);assert.equal(internal.length,1);assert.deepEqual([internal[0].width,internal[0].height],[0,0]);
+ assert.deepEqual([canvas.width,canvas.height],[640,360]);assert.ok(e.tracks.every(track=>track.readyState==='ended'));assert.equal(c.listeners.size,0);
+}));
+test('WT retirement during original encoding cannot rearm a closed drawing surface',()=>environment(async e=>{
+ const c=e.wt(),canvas=new e.Canvas(),encode=c.owner.encodeVideo;
+ c.owner.encodeVideo=(id,frame)=>{const result=encode(id,frame);c.owner.close();return result;};
+ const capture=await BrowserMediaCapture.open(c.owner,{videoStreamId:'video',videoCanvas:canvas});
+ e.videos[0].callback(1000,{captureTime:1.5,mediaTime:9,presentationTime:1000});
+ assert.equal(capture.closed,true);assert.deepEqual(c.frames,[{id:'video',timestamp:1500}]);assert.equal(e.videos[0].callback,undefined);
+ const internal=e.canvases.filter(value=>value!==canvas);assert.equal(internal.length,1);assert.deepEqual([internal[0].width,internal[0].height],[0,0]);
+ assert.deepEqual([canvas.width,canvas.height],[640,360]);assert.equal(c.listeners.size,0);
 }));
 test('cancelled canvas/audio module waiter joins without stopping another capture or the caller source',()=>environment(async e=>{
  const context=new e.Context(),node=new e.Node(context),canvas=new e.Canvas(),module=deferred(),first=e.wt(),next=e.wt(),abort=new AbortController();context.moduleGate=module.promise;

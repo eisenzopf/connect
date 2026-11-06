@@ -136,6 +136,10 @@ export async function browserMatrixSources() {
                 stopped=true;stopSources();
                 await audio.close();
                 if(cleanupFailures)throw Error('Source capture cleanup failed');
+                // These are the caller's original canvas surfaces. Closed
+                // captures no longer use them; release their backing stores
+                // before observing idle resources, without resizing live input.
+                for(const source of sources){source.canvas.width=0;source.canvas.height=0;}
             })();
         },
         observation:()=>({capture_input_mode:'caller-owned-audio-node+caller-owned-canvas',video_track_ownership:'sdk-per-connection',audio_context_ownership:'original-source-owner',real_time_audio_state:audio.state,programme:programme??null,source_terminal:terminal,cleanup_failures:cleanupFailures,
@@ -147,6 +151,7 @@ export async function browserMatrixSources() {
                 pulse_ordinals:[...source.pulseOrdinals],last_programme_frame:source.lastProgrammeFrame,
                 original_source_owner_live:source.ownerLive(),original_source_timer_active:source.timer!==undefined,
                 original_source_retired:source.retired,original_oscillator_ended:source.oscillatorEnded,
+                original_canvas_backing_released:source.canvas.width===0&&source.canvas.height===0,
                 attachments:source.attachments.map(binding=>({connection_id:binding.connectionId,retired:binding.retired,
                     capture_started:Boolean(binding.capture)}))})),
             scope:'Generated source and capture ownership only. No decoded receive, movement or profile-quality pass.'}),

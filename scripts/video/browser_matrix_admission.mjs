@@ -208,7 +208,7 @@ try{
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
         const actors={};window.matrixActors=actors;let state={},sources,keepalive,observer,selectionEnrollment;
         const selection={},currentAuthority={};
-        const programmeReport={};let resourceClock;
+        const programmeReport={};let resourceClock,resourceTerminalRequested=false,resourceRetiredRequested=false,failureHandled=false;
         try{
             if(spec.stage==='quality'){
                 const baseline=await window.matrixResources('baseline');
@@ -260,8 +260,10 @@ try{
                 await keepalive.close();
             }
             window.matrixPhase='original-retirement';
-            if(spec.stage==='quality')await window.matrixResources('terminal',
-                resourceClock.host+(programmeReport.terminal_ms-resourceClock.browser)/1000);
+            if(spec.stage==='quality'){
+                resourceTerminalRequested=true;
+                await window.matrixResources('terminal',resourceClock.host+(programmeReport.terminal_ms-resourceClock.browser)/1000);
+            }
             const retirement=await retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event),
                 ...(spec.stage!=='admission'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
             let idleResources;
@@ -283,6 +285,7 @@ try{
                 retirement.passed&&=completedMs<=5000&&localOwnersJoined;
                 retirement.allLocalOwnersElapsedMs=completedMs;
                 window.matrixPhase='ten-second-idle-observation';
+                resourceRetiredRequested=true;
                 const measured=await window.matrixResources('retired');
                 idleResources={passed:measured.passed&&localOwnersJoined,localOwnersJoined,renderer,
                     ...(selected==='webtransport'?{media_peers:peers.length,active_bindings:peers.reduce((n,p)=>n+p.activeBindings,0),
@@ -297,17 +300,43 @@ try{
                 ...(spec.stage!=='admission'?{programme:programmeReport,keepalive:keepalive.observation()}:{}),
                 ...(spec.stage!=='admission'?{scope:'Actual admission and four-move programme; decoded quality and idle resources are explicit when requested. Capture/expiry/fallback require separate evidence.'}:{})};
         }catch(error){
+            failureHandled=true;
             console.error('Matrix failure',String(error.stack??error),JSON.stringify({kind:error.kind,certainty:error.certainty,problem:error.problem}));
+            const cleanupErrors=[];
+            if(spec.stage==='quality'&&resourceClock&&!resourceTerminalRequested){
+                // A failed original setup still owns real resources. Observe
+                // its actual failure/cleanup boundary once; this does not claim
+                // that the fixed media programme or its retirement completed.
+                resourceTerminalRequested=true;
+                try{await window.matrixResources('terminal',resourceClock.host+(performance.now()-resourceClock.browser)/1000);}
+                catch(failure){cleanupErrors.push({stage:'terminal',name:failure.name});}
+            }
             const closes=await Promise.allSettled(Object.values(actors).map(actor=>actor.client.close({timeoutMs:5000})));
+            const local=await Promise.allSettled([keepalive?.close(),observer?.close(),sources?.close()]);
+            local.forEach((value,index)=>{if(value.status==='rejected')cleanupErrors.push({stage:['keepalive','renderer','source'][index],name:value.reason?.name??'Error'});});
+            let failedIdle;
+            if(spec.stage==='quality'&&resourceClock&&resourceTerminalRequested&&!resourceRetiredRequested){
+                resourceRetiredRequested=true;
+                try{
+                    const measured=await window.matrixResources('retired');
+                    failedIdle={passed:false,localOwnersJoined:false,original_failure_cleanup_observed:true,
+                        resource_restoration:measured.passed,
+                        original_client_closes:closes.map(value=>value.status),
+                        local_cleanup:local.map(value=>value.status),errors:cleanupErrors};
+                }catch(failure){cleanupErrors.push({stage:'retired',name:failure.name});}
+            }
             return {passed:false,wrong_pin_refusal:pinRefusal,authenticated_owners:Object.keys(actors).length,
                 admission:state.report,actual_connections:state.connections?.length??0,failure:{stage:window.matrixPhase,
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
-                programme:programmeReport,keepalive:keepalive?.observation(),selection,current_authority:currentAuthority,original_client_closes:closes.map(value=>value.status)};
-        } finally {await keepalive?.close().catch(()=>{});await observer?.close();await sources?.close();
+                programme:programmeReport,keepalive:keepalive?.observation(),selection,current_authority:currentAuthority,
+                idle_resources:failedIdle,original_cleanup_errors:cleanupErrors,original_client_closes:closes.map(value=>value.status)};
+        } finally {
+            const closed=await Promise.allSettled([keepalive?.close(),observer?.close(),sources?.close()]);
             BrowserMediaPeer.prototype.shutdown=originalShutdown;BrowserMediaPeer.prototype.beginReplacementConnection=beginReplacement;
-            BrowserRtcConnection.prototype.shutdown=originalRtcShutdown;}
+            BrowserRtcConnection.prototype.shutdown=originalRtcShutdown;
+            if(!failureHandled){const failed=closed.find(value=>value.status==='rejected');if(failed)throw failed.reason;}}
         })().then(value=>{original.value=value;original.state='fulfilled';},error=>{
             original.error={name:error.name,message:String(error.message??error),stack:String(error.stack??error)};
             original.state='rejected';

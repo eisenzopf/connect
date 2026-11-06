@@ -39,6 +39,7 @@ export declare class BrowserMediaCapture {
     private worklet?;
     private silent?;
     private video?;
+    private videoCanvas?;
     private canvasCapture?;
     private callback?;
     private timer?;

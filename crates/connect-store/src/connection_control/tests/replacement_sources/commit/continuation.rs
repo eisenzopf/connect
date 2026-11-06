@@ -1,6 +1,12 @@
 //! Domain admission of the exact in-flight attempt; no physical route is granted.
 use super::*;
 
+fn immutable(error: rusqlite::Error, expected: &str) {
+    assert!(matches!(error,
+        rusqlite::Error::SqliteFailure(code, Some(message))
+            if code.code == rusqlite::ErrorCode::ConstraintViolation && message == expected));
+}
+
 #[test]
 fn exact_started_commit_can_read_current_public_pair_before_journal_projection() {
     let m = fixture_scoped(true, &["stream.subscribe"]);
@@ -50,6 +56,20 @@ fn exact_started_commit_can_read_current_public_pair_before_journal_projection()
         "another source interval cannot authorize the retained source"
     );
     drop(wrong_source);
+    let foreign = Fixture::new();
+    assert!(
+        foreign
+            .store
+            .try_native_replacement_continuation_media_read(
+                activation.origin(),
+                Some(&activation),
+                Some((&m.sources[1], None)),
+                None,
+            )
+            .is_err(),
+        "another installation cannot borrow this original activation"
+    );
+    drop(foreign);
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let mut attempt = Some(attempt);
     for captured in [false, true] {
@@ -152,10 +172,26 @@ fn pending_pair_refuses_foreign_worker_attempt_and_current_authority_loss() {
                 .unwrap();
             }
             "foreign-installation" => {
-                c.execute("UPDATE native_replacements SET runtime_epoch='another-installation' WHERE operation_record_id=?1", [record]).unwrap();
+                let sql = "UPDATE native_replacements SET runtime_epoch='another-installation' WHERE operation_record_id=?1";
+                immutable(
+                    c.execute(sql, [record]).unwrap_err(),
+                    "native replacement reservation is immutable",
+                );
+                // Deliberate corruption of this disposable fixture only: the
+                // independent domain check must refuse even without the guard.
+                c.execute_batch("DROP TRIGGER native_replacement_immutable")
+                    .unwrap();
+                c.execute(sql, [record]).unwrap();
             }
             "foreign-attempt" => {
-                c.execute("UPDATE native_replacement_steps SET attempt_id='another-attempt' WHERE operation_record_id=?1 AND phase='commit'", [record]).unwrap();
+                let sql = "UPDATE native_replacement_steps SET attempt_id='another-attempt' WHERE operation_record_id=?1 AND phase='commit'";
+                immutable(
+                    c.execute(sql, [record]).unwrap_err(),
+                    "native replacement step is immutable",
+                );
+                c.execute_batch("DROP TRIGGER native_replacement_step_immutable")
+                    .unwrap();
+                c.execute(sql, [record]).unwrap();
             }
             "cancelled" => {
                 c.execute(
@@ -166,6 +202,18 @@ fn pending_pair_refuses_foreign_worker_attempt_and_current_authority_loss() {
             }
             "expired-lease" => {
                 let until = crate::now() - 1;
+                immutable(
+                    c.execute(
+                        "UPDATE native_replacements SET expires_at=?2 WHERE operation_record_id=?1",
+                        params![record, until],
+                    )
+                    .unwrap_err(),
+                    "native replacement reservation is immutable",
+                );
+                // Preserve equal lease/reservation deadlines while exercising
+                // the real expired-clock refusal, never extending a lifetime.
+                c.execute_batch("DROP TRIGGER native_replacement_immutable")
+                    .unwrap();
                 c.execute(
                     "UPDATE native_replacements SET expires_at=?2 WHERE operation_record_id=?1",
                     params![record, until],

@@ -9,7 +9,7 @@ use std::sync::OnceLock;
 use std::time::Instant;
 
 const THREAD_LIMIT: usize = 128;
-const KIND_COUNT: usize = 7;
+const KIND_COUNT: usize = 10;
 
 #[derive(Clone, Copy)]
 pub(crate) enum Kind {
@@ -20,6 +20,9 @@ pub(crate) enum Kind {
     LifecycleScan,
     CodecScan,
     NativeControlPoll,
+    ControlStore,
+    NativeRetirement,
+    WebRtcRetirement,
 }
 impl Kind {
     const ALL: [Self; KIND_COUNT] = [
@@ -30,6 +33,9 @@ impl Kind {
         Self::LifecycleScan,
         Self::CodecScan,
         Self::NativeControlPoll,
+        Self::ControlStore,
+        Self::NativeRetirement,
+        Self::WebRtcRetirement,
     ];
     fn callsite(self) -> &'static str {
         match self {
@@ -40,6 +46,9 @@ impl Kind {
             Self::LifecycleScan => "session_lifecycle:hint_page",
             Self::CodecScan => "session_codecs:reap_recover_reconcile_targets",
             Self::NativeControlPoll => "native_control:original_future_poll",
+            Self::ControlStore => "canonical_control:original_store_call",
+            Self::NativeRetirement => "canonical_native:original_retirement_store_call",
+            Self::WebRtcRetirement => "canonical_webrtc:original_retirement_store_call",
         }
     }
 }

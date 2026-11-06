@@ -137,6 +137,13 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     try:
         code = bounded(["bash", "scripts/prepare-dependencies.sh"], PRIVATE / "dependencies.log", env, 600)
         assert code == 0
+        if conversation:
+            # Seal the exact public SDK before any runtime command. An early
+            # seed/control failure must retain this independent identity guard,
+            # rather than omit it merely because the programme was not reached.
+            sdk_inputs = runpy.run_path(str(ROOT / "scripts/check-gate-6-transports.py"))["sdk_inputs"]
+            sdk_before = sdk_inputs()
+            report["sdk_dist_inputs"] = sdk_before
         before = source()
         source_path = OUTPUT / "source-inputs.json"
         source_path.write_text(json.dumps(before, sort_keys=True) + "\n")
@@ -584,9 +591,6 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     matrix_resource_directory=str(PRIVATE / "process-profile") if media_workload else None,
                     matrix_programme_profile="connect/native-programme-worker/1" if media_workload else None,
                     matrix_programme_budget_seconds=300 if media_workload else None), indent=2) + "\n").encode())
-                sdk_inputs = runpy.run_path(str(ROOT / "scripts/check-gate-6-transports.py"))["sdk_inputs"]
-                sdk_before = sdk_inputs()
-                report["sdk_dist_inputs"] = sdk_before
                 if media_workload:
                     # Independent current-authority cases run before AV. A media
                     # failure must not prevent expiry/revocation from executing.

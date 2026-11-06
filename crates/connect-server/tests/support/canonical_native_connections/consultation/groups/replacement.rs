@@ -413,7 +413,9 @@ async fn exercise_replacement_with_av_transfer(
             activation_audit,
             ActivationAudit::Continuation(activation::continuation::Case::Expire)
         ) {
-            chrono::Utc::now().timestamp() + 45
+            // The actual original grant must expire while the unchanged
+            // thirty-second preparation reservation still holds projection.
+            chrono::Utc::now().timestamp() + 30
         } else {
             chrono::Utc::now().timestamp() + 600
         };

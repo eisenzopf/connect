@@ -105,7 +105,7 @@ impl NativeReplacementOrigin {
             return Err(Error::forbidden());
         }
         authority::read(c, &actor, &row)?;
-        // The original reservation belongs to this process-bound worker, while
+        // The original reservation belongs to this database-bound worker, while
         // the native resource epoch remains separately pinned above.
         let expires: Option<i64> = c.query_row(
             "SELECT n.expires_at FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND n.credential_id=?2 AND n.runtime_epoch=?3 AND n.original_digest=?4 AND n.reservation_id=o.lease_owner AND o.worker_runtime=?6 AND o.lease_expires_at=n.expires_at AND n.expires_at>?5",

@@ -152,6 +152,13 @@ pub(in super::super) async fn paused(
         .authenticate(target_credential)
         .unwrap()
         .expires_at;
+    let projection_expiry: i64 = c
+        .query_row(
+            "SELECT expires_at FROM native_replacements WHERE operation_record_id=?1",
+            [&current.record_id],
+            |r| r.get(0),
+        )
+        .unwrap();
     drop(c);
     let session = f
         .server
@@ -293,7 +300,16 @@ pub(in super::super) async fn paused(
     } else if matches!(case, Case::Retire) {
         assert_eq!(peers.len(), 3);
         let retired = peers.pop().expect("original owned target");
-        assert_eq!(retired.id, candidate);
+        // The fixture label remains provisional until journal completion.
+        // Bind this same physical reader to its already verified signed
+        // preparation, then retire the actual owner while projection is paused.
+        let readiness = retired.client.native_replacement_readiness().unwrap();
+        assert_eq!(readiness.connection_id(), Some(candidate));
+        assert_eq!(readiness.record_id(), current.record_id);
+        assert_eq!(
+            readiness.operation_id(),
+            Some(command.operation_id.as_str())
+        );
         retired.client.shutdown().await.unwrap();
         let until = tokio::time::Instant::now() + Duration::from_secs(3);
         let target = rvoip_core::ids::ConnectionId::from_string(target.clone());
@@ -309,12 +325,26 @@ pub(in super::super) async fn paused(
     if matches!(case, Case::Expire) {
         // Actual original target credential/key expiry, no clock injection or
         // renewed grant. The original movement was already completed in Core.
+        assert!(
+            target_expiry < projection_expiry,
+            "the original target grant must expire inside the original preparation deadline"
+        );
+        assert!(
+            futures_util::FutureExt::now_or_never(pause.left()).is_none(),
+            "the original projection pause already ended before the expiry witness"
+        );
         let remaining = target_expiry.saturating_sub(chrono::Utc::now().timestamp());
         assert!(
             (0..=120).contains(&remaining),
             "fixture original deadline is not bounded"
         );
         tokio::time::sleep(Duration::from_secs(remaining.max(0) as u64 + 1)).await;
+        let now = chrono::Utc::now().timestamp();
+        assert!(now >= target_expiry && now < projection_expiry);
+        assert!(
+            futures_util::FutureExt::now_or_never(pause.left()).is_none(),
+            "the expiry witness must precede the unchanged projection-pause deadline"
+        );
     }
     unpublished(f, candidate, &current.record_id);
     if !matches!(case, Case::Expire) {

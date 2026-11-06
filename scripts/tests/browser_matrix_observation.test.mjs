@@ -64,3 +64,25 @@ test('original public native outputs before completed-root stay observable while
         assert.equal(observer.report().routes[0].audio.original_source_quantum_overlaps,1);
     }finally{await observer.close();globalThis.document=old;}
 });
+
+test('fixture render canvases retain backing stores until their original borrower joins',async()=>{
+    const {browserMatrixPlan}=await import('../lib/browser_matrix_admission.mjs');
+    const old=globalThis.document,canvases=[];let finish,closed=0;
+    class Renderer {audio(){}video(){}}
+    globalThis.document={createElement:()=>{
+        const canvas={getContext:()=>({})};canvases.push(canvas);return canvas;
+    }};
+    const originalFinished=new Promise(resolve=>{finish=resolve;});
+    const connection={id:'owned-output',streams:{byId:id=>({id})},async render(input){
+        input.video[0].canvas.width=640;input.video[0].canvas.height=360;
+        return {close(){closed++;},finished:originalFinished};
+    }};
+    const observer=browserMatrixObservation(Renderer,browserMatrixPlan());
+    try{
+        await observer.attach(0,connection,{audio:'audio',video:'video'},{});
+        const closing=observer.close();await Promise.resolve();assert.equal(closed,1);
+        assert.deepEqual(canvases.map(canvas=>[canvas.width,canvas.height]),[[128,72],[640,360]]);
+        finish();assert.equal((await closing).joined,true);
+        assert.ok(canvases.every(canvas=>canvas.width===0&&canvas.height===0));
+    }finally{finish();await observer.close();globalThis.document=old;}
+});

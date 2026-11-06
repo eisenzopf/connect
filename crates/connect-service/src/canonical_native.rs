@@ -427,18 +427,21 @@ impl Runtime {
             // Queueing for a blocking worker consumes this same attempt's
             // budget, narrowed by the original runtime-stop cutoff if present.
             let wait = connect_store::AuthorityWait::new(remaining.min(budget));
-            let settled = tokio::task::spawn_blocking(move || {
-                let absent = Absent {
-                    natives,
-                    id: retired,
-                    generation: attempt.generation(),
-                };
-                // The original SQL/authority attempt must have a chance to
-                // finish while current snapshot readers overlap. The one wait
-                // remains bounded through every metadata admission, and never
-                // replays Core termination or waits on a SQLite busy timeout.
-                store.settle_native_offer_cleanup_with_wait(&attempt, &absent, &wait)
-            })
+            let settled = crate::runtime_retention::spawn_blocking(
+                crate::runtime_retention::Kind::NativeRetirement,
+                move || {
+                    let absent = Absent {
+                        natives,
+                        id: retired,
+                        generation: attempt.generation(),
+                    };
+                    // The original SQL/authority attempt must have a chance to
+                    // finish while current snapshot readers overlap. The one wait
+                    // remains bounded through every metadata admission, and never
+                    // replays Core termination or waits on a SQLite busy timeout.
+                    store.settle_native_offer_cleanup_with_wait(&attempt, &absent, &wait)
+                },
+            )
             .await;
             match settled {
                 Ok(Ok(())) => {

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-05T16:06:18-08:00",
-  "run_status": "Completed normal-release ARM regression run:44 passed,1 failed,0 ignored across45 executed checks; all original processes and VM lease joined. Paused audio root cause proven from read-only SQL snapshot:worker ID compared with installation ID. Correction implemented; runtime retest next. Full matrix v192 totals remain unchanged.",
+  "updated": "2026-11-05T16:42:37-08:00",
+  "run_status": "Complete parallel batch implemented and API-checked. 65 Node tests and 10 Python tests pass. Earlier ARM regression run: 8 of 11 passed, including live duplex, AV, revocation, writer recovery and unpaused handoff. Three fixture defects are corrected in the batch. Normal candidate runtime and all 32 cells / 432 verdicts are next. Historical v192 totals remain unchanged.",
   "blockers": [
     {
       "id": "B01",
@@ -14,10 +14,10 @@
     {
       "id": "B02",
       "title": "Post-Core audio continuation",
-      "status": "Implemented \u2014 exact runtime-owner correction; retest pending",
-      "change": "Validate installation epoch and the distinct process-bound transition worker separately in both pending-target and original-operation lease queries. Keep all current attempt, actor/key, membership, recipient, expiry and Core publication checks.",
-      "evidence": "43b failed paused control retained. Read-only boundary snapshot proves original SQL refuses and corrected exact-owner SQL matches with every other predicate unchanged. See g6-058-pending-worker-identity.json. New positive/foreign-owner/current-revocation Store controls implemented.",
-      "next": "Run normal-release ARM Store boundary controls, all paused duplex/authority/AV controls, then full32/432 matrix."
+      "status": "Verified live continuation \u2014 fixture corrections await batch rerun",
+      "change": "Validate installation epoch and the distinct database-bound transition runtime separately in both pending-target and original-operation lease queries. Keep all current attempt, actor/key, membership, recipient, expiry and Core publication checks.",
+      "evidence": "9acd83eb, normal ARM: Store positive control, live duplex, explicit AV, revocation, writer recovery and unpaused handoff pass. Three fixture defects are corrected. See g6-058-pending-continuation-runtime.json; no whole-matrix promotion.",
+      "next": "Verify corrected Store, retirement and expiry controls on the committed batch, then all 32 cells / 432 verdicts."
     },
     {
       "id": "B03",
@@ -38,10 +38,10 @@
     {
       "id": "B05",
       "title": "Audio/video probe demultiplexing",
-      "status": "Implemented \u2014 API check passed; runtime pending",
+      "status": "Verified \u2014 native AV control and both models",
       "change": "Demultiplex the original signed physical video reader, selected payload, observed SSRC and actually sent source frames. Validate every fragment against the final SDK-verified cut; preserve audio assertions.",
-      "evidence": "New demultiplexing source and two model/refusal tests compile via cargo check. This is API verification only; no model or physical AV runtime pass claimed.",
-      "next": "Run both model/refusal controls and actual paused AV transfer on normal-release ARM. Private tails earn no public/audio credit."
+      "evidence": "9acd83eb, normal-release ARM: both demultiplexing/refusal models and actual paused explicit-video-transfer control pass. Original packet membership and decoded observations are retained; no full-cell quality qualification.",
+      "next": "Preserve controls in the complete batch and run all 32 transport, quality and resource cells."
     },
     {
       "id": "B06",
@@ -70,10 +70,10 @@
     {
       "id": "B09",
       "title": "Cleanup and resource reclamation",
-      "status": "Awaiting fresh matrix",
-      "change": "Retest current cleanup before making further changes to already corrected ownership paths.",
-      "evidence": "Old matrix:30 cleanup failures. New interrupted run:3 selected cleanup/cold-open controls pass.",
-      "next": "Per-cell original owner/child/capture cleanup and resource budgets."
+      "status": "Implemented \u2014 cleanup/source controls pass; resource retest pending",
+      "change": "Release SDK-owned camera scratch canvas after callback retirement; release fixture-owned source/render/diagnostic surfaces after original joins. Observe actual browser failure cleanup boundaries while retaining failed retirement. Attribute original Store/retirement blocking calls using existing diagnostic wrapper.",
+      "evidence": "Combined batch:65 Node and10 Python controls pass, including normal/failed/reentrant camera close, delayed-renderer surface release and intact integrity refusals. This does not establish idle thread/FD/RSS recovery.",
+      "next": "Normal candidate build and full32 original idle/resource checks; retain raw thread/FD/RSS failures and attribute remaining owners without changing limits."
     },
     {
       "id": "B10",
@@ -82,6 +82,22 @@
       "change": "Preserve interrupted results, use same ARM VM, start a fresh candidate run with durable ownership.",
       "evidence": "VM recovered;182 passed/21 failed completed component cases. Interrupted aggregate is unqualified.",
       "next": "Fresh committed candidate; all32 cells and432 verdicts, including required Mac scope."
+    },
+    {
+      "id": "B11",
+      "title": "WebRTC post-start metadata contention",
+      "status": "Implemented \u2014 API checked; runtime pending",
+      "change": "Reobserve only effect-free native replacement origin acquisition on authority-busy after the same actual WebRTC start, using original cutoff and cancellation. No configure/mute/record or operation replay.",
+      "evidence": "Combined batch API check passes. Real Store SQL exclusion/recovery/revocation source control added. Two existing boxed WebRTC child futures now have explicit Send type boundaries; no extra allocations/tasks or effect replay.",
+      "next": "Integrate code and exclusion/refusal controls with complete batch, then run validation and all32 cells."
+    },
+    {
+      "id": "B12",
+      "title": "Mac remote fixture candidate integrity",
+      "status": "Implemented \u2014 verifier controls pass; full-cell retest pending",
+      "change": "Seal the exact prepared SDK manifest before seed runtime commands; preserve final exact digest comparison on every outcome.",
+      "evidence": "Two original missing-guard failures preserved. Seven matrix-verifier controls pass including early native failure identity and mutated SDK rejection. Mac remote seed transport uncertainty remains separately undiagnosed.",
+      "next": "Complete original preparation/seed routing audit in batch and verify all original integrity fields in full matrix."
     }
   ]
 }

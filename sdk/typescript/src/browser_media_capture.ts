@@ -75,6 +75,8 @@ export class BrowserMediaCapture {
     private worklet?: AudioWorkletNode;
     private silent?: GainNode;
     private video?: HTMLVideoElement;
+    // Internal drawing surface only; application-supplied canvases stay borrowed.
+    private videoCanvas?: HTMLCanvasElement;
     private canvasCapture?: CanvasVideoCapture;
     private callback?: number;
     private timer?: ReturnType<typeof setTimeout>;
@@ -475,7 +477,7 @@ export class BrowserMediaCapture {
         video.muted = true;
         video.playsInline = true;
         video.srcObject = new MediaStream([track]);
-        const canvas = document.createElement("canvas");
+        const canvas = (this.videoCanvas = document.createElement("canvas"));
         canvas.width = 640;
         canvas.height = 360;
         const out = canvas.getContext("2d");
@@ -551,7 +553,8 @@ export class BrowserMediaCapture {
                 );
                 return;
             }
-            this.callback = video.requestVideoFrameCallback(frame);
+            if (!this.stopped)
+                this.callback = video.requestVideoFrameCallback(frame);
         };
         this.callback = video.requestVideoFrameCallback(frame);
     }
@@ -618,6 +621,13 @@ export class BrowserMediaCapture {
                 this.video.cancelVideoFrameCallback(this.callback);
             this.video.pause();
             this.video.srcObject = null;
+            this.video = undefined;
+            this.callback = undefined;
+        }
+        if (this.videoCanvas) {
+            this.videoCanvas.width = 0;
+            this.videoCanvas.height = 0;
+            this.videoCanvas = undefined;
         }
         this.disconnectSource();
         if (this.worklet) {

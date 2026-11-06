@@ -1,0 +1,86 @@
+{
+  "format": "connect/g6-058-parallel-blocker-batch/1",
+  "baseline_revision": "9acd83eb4bf59f4defccf86d0d1a101f104568ef",
+  "updated": "2026-11-05T16:42:37-08:00",
+  "source_work_complete": true,
+  "parallel_workstreams": [
+    "Store authority and original-origin controls",
+    "WebRTC metadata acquisition and retention attribution",
+    "matrix fixture integrity and canvas cleanup",
+    "SDK internal camera surface custody"
+  ],
+  "candidate_files": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs": "24758d7c227f3e7a83f5f3f0c2048ff7074c4a98c90ead4862454d09dba68d2d",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/activation/continuation.rs": "eae40dfee9fd47424b77cfe4f47ca9ae6651ab06ec42e02ddce56017dd919441",
+    "crates/connect-service/src/canonical_consultation.rs": "27577c893ae5038f22a28d6b899946600daa5334a63367c4425ff541458060ac",
+    "crates/connect-service/src/canonical_native.rs": "b1724d62a25a415ff82208d0acd95a7cb17c41c9a1ff0adbb1742fa04818c2ef",
+    "crates/connect-service/src/canonical_replacement/webrtc.rs": "75d281b644d6dac6e8028cdd7b8512780342876f1a097b295ea124c62fda5644",
+    "crates/connect-service/src/canonical_webrtc.rs": "9af022b19d5978514474bf182c1a5c3cb2d43a29650b094e82f8c48f7ada7ac1",
+    "crates/connect-service/src/runtime_retention.rs": "64378cdcb7718b06bfae0adcc2d106bd28c1bba712095874927b99417392708e",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/commit/continuation.rs": "d470ee3dbca8db9a76d0c231a484c36887c0a459cd4243f18f94000251b51ea1",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/start.rs": "a78c819447a09400d22a1ebdd51b4479a78d5a10da4a93c5128bafade59ab44a",
+    "crates/connect-store/src/peer_authority/connection_media/replacement_continuation.rs": "b9eab313ac01c8a5fd56d99a4fcfc9953c3c97ed99f7588ff80feca5b2464ec4",
+    "crates/connect-store/src/transitions/replacement_source.rs": "07ecbbae7b8e489c07e2835c929af04dca3fcf15976dfe0a6908c7de00079f2f",
+    "scripts/check-transport-fixtures.py": "e8572879bce850f6cca28b8f8b1c891a9f49325a7bda032e6a01097401136e4e",
+    "scripts/lib/browser_matrix_observation.mjs": "cc551284eda9d0cd6cef94be20f1c9e4ce5b77289ba16ca4cbddc9f49055a868",
+    "scripts/lib/browser_matrix_pipeline.mjs": "499fbbd30dc3ad514a28b8e5d6671f4fa6750727ad0f01157b7ad185e599afb9",
+    "scripts/lib/browser_matrix_sources.mjs": "68db7b2167094bf9c8d8cfc80fdad02b55a99a987a16b94bf371b0dbc160ca1e",
+    "scripts/tests/browser_matrix_observation.test.mjs": "fcede3034114469a90c54e81437cf1d77719cd37907e720299e12d0d0e73b78b",
+    "scripts/tests/browser_matrix_sources.test.mjs": "39539f7132e963a88c9d5b1d2d18ad705bca63d9e288a1b4aff127ab337c1da2",
+    "scripts/tests/test_transport_matrix_full.py": "5ef92ad6b4db19121c7d9896bcb705fe7d3bf329baddd59186f2583c92a92b2a",
+    "scripts/video/browser_matrix_admission.mjs": "a96ce6d6de930af0a090e221a2f766fb4c0bd1a36428f915e63de815306954a5",
+    "sdk/tests/browser_capture_canvas.test.mjs": "b1cbb30d4629166bc40e0ed7394abdaa5c32733423b9bb4516b448fdfe82c3cb",
+    "sdk/typescript/dist/browser_media_capture.d.ts": "caa229c8f1e71834939f518520a7dd14ddcdde88fa6142b6ee24593c73b0ffb0",
+    "sdk/typescript/dist/browser_media_capture.js": "d35650732a2d1c1f7613d402350d60d9eb60ab2ae00c4afeabce8d569a2b3376",
+    "sdk/typescript/src/browser_media_capture.ts": "991b1b3089bbdae8b80a402c4537f985748e334f84f9a629202c9e23e65d8c55"
+  },
+  "validation": {
+    "typescript_build_exit_code": 0,
+    "node": {
+      "sdk_capture": 46,
+      "fixture_media": 14,
+      "fixture_admission": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    "python": {
+      "matrix_verdict": 7,
+      "capture_cleanup": 3,
+      "failed": 0
+    },
+    "store_api_check_exit_code": 0,
+    "server_api_check": {
+      "exit_code": 0,
+      "profile": "release opt0; API only",
+      "send_boundary_log_sha256": "736be53d5f1d4793bdc8a393711ea72e2819152bc804a2bd26f1b7cac2697866",
+      "final_fixture_log_sha256": "40ef3f504584e71687e5d4e1e91b940350d865e799c9a4213a1ecf718323d2c1"
+    },
+    "normal_release_batch_runtime": "pending",
+    "full32_matrix": "pending"
+  },
+  "constraints": {
+    "all32_and432_required": true,
+    "local_arm_and_required_mac_only": true,
+    "original_mutation_ids_preserved": true,
+    "resource_and_quality_limits_unchanged": true,
+    "no_provider_or_cloud_or_github_execution": true
+  },
+  "known_unresolved": [
+    "Mac remote native seed transport uncertainty",
+    "actual idle resource restoration",
+    "full candidate32cell transport/quality verification"
+  ],
+  "matrix_qualified": false,
+  "verification_source": "Exact candidate file digests; API and models only. Normal runtime and full matrix remain explicit.",
+  "fixture_corrections": [
+    "Assert immutable schema guards before deliberate disposable-row corruption",
+    "Use actual popped physical SDK candidate/record/operation for retirement",
+    "Original fixture key TTL30s with real expiry inside unchanged30s preparation reservation; no renewed grant or clock injection"
+  ],
+  "send_boundary": {
+    "existing_allocations_preserved": 2,
+    "extra_tasks": 0,
+    "API_check_passed": true,
+    "compile_time_benefit": "not qualified"
+  }
+}

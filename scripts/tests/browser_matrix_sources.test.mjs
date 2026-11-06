@@ -88,6 +88,7 @@ test('two device moves retain source masters, identity and the original programm
     assert.throws(()=>f.owner.beginProgramme(),/One running original programme/);
     await assert.rejects(()=>f.owner.start({route:f.route(0),connection:f.connection('extra'),options:{}}),/one switch and one return/);
     await f.owner.close();assert.ok(f.tracks.every(track=>track.readyState==='ended'));assert.equal(f.audio.closed,1);
+    assert.ok(masters.every(source=>source.canvas.width===0&&source.canvas.height===0));
     assert.deepEqual(f.timers(),{intervals:0,timeouts:0});
 }));
 
@@ -105,6 +106,7 @@ test('source ownership is not inferred from an empty track list or a retired gra
     for(const source of f.owner.observation().sources){
         assert.equal(source.original_source_owner_live,false);assert.equal(source.original_source_timer_active,false);
         assert.equal(source.original_source_retired,true);assert.equal(source.original_oscillator_ended,true);
+        assert.equal(source.original_canvas_backing_released,true);
         assert.ok(source.attachments.every(binding=>binding.retired));
         assert.equal('original_master_tracks_live' in source,false);
     }

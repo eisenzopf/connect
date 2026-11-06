@@ -296,9 +296,10 @@ impl Runtime {
             self.check_custodian_stop_deadline(&mut cleanup_cutoff)?;
             let store = self.media.store.clone();
             let owner = owned.clone();
-            let settled = tokio::task::spawn_blocking(move || {
-                store.try_settle_native_offer_cleanup(owner.lease()?, &Closed(&owner))
-            })
+            let settled = crate::runtime_retention::spawn_blocking(
+                crate::runtime_retention::Kind::WebRtcRetirement,
+                move || store.try_settle_native_offer_cleanup(owner.lease()?, &Closed(&owner)),
+            )
             .await;
             if matches!(settled, Ok(Ok(()))) {
                 break;

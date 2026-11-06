@@ -1,0 +1,96 @@
+{
+  "format": "connect/g6-058-pending-continuation-runtime/1",
+  "source_revision": "9acd83eb4bf59f4defccf86d0d1a101f104568ef",
+  "profile": "normal release opt3, debug assertions false",
+  "executed": 11,
+  "passed": 8,
+  "failed": 3,
+  "ignored": 0,
+  "all_original_commands_joined": true,
+  "lease_released_and_joined": true,
+  "cases": [
+    {
+      "name": "connection_control::tests::replacement_sources::commit::continuation::exact_started_commit_can_read_current_public_pair_before_journal_projection",
+      "qualified": true,
+      "exit_code": 0,
+      "log_sha256": "fd148919badd28a7f5ce2192b96ea6eed4c0120e14203111419f8e29bf2b633f",
+      "binary_sha256": "cb51f6004f4fda1f8872a7fc09d6ecf9ceff10b408b511fd7d19720c8e53504d"
+    },
+    {
+      "name": "connection_control::tests::replacement_sources::commit::continuation::pending_pair_refuses_foreign_worker_attempt_and_current_authority_loss",
+      "qualified": false,
+      "exit_code": 101,
+      "log_sha256": "56885c36448fbb58d61e44a8274939fc684269411e4f9bccc2a212e4affacb51",
+      "binary_sha256": "cb51f6004f4fda1f8872a7fc09d6ecf9ceff10b408b511fd7d19720c8e53504d"
+    },
+    {
+      "name": "canonical_native_connections::consultation::groups::replacement::decoded_readiness::video_tail::tests::video_tail_model_preserves_private_membership_without_audio_credit",
+      "qualified": true,
+      "exit_code": 0,
+      "log_sha256": "aad69d1f22b5befe64213df67cb024640e1dfdd3dcb350878a79d7c7c82fb610",
+      "binary_sha256": "521baa0678f3ee421afa4d307efbd462a5a10db19b43eb53afd5e6d1d844577d"
+    },
+    {
+      "name": "canonical_native_connections::consultation::groups::replacement::decoded_readiness::video_tail::tests::video_tail_model_refuses_foreign_source_payload_and_cut",
+      "qualified": true,
+      "exit_code": 0,
+      "log_sha256": "d4344a7711dfeb3538a1b1fde086bc8412fc404b85cb80e05ea4a270c2985708",
+      "binary_sha256": "521baa0678f3ee421afa4d307efbd462a5a10db19b43eb53afd5e6d1d844577d"
+    },
+    {
+      "name": "canonical_native_connections::consultation::groups::replacement::activation::continuation::production_paused_replacement_projection_keeps_original_duplex",
+      "qualified": true,
+      "exit_code": 0,
+      "log_sha256": "05936eda55427ea0e778f343156f4c189c7ef2c460972f9083e8869cd34029d8",
+      "binary_sha256": "521baa0678f3ee421afa4d307efbd462a5a10db19b43eb53afd5e6d1d844577d"
+    },
+    {
+      "name": "canonical_native_connections::consultation::groups::replacement::activation::continuation::production_paused_replacement_projection_keeps_explicit_video_transfer_gates",
+      "qualified": true,
+      "exit_code": 0,
+      "log_sha256": "91808589e5fde035c221bef823e0721b86f64da0d28206ea41c86d31a2b01cb2",
+      "binary_sha256": "521baa0678f3ee421afa4d307efbd462a5a10db19b43eb53afd5e6d1d844577d"
+    },
+    {
+      "name": "canonical_native_connections::consultation::groups::replacement::activation::continuation::production_paused_replacement_projection_actual_target_retirement_cannot_resume",
+      "qualified": false,
+      "exit_code": 101,
+      "log_sha256": "c3a50173776e6d7a767b8324c7ed8e39fa10e4f93ebaa3dff40309dc9b017dab",
+      "binary_sha256": "521baa0678f3ee421afa4d307efbd462a5a10db19b43eb53afd5e6d1d844577d"
+    },
+    {
+      "name": "canonical_native_connections::consultation::groups::replacement::activation::continuation::production_paused_replacement_projection_target_revocation_refuses_without_old_revival",
+      "qualified": true,
+      "exit_code": 0,
+      "log_sha256": "a2687f4c3acdfdbd31aa0270e5acc9e979be9322539b04fdf6f921ddcb44ad61",
+      "binary_sha256": "521baa0678f3ee421afa4d307efbd462a5a10db19b43eb53afd5e6d1d844577d"
+    },
+    {
+      "name": "canonical_native_connections::consultation::groups::replacement::activation::continuation::production_paused_replacement_projection_writer_drains_and_fresh_authority_recovers",
+      "qualified": true,
+      "exit_code": 0,
+      "log_sha256": "2da0405ca6d4241714f78e04debfad78071c166247416d20469c2b2ad79aadf3",
+      "binary_sha256": "521baa0678f3ee421afa4d307efbd462a5a10db19b43eb53afd5e6d1d844577d"
+    },
+    {
+      "name": "canonical_native_connections::consultation::groups::replacement::activation::continuation::production_paused_replacement_projection_original_target_grant_expiry_stops_without_replay",
+      "qualified": false,
+      "exit_code": 101,
+      "log_sha256": "116f15ceb9cf2f22874ad66745619485eef377333ebfe78c544f0e1ff400fb34",
+      "binary_sha256": "521baa0678f3ee421afa4d307efbd462a5a10db19b43eb53afd5e6d1d844577d"
+    },
+    {
+      "name": "canonical_native_connections::consultation::groups::replacement::activation::continuation::production_unpaused_replacement_continuation_fixture_control",
+      "qualified": true,
+      "exit_code": 0,
+      "log_sha256": "1fc7facffd949de450d1de8af439e9f66c9038d0b63a7378c46d48e173515b2d",
+      "binary_sha256": "521baa0678f3ee421afa4d307efbd462a5a10db19b43eb53afd5e6d1d844577d"
+    }
+  ],
+  "failure_diagnosis": {
+    "adversarial_store": "Fixture tries to rewrite schema-sealed rows; immutable guards correctly refuse. Batch now asserts schema refusal before isolated corrupt-fixture domain refusal.",
+    "target_retirement": "Fixture compares provisional display label before calling shutdown. Batch binds exact physical client using SDK candidate, record and operation.",
+    "target_expiry": "Original45s fixture grant outlives30s preparation reservation; pause released into stopped history first. No Ready-journal assertion failed. Batch30s grant and explicit original reservation/pause checks align real expiry before release."
+  },
+  "whole_matrix_qualified": false
+}

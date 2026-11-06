@@ -106,7 +106,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc) {
         const selected=peers[(at+peers.length-1)%peers.length];
         return {measure:new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1),selected,active:null};
     });
-    const bindings=new Map(),owners=[],originalAudio=Renderer.prototype.audio,originalVideo=Renderer.prototype.video;
+    const bindings=new Map(),owners=[],surfaces=new Set(),originalAudio=Renderer.prototype.audio,originalVideo=Renderer.prototype.video;
     let closed=false,closing;const rtcStages=Rtc?browserMatrixRtcStages():null;
     const pipeline=Peer?browserMatrixPipeline(Peer,(connection,kind,stream)=>{
         const owner=bindings.get(connection);
@@ -158,8 +158,9 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc) {
             check(!closed&&!bindings.has(connection.id)&&owners.length<10,'Bounded original render owners');
             const canvas=document.createElement('canvas');canvas.width=128;canvas.height=72;
             const context=canvas.getContext('2d',{willReadFrequently:true});context.imageSmoothingEnabled=false;
+            surfaces.add(canvas);
             bindings.set(connection.id,{index,audio,video,sendVideo,context,initial:active,sourceId:Number(plan.routes[index].role.split('-').at(-1))-1});
-            const output=document.createElement('canvas');rtc?.attach(connection.id,output);
+            const output=document.createElement('canvas');surfaces.add(output);rtc?.attach(connection.id,output);
             const owner=await connection.render({audio:true,video:[{stream:connection.streams.byId(video),canvas:output}]},options);
             owners.push(owner);if(active)routes[index].active=connection.id;
         },
@@ -191,7 +192,12 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc) {
             const statisticsWork=rtcStages?.close();
             for(const owner of owners)owner.close();const outcomes=await Promise.allSettled(owners.map(owner=>owner.finished));
             await rtc?.close();const statistics=await statisticsWork,count=owners.length;owners.length=0;bindings.clear();for(const route of routes)route.measure.ownerPixels.clear();
-            return {owners:count,statistics,joined:outcomes.every(value=>value.status==='fulfilled')&&(!rtcStages||statistics?.joined===true)};
+            const joined=outcomes.every(value=>value.status==='fulfilled')&&(!rtcStages||statistics?.joined===true);
+            // Both the diagnostic surface and public renderer target belong to
+            // this fixture. Borrowers have now joined; release actual backing
+            // stores without changing any original decoded observation.
+            if(joined){for(const canvas of surfaces){canvas.width=0;canvas.height=0;}surfaces.clear();}
+            return {owners:count,statistics,joined};
         })();},
     };
 }

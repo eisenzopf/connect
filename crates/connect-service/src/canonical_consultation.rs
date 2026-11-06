@@ -560,7 +560,7 @@ pub(super) fn descriptor(
 pub(super) async fn store_call<T: Send + 'static>(
     f: impl FnOnce() -> Result<T> + Send + 'static,
 ) -> Result<T> {
-    tokio::task::spawn_blocking(f)
+    crate::runtime_retention::spawn_blocking(crate::runtime_retention::Kind::ControlStore, f)
         .await
         .map_err(|_| Error::storage())?
 }
