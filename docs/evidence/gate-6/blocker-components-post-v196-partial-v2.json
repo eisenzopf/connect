@@ -1,0 +1,1717 @@
+{
+  "format": "connect/g6-058-post-v196-partial-component-validation/1",
+  "updated": "2026-11-06T17:55:22.985698+00:00",
+  "status": "partial-failed",
+  "execution_scope": "Owner Mac Studio arm64 and native local Ubuntu ARM64 guest; no GitHub or cloud runner.",
+  "source_revision": "5127fc431d7b3a14c93b16df69aad76b078a80e5",
+  "candidate_workspace_sha256": "0796b896be5adf69140427e45dc42bd016c2ae8849b047cdd522ba04180ea60d",
+  "source_lock_sha256": "19f28746d8633de6a2890010b58db230e06b3d9ae3ee2306b736fa0263f95a25",
+  "prepared_source_digests": {
+    "rvoip": "74b2316b487f5752d3ecb1376c3f6a6d8b4acb06017ee54d8b03bb10e0e71872",
+    "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+  },
+  "original_controller_sha256": "33a5cb4039c40aa14377a6ccc52e9d312c69d03b3e4a7861cd37fd733c6ec0c5",
+  "runtime_input_sha256": "0ccc5a5b3477b1a5b5da372160f6ac4d8f9e1fab40b833462cf6f8bc6edaafa4",
+  "runtime_worker_sha256": "d264d6a41a39e6ff3cd85abcff2db6b5b2837d514deb850e18684241a7d2a78d",
+  "all_original_owners_joined": true,
+  "selected_rust_cases": 58,
+  "rust_passed": 56,
+  "rust_failed": 2,
+  "rust_ignored": 0,
+  "mac": {
+    "profile": "mac",
+    "system": "Darwin",
+    "architecture": "arm64",
+    "receipt_sha256": "af558f43b545d7b913b994c6e6fb7be8df1b65d5e2a97bbe10e154275c0ddec6",
+    "selected_cases": 23,
+    "passed": 23,
+    "failed": 0,
+    "ignored": 0,
+    "all_original_commands_joined": true,
+    "source_seal_unchanged": true,
+    "normal_release_profile": {
+      "opt_level": 3,
+      "debug_assertions": false,
+      "proof": "Sealed runtime worker validates each original executable Cargo profile; no compile or inventory failures."
+    },
+    "default_feature_check_passed": null,
+    "cases": [
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_copies_only_existing_selected_video_and_keeps_old_audio_and_video_live",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "3219eec12dc3f9aa754ac6bb4b98cd1c9f289d582c658f7a81bfb9e30876612b"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_cancel_and_drop_fence_original_queued_private_frames_only",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "0940d43b3f76dd81ad7f5927f1c13acecb61bd3c81e47b80a9110f9be4074a03"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_original_unsubscribe_retires_queued_copies_and_cannot_be_resurrected",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "75a533faabe040f3ce069add14beb619403f7e9d9bb445b5099575e01cd346f6"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_original_unsubscribe_drains_a_real_inflight_private_write",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "242efb403c9893791e23c3f57642b12cbd3da5ca89d31cb5ee24a88da7b7f385"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_source_or_target_transport_replacement_invalidates_readiness_descriptors",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "0763c3743a65e721afa3f09501b12b493a6be29a073ad4f4114a169b89ef2a60"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_commits_through_existing_compound_swap_and_close_keeps_target_running",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "57af150daf83d9fa8e877416fda24ebf8cf79f9c94d4516e642e0a7f229e9633"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_compound_swap_waits_for_original_inflight_private_write",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "5cb9f5b62e811f3571e15c4809c771183992e65b1dc8ef6c005e3705cf465fa8"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_public_promotion_preserves_decoder_identity_but_retires_private_feedback",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "bc6bcffa7644e9094113189b60fc232f8a8af36754b14473743765cb2a1e0391"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_promotion_changes_identity_when_actual_source_selection_changes",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "62649c7050c481c764bd02dcd0ae3eb5c30de6a94790cc3f1b0ecdd50609ab9c"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_public_identity_does_not_survive_source_or_target_port_generation_change",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "e7439df847ca74cc8e7140e3adf24d543169be093be22d4626a12c8f5f534058"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_unavailable_identity_metadata_creates_fresh_public_epoch_without_waiting",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "854c7b237aebffcd2287572893c531fd3d66793ea96e37dc16f75f956e606f10"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_cancelled_identity_never_authorizes_queued_or_feedback_work",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "1f314a0528a1e2815799ad159dc703b703d7b414294bceb626e3577099ee4179"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_plan_exclusion_defers_before_routes_and_same_capture_recovers",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "58cb9e719d3874e35427648dc5cdf088fddda85624911dfb3b425321a503a885"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_plan_exclusion_does_not_bypass_cancel_revocation_or_expected_revision",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "d4a949ffbe89d4d0faa08c7f4efc2e6d7e01b4d5f805b7cdebb54c21e726613d"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_poisoned_metadata_and_invalid_mapping_are_terminal_before_routes",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "log_sha256": "b98795a919285d8f49f10a3c743d6c3780ddeb974b9af88e492d77b8eb44e309"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::preparation::video::tests::unpublished_video_retry_releases_all_custody_and_rereads_before_one_effect",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "6122a9ebed0863dc2da7d3fda75ad1d0ceb588ff019e8560b48a7a0b11f1ed73",
+        "log_sha256": "fe4d1feacd9f4b7aa13c21ebe14079f68cd85afbf3c6ef0cf7a2e11a97403639"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::preparation::video::tests::unpublished_video_retry_observes_mutation_cancel_and_original_cutoff",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "6122a9ebed0863dc2da7d3fda75ad1d0ceb588ff019e8560b48a7a0b11f1ed73",
+        "log_sha256": "3a4c71b89a08ad369b1956a838e28f512cbbf6b50432befe2ff26095d324b4d8"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::preparation::video::tests::first_busy_authority_cutoff_is_not_renewed_by_later_captures",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "6122a9ebed0863dc2da7d3fda75ad1d0ceb588ff019e8560b48a7a0b11f1ed73",
+        "log_sha256": "656ab3856a62846a3684bf1e5cb014fab1dd28093214342281d8d3ee15ff8533"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::preparation::video::tests::cancellation_joins_the_original_metadata_read_before_returning",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "6122a9ebed0863dc2da7d3fda75ad1d0ceb588ff019e8560b48a7a0b11f1ed73",
+        "log_sha256": "ae5ea7011ae52dd9eb8e51bb74fa0bc5fd02624886fa1fe2ad82271116425bf2"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::preparation::video::tests::uncertain_or_post_registration_errors_never_resubmit_a_video_effect",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "6122a9ebed0863dc2da7d3fda75ad1d0ceb588ff019e8560b48a7a0b11f1ed73",
+        "log_sha256": "fd9219b52628e548b0317d7477b51ad02010a6b9000b7f7744a95bf516bd0b11"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::readiness::decoder_contract_tests::original_decoder_observation_is_frozen_and_identical_retry_is_observational_only",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "6122a9ebed0863dc2da7d3fda75ad1d0ceb588ff019e8560b48a7a0b11f1ed73",
+        "log_sha256": "989dfc03a2826d6e7ddf60a1f1b4314b313b0115e7bb9ed3024ca2e1676e493f"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::readiness::decoder_contract_tests::expired_original_gate_cannot_capture_or_extend_decoder_readiness",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "6122a9ebed0863dc2da7d3fda75ad1d0ceb588ff019e8560b48a7a0b11f1ed73",
+        "log_sha256": "dd9f2cc7e0905b3d34215205415a5b10480196d9b0e95a302b7226e2aead6a00"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::readiness::decoder_contract_tests::native_video_requires_real_count_and_current_private_route_even_for_valid_wire_shape",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "6122a9ebed0863dc2da7d3fda75ad1d0ceb588ff019e8560b48a7a0b11f1ed73",
+        "log_sha256": "78d17a9af195f7404b1f511fc9929e0fb642599eebe16f7c2f3d63fbe2bca01c"
+      }
+    ],
+    "binaries": {
+      "precommit-0-rvoip-core-rvoip_core": {
+        "sha256": "8d04a7aa0e10b1aa37968f3da042f0987c09d60f1b6398b55c5ad7fc6c052df0",
+        "bytes": 19624888,
+        "inventory_sha256": "25b49f2626c89ab1fcae7f4c52bab8eea229f49719b47e5d848dae17aacaa929",
+        "target": "rvoip_core",
+        "features": [
+          "default",
+          "identity",
+          "media",
+          "opus",
+          "rtp",
+          "sip",
+          "test-support",
+          "uctp",
+          "vcon"
+        ]
+      },
+      "precommit-1-connect-service-connect_service": {
+        "sha256": "6122a9ebed0863dc2da7d3fda75ad1d0ceb588ff019e8560b48a7a0b11f1ed73",
+        "bytes": 57337296,
+        "inventory_sha256": "78c30993591d565ad60b3b6692de1d5d698b52323d57eaea63528318fd17f1fc",
+        "target": "connect_service",
+        "features": [
+          "test-support"
+        ]
+      }
+    },
+    "commands": [
+      {
+        "label": "prepare",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "78e0e8e5912d607d7a143d6876bc1af702e721ed7c97ebda2e820560b0188686"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-compile",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "f7e6d196be1a265f3d77b882edf41b4db16cff2fa374c23579e921ce12915be5"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-inventory",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "3d05e8a5086e1399ddc6c5f512898135d20a142434efd44fdfa2cf8ce9a83c0b"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-0",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "3219eec12dc3f9aa754ac6bb4b98cd1c9f289d582c658f7a81bfb9e30876612b"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-1",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "0940d43b3f76dd81ad7f5927f1c13acecb61bd3c81e47b80a9110f9be4074a03"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-2",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "75a533faabe040f3ce069add14beb619403f7e9d9bb445b5099575e01cd346f6"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-3",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "242efb403c9893791e23c3f57642b12cbd3da5ca89d31cb5ee24a88da7b7f385"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-4",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "0763c3743a65e721afa3f09501b12b493a6be29a073ad4f4114a169b89ef2a60"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-5",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "57af150daf83d9fa8e877416fda24ebf8cf79f9c94d4516e642e0a7f229e9633"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-6",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "5cb9f5b62e811f3571e15c4809c771183992e65b1dc8ef6c005e3705cf465fa8"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-7",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "bc6bcffa7644e9094113189b60fc232f8a8af36754b14473743765cb2a1e0391"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-8",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "62649c7050c481c764bd02dcd0ae3eb5c30de6a94790cc3f1b0ecdd50609ab9c"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-9",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "e7439df847ca74cc8e7140e3adf24d543169be093be22d4626a12c8f5f534058"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-10",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "854c7b237aebffcd2287572893c531fd3d66793ea96e37dc16f75f956e606f10"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-11",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "1f314a0528a1e2815799ad159dc703b703d7b414294bceb626e3577099ee4179"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-12",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "58cb9e719d3874e35427648dc5cdf088fddda85624911dfb3b425321a503a885"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-13",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "d4a949ffbe89d4d0faa08c7f4efc2e6d7e01b4d5f805b7cdebb54c21e726613d"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-14",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "b98795a919285d8f49f10a3c743d6c3780ddeb974b9af88e492d77b8eb44e309"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-compile",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "643ffbfed26b7e8081412afdc168155d5937824c611f9bc688ec0cd2a8d54e21"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-inventory",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "10d054ae07e1a0cc12499adc01412df9a521d8d989c70284faacd8b7b039441f"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-0",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "fe4d1feacd9f4b7aa13c21ebe14079f68cd85afbf3c6ef0cf7a2e11a97403639"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-1",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "3a4c71b89a08ad369b1956a838e28f512cbbf6b50432befe2ff26095d324b4d8"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-2",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "656ab3856a62846a3684bf1e5cb014fab1dd28093214342281d8d3ee15ff8533"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-3",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "ae5ea7011ae52dd9eb8e51bb74fa0bc5fd02624886fa1fe2ad82271116425bf2"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-4",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "fd9219b52628e548b0317d7477b51ad02010a6b9000b7f7744a95bf516bd0b11"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-5",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "989dfc03a2826d6e7ddf60a1f1b4314b313b0115e7bb9ed3024ca2e1676e493f"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-6",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "dd9f2cc7e0905b3d34215205415a5b10480196d9b0e95a302b7226e2aead6a00"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-7",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "78d17a9af195f7404b1f511fc9929e0fb642599eebe16f7c2f3d63fbe2bca01c"
+      },
+      {
+        "label": "prepare-after",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "78e0e8e5912d607d7a143d6876bc1af702e721ed7c97ebda2e820560b0188686"
+      }
+    ]
+  },
+  "arm": {
+    "profile": "arm",
+    "system": "Linux",
+    "architecture": "aarch64",
+    "receipt_sha256": "71984f4f55148e15dce84f6f80b85f8d37ddc0f8e46dd901274f246cfe849ede",
+    "selected_cases": 35,
+    "passed": 33,
+    "failed": 2,
+    "ignored": 0,
+    "all_original_commands_joined": true,
+    "source_seal_unchanged": true,
+    "normal_release_profile": {
+      "opt_level": 3,
+      "debug_assertions": false,
+      "proof": "Sealed runtime worker validates each original executable Cargo profile; no compile or inventory failures."
+    },
+    "default_feature_check_passed": true,
+    "cases": [
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_copies_only_existing_selected_video_and_keeps_old_audio_and_video_live",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "eb82d79321e4f44bcda0d356f7548af6e1cc7a1d3f733976b8795539456ab3a8"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_cancel_and_drop_fence_original_queued_private_frames_only",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "5bada81a721fdee8de416800e13d87b23d7fb2520625335bda0ef2a4215999bd"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_original_unsubscribe_retires_queued_copies_and_cannot_be_resurrected",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "cac6517ac7fdab39c0e8d570d74e0a258abf77cd35e75685f28258946864056a"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_original_unsubscribe_drains_a_real_inflight_private_write",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "10653be41e03fbf595ab29ddb22ca490bc4f59bbc7c9b4e757869d4872bed868"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_source_or_target_transport_replacement_invalidates_readiness_descriptors",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "0aa84cf00db302987c15a2ba6624899a7750d09987e67debfb1d0d26e587b4c7"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_commits_through_existing_compound_swap_and_close_keeps_target_running",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "456b49385791d651d7e2abd0370c1f0d0e22f63e65cea2ac3978f6df0d0dd09f"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_compound_swap_waits_for_original_inflight_private_write",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "3551858c52a9036b6f71e84a2163b544eceeeb957b7be928382e211b0ca39621"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_public_promotion_preserves_decoder_identity_but_retires_private_feedback",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "8379ccc6c7bcd099b21e55798e33736bddcf71b197aac3e3671f3b44c53fa091"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_promotion_changes_identity_when_actual_source_selection_changes",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "554ff4618b57176624a362da796280823513da1c35137e2fbf2c143f5bbdc9e1"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_public_identity_does_not_survive_source_or_target_port_generation_change",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "c8af02255226dc3cd01dcb28b70484a39afa75fd944acf7f7262e1b7f31167eb"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_unavailable_identity_metadata_creates_fresh_public_epoch_without_waiting",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "a1bde50852252cc4af1d35be71b4abb3cfb95a5b22c690f5c6f8d19128ec3669"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::replacement_preroll_cancelled_identity_never_authorizes_queued_or_feedback_work",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "64514834e75711de6ea91cac743f5a3cd80258c39b7f9215ff6de1cf826966a4"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_plan_exclusion_defers_before_routes_and_same_capture_recovers",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "20df404a183a650b3fac549fe467a58599cbacf694e35b1ff7158e96d93c6cec"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_plan_exclusion_does_not_bypass_cancel_revocation_or_expected_revision",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "844e069f3a321cdfffd6a3bb46aa64eb9e34e3aa9d616dc1dad6c1b409b1b968"
+      },
+      {
+        "build": "precommit-0-rvoip-core-rvoip_core",
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_poisoned_metadata_and_invalid_mapping_are_terminal_before_routes",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "log_sha256": "e9325df336dc03be67f7b20e176cda10adeb48a5abdb0aa81af4a14602f0e520"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::preparation::video::tests::unpublished_video_retry_releases_all_custody_and_rereads_before_one_effect",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "f6cb921ccd1ef23f60cdb3018b2a7c37371b59089487e3d983ce6a903f001304",
+        "log_sha256": "fe4d1feacd9f4b7aa13c21ebe14079f68cd85afbf3c6ef0cf7a2e11a97403639"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::preparation::video::tests::unpublished_video_retry_observes_mutation_cancel_and_original_cutoff",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "f6cb921ccd1ef23f60cdb3018b2a7c37371b59089487e3d983ce6a903f001304",
+        "log_sha256": "f5ea827bb2c7bc7af4c85e19311a38697fe0f982fcb65c258cee17029007c2f7"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::preparation::video::tests::first_busy_authority_cutoff_is_not_renewed_by_later_captures",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "f6cb921ccd1ef23f60cdb3018b2a7c37371b59089487e3d983ce6a903f001304",
+        "log_sha256": "656ab3856a62846a3684bf1e5cb014fab1dd28093214342281d8d3ee15ff8533"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::preparation::video::tests::cancellation_joins_the_original_metadata_read_before_returning",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "f6cb921ccd1ef23f60cdb3018b2a7c37371b59089487e3d983ce6a903f001304",
+        "log_sha256": "ae5ea7011ae52dd9eb8e51bb74fa0bc5fd02624886fa1fe2ad82271116425bf2"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::preparation::video::tests::uncertain_or_post_registration_errors_never_resubmit_a_video_effect",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "f6cb921ccd1ef23f60cdb3018b2a7c37371b59089487e3d983ce6a903f001304",
+        "log_sha256": "fd9219b52628e548b0317d7477b51ad02010a6b9000b7f7744a95bf516bd0b11"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::readiness::decoder_contract_tests::original_decoder_observation_is_frozen_and_identical_retry_is_observational_only",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "f6cb921ccd1ef23f60cdb3018b2a7c37371b59089487e3d983ce6a903f001304",
+        "log_sha256": "989dfc03a2826d6e7ddf60a1f1b4314b313b0115e7bb9ed3024ca2e1676e493f"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::readiness::decoder_contract_tests::expired_original_gate_cannot_capture_or_extend_decoder_readiness",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "f6cb921ccd1ef23f60cdb3018b2a7c37371b59089487e3d983ce6a903f001304",
+        "log_sha256": "dd9f2cc7e0905b3d34215205415a5b10480196d9b0e95a302b7226e2aead6a00"
+      },
+      {
+        "build": "precommit-1-connect-service-connect_service",
+        "name": "canonical_replacement::readiness::decoder_contract_tests::native_video_requires_real_count_and_current_private_route_even_for_valid_wire_shape",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "f6cb921ccd1ef23f60cdb3018b2a7c37371b59089487e3d983ce6a903f001304",
+        "log_sha256": "78d17a9af195f7404b1f511fc9929e0fb642599eebe16f7c2f3d63fbe2bca01c"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_production_replacement_transfers_video_and_recovers_fresh_frames_in_both_directions",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "59a8e851d5f91e600eae9790aefb7076cac5c8fa448dfaaea548e5a7de5e65eb"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_replacement_original_registration_outlives_its_preparation_cutoff",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "d3eb4a08ba9a77fb6a66d61bf0da404adfcbc77962bef06eb2d5ea0447c1712e"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_three_participant_replacement_reads_nonretained_source_in_current_scene",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "e5a67139f56120dbb17100ca47e6493cd20addf22f5216974c2485a53158981c"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_opus_replacement_decodes_private_audio_and_preserves_video_epoch",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "4422b9f35eadb91f5411c62d44f8eeb47adde99157c15ec23d452ca15f85a886"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_data_session_upgraded_to_av_opus_replacement_decodes_private_audio_and_video",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "d8438a49a7980ab84a9ba434656f44af1cf1f430db684ae846e215a306be8eb0"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_private_delta_bootstrap_requires_actual_current_hint_before_ready",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "8a282c1649be0033be585fdba69b893ba51867adbb88e79db30e2f36aeab981f"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_private_delta_bootstrap_recovers_lost_hint_without_another_video_frame",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "453b60da7a3deccb2fdaa9f0265d3734d4fb4cd38e6bf15ec6cd2d781113d327"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_private_readiness_outlives_start_snapshot_without_renewing_original_reservation",
+        "actual": [
+          0,
+          1,
+          0
+        ],
+        "qualified": false,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 101,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "bf9b54f163d01217004278522abf585e39842acf589c509ef670dd56bb5d3ed9"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_private_readiness_cannot_outlive_its_exact_original_reservation_expiry",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "23c531243377501ba48fe2816169e681c82c107b66b2c8879c47ee90596fa1fd"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_private_readiness_rechecks_current_original_operator_revocation",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "721bbf0b1f4729403a3e27a5ccfa07f96a5a5642832332fdb148a7b53aa345fc"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_private_readiness_cannot_survive_original_physical_target_cancellation",
+        "actual": [
+          1,
+          0,
+          0
+        ],
+        "qualified": true,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 0,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "b38047ad131f5375c7f9938539dfccd4f0646d56391d3c356827e006baa4ba38"
+      },
+      {
+        "build": "precommit-2-connect-server-gate6_replacement_video",
+        "name": "sdk_handles::replacement_video_recovery::signed_opus_replacement_video_plan_contention_recovers_same_original_operation",
+        "actual": [
+          0,
+          1,
+          0
+        ],
+        "qualified": false,
+        "executed": true,
+        "joined": true,
+        "forced": false,
+        "ignored_selected": false,
+        "exit_code": 101,
+        "binary_sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "log_sha256": "a306b0c6bde77c415c57386bfa42250b06717de46c501e7551af86644fdf985d"
+      }
+    ],
+    "binaries": {
+      "precommit-0-rvoip-core-rvoip_core": {
+        "sha256": "22e11ac991182013382c7b337fe3d1ceb2eeb97806663bd9cb9f212091859ded",
+        "bytes": 24867376,
+        "inventory_sha256": "ab9177e6ab7cc7d450e98a7b7c501c03e6a7a908e4dcd207ab67ea7ea03154cd",
+        "target": "rvoip_core",
+        "features": [
+          "default",
+          "identity",
+          "media",
+          "opus",
+          "rtp",
+          "sip",
+          "test-support",
+          "uctp",
+          "vcon"
+        ]
+      },
+      "precommit-1-connect-service-connect_service": {
+        "sha256": "f6cb921ccd1ef23f60cdb3018b2a7c37371b59089487e3d983ce6a903f001304",
+        "bytes": 62671224,
+        "inventory_sha256": "e5d3239befab5c69d52bc1ad4f67cfef0fa243ddc5eeed6acf25c008f44871c6",
+        "target": "connect_service",
+        "features": [
+          "test-support"
+        ]
+      },
+      "precommit-2-connect-server-gate6_replacement_video": {
+        "sha256": "15c56da8d3c0acd6bfa6a29246672d991ce3877b77c8b87e1db3364149f3018a",
+        "bytes": 168538528,
+        "inventory_sha256": "aed634747e27f284ec154ce9ed44b6c1c6bd65ac7ff5db96e269fe54a446a6af",
+        "target": "gate6_replacement_video",
+        "features": [
+          "cli",
+          "default",
+          "test-support"
+        ]
+      }
+    },
+    "commands": [
+      {
+        "label": "prepare",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "66faf33969f4e41822383cb09723edcf4db30f38883c84530f12027ff406b187"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-compile",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "fe2f77f2cd8e7686e565865d876fab2079569b616058bce0dc9bf5036fa47fcc"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-inventory",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "7d4a9a1fddae72c7dee9af8f93035dd64a9a73ef4ae7add4afb24624840b12ee"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-0",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "eb82d79321e4f44bcda0d356f7548af6e1cc7a1d3f733976b8795539456ab3a8"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-1",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "5bada81a721fdee8de416800e13d87b23d7fb2520625335bda0ef2a4215999bd"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-2",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "cac6517ac7fdab39c0e8d570d74e0a258abf77cd35e75685f28258946864056a"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-3",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "10653be41e03fbf595ab29ddb22ca490bc4f59bbc7c9b4e757869d4872bed868"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-4",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "0aa84cf00db302987c15a2ba6624899a7750d09987e67debfb1d0d26e587b4c7"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-5",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "456b49385791d651d7e2abd0370c1f0d0e22f63e65cea2ac3978f6df0d0dd09f"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-6",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "3551858c52a9036b6f71e84a2163b544eceeeb957b7be928382e211b0ca39621"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-7",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "8379ccc6c7bcd099b21e55798e33736bddcf71b197aac3e3671f3b44c53fa091"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-8",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "554ff4618b57176624a362da796280823513da1c35137e2fbf2c143f5bbdc9e1"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-9",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "c8af02255226dc3cd01dcb28b70484a39afa75fd944acf7f7262e1b7f31167eb"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-10",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "a1bde50852252cc4af1d35be71b4abb3cfb95a5b22c690f5c6f8d19128ec3669"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-11",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "64514834e75711de6ea91cac743f5a3cd80258c39b7f9215ff6de1cf826966a4"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-12",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "20df404a183a650b3fac549fe467a58599cbacf694e35b1ff7158e96d93c6cec"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-13",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "844e069f3a321cdfffd6a3bb46aa64eb9e34e3aa9d616dc1dad6c1b409b1b968"
+      },
+      {
+        "label": "precommit-0-rvoip-core-rvoip_core-case-14",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "e9325df336dc03be67f7b20e176cda10adeb48a5abdb0aa81af4a14602f0e520"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-compile",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "9b89c312b69e64b218dd67e78ff99f6f36365c600a92c26abc325325a952f721"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-inventory",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "10d054ae07e1a0cc12499adc01412df9a521d8d989c70284faacd8b7b039441f"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-0",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "fe4d1feacd9f4b7aa13c21ebe14079f68cd85afbf3c6ef0cf7a2e11a97403639"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-1",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "f5ea827bb2c7bc7af4c85e19311a38697fe0f982fcb65c258cee17029007c2f7"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-2",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "656ab3856a62846a3684bf1e5cb014fab1dd28093214342281d8d3ee15ff8533"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-3",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "ae5ea7011ae52dd9eb8e51bb74fa0bc5fd02624886fa1fe2ad82271116425bf2"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-4",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "fd9219b52628e548b0317d7477b51ad02010a6b9000b7f7744a95bf516bd0b11"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-5",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "989dfc03a2826d6e7ddf60a1f1b4314b313b0115e7bb9ed3024ca2e1676e493f"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-6",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "dd9f2cc7e0905b3d34215205415a5b10480196d9b0e95a302b7226e2aead6a00"
+      },
+      {
+        "label": "precommit-1-connect-service-connect_service-case-7",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "78d17a9af195f7404b1f511fc9929e0fb642599eebe16f7c2f3d63fbe2bca01c"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-compile",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "2a145c1b9752e556e4cf0ab8342605eefac8290616ba4a55e5ea9088398e3161"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-inventory",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "1b42a2cd47bd56b85ab03024ef3d32f0a4957c0b51b071f5ed0d15ba96a13f8c"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-0",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "59a8e851d5f91e600eae9790aefb7076cac5c8fa448dfaaea548e5a7de5e65eb"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-1",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "d3eb4a08ba9a77fb6a66d61bf0da404adfcbc77962bef06eb2d5ea0447c1712e"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-2",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "e5a67139f56120dbb17100ca47e6493cd20addf22f5216974c2485a53158981c"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-3",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "4422b9f35eadb91f5411c62d44f8eeb47adde99157c15ec23d452ca15f85a886"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-4",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "d8438a49a7980ab84a9ba434656f44af1cf1f430db684ae846e215a306be8eb0"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-5",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "8a282c1649be0033be585fdba69b893ba51867adbb88e79db30e2f36aeab981f"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-6",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "453b60da7a3deccb2fdaa9f0265d3734d4fb4cd38e6bf15ec6cd2d781113d327"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-7",
+        "joined": true,
+        "forced": false,
+        "exit_code": 101,
+        "log_sha256": "bf9b54f163d01217004278522abf585e39842acf589c509ef670dd56bb5d3ed9"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-8",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "23c531243377501ba48fe2816169e681c82c107b66b2c8879c47ee90596fa1fd"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-9",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "721bbf0b1f4729403a3e27a5ccfa07f96a5a5642832332fdb148a7b53aa345fc"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-10",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "b38047ad131f5375c7f9938539dfccd4f0646d56391d3c356827e006baa4ba38"
+      },
+      {
+        "label": "precommit-2-connect-server-gate6_replacement_video-case-11",
+        "joined": true,
+        "forced": false,
+        "exit_code": 101,
+        "log_sha256": "a306b0c6bde77c415c57386bfa42250b06717de46c501e7551af86644fdf985d"
+      },
+      {
+        "label": "default-gate6-replacement-video-feature-check",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "ef6ddd313566bdcf38299463ee845b783219be0f0e4404f2a98af1d96e84fbb2"
+      },
+      {
+        "label": "prepare-after",
+        "joined": true,
+        "forced": false,
+        "exit_code": 0,
+        "log_sha256": "66faf33969f4e41822383cb09723edcf4db30f38883c84530f12027ff406b187"
+      }
+    ]
+  },
+  "unresolved_cases": [
+    {
+      "name": "sdk_handles::replacement_video_recovery::signed_opus_replacement_video_plan_contention_recovers_same_original_operation",
+      "status": "failed",
+      "investigation_pending": true
+    },
+    {
+      "name": "sdk_handles::replacement_video_recovery::signed_private_readiness_outlives_start_snapshot_without_renewing_original_reservation",
+      "status": "failed",
+      "investigation_pending": true
+    }
+  ],
+  "core_service_controls": {
+    "mac_core": 15,
+    "mac_service": 8,
+    "arm_core": 15,
+    "arm_service": 8,
+    "all_passed": true
+  },
+  "signed_controls": {
+    "selected": 12,
+    "passed": 10,
+    "failed": 2,
+    "strict_original_expiry_revocation_physical_cancel_passed": true
+  },
+  "scripts": {
+    "receipt_sha256": "516bb996fbc9952227926f6c14a73a6da5d3ade5b9c2bed343fbfca029bda42b",
+    "node_passed": 30,
+    "owner_python_passed": 28,
+    "idle_python_passed": 4,
+    "skipped": 0,
+    "commands": [
+      {
+        "label": "node",
+        "exit_code": 0,
+        "joined": true,
+        "forced": false,
+        "log_sha256": "27a3d7086d1f6b55477aa7ca3883a83135c33cd6f14e77b583990327057cccd6"
+      },
+      {
+        "label": "python",
+        "exit_code": 0,
+        "joined": true,
+        "forced": false,
+        "log_sha256": "45829ecacbf7a9329d52d23db61b3e4f8756f81c5341116037b4f4faba99e28a"
+      },
+      {
+        "label": "idle",
+        "exit_code": 0,
+        "joined": true,
+        "forced": false,
+        "log_sha256": "bad3012120eeba20ab584de89b0c75f5a9159e0d08ff0e78cd8c4e38d5f253ef"
+      },
+      {
+        "label": "format",
+        "exit_code": 0,
+        "joined": true,
+        "forced": false,
+        "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+      },
+      {
+        "label": "tracker",
+        "exit_code": 0,
+        "joined": true,
+        "forced": false,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "tested_generated_sdk_dist": {
+    "sdk/typescript/dist/browser_codecs.js": "8848844f024a5c74d709ac08956a69137ebfaf330f0984a2595de5a855accde7",
+    "sdk/typescript/dist/browser_sdk_webrtc.js": "6b72b80aee4ff844fa25b755407faa39f49035114a593830ed9752997c56a721"
+  },
+  "default_arm_test_target_feature_check_passed": true,
+  "lifecycle_edges_observed_in_matrix": false,
+  "os_resource_cause_established": false,
+  "all_batch_checks_passed": false,
+  "matrix_totals_unchanged": {
+    "run": "v196",
+    "passed": 336,
+    "failed": 88,
+    "blocked": 8,
+    "complete_cells": 0,
+    "evidence_sha256": "745d01e197783b0055eb8bb14400e5388f65e444c20ea1e00de7aa5544e4234a"
+  },
+  "matrix_qualified": false,
+  "gate_qualified": false,
+  "full_matrix_retest_required": true
+}

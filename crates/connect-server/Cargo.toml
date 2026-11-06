@@ -10,7 +10,7 @@ publish = false
 [features]
 default = ["cli"]
 cli = []
-test-support = ["connect-store/test-support", "connect-service/test-support"]
+test-support = ["connect-store/test-support", "connect-service/test-support", "connect-client/test-support"]
 
 [dependencies]
 reqwest.workspace = true

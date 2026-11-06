@@ -1,0 +1,815 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -7,13 +7,13 @@
+ };
+ use crate::peer_admission::PeerAdmission;
+ use crate::staged_streams::{
++    StreamControlError,
+     audience::{AudioAudienceHandle, AudioAudiencePlan, AudioAudienceRequest},
+     device_replacement::{
+         AudioDeviceReplacementHandle, AudioDeviceReplacementOutcome, AudioDeviceReplacementPlan,
+         AudioDeviceReplacementRequest, ReplacementReadinessStamp,
+     },
+     signal::ControllerSignalStamp,
+-    StreamControlError,
+ };
+ use std::collections::BTreeSet;
+ use std::sync::atomic::{AtomicU8, Ordering};
+@@ -908,13 +908,34 @@
+         pending.context = Some(context.clone());
+         Ok(context)
+     }
++    /// Test-only synchronous exclusion of the exact original source's video
++    /// metadata. It exposes only the callback's result and numeric route counts.
++    #[cfg(feature = "test-support")]
++    pub fn with_staged_replacement_video_source_metadata_for_test<T>(
++        &self,
++        p: &Arc<DeviceReplacementPreparation>,
++        call: impl FnOnce() -> T,
++    ) -> ControlResult<(T, usize, usize)> {
++        self.owns_replacement(p)?;
++        p.check()?;
++        let old = self
++            .adapter_for(&p.intent.source)?
++            .staged_controller(&p.intent.source)
++            .ok_or(ParticipantControlError::Unsupported)?;
++        let new = self
++            .adapter_for(&p.intent.replacement)?
++            .staged_controller(&p.intent.replacement)
++            .ok_or(ParticipantControlError::Unsupported)?;
++        Ok(new.with_video_plan_exclusion_for_test(&old, call)?)
++    }
+     /// A private receive copy does not move ownership or unmute the target.
+     pub fn prepare_staged_device_replacement_video_with_held(
+         self: &Arc<Self>,
+         p: &Arc<DeviceReplacementPreparation>,
+         video: &crate::staged_streams::device_replacement::ReplacementVideoRequest,
+         held: &(dyn Any + Send + Sync),
+-    ) -> ControlResult<crate::staged_streams::device_replacement::VideoReplacementPreparation> {
++    ) -> ControlResult<crate::staged_streams::device_replacement::VideoReplacementPreparationAttempt>
++    {
+         self.owns_replacement(p)?;
+         p.check()?;
+         let _flight = p
+@@ -951,9 +972,20 @@
+             p.cancellation.child_token(),
+             held,
+         )?;
+-        p.check()?;
+-        check_authority(&request, &control.current(&request)?)?;
+-        Ok(prepared)
++        use crate::staged_streams::device_replacement::VideoReplacementPreparationAttempt;
++        // Only the pure VideoPlan exclusion is safe for a caller to retry.
++        // Once a route exists, retain the original postchecks and return their
++        // error unchanged (including MetadataBusy); drop retires that route.
++        match prepared {
++            VideoReplacementPreparationAttempt::MetadataBusy { deadline } => {
++                Ok(VideoReplacementPreparationAttempt::MetadataBusy { deadline })
++            }
++            VideoReplacementPreparationAttempt::Prepared(prepared) => {
++                p.check()?;
++                check_authority(&request, &control.current(&request)?)?;
++                Ok(VideoReplacementPreparationAttempt::Prepared(prepared))
++            }
++        }
+     }
+     pub fn plan_staged_device_replacement(
+         &self,
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -6,7 +6,9 @@
+ };
+ use crate::participant_transitions::PreparedParticipantReplacement;
+ pub(crate) mod video;
+-pub use super::direct_subscriptions::VideoReplacementPreparation;
++pub use super::direct_subscriptions::{
++    VideoReplacementPreparation, VideoReplacementPreparationAttempt,
++};
+ pub use video::{ReplacementVideoRequest, ReplacementVideoStream};
+ #[derive(Clone, Debug, PartialEq, Eq)]
+ pub struct AudioDeviceReplacementRequest {
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -4,7 +4,7 @@
+ use rvoip_core_traits::peer_switch::PeerDeliveryGuard;
+ mod preroll;
+ use preroll::PrerollBinding;
+-pub use preroll::VideoReplacementPreparation;
++pub use preroll::{VideoReplacementPreparation, VideoReplacementPreparationAttempt};
+ 
+ pub(super) struct DirectDeliveryGuard {
+     _current: PeerDeliveryGuard,
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
+@@ -1,7 +1,7 @@
+ //! Receive-only preparation retains the old selection and its delivery fence.
+ //! It never enters the new connection's saved public subscription programme.
+ use super::*;
+-use crate::staged_streams::device_replacement::{video::VideoPlan, ReplacementVideoRequest};
++use crate::staged_streams::device_replacement::{ReplacementVideoRequest, video::VideoPlan};
+ 
+ pub(super) struct PrerollBinding {
+     original: DirectStamp,
+@@ -38,6 +38,13 @@
+         }
+         Ok(held)
+     }
++}
++
++/// Only this outcome proves that no private route was published. Its cutoff
++/// is the original call's current authority deadline, never a renewed lease.
++pub enum VideoReplacementPreparationAttempt {
++    MetadataBusy { deadline: tokio::time::Instant },
++    Prepared(VideoReplacementPreparation),
+ }
+ 
+ /// A sealed route owner. Descriptors are metadata, not retained permission.
+@@ -105,6 +112,35 @@
+ }
+ 
+ impl StreamController {
++    /// Test-only exact lock exclusion. No authority, ports or route owners leave
++    /// this call; both actual guards release before its caller may await.
++    #[cfg(feature = "test-support")]
++    pub(crate) fn with_video_plan_exclusion_for_test<T>(
++        &self,
++        old: &Self,
++        call: impl FnOnce() -> T,
++    ) -> ControlResult<(T, usize, usize)> {
++        if std::ptr::eq(self, old) {
++            return Err(StreamControlError::Authority);
++        }
++        let _old = old
++            .state
++            .lock()
++            .map_err(|_| StreamControlError::Authority)?;
++        // This short route guard proves no private route was published while
++        // the actual old-state try_lock refused. VideoPlan returns at that
++        // earlier old-state lock, before touching either routing registry.
++        let routing = self
++            .direct_subscriptions
++            .routing
++            .lock()
++            .map_err(|_| StreamControlError::Authority)?;
++        let before = routing.preparation.len();
++        let result = call();
++        let after = routing.preparation.len();
++        Ok((result, before, after))
++    }
++
+     pub(crate) fn prepare_replacement_video(
+         self: &Arc<Self>,
+         old: &Arc<Self>,
+@@ -112,7 +148,7 @@
+         deadline: tokio::time::Instant,
+         cancel: CancellationToken,
+         held: &(dyn Any + Send + Sync),
+-    ) -> ControlResult<VideoReplacementPreparation> {
++    ) -> ControlResult<VideoReplacementPreparationAttempt> {
+         if request.receivers.is_empty()
+             || Arc::ptr_eq(self, old)
+             || self.conversation != old.conversation
+@@ -142,7 +178,16 @@
+         }
+         // This checks both original and replacement logical video directions,
+         // current binding generations, muted target inputs and explicit mapping.
+-        let plan = VideoPlan::prepare(old, self, request)?;
++        let plan = match VideoPlan::prepare(old, self, request) {
++            Ok(plan) => plan,
++            // VideoPlan only reads original logical selections and bindings.
++            // Classify this exact, pre-route-publication exclusion; a policy
++            // error or any subsequent preparation error is not this outcome.
++            Err(StreamControlError::MetadataBusy) => {
++                return Ok(VideoReplacementPreparationAttempt::MetadataBusy { deadline });
++            }
++            Err(error) => return Err(error),
++        };
+         let change = DirectSubscriptionChange::Subscribe(plan.incoming.clone());
+         let state = self
+             .state
+@@ -241,11 +286,13 @@
+             return Err(StreamControlError::NotReady);
+         }
+         routing.preparation = routes.clone();
+-        Ok(VideoReplacementPreparation {
+-            gate: Arc::downgrade(&self.direct_subscriptions),
+-            routes,
+-            sources,
+-            cancel,
+-        })
+-    }
+-}
++        Ok(VideoReplacementPreparationAttempt::Prepared(
++            VideoReplacementPreparation {
++                gate: Arc::downgrade(&self.direct_subscriptions),
++                routes,
++                sources,
++                cancel,
++            },
++        ))
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+@@ -1,5 +1,7 @@
+ use super::*;
+-use crate::staged_streams::direct_subscriptions::VideoReplacementPreparation;
++use crate::staged_streams::direct_subscriptions::{
++    VideoReplacementPreparation, VideoReplacementPreparationAttempt,
++};
+ 
+ struct Preroll {
+     movement: Move,
+@@ -91,9 +93,15 @@
+                 request: request(),
+             })
+             .await;
+-        target
++        match target
+             .prepare_replacement_video(old, &request(), deadline(), cancellation, &grant)
+             .unwrap()
++        {
++            VideoReplacementPreparationAttempt::Prepared(prepared) => prepared,
++            VideoReplacementPreparationAttempt::MetadataBusy { .. } => {
++                panic!("uncontended private route metadata")
++            }
++        }
+     }
+ 
+     fn publish_video(&self, name: &str, sequence: u32) {
+@@ -104,11 +112,13 @@
+ 
+     fn assert_target_quarantined(&self) {
+         let target = &self.movement.room.nodes["device"];
+-        assert!(target
+-            .controller
+-            .direct_subscriptions
+-            .saved_selections()
+-            .is_empty());
++        assert!(
++            target
++                .controller
++                .direct_subscriptions
++                .saved_selections()
++                .is_empty()
++        );
+         let camera = target.adapter.port(Medium::Video);
+         assert!(
+             camera.try_publish(&frame(&camera, 99)).is_err(),
+@@ -134,8 +144,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_preroll_copies_only_existing_selected_video_and_keeps_old_audio_and_video_live(
+-) {
++async fn replacement_preroll_copies_only_existing_selected_video_and_keeps_old_audio_and_video_live()
++ {
+     let mut f = Preroll::new().await;
+     let cancellation = CancellationToken::new();
+     let prepared = f.prepare(cancellation.clone()).await;
+@@ -174,10 +184,12 @@
+     f.movement.room.tick();
+     f.movement.room.heard("bob", 800).await;
+     f.movement.room.heard("public", 800).await;
+-    assert!(!f.movement.room.nodes["alice"]
+-        .controller
+-        .shutdown
+-        .is_cancelled());
++    assert!(
++        !f.movement.room.nodes["alice"]
++            .controller
++            .shutdown
++            .is_cancelled()
++    );
+     prepared.close();
+     assert!(
+         !cancellation.is_cancelled(),
+@@ -209,19 +221,23 @@
+         if mode == "drop" {
+             assert!(!cancellation.is_cancelled());
+         }
+-        assert!(queued
+-            .deliver(|_| async { panic!("retired private frame reached sink") })
+-            .await
+-            .is_err());
++        assert!(
++            queued
++                .deliver(|_| async { panic!("retired private frame reached sink") })
++                .await
++                .is_err()
++        );
+         delivered(&mut f.old_output, 20).await;
+         f.publish_video("bob", 21);
+         delivered(&mut f.old_output, 21).await;
+         assert!(f.target_output.try_recv().is_err());
+         f.assert_target_quarantined();
+-        assert!(!f.movement.room.nodes["alice"]
+-            .controller
+-            .shutdown
+-            .is_cancelled());
++        assert!(
++            !f.movement.room.nodes["alice"]
++                .controller
++                .shutdown
++                .is_cancelled()
++        );
+     }
+ }
+ 
+@@ -245,14 +261,18 @@
+     .await
+     .unwrap();
+     assert!(!prepared.is_current());
+-    assert!(queued
+-        .deliver(|_| async { panic!("unsubscribed private source delivered") })
+-        .await
+-        .is_err());
+-    assert!(old_queued
+-        .deliver(|_| async { panic!("unsubscribed original source delivered") })
+-        .await
+-        .is_err());
++    assert!(
++        queued
++            .deliver(|_| async { panic!("unsubscribed private source delivered") })
++            .await
++            .is_err()
++    );
++    assert!(
++        old_queued
++            .deliver(|_| async { panic!("unsubscribed original source delivered") })
++            .await
++            .is_err()
++    );
+     old.change_direct_subscriptions(
+         old.revision(),
+         DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
+@@ -339,8 +359,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_preroll_source_or_target_transport_replacement_invalidates_readiness_descriptors(
+-) {
++async fn replacement_preroll_source_or_target_transport_replacement_invalidates_readiness_descriptors()
++ {
+     for name in ["bob", "device"] {
+         let mut f = Preroll::new().await;
+         let prepared = f.prepare(CancellationToken::new()).await;
+@@ -384,14 +404,18 @@
+             !prepared.is_current(),
+             "{name} new transport borrowed the original readiness descriptor"
+         );
+-        assert!(queued
+-            .deliver(|_| async { panic!("queued old-generation preparation delivered") })
+-            .await
+-            .is_err());
+-        assert!(!f.movement.room.nodes["alice"]
+-            .controller
+-            .shutdown
+-            .is_cancelled());
++        assert!(
++            queued
++                .deliver(|_| async { panic!("queued old-generation preparation delivered") })
++                .await
++                .is_err()
++        );
++        assert!(
++            !f.movement.room.nodes["alice"]
++                .controller
++                .shutdown
++                .is_cancelled()
++        );
+     }
+ }
+ 
+@@ -409,10 +433,12 @@
+     let original_bindings = bindings(&target);
+     let plan = f.movement.plan_with_video(Some(request())).unwrap();
+     let (_, handle) = f.movement.commit(plan).await.unwrap();
+-    assert!(f.movement.room.nodes["alice"]
+-        .controller
+-        .shutdown
+-        .is_cancelled());
++    assert!(
++        f.movement.room.nodes["alice"]
++            .controller
++            .shutdown
++            .is_cancelled()
++    );
+     assert!(!prepared.is_current());
+     assert_eq!(target.direct_subscriptions.saved_selections().len(), 1);
+     assert_eq!(
+@@ -502,19 +528,23 @@
+         !committing.is_finished(),
+         "compound swap published while original private write was in flight"
+     );
+-    assert!(!f.movement.room.nodes["alice"]
+-        .controller
+-        .shutdown
+-        .is_cancelled());
++    assert!(
++        !f.movement.room.nodes["alice"]
++            .controller
++            .shutdown
++            .is_cancelled()
++    );
+     release.send(()).unwrap();
+     writing.await.unwrap().unwrap();
+     let (_, handle) = committing.await.unwrap().unwrap();
+     assert!(!private_ticket.is_current());
+     assert!(!prepared.is_current());
+-    assert!(f.movement.room.nodes["alice"]
+-        .controller
+-        .shutdown
+-        .is_cancelled());
++    assert!(
++        f.movement.room.nodes["alice"]
++            .controller
++            .shutdown
++            .is_cancelled()
++    );
+     prepared.close();
+     assert!(!target.shutdown.is_cancelled());
+     f.publish_video("bob", 61);
+@@ -545,8 +575,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_preroll_public_promotion_preserves_decoder_identity_but_retires_private_feedback(
+-) {
++async fn replacement_preroll_public_promotion_preserves_decoder_identity_but_retires_private_feedback()
++ {
+     let mut f = Preroll::new().await;
+     let prepared = f.prepare(CancellationToken::new()).await;
+     f.publish_video("bob", 70);
+@@ -558,11 +588,13 @@
+     let plan = f.movement.plan_with_video(Some(request())).unwrap();
+     let (_, handle) = f.movement.commit(plan).await.unwrap();
+     assert!(!private.is_current());
+-    assert!(private
+-        .dispatch(private.epoch(), 42, |_, _| panic!(
+-            "private feedback crossed promotion"
+-        ))
+-        .is_err());
++    assert!(
++        private
++            .dispatch(private.epoch(), 42, |_, _| panic!(
++                "private feedback crossed promotion"
++            ))
++            .is_err()
++    );
+     prepared.close();
+     assert!(
+         f.target_output.try_recv().is_err(),
+@@ -575,11 +607,13 @@
+         private.epoch(),
+         "same original physical decoder was reset at public promotion"
+     );
+-    assert!(public
+-        .dispatch(public.epoch(), 41, |_, _| panic!(
+-            "old feedback sequence was accepted"
+-        ))
+-        .is_err());
++    assert!(
++        public
++            .dispatch(public.epoch(), 41, |_, _| panic!(
++                "old feedback sequence was accepted"
++            ))
++            .is_err()
++    );
+     tokio::time::sleep(Duration::from_millis(110)).await;
+     public.dispatch(public.epoch(), 42, |_, _| Ok(())).unwrap();
+     f.movement
+@@ -591,11 +625,13 @@
+         .await
+         .revoked
+         .insert("bob".into());
+-    assert!(public
+-        .dispatch(public.epoch(), 43, |_, _| panic!(
+-            "historical decoder identity bypassed current source revocation"
+-        ))
+-        .is_err());
++    assert!(
++        public
++            .dispatch(public.epoch(), 43, |_, _| panic!(
++                "historical decoder identity bypassed current source revocation"
++            ))
++            .is_err()
++    );
+     assert_eq!(
+         handle.finish_local_media_cleanup(deadline()).await,
+         ReplacementCleanupOutcome::LocalMediaClosed
+@@ -638,11 +674,13 @@
+         "different actual source borrowed decoded startup"
+     );
+     assert!(!first.is_current());
+-    assert!(first
+-        .dispatch(first.epoch(), 1, |_, _| panic!(
+-            "retired source selection accepted feedback"
+-        ))
+-        .is_err());
++    assert!(
++        first
++            .dispatch(first.epoch(), 1, |_, _| panic!(
++                "retired source selection accepted feedback"
++            ))
++            .is_err()
++    );
+     assert_eq!(
+         handle.finish_local_media_cleanup(deadline()).await,
+         ReplacementCleanupOutcome::LocalMediaClosed
+@@ -650,8 +688,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_preroll_public_identity_does_not_survive_source_or_target_port_generation_change(
+-) {
++async fn replacement_preroll_public_identity_does_not_survive_source_or_target_port_generation_change()
++ {
+     for name in ["bob", "device"] {
+         let mut f = Preroll::new().await;
+         let prepared = f.prepare(CancellationToken::new()).await;
+@@ -718,8 +756,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_preroll_unavailable_identity_metadata_creates_fresh_public_epoch_without_waiting(
+-) {
++async fn replacement_preroll_unavailable_identity_metadata_creates_fresh_public_epoch_without_waiting()
++ {
+     let mut f = Preroll::new().await;
+     let prepared = f.prepare(CancellationToken::new()).await;
+     f.publish_video("bob", 100);
+@@ -767,21 +805,258 @@
+     let queued = outgoing(&mut f.target_output).await;
+     stop.cancel();
+     assert!(!prepared.is_current());
+-    assert!(private
+-        .dispatch(private.epoch(), 1, |_, _| panic!(
+-            "cancelled private epoch authorized feedback"
+-        ))
+-        .is_err());
+-    assert!(queued
+-        .deliver_video_with_feedback(|_, _, _| async {
+-            panic!("cancelled private payload delivered")
+-        })
+-        .await
+-        .is_err());
+-    assert!(!f.movement.room.nodes["alice"]
+-        .controller
+-        .shutdown
+-        .is_cancelled());
++    assert!(
++        private
++            .dispatch(private.epoch(), 1, |_, _| panic!(
++                "cancelled private epoch authorized feedback"
++            ))
++            .is_err()
++    );
++    assert!(
++        queued
++            .deliver_video_with_feedback(|_, _, _| async {
++                panic!("cancelled private payload delivered")
++            })
++            .await
++            .is_err()
++    );
++    assert!(
++        !f.movement.room.nodes["alice"]
++            .controller
++            .shutdown
++            .is_cancelled()
++    );
+ }
+ 
+ mod native_cut;
++
++#[tokio::test]
++async fn private_video_plan_exclusion_defers_before_routes_and_same_capture_recovers() {
++    for who in ["alice"] {
++        let mut f = Preroll::new().await;
++        let old = f.movement.room.nodes["alice"].controller.clone();
++        let target = f.movement.room.nodes["device"].controller.clone();
++        let connection_before = f.movement.pending.binding().clone();
++        let revision = target.revision();
++        let expected_bindings = bindings(&target);
++        let cancellation = CancellationToken::new();
++        let cutoff = deadline();
++        let grant = f
++            .movement
++            .room
++            .grant(Approval::PrepareVideo {
++                source: old.connection.clone(),
++                connection: target.connection.clone(),
++                expected: revision,
++                request: request(),
++            })
++            .await;
++        let controller = f.movement.room.nodes[who].controller.clone();
++        let held = controller.state.lock().unwrap();
++        let attempt = target
++            .prepare_replacement_video(&old, &request(), cutoff, cancellation.clone(), &grant)
++            .unwrap();
++        assert!(
++            matches!(attempt, VideoReplacementPreparationAttempt::MetadataBusy { deadline } if deadline <= cutoff)
++        );
++        assert!(
++            target
++                .direct_subscriptions
++                .routing
++                .lock()
++                .unwrap()
++                .preparation
++                .is_empty()
++        );
++        assert!(f.target_output.try_recv().is_err());
++        drop(held);
++        assert_eq!(target.revision(), revision);
++        assert_eq!(bindings(&target), expected_bindings);
++        assert!(
++            f.movement
++                .pending
++                .binding()
++                .same_incarnation(&connection_before)
++        );
++        assert!(!cancellation.is_cancelled());
++        // Same captured root, expected revision, request and original cutoff.
++        let prepared = match target
++            .prepare_replacement_video(&old, &request(), cutoff, cancellation.clone(), &grant)
++            .unwrap()
++        {
++            VideoReplacementPreparationAttempt::Prepared(prepared) => prepared,
++            _ => panic!("released original metadata did not recover"),
++        };
++        assert!(prepared.is_current());
++        assert_eq!(
++            target
++                .direct_subscriptions
++                .routing
++                .lock()
++                .unwrap()
++                .preparation
++                .len(),
++            1
++        );
++        f.publish_video("bob", 200);
++        delivered(&mut f.old_output, 200).await;
++        delivered(&mut f.target_output, 200).await;
++        prepared.close();
++        assert!(
++            target
++                .direct_subscriptions
++                .routing
++                .lock()
++                .unwrap()
++                .preparation
++                .is_empty()
++        );
++        assert_eq!(target.revision(), revision);
++        assert_eq!(bindings(&target), expected_bindings);
++        assert!(!cancellation.is_cancelled());
++    }
++}
++
++#[tokio::test]
++async fn private_video_plan_exclusion_does_not_bypass_cancel_revocation_or_expected_revision() {
++    for refusal in ["cancel", "revoke", "revision"] {
++        let mut f = Preroll::new().await;
++        let old = f.movement.room.nodes["alice"].controller.clone();
++        let target = f.movement.room.nodes["device"].controller.clone();
++        let revision = target.revision();
++        let cancellation = CancellationToken::new();
++        let cutoff = deadline();
++        let approval = || Approval::PrepareVideo {
++            source: old.connection.clone(),
++            connection: target.connection.clone(),
++            expected: revision,
++            request: request(),
++        };
++        let grant = f.movement.room.grant(approval()).await;
++        let held = old.state.lock().unwrap();
++        assert!(matches!(
++            target.prepare_replacement_video(
++                &old,
++                &request(),
++                cutoff,
++                cancellation.clone(),
++                &grant
++            ),
++            Ok(VideoReplacementPreparationAttempt::MetadataBusy { .. })
++        ));
++        drop(held);
++        drop(grant);
++        match refusal {
++            "cancel" => cancellation.cancel(),
++            "revoke" => {
++                f.movement
++                    .room
++                    .domain
++                    .base
++                    .0
++                    .write()
++                    .await
++                    .revoked
++                    .insert("alice".into());
++            }
++            "revision" => {
++                let media = target
++                    .active_bindings()
++                    .into_iter()
++                    .map(|binding| binding.negotiated.requested)
++                    .collect::<Vec<_>>();
++                target
++                    .change(
++                        revision,
++                        &media,
++                        &BTreeSet::from([request().receivers[0].replacement.clone()]),
++                        cutoff,
++                        CancellationToken::new(),
++                    )
++                    .await
++                    .unwrap();
++            }
++            _ => unreachable!(),
++        }
++        let grant = f.movement.room.grant(approval()).await;
++        let result = target.prepare_replacement_video(
++            &old,
++            &request(),
++            cutoff,
++            cancellation.clone(),
++            &grant,
++        );
++        assert!(matches!(
++            result,
++            Err(StreamControlError::Cancelled | StreamControlError::Authority)
++        ));
++        assert!(
++            target
++                .direct_subscriptions
++                .routing
++                .lock()
++                .unwrap()
++                .preparation
++                .is_empty()
++        );
++        assert!(f.target_output.try_recv().is_err());
++        assert!(!old.shutdown.is_cancelled());
++    }
++}
++
++#[tokio::test]
++async fn private_video_poisoned_metadata_and_invalid_mapping_are_terminal_before_routes() {
++    for refusal in ["poisoned", "invalid-mapping", "expired"] {
++        let f = Preroll::new().await;
++        let old = f.movement.room.nodes["alice"].controller.clone();
++        let target = f.movement.room.nodes["device"].controller.clone();
++        let mut mapping = request();
++        if refusal == "invalid-mapping" {
++            mapping.receivers.push(mapping.receivers[0].clone());
++        }
++        let grant = f
++            .movement
++            .room
++            .grant(Approval::PrepareVideo {
++                source: old.connection.clone(),
++                connection: target.connection.clone(),
++                expected: target.revision(),
++                request: mapping.clone(),
++            })
++            .await;
++        if refusal == "poisoned" {
++            let original = old.clone();
++            assert!(
++                std::thread::spawn(move || {
++                    let _held = original.state.lock().unwrap();
++                    panic!("controlled metadata poison");
++                })
++                .join()
++                .is_err()
++            );
++        }
++        let cutoff = if refusal == "expired" {
++            tokio::time::Instant::now()
++        } else {
++            deadline()
++        };
++        let result = target.prepare_replacement_video(
++            &old,
++            &mapping,
++            cutoff,
++            CancellationToken::new(),
++            &grant,
++        );
++        assert!(result.is_err(), "semantic failure became a retry outcome");
++        assert!(
++            target
++                .direct_subscriptions
++                .routing
++                .lock()
++                .unwrap()
++                .preparation
++                .is_empty()
++        );
++        assert!(!target.shutdown.is_cancelled());
++    }
++}

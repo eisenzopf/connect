@@ -122,52 +122,67 @@ export class BrowserOpusCodec {
             },
             error: (e) => this.fail(e),
         });
-        this.decoder = new AudioDecoder({
-            output: (frame) => {
-                let restored;
-                try {
-                    if (this.stopped)
-                        return;
-                    const original = this.pendingDecode.shift();
-                    if (!original)
-                        throw new ConnectError("media", "Unmatched Opus decoder output");
-                    if (frame.sampleRate !== 48000 ||
-                        frame.numberOfChannels !== 1 ||
-                        frame.numberOfFrames !== 960)
-                        throw new ConnectError("unsupported-media-profile", "Decoded Opus requires mono 20 ms at 48 kHz");
-                    // WebCodecs may emit a continuous sample clock across missing
-                    // RTP packets. Keep the caller's original timeline so gaps,
-                    // late packets and duplicates do not acquire invented times.
-                    if (frame.timestamp !== original.timestampUs) {
-                        const samples = new Float32Array(960);
-                        frame.copyTo(samples, {
-                            planeIndex: 0,
-                            format: "f32-planar",
-                        });
-                        restored = new AudioData({
-                            format: "f32-planar",
-                            sampleRate: 48000,
-                            numberOfFrames: 960,
-                            numberOfChannels: 1,
-                            timestamp: original.timestampUs,
-                            data: samples,
-                        });
+        try {
+            this.decoder = new AudioDecoder({
+                output: (frame) => {
+                    let restored;
+                    try {
+                        if (this.stopped)
+                            return;
+                        const original = this.pendingDecode.shift();
+                        if (!original)
+                            throw new ConnectError("media", "Unmatched Opus decoder output");
+                        if (frame.sampleRate !== 48000 ||
+                            frame.numberOfChannels !== 1 ||
+                            frame.numberOfFrames !== 960)
+                            throw new ConnectError("unsupported-media-profile", "Decoded Opus requires mono 20 ms at 48 kHz");
+                        // WebCodecs may emit a continuous sample clock across missing
+                        // RTP packets. Keep the caller's original timeline so gaps,
+                        // late packets and duplicates do not acquire invented times.
+                        if (frame.timestamp !== original.timestampUs) {
+                            const samples = new Float32Array(960);
+                            frame.copyTo(samples, {
+                                planeIndex: 0,
+                                format: "f32-planar",
+                            });
+                            restored = new AudioData({
+                                format: "f32-planar",
+                                sampleRate: 48000,
+                                numberOfFrames: 960,
+                                numberOfChannels: 1,
+                                timestamp: original.timestampUs,
+                                data: samples,
+                            });
+                        }
+                        this.counts.decodedFrames++;
+                        this.counts.lastDecodedTimestampUs =
+                            original.timestampUs;
+                        original.observe?.(restored ?? frame);
+                        callbacks.decoded(restored ?? frame);
                     }
-                    this.counts.decodedFrames++;
-                    this.counts.lastDecodedTimestampUs = original.timestampUs;
-                    original.observe?.(restored ?? frame);
-                    callbacks.decoded(restored ?? frame);
-                }
-                catch (e) {
-                    this.fail(e);
-                }
-                finally {
-                    restored?.close();
-                    frame.close();
-                }
-            },
-            error: (e) => this.fail(e),
-        });
+                    catch (e) {
+                        this.fail(e);
+                    }
+                    finally {
+                        restored?.close();
+                        frame.close();
+                    }
+                },
+                error: (e) => this.fail(e),
+            });
+        }
+        catch (cause) {
+            // The constructor has not returned an owner to the caller. Retire
+            // the first codec even when allocating the second codec fails.
+            // Keep the exact original allocation error as the public failure.
+            try {
+                if (this.encoder.state !== "closed")
+                    this.encoder.close();
+            }
+            finally {
+                throw cause;
+            }
+        }
         try {
             this.encoder.configure(OPUS_CONFIG);
             this.decoder.configure(OPUS_CONFIG);
@@ -388,30 +403,44 @@ export class BrowserVp8Codec {
             },
             error: (e) => this.fail(e),
         });
-        this.decoder = new VideoDecoder({
-            output: (frame) => {
-                try {
-                    if (!this.stopped) {
-                        const original = this.pendingDecode.shift();
-                        if (!original ||
-                            original.timestampUs !== frame.timestamp)
-                            throw new ConnectError("media", "Unmatched original VP8 decoder output");
-                        original.observe?.(frame);
-                        this.decodeCounts.decodedFrames++;
-                        this.decodeCounts.lastDecodedTimestampUs =
-                            frame.timestamp;
-                        callbacks.decoded(frame);
+        try {
+            this.decoder = new VideoDecoder({
+                output: (frame) => {
+                    try {
+                        if (!this.stopped) {
+                            const original = this.pendingDecode.shift();
+                            if (!original ||
+                                original.timestampUs !== frame.timestamp)
+                                throw new ConnectError("media", "Unmatched original VP8 decoder output");
+                            original.observe?.(frame);
+                            this.decodeCounts.decodedFrames++;
+                            this.decodeCounts.lastDecodedTimestampUs =
+                                frame.timestamp;
+                            callbacks.decoded(frame);
+                        }
                     }
-                }
-                catch (e) {
-                    this.fail(e);
-                }
-                finally {
-                    frame.close();
-                }
-            },
-            error: (e) => this.fail(e),
-        });
+                    catch (e) {
+                        this.fail(e);
+                    }
+                    finally {
+                        frame.close();
+                    }
+                },
+                error: (e) => this.fail(e),
+            });
+        }
+        catch (cause) {
+            // The constructor has not returned an owner to the caller. Retire
+            // the first codec even when allocating the second codec fails.
+            // Keep the exact original allocation error as the public failure.
+            try {
+                if (this.encoder.state !== "closed")
+                    this.encoder.close();
+            }
+            finally {
+                throw cause;
+            }
+        }
         try {
             this.encoder.configure(VP8_CONFIG);
             this.decoder.configure({ codec: "vp8", optimizeForLatency: true });

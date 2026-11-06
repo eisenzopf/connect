@@ -153,6 +153,24 @@ impl NativeVideoDatagrams {
                     .is_some_and(|n| &n.history == epoch)
         }))
     }
+    /// Test-only numeric observation of this original verified physical owner.
+    /// Counts signed receiver histories including inactive notices; no decoder,
+    /// route, payload or authority capability leaves the SDK.
+    #[cfg(feature = "test-support")]
+    pub fn verified_video_receiver_notice_count_for_test(&self) -> Result<usize> {
+        self.io.current()?;
+        let guard = self
+            .shared
+            .state
+            .lock()
+            .map_err(|_| ClientError::Protocol)?;
+        let state = guard.as_ref().ok_or(ClientError::Protocol)?;
+        Ok(state
+            .notices
+            .keys()
+            .filter(|(_, publisher)| !*publisher)
+            .count())
+    }
     /// Consume at most one original hint immediately before fresh encoding.
     /// Calling twice cannot repeat it; age, source SSRC, selected history,
     /// control version, physical lifetime and captured expiry must still match.

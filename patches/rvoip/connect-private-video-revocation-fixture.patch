@@ -1,0 +1,33 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+@@ -1257,6 +1257,11 @@
+         f.publish_video("bob", 242);
+         delivered(&mut f.old_output, 242).await;
+         delivered(&mut f.target_output, 242).await;
++        // Queue the exact original packet under current source authority,
++        // without running the scene until the original boundary below. Video
++        // custody retains no policy read guard after try_publish returns.
++        let source = f.movement.room.nodes["bob"].adapter.port(Medium::Video);
++        source.try_publish(&frame(&source, 243)).unwrap();
+         if boundary == "source-revoked" {
+             f.movement
+                 .room
+@@ -1271,9 +1276,17 @@
+             cancellation.cancel();
+             assert!(!prepared.is_current());
+         }
+-        f.publish_video("bob", 243);
++        f.movement.room.tick();
+         if boundary == "root-cancelled" {
+             delivered(&mut f.old_output, 243).await;
++        } else {
++            assert!(
++                matches!(
++                    source.try_publish(&frame(&source, 244)),
++                    Err(StreamControlError::Authority)
++                ),
++                "current source revocation must reject a newly published packet"
++            );
+         }
+         assert!(
+             f.target_output.try_recv().is_err(),

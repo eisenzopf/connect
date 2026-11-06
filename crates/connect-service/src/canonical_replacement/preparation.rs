@@ -5,6 +5,7 @@ use super::{
     start::StartedReplacement,
 };
 mod audio_clock;
+mod video;
 use audio_clock::PreparationAudioClock;
 use connect_store::{NativeReplacementMediaCapture, NativeReplacementMediaPhase as Step};
 use rvoip_core::{
@@ -260,34 +261,7 @@ impl Runtime {
         if let Some(gate) = &started.policy.readiness {
             if let Some(request) = super::movement::replacement_video(&root.plan)? {
                 if !request.receivers.is_empty() {
-                    let (_roles, i) = super::projection::read(
-                        &self.role_projection,
-                        &self.stop,
-                        root.deadline
-                            .min(tokio::time::Instant::now() + Duration::from_secs(5)),
-                        || {
-                            self.continuation_read_once(
-                                root,
-                                started,
-                                Phase::Preroll(request.clone(), started.controller.revision()),
-                            )
-                        },
-                    )
-                    .await?;
-                    let preparation = self
-                        .core
-                        .prepare_staged_device_replacement_video_with_held(
-                            &root.handle,
-                            &request,
-                            &i,
-                        )
-                        .map_err(|error| {
-                            tracing::debug!(
-                                ?error,
-                                "Replacement private video preparation refused"
-                            );
-                            Error::forbidden()
-                        })?;
+                    let preparation = self.prepare_private_video(root, started, &request).await?;
                     gate.preroll
                         .set(Arc::new(preparation))
                         .map_err(|_| Error::forbidden())?;

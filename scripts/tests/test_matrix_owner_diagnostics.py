@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from lib.matrix_owner_diagnostics import idle_owner_diagnostics, memory_fields, vmmap_summary, mac_vmmap, browser_labels, executable_label, stat_identity
+from lib.matrix_owner_diagnostics import idle_owner_diagnostics, memory_fields, vmmap_summary, mac_vmmap, browser_labels, executable_label, stat_identity, selected_smaps, linux_fd_mappings
 from lib.operational_process_resources import ProcessResources
 from lib.matrix_macos_resources import MacProcessResources
 
@@ -418,6 +418,94 @@ class BrowserTaxonomyAndDescriptorIdentityTests(unittest.TestCase):
         self.assertIsNone(descriptor["stat_identity_sha256"])
         self.assertEqual(descriptor["classification"], "unavailable")
         self.assertNotIn("changed-file", json.dumps(observed))
+
+
+class SelectedFdMappingTests(unittest.TestCase):
+    setUp = DiagnosticsTests.setUp
+    browser = LinuxBrowserAttributionTests.browser
+    def renderer(self):
+        sampler = self.browser()
+        binary = self.proc / "chrome"
+        binary.write_bytes(b"synthetic-original-executable")
+        (self.base / "exe").symlink_to(binary)
+        (self.base / "cmdline").write_bytes(b"chrome\0--type=renderer\0")
+        return sampler
+
+    def mapping(self, inode, address=4096, rss=1, pss=1):
+        return (f"{address:x}-{address+4096:x} rw-s 00000000 {os.major(inode.st_dev):x}:{os.minor(inode.st_dev):x} {inode.st_ino} /private/never-persisted-buffer-name\n"
+            f"Rss: {rss} kB\nPss: {pss} kB\n").encode()
+
+    def test_actual_regular_fd_stat_size_and_selected_inode_vma_totals_are_numeric_only(self):
+        sampler = self.renderer()
+        info = os.stat(self.base / "status")
+        (self.base / "smaps").write_bytes(self.mapping(info) + self.mapping(info, 8192, rss=2, pss=1))
+        result = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        process = result["processes"][0]
+        descriptor = next(fd for fd in process["descriptors"] if fd["fd"] == 3)
+        self.assertEqual(descriptor["size_bytes"], info.st_size)
+        self.assertIsNone(next(fd for fd in process["descriptors"] if fd["fd"] == 4)["size_bytes"])
+        maps = process["fd_mappings"]
+        self.assertEqual(maps["state"], "available")
+        self.assertEqual(maps["identity_before"], maps["identity_after"])
+        self.assertEqual(maps["objects"][descriptor["stat_identity_sha256"]]["rss_bytes"], 3072)
+        self.assertEqual(maps["objects"][descriptor["stat_identity_sha256"]]["pss_bytes"], 2048)
+        self.assertNotIn("never-persisted", json.dumps(result))
+        self.assertNotIn(str(self.proc), json.dumps(result))
+
+    def test_distinct_same_named_objects_do_not_merge_inode_rss_and_unmapped_complete_is_zero(self):
+        from types import SimpleNamespace
+        a = SimpleNamespace(st_dev=os.makedev(1, 2), st_ino=3, st_mode=0o100600)
+        b = SimpleNamespace(st_dev=os.makedev(1, 2), st_ino=4, st_mode=0o100600)
+        c = SimpleNamespace(st_dev=os.makedev(1, 2), st_ino=5, st_mode=0o100600)
+        ids = [stat_identity(x) for x in (a, b, c)]
+        maps = selected_smaps(self.mapping(a, rss=4, pss=2) + self.mapping(b,8192,rss=8,pss=4), ids, lambda: None)
+        self.assertEqual([maps["objects"][identity]["rss_bytes"] for identity in ids], [4096,8192,0])
+
+    def test_truncated_smaps_never_reports_unknown_inode_totals_as_zero(self):
+        from types import SimpleNamespace
+        a = SimpleNamespace(st_dev=1, st_ino=3, st_mode=0o100600)
+        target = stat_identity(a)
+        raw = self.mapping(a) + b"f" * 200
+        with patch("lib.matrix_owner_diagnostics.MAX_MAP_BYTES", len(self.mapping(a)) + 1):
+            maps = selected_smaps(raw, [target], lambda: None)
+        self.assertEqual(maps["state"], "partial")
+        self.assertTrue(maps["truncated"])
+        self.assertIsNone(maps["objects"][target]["rss_bytes"])
+        with self.assertRaises(ValueError): selected_smaps(b"private malformed mapping", [target], lambda: None)
+
+    def test_reused_pid_during_selected_mapping_drops_only_optional_untrusted_details(self):
+        sampler = self.renderer()
+        info = os.stat(self.base / "status")
+        (self.base / "smaps").write_bytes(self.mapping(info))
+        original = sampler._stat
+        reads = 0
+        def changing(pid):
+            nonlocal reads
+            reads += 1
+            value = original(pid)
+            if reads >= 4: value["start_ticks"] += 1
+            return value
+        sampler._stat = changing
+        result = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        process = result["processes"][0]
+        self.assertEqual(process["identity_before"], process["identity_after"])
+        self.assertEqual(process["fd_mappings"]["state"], "unavailable")
+        self.assertIsNone(process["fd_mappings"]["objects"])
+        self.assertGreater(len(process["descriptors"]), 0)
+
+    def test_optional_mapping_budget_failure_preserves_actual_original_fd_and_thread_observations(self):
+        sampler = self.renderer()
+        from lib.matrix_owner_diagnostics import ObservationDeadline
+        with patch("lib.matrix_owner_diagnostics.linux_fd_mappings", side_effect=ObservationDeadline("same original deadline")):
+            result = idle_owner_diagnostics(sampler, roles=("browser",), clock=lambda: 0)
+        process = result["processes"][0]
+        self.assertEqual(process["fd_mappings"]["error"], "ObservationDeadline")
+        self.assertGreater(len(process["threads"]), 0)
+        self.assertGreater(len(process["descriptors"]), 0)
+        self.assertEqual(result["limits"]["seconds"], .05)
+        self.assertEqual(result["limits"]["live_processes"], 16)
+        self.assertEqual(result["limits"]["descriptors_per_process"], 4096)
+        self.assertNotIn("passed", result)
 
 
 if __name__ == "__main__":

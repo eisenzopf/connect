@@ -131,3 +131,27 @@ for(const rejected of [false,true])test(`WSS render retirement separately joins 
  else{contexts[0].state='closed';cleanup.resolve();const receipt=await renderer.retirement;await assert.rejects(renderer.finished,error=>error===semantic);await owner.shutdown();
   assert.deepEqual(receipt,{connectionId:input.connectionId,scope:'renderer-local',audioGraph:'closed',outputsDetached:true});assert.equal(Object.isFrozen(receipt),true);}
 })));
+
+
+test('WSS retirement stops actual unaccepted peer receivers before any track event and stays idempotent',()=>scenario(async({begun,peer,client})=>{
+ const receiver=peer().getTransceivers()[0].receiver.track;let stops=0;
+ receiver.stop=()=>{stops++;receiver.readyState='ended';};
+ begun.owner.close();begun.owner.close();
+ assert.equal(receiver.readyState,'ended');assert.equal(stops,1);assert.equal(client.closed,false);
+ await assert.rejects(begun.accepted);await assert.rejects(begun.ready);
+},{gathering:true}));
+test('WSS rejected unselected actual receiver retires accepted and additional peer-owned tracks once',()=>scenario(async({begun,peer,client})=>{
+ const owner=await begun.ready,original=peer().getTransceivers()[0].receiver.track;
+ const transceiver=peer().addTransceiver('audio'),extra=transceiver.receiver.track;let oldStops=0,newStops=0;
+ original.stop=()=>{oldStops++;original.readyState='ended';};extra.stop=()=>{newStops++;extra.readyState='ended';};
+ peer().ontrack({track:extra,transceiver});
+ assert.equal(peer().connectionState,'closed');assert.equal(original.readyState,'ended');assert.equal(extra.readyState,'ended');
+ owner.close();assert.equal(oldStops,1);assert.equal(newStops,1);assert.equal(client.closed,false);
+}));
+test('WSS rejected foreign event cannot stop another peer or caller track while original receivers retire',()=>scenario(async({begun,peer,client})=>{
+ await begun.ready;const actual=peer().getTransceivers()[0].receiver.track,foreign=new Track();let actualStops=0,foreignStops=0;
+ actual.stop=()=>{actualStops++;actual.readyState='ended';};foreign.stop=()=>{foreignStops++;foreign.readyState='ended';};
+ peer().ontrack({track:foreign,transceiver:{receiver:{track:foreign}}});
+ assert.equal(peer().connectionState,'closed');assert.equal(actual.readyState,'ended');assert.equal(actualStops,1);
+ assert.equal(foreign.readyState,'live');assert.equal(foreignStops,0);assert.equal(client.closed,false);
+}));

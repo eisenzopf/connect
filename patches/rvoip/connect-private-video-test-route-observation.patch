@@ -1,0 +1,99 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -80,6 +80,12 @@
+     pub(super) cancel: CancellationToken,
+ }
+ impl DirectGate {
++    /// Numeric observation only for in-crate regressions. The routing field
++    /// stays private; no owner, ticket or permission leaves this locked read.
++    #[cfg(test)]
++    pub(super) fn private_route_count_for_test(&self) -> usize {
++        self.routing.lock().unwrap().preparation.len()
++    }
+     pub(super) fn new(cancel: CancellationToken) -> Arc<Self> {
+         Arc::new(Self {
+             routing: Mutex::new(Routing {
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+@@ -859,15 +859,7 @@
+         assert!(
+             matches!(attempt, VideoReplacementPreparationAttempt::MetadataBusy { deadline } if deadline <= cutoff)
+         );
+-        assert!(
+-            target
+-                .direct_subscriptions
+-                .routing
+-                .lock()
+-                .unwrap()
+-                .preparation
+-                .is_empty()
+-        );
++        assert!(target.direct_subscriptions.private_route_count_for_test() == 0);
+         assert!(f.target_output.try_recv().is_err());
+         drop(held);
+         assert_eq!(target.revision(), revision);
+@@ -889,28 +881,14 @@
+         };
+         assert!(prepared.is_current());
+         assert_eq!(
+-            target
+-                .direct_subscriptions
+-                .routing
+-                .lock()
+-                .unwrap()
+-                .preparation
+-                .len(),
++            target.direct_subscriptions.private_route_count_for_test(),
+             1
+         );
+         f.publish_video("bob", 200);
+         delivered(&mut f.old_output, 200).await;
+         delivered(&mut f.target_output, 200).await;
+         prepared.close();
+-        assert!(
+-            target
+-                .direct_subscriptions
+-                .routing
+-                .lock()
+-                .unwrap()
+-                .preparation
+-                .is_empty()
+-        );
++        assert!(target.direct_subscriptions.private_route_count_for_test() == 0);
+         assert_eq!(target.revision(), revision);
+         assert_eq!(bindings(&target), expected_bindings);
+         assert!(!cancellation.is_cancelled());
+@@ -990,15 +968,7 @@
+             result,
+             Err(StreamControlError::Cancelled | StreamControlError::Authority)
+         ));
+-        assert!(
+-            target
+-                .direct_subscriptions
+-                .routing
+-                .lock()
+-                .unwrap()
+-                .preparation
+-                .is_empty()
+-        );
++        assert!(target.direct_subscriptions.private_route_count_for_test() == 0);
+         assert!(f.target_output.try_recv().is_err());
+         assert!(!old.shutdown.is_cancelled());
+     }
+@@ -1048,15 +1018,7 @@
+             &grant,
+         );
+         assert!(result.is_err(), "semantic failure became a retry outcome");
+-        assert!(
+-            target
+-                .direct_subscriptions
+-                .routing
+-                .lock()
+-                .unwrap()
+-                .preparation
+-                .is_empty()
+-        );
++        assert!(target.direct_subscriptions.private_route_count_for_test() == 0);
+         assert!(!target.shutdown.is_cancelled());
+     }
+ }

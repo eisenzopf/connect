@@ -1,0 +1,523 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -243,6 +243,53 @@
+     resource_lifetime: CancellationToken,
+     source_lifecycles: Vec<ConnectionLifecycleTicket>,
+     candidate: ConnectionLifecycleTicket,
++}
++/// Lifetime of structural private route intent, minted only from the exact
++/// owned Core preparation. It contains no MediaControl or authorization read.
++/// Every queued packet still requires its own current policy admission.
++pub(crate) struct PrivateVideoBindingLifetime {
++    target: Weak<crate::staged_streams::StreamController>,
++    deadline: tokio::time::Instant,
++    cancellation: CancellationToken,
++}
++impl PrivateVideoBindingLifetime {
++    fn from_preparation(
++        prepared: &DeviceReplacementPreparation,
++        target: &Arc<crate::staged_streams::StreamController>,
++    ) -> Self {
++        Self {
++            target: Arc::downgrade(target),
++            deadline: prepared.deadline,
++            cancellation: prepared.cancellation.clone(),
++        }
++    }
++    pub(crate) fn metadata_for(
++        &self,
++        target: &Arc<crate::staged_streams::StreamController>,
++    ) -> std::result::Result<(tokio::time::Instant, CancellationToken), StreamControlError> {
++        if self
++            .target
++            .upgrade()
++            .is_none_or(|original| !Arc::ptr_eq(&original, target))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        Ok((self.deadline, self.cancellation.child_token()))
++    }
++    // Trusted Core unit fixture only; no production caller can supply a new
++    // arbitrary lifetime instead of its original owned preparation.
++    #[cfg(test)]
++    pub(crate) fn for_test(
++        target: &Arc<crate::staged_streams::StreamController>,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> Self {
++        Self {
++            target: Arc::downgrade(target),
++            deadline,
++            cancellation,
++        }
++    }
+ }
+ impl DeviceReplacementPreparation {
+     pub fn intent(&self) -> &ParticipantReplacementMutation {
+@@ -965,13 +1012,12 @@
+             .adapter_for(&p.intent.replacement)?
+             .staged_controller(&p.intent.replacement)
+             .ok_or(ParticipantControlError::Unsupported)?;
+-        let prepared = new.prepare_replacement_video(
+-            &old,
+-            video,
+-            p.deadline.min(control.deadline),
+-            p.cancellation.child_token(),
+-            held,
+-        )?;
++        let lifetime = PrivateVideoBindingLifetime::from_preparation(p, &new);
++        // The original outer role-control capture also bounds this one
++        // synchronous installation, even if the inner media capture is later.
++        let installation_deadline = p.deadline.min(control.deadline);
++        let prepared =
++            new.prepare_replacement_video(&old, video, &lifetime, installation_deadline, held)?;
+         use crate::staged_streams::device_replacement::VideoReplacementPreparationAttempt;
+         // Only the pure VideoPlan exclusion is safe for a caller to retry.
+         // Once a route exists, retain the original postchecks and return their
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
+@@ -145,8 +145,8 @@
+         self: &Arc<Self>,
+         old: &Arc<Self>,
+         request: &ReplacementVideoRequest,
+-        deadline: tokio::time::Instant,
+-        cancel: CancellationToken,
++        lifetime: &crate::orchestrator::participant_control::replacement::PrivateVideoBindingLifetime,
++        installation_deadline: tokio::time::Instant,
+         held: &(dyn Any + Send + Sync),
+     ) -> ControlResult<VideoReplacementPreparationAttempt> {
+         if request.receivers.is_empty()
+@@ -157,8 +157,10 @@
+         {
+             return Err(StreamControlError::Unsupported);
+         }
+-        // Owning this preparation never owns cancellation of its caller.
+-        let cancel = cancel.child_token();
++        // The original Core owner seals structural route lifetime. It is not
++        // a captured authority lease; installation and every packet admission
++        // remain separately bounded by actual current policy.
++        let (preparation_deadline, cancel) = lifetime.metadata_for(self)?;
+         let expected = self.revision();
+         let credential = self.credential_snapshot();
+         let scope = self.scope(&credential.principal, MediaPurpose::Control);
+@@ -171,9 +173,11 @@
+             },
+             held,
+         )?;
+-        let deadline = deadline.min(control.deadline);
++        let authorization_deadline = preparation_deadline
++            .min(installation_deadline)
++            .min(control.deadline);
+         control.valid()?;
+-        if cancel.is_cancelled() || tokio::time::Instant::now() >= deadline {
++        if cancel.is_cancelled() || tokio::time::Instant::now() >= authorization_deadline {
+             return Err(StreamControlError::Cancelled);
+         }
+         // This checks both original and replacement logical video directions,
+@@ -184,7 +188,9 @@
+             // Classify this exact, pre-route-publication exclusion; a policy
+             // error or any subsequent preparation error is not this outcome.
+             Err(StreamControlError::MetadataBusy) => {
+-                return Ok(VideoReplacementPreparationAttempt::MetadataBusy { deadline });
++                return Ok(VideoReplacementPreparationAttempt::MetadataBusy {
++                    deadline: authorization_deadline,
++                });
+             }
+             Err(error) => return Err(error),
+         };
+@@ -259,7 +265,7 @@
+                         target,
+                         target_ticket,
+                         cancel: cancel.clone(),
+-                        deadline,
++                        deadline: preparation_deadline,
+                     })),
+                 }),
+             );
+@@ -285,6 +291,12 @@
+         {
+             return Err(StreamControlError::NotReady);
+         }
++        // Structural routes intentionally outlive the capture, so their
++        // is_current check cannot replace the original installation cutoff.
++        // Recheck it at the same final no-effect publication boundary.
++        if tokio::time::Instant::now() >= authorization_deadline {
++            return Err(StreamControlError::NotReady);
++        }
+         routing.preparation = routes.clone();
+         Ok(VideoReplacementPreparationAttempt::Prepared(
+             VideoReplacementPreparation {
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -81,6 +81,10 @@
+     domain: Arc<Domain>,
+     guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
+     approval: Approval,
++    control_deadline: Option<tokio::time::Instant>,
++    // Synthetic policy may stall its second owner read across an outer
++    // installation cutoff; no production waiting or timing hook is involved.
++    control_owner_delay: Option<(Arc<AtomicUsize>, tokio::time::Instant)>,
+ }
+ struct Held {
+     grant: Arc<Grant>,
+@@ -91,6 +95,13 @@
+         &self.owner
+     }
+     fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
++        if let Some((calls, not_before)) = &self.grant.control_owner_delay {
++            if calls.fetch_add(1, Ordering::SeqCst) == 1 {
++                std::thread::sleep(
++                    not_before.saturating_duration_since(tokio::time::Instant::now()),
++                );
++            }
++        }
+         self.grant
+             .domain
+             .resource_owner(&self.grant.guard, self.owner.clone())
+@@ -410,7 +421,7 @@
+                 owner,
+             }),
+             CancellationToken::new(),
+-            deadline(),
++            grant.control_deadline.unwrap_or_else(deadline),
+         )
+     }
+ }
+@@ -496,6 +507,8 @@
+             domain: self.domain.clone(),
+             guard: Arc::new(self.domain.base.0.clone().read_owned().await),
+             approval,
++            control_deadline: None,
++            control_owner_delay: None,
+         })
+     }
+     async fn add(&mut self, name: &str, alias: Option<&str>, private: bool) {
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+@@ -1,4 +1,5 @@
+ use super::*;
++use crate::orchestrator::participant_control::replacement::PrivateVideoBindingLifetime;
+ use crate::staged_streams::direct_subscriptions::{
+     VideoReplacementPreparation, VideoReplacementPreparationAttempt,
+ };
+@@ -94,7 +95,13 @@
+             })
+             .await;
+         match target
+-            .prepare_replacement_video(old, &request(), deadline(), cancellation, &grant)
++            .prepare_replacement_video(
++                old,
++                &request(),
++                &PrivateVideoBindingLifetime::for_test(target, deadline(), cancellation),
++                deadline(),
++                &grant,
++            )
+             .unwrap()
+         {
+             VideoReplacementPreparationAttempt::Prepared(prepared) => prepared,
+@@ -854,7 +861,13 @@
+         let controller = f.movement.room.nodes[who].controller.clone();
+         let held = controller.state.lock().unwrap();
+         let attempt = target
+-            .prepare_replacement_video(&old, &request(), cutoff, cancellation.clone(), &grant)
++            .prepare_replacement_video(
++                &old,
++                &request(),
++                &PrivateVideoBindingLifetime::for_test(&target, cutoff, cancellation.clone()),
++                cutoff,
++                &grant,
++            )
+             .unwrap();
+         assert!(
+             matches!(attempt, VideoReplacementPreparationAttempt::MetadataBusy { deadline } if deadline <= cutoff)
+@@ -873,7 +886,13 @@
+         assert!(!cancellation.is_cancelled());
+         // Same captured root, expected revision, request and original cutoff.
+         let prepared = match target
+-            .prepare_replacement_video(&old, &request(), cutoff, cancellation.clone(), &grant)
++            .prepare_replacement_video(
++                &old,
++                &request(),
++                &PrivateVideoBindingLifetime::for_test(&target, cutoff, cancellation.clone()),
++                cutoff,
++                &grant,
++            )
+             .unwrap()
+         {
+             VideoReplacementPreparationAttempt::Prepared(prepared) => prepared,
+@@ -916,8 +935,8 @@
+             target.prepare_replacement_video(
+                 &old,
+                 &request(),
++                &PrivateVideoBindingLifetime::for_test(&target, cutoff, cancellation.clone()),
+                 cutoff,
+-                cancellation.clone(),
+                 &grant
+             ),
+             Ok(VideoReplacementPreparationAttempt::MetadataBusy { .. })
+@@ -960,8 +979,8 @@
+         let result = target.prepare_replacement_video(
+             &old,
+             &request(),
++            &PrivateVideoBindingLifetime::for_test(&target, cutoff, cancellation.clone()),
+             cutoff,
+-            cancellation.clone(),
+             &grant,
+         );
+         assert!(matches!(
+@@ -1013,8 +1032,8 @@
+         let result = target.prepare_replacement_video(
+             &old,
+             &mapping,
++            &PrivateVideoBindingLifetime::for_test(&target, cutoff, CancellationToken::new()),
+             cutoff,
+-            CancellationToken::new(),
+             &grant,
+         );
+         assert!(result.is_err(), "semantic failure became a retry outcome");
+@@ -1022,3 +1041,245 @@
+         assert!(!target.shutdown.is_cancelled());
+     }
+ }
++
++async fn captured_video_control(f: &Preroll, capture_deadline: tokio::time::Instant) -> Arc<Grant> {
++    let old = &f.movement.room.nodes["alice"].controller;
++    let target = &f.movement.room.nodes["device"].controller;
++    Arc::new(Grant {
++        domain: f.movement.room.domain.clone(),
++        guard: Arc::new(f.movement.room.domain.base.0.clone().read_owned().await),
++        approval: Approval::PrepareVideo {
++            source: old.connection.clone(),
++            connection: target.connection.clone(),
++            expected: target.revision(),
++            request: request(),
++        },
++        control_deadline: Some(capture_deadline),
++        control_owner_delay: None,
++    })
++}
++
++#[tokio::test]
++async fn original_private_video_binding_outlives_capture_but_not_its_original_lifetime() {
++    let mut f = Preroll::new().await;
++    let old = f.movement.room.nodes["alice"].controller.clone();
++    let target = f.movement.room.nodes["device"].controller.clone();
++    let began = tokio::time::Instant::now();
++    let capture_deadline = began + Duration::from_millis(100);
++    let original_deadline = began + Duration::from_millis(500);
++    let cancellation = CancellationToken::new();
++    let lifetime =
++        PrivateVideoBindingLifetime::for_test(&target, original_deadline, cancellation.clone());
++    let grant = captured_video_control(&f, capture_deadline).await;
++    let prepared = match target
++        .prepare_replacement_video(&old, &request(), &lifetime, original_deadline, &grant)
++        .unwrap()
++    {
++        VideoReplacementPreparationAttempt::Prepared(value) => value,
++        _ => panic!("uncontended original metadata"),
++    };
++    tokio::time::sleep_until(capture_deadline + Duration::from_millis(20)).await;
++    assert!(tokio::time::Instant::now() < original_deadline);
++    assert!(
++        matches!(
++            target.prepare_replacement_video(
++                &old,
++                &request(),
++                &lifetime,
++                original_deadline,
++                &grant
++            ),
++            Err(StreamControlError::Deadline)
++        ),
++        "an expired synchronous capture must not authorize a new installation"
++    );
++    drop(grant); // No original authorization guard survives into later packets.
++    assert!(
++        prepared.is_current(),
++        "structural intent incorrectly retained the expired capture deadline"
++    );
++    f.publish_video("bob", 240);
++    delivered(&mut f.old_output, 240).await;
++    delivered(&mut f.target_output, 240).await;
++    f.assert_target_quarantined();
++    tokio::time::sleep_until(original_deadline + Duration::from_millis(10)).await;
++    assert!(!prepared.is_current());
++    f.publish_video("bob", 241);
++    delivered(&mut f.old_output, 241).await;
++    assert!(
++        f.target_output.try_recv().is_err(),
++        "original route lifetime was renewed by fresh packet authority"
++    );
++    prepared.close();
++    assert!(!cancellation.is_cancelled());
++}
++
++#[tokio::test]
++async fn original_private_video_lifetime_never_extends_busy_retry_or_expired_capture_authority() {
++    let f = Preroll::new().await;
++    let old = f.movement.room.nodes["alice"].controller.clone();
++    let target = f.movement.room.nodes["device"].controller.clone();
++    let capture_deadline = tokio::time::Instant::now() + Duration::from_millis(100);
++    let original_deadline = capture_deadline + Duration::from_millis(400);
++    let cancellation = CancellationToken::new();
++    let lifetime =
++        PrivateVideoBindingLifetime::for_test(&target, original_deadline, cancellation.clone());
++    let grant = captured_video_control(&f, capture_deadline).await;
++    let foreign =
++        PrivateVideoBindingLifetime::for_test(&old, original_deadline, cancellation.clone());
++    assert!(
++        matches!(
++            target.prepare_replacement_video(&old, &request(), &foreign, original_deadline, &grant),
++            Err(StreamControlError::Authority)
++        ),
++        "another physical controller cannot lend its structural lifetime"
++    );
++    let outer_deadline = capture_deadline - Duration::from_millis(50);
++    let held = old.state.lock().unwrap();
++    match target
++        .prepare_replacement_video(&old, &request(), &lifetime, outer_deadline, &grant)
++        .unwrap()
++    {
++        VideoReplacementPreparationAttempt::MetadataBusy { deadline } => {
++            assert!(deadline <= outer_deadline && deadline < capture_deadline)
++        }
++        _ => panic!("busy pre-effect metadata was not classified"),
++    }
++    assert_eq!(
++        target.direct_subscriptions.private_route_count_for_test(),
++        0
++    );
++    drop(held);
++    tokio::time::sleep_until(outer_deadline + Duration::from_millis(5)).await;
++    assert!(
++        tokio::time::Instant::now() < capture_deadline,
++        "test must isolate the earlier outer capture"
++    );
++    assert!(
++        matches!(
++            target.prepare_replacement_video(&old, &request(), &lifetime, outer_deadline, &grant),
++            Err(StreamControlError::Cancelled)
++        ),
++        "a still-current inner media control cannot extend the original outer installation deadline"
++    );
++    assert_eq!(
++        target.direct_subscriptions.private_route_count_for_test(),
++        0
++    );
++    // Even an otherwise later outer bound cannot revive the expired original
++    // inner capture below. Neither boundary changes the structural lifetime.
++    tokio::time::sleep_until(capture_deadline + Duration::from_millis(20)).await;
++    assert!(tokio::time::Instant::now() < original_deadline);
++    assert!(matches!(
++        target.prepare_replacement_video(&old, &request(), &lifetime, original_deadline, &grant),
++        Err(StreamControlError::Deadline)
++    ));
++    assert_eq!(
++        target.direct_subscriptions.private_route_count_for_test(),
++        0
++    );
++    assert!(!cancellation.is_cancelled());
++    drop(grant);
++
++    // The outer capture is current at entry but expires while the original
++    // policy performs its real second owner read. Inner control and root remain
++    // current, so only the final installation cutoff prevents publication.
++    let began = tokio::time::Instant::now();
++    let outer_deadline = began + Duration::from_millis(50);
++    let inner_deadline = began + Duration::from_millis(500);
++    let original_deadline = began + Duration::from_secs(1);
++    let calls = Arc::new(AtomicUsize::new(0));
++    let delayed_grant = Arc::new(Grant {
++        domain: f.movement.room.domain.clone(),
++        guard: Arc::new(f.movement.room.domain.base.0.clone().read_owned().await),
++        approval: Approval::PrepareVideo {
++            source: old.connection.clone(),
++            connection: target.connection.clone(),
++            expected: target.revision(),
++            request: request(),
++        },
++        control_deadline: Some(inner_deadline),
++        control_owner_delay: Some((calls.clone(), outer_deadline + Duration::from_millis(5))),
++    });
++    let lifetime =
++        PrivateVideoBindingLifetime::for_test(&target, original_deadline, cancellation.clone());
++    assert!(
++        matches!(
++            target.prepare_replacement_video(
++                &old,
++                &request(),
++                &lifetime,
++                outer_deadline,
++                &delayed_grant
++            ),
++            Err(StreamControlError::NotReady)
++        ),
++        "an expired outer capture must not publish routes after the original owner read"
++    );
++    assert!(
++        calls.load(Ordering::SeqCst) >= 2,
++        "the original policy must reach its preparation owner read"
++    );
++    assert!(
++        tokio::time::Instant::now() < inner_deadline,
++        "the synthetic inner capture must remain current"
++    );
++    assert_eq!(
++        target.direct_subscriptions.private_route_count_for_test(),
++        0
++    );
++    assert!(!cancellation.is_cancelled());
++}
++
++#[tokio::test]
++async fn original_private_video_binding_requires_fresh_source_authority_and_original_cancellation()
++{
++    for boundary in ["source-revoked", "root-cancelled"] {
++        let mut f = Preroll::new().await;
++        let old = f.movement.room.nodes["alice"].controller.clone();
++        let target = f.movement.room.nodes["device"].controller.clone();
++        let capture_deadline = tokio::time::Instant::now() + Duration::from_millis(100);
++        let original_deadline = capture_deadline + Duration::from_millis(600);
++        let cancellation = CancellationToken::new();
++        let lifetime =
++            PrivateVideoBindingLifetime::for_test(&target, original_deadline, cancellation.clone());
++        let grant = captured_video_control(&f, capture_deadline).await;
++        let prepared = match target
++            .prepare_replacement_video(&old, &request(), &lifetime, original_deadline, &grant)
++            .unwrap()
++        {
++            VideoReplacementPreparationAttempt::Prepared(value) => value,
++            _ => panic!("uncontended original metadata"),
++        };
++        drop(grant);
++        tokio::time::sleep_until(capture_deadline + Duration::from_millis(20)).await;
++        assert!(prepared.is_current());
++        f.publish_video("bob", 242);
++        delivered(&mut f.old_output, 242).await;
++        delivered(&mut f.target_output, 242).await;
++        if boundary == "source-revoked" {
++            f.movement
++                .room
++                .domain
++                .base
++                .0
++                .write()
++                .await
++                .revoked
++                .insert("bob".into());
++        } else {
++            cancellation.cancel();
++            assert!(!prepared.is_current());
++        }
++        f.publish_video("bob", 243);
++        if boundary == "root-cancelled" {
++            delivered(&mut f.old_output, 243).await;
++        }
++        assert!(
++            f.target_output.try_recv().is_err(),
++            "private route cached expired or revoked packet authority"
++        );
++        f.assert_target_quarantined();
++        prepared.close();
++    }
++}

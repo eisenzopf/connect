@@ -1809,6 +1809,26 @@
       "path": "patches/rvoip/connect-scene-audio-lock-boundary.patch",
       "sha256": "b2c7228f57597dbce99a621fc18e22eeb73c201313cafbd75f2b80adb642db5f",
       "source": "Connect scene audio lock boundary and bounded after-guard preparation refusal diagnostics; preserve current authority, generations, original cadence and direct route custody"
+    },
+    {
+      "path": "patches/rvoip/connect-private-video-pre-effect-retry.patch",
+      "sha256": "7e6d5ab9dbcb4626faaa455ec24ddaa542e958dae3b26f62338e1c943d5f7210",
+      "source": "Connect typed pre-publication video metadata contention; exact original bounds and post-publication retirement preserved; actual old-state exclusion and boundary controls"
+    },
+    {
+      "path": "patches/rvoip/connect-private-video-test-route-observation.patch",
+      "sha256": "8b02cd7bf570e00d4c872e054a16776efbef6926f0aec87cb243cc72c5e73e1d",
+      "source": "Connect in-crate route-count regression observation; cfg(test) numeric accessor preserves DirectGate field privacy and original assertions"
+    },
+    {
+      "path": "patches/rvoip/connect-private-video-binding-lifetime.patch",
+      "sha256": "92028350174c4a06159aa6ea9178fec51732454cd83b52e0d8eece217dd19386",
+      "source": "Connect sealed original private video binding lifetime separated from current installation authority and retry deadlines; original packet authority and root expiry/cancellation remain enforced"
+    },
+    {
+      "path": "patches/rvoip/connect-private-video-revocation-fixture.patch",
+      "sha256": "c6fe2491544866ed933d6f3d0e59966d903746e6fbd7a07069e3c5ea4987d5b7",
+      "source": "Connect private video regression queues real packet before source revocation/root cancellation and requires exact new-publication Authority refusal; test-only correction"
     }
   ]
 }

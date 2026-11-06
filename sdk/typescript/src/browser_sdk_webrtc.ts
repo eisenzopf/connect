@@ -1095,9 +1095,16 @@ export class BrowserRtcConnection {
         this.stop.abort();
         this.peer.ontrack = null;
         this.signaling?.close();
+        // A peer-owned receiver can be refused before its ontrack event enters
+        // the accepted remote map. Snapshot only this exact physical's actual
+        // receivers, never an arbitrary track supplied by a rejected event.
+        const remoteTracks = new Set([
+            ...this.remote.values(),
+            ...this.peer.getTransceivers().map((value) => value.receiver.track),
+        ]);
         this.peer.close();
         if (this.worker) stopVideoWorker(this.worker);
-        for (const track of this.remote.values()) track.stop();
+        for (const track of remoteTracks) track.stop();
         this.remote.clear();
     }
     async shutdown(): Promise<void> {

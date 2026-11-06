@@ -144,7 +144,12 @@ impl Runtime {
         );
         let mapped = super::movement::replacement_video(&saved.plan)?;
         let gate =
-            super::readiness::ReadyGate::new_native(&read, &plan, deadline, mapped.as_ref())?;
+            // The captured start read bounds only dormant configure/negotiate/mute.
+            // Decoder readiness owns the unchanged original reservation bound;
+            // each private packet and Ready continuation still reacquires its
+            // actual current Store authority. Never retain a five-second read
+            // as the lifetime of the original preparation.
+            super::readiness::ReadyGate::new_native(&read, &plan, saved.deadline, mapped.as_ref())?;
         let challenge = gate.native_challenge(record)?;
         let (attempt, read) = {
             let store = self.media.store.clone();

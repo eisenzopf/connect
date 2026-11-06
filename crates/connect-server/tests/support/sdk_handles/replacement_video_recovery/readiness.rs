@@ -58,6 +58,58 @@ pub(super) fn original_cutoff(
         cutoff: Instant::now() + remaining,
     }
 }
+#[cfg(feature = "test-support")]
+pub(super) fn original_video_phase_rows(
+    f: &Fixture,
+    record: &str,
+) -> Vec<(String, String, String, bool, String, String)> {
+    let db = rusqlite::Connection::open(&f.config.database).unwrap();
+    let mut query = db.prepare("SELECT s.phase,s.attempt_id,s.effect_id,s.started,s.observation_json,e.state FROM native_replacement_media_steps s JOIN operation_effects e ON e.id=s.effect_id WHERE s.operation_record_id=?1 AND s.phase IN ('attach','activate') ORDER BY s.phase").unwrap();
+    let rows: Vec<(String, String, String, bool, String, String)> = query
+        .query_map([record], |row| {
+            Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+                row.get(5)?,
+            ))
+        })
+        .unwrap()
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(
+        rows.iter().map(|row| row.0.as_str()).collect::<Vec<_>>(),
+        vec!["activate", "attach"]
+    );
+    assert!(rows.iter().all(|row| row.3 && row.5 == "confirmed"));
+    rows
+}
+#[cfg(feature = "test-support")]
+pub(super) fn assert_same_original_preparation(
+    before: &OriginalPreparation,
+    after: &OriginalPreparation,
+) {
+    assert_eq!(
+        (
+            &before.record_id,
+            &before.reservation_id,
+            before.expires_at,
+            &before.candidate_connection_id,
+            &before.candidate_runtime_id,
+            before.generation
+        ),
+        (
+            &after.record_id,
+            &after.reservation_id,
+            after.expires_at,
+            &after.candidate_connection_id,
+            &after.candidate_runtime_id,
+            after.generation
+        )
+    );
+}
 struct Decoder {
     child: tokio::process::Child,
     input: tokio::process::ChildStdin,
@@ -452,7 +504,10 @@ pub(super) async fn private_bootstrap(
     incoming: u16,
     original_cutoff: Instant,
     lose_first_hint: bool,
-) {
+    mode: u8,
+    original: &OriginalPreparation,
+    old_receiver: &sdk::Stream,
+) -> Option<NativeReplacementReady> {
     let cutoff = original_cutoff.min(Instant::now() + Duration::from_secs(8));
     let preparation = client.native_replacement_readiness().unwrap();
     assert_eq!(preparation.video().unwrap().stream_local_id, incoming);
@@ -461,11 +516,24 @@ pub(super) async fn private_bootstrap(
     let pid = decoder.pid;
     let work = AssertUnwindSafe(async {
         timeout_at(cutoff, async {
+            if mode == 13 {
+                // Consume the SAME eight-second decoder phase and original
+                // reservation; do not renew a credential, root or cutoff.
+                let after_original_start_read = Instant::now() + Duration::from_millis(5100);
+                assert!(after_original_start_read < cutoff);
+                tokio::time::sleep_until(after_original_start_read).await;
+                assert_original_preparation(f, original);
+                assert_unpublished(f, original);
+                let status = controller.operation_get(&command.operation_id, scope(command)).await.unwrap();
+                assert_eq!(status.record_id, root.record_id);
+                assert_eq!(serde_json::to_value(status).unwrap()["state"], "preparing");
+            }
             assert!(matches!(source.receive_video_feedback(
                 sdk::RequestOptions::new(Duration::from_millis(30)).unwrap(),
             ).await, Err(error) if error.kind == sdk::ErrorKind::Deadline),
                 "a cached source hint cannot qualify private bootstrap");
             let delta = encoder.frame(1, false).await;
+            let delta_before_key = delta.clone();
             assert_eq!(delta[0] & 1, 1);
             publish(source, &delta, 1, sequence).await;
             // Keep the SAME native reader polled even after the delta frame
@@ -555,6 +623,27 @@ pub(super) async fn private_bootstrap(
             let ready = preparation.with_decoded(samples, Some(NativeDecodedVideoReadiness {
                 decoded_frames: 1, decoded_keyframes: 1,
             })).unwrap();
+            if mode >= 14 {
+                assert_original_preparation(f, original);
+                assert_unpublished(f, original);
+                // Join the same real decoder before waiting for a later
+                // boundary. Two PRIVATE outputs satisfy its unchanged natural
+                // join contract; neither is public activation evidence.
+                let delta = encoder.frame(3, false).await; assert_eq!(delta[0] & 1, 1);
+                publish(source, &delta, 3, sequence).await;
+                let (frame, same, arrived) = video(io, incoming, 3, cutoff).await;
+                assert_eq!(same, private_epoch); assert_eq!(frame.encoded, delta);
+                decoder.frame(&frame, 3, arrived, cutoff).await;
+                assert_eq!(decoder.outputs, 2);
+                // The unchanged old receive route got these same original
+                // markers too. Verify/drain them BEFORE the boundary, so its
+                // later fresh marker4 check cannot accidentally read old RTP.
+                for (index, expected) in [(1, &delta_before_key), (2, &key), (3, &delta)] {
+                    let (bytes, _) = receive(old_receiver, index).await;
+                    assert_eq!(&bytes, expected);
+                }
+                return Some(ready);
+            }
             submit(client, &ready, controller, command, root, cutoff).await;
             let done = completed(f, controller, command).await;
             assert_eq!(done.record_id, root.record_id); assert_eq!(done.operation_id, root.operation_id);
@@ -567,14 +656,282 @@ pub(super) async fn private_bootstrap(
             assert_eq!(decoder.pid, pid); decoder.frame(&frame, 3, arrived, cutoff).await;
             assert_eq!(decoder.outputs, 2);
             eprintln!("private delta bootstrap: first_hint_lost={lose_first_hint} genuine_private_hint=true key_only_after_hint=true video_before_target_audio=true same_root=true same_epoch=true same_decoder=true");
-        }).await.expect("private bootstrap exceeded the unchanged original eight-second/captured preparation bound");
+            assert_original_preparation(f, original);
+            None
+        }).await.expect("private bootstrap exceeded the unchanged original eight-second/captured preparation bound")
     }).catch_unwind().await;
     let joined = decoder.close(cutoff).await;
-    if let Err(panic) = work {
-        std::panic::resume_unwind(panic);
-    }
+    let frozen = match work {
+        Ok(frozen) => frozen,
+        Err(panic) => std::panic::resume_unwind(panic),
+    };
     assert!(
         joined,
         "original private bootstrap decoder did not join naturally"
     );
+    frozen
+}
+
+fn assert_original_preparation(f: &Fixture, original: &OriginalPreparation) {
+    let actual: (String, i64, String, String, u64) = rusqlite::Connection::open(&f.config.database).unwrap()
+        .query_row("SELECT reservation_id,expires_at,candidate_connection_id,candidate_runtime_id,generation FROM native_replacements WHERE operation_record_id=?1",
+            [&original.record_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).unwrap();
+    assert_eq!(
+        actual,
+        (
+            original.reservation_id.clone(),
+            original.expires_at,
+            original.candidate_connection_id.clone(),
+            original.candidate_runtime_id.clone(),
+            original.generation
+        )
+    );
+}
+fn assert_unpublished(f: &Fixture, original: &OriginalPreparation) {
+    let c = rusqlite::Connection::open(&f.config.database).unwrap();
+    let ready: u64 = c
+        .query_row(
+            "SELECT count(*) FROM journal WHERE kind='connection_ready' AND operation_record_id=?1",
+            [&original.record_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        ready, 0,
+        "original private decoder output cannot publish Ready"
+    );
+    let live: bool = c
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1 AND state IN ('ready','active'))",
+            [&original.candidate_connection_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        !live,
+        "original target must never become ordinary live media"
+    );
+    let observed: u64 = c.query_row("SELECT count(*) FROM native_replacement_media_steps WHERE operation_record_id=?1 AND phase='readiness' AND observation_json IS NOT NULL",
+        [&original.record_id],|r|r.get(0)).unwrap();
+    assert_eq!(
+        observed, 0,
+        "genuine private decoding is not a submitted signed Ready"
+    );
+}
+async fn no_new_private_frame(
+    io: &mut NativeVideoDatagrams,
+    source: &sdk::Stream,
+    old_receiver: &sdk::Stream,
+    encoder: &mut Encoder,
+    sequence: &mut u16,
+) {
+    // This new original frame did not exist before expiry/revocation/cancel.
+    // The original old receiver must still work; queued earlier bytes are not
+    // silently called post-boundary authorization.
+    let key = encoder.frame(4, true).await;
+    publish(source, &key, 4, sequence).await;
+    let (old, _) = receive(old_receiver, 4).await;
+    assert_eq!(old, key, "ordinary old connection must remain usable");
+    let _ = timeout_at(Instant::now() + Duration::from_millis(300), async {
+        loop {
+            match io.receive().await {
+                Ok(packet) if packet.video_epoch.is_some() => {
+                    let frame = NativeVideoPacket::parse(packet.bytes[24..].to_vec()).unwrap();
+                    assert_ne!(
+                        frame.timestamp_rtp,
+                        4 * 3000,
+                        "new video crossed a failed original authority boundary"
+                    );
+                }
+                Ok(_) => {}
+                Err(ClientError::Transport | ClientError::MediaEnded | ClientError::Cancelled) => {
+                    break
+                }
+                Err(error) => panic!("unexpected original private reader error: {error}"),
+            }
+        }
+    })
+    .await;
+}
+#[cfg(feature = "test-support")]
+pub(super) async fn refuse_original_boundary(
+    f: &Fixture,
+    command: &TransitionCommand,
+    original: &OriginalPreparation,
+    origin: &connect_store::NativeReplacementOrigin,
+    client: &mut CanonicalClient,
+    ready: &NativeReplacementReady,
+    io: &mut NativeVideoDatagrams,
+    encoder: &mut Encoder,
+    source: &sdk::Stream,
+    old_receiver: &sdk::Stream,
+    sequence: &mut u16,
+    operator_credential: &str,
+    mode: u8,
+) {
+    assert!(matches!(mode, 14 | 15));
+    assert_original_preparation(f, original);
+    assert_unpublished(f, original);
+    if mode == 14 {
+        tokio::time::sleep_until(original.cutoff + Duration::from_millis(20)).await;
+        assert!(chrono::Utc::now().timestamp() >= original.expires_at);
+    } else {
+        assert!(Instant::now() < original.cutoff);
+        let admin = f.server.store.authenticate(&f.admin).unwrap();
+        let store = f.server.store.clone();
+        let credential = operator_credential.to_owned();
+        tokio::task::spawn_blocking(move || store.revoke(&admin, &credential))
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(f.server.store.revalidate(operator_credential).is_err());
+    }
+    // This exact original metadata origin grants no IO. Its fresh Store read
+    // must refuse independently of a concurrent physical teardown.
+    assert_eq!(origin.record_id(), original.record_id);
+    let current = f
+        .server
+        .store
+        .native_replacement_context(origin)
+        .err()
+        .expect("expired/revoked original Store authority remained current");
+    assert!(
+        if mode == 15 {
+            matches!(current.code.as_str(), "unauthorized" | "forbidden")
+        } else {
+            current.code == "forbidden"
+        },
+        "{current}"
+    );
+    // Same actual target, same frozen decoded observation and root. A local
+    // refusal qualifies only with the original terminal record AND exact Core
+    // retirement; arbitrary transport uncertainty is never sufficient.
+    let result = tokio::time::timeout(
+        Duration::from_secs(3),
+        client.confirm_native_replacement_ready(ready),
+    )
+    .await
+    .expect("original signed Ready refusal did not settle");
+    match result {
+        Err(ClientError::Application(problem)) => {
+            // Revoked original operator resolves as unauthorized; a concurrent
+            // genuine root retirement may already refuse the live preparation.
+            let refused = if mode == 15 {
+                matches!(problem.code.as_str(),"unauthorized"|"forbidden"|"not-ready")
+            } else {
+                matches!(problem.code.as_str(),"forbidden"|"not-ready"|"expired")
+            };
+            assert!(refused,"{problem}");
+        },
+        Err(ClientError::Protocol|ClientError::Transport|ClientError::MediaEnded) => {
+            original_target_retired(f, original).await;
+        },
+        Err(error) => panic!("expected actual current-authority refusal or proven original target retirement, got {error}"),
+        Ok(_) => panic!("expired or revoked original authority accepted signed Ready"),
+    }
+    no_new_private_frame(io, source, old_receiver, encoder, sequence).await;
+    assert_original_preparation(f, original);
+    assert_unpublished(f, original);
+    let (operation, state): (String, String) = rusqlite::Connection::open(&f.config.database)
+        .unwrap()
+        .query_row(
+            "SELECT operation_id,state FROM operations WHERE record_id=?1",
+            [&original.record_id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(operation, command.operation_id);
+    assert!(!matches!(state.as_str(), "ready" | "committing"));
+    if state == "completed" {
+        original_target_retired(f, original).await;
+    }
+}
+#[cfg(feature = "test-support")]
+pub(super) async fn refuse_cancelled_target(
+    f: &Fixture,
+    command: &TransitionCommand,
+    original: &OriginalPreparation,
+    origin: &connect_store::NativeReplacementOrigin,
+    io: &mut NativeVideoDatagrams,
+    encoder: &mut Encoder,
+    source: &sdk::Stream,
+    old_receiver: &sdk::Stream,
+    sequence: &mut u16,
+) {
+    // Caller has naturally joined the exact original physical target. Never
+    // open a successor to submit a continuation for this cancelled owner.
+    assert!(Instant::now() < original.cutoff);
+    original_target_retired(f, original).await;
+    let current = f
+        .server
+        .store
+        .native_replacement_context(origin)
+        .err()
+        .expect("cancelled original Store authority remained current");
+    assert_eq!(current.code, "forbidden");
+    no_new_private_frame(io, source, old_receiver, encoder, sequence).await;
+    assert_original_preparation(f, original);
+    assert_unpublished(f, original);
+    let operation: String = rusqlite::Connection::open(&f.config.database)
+        .unwrap()
+        .query_row(
+            "SELECT operation_id FROM operations WHERE record_id=?1",
+            [&original.record_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(operation, command.operation_id);
+}
+
+#[cfg(feature = "test-support")]
+async fn original_target_retired(f: &Fixture, original: &OriginalPreparation) {
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            let (state, result): (String, Option<String>) =
+                rusqlite::Connection::open(&f.config.database)
+                    .unwrap()
+                    .query_row(
+                        "SELECT state,result_json FROM operations WHERE record_id=?1",
+                        [&original.record_id],
+                        |r| Ok((r.get(0)?, r.get(1)?)),
+                    )
+                    .unwrap();
+            assert!(!matches!(state.as_str(), "ready" | "committing"));
+            let stopped = state == "completed"
+                && result.as_ref().is_some_and(|raw| {
+                    let value: serde_json::Value = serde_json::from_str(raw).unwrap();
+                    value["activation_state"] == "stopped" && value["readiness"].is_null()
+                });
+            assert!(
+                state != "completed" || stopped,
+                "successful activation cannot qualify retirement"
+            );
+            let absent = {
+                #[cfg(feature = "test-support")]
+                {
+                    let session = f
+                        .server
+                        .service
+                        .canonical_session_metadata_for_test("native-session")
+                        .unwrap();
+                    let held = session.read().unwrap();
+                    !held
+                        .connections
+                        .contains_key(&rvoip_core::ids::ConnectionId::from_string(
+                            original.candidate_runtime_id.clone(),
+                        ))
+                }
+                #[cfg(not(feature = "test-support"))]
+                {
+                    panic!("exact original Core retirement control requires test-support");
+                }
+            };
+            if (matches!(state.as_str(), "failed" | "cancelled") || stopped) && absent {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .expect("original target terminal record and exact Core retirement did not join");
 }

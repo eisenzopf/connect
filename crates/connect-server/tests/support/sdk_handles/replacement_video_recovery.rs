@@ -124,6 +124,9 @@ fn offered(id: &str, direction: Direction, audio_codec: &str) -> NonEmpty<sdk::O
     }
 }
 async fn publish(stream: &sdk::Stream, frame: &[u8], index: u32, sequence: &mut u16) {
+    publish_timestamp(stream, frame, index * 3000, sequence).await;
+}
+async fn publish_timestamp(stream: &sdk::Stream, frame: &[u8], timestamp: u32, sequence: &mut u16) {
     let parts = frame.chunks(1000).collect::<Vec<_>>();
     for (part, bytes) in parts.iter().enumerate() {
         let mut body = vec![if part == 0 { 0x10 } else { 0 }];
@@ -133,7 +136,7 @@ async fn publish(stream: &sdk::Stream, frame: &[u8], index: u32, sequence: &mut 
             rtp(
                 96,
                 *sequence,
-                index * 3000,
+                timestamp,
                 0x74657374,
                 part + 1 == parts.len(),
                 &body,
@@ -145,6 +148,12 @@ async fn publish(stream: &sdk::Stream, frame: &[u8], index: u32, sequence: &mut 
     }
 }
 async fn receive(stream: &sdk::Stream, index: u32) -> (Vec<u8>, sdk::VideoReceiveEpoch) {
+    receive_timestamp(stream, index * 3000).await
+}
+async fn receive_timestamp(
+    stream: &sdk::Stream,
+    timestamp: u32,
+) -> (Vec<u8>, sdk::VideoReceiveEpoch) {
     let mut bytes = Vec::new();
     let mut epoch = None;
     let mut sequence: Option<u16> = None;
@@ -154,7 +163,7 @@ async fn receive(stream: &sdk::Stream, index: u32) -> (Vec<u8>, sdk::VideoReceiv
             sdk::MediaPacket::Clock { .. } => continue,
             sdk::MediaPacket::Gap { .. } => panic!("unexpected local video queue loss"),
         };
-        assert_eq!(packet.header().timestamp, index * 3000);
+        assert_eq!(packet.header().timestamp, timestamp);
         let observed = packet
             .video_epoch()
             .expect("actual packet must join its signed server notice");
@@ -453,6 +462,41 @@ async fn signed_private_delta_bootstrap_requires_actual_current_hint_before_read
 #[tokio::test]
 async fn signed_private_delta_bootstrap_recovers_lost_hint_without_another_video_frame() {
     tokio::time::timeout(Duration::from_secs(90), exercise(12))
+        .await
+        .unwrap();
+}
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_opus_replacement_video_plan_contention_recovers_same_original_operation() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(17))
+        .await
+        .unwrap();
+}
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_private_readiness_outlives_start_snapshot_without_renewing_original_reservation() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(13))
+        .await
+        .unwrap();
+}
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_private_readiness_cannot_outlive_its_exact_original_reservation_expiry() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(14))
+        .await
+        .unwrap();
+}
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_private_readiness_rechecks_current_original_operator_revocation() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(15))
+        .await
+        .unwrap();
+}
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_private_readiness_cannot_survive_original_physical_target_cancellation() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(16))
         .await
         .unwrap();
 }
@@ -940,6 +984,7 @@ async fn exercise(mode: u8) {
         )
         .unwrap();
     let mut config = canonical_http_config(&f);
+    let original_operator_credential = key.id.clone();
     config.credential = key.token;
     let mut controller = CanonicalHttpClient::open(config).await.unwrap();
     let revision = rusqlite::Connection::open(&f.config.database)
@@ -1007,6 +1052,17 @@ async fn exercise(mode: u8) {
             f.server
                 .service
                 .arm_canonical_start_registry_probe_for_test(&command.operation_id)
+                .unwrap(),
+        )
+    } else {
+        None
+    };
+    #[cfg(feature = "test-support")]
+    let video_preparation_probe = if mode == 17 {
+        Some(
+            f.server
+                .service
+                .arm_canonical_video_preparation_probe_for_test(&command.operation_id)
                 .unwrap(),
         )
     } else {
@@ -1088,8 +1144,59 @@ async fn exercise(mode: u8) {
     phase(&f, &mut controller, &command, 5).await;
     let mut io = replacement.claim_native_video_datagrams().unwrap();
     let mut sequence = 0u16;
-    if mode == 11 || mode == 12 {
-        readiness::private_bootstrap(
+    #[cfg(feature = "test-support")]
+    let original_video_phase_rows = if let Some(probe) = video_preparation_probe.as_ref() {
+        let probe_cutoff =
+            original_cutoff.min(tokio::time::Instant::now() + Duration::from_secs(2));
+        tokio::time::timeout_at(probe_cutoff, probe.entered())
+            .await
+            .expect("original video-state exclusion was not observed");
+        assert_eq!(
+            probe.observed(),
+            (1, true, 0, 0),
+            "actual old-state MetadataBusy must precede any private route publication"
+        );
+        let before = readiness::original_video_phase_rows(&f, &original_preparation.record_id);
+        assert_eq!(before.len(), 2);
+        // Repacketize the actual original key payload to prove old-route
+        // liveness under fresh source authority. This is not another encoder
+        // capture: its indices must stay0,1,2... for the later real private/
+        // public decoder proof. Advance RTP to1500 with fresh outer sequences,
+        // before the unchanged private marker3000; never replay a packet.
+        publish_timestamp(&retained_send, &first, 1500, &mut retained_sequence).await;
+        let (original, history) = receive_timestamp(&old_recv, 1500).await;
+        assert_eq!(original, first);
+        assert_eq!(history, previous_target_epoch);
+        // The SDK's original signed reader is active. No private route exists,
+        // no target video packet or signed receiver notice may be published.
+        let observe_until =
+            probe_cutoff.min(tokio::time::Instant::now() + Duration::from_millis(30));
+        loop {
+            match tokio::time::timeout_at(observe_until, io.receive()).await {
+                Err(_) => break,
+                Ok(result) => assert!(
+                    result.unwrap().video_epoch.is_none(),
+                    "busy preparation published private signed video"
+                ),
+            }
+        }
+        assert_eq!(
+            io.verified_video_receiver_notice_count_for_test().unwrap(),
+            0
+        );
+        let now = readiness::original_cutoff(&f, &root);
+        readiness::assert_same_original_preparation(&original_preparation, &now);
+        assert!(tokio::time::Instant::now() < original_cutoff);
+        probe.release();
+        tokio::time::timeout_at(probe_cutoff, probe.left())
+            .await
+            .unwrap();
+        Some(before)
+    } else {
+        None
+    };
+    if (11..=16).contains(&mode) {
+        let frozen = readiness::private_bootstrap(
             &f,
             &mut controller,
             &command,
@@ -1102,10 +1209,63 @@ async fn exercise(mode: u8) {
             incoming,
             original_cutoff,
             mode == 12,
+            mode,
+            &original_preparation,
+            &old_recv,
         )
         .await;
+        #[cfg(feature = "test-support")]
+        if let Some(ready) = frozen {
+            let original_origin = f
+                .server
+                .store
+                .native_replacement_origin(&original_operator_credential, command.clone())
+                .unwrap();
+            assert_eq!(original_origin.record_id(), original_preparation.record_id);
+            // Every negative starts with genuine original private decoding;
+            // its Ready was deliberately never submitted before the boundary.
+            if mode == 16 {
+                replacement.shutdown().await.unwrap();
+                readiness::refuse_cancelled_target(
+                    &f,
+                    &command,
+                    &original_preparation,
+                    &original_origin,
+                    &mut io,
+                    &mut encoder,
+                    &retained_send,
+                    &old_recv,
+                    &mut retained_sequence,
+                )
+                .await;
+            } else {
+                readiness::refuse_original_boundary(
+                    &f,
+                    &command,
+                    &original_preparation,
+                    &original_origin,
+                    &mut replacement,
+                    &ready,
+                    &mut io,
+                    &mut encoder,
+                    &retained_send,
+                    &old_recv,
+                    &mut retained_sequence,
+                    &original_operator_credential,
+                    mode,
+                )
+                .await;
+                replacement.shutdown().await.unwrap();
+            }
+        } else {
+            replacement.shutdown().await.unwrap();
+        }
+        #[cfg(not(feature = "test-support"))]
+        {
+            assert!(frozen.is_none(), "boundary-only cases require test-support");
+            replacement.shutdown().await.unwrap();
+        }
         encoder.close().await;
-        replacement.shutdown().await.unwrap();
         drop(io);
         publisher.close(options()).await.unwrap();
         subscriber.close(options()).await.unwrap();
@@ -1132,6 +1292,30 @@ async fn exercise(mode: u8) {
     .await;
     assert_eq!(done["state"], "completed");
     assert_eq!(done["result"]["generation"], 2);
+    #[cfg(feature = "test-support")]
+    if let Some(before) = original_video_phase_rows {
+        assert_eq!(
+            readiness::original_video_phase_rows(&f, &original_preparation.record_id),
+            before,
+            "video metadata retry replayed Attach or Activate"
+        );
+        let now = readiness::original_cutoff(&f, &root);
+        readiness::assert_same_original_preparation(&original_preparation, &now);
+        assert!(tokio::time::Instant::now() < original_cutoff);
+        assert_eq!(done["record_id"], original_preparation.record_id);
+        assert_eq!(
+            io.verified_video_receiver_notice_count_for_test().unwrap(),
+            1
+        );
+        assert!(io
+            .is_current_video_receive_epoch(incoming, &original_receiver_history)
+            .unwrap());
+        assert_eq!(
+            video_preparation_probe.as_ref().unwrap().observed(),
+            (1, true, 0, 0)
+        );
+        eprintln!("signed video pre-effect contention: actual_old_mutex=true typed_busy=true no_private_route=true no_verified_receiver_notice=true same_root_reservation_generation_expiry=true same_private_public_history=true attach_activate_unchanged=true");
+    }
     #[cfg(feature = "test-support")]
     if let Some(probe) = held_registry_probe {
         assert_eq!(

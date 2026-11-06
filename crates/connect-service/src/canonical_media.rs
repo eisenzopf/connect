@@ -15,6 +15,8 @@ mod publication_fixture;
 pub(crate) mod reconciliation;
 pub(crate) mod replacement;
 mod sources;
+#[cfg(feature = "test-support")]
+pub(crate) mod video_preparation_fixture;
 pub(crate) mod webrtc;
 use crate::{canonical_runtime::current_member, StoreInvocationAuthority};
 use connect_store::{NativeMediaOrigin, NativeMediaRead, PeerConnectionProjection, Store};
@@ -74,6 +76,8 @@ pub(crate) struct Policy {
         Mutex<BTreeMap<ConnectionId, Weak<crate::telephone_replacement::media::Policy>>>,
     initial_targets: Mutex<BTreeMap<ConnectionId, Weak<crate::initial_telephone::policy::Leg>>>,
     capacity: usize,
+    #[cfg(feature = "test-support")]
+    video_preparation_probes: Mutex<BTreeMap<String, Weak<video_preparation_fixture::Probe>>>,
     #[cfg(feature = "test-support")]
     replacement_projection_pauses: Mutex<BTreeMap<String, Arc<continuation_fixture::Pause>>>,
     #[cfg(feature = "test-support")]
@@ -749,6 +753,8 @@ impl Policy {
             replacement_adoption_refusals: Default::default(),
             #[cfg(feature = "test-support")]
             held_registry_probes: Default::default(),
+            #[cfg(feature = "test-support")]
+            video_preparation_probes: Default::default(),
             #[cfg(feature = "test-support")]
             preparation_registry_probes: Default::default(),
             #[cfg(feature = "test-support")]

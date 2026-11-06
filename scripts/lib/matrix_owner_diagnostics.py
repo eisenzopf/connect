@@ -23,6 +23,9 @@ MAX_DESCRIPTORS = 4096
 MAX_KNOWN = 512
 MAX_LIVE = 16
 MAX_SECONDS = .05
+MAX_MAP_BYTES = 1024 * 1024
+MAX_MAP_REGIONS = 4096
+MAX_MAP_OBJECTS = 128
 MEMORY_FIELDS = {"Rss", "Pss", "Shared_Clean", "Shared_Dirty", "Private_Clean", "Private_Dirty",
     "Anonymous", "LazyFree", "Swap", "VmRSS", "RssAnon", "RssFile", "RssShmem", "VmData", "VmStk", "VmSwap"}
 FD_KINDS = {0: "atalk", 1: "vnode", 2: "socket", 3: "shared-memory", 4: "semaphore", 5: "kqueue",
@@ -240,24 +243,29 @@ def linux_process(sampler, pid, started, check, *, browser=False):
             kind = "socket" if value.startswith("socket:[") else "pipe" if value.startswith("pipe:[") else "anonymous-inode" if value.startswith("anon_inode:") else "file"
             classification = kind
             file_identity = None
+            size_bytes = None
             if kind == "file":
                 check()
                 try:
                     file_info = os.stat(entry.path)
                     classification = "regular" if stat.S_ISREG(file_info.st_mode) else "other"
                     file_identity = stat_identity(file_info)
+                    if classification == "regular":
+                        size_bytes = file_info.st_size
                     if os.readlink(entry.path) != value:
                         classification = "unavailable"
                         file_identity = None
+                        size_bytes = None
                 except OSError:
                     classification = "unavailable"
                     file_identity = None
+                    size_bytes = None
             if classification == "unavailable":
                 fd_unavailable += 1
             else:
                 fd_counts[classification] += 1
             result["descriptors"].append(dict(fd=int(entry.name), kind=kind, classification=classification,
-                stat_identity_sha256=file_identity,
+                stat_identity_sha256=file_identity, size_bytes=size_bytes,
                 object_sha256=hashlib.sha256(value.encode()).hexdigest()))
     result["descriptor_classes"] = dict(state="partial" if fd_unavailable else "available",
         counts=None if fd_unavailable else fd_counts, observed_counts=fd_counts,
@@ -283,6 +291,97 @@ def linux_process(sampler, pid, started, check, *, browser=False):
     result["descriptors"].sort(key=lambda value: value["fd"])
     return result
 
+
+
+def selected_smaps(raw, identities, check):
+    """Aggregate numeric VMA RSS/PSS for selected actual FD inode hashes only."""
+    if len(identities) > MAX_MAP_OBJECTS:
+        raise ValueError("Original mapping target bound")
+    observed = {identity: dict(observed_rss_bytes=0, observed_pss_bytes=0, observed_regions=0)
+        for identity in identities}
+    truncated = len(raw) > MAX_MAP_BYTES
+    content = raw[:MAX_MAP_BYTES]
+    if truncated:
+        content = content.rsplit(b"\n", 1)[0]
+    current = None
+    fields = {}
+    regions = 0
+    incomplete = False
+    header = re.compile(rb"^[0-9a-f]+-[0-9a-f]+ [rwxps-]{4} [0-9a-f]+ ([0-9a-f]+):([0-9a-f]+) ([0-9]+)(?:\s|$)")
+    def finish():
+        nonlocal incomplete
+        if current in observed:
+            row = observed[current]
+            row["observed_regions"] += 1
+            if "Rss" not in fields or "Pss" not in fields:
+                incomplete = True
+            row["observed_rss_bytes"] += fields.get("Rss", 0)
+            row["observed_pss_bytes"] += fields.get("Pss", 0)
+    for line in content.splitlines():
+        check()
+        match = header.match(line)
+        if match:
+            finish()
+            regions += 1
+            if regions > MAX_MAP_REGIONS:
+                truncated = True
+                current = None
+                break
+            device = os.makedev(int(match[1], 16), int(match[2], 16))
+            inode = int(match[3])
+            current = hashlib.sha256(f"{device}:{inode}:{stat.S_IFREG}".encode()).hexdigest()
+            fields = {}
+        else:
+            match = re.fullmatch(rb"(Rss|Pss):\s+([0-9]+) kB", line)
+            if match:
+                fields[match[1].decode()] = int(match[2]) * 1024
+    if not truncated:
+        finish()
+    if not regions:
+        raise ValueError("Original mapping shape unavailable")
+    complete = not truncated and not incomplete
+    for row in observed.values():
+        row["rss_bytes"] = row["observed_rss_bytes"] if complete else None
+        row["pss_bytes"] = row["observed_pss_bytes"] if complete else None
+    return dict(state="available" if complete else "partial", complete=complete,
+        truncated=truncated, incomplete_selected_regions=incomplete,
+        observed_region_headers=min(regions, MAX_MAP_REGIONS), objects=observed,
+        limitation="One descriptive VMA snapshot; aliases can count shared pages more than once. Partial totals are unknown, not zero.")
+
+
+def linux_fd_mappings(sampler, process, check):
+    """One already-observed original renderer; same existing numeric deadline."""
+    check()
+    pid, birth = process["pid"], process["start_ticks"]
+    first = sampler._stat(pid)
+    if first["start_ticks"] != birth or first["state"] in {"Z", "X"}:
+        raise ValueError("Original mapping process changed")
+    expected = process.get("executable_label", {}).get("stat_identity_sha256")
+    if expected is None or stat_identity(os.stat(sampler.proc / str(pid) / "exe")) != expected:
+        raise ValueError("Original mapping executable unavailable")
+    identities = sorted({fd["stat_identity_sha256"] for fd in process["descriptors"]
+        if fd.get("classification") == "regular" and fd.get("stat_identity_sha256")})
+    limited = len(identities) > MAX_MAP_OBJECTS
+    selected = identities[:MAX_MAP_OBJECTS]
+    if not selected:
+        raise ValueError("Original mapping targets unavailable")
+    check()
+    with (sampler.proc / str(pid) / "smaps").open("rb") as source:
+        raw = source.read(MAX_MAP_BYTES + 1)
+    check()
+    result = selected_smaps(raw, selected, check)
+    check()
+    last = sampler._stat(pid)
+    if last["start_ticks"] != birth or last["state"] in {"Z", "X"} \
+            or stat_identity(os.stat(sampler.proc / str(pid) / "exe")) != expected:
+        raise ValueError("Original mapping identity changed during capture")
+    result.update(identity_before=dict(pid=pid, start_ticks=birth), identity_after=dict(pid=pid, start_ticks=birth),
+        executable_identity_sha256=expected, target_count=len(selected), targets_truncated=limited,
+        unexamined_target_count=max(0, len(identities) - len(selected)),
+        bytes_examined=min(len(raw), MAX_MAP_BYTES))
+    if limited:
+        result["state"] = "partial"
+    return result
 
 def mac_process(sampler, pid, started, check):
     if sampler.identity(pid)["start"] != started:
@@ -373,6 +472,24 @@ def idle_owner_diagnostics(sampler, *, roles=("server",), clock=time.monotonic, 
     except (OSError, ValueError, KeyError, TypeError) as error:
         report["state"] = "partial" if report["processes"] else "unavailable"
         report["error"] = type(error).__name__
+    if not hasattr(sampler, "lib"):
+        # Select only from the verified original processes already captured.
+        # No new process discovery, timeline sample, probe task or time budget.
+        renderers = [p for p in report["processes"] if p["role"] == "browser"
+            and p.get("browser_labels", {}).get("process_type") == "renderer"
+            and p.get("executable_label", {}).get("label") in CHROME_EXECUTABLES]
+        if renderers:
+            selected = max(renderers, key=lambda p: (sum(d.get("classification") == "regular"
+                for d in p["descriptors"]), p["pid"]))
+            try:
+                selected["fd_mappings"] = linux_fd_mappings(sampler, selected, check)
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                selected["fd_mappings"] = dict(state="unavailable", error=type(error).__name__,
+                    objects=None, scope="same original renderer only")
+        report["mapping_limits"] = dict(selected_processes=1, bytes=MAX_MAP_BYTES,
+            regions=MAX_MAP_REGIONS, targets=MAX_MAP_OBJECTS,
+            selection="largest regular-FD count among already observed original Chrome renderers",
+            budget="inside unchanged numeric_seconds; optional partial/unavailable")
     report["numeric_elapsed_ms"] = report["elapsed_ms"] = (clock() - started) * 1000
     # The bounded task-port tool is separate from the 50ms numeric syscall
     # budget. It targets only the original Mac server, after counters and the

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-06T08:39:29.462397+00:00",
-  "run_status": "Completed v195 remains 328 passed, 96 failed, 8 blocked; all32 attempted, 0 complete cells. Component validation: original batch: 84 passed, 1 failed; corrected Store assertion rerun separately and passed. All other tested files are unchanged. All 16 Node and 23 Python controls pass. Full32 retest pending; G6-054 deferred.",
+  "updated": "2026-11-06T19:20:24.539478+00:00",
+  "run_status": "Completed v196 remains 336 passed, 88 failed, 8 blocked; all 32 attempted, 0 complete cells. Post-v196 v4 component coverage: 36 fresh normal-release Core passes (18 Mac, 18 ARM) plus 28 retained v3 passes (16 Service, 12 signed), verifying 64 controls under rederived unchanged production/retained-test inputs. All 30 Node and 32 Python controls rerun and pass, zero skips; the original v3 default-feature check is retained. Original v1/v2/v3 failures and the 56/58 partial proof remain intact. Full matrix retest pending; lifecycle edges unobserved and OS attribution pending. G6-054 deferred; 29 downstream tasks wait on G6-058.",
   "blockers": [
     {
       "id": "B01",
@@ -158,10 +158,10 @@
     {
       "id": "B20",
       "title": "Independent native helper recovery coverage",
-      "status": "Component verified \u2014 full matrix retest pending",
+      "status": "Addressed \u2014 all eight native recovery requirements pass",
       "change": "Compare exact SDK canonicalJson reference values instead of JS strict prototype identity. Actual SDK parseCanonicalJson returns null-prototype objects; JSON.parse fixture clones ordinary prototypes.",
-      "evidence": "All 16 Node controls pass with zero skips/cancellations, including actual SDK canonical JSON representation, strict changed-reference/config/current-authority/history refusals and original helper joins. All eight v195 native service-contract verdicts remain failed. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
-      "next": "Require both genuine recovery markers in all eight native cells; preserve original IDs/config, current authorization and helper ownership."
+      "evidence": "Completed v196 at5127fc43: all eight native service-contract/original-operation recovery verdicts pass. The first verified native extract contains both real recovery markers, unchanged config/reference/current authorization/history and original helper joins. docs/evidence/gate-6/matrix-full-v196.json.",
+      "next": "Preserve these current-authorization and recovery controls while fixing movement/media/resource requirements. This does not close G6-058."
     },
     {
       "id": "B21",
@@ -225,7 +225,7 @@
       "status": "Component verified \u2014 full matrix retest pending",
       "change": "Bounded existing census records browser-owned descendants. New closed executable/flattened Chromium process-title taxonomy plus hashed(dev,ino,type) identity separates descriptor label hashes from actual objects; racy/partial/unavailable stays explicit.",
       "evidence": "All 23 Python owner-diagnostic controls pass. Closed taxonomy/redaction, actual hashed inode/type identity, process reuse, races and unavailable observations remain strict. Actual OS growth in v195 is unchanged. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
-      "next": "Use next full run to attribute original descendants/descriptors; keep OS budgets and unavailable facts unchanged."
+      "next": "The integrated selected-FD mapping extension remains unvalidated; run its numeric identity/privacy/bounds controls before using new OS attribution. No memory or resource-budget pass is inferred."
     },
     {
       "id": "B29",
@@ -250,6 +250,38 @@
       "change": "Release only original ended,errorfree stdio stream references after actual writes/endjoin; retain pending/failed streams and errors.",
       "evidence": "All three original stdio ownership controls and two natural Worker/T+10 controls pass within the16-case Node selection. Pending/error/bound ownership stays failed; no measured RSS improvement is claimed. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "Retest original idle/resource observation without forced collection, process restart or budget changes."
+    },
+    {
+      "id": "B32",
+      "title": "Transient private video preparation contention becomes fatal",
+      "status": "Component verified \u2014 full matrix retest pending",
+      "change": "Preserve typed pre-effect MetadataBusy and retry only that safe video-plan metadata refusal with fresh current reads, the pinned original target revision and unchanged existing five-second preparation budget. No repeated negotiation, mute or installed-route effect.",
+      "evidence": "64 component controls are verified: 36 fresh normal-release Core passes (18 Mac, 18 ARM) plus 28 retained original-v3 passes (16 Service, 12 signed), including actual signed same-original-operation contention recovery. Exact current production and retained-test inputs are rederived unchanged; the only source-byte change is the declared cfg(test) Core fixture. The prior v1 compile, v2 signed-runtime and v3 source-refusal fixture failures remain recorded. docs/evidence/gate-6/blocker-components-post-v196-v4.json.",
+      "next": "Retest all 32 configurations under load; preserve pinned revision, safe pre-effect retry, current authority and unchanged short preparation/MetadataBusy cutoff. Component success does not clear matrix or OS resource failures."
+    },
+    {
+      "id": "B33",
+      "title": "Readiness lifetime incorrectly uses a five-second start snapshot",
+      "status": "Component verified \u2014 full matrix retest pending",
+      "change": "Bind ReadyGate and the sealed Core private video binding to the unchanged original preparation/root lifetime. Keep installation/current-capture authority and MetadataBusy retry under their original shorter cutoffs. Every queued packet and signed Ready still requires fresh current authorization; no deadline or original lifetime is renewed.",
+      "evidence": "All 18 Core controls pass fresh on both platforms. Actual signed delayed-readiness, genuine private audio/keyframe and strict original expiry/revocation/physical-cancellation controls are retained original-v3 passes under rederived identical production/retained-test inputs; overall coverage is 36 fresh plus 28 retained, not 64 newly executed. Original failed attempts and the public 56/58 partial proof remain intact. docs/evidence/gate-6/blocker-components-post-v196-v4.json.",
+      "next": "Retest actual native/WebTransport/WebRTC movement in all 32 configurations. Preserve original root expiry/cancellation, short installation and busy retry bounds, and fresh source/target authority at every media boundary."
+    },
+    {
+      "id": "B34",
+      "title": "Partial browser initialization owner cleanup",
+      "status": "Component verified \u2014 unobserved lifecycle edge",
+      "change": "Close an already created first encoder if a later encoder constructor fails; retire exact peer-owned RTC receiver tracks rejected before accepted-map ownership. Preserve accepted owners and real cleanup failures.",
+      "evidence": "All 30 Node lifecycle controls pass with zero skips/cancellations. The two generated SDK files are traced to the original successful stage-1 TypeScript build and are unchanged through v2/v3/v4. These constructor/rejected-track failure edges remain unobserved in actual v195/v196 runs; no OS FD/RSS cause is established. docs/evidence/gate-6/blocker-components-post-v196-v4.json.",
+      "next": "Preserve exact-owner lifecycle regressions and qualify actual browser resource reclamation in the full matrix. Passing lifecycle controls do not clear resource failures."
+    },
+    {
+      "id": "B35",
+      "title": "Selected regular-FD mapping attribution",
+      "status": "Component verified \u2014 actual OS attribution pending",
+      "change": "Add bounded numeric file-size and exact selected-inode VMA/RSS attribution under the original process-birth identity and existing post-counter census. Keep truncated, raced or unavailable observations explicit.",
+      "evidence": "All 28 owner-diagnostic and 4 idle Python controls pass, including selected-FD identity/privacy/race/bounds controls. Partial or unavailable observations stay explicit; actual OS attribution and all resource budgets remain unqualified. docs/evidence/gate-6/blocker-components-post-v196-v4.json.",
+      "next": "Use the next full run to attribute actual original descriptors/mappings under unchanged resource budgets. Diagnostic unit results do not establish an OS cause or resource pass."
     }
   ]
 }

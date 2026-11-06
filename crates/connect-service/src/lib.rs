@@ -389,6 +389,19 @@ impl Service {
             .media
             .arm_held_registry_probe_for_test(operation)
     }
+    /// One bounded test-only real original video-state exclusion, scoped to
+    /// this exact operation. Dropping its handle releases the original task.
+    #[cfg(feature = "test-support")]
+    pub fn arm_canonical_video_preparation_probe_for_test(
+        &self,
+        operation: &str,
+    ) -> Result<canonical_media_projection_fixture::VideoPreparationProbe> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .arm_video_preparation_probe_for_test(operation)
+    }
     /// Compare original replacement-start authority under registry exclusion.
     #[cfg(feature = "test-support")]
     pub fn arm_canonical_start_registry_probe_for_test(
@@ -1044,4 +1057,5 @@ pub use canonical_records::http::CanonicalHttpRecordResponse;
 #[cfg(feature = "test-support")]
 pub mod canonical_media_projection_fixture {
     pub use crate::canonical_media::continuation_fixture::ReplacementProjectionPause;
+    pub use crate::canonical_media::video_preparation_fixture::VideoPreparationProbe;
 }
