@@ -448,6 +448,9 @@ struct DeliveryObservation {
     preparation_error_codes: [&'static str; 10],
     preparation: [PreparationObservation; 2],
     native_rtp_io: Option<[rvoip_uctp::staged_media::RtpIoObservation; 3]>,
+    private_video_route_phases: Option<
+        Vec<rvoip_core::staged_streams::direct_subscriptions::PrivateVideoDeliveryObservation>,
+    >,
     saturated: bool,
 }
 fn policy_error(error: &rvoip_core::staged_streams::StreamControlError) -> usize {
@@ -577,6 +580,7 @@ impl PrivateReceive {
             preparation_error_codes: POLICY_ERROR_CODES,
             preparation,
             native_rtp_io: self.io.get().map(|counters| counters.io_snapshot()),
+            private_video_route_phases: None,
             saturated,
         }
     }
@@ -591,7 +595,10 @@ impl PrivateReceive {
     /// Called only after the awaited preparation future has returned and its
     /// guards have dropped. No destructor emits while a reader might be held.
     pub(super) fn terminal(&self, target: &super::media::TargetPolicy, succeeded: bool) {
-        self.observe_summary(|observation| {
+        self.observe_summary(|mut observation| {
+            observation.private_video_route_phases = target.readiness.as_ref()
+                .and_then(|gate| gate.preroll.get())
+                .map(|preroll| preroll.delivery_observations());
             let root = target.root.upgrade();
             tracing::debug!(target: PRIVATE_RECEIVE_TARGET,
                 connection=%target.pending.intent().replacement,

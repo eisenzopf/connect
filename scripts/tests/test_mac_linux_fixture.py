@@ -270,6 +270,87 @@ console.log(JSON.stringify({handshakes: 9}));
                 child.terminate()
             child.communicate(timeout=2)
 
+    def test_nested_authority_bridge_round_trips_three_original_sequences_and_refuses_rewrite(self):
+        fixture, guest, output = self.nested_resource_fixture()
+        for cycle in (1, 2, 3):
+            for sequence, kind in enumerate(("expiry", "revocation", "revoke"), 1):
+                relative = Path("cycles") / ("cycle-" + str(cycle)) / ("authority-" + str(sequence) + "-request.json")
+                request = output / relative;request.parent.mkdir(parents=True, exist_ok=True)
+                original = {"sequence": sequence, "kind": kind};request.write_text(json.dumps(original))
+                observed = fixture.poll()
+                self.assertEqual(observed["requests"][relative.as_posix()], original)
+                self.assertEqual(json.loads((fixture.output / relative).read_text()), original)
+                response = relative.with_name("authority-" + str(sequence) + "-response.json")
+                result = {"original_kind": kind, "original_sequence": sequence, "original_cycle": cycle, "passed": False}
+                (fixture.output / response).write_text(json.dumps(result));fixture.poll()
+                self.assertEqual(json.loads((output / response).read_text()), result)
+                self.assertEqual(json.loads(request.read_text()), original)
+        changed = fixture.output / "cycles/cycle-1/authority-1-response.json"
+        changed.write_text(json.dumps({"passed": True}))
+        with self.assertRaisesRegex(ValueError, "cannot be changed"):fixture.poll()
+
+    def test_nested_authority_bridge_keeps_original_size_symlink_and_fixed_path_bounds(self):
+        fixture, guest, output = self.nested_resource_fixture()
+        nested = output / "cycles/cycle-1";nested.mkdir(parents=True)
+        request = nested / "authority-1-request.json";request.write_text("x" * 4097)
+        with self.assertRaisesRegex(ValueError, "Bounded original request"):fixture.poll()
+        request.unlink();nested.rmdir()
+        outside = self.root / "authority-outside";outside.mkdir();nested.symlink_to(outside, target_is_directory=True)
+        (outside / "authority-1-request.json").write_text('{}')
+        with self.assertRaisesRegex(ValueError, "Bounded original request"):fixture.poll()
+        nested.unlink()
+        for relative in ("cycles/cycle-4/authority-1-response.json", "cycles/cycle-0/authority-1-response.json", "cycles/cycle-1/authority-4-response.json", "../authority-1-response.json"):
+            payload = {"directory": "browser", "responses": {relative: {"passed": False}}}
+            with patch.object(sys, "stdin", io.StringIO(json.dumps(payload))), self.assertRaisesRegex(ValueError, "Bounded original response"):
+                mac_linux_guest.exchange(guest)
+        self.assertFalse((output / "cycles/cycle-4").exists())
+        fixture.call = lambda *args, **kwargs: json.dumps({"monotonic_seconds": 0, "requests": {"cycles/cycle-1/authority-4-request.json": {}}, "state": None}).encode()
+        with self.assertRaisesRegex(ValueError, "Bounded original cross-host request"):fixture.poll()
+        self.assertFalse((fixture.output / "cycles/cycle-1/authority-4-request.json").exists())
+
+    def test_actual_browser_authority_bridge_completes_all_nine_remote_handshakes(self):
+        import subprocess
+        import time
+        fixture, guest, output = self.nested_resource_fixture()
+        bridge = Path(__file__).resolve().parents[1] / "lib/matrix_authority_bridge.mjs"
+        script = """
+import {pathToFileURL} from 'node:url';
+const {matrixAuthorityBridge} = await import(pathToFileURL(process.argv[1]));
+const provision = matrixAuthorityBridge(process.argv[2], {cycles: 3});
+for (let cycle = 1; cycle <= 3; cycle++) {
+    for (const [index, kind] of ['expiry', 'revocation', 'revoke'].entries()) {
+        const result = await provision(kind, cycle);
+        if (result.original_kind !== kind || result.original_sequence !== index + 1 || result.original_cycle !== cycle || result.passed !== false)
+            throw Error('Original authority request/negative response changed');
+    }
+}
+console.log(JSON.stringify({handshakes: 9}));
+"""
+        child = subprocess.Popen(["node", "--input-type=module", "-e", script, str(bridge), str(output)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        served = set();cutoff = time.monotonic() + 5
+        try:
+            while child.poll() is None and time.monotonic() < cutoff:
+                fixture.poll()
+                for request in fixture.output.glob("cycles/cycle-[123]/authority-[123]-request.json"):
+                    relative = request.relative_to(fixture.output)
+                    if relative in served:continue
+                    value = json.loads(request.read_text())
+                    self.assertIn(value["kind"], ("expiry", "revocation", "revoke"))
+                    self.assertIn(value["sequence"], (1, 2, 3))
+                    response = request.with_name(request.name.replace("-request.json", "-response.json"))
+                    response.write_text(json.dumps({"original_kind": value["kind"], "original_sequence": value["sequence"], "original_cycle": int(relative.parts[1].removeprefix("cycle-")), "passed": False}))
+                    served.add(relative)
+                fixture.poll();time.sleep(.005)
+            self.assertIsNotNone(child.poll(), "Actual browser authority helper did not receive original nested responses")
+            stdout, stderr = child.communicate(timeout=1)
+            self.assertEqual(child.returncode, 0, stderr)
+            self.assertEqual(json.loads(stdout), {"handshakes": 9});self.assertEqual(len(served), 9)
+            self.assertTrue(child.stdout.closed);self.assertTrue(child.stderr.closed)
+        finally:
+            if child.poll() is None:child.terminate()
+            child.communicate(timeout=2)
+
     def test_three_cycle_preflight_scales_only_original_queue_and_host_wait(self):
         from lib import mac_linux_fixture as module
         for cycles in [1, 3]:
@@ -439,6 +520,48 @@ console.log(JSON.stringify({handshakes: 9}));
                     report["current_authority"]={kind:value}
                     self.assertEqual(cleanup_evidence(report)["authority_joined"],expected)
                     self.assertEqual(cleanup_evidence(report)["confirmed"],expected)
+
+    @staticmethod
+    def original_failed_remote_owner():
+        return dict(format="connect/mac-linux-owner/1", run_id="mac-remote-original", passed=False,
+            original_joined=True, forced=False, cleanup_failures=[], client_inputs_unchanged=True,
+            all_guest_owners_joined=True, original_vm_lease_joined=True,
+            guest=dict(format="connect/mac-linux-original-job/1", run_id="mac-remote-original",
+                original_pid=12345, original_start_ticks=9876, original_joined=True, forced=False, exit_code=1,
+                resources=dict(groups=dict(browser=dict(live_processes=17)))))
+
+    def test_remote_browser_failed_programme_projects_only_original_joined_custody(self):
+        import copy
+        from lib.mac_linux_fixture import remote_browser_owner_joined
+        original = self.original_failed_remote_owner();before = copy.deepcopy(original)
+        self.assertTrue(remote_browser_owner_joined(original))
+        self.assertEqual(original, before, "Do not rewrite original failed verdicts or last prejoin samples")
+        self.assertFalse(original["passed"]);self.assertEqual(original["guest"]["exit_code"], 1)
+        self.assertEqual(original["guest"]["resources"]["groups"]["browser"]["live_processes"], 17,
+            "The final original group join, not an old process sample, proves custody")
+
+    def test_remote_browser_missing_foreign_forced_or_unconfirmed_custody_never_uses_passed(self):
+        import copy
+        from lib.mac_linux_fixture import remote_browser_owner_joined
+        changes = [
+            (("original_joined",), False), (("original_joined",), "true"),
+            (("all_guest_owners_joined",), False), (("original_vm_lease_joined",), False),
+            (("forced",), True), (("cleanup_failures",), ["original-guest-owners-unconfirmed"]),
+            (("cleanup_failures",), None), (("client_inputs_unchanged",), False),
+            (("guest", "run_id"), "foreign-original"), (("guest", "original_joined"), False),
+            (("guest", "forced"), True), (("guest", "original_pid"), True),
+            (("guest", "original_pid"), 1), (("guest", "original_start_ticks"), 0),
+            (("guest", "exit_code"), None), (("guest", "exit_code"), True),
+            (("format",), "unknown"), (("guest", "format"), "unknown"), (("run_id",), "")]
+        for keys, value in changes:
+            with self.subTest(keys=keys, value=value):
+                receipt = copy.deepcopy(self.original_failed_remote_owner());receipt["passed"] = True
+                target = receipt
+                for key in keys[:-1]:target = target[key]
+                target[keys[-1]] = value
+                self.assertFalse(remote_browser_owner_joined(receipt))
+        for receipt in (None, {}, {"passed": True}, {"guest": None}):
+            self.assertFalse(remote_browser_owner_joined(receipt))
 
     def test_lease_excludes_second_workload_and_releases_original_lock(self):
         directory=self.root/"lease"

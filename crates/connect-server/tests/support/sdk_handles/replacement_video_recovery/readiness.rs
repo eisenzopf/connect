@@ -812,13 +812,41 @@ pub(super) async fn refuse_original_boundary(
         },
         "{current}"
     );
+    if mode == 14 {
+        // Let the original cleanup naturally reach the missing-preparation branch.
+        // Reuse the existing three-second exact retirement bound without a new
+        // reservation, cancellation, root or raw state change.
+        original_target_retired_under(f, original, true).await;
+    }
     // Same actual target, same frozen decoded observation and root. A local
     // refusal qualifies only with the original terminal record AND exact Core
     // retirement; arbitrary transport uncertainty is never sufficient.
-    let result = tokio::time::timeout(
-        Duration::from_secs(3),
-        client.confirm_native_replacement_ready(ready),
-    )
+    let result = tokio::time::timeout(Duration::from_secs(3), async {
+        if mode == 14 {
+            // The same original physical control must still be usable. This
+            // read does not authorize Ready or renew any preparation lifetime.
+            let observed = client
+                .operation_get(
+                    &command.operation_id,
+                    CommandScope {
+                        conversation_id: Some(command.conversation_id.clone()),
+                        session_id: Some(command.session_id.clone()),
+                        connection_id: command.connection_id.clone(),
+                        ..Default::default()
+                    },
+                )
+                .await?;
+            assert_eq!(
+                observed.record_id.as_ref().map(|record| record.as_str()),
+                Some(original.record_id.as_str())
+            );
+            assert_eq!(
+                observed.operation_id.as_str(),
+                command.operation_id.as_str()
+            );
+        }
+        client.confirm_native_replacement_ready(ready).await
+    })
     .await
     .expect("original signed Ready refusal did not settle");
     match result {
@@ -828,11 +856,12 @@ pub(super) async fn refuse_original_boundary(
             let refused = if mode == 15 {
                 matches!(problem.code.as_str(),"unauthorized"|"forbidden"|"not-ready")
             } else {
-                matches!(problem.code.as_str(),"forbidden"|"not-ready"|"expired")
+                problem.code == "forbidden"
             };
             assert!(refused,"{problem}");
         },
         Err(ClientError::Protocol|ClientError::Transport|ClientError::MediaEnded) => {
+            assert_ne!(mode, 14, "expiry regression requires the same original control to deliver its signed denial");
             original_target_retired(f, original).await;
         },
         Err(error) => panic!("expected actual current-authority refusal or proven original target retirement, got {error}"),
@@ -894,6 +923,13 @@ pub(super) async fn refuse_cancelled_target(
 
 #[cfg(feature = "test-support")]
 async fn original_target_retired(f: &Fixture, original: &OriginalPreparation) {
+    original_target_retired_under(f, original, false).await;
+}
+async fn original_target_retired_under(
+    f: &Fixture,
+    original: &OriginalPreparation,
+    require_unregistered: bool,
+) {
     tokio::time::timeout(Duration::from_secs(3), async {
         loop {
             let (state, result): (String, Option<String>) =
@@ -935,7 +971,19 @@ async fn original_target_retired(f: &Fixture, original: &OriginalPreparation) {
                     panic!("exact original Core retirement control requires test-support");
                 }
             };
-            if (matches!(state.as_str(), "failed" | "cancelled") || stopped) && absent {
+            #[cfg(feature = "test-support")]
+            let unregistered = !require_unregistered
+                || !f
+                    .server
+                    .service
+                    .canonical_replacement_preparation_registered_for_test(&original.record_id)
+                    .unwrap();
+            #[cfg(not(feature = "test-support"))]
+            let unregistered = !require_unregistered;
+            if (matches!(state.as_str(), "failed" | "cancelled") || stopped)
+                && absent
+                && unregistered
+            {
                 break;
             }
             tokio::time::sleep(Duration::from_millis(20)).await;

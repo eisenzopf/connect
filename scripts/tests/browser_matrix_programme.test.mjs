@@ -5,7 +5,7 @@ import {browserMatrixObservation} from '../lib/browser_matrix_observation.mjs';
 import {nativeIdentity,bindNativeStreams,nativeBoundary} from '../../sdk/tests/native_activation_fixture.mjs';
 const deferred=()=>{let resolve;const promise=new Promise(value=>resolve=value);return {promise,resolve};};
 const flush=async()=>{for(let i=0;i<80;i++)await Promise.resolve();};
-async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=false,snapshotRefusal=false}={}){
+async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=false,snapshotRefusal=false,earlyTerminalWake=false}={}){
  const originalClock=globalThis.performance,originalTimer=globalThis.setTimeout,originalDocument=globalThis.document;
  let now=0;const timers=[],timeOrigin=1_800_000_000_000;globalThis.performance={now:()=>now,timeOrigin};globalThis.setTimeout=(resolve,ms)=>{timers.push({at:now+ms,resolve});};
  globalThis.document={createElement:()=>({getContext:()=>({})})};
@@ -80,7 +80,16 @@ async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=f
    if(!invalidReceipt){assert.equal(observed.sync.audio_envelope.raw_threshold_transitions[0].at,15.02,'Keep actual receive callback time');
     audio('target-move-0-0',20000);assert.equal(observer.report().routes[0].audio.duplicate_frames,1,'Original duplicate detection remains strict');}
   }else assert.equal(byOperation.has('move-0-0'),false,'A refused fresh snapshot must not submit a replacement');
-  oldRead.resolve();await flush();await advance(40000);await advance(62000);await work;
+  oldRead.resolve();await flush();await advance(40000);
+  if(earlyTerminalWake){
+   for(const at of [61999,61999.5]){
+    const index=timers.findIndex(timer=>timer.at===62000);assert.notEqual(index,-1,'The same original terminal deadline remains armed');
+    now=at;timers.splice(index,1)[0].resolve();await flush();
+    assert.equal(report.finished_ms,undefined,'An early original timer wake cannot invent a completed window');
+    assert.equal(journals.some(value=>value.kind==='programme-terminal'),false,'No terminal journal before the actual original deadline');
+   }
+  }
+  await advance(62000);await work;
   if(invalidReceipt||oldRefusal||snapshotRefusal)assert.ok(report.failures.some(value=>value.operation_id==='move-0-0'),'Verification failure remains a failed original move');
   else assert.equal(report.moves.length,4);
   if(keepaliveFailure){
@@ -105,3 +114,5 @@ test('invalid ready receipt never activates prepared output',()=>fixture({invali
 test('old-owner verification refusal still fails after actual postcommit output is observed',()=>fixture({oldRefusal:true}));
 test('reachability failure keeps both independent move slots and the original measurement terminal',()=>fixture({keepaliveFailure:true}));
 test('refused outbound snapshot blocks only its own return despite a reachability failure',()=>fixture({keepaliveFailure:true,snapshotRefusal:true}));
+
+test('early browser terminal timer wakes cannot shorten the original programme or hide its reachability failure',()=>fixture({earlyTerminalWake:true,keepaliveFailure:true}));

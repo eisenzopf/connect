@@ -1,0 +1,959 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/delivery.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/delivery.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/delivery.rs
+@@ -0,0 +1,199 @@
++//! Numeric observations of one exact private video route. No permission or IO.
++use super::*;
++use std::sync::atomic::{AtomicU64, Ordering};
++
++pub(super) const PHASES: [&str; 13] = [
++    "enqueue",
++    "delivery-entry",
++    "source-admission",
++    "target-admission",
++    "target-policy",
++    "queued-admission",
++    "delivery-fence",
++    "feedback-issuance",
++    "io-result",
++    "forward-source-admission",
++    "forward-target-admission",
++    "forward-result",
++    "adapter-dequeue",
++];
++const OUTCOMES: [&str; 12] = [
++    "entered",
++    "ok",
++    "model",
++    "unsupported",
++    "authority",
++    "not-recipient",
++    "cancelled",
++    "deadline",
++    "not-ready",
++    "metadata-busy",
++    "backpressure",
++    "cleanup-unconfirmed",
++];
++// Inclusive microsecond upper bounds. Last bucket includes every older age.
++const AGE_UPPER_US: [u64; 9] = [
++    1_000,
++    5_000,
++    10_000,
++    20_000,
++    50_000,
++    100_000,
++    150_000,
++    199_999,
++    u64::MAX,
++];
++#[derive(Clone, Copy)]
++#[repr(usize)]
++pub(in crate::staged_streams) enum Phase {
++    Enqueue,
++    Dequeue,
++    SourceAdmission,
++    TargetAdmission,
++    TargetPolicy,
++    QueuedAdmission,
++    DeliveryFence,
++    FeedbackIssuance,
++    IoResult,
++    ForwardSourceAdmission,
++    ForwardTargetAdmission,
++    ForwardResult,
++    AdapterDequeue,
++}
++#[derive(Default)]
++struct Row {
++    outcomes: [AtomicU64; 12],
++    ages: [AtomicU64; 9],
++    maximum_age_us: AtomicU64,
++}
++#[derive(Default)]
++pub(in crate::staged_streams) struct Counters {
++    rows: [Row; 13],
++}
++#[derive(Debug, PartialEq, Eq)]
++pub struct PrivateVideoPhaseObservation {
++    pub phase: &'static str,
++    pub time_basis: &'static str,
++    pub outcomes: [u64; 12],
++    pub ages: [u64; 9],
++    pub maximum_age_us: u64,
++}
++/// A concurrent numeric sample, not a terminal join or a delivery assertion.
++#[derive(Debug, PartialEq, Eq)]
++pub struct PrivateVideoDeliveryObservation {
++    pub outcome_names: [&'static str; 12],
++    pub age_upper_us: [u64; 9],
++    pub phases: [PrivateVideoPhaseObservation; 13],
++    pub saturated: bool,
++}
++fn increment(counter: &AtomicU64) {
++    let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
++        Some(n.saturating_add(1))
++    });
++}
++fn outcome<T>(result: Option<&ControlResult<T>>) -> usize {
++    match result {
++        None => 0,
++        Some(Ok(_)) => 1,
++        Some(Err(problem)) => {
++            2 + match problem {
++                StreamControlError::Model(_) => 0,
++                StreamControlError::Unsupported => 1,
++                StreamControlError::Authority => 2,
++                StreamControlError::NotRecipient => 3,
++                StreamControlError::Cancelled => 4,
++                StreamControlError::Deadline => 5,
++                StreamControlError::NotReady => 6,
++                StreamControlError::MetadataBusy => 7,
++                StreamControlError::Backpressure => 8,
++                StreamControlError::CleanupUnconfirmed => 9,
++            }
++        }
++    }
++}
++impl Counters {
++    pub(in crate::staged_streams) fn record<T>(&self, phase: Phase, at: Instant, result: Option<&ControlResult<T>>) {
++        let age = at.elapsed().as_micros().min(u64::MAX as u128) as u64;
++        self.record_age(phase, age, result);
++    }
++    fn record_age<T>(&self, phase: Phase, age: u64, result: Option<&ControlResult<T>>) {
++        let row = &self.rows[phase as usize];
++        increment(&row.outcomes[outcome(result)]);
++        increment(&row.ages[AGE_UPPER_US.iter().position(|upper| age <= *upper).unwrap()]);
++        row.maximum_age_us.fetch_max(age, Ordering::Relaxed);
++    }
++    pub(super) fn snapshot(&self) -> PrivateVideoDeliveryObservation {
++        let phases = std::array::from_fn(|i| PrivateVideoPhaseObservation {
++            phase: PHASES[i],
++            time_basis: if i == Phase::TargetPolicy as usize {
++                "policy-call-elapsed-us"
++            } else {
++                "original-packet-age-us"
++            },
++            outcomes: std::array::from_fn(|j| self.rows[i].outcomes[j].load(Ordering::Relaxed)),
++            ages: std::array::from_fn(|j| self.rows[i].ages[j].load(Ordering::Relaxed)),
++            maximum_age_us: self.rows[i].maximum_age_us.load(Ordering::Relaxed),
++        });
++        let saturated = phases
++            .iter()
++            .any(|p| p.outcomes.contains(&u64::MAX) || p.ages.contains(&u64::MAX));
++        PrivateVideoDeliveryObservation {
++            outcome_names: OUTCOMES,
++            age_upper_us: AGE_UPPER_US,
++            phases,
++            saturated,
++        }
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn private_video_phase_bins_and_original_errors_are_exact() {
++        let counters = Counters::default();
++        let errors = [
++            StreamControlError::Model(MediaTransitionError::Invalid),
++            StreamControlError::Unsupported,
++            StreamControlError::Authority,
++            StreamControlError::NotRecipient,
++            StreamControlError::Cancelled,
++            StreamControlError::Deadline,
++            StreamControlError::NotReady,
++            StreamControlError::MetadataBusy,
++            StreamControlError::Backpressure,
++            StreamControlError::CleanupUnconfirmed,
++        ];
++        for (i, error) in errors.into_iter().enumerate() {
++            let result: ControlResult<()> = Err(error);
++            counters.record_age(Phase::TargetAdmission, i as u64, Some(&result));
++            assert_eq!(outcome(Some(&result)), i + 2);
++        }
++        for (i, age) in [
++            0, 1_001, 5_001, 10_001, 20_001, 50_001, 100_001, 150_001, 200_000,
++        ]
++        .into_iter()
++        .enumerate()
++        {
++            counters.record_age::<()>(Phase::Enqueue, age, None);
++            assert_eq!(counters.snapshot().phases[0].ages[i], 1);
++        }
++        let snapshot = counters.snapshot();
++        assert_eq!(snapshot.phases[0].maximum_age_us, 200_000);
++        assert_eq!(snapshot.phases[3].outcomes[2..], [1; 10]);
++        assert!(!snapshot.saturated);
++    }
++    #[test]
++    fn private_video_phase_accounting_is_saturating_and_owns_only_numbers() {
++        let counters = Arc::new(Counters::default());
++        counters.rows[0].outcomes[0].store(u64::MAX, Ordering::Relaxed);
++        counters.record_age::<()>(Phase::Enqueue, 5, None);
++        let snapshot = counters.snapshot();
++        assert!(snapshot.saturated);
++        assert_eq!(snapshot.phases[0].outcomes[0], u64::MAX);
++        assert_eq!(Arc::strong_count(&counters), 1);
++        let weak = Arc::downgrade(&counters);
++        drop(counters);
++        assert!(weak.upgrade().is_none());
++        assert_eq!(snapshot.phases[0].ages[0], 1);
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
+@@ -5,6 +5,7 @@
+ 
+ pub(super) struct PrerollBinding {
+     original: DirectStamp,
++    pub(super) delivery: Arc<delivery::Counters>,
+     source: Weak<Port>,
+     source_ticket: PeerRouteTicket,
+     target: Weak<Port>,
+@@ -56,6 +57,13 @@
+     cancel: CancellationToken,
+ }
+ impl VideoReplacementPreparation {
++    /// Numeric concurrent samples of exactly the original private routes.
++    /// These contain no route owner, grant, payload, ticket or identity.
++    pub fn delivery_observations(&self) -> Vec<PrivateVideoDeliveryObservation> {
++        self.routes.values().filter_map(|route| route.preparation.as_ref())
++            .map(|p| p.delivery.snapshot()).collect()
++    }
++
+     pub fn sources(&self) -> &[MediaSource] {
+         &self.sources
+     }
+@@ -260,6 +268,7 @@
+                     started: Instant::now(),
+                     preparation: Some(Arc::new(PrerollBinding {
+                         original,
++                        delivery: Arc::new(delivery::Counters::default()),
+                         source: source_port,
+                         source_ticket,
+                         target,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -3,6 +3,8 @@
+ use super::*;
+ use rvoip_core_traits::peer_switch::PeerDeliveryGuard;
+ mod preroll;
++pub(super) mod delivery;
++pub use delivery::{PrivateVideoDeliveryObservation, PrivateVideoPhaseObservation};
+ use preroll::PrerollBinding;
+ pub use preroll::{VideoReplacementPreparation, VideoReplacementPreparationAttempt};
+ 
+@@ -212,6 +214,10 @@
+     preparation: Option<Arc<PrerollBinding>>,
+ }
+ impl DirectStamp {
++    pub(super) fn delivery_counters(&self) -> Option<Arc<delivery::Counters>> {
++        self.preparation.as_ref().map(|p| p.delivery.clone())
++    }
++
+     pub(super) fn is_current(&self) -> bool {
+         self.gate.strong_count() != 0
+             && !self.cancel.is_cancelled()
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+@@ -1296,3 +1296,239 @@
+         prepared.close();
+     }
+ }
++
++
++fn phase_sample<'a>(
++    observation: &'a crate::staged_streams::direct_subscriptions::PrivateVideoDeliveryObservation,
++    phase: &str,
++) -> &'a crate::staged_streams::direct_subscriptions::PrivateVideoPhaseObservation {
++    observation
++        .phases
++        .iter()
++        .find(|row| row.phase == phase)
++        .unwrap()
++}
++
++#[tokio::test]
++async fn private_video_phase_success_observes_original_route_and_excludes_public_delivery() {
++    let mut f = Preroll::new().await;
++    let prepared = f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob", 301);
++    let before = prepared.delivery_observations();
++    assert_eq!(before.len(), 1);
++    assert_eq!(phase_sample(&before[0], "enqueue").outcomes[0..2], [1, 1]);
++    assert_eq!(phase_sample(&before[0], "delivery-entry").outcomes, [0; 12]);
++    delivered(&mut f.old_output, 301).await;
++    assert_eq!(
++        prepared.delivery_observations(),
++        before,
++        "public old route changed private counters"
++    );
++    let queued = outgoing(&mut f.target_output).await;
++    let original_timestamp = queued.frame.timestamp_rtp;
++    let original_admitted_at = queued.admitted_at;
++    queued.observe_private_video_adapter_dequeue();
++    assert_eq!(queued.frame.timestamp_rtp, original_timestamp);
++    assert_eq!(queued.admitted_at, original_admitted_at);
++    assert!(prepared.is_current());
++    let dequeued = prepared.delivery_observations();
++    assert_eq!(phase_sample(&dequeued[0], "adapter-dequeue").outcomes[0], 1);
++    assert_eq!(
++        phase_sample(&dequeued[0], "delivery-entry").outcomes,
++        [0; 12]
++    );
++    queued
++        .deliver_video_with_feedback(|frame, origin, _| {
++            assert_eq!(frame.timestamp_rtp, 301);
++            assert_eq!(origin.unwrap().connection, ConnectionId::from_string("bob"));
++            std::future::ready(Ok(()))
++        })
++        .await
++        .unwrap();
++    let after = prepared.delivery_observations();
++    for phase in [
++        "source-admission",
++        "target-admission",
++        "queued-admission",
++        "feedback-issuance",
++        "io-result",
++    ] {
++        assert_eq!(phase_sample(&after[0], phase).outcomes[1], 1, "{phase}");
++    }
++    assert_eq!(phase_sample(&after[0], "delivery-entry").outcomes[0], 1);
++    assert!(prepared.is_current());
++    f.assert_target_quarantined();
++}
++
++#[tokio::test]
++async fn private_video_phase_expired_dequeue_never_reenters_policy_or_writer() {
++    let mut f = Preroll::new().await;
++    let prepared = f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob", 302);
++    let mut queued = outgoing(&mut f.target_output).await;
++    queued.observe_private_video_adapter_dequeue();
++    // Deterministically exercise the exact existing age boundary, without a
++    // scheduling sleep or changing the packet's real route/tickets/authority.
++    queued.admitted_at = Instant::now() - Duration::from_millis(210);
++    assert!(matches!(
++        queued
++            .deliver_video_with_feedback(|_, _, _| async {
++                panic!("expired original private packet reached writer")
++            })
++            .await,
++        Err(StreamControlError::Deadline)
++    ));
++    let observed = prepared.delivery_observations();
++    assert_eq!(phase_sample(&observed[0], "delivery-entry").ages[8], 1);
++    assert_eq!(
++        phase_sample(&observed[0], "queued-admission").outcomes[7],
++        1
++    );
++    for phase in [
++        "source-admission",
++        "target-admission",
++        "feedback-issuance",
++        "io-result",
++    ] {
++        assert_eq!(phase_sample(&observed[0], phase).outcomes, [0; 12]);
++    }
++    assert!(
++        prepared.is_current(),
++        "measurement retired an otherwise current route"
++    );
++}
++
++#[tokio::test]
++async fn private_video_phase_current_source_and_target_refusals_remain_distinct() {
++    for (actor, phase) in [("bob", "source-admission"), ("alice", "target-admission")] {
++        let mut f = Preroll::new().await;
++        let prepared = f.prepare(CancellationToken::new()).await;
++        f.publish_video("bob", 303);
++        let queued = outgoing(&mut f.target_output).await;
++        f.movement
++            .room
++            .domain
++            .base
++            .0
++            .write()
++            .await
++            .revoked
++            .insert(actor.into());
++        assert!(matches!(
++            queued
++                .deliver_video_with_feedback(|_, _, _| async {
++                    panic!("revoked original private route reached writer")
++                })
++                .await,
++            Err(StreamControlError::Authority)
++        ));
++        let observed = prepared.delivery_observations();
++        assert_eq!(phase_sample(&observed[0], phase).outcomes[4], 1, "{actor}");
++        assert_eq!(
++            phase_sample(&observed[0], "queued-admission").outcomes[4],
++            1
++        );
++        assert_eq!(
++            phase_sample(&observed[0], "feedback-issuance").outcomes,
++            [0; 12]
++        );
++        assert_eq!(phase_sample(&observed[0], "io-result").outcomes, [0; 12]);
++        assert!(
++            f.movement.room.domain.base.0.try_write().is_ok(),
++            "refusal retained policy reader"
++        );
++    }
++}
++
++#[tokio::test]
++async fn private_video_phase_feedback_refusal_never_calls_writer_and_recovers_next_packet() {
++    let mut f = Preroll::new().await;
++    let prepared = f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob", 304);
++    let queued = outgoing(&mut f.target_output).await;
++    let cache = queued.direct.as_ref().unwrap().feedback.clone();
++    let held = cache.hold_metadata_for_test();
++    assert!(matches!(
++        queued
++            .deliver_video_with_feedback(|_, _, _| async {
++                panic!("feedback refusal reached writer")
++            })
++            .await,
++        Err(StreamControlError::Backpressure)
++    ));
++    drop(held);
++    let observed = prepared.delivery_observations();
++    assert_eq!(
++        phase_sample(&observed[0], "queued-admission").outcomes[1],
++        1
++    );
++    assert_eq!(
++        phase_sample(&observed[0], "feedback-issuance").outcomes[10],
++        1
++    );
++    assert_eq!(phase_sample(&observed[0], "io-result").outcomes[10], 1);
++    f.publish_video("bob", 305);
++    outgoing(&mut f.target_output)
++        .await
++        .deliver_video_with_feedback(|_, _, _| std::future::ready(Ok(())))
++        .await
++        .unwrap();
++    assert_eq!(
++        phase_sample(&prepared.delivery_observations()[0], "feedback-issuance").outcomes[1],
++        1
++    );
++    assert!(prepared.is_current());
++}
++
++#[tokio::test]
++async fn private_video_phase_cancelled_original_route_never_reenters_writer() {
++    let mut f = Preroll::new().await;
++    let prepared = f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob", 306);
++    let queued = outgoing(&mut f.target_output).await;
++    prepared.close();
++    assert!(matches!(
++        queued
++            .deliver_video_with_feedback(|_, _, _| async {
++                panic!("cancelled original private route reached writer")
++            })
++            .await,
++        Err(StreamControlError::Cancelled)
++    ));
++    let observed = prepared.delivery_observations();
++    assert_eq!(
++        phase_sample(&observed[0], "queued-admission").outcomes[6],
++        1
++    );
++    assert_eq!(
++        phase_sample(&observed[0], "feedback-issuance").outcomes,
++        [0; 12]
++    );
++    delivered(&mut f.old_output, 306).await;
++    f.assert_target_quarantined();
++}
++
++#[tokio::test]
++async fn private_video_phase_writer_error_is_preserved_after_successful_feedback_admission() {
++    let mut f = Preroll::new().await;
++    let prepared = f.prepare(CancellationToken::new()).await;
++    f.publish_video("bob", 307);
++    assert!(matches!(
++        outgoing(&mut f.target_output)
++            .await
++            .deliver_video_with_feedback(|_, _, _| std::future::ready(Err(
++                StreamControlError::Unsupported
++            )))
++            .await,
++        Err(StreamControlError::Unsupported)
++    ));
++    let observed = prepared.delivery_observations();
++    assert_eq!(
++        phase_sample(&observed[0], "feedback-issuance").outcomes[1],
++        1
++    );
++    assert_eq!(phase_sample(&observed[0], "delivery-fence").outcomes[1], 1);
++    assert_eq!(phase_sample(&observed[0], "io-result").outcomes[3], 1);
++    assert!(prepared.is_current());
++    f.assert_target_quarantined();
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs b/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
+@@ -323,10 +323,20 @@
+         };
+         let descriptor = source.descriptor.clone();
+         let direct = self.direct.clone().ok_or(StreamControlError::Authority)?;
++        let delivery = direct.delivery_counters();
++        let admitted_at = self.admitted_at;
+         let mut installed = None;
+         let output = &mut installed;
+         self.deliver_with_origin(move |frame, origin| async move {
+-            let route = VideoFeedbackRoute::issued(scope, descriptor, direct)?;
++            use direct_subscriptions::delivery::Phase;
++            if let Some(counters) = &delivery {
++                counters.record::<()>(Phase::FeedbackIssuance, admitted_at, None);
++            }
++            let issued = VideoFeedbackRoute::issued(scope, descriptor, direct);
++            if let Some(counters) = &delivery {
++                counters.record(Phase::FeedbackIssuance, admitted_at, Some(&issued));
++            }
++            let route = issued?;
+             send(frame, origin, route.clone()).await?;
+             *output = Some(route);
+             Ok(())
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1131,91 +1131,129 @@
+         {
+             return Err(StreamControlError::Unsupported);
+         }
+-        let (_source_lease, _source_guard, source_deadline) = source.admit_with_deadline(
+-            &self.source,
+-            &self.ticket,
+-            false,
+-            None,
+-            audio_consumer::ConsumerCheck::Retained(self.consumer.as_ref()),
+-            None,
+-            scene_consumer::SceneCheck::retained_publish(self.scene.as_ref()),
+-            self.data.as_ref(),
+-            None,
+-            self.custody
+-                .active()
++        let delivery = direct.as_ref().and_then(|stamp| stamp.delivery_counters());
++        use direct_subscriptions::delivery::Phase as VideoPhase;
++        if let Some(counters) = &delivery {
++            counters.record::<()>(VideoPhase::ForwardSourceAdmission, self.admitted_at, None);
++        }
++        let result = (|| {
++            let source_result = source.admit_with_deadline(
++                &self.source,
++                &self.ticket,
++                false,
++                None,
++                audio_consumer::ConsumerCheck::Retained(self.consumer.as_ref()),
++                None,
++                scene_consumer::SceneCheck::retained_publish(self.scene.as_ref()),
++                self.data.as_ref(),
++                None,
++                self.custody
++                    .active()
++                    .as_ref()
++                    .map(Arc::downgrade)
++                    .as_ref()
++                    .map(|weak| weak as &(dyn Any + Send + Sync)),
++                pending.as_mut().map(|(_, _, deadline)| &mut **deadline),
++            );
++            if let Some(counters) = &delivery {
++                counters.record(
++                    VideoPhase::ForwardSourceAdmission,
++                    self.admitted_at,
++                    Some(&source_result),
++                );
++            }
++            let (_source_lease, _source_guard, source_deadline) = source_result?;
++            if self.source.kind() == StreamKind::Audio {
++                self.custody.observe(_source_lease.as_ref());
++            }
++            let authority = _source_lease.authority();
++            let descriptor = MediaSource {
++                conversation: source.conversation.clone(),
++                session: source.session.clone(),
++                connection: source.connection.clone(),
++                participant: authority.member.participant().clone(),
++                membership_epoch: authority.member.epoch(),
++                connection_generation: authority.connection.generation(),
++                logical_id: self.source.binding.negotiated.requested.logical_id.clone(),
++                transport_id: self.source.binding.transport_id.clone(),
++                stream_generation: self.source.binding.generation,
++            };
++            let ticket = pending
+                 .as_ref()
+-                .map(Arc::downgrade)
+-                .as_ref()
+-                .map(|weak| weak as &(dyn Any + Send + Sync)),
+-            pending.as_mut().map(|(_, _, deadline)| &mut **deadline),
+-        )?;
+-        if self.source.kind() == StreamKind::Audio {
+-            self.custody.observe(_source_lease.as_ref());
+-        }
+-        let authority = _source_lease.authority();
+-        let descriptor = MediaSource {
+-            conversation: source.conversation.clone(),
+-            session: source.session.clone(),
+-            connection: source.connection.clone(),
+-            participant: authority.member.participant().clone(),
+-            membership_epoch: authority.member.epoch(),
+-            connection_generation: authority.connection.generation(),
+-            logical_id: self.source.binding.negotiated.requested.logical_id.clone(),
+-            transport_id: self.source.binding.transport_id.clone(),
+-            stream_generation: self.source.binding.generation,
+-        };
+-        let ticket = pending
+-            .as_ref()
+-            .map_or_else(|| target.ticket(), |(_, ticket, _)| (*ticket).clone());
+-        let (_target_lease, target_admission, target_deadline) = destination.admit_with_deadline(
+-            &target,
+-            &ticket,
+-            true,
+-            Some(&descriptor),
+-            audio_consumer::ConsumerCheck::OrdinaryForward,
+-            direct.as_ref(),
+-            scene_consumer::SceneCheck::receive(self.scene.as_ref(), self.admitted_at),
+-            self.data.as_ref(),
+-            None,
+-            None,
+-            pending.as_mut().map(|(_, _, deadline)| &mut **deadline),
+-        )?;
+-        if source.shutdown.is_cancelled() || destination.shutdown.is_cancelled() {
+-            return Err(StreamControlError::Cancelled);
+-        }
+-        if tokio::time::Instant::now() >= source_deadline.min(target_deadline) {
+-            return Err(StreamControlError::Deadline);
+-        }
+-        let mut frame = self.frame.clone();
+-        frame.stream_id = target.binding.transport_id.clone();
+-        target
+-            .enqueue_egress(QueuedMedia {
+-                frame,
+-                audio_timing: None,
+-                data: self.data.clone(),
+-                local: None,
+-                sources: vec![Contribution {
+-                    source: self.source.clone(),
+-                    ticket: self.ticket.clone(),
+-                    consumer: self.consumer.clone(),
+-                    scene: self.scene.clone(),
+-                    custody: self.custody.clone(),
+-                    descriptor,
+-                    admission_deadline: pending.as_ref().map(|(_, _, until)| **until),
+-                }],
+-                target: target.clone(),
+-                target_ticket: ticket,
+-                target_consumer: target_admission.consumer.clone(),
+-                target_scene: target_admission.scene.clone(),
+-                subscription: None,
+-                direct,
+-                admitted_at: self.admitted_at,
+-            })
+-            .map_err(|error| match error {
+-                mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
+-                mpsc::error::TrySendError::Closed(_) => StreamControlError::NotReady,
+-            })
+-    }
++                .map_or_else(|| target.ticket(), |(_, ticket, _)| (*ticket).clone());
++            if let Some(counters) = &delivery {
++                counters.record::<()>(VideoPhase::ForwardTargetAdmission, self.admitted_at, None);
++            }
++            let target_result = destination.admit_with_deadline(
++                &target,
++                &ticket,
++                true,
++                Some(&descriptor),
++                audio_consumer::ConsumerCheck::OrdinaryForward,
++                direct.as_ref(),
++                scene_consumer::SceneCheck::receive(self.scene.as_ref(), self.admitted_at),
++                self.data.as_ref(),
++                None,
++                None,
++                pending.as_mut().map(|(_, _, deadline)| &mut **deadline),
++            );
++            if let Some(counters) = &delivery {
++                counters.record(
++                    VideoPhase::ForwardTargetAdmission,
++                    self.admitted_at,
++                    Some(&target_result),
++                );
++            }
++            let (_target_lease, target_admission, target_deadline) = target_result?;
++            if source.shutdown.is_cancelled() || destination.shutdown.is_cancelled() {
++                return Err(StreamControlError::Cancelled);
++            }
++            if tokio::time::Instant::now() >= source_deadline.min(target_deadline) {
++                return Err(StreamControlError::Deadline);
++            }
++            let mut frame = self.frame.clone();
++            frame.stream_id = target.binding.transport_id.clone();
++            if let Some(counters) = &delivery {
++                counters.record::<()>(VideoPhase::Enqueue, self.admitted_at, None);
++            }
++            let enqueued = target
++                .enqueue_egress(QueuedMedia {
++                    frame,
++                    audio_timing: None,
++                    data: self.data.clone(),
++                    local: None,
++                    sources: vec![Contribution {
++                        source: self.source.clone(),
++                        ticket: self.ticket.clone(),
++                        consumer: self.consumer.clone(),
++                        scene: self.scene.clone(),
++                        custody: self.custody.clone(),
++                        descriptor,
++                        admission_deadline: pending.as_ref().map(|(_, _, until)| **until),
++                    }],
++                    target: target.clone(),
++                    target_ticket: ticket,
++                    target_consumer: target_admission.consumer.clone(),
++                    target_scene: target_admission.scene.clone(),
++                    subscription: None,
++                    direct,
++                    admitted_at: self.admitted_at,
++                })
++                .map_err(|error| match error {
++                    mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
++                    mpsc::error::TrySendError::Closed(_) => StreamControlError::NotReady,
++                });
++            if let Some(counters) = &delivery {
++                counters.record(VideoPhase::Enqueue, self.admitted_at, Some(&enqueued));
++            }
++            enqueued
++        })();
++        if let Some(counters) = &delivery {
++            counters.record(VideoPhase::ForwardResult, self.admitted_at, Some(&result));
++        }
++        result
++    }
++
+ }
+ /// No raw payload accessor: admission is repeated after dequeue, and the
+ /// current policy plus both route-generation guards live through the send.
+@@ -1276,6 +1314,14 @@
+ pub mod audio_egress_clock;
+ 
+ impl QueuedMedia {
++    /// Trusted adapter observation immediately after its original queue recv.
++    /// Numeric-only and optional. Repeated calls count repeated observations,
++    /// not unique packets. This admits no IO and changes no original metadata.
++    pub fn observe_private_video_adapter_dequeue(&self) {
++        if let Some(counters) = self.direct.as_ref().and_then(|stamp| stamp.delivery_counters()) {
++            counters.record::<()>(direct_subscriptions::delivery::Phase::AdapterDequeue, self.admitted_at, None);
++        }
++    }
+     fn delivery_origin(&self) -> Option<MediaDeliveryOrigin> {
+         if self.sources.len() == 1 {
+             let source = &self.sources[0].descriptor;
+@@ -1490,6 +1536,14 @@
+             drop(writing);
+             return result;
+         }
++        let delivery = self
++            .direct
++            .as_ref()
++            .and_then(|stamp| stamp.delivery_counters());
++        use direct_subscriptions::delivery::Phase as VideoPhase;
++        if let Some(counters) = &delivery {
++            counters.record::<()>(VideoPhase::Dequeue, self.admitted_at, None);
++        }
+         // A refused pre-IO attempt must not renew either the original packet
+         // age or an earlier policy lease. The bound survives reader release.
+         let mut until = if self.frame.kind == StreamKind::Data {
+@@ -1498,7 +1552,15 @@
+             tokio::time::Instant::from_std(self.admitted_at + Duration::from_millis(200))
+         };
+         let admitted = loop {
+-            match self.admit_queued_media_with_deadline(&mut until) {
++            let attempt = self.admit_queued_media_with_deadline(&mut until);
++            if let Some(counters) = &delivery {
++                counters.record(
++                    VideoPhase::QueuedAdmission,
++                    self.admitted_at,
++                    Some(&attempt),
++                );
++            }
++            match attempt {
+                 Ok(admitted) => break admitted,
+                 Err(StreamControlError::NotReady) if self.frame.kind != StreamKind::Data => {
+                     // Only metadata remains here: a failed attempt dropped every
+@@ -1521,11 +1583,35 @@
+         let origin = self.delivery_origin();
+         tracing::trace!(target: "rvoip_core::audio_path", target = %target.connection,
+             age_us = self.admitted_at.elapsed().as_micros() as u64, "Guarded audio entering IO");
++        if let Some(counters) = &delivery {
++            counters.record::<()>(VideoPhase::DeliveryFence, self.admitted_at, None);
++        }
+         let result = tokio::select! {
+             biased;
+-            _=audio_consumer::any_cancelled(tokens.to_vec())=>Err(StreamControlError::Cancelled),
+-            result=tokio::time::timeout_at(deadline,send(self.frame.clone(),origin))=>result.map_err(|_|StreamControlError::Deadline)?,
++            _=audio_consumer::any_cancelled(tokens.to_vec())=>{
++                if let Some(counters) = &delivery {
++                    counters.record::<()>(VideoPhase::DeliveryFence, self.admitted_at, Some(&Err(StreamControlError::Cancelled)));
++                }
++                Err(StreamControlError::Cancelled)
++            },
++            result=tokio::time::timeout_at(deadline,send(self.frame.clone(),origin))=>match result {
++                Ok(result) => {
++                    if let Some(counters) = &delivery {
++                        counters.record(VideoPhase::DeliveryFence, self.admitted_at, Some(&Ok(())));
++                    }
++                    result
++                }
++                Err(_) => {
++                    if let Some(counters) = &delivery {
++                        counters.record::<()>(VideoPhase::DeliveryFence, self.admitted_at, Some(&Err(StreamControlError::Deadline)));
++                    }
++                    Err(StreamControlError::Deadline)
++                }
++            },
+         };
++        if let Some(counters) = &delivery {
++            counters.record(VideoPhase::IoResult, self.admitted_at, Some(&result));
++        }
+         self.observe_delivery(&admitted, &result);
+         result
+     }
+@@ -1610,7 +1696,15 @@
+             if source.shutdown.is_cancelled() {
+                 return Err(StreamControlError::Cancelled);
+             }
+-            let (lease, admission, bound) = source
++            let delivery = self
++                .direct
++                .as_ref()
++                .and_then(|stamp| stamp.delivery_counters());
++            use direct_subscriptions::delivery::Phase as VideoPhase;
++            if let Some(counters) = &delivery {
++                counters.record::<()>(VideoPhase::SourceAdmission, self.admitted_at, None);
++            }
++            let source_result = source
+                 .admit_retained_source_with_deadline(
+                     &provenance.source,
+                     &provenance.ticket,
+@@ -1624,7 +1718,15 @@
+                     target = %target.connection, stage = "source-egress", ?problem,
+                     "Guarded audio delivery refused");
+                     problem
+-                })?;
++                });
++            if let Some(counters) = &delivery {
++                counters.record(
++                    VideoPhase::SourceAdmission,
++                    self.admitted_at,
++                    Some(&source_result),
++                );
++            }
++            let (lease, admission, bound) = source_result?;
+             if let Some(scene) = &admission.scene {
+                 tokens.push(scene.cancel.clone());
+             }
+@@ -1638,7 +1740,10 @@
+             if tokio::time::Instant::now() >= *deadline {
+                 return Err(StreamControlError::Deadline);
+             }
+-            let (lease, admission, bound) = target
++            if let Some(counters) = &delivery {
++                counters.record::<()>(VideoPhase::TargetAdmission, self.admitted_at, None);
++            }
++            let target_result = target
+                 .admit_with_deadline(
+                     &self.target,
+                     &self.target_ticket,
+@@ -1661,7 +1766,15 @@
+                     target = %target.connection, stage = "target-egress", ?problem,
+                     "Guarded audio delivery refused");
+                     problem
+-                })?;
++                });
++            if let Some(counters) = &delivery {
++                counters.record(
++                    VideoPhase::TargetAdmission,
++                    self.admitted_at,
++                    Some(&target_result),
++                );
++            }
++            let (lease, admission, bound) = target_result?;
+             if let Some(scene) = &admission.scene {
+                 tokens.push(scene.cancel.clone());
+             }
+@@ -1687,6 +1800,7 @@
+             _admissions: admissions,
+         })
+     }
++
+ }
+ 
+ struct State {
+@@ -2451,22 +2565,37 @@
+             {
+                 return Err(StreamControlError::Deadline);
+             }
+-            let lease = match (data, packet_context) {
+-                (None, None) if original.is_some() => {
+-                    self.policy.current_original_ingress(&scope)?
+-                }
+-                (Some(data), None) => self.policy.current_data(&scope, data, held)?,
+-                (None, Some(context)) => self.policy.current_packet(&scope, context)?,
++            let delivery = direct.and_then(|stamp| stamp.delivery_counters());
++            if let Some(counters) = &delivery {
++                counters.record::<()>(
++                    direct_subscriptions::delivery::Phase::TargetPolicy,
++                    Instant::now(),
++                    None,
++                );
++            }
++            let policy_started = delivery.as_ref().map(|_| Instant::now());
++            let policy_result = match (data, packet_context) {
++                (None, None) if original.is_some() => self.policy.current_original_ingress(&scope),
++                (Some(data), None) => self.policy.current_data(&scope, data, held),
++                (None, Some(context)) => self.policy.current_packet(&scope, context),
+                 // A retained original with no still-active custody needs a
+                 // fresh current grant, but its existing queued owner controls
+                 // retry. Do not let fresh-ingress callback pacing occupy that
+                 // owner while it may hold another source's current reader.
+                 (None, None) if detached && !fresh_publication => {
+-                    self.policy.current_queued(&scope)?
++                    self.policy.current_queued(&scope)
+                 }
+-                (None, None) => self.policy.current(&scope)?,
+-                _ => return Err(StreamControlError::Authority),
++                (None, None) => self.policy.current(&scope),
++                _ => Err(StreamControlError::Authority),
+             };
++            if let Some(counters) = &delivery {
++                counters.record(
++                    direct_subscriptions::delivery::Phase::TargetPolicy,
++                    policy_started.unwrap(),
++                    Some(&policy_result),
++                );
++            }
++            let lease = policy_result?;
+             if let Some(until) = queued_deadline.as_deref_mut() {
+                 // Record every observed grant before reacquiring model State:
+                 // NotReady drops the lease but cannot forget its earlier expiry.
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -1379,6 +1379,7 @@
+                         }
+                     };
+                     let queued = tokio::select! {biased;_=cancel.cancelled()=>break,_=lifetime.cancelled()=>break,next=next=>match next {Some(value)=>value,None=>break}};
++                    queued.observe_private_video_adapter_dequeue();
+                     let audio_stamp = match queued.audio_egress_stamp() {
+                         Ok(stamp) => stamp,
+                         Err(_) => {

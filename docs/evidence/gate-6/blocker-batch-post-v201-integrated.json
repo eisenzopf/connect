@@ -1,0 +1,294 @@
+{
+  "format": "connect/post-v201-integrated-batch/1",
+  "status": "integrated-focused-attempt-failed-one-diagnostic-test-next-full32-pending",
+  "source_base_revision": "eb3c38b287c44cba95783948825f0f52f06b1617",
+  "reviewed_composition_sha256": "f38106d0b8aa0cf1eda0da042f2420610ac9a01f1e09b25f5133a0e90a45e6e1",
+  "reviewed_composition_review_sha256": "ee04efb02b99d2ff1b33066fb5a8c513175baedbf9e850e313e17b63e709e7db",
+  "actual_code_integration_receipt_sha256": "8a6989131a778cb891b9573fa4a381ffd661fbf59ae121f1ae66fd679f2cdbef",
+  "code_files": [
+    {
+      "path": "sdk/typescript/src/browser_transport_client.ts",
+      "before_sha256": "18a8598b530dd630f10b35d6a6f4a87d8c64d42c128f9601d590ffee3ab144e3",
+      "after_sha256": "5f9ab8c9f62a00b1a9cb34404e4baf69213cd4a65be6d04d4927f2337775303f"
+    },
+    {
+      "path": "sdk/tests/browser_native_continuation.test.mjs",
+      "before_sha256": "1c4b4fa8f691cefa575e93c597eeee405acebb69afc0b9dfadd48abd907adb86",
+      "after_sha256": "e836f44e446fe66763f9734c2ce33c5adb57e076c7dd078e9c00bb2f67b28b04"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/readiness.rs",
+      "before_sha256": "434db7d0a29dcd4e3ea433c5394d1ceb20a5261f55f6598a107db8d9d3250704",
+      "after_sha256": "13438d725cd5e05ff02b7336e82e8f826df228e335ec57a02cc9a30c63e53404"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/webrtc.rs",
+      "before_sha256": "146f0393dc1d76347981810b8e3ea82b2c57b30f96f8633d0d78eebc053232bb",
+      "after_sha256": "40e8800e62aac945df686f45969e2eda7c6b448a28ebe9eae90eed596543b80b"
+    },
+    {
+      "path": "crates/connect-service/src/lib.rs",
+      "before_sha256": "d9480e7e86a3aff8ab82cfc887c0e00eb469539876f41fe67bdc59fc1bc16bf7",
+      "after_sha256": "3eaf94f9b4e7cb3e2fcdadb6f9232c539d193c6ef12ba53865586d10be64331a"
+    },
+    {
+      "path": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/readiness.rs",
+      "before_sha256": "d488ca344c775d7804f0904102f5f862f41caabcc40fa3079033e351966e51ca",
+      "after_sha256": "b444055a168992514dfee0cc5bccb6f5f39e60d726fba5369174ebf5ad23d39d"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/diagnostics.rs",
+      "before_sha256": "c56c907ca303328d529ac690522bbbe1d079a1228bfcffa604a63a9b4b3e02e5",
+      "after_sha256": "0be6e7cf62324229fcc7262f52f8ffdb48076484a179d3b4f20c9913fe77bfab"
+    },
+    {
+      "path": "patches/rvoip/connect-private-video-route-phase-observations.patch",
+      "before_sha256": null,
+      "after_sha256": "9ed4696ba23261ffc2529a967d639aa729657e4bead3b9f05652dfe41ae396f0"
+    },
+    {
+      "path": "dependencies/source-lock.json",
+      "before_sha256": "412495a5bf8c1b3e68506ef4c9f083a7ab165e494e8b01e0741c0bccd26c1970",
+      "after_sha256": "a9af4d23cb86101baead39598ee6690ef16d845e20b5d48dd72ae49b91b56c11"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary.rs",
+      "before_sha256": "0c8ec1bd7932aed5fff5e22cbb4cdfc12bffd711e0366adbf88242c25bcff533",
+      "after_sha256": "bb015a7a78ef19de03f9420799a263f944c07ae870e1c791ad9afe132ddbcdbe"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media.rs",
+      "before_sha256": "b12add4698c844ba5a51ef154d2e6f5158662ded0ae39b39f030a1b162f9e984",
+      "after_sha256": "75152cbc3e53b2000bcc1e8416c22cc382fd3ab7fad97b452a2631d12fdaf8bf"
+    },
+    {
+      "path": "scripts/lib/browser_matrix_programme.mjs",
+      "before_sha256": "cd431e9b0c1745b73988440a5fff2ed65d4bebc0f8371673601d9bd54f8e53b8",
+      "after_sha256": "905f8ff925f664575f160e311f960419620b1978c50244dd6ad091d97320d056"
+    },
+    {
+      "path": "scripts/tests/browser_matrix_programme.test.mjs",
+      "before_sha256": "006f29d6ff65666d671a19117feb6190fb5d4effa99132551055550892f7c796",
+      "after_sha256": "60112bc375298fc45373a20808e86f6008da821310daf4a21cb43c14506ba8eb"
+    },
+    {
+      "path": "scripts/lib/browser_matrix_sources.mjs",
+      "before_sha256": "d5b67faf38ebb3c773b8d4c67175a5feabadeea03d83b16db986847fbfda6168",
+      "after_sha256": "e05c5d5df6447373990f75a2178542997ba9fd43694ddc7b3d2f09e0c4e8b310"
+    },
+    {
+      "path": "scripts/tests/browser_matrix_sources.test.mjs",
+      "before_sha256": "ae63abc1f6be02f04f90a0b68b8d60db1bb9d1906dbfb72fb30e617d37db009e",
+      "after_sha256": "283a56ea9d1a2913523b8d3195102c8c3f31ed34531ead0ef366e71d7f6ac3b7"
+    },
+    {
+      "path": "scripts/lib/mac_linux_guest.py",
+      "before_sha256": "1b77b51920c28171a0a33ba6e1869b74c25b5e9b983fa45c31fb672e299fcdd9",
+      "after_sha256": "7f5d865b75222df65b943c381d394738b394c41dbebccc7be2c98096f75acb72"
+    },
+    {
+      "path": "scripts/lib/mac_linux_fixture.py",
+      "before_sha256": "3667743bda4e018c65cbce824676f661edcce97c3afb974860803f2862faac9b",
+      "after_sha256": "724a74a4b860803fdfb59f446ed72060ef9ab70d65c54679dd557b3da940a261"
+    },
+    {
+      "path": "scripts/tests/test_mac_linux_fixture.py",
+      "before_sha256": "3ece50f7bb2ab2787c304b6d33d1fbc84397f4c71017123a2f67dac433b58a46",
+      "after_sha256": "134688b939f0d923cd8aa740ef603a8b249ce7f6385bceb536ce25405a05a8f2"
+    },
+    {
+      "path": "scripts/rehearse-gate6-browser-matrix.py",
+      "before_sha256": "cd03a6d188a5c313211d59d719f0e6565c33c2fb9b6ebc112b961b71c1ee1202",
+      "after_sha256": "4168b7ea1a17a5b588b8834a7b497c37df87dd15a93e12a782a24e1eee3b8194"
+    }
+  ],
+  "fixes": [
+    {
+      "id": "B70",
+      "title": "Original native replacement status timeout retires shared source control",
+      "status": "integrated-pending-focused-and-full-validation",
+      "change": "Apply the existing bounded read-only original-operation status continuation to native WebTransport as well as WebSocket; retain mutation uncertainty, current authorization and late-reply correlation.",
+      "evidence_scope": "Source-proven lifetime gap; individual v201 source-close cause remains inferred. Existing target-local readiness preservation does not cover this separate source status waiter."
+    },
+    {
+      "id": "B71",
+      "title": "Expired original readiness loses explicit authority refusal",
+      "status": "integrated-pending-focused-and-full-validation",
+      "change": "Use existing403 for absent exact original signed Ready/WebRTC preparation and strengthen the already-selected natural30-second expiry regression.",
+      "evidence_scope": "The prior focused expiry failure returned invalid-request after original retirement. Exact missing-root branch attribution is inferred; source classification gap is proven."
+    },
+    {
+      "id": "B72",
+      "title": "Private video route phases lack delivery-gap attribution",
+      "status": "integrated-pending-focused-and-full-validation",
+      "change": "Record fixed numeric original private-video route admission/queue/dequeue/feedback/writer phases and ages without changing permission, ordering, clocks or errors.",
+      "evidence_scope": "Original native private-video policy callbacks can authorize while very few packets reach the packetizer; callback counts are not packet ratios. New diagnostics are pending runtime evidence."
+    },
+    {
+      "id": "B73",
+      "title": "Compound scene repeats actor SQL within one packet projection",
+      "status": "integrated-pending-focused-and-full-validation",
+      "change": "Reuse already-resolved actors only inside the same original compound observation, with all recipient/current authority, original expiry and external-commit reseals retained.",
+      "evidence_scope": "Completed Store capture/reseal intervals are SQL-dominated in the original ChromeWSS sample. Removal of repeated actor reads is source-proven; actual runtime improvement remains unmeasured."
+    },
+    {
+      "id": "B74",
+      "title": "Original browser terminal timers can wake early",
+      "status": "integrated-pending-focused-and-full-validation",
+      "change": "Recheck the same original absolute deadline in programme and source-master timer callbacks; keep immediate close, no rebase, no elapsed clamp and no budget extension.",
+      "evidence_scope": "ARM remote FirefoxES256 cycle2 recorded61999ms against62000ms and correctly failed declared workload. Early source-master stop is reachable from source but was not observed in that sample."
+    },
+    {
+      "id": "B75",
+      "title": "Nested cross-host authority requests never reach issuer",
+      "status": "integrated-pending-focused-and-full-validation",
+      "change": "Forward exactly cycles1..3 and sequences1..3 through the existing bounded guest/host authority bridge in both directions; preserve flat paths, write-once response equality, clocks and byte/symlink guards.",
+      "evidence_scope": "All6 Mac remote browser cells fail current authority before original issuance. Original nested expiry/revocation requests exist without responses; the host issuer was never called."
+    },
+    {
+      "id": "B76",
+      "title": "Remote failed workload is misreported as unjoined custody",
+      "status": "integrated-pending-focused-and-full-validation",
+      "change": "Project original SSH/guest/allguest/lease/unforced/cleanup/input identity facts independently of functional success in normal and finally cleanup.",
+      "evidence_scope": "All6 original remote browser fields remain false with no archive. Their exact original natural exit1 joins and separate fresh absence proof are preserved; future projection must not rewrite historical reports or pass a failed programme."
+    }
+  ],
+  "planned_focused_scope": {
+    "rust": 196,
+    "node": 282,
+    "python": 132,
+    "mac_acl": 1,
+    "explicit_ignored_rtc_included_in_rust": 6,
+    "all_original_scope_preserved": {
+      "rust": 185,
+      "node": 269,
+      "python": 127,
+      "mac_acl": 1
+    }
+  },
+  "focused_verification": {
+    "status": "failed-terminal-one-new-diagnostic-test-expectation",
+    "final": true,
+    "planned": {
+      "rust": 196,
+      "node": 282,
+      "python": 132,
+      "mac_acl": 1,
+      "explicit_ignored_rtc_in_rust": 6
+    },
+    "observed_rust": {
+      "executed": 196,
+      "passed": 195,
+      "failed": 1,
+      "pending": 0
+    },
+    "node": {
+      "executed": 282,
+      "passed": 282,
+      "failed": 0
+    },
+    "python": {
+      "executed": 132,
+      "passed": 132,
+      "failed": 0
+    },
+    "mac_acl": {
+      "executed": 1,
+      "passed": 1,
+      "failed": 0
+    },
+    "shipping_and_source_and_owner_admission": {
+      "default_shipping_passed": true,
+      "instrumented_build_passed": true,
+      "typescript_build_passed": true,
+      "source_before_after_unchanged": true,
+      "checkers_before_after_unchanged": true,
+      "original_command_groups_joined": true,
+      "original_arm_lease_joined": true,
+      "original_mac_worker_joined": true,
+      "original_controller_joined": true,
+      "controller_exit_code": 1
+    },
+    "observed_source_workspace_sha256": "ce6b14d6a18f2b3da06bc6007a7f08d1a94482bd62dfe114c5974453365ec10a",
+    "sealed_input_sha256": "069c47c5d4350623040812ae9a2051feffa4d583e9d82a61d30fba4b511e544d",
+    "known_failure": {
+      "case": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_phase_cancelled_original_route_never_reenters_writer",
+      "original_log_sha256": "6acc1b238b0707a0cce7eba6f591e2dec90a4b67da5a00bec089040c691f4eda",
+      "finding": "The new diagnostic test expects Cancelled, but the already-retired original private route ticket returns the existing Authority refusal before writer entry. This is a test expectation mismatch; no production semantics change is proposed.",
+      "correction_status": "staged-for-next-batch-not-integrated",
+      "correction_manifest_sha256": "4cfcbbfc7313a6ff42065c8a281f57a388a5460961a5fabdcb917fc49558ec62",
+      "correction_changes_production": false
+    },
+    "original_expiry_regression": {
+      "case": "sdk_handles::replacement_video_recovery::signed_private_readiness_cannot_outlive_its_exact_original_reservation_expiry",
+      "passed": true,
+      "actual_log_sha256_prefix": "699999a1",
+      "scope": "Original previously failing expiry regression, same196-case attempt; final attempt admission remains pending."
+    },
+    "qualification": "Original attempt remains failed because its one new diagnostic test fails; no combined all-pass claim. Default shipping, source/checkers and all original joins passed.",
+    "passed": false,
+    "original_attempt_witnesses_sha256": {
+      "controller_exit": "11b471eefbc3d6b659f26e5342a84fa85ba441cec2687f238be040b31d664d69",
+      "host_receipt": "a97f460ece82bba8206e698005e442dd3ad6693a72e2d721ab35f1f98a33a5f1",
+      "sealed_config": "069c47c5d4350623040812ae9a2051feffa4d583e9d82a61d30fba4b511e544d"
+    }
+  },
+  "complete_matrix_verification": {
+    "latest_original": "matrix-full-v201.json",
+    "latest_summary": {
+      "cells": {
+        "passed": 0,
+        "failed": 32,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 329,
+        "failed": 103,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "next_run": "v202",
+    "status": "pending-v202-launch",
+    "required_cells": 32,
+    "required_checks": 432
+  },
+  "source_lock_transition": {
+    "before_sha256": "412495a5bf8c1b3e68506ef4c9f083a7ab165e494e8b01e0741c0bccd26c1970",
+    "reviewed_after_sha256": "a9af4d23cb86101baead39598ee6690ef16d845e20b5d48dd72ae49b91b56c11",
+    "documented_upstream_patch_sha256": "9ed4696ba23261ffc2529a967d639aa729657e4bead3b9f05652dfe41ae396f0",
+    "normal_dependency_preparation_required": true,
+    "new_prepared_graph_sha256": "b65d7846b1bbc9e7bbcd849c55113e762003bbf83a2126432f48cdcef633dda0",
+    "normal_host_typescript_build_before_seal_required": true,
+    "normal_dependency_preparation_completed": true,
+    "normal_host_typescript_build_before_seal_completed": true
+  },
+  "historical_evidence_preserved": [
+    "matrix-full-v199.json",
+    "matrix-full-v200.json",
+    "blocker-batch-post-v200-integrated.json"
+  ],
+  "original_six_false_custody_fields_and_none_archives_preserved": true,
+  "supplemental_custody_proof_sha256": "bd031dee555a6be1a6065aeadf0b26f19555c35490799cdb9cd044f670a7f138",
+  "original_matrix_custody_review_sha256": "db70daedfb178f07f24f93d22346d6b111f681fbe4851f236954db94a3cabe30",
+  "optional_linux_queue_change_included": false,
+  "lease_helper_unchanged_sha256": "06b0ae52cd4eef366cd88ba42d37bec34edd6ea1e24dd49228074dea8945798b",
+  "resource_policy_unchanged": true,
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "remaining": "Missing private decoded readiness, successful original handoffs and three complete resource cycles still require actual end-to-end proof. G6-054 stays deferred.",
+  "next_batch_test_only_correction": {
+    "manifest_sha256": "4cfcbbfc7313a6ff42065c8a281f57a388a5460961a5fabdcb917fc49558ec62",
+    "status": "staged-not-integrated",
+    "selected_case": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_phase_cancelled_original_route_never_reenters_writer",
+    "rust_case_count_delta": 0,
+    "production_semantics_changed": false
+  }
+}

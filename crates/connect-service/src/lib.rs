@@ -272,6 +272,21 @@ impl Service {
         let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
         Ok(runtime.role_projection.lock().await)
     }
+    /// Observe exact registry retirement only. This grants no resource authority.
+    #[cfg(feature = "test-support")]
+    pub fn canonical_replacement_preparation_registered_for_test(
+        &self,
+        record: &str,
+    ) -> Result<bool> {
+        let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
+        let registered = runtime
+            .replacements
+            .lock()
+            .map_err(|_| Error::storage())?
+            .contains_key(record);
+        Ok(registered)
+    }
+
     #[cfg(feature = "test-support")]
     pub fn canonical_replacement_weak_owners_for_test(
         &self,

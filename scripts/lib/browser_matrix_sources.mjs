@@ -132,7 +132,13 @@ export async function browserMatrixSources() {
                     source.gain.gain.setValueAtTime(matrixAudioProfile.lowPeak,audioOriginSeconds+frame/30+.1);
                 }
             }
-            terminalTimer=setTimeout(stopSources,Math.max(0,programme.deadlineMs-performance.now()));
+            const stopAtOriginalDeadline=()=>{
+                if(stopped||terminal)return;
+                const remaining=programme.deadlineMs-performance.now();
+                if(remaining>0){terminalTimer=setTimeout(stopAtOriginalDeadline,remaining);return;}
+                stopSources();
+            };
+            terminalTimer=setTimeout(stopAtOriginalDeadline,Math.max(0,programme.deadlineMs-performance.now()));
             return programme;
         },
         close() {

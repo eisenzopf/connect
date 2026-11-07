@@ -426,9 +426,9 @@ impl Runtime {
             .map_err(|_| Error::storage())?
             .get(record)
             .cloned()
-            .ok_or_else(|| {
-                Error::new("not-ready", "Original replacement preparation is not live")
-            })?;
+            // This signed resource use needs its exact live original preparation.
+            // Missing custody denies authority, including after natural retirement.
+            .ok_or_else(Error::forbidden)?;
         let allocated = root
             .allocated
             .lock()

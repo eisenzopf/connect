@@ -31,7 +31,7 @@ from lib.matrix_browser_capture import BrowserCapture
 from lib.matrix_idle import MatrixIdle
 from lib.matrix_plateau import POLICY as PLATEAU_POLICY, evaluate as evaluate_plateau
 from lib.matrix_authority import MatrixAuthority
-from lib.mac_linux_fixture import MacLinuxFixture, MacLinuxIdle
+from lib.mac_linux_fixture import MacLinuxFixture, MacLinuxIdle, remote_browser_owner_joined
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -442,7 +442,7 @@ def main():
         report["browser_owner_joined"] = True
         if remote is not None:
             report["remote_client_owner"] = remote.close()
-            report["browser_owner_joined"] = report["remote_client_owner"]["passed"]
+            report["browser_owner_joined"] = remote_browser_owner_joined(report["remote_client_owner"])
             if args.stage == "quality":
                 report["packet_capture"] = json.loads((browser_output / "browser-capture-observation.json").read_text())
         browser_owner = None
@@ -465,9 +465,11 @@ def main():
         if remote is not None:
             try:
                 report["remote_client_owner"] = remote.close()
+                report["browser_owner_joined"] = remote_browser_owner_joined(report["remote_client_owner"])
                 report["passed"] &= report["remote_client_owner"]["passed"]
             except Exception:
                 report["remote_client_owner"] = dict(passed=False, failure="original-guest-cleanup-unconfirmed")
+                report["browser_owner_joined"] = False
                 report["passed"] = False
         if remote is None and browser_owner is not None:
             if browser_owner.poll() is None:

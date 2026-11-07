@@ -620,7 +620,6 @@ export class BrowserTransportClient {
         const client = this.client,
             epoch = this.epoch;
         const frames = await (command === "connection.replace" &&
-        client.controlTransport === "websocket" &&
         scope.cid &&
         scope.sid &&
         scope.connid

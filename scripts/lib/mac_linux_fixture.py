@@ -122,6 +122,27 @@ def programme_source_files(root):
     return files
 
 
+def remote_browser_owner_joined(receipt):
+    """Project proven original custody independently of the workload verdict."""
+    if not isinstance(receipt, dict) or not isinstance(receipt.get("guest"), dict):
+        return False
+    guest = receipt["guest"]
+    return (receipt.get("format") == "connect/mac-linux-owner/1"
+        and guest.get("format") == "connect/mac-linux-original-job/1"
+        and isinstance(receipt.get("run_id"), str) and bool(receipt["run_id"])
+        and guest.get("run_id") == receipt["run_id"]
+        and receipt.get("original_joined") is True
+        and guest.get("original_joined") is True
+        and type(guest.get("original_pid")) is int and guest["original_pid"] > 1
+        and type(guest.get("original_start_ticks")) is int and guest["original_start_ticks"] > 0
+        and type(guest.get("exit_code")) is int
+        and receipt.get("all_guest_owners_joined") is True
+        and receipt.get("original_vm_lease_joined") is True
+        and receipt.get("forced") is False and guest.get("forced") is False
+        and receipt.get("cleanup_failures") == []
+        and receipt.get("client_inputs_unchanged") is True)
+
+
 class MacLinuxFixture:
     def __init__(self, root, directory, env, *, run_command=subprocess.run, resource_cycles=1):
         if type(resource_cycles) is not int or resource_cycles not in (1, 3):
@@ -481,7 +502,7 @@ print(json.dumps(prepare(target)))"""
             if directory.is_symlink() or directory.parent.is_symlink():
                 raise ValueError("Original bridge directory cannot use a symlink")
             patterns = (("authority-*-response.json", "resources-*-response.json", "revoke-response.json")
-                        if directory == self.output else ("resources-*-response.json",))
+                        if directory == self.output else ("authority-*-response.json", "resources-*-response.json"))
             for pattern in patterns:
                 for path in directory.glob(pattern):
                     if path.is_symlink() or path.stat().st_size > 4096:
@@ -499,6 +520,7 @@ print(json.dumps(prepare(target)))"""
         for name, request in value["requests"].items():
             path = self.output / name
             allowed = {*(f"authority-{index}-request.json" for index in (1, 2, 3)), "revoke-request.json",
+                *(f"cycles/cycle-{cycle}/authority-{index}-request.json" for cycle in (1, 2, 3) for index in (1, 2, 3)),
                 *(f"resources-{prefix}{phase}.json" for prefix in ("", "cycle-1-", "cycle-2-", "cycle-3-")
                   for phase in ("baseline", "terminal", "retired")),
                 *(f"cycles/cycle-{cycle}/resources-{phase}.json" for cycle in (1, 2, 3)

@@ -49,6 +49,8 @@ async function fixture(run) {
         owner=await browserMatrixSources();
         await run({owner,route,connection,captures,tracks,gains,audio,canvasCaptures,
             tick:(time,sourceTime)=>{clock=time;audio.currentTime=sourceTime;for(const fn of [...intervals])fn();},
+            setClock:time=>{clock=time;},
+            takeTimeout:()=>{const callback=[...timeouts][0];assert.ok(callback,'Original terminal timer required');timeouts.delete(callback);return callback;},
             timers:()=>({intervals:intervals.size,timeouts:timeouts.size})});
     }finally{
         await owner?.close();
@@ -180,3 +182,34 @@ test('actual original source graph-close failure retains reference records and e
         assert.equal(f.owner.sources[0],record);assert.equal(f.audio.closed,0);
     }),error=>error===original);
 });
+
+
+test('early source terminal timer wakes keep all six original captures live until the exact original deadline',()=>fixture(async f=>{
+    for(let index=0;index<6;index++)await f.owner.start({route:f.route(index),connection:f.connection('original-'+index),options:{}});
+    const original=f.owner.beginProgramme();
+    for(const earlyBy of [1,.5]){
+        f.setClock(original.deadlineMs-earlyBy);f.takeTimeout()();
+        assert.equal(f.owner.observation().source_terminal,false);
+        assert.strictEqual(f.owner.observation().programme,original,'Never rebase the original clock');
+        assert.ok(f.owner.sources.every(source=>source.ownerLive()));
+        assert.ok(f.captures.every(capture=>!capture.closed));assert.ok(f.tracks.every(track=>track.readyState==='live'));
+        assert.deepEqual(f.timers(),{intervals:6,timeouts:1},'Rearm only the same original terminal wait');
+    }
+    f.setClock(original.deadlineMs);f.takeTimeout()();
+    assert.equal(f.owner.observation().source_terminal,true);
+    assert.ok(f.captures.every(capture=>capture.closed));assert.ok(f.tracks.every(track=>track.readyState==='ended'));
+    assert.deepEqual(f.timers(),{intervals:0,timeouts:0});
+}));
+
+test('a dequeued source terminal callback cannot rearm after explicit source close or reference release',()=>fixture(async f=>{
+    for(let index=0;index<6;index++)await f.owner.start({route:f.route(index),connection:f.connection('original-'+index),options:{}});
+    const original=f.owner.beginProgramme(),pending=f.takeTimeout();
+    await f.owner.close();
+    assert.equal(f.audio.closed,1);assert.ok(f.captures.every(capture=>capture.closed));
+    f.setClock(original.deadlineMs-1);pending();
+    assert.deepEqual(f.timers(),{intervals:0,timeouts:0},'Explicit close stays immediate before the programme deadline');
+    const receipt=await f.owner.retireReferences();assert.equal(receipt.joined,true);
+    pending();
+    assert.deepEqual(f.timers(),{intervals:0,timeouts:0},'A late callback cannot resurrect a released source owner');
+    assert.equal(f.audio.closed,1);
+}));

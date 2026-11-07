@@ -169,13 +169,16 @@ enum ReadPurpose {
     Signal,
     Presence,
 }
-fn subscription_permission(c: &Connection, target: &NativeMediaOrigin) -> Result<bool> {
+fn subscription_actor(c: &Connection, target: &NativeMediaOrigin) -> Result<crate::Actor> {
     let credential = target
         .binding
         .credentials
         .last()
         .ok_or_else(Error::forbidden)?;
-    Ok(crate::identity::actor_from_connection(c, credential)?.permits("stream.subscribe"))
+    crate::identity::actor_from_connection(c, credential)
+}
+fn subscription_permission(c: &Connection, target: &NativeMediaOrigin) -> Result<bool> {
+    Ok(subscription_actor(c, target)?.permits("stream.subscribe"))
 }
 fn current_owner(store: &Store, origin: &NativeMediaOrigin) -> Result<Arc<InstallationOwnership>> {
     let owner = store.require_runtime_owner()?;
@@ -370,6 +373,35 @@ fn require_current_pair(
     view: &PeerConnectionProjection,
     source_view: &PeerConnectionProjection,
 ) -> Result<()> {
+    require_current_pair_domain(store, c, target, source, view, source_view)?;
+    let target_actor = crate::identity::actor_from_connection(
+        c,
+        target
+            .binding
+            .credentials
+            .last()
+            .ok_or_else(Error::forbidden)?,
+    )?;
+    let source_actor = crate::identity::actor_from_connection(
+        c,
+        source
+            .binding
+            .credentials
+            .last()
+            .ok_or_else(Error::forbidden)?,
+    )?;
+    require_pair_recipient_ceilings(&target_actor, &source_actor, view, source_view)
+}
+// Current pair provenance remains independently checked for every ordered pair,
+// even when one invocation already decoded its current credential actors.
+fn require_current_pair_domain(
+    store: &Store,
+    c: &Connection,
+    target: &NativeMediaOrigin,
+    source: &NativeMediaOrigin,
+    view: &PeerConnectionProjection,
+    source_view: &PeerConnectionProjection,
+) -> Result<()> {
     let target_handoff = handoff_lifetime::current(store, c, target)?;
     let source_handoff = handoff_lifetime::current(store, c, source)?;
     if target_handoff.is_some() || source_handoff.is_some() {
@@ -400,22 +432,14 @@ fn require_current_pair(
             }
         }
     }
-    let target_actor = crate::identity::actor_from_connection(
-        c,
-        target
-            .binding
-            .credentials
-            .last()
-            .ok_or_else(Error::forbidden)?,
-    )?;
-    let source_actor = crate::identity::actor_from_connection(
-        c,
-        source
-            .binding
-            .credentials
-            .last()
-            .ok_or_else(Error::forbidden)?,
-    )?;
+    Ok(())
+}
+fn require_pair_recipient_ceilings(
+    target_actor: &crate::Actor,
+    source_actor: &crate::Actor,
+    view: &PeerConnectionProjection,
+    source_view: &PeerConnectionProjection,
+) -> Result<()> {
     if !target_actor.permits_recipient(&source_view.session.actor.identity_id)
         || !source_actor.permits_recipient(&view.session.actor.identity_id)
     {
@@ -1106,8 +1130,13 @@ impl Store {
                 return Err(Error::forbidden());
             }
             let (view, _, required, until) = views(self, c, target, None)?;
-            let may = subscription_permission(c, target)?;
-            unary.insert(target.runtime_connection_id(), (view.clone(), may));
+            // This is the same current actor read that previously supplied
+            // subscription_permission. Keep its immutable decoded ceilings only
+            // in this invocation, never in origin metadata or an IO grant.
+            let actor = subscription_actor(c, target)?;
+            let may = actor.permits("stream.subscribe");
+            expiry = expiry.min(actor.expires_at);
+            unary.insert(target.runtime_connection_id(), (view.clone(), may, actor));
             rows.insert(
                 (target.runtime_connection_id().into(), None),
                 (view, None, may),
@@ -1116,17 +1145,25 @@ impl Store {
             expiry = expiry.min(until);
         }
         for target in sources {
-            let (view, may) = &unary[target.runtime_connection_id()];
+            let (view, may, target_actor) = &unary[target.runtime_connection_id()];
             for source in sources {
                 if Arc::ptr_eq(target, source) {
                     continue;
                 }
-                let (other, _) = &unary[source.runtime_connection_id()];
+                let (other, _, source_actor) = &unary[source.runtime_connection_id()];
                 // These pair-specific checks remain current for EVERY ordered
                 // pair. Only repeated unary reconstruction under this same
                 // sealed SQL observation is removed. Both originals' scopes
                 // and minimum expiries were already included above.
-                match require_current_pair(self, c, target, source, view, other) {
+                // One Connection is not a transaction snapshot. The enclosing
+                // packet projection still rejects external/schema/clock changes
+                // and independently resolves finish under the original expiry.
+                // Preserve every pair's handoff/private-partner checks here.
+                let pair = require_current_pair_domain(self, c, target, source, view, other)
+                    .and_then(|()| {
+                        require_pair_recipient_ceilings(target_actor, source_actor, view, other)
+                    });
+                match pair {
                     Ok(()) => {
                         rows.insert(
                             (

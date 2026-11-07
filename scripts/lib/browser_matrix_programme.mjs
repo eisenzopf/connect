@@ -155,7 +155,9 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
         // recorded as blocked above, never retried or submitted against self.
         report.failed_move_attempts=(report.failed_move_attempts??0)+outcomes.filter(outcome=>outcome.status==='rejected').length;
     }
-    await sleep(original.deadlineMs-performance.now());
+    // Timers may wake before the requested absolute instant. Retain the same
+    // original deadline and observe the full window before recording terminal.
+    while(performance.now()<original.deadlineMs)await sleep(original.deadlineMs-performance.now());
     report.finished_ms=performance.now()-original.originMs;
     report.sources=sources.observation();report.passed=report.moves.length===4;
     // Aggregate the original failure only after the fixed programme finishes.

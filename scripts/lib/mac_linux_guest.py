@@ -214,7 +214,9 @@ def exchange(root):
     resource_requests = [*(f"resources-{phase}.json" for phase in resource_phases),
         *(f"cycles/cycle-{cycle}/resources-{phase}.json" for cycle in (1, 2, 3)
           for phase in ("baseline", "terminal", "retired"))]
-    allowed_responses = {f"authority-{i}-response.json" for i in (1, 2, 3)} | {
+    authority_names = [*(f"authority-{i}" for i in (1, 2, 3)),
+        *(f"cycles/cycle-{cycle}/authority-{i}" for cycle in (1, 2, 3) for i in (1, 2, 3))]
+    allowed_responses = {name + "-response.json" for name in authority_names} | {
         name.removesuffix(".json") + "-response.json" for name in resource_requests} | {"revoke-response.json"}
     for name, value in request.get("responses", {}).items():
         if name not in allowed_responses or len(json.dumps(value).encode()) > 4096:
@@ -228,7 +230,7 @@ def exchange(root):
             target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             atomic(target, value)
     values = {}
-    for name in [*(f"authority-{i}-request.json" for i in (1, 2, 3)),
+    for name in [*(name + "-request.json" for name in authority_names),
                  *resource_requests, "revoke-request.json"]:
         path = output / name
         if path.exists():

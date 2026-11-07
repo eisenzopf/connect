@@ -519,3 +519,103 @@ fn packet_plan_context_matches_independent_resolution_and_refuses_another_origin
     assert_eq!(read.media().target().connection.generation, 2);
     assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
 }
+
+#[test]
+fn packet_scene_actor_reuse_cannot_publish_facts_across_external_recipient_change() {
+    let m = scene();
+    let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
+    let before = counts(&m);
+    let finishes = std::cell::Cell::new(0);
+    let result = m.f.store.try_current_packet_projection(
+        |c| {
+            m.f.store
+                .native_scene_facts_in_packet_projection(c, &m.sources, &m.f.cid, "session")
+        },
+        |_, facts, held, _| {
+            finishes.set(finishes.get() + 1);
+            assert_eq!(facts.len(), 9, "three unary and six actual ordered pairs");
+            assert!(facts.contains_key(&(
+                m.sources[2].runtime_connection_id().into(),
+                Some(m.sources[0].runtime_connection_id().into())
+            )));
+            // Deliberately uncooperative external SQL crosses the packet
+            // projection seal. It must invalidate the whole positive result,
+            // even though the captured actors permitted these original pairs.
+            external
+                .execute(
+                    "UPDATE credentials SET recipients='[]' WHERE id=?1",
+                    [&m.f.keys[2]],
+                )
+                .unwrap();
+            Ok((facts.clone(), held))
+        },
+    );
+    assert_eq!(result.err().unwrap().code, "authority-busy");
+    assert_eq!(finishes.get(), 1);
+    assert_eq!(counts(&m), before);
+    let result =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources);
+    assert_eq!(
+        result.err().unwrap().code,
+        "forbidden",
+        "a later invocation reused old recipient ceilings"
+    );
+    assert_eq!(counts(&m), before);
+}
+
+#[test]
+fn packet_scene_actor_reuse_cannot_outlive_original_credential_expiry_at_clock_reseal() {
+    let m = scene();
+    let expires = crate::now() + 2;
+    m.f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+            params![m.f.keys[2], expires],
+        )
+        .unwrap();
+    let before = counts(&m);
+    let finishes = std::cell::Cell::new(0);
+    let result = m.f.store.try_current_packet_projection(
+        |c| {
+            m.f.store
+                .native_scene_facts_in_packet_projection(c, &m.sources, &m.f.cid, "session")
+        },
+        |_, facts, held, expiry| {
+            finishes.set(finishes.get() + 1);
+            assert_eq!(finishes.get(), 1, "expired actors reached finish again");
+            assert_eq!(facts.len(), 9);
+            assert_eq!(
+                expiry, expires,
+                "original earliest credential expiry was extended"
+            );
+            let until = std::time::Instant::now() + std::time::Duration::from_secs(3);
+            while crate::now() < expires {
+                assert!(
+                    std::time::Instant::now() < until,
+                    "original clock edge did not arrive"
+                );
+                std::thread::sleep(std::time::Duration::from_millis(2));
+            }
+            Ok((facts.clone(), held))
+        },
+    );
+    assert_eq!(
+        result.err().unwrap().code,
+        "unauthorized",
+        "clock reseal borrowed a previously valid actor"
+    );
+    assert_eq!(finishes.get(), 1);
+    assert_eq!(counts(&m), before);
+    assert_eq!(
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .err()
+            .unwrap()
+            .code,
+        "unauthorized"
+    );
+    assert_eq!(counts(&m), before);
+}
