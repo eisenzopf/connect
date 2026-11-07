@@ -1,0 +1,135 @@
+{
+  "format": "connect/g6-058-post-v198-focused-v3/1",
+  "status": "failed",
+  "source_revision": "aab53a12c406e801b5a8bc28b0b14ab56d1d1a36",
+  "workspace_sha256": "57a9ea69f5024ebf17a758a091046718f3ffbaa6d164c9a055b94a1484755cfd",
+  "source_lock_sha256": "b88e9e899badac7e719ecad1d9f87fc78c2c55c6bc32e76c4f20c67ee12f53d8",
+  "matrix_qualified": false,
+  "planned": 145,
+  "executed": 145,
+  "passed": 143,
+  "failed": 2,
+  "not_executed": 0,
+  "groups": [
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "planned": 24,
+      "executed": 24,
+      "passed": 24,
+      "failed": 0
+    },
+    {
+      "group": "connect-service-lib-connect_service",
+      "planned": 7,
+      "executed": 7,
+      "passed": 7,
+      "failed": 0
+    },
+    {
+      "group": "connect-store-lib-connect_store",
+      "planned": 60,
+      "executed": 60,
+      "passed": 58,
+      "failed": 2
+    },
+    {
+      "group": "rvoip-uctp-lib-rvoip_uctp",
+      "planned": 9,
+      "executed": 9,
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "group": "rvoip-webrtc-stack-lib-webrtc",
+      "planned": 10,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0
+    },
+    {
+      "group": "rvoip-webrtc-lib-rvoip_webrtc",
+      "planned": 15,
+      "executed": 15,
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "group": "connect-server-test-gate6_canonical_webtransport",
+      "planned": 8,
+      "executed": 8,
+      "passed": 8,
+      "failed": 0
+    },
+    {
+      "group": "connect-server-test-gate6_replacement_video",
+      "planned": 12,
+      "executed": 12,
+      "passed": 12,
+      "failed": 0
+    }
+  ],
+  "node": {
+    "passed": 83,
+    "failed": 0,
+    "skipped": 0,
+    "fresh": true
+  },
+  "python": {
+    "passed": 42,
+    "failed": 0,
+    "skipped": 0,
+    "fresh": true
+  },
+  "local_mac_acl": {
+    "passed": 1,
+    "failed": 0
+  },
+  "shipping_default_check_passed": true,
+  "instrumented_metadata_passed": true,
+  "source_unchanged": true,
+  "checker_sources_unchanged": true,
+  "all_original_command_groups_joined_without_force": true,
+  "lease_joined_released": true,
+  "failures": [
+    {
+      "case": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_finishes_original_fenced_session_end_and_leave_after_target_revoke",
+      "log_sha256": "17f3ed7ee20cf63432684c33e1767fbefbe7f739559e1e15601677c96c88fedc",
+      "actual": [
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "case": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_refuses_wrong_absence_and_unexplained_local_fences_without_changes",
+      "log_sha256": "8279493a105b48f1ff89f0afc21ccdcda1b54b6dac5fb01d20312d81da233c14",
+      "actual": [
+        0,
+        1,
+        0
+      ]
+    }
+  ],
+  "finding": "Both new retirement fixtures submitted Session state revision where the public command requires topology revision. They failed before cleanup. The production retirement branch remains awaiting its corrected regression.",
+  "original_setup_attempts": {
+    "v1": "Selected-cell count guard rejected before VM source mutation",
+    "v2": "Complete mode guard rejected before VM source mutation"
+  },
+  "witnesses_sha256": {
+    ".local/gate-6/post-v198-validation-v3-candidate/sealed-config.json": "068f765dd8fb74665ce4c0f4e7a28acf8f08e8a9948c922b39db3be94c1a072a",
+    ".local/gate-6/post-v198-validation-v3-candidate/runtime-host-receipt.json": "b536baa39739c84b119b22e0945d519726f2511791fa5ee6cd0c99987b6d727b",
+    ".local/gate-6/post-v198-validation-v3-candidate/arm-receipt.json": "99f815ae057e96ba7fcfbebcbfce3e6d5df08d53b56d32629ad08df2df80654b",
+    ".local/gate-6/post-v198-validation-v3-candidate/mac-runtime/receipt.json": "07a91b94511f01b0197948942cf501736c004a729d82269d0fe767942b79a826",
+    ".local/gate-6/post-v198-validation-v3-candidate/controller-exit.json": "58448ae79097c9a90ea243b3f44fb974ee1731f6ea05244d648f95f3cfb0cdc0",
+    ".local/gate-6/post-v198-validation-v3-candidate/actual-transferred-modes.json": "d37f9f9a3b3278bd26b0177a3c2341360338c4ad2712458a32dc863f2be00be4"
+  },
+  "latest_full_matrix": {
+    "run": "v198",
+    "passed": 301,
+    "failed": 89,
+    "blocked": 42,
+    "qualified_cells": 0,
+    "total_cells": 32,
+    "attempted_cells": 29
+  }
+}

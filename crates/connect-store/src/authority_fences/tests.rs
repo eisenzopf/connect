@@ -825,6 +825,8 @@ fn immediate_sql_refuses_mutex_and_database_contention_and_restores_timeout() {
 }
 
 #[cfg(unix)]
+mod admission_trace;
+#[cfg(unix)]
 mod admissions;
 #[cfg(unix)]
 mod resource_preparation;

@@ -29,6 +29,26 @@ for(const kind of ['expiry','revocation'])test(`native ${kind} uses one mutation
     assert.equal(value.original_owners_joined,true);assert.equal(f.stats().mutations,1);
     assert.equal(f.stats().opens,2);assert.equal(f.stats().closes,2);assert.equal(f.stats().reads,3);
 });
+test('an early native timer wake rechecks the exact original wall-clock expiry',async()=>{
+    const f=fixture(),sleep=f.args.sleep;
+    let elapsed=0,wakes=0;
+    const value=await nativeAuthorityCase({...f.args,kind:'expiry',monotonicNow:()=>elapsed,
+        sleep:async ms=>{
+            elapsed+=ms;
+            await sleep(++wakes===1?ms-400:ms);
+        }});
+    assert.equal(wakes,2);assert.equal(value.original_expiry_elapsed,true);
+    assert.equal(value.passed,true);assert.equal(f.stats().mutations,1);assert.equal(f.stats().reads,3);
+});
+test('native expiry fails closed if the original wall clock never reaches the boundary',async()=>{
+    const f=fixture();
+    let elapsed=0;
+    const value=await nativeAuthorityCase({...f.args,kind:'expiry',monotonicNow:()=>elapsed,
+        sleep:async ms=>{elapsed+=ms;}});
+    assert.equal(elapsed,13100);assert.equal(value.original_expiry_elapsed,false);
+    assert.equal(value.passed,false);assert.equal(f.stats().opens,1);assert.equal(f.stats().closes,1);
+    assert.equal(f.stats().mutations,1);assert.equal(f.stats().reads,1);
+});
 test('a fresh transport timeout is not native current-authority refusal',async()=>{
     const f=fixture({freshKind:'deadline'}),value=await nativeAuthorityCase({kind:'expiry',...f.args});
     assert.equal(value.passed,false);assert.equal(value.fresh_original_refusal.kind,'deadline');assert.equal(f.stats().mutations,1);

@@ -49,7 +49,12 @@ def cleanup_evidence(report):
         return dict(confirmed=False, reason="original-cell-report-unavailable")
     servers = report.get("servers", [])
     server_cleanup = report.get("failure_cleanup", {})
-    servers_joined = all(v.get("original_joined") is True for v in servers)
+    servers_joined = all(
+        (v.get("original_process_group_joined") is True
+            and type(v.get("original_exit_code")) is int
+            and type(v.get("original_pid")) is int and v["original_pid"] > 1)
+        if "original_process_group_joined" in v else v.get("original_joined") is True
+        for v in servers)
     if server_cleanup and server_cleanup.get("original_group_retired") is not True:
         servers_joined = False
     browser = report.get("format") == "connect/browser-matrix-component/1"

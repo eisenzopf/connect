@@ -1,0 +1,135 @@
+{
+  "format": "connect/g6-058-post-v198-focused-v5/1",
+  "status": "passed",
+  "source_revision": "aab53a12c406e801b5a8bc28b0b14ab56d1d1a36",
+  "workspace_sha256": "b9b1087ade6e20387762cf2d0d87236c6a865eea21faec9c7e43b014cb7dbb9e",
+  "source_lock_sha256": "b88e9e899badac7e719ecad1d9f87fc78c2c55c6bc32e76c4f20c67ee12f53d8",
+  "planned": 145,
+  "executed": 145,
+  "passed": 145,
+  "failed": 0,
+  "not_executed": 0,
+  "groups": [
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "planned": 24,
+      "executed": 24,
+      "passed": 24,
+      "failed": 0
+    },
+    {
+      "group": "connect-service-lib-connect_service",
+      "planned": 7,
+      "executed": 7,
+      "passed": 7,
+      "failed": 0
+    },
+    {
+      "group": "connect-store-lib-connect_store",
+      "planned": 60,
+      "executed": 60,
+      "passed": 60,
+      "failed": 0
+    },
+    {
+      "group": "rvoip-uctp-lib-rvoip_uctp",
+      "planned": 9,
+      "executed": 9,
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "group": "rvoip-webrtc-stack-lib-webrtc",
+      "planned": 10,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0
+    },
+    {
+      "group": "rvoip-webrtc-lib-rvoip_webrtc",
+      "planned": 15,
+      "executed": 15,
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "group": "connect-server-test-gate6_canonical_webtransport",
+      "planned": 8,
+      "executed": 8,
+      "passed": 8,
+      "failed": 0
+    },
+    {
+      "group": "connect-server-test-gate6_replacement_video",
+      "planned": 12,
+      "executed": 12,
+      "passed": 12,
+      "failed": 0
+    }
+  ],
+  "node": {
+    "passed": 83,
+    "failed": 0,
+    "skipped": 0,
+    "fresh": true
+  },
+  "python": {
+    "passed": 42,
+    "failed": 0,
+    "skipped": 0,
+    "fresh": true
+  },
+  "local_mac_acl": {
+    "passed": 1,
+    "failed": 0
+  },
+  "shipping_default_check_passed": true,
+  "instrumented_metadata_passed": true,
+  "source_unchanged": true,
+  "checker_sources_unchanged": true,
+  "all_original_command_groups_joined_without_force": true,
+  "lease_joined_released": true,
+  "complete_modes_observed_after_join": true,
+  "explicit_ignored_rtc_executions": 6,
+  "failures": [],
+  "retirement": {
+    "positive_session_end_and_leave_case_passed": true,
+    "refusal_case_passed": true,
+    "immutable_completion_and_exact_cleanup_fact_contract_verified": true
+  },
+  "rtc": {
+    "planned": 8,
+    "passed": 8,
+    "failed": 0,
+    "prior_v4_fresh_media_timeout_root_proven": false,
+    "finding": "The corrected original fixtures pass. A passing fresh-media retest does not prove the prior timeout cause."
+  },
+  "latest_full_matrix": {
+    "run": "v198",
+    "passed": 301,
+    "failed": 89,
+    "blocked": 42,
+    "qualified_cells": 0,
+    "total_cells": 32,
+    "attempted_cells": 29
+  },
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "prior_focused_evidence_preserved": "docs/evidence/gate-6/blocker-components-post-v198-v4.json",
+  "witnesses_sha256": {
+    ".local/gate-6/post-v198-validation-v5-candidate/sealed-config.json": "37a0f5e610ae23fea7d080efa0a2800ea5c99e104a5e55a33a818c52b7fbeffd",
+    ".local/gate-6/post-v198-validation-v5-candidate/runtime-host-receipt.json": "7ac552b73f47f2179a259e17cba191de7b6ee3eb9d36a07d434b5951e6fd7b9a",
+    ".local/gate-6/post-v198-validation-v5-candidate/arm-receipt.json": "5a8accbb59a5c643d599f516f45a82376a98f4cc8050757bafddb13db42324e3",
+    ".local/gate-6/post-v198-validation-v5-candidate/mac-runtime/receipt.json": "f0bf2a58569f05da95ffb0d615743cf076aa24a26e3feac87f846f2ef14db693",
+    ".local/gate-6/post-v198-validation-v5-candidate/controller-exit.json": "abe4272b4477fd4b9b4d2317359eb6e84ce1514c164281764b98f281492ae2f8",
+    ".local/gate-6/post-v198-validation-v5-candidate/controller-exit.log": "1bd7fa16936320d72fbd8e70646600fbe3fc3888491d8ab2ec4418392625635f",
+    ".local/gate-6/post-v198-validation-v5-candidate/mirror-receipt.json": "5fda061d020b375d0aab20017d249c81c928cbd69f64959aa323af6f645a2f6e",
+    ".local/gate-6/post-v198-validation-v5-candidate/completion-modes.json": "aba3d55733027e540cc77bb1e3265e9f8d96b78dd93a8a7663ef5b76fd148981",
+    ".local/gate-6/post-v198-validation-v5-candidate/completion-vm-modes.json": "55562b1121ea4cd41c12542a1b7c71907bbae8b0fe858aef3f8c7fdbaf38f438",
+    "docs/evidence/gate-6/blocker-components-post-v198-v3.json": "323ae21f625330ec864b3e6fd08c0866375389fda0763cf263d932821adfc1e1",
+    "docs/evidence/gate-6/blocker-components-post-v198-v4.json": "c5f80daa0c482ab13a838fe821374dc80ac4df8121dc9dde9b804d976367fbd7",
+    "docs/evidence/gate-6/matrix-full-v198.json": "5babff88e1ae25ea408552b9a8915515c5d9ae4b5e7020788ff9ce6b6fb0ab80"
+  },
+  "finding": "The full focused batch passes on its unchanged tested source. The next full32 local transport matrix remains pending; original failed V4 and v198 results remain failed evidence."
+}

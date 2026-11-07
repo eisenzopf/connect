@@ -12,7 +12,10 @@ async function authorityControl(mode){
     Object.defineProperty(globalThis,'performance',{configurable:true,value:{now:()=>monotonic}});
     Date.now=()=>wall;
     globalThis.setTimeout=(resolve,wait)=>{
-        waits.push(wait);monotonic+=wait;wall=mode==='early'?12999:13100;queueMicrotask(resolve);return 1;
+        waits.push(wait);monotonic+=wait;
+        wall=mode==='frozen'||(mode==='early'&&waits.length===1)?12999:13100;
+        if(mode==='frozen'&&waits.length>1)monotonic=13000;
+        queueMicrotask(resolve);return 1;
     };
     const actor={identityId:'identity',device:{id:'device'},credential:'synthetic',
         signing:{jwk:{},algorithm:'EdDSA',keyId:'signer'},
@@ -40,9 +43,18 @@ async function authorityControl(mode){
     }
 }
 
-test('pre-expiry wakeup remains failed without another wait, reopen or substituted credential',async()=>{
+test('an early browser timer wake rechecks the original wall-clock expiry',async()=>{
     const {report,calls,waits}=await authorityControl('early');
-    assert.deepEqual(waits,[12100],'Keep the original single wait including its existing 100ms margin');
+    assert.deepEqual(waits,[12100,1]);
+    assert.equal(report.passed,true);assert.equal(report.expiry.original_expiry_elapsed,true);
+    assert.equal(report.expiry.original_expires_at,13);
+    assert.equal(report.expiry.authentication_refusal.kind,'authentication');
+    assert.deepEqual(calls.expiry,{opens:2,reads:2,closes:1});
+});
+
+test('the original browser expiry budget fails closed if the wall clock never reaches it',async()=>{
+    const {report,calls,waits}=await authorityControl('frozen');
+    assert.deepEqual(waits,[12100,1]);
     assert.equal(report.passed,false);assert.equal(report.expiry.passed,false);
     assert.equal(report.expiry.original_expiry_elapsed,false);
     assert.equal(report.expiry.failure.stage,'original-expiry-boundary');
@@ -51,7 +63,7 @@ test('pre-expiry wakeup remains failed without another wait, reopen or substitut
     assert.equal(report.expiry.expiry_boundary.original_expires_at,13);
     assert.equal(report.expiry.expiry_boundary.observed_date_ms,12999);
     assert.equal(report.expiry.expiry_boundary.observed_wall_elapsed_ms,11999);
-    assert.equal(report.expiry.expiry_boundary.observed_monotonic_elapsed_ms,12100);
+    assert.equal(report.expiry.expiry_boundary.observed_monotonic_elapsed_ms,13000);
     assert.deepEqual(calls.expiry,{opens:1,reads:1,closes:1},'No post-expiry claim or new open before actual expiry');
     assert.equal(report.expiry.original_owners_joined,true);
     assert.equal(report.revocation.passed,true,'Continue the independent original authority case');

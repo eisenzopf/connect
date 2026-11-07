@@ -113,28 +113,55 @@ pub(super) fn producers(
     (vec![(audio_stop, audio), (video_stop, video)], marker)
 }
 /// Every positive private-phase await uses one unchanged original cutoff.
-pub(super) async fn until<T>(
+pub(super) async fn until_phase<T>(
     cutoff: Option<tokio::time::Instant>,
+    phase: &str,
     future: impl std::future::Future<Output = T>,
 ) -> T {
     match cutoff {
         Some(cutoff) => {
             assert!(
                 tokio::time::Instant::now() < cutoff,
-                "original private cutoff elapsed before await"
+                "original private cutoff elapsed before await phase={phase}"
             );
             let result = tokio::time::timeout_at(cutoff, future)
                 .await
-                .expect("same original eight-second private-phase deadline");
+                .unwrap_or_else(|_| {
+                    panic!("same original eight-second private-phase deadline phase={phase}")
+                });
             assert!(
                 tokio::time::Instant::now() < cutoff,
-                "private phase completed after original cutoff"
+                "private phase completed after original cutoff phase={phase}"
             );
             result
         }
         None => future.await,
     }
 }
+pub(super) async fn active_playout_delay(
+    a: &mut Received,
+    b: &mut Received,
+    c: &mut Received,
+    cutoff: Option<tokio::time::Instant>,
+) {
+    until_phase(cutoff, "post-admission-5100ms-active-playout", async {
+        let delay = tokio::time::sleep(Duration::from_millis(5100));
+        tokio::pin!(delay);
+        loop {
+            tokio::select! {biased;
+                _ = &mut delay => break,
+                frame = a.audio.recv() => assert!(frame.is_some(), "original audio receiver closed during playout"),
+                frame = a.video.recv() => assert!(frame.is_some(), "original video receiver closed during playout"),
+                frame = b.audio.recv() => assert!(frame.is_some(), "retained audio receiver closed during playout"),
+                frame = b.video.recv() => assert!(frame.is_some(), "retained video receiver closed during playout"),
+                frame = c.audio.recv() => assert!(frame.is_some(), "candidate audio receiver closed during playout"),
+                frame = c.video.recv() => assert!(frame.is_some(), "candidate video receiver closed during playout"),
+            }
+        }
+    })
+    .await;
+}
+
 pub(super) async fn audio(
     rx: &mut mpsc::Receiver<MediaFrame>,
     cutoff: tokio::time::Instant,
@@ -145,7 +172,7 @@ pub(super) async fn audio(
     let mut samples = 0;
     let mut previous = None;
     loop {
-        let frame = until(Some(cutoff), rx.recv())
+        let frame = until_phase(Some(cutoff), "private-audio-marker", rx.recv())
             .await
             .expect("original private audio owner");
         assert_eq!(frame.payload_type, Some(111));
@@ -190,7 +217,7 @@ pub(super) async fn picture(
     cutoff: tokio::time::Instant,
 ) {
     let frame = loop {
-        let frame = until(Some(cutoff), rx.recv())
+        let frame = until_phase(Some(cutoff), label, rx.recv())
             .await
             .expect("original private video owner");
         assert_eq!(frame.payload_type, Some(96));
@@ -212,7 +239,7 @@ pub(super) async fn picture_once(
     red: bool,
 ) {
     let cutoff = tokio::time::Instant::now() + Duration::from_secs(5);
-    let frame = until(Some(cutoff), rx.recv())
+    let frame = until_phase(Some(cutoff), label, rx.recv())
         .await
         .expect("original RTC video owner");
     assert_eq!(frame.payload_type, Some(96));
@@ -278,7 +305,7 @@ async fn decode(
         Err(_) => {
             let _ = child.kill().await;
             let _ = child.wait().await;
-            panic!("decoder exceeded original bounded wait; original child killed and joined");
+            panic!("decoder exceeded original bounded wait; original child killed and joined phase={label}");
         }
     };
     assert!(status.success());
@@ -308,8 +335,18 @@ pub(super) async fn originals(
 ) {
     drain(a);
     drain(b);
-    until(Some(cutoff), opus::tone(&mut a.audio, 880.0, false)).await;
-    until(Some(cutoff), opus::tone(&mut b.audio, 440.0, false)).await;
+    until_phase(
+        Some(cutoff),
+        "original-audio-after-private",
+        opus::tone(&mut a.audio, 880.0, false),
+    )
+    .await;
+    until_phase(
+        Some(cutoff),
+        "retained-audio-after-private",
+        opus::tone(&mut b.audio, 440.0, false),
+    )
+    .await;
     picture(&mut a.video, blue, "bounded-original-blue", dir, 2, cutoff).await;
     picture(&mut b.video, red, "bounded-retained-red", dir, 0, cutoff).await;
 }

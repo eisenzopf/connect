@@ -216,7 +216,44 @@ impl Store {
             .map_err(|_| Error::storage())?;
         tx.execute("UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=?1 AND connection_id=?2",params![record,connection]).map_err(|_| Error::storage())?;
         if !retired {
-            let changed=tx.execute("UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND ((generation=?2 AND observed_runtime_id=?3 AND NOT ?4) OR (?4 AND generation>?2 AND observed_runtime_id IS NULL AND readiness_json IS NULL AND state IN ('interrupted','retiring')))",params![connection,generation,runtime,successor]).map_err(|_| Error::storage())?;
+            // A local Session end/leave fences its original route before the
+            // physical owner joins. That exact one-generation terminal slot
+            // can finish cleanup under the same historical absence proof.
+            // A live successor or an unexplained generation cannot be retired.
+            let changed = tx
+                .execute(
+                    "UPDATE connections
+                     SET state='retired',generation=generation+1,revision=revision+1,
+                         observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL
+                     WHERE id=?1 AND (
+                         (generation=?2 AND observed_runtime_id=?3 AND NOT ?4)
+                         OR (
+                             ?4 AND generation>?2
+                             AND observed_runtime_id IS NULL AND readiness_json IS NULL
+                             AND state IN ('interrupted','retiring')
+                         )
+                         OR (
+                             NOT ?4 AND state='retiring' AND generation=?2+1
+                             AND observed_runtime_id IS NULL AND readiness_json IS NULL
+                             AND (
+                                 EXISTS(
+                                     SELECT 1 FROM sessions s
+                                     WHERE s.id=connections.session_id
+                                     AND s.state IN ('ended','cancelled','rejected','failed')
+                                 )
+                                 OR EXISTS(
+                                     SELECT 1 FROM session_participants sp
+                                     WHERE sp.session_id=connections.session_id
+                                     AND sp.participant_id=connections.participant_id
+                                     AND sp.membership_epoch=connections.membership_epoch
+                                     AND sp.state IN ('left','removed')
+                                 )
+                             )
+                         )
+                     )",
+                    params![connection, generation, runtime, successor],
+                )
+                .map_err(|_| Error::storage())?;
             if changed != 1 {
                 return Err(Error::forbidden());
             }

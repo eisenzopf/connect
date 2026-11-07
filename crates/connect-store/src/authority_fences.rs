@@ -3,6 +3,7 @@
 //! supported Store authority writer must participate in this protocol.
 mod diagnostics;
 use connect_protocol::{Error, Result};
+use diagnostics::{Admission, ImmediateBusy};
 use fs2::FileExt;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
@@ -11,8 +12,8 @@ use std::{
     fs::{self, File, OpenOptions},
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex, OnceLock, Weak,
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        Arc, Mutex, OnceLock, RwLock, Weak,
     },
     time::{Duration, Instant},
 };
@@ -195,7 +196,7 @@ type FileIdentityProbe = Arc<dyn Fn(&str, u8) + Send + Sync>;
 struct RememberedLockFile {
     identity: LockFileIdentity,
     // Eviction order only. This is neither a descriptor nor an authority grant.
-    last_opened: Instant,
+    last_opened: AtomicU64,
 }
 // One owned open description. The final owner unlocks and closes it immediately;
 // only live readers may share it through the weak reader registry.
@@ -283,7 +284,8 @@ pub(crate) struct Manager {
     names: Mutex<BTreeMap<(Kind, String), String>>,
     readers: Mutex<BTreeMap<String, Weak<LockFile>>>,
     // Bounded inode knowledge preserves path-replacement refusal without FDs.
-    file_identities: Mutex<BTreeMap<String, RememberedLockFile>>,
+    file_identities: RwLock<BTreeMap<String, RememberedLockFile>>,
+    file_identity_epoch: Instant,
     #[cfg(test)]
     file_identity_probe: Mutex<Option<FileIdentityProbe>>,
     #[cfg(test)]
@@ -337,7 +339,8 @@ impl Manager {
             fingerprint,
             names: Mutex::new(BTreeMap::new()),
             readers: Mutex::new(BTreeMap::new()),
-            file_identities: Mutex::new(BTreeMap::new()),
+            file_identities: RwLock::new(BTreeMap::new()),
+            file_identity_epoch: Instant::now(),
             #[cfg(test)]
             file_identity_probe: Mutex::new(None),
             #[cfg(test)]
@@ -377,7 +380,7 @@ impl Manager {
         scopes: &[AuthorityScope],
         wait: Option<&AuthorityWait>,
     ) -> Result<Arc<AuthorityGuardSet>> {
-        let mut diagnostic = diagnostics::Admission::new(wait);
+        let mut diagnostic = Admission::new(wait);
         #[cfg(test)]
         self.admission_attempts.fetch_add(1, Ordering::Relaxed);
         if let Some(wait) = wait {
@@ -413,14 +416,18 @@ impl Manager {
             diagnostic.stage = "scope-name";
             let name = self.name(key)?;
             diagnostic.stage = "open-admission";
-            let admission = self.lock_file_with_wait(&format!("{name}.admission"), wait)?;
+            let admission =
+                self.lock_file_with_wait(&format!("{name}.admission"), wait, &mut diagnostic)?;
             diagnostic.stage = "lock-admission";
-            lock_admission(admission.file(), *mode, wait)?;
+            lock_admission(admission.file(), *mode, wait)
+                .inspect_err(|error| diagnostic.busy(ImmediateBusy::KernelAdmission, error))?;
             if *mode == AuthorityMode::Write {
                 diagnostic.stage = "open-resource";
-                let resource = self.file_with_wait(&format!("{name}.resource"), wait)?;
+                let resource =
+                    self.file_with_wait(&format!("{name}.resource"), wait, &mut diagnostic)?;
                 diagnostic.stage = "lock-resource";
-                lock_with(&resource, wait)?;
+                lock_with(&resource, wait)
+                    .inspect_err(|error| diagnostic.busy(ImmediateBusy::KernelResource, error))?;
                 held.push(Held::Write {
                     _resource: resource,
                     _admission: admission,
@@ -428,7 +435,7 @@ impl Manager {
             } else {
                 diagnostic.stage = "read-resource";
                 let resource = self.read_resource(&name, wait, || {
-                    self.lock_file_with_wait(&format!("{name}.resource"), wait)
+                    self.lock_file_with_wait(&format!("{name}.resource"), wait, &mut diagnostic)
                 })?;
                 drop(admission);
                 held.push(Held::Read {
@@ -539,24 +546,26 @@ impl Manager {
     fn observe_file_identity(&self, name: &str, stage: u8) {
         let probe = self.file_identity_probe.lock().unwrap().clone();
         if let Some(probe) = probe {
-            // Test observation never runs under the inode-metadata map mutex.
-            // 0/1 mark lookup/publication; 2/3 mark their actual contention.
+            // 0/1 mark lookup/publication before taking the map guard; 2/3
+            // mark their contention. 4 pauses a confirmed warm reader under
+            // its shared guard so a second real file open can overlap.
             probe(name, stage);
         }
     }
-    fn identity_registry(
+    fn identity_registry<T>(
         &self,
         wait: Option<&AuthorityWait>,
         _name: &str,
         _stage: u8,
-    ) -> Result<std::sync::MutexGuard<'_, BTreeMap<String, RememberedLockFile>>> {
+        try_access: impl Fn() -> std::sync::TryLockResult<T>,
+    ) -> Result<T> {
         #[cfg(test)]
         self.observe_file_identity(_name, _stage);
         loop {
             if let Some(wait) = wait {
                 wait.check()?;
             }
-            match self.file_identities.try_lock() {
+            match try_access() {
                 Ok(identities) => {
                     if let Some(wait) = wait {
                         wait.check()?;
@@ -577,13 +586,19 @@ impl Manager {
     }
     #[cfg(test)]
     fn file(&self, name: &str) -> Result<File> {
-        self.file_with_wait(name, None)
+        self.file_with_wait(name, None, &mut Admission::new(None))
     }
-    fn file_with_wait(&self, name: &str, wait: Option<&AuthorityWait>) -> Result<File> {
-        // Retain only immutable inode metadata across opens. Never keep this
-        // mutex across filesystem IO, kernel admission or another scope.
+    fn file_with_wait(
+        &self,
+        name: &str,
+        wait: Option<&AuthorityWait>,
+        diagnostic: &mut Admission,
+    ) -> Result<File> {
+        // Retain only immutable inode metadata across opens. Never keep a
+        // map guard across filesystem IO, kernel admission or another scope.
         let remembered = self
-            .identity_registry(wait, name, 0)?
+            .identity_registry(wait, name, 0, || self.file_identities.try_read())
+            .inspect_err(|error| diagnostic.busy(ImmediateBusy::IdentityLookup, error))?
             .get(name)
             .map(|entry| entry.identity);
         let path = self.directory.join(name);
@@ -626,22 +641,30 @@ impl Manager {
             _ => Error::storage(),
         })?;
         let identity = self.validate_lock_file(name, &file, expected)?;
-        // A concurrent open may have published while filesystem validation ran.
-        // Compare rather than overwrite its observed namespace identity.
-        let mut identities = self.identity_registry(wait, name, 1)?;
-        if identities
-            .get(name)
-            .is_some_and(|entry| entry.identity != identity)
         {
-            return Err(Error::new(
-                "authority-unavailable",
-                "Authority file changed",
-            ));
+            let identities = self
+                .identity_registry(wait, name, 1, || self.file_identities.try_read())
+                .inspect_err(|error| diagnostic.busy(ImmediateBusy::IdentityPublication, error))?;
+            if let Some(entry) = identities.get(name) {
+                self.confirm_file_identity(entry, identity)?;
+                #[cfg(test)]
+                self.observe_file_identity(name, 4);
+                return Ok(file);
+            }
         }
-        if !identities.contains_key(name) && identities.len() >= MAX_FILE_IDENTITIES {
+        // A concurrent open may have published after the shared check.
+        // Compare rather than overwrite its observed namespace identity.
+        let mut identities = self
+            .identity_registry(wait, name, 1, || self.file_identities.try_write())
+            .inspect_err(|error| diagnostic.busy(ImmediateBusy::IdentityPublication, error))?;
+        if let Some(entry) = identities.get(name) {
+            self.confirm_file_identity(entry, identity)?;
+            return Ok(file);
+        }
+        if identities.len() >= MAX_FILE_IDENTITIES {
             if let Some(oldest) = identities
                 .iter()
-                .min_by_key(|(_, entry)| entry.last_opened)
+                .min_by_key(|(_, entry)| entry.last_opened.load(Ordering::Relaxed))
                 .map(|(name, _)| name.clone())
             {
                 identities.remove(&oldest);
@@ -651,23 +674,46 @@ impl Manager {
             name.into(),
             RememberedLockFile {
                 identity,
-                last_opened: Instant::now(),
+                last_opened: AtomicU64::new(self.file_identity_recency()),
             },
         );
         drop(identities);
         Ok(file)
     }
+    fn confirm_file_identity(
+        &self,
+        entry: &RememberedLockFile,
+        identity: LockFileIdentity,
+    ) -> Result<()> {
+        if entry.identity != identity {
+            return Err(Error::new(
+                "authority-unavailable",
+                "Authority file changed",
+            ));
+        }
+        // An earlier reader may be delayed before updating the eviction stamp.
+        entry
+            .last_opened
+            .fetch_max(self.file_identity_recency(), Ordering::Relaxed);
+        Ok(())
+    }
+    fn file_identity_recency(&self) -> u64 {
+        u64::try_from(self.file_identity_epoch.elapsed().as_nanos()).unwrap_or(u64::MAX)
+    }
     #[cfg(test)]
     fn lock_file(self: &Arc<Self>, name: &str) -> Result<LockFile> {
-        self.lock_file_with_wait(name, None)
+        Ok(LockFile {
+            file: self.file(name)?,
+        })
     }
     fn lock_file_with_wait(
         self: &Arc<Self>,
         name: &str,
         wait: Option<&AuthorityWait>,
+        diagnostic: &mut Admission,
     ) -> Result<LockFile> {
         Ok(LockFile {
-            file: self.file_with_wait(name, wait)?,
+            file: self.file_with_wait(name, wait, diagnostic)?,
         })
     }
     fn lock_file_identity(&self, meta: &fs::Metadata) -> Result<LockFileIdentity> {

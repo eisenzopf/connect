@@ -222,7 +222,7 @@ fn identity_metadata_contention_refuses_immediately_without_bypassing_validation
     let f = Fixture::new();
     let name = key(&f);
     drop(f.store.authority.lock_file(&name).unwrap());
-    let held = f.store.authority.file_identities.lock().unwrap();
+    let held = f.store.authority.file_identities.write().unwrap();
     let store = f.store.clone();
     let (sent, received) = mpsc::channel();
     let worker = std::thread::spawn(move || {
@@ -259,7 +259,7 @@ fn bounded_identity_metadata_eviction_cannot_unlock_an_independent_owner() {
         );
     }
     {
-        let identities = f.store.authority.file_identities.lock().unwrap();
+        let identities = f.store.authority.file_identities.read().unwrap();
         assert_eq!(identities.len(), MAX_FILE_IDENTITIES);
         assert!(!identities.contains_key(&name));
     }
@@ -278,6 +278,22 @@ fn bounded_identity_metadata_eviction_cannot_unlock_an_independent_owner() {
     drop(independent);
     drop(another);
     drop(f.store.try_acquire_authority(&[scope]).unwrap());
+}
+
+#[test]
+fn warm_identity_open_refreshes_recency_without_growing_the_registry() {
+    let f = Fixture::new();
+    let manager = &f.store.authority;
+    for index in 0..MAX_FILE_IDENTITIES {
+        drop(manager.file(&format!("recency_{index}.admission")).unwrap());
+    }
+    drop(manager.file("recency_0.admission").unwrap());
+    drop(manager.file("recency_new.admission").unwrap());
+
+    let identities = manager.file_identities.read().unwrap();
+    assert_eq!(identities.len(), MAX_FILE_IDENTITIES);
+    assert!(identities.contains_key("recency_0.admission"));
+    assert!(!identities.contains_key("recency_1.admission"));
 }
 
 // Count actual kernel descriptors in an isolated child, not Rust object counts.
@@ -498,4 +514,63 @@ fn fresh_admission_preserves_queued_writer_and_releases_partial_read_scopes() {
     drop(held);
     drop(writer.join().unwrap().unwrap());
     drop(f.store.try_acquire_authority(&[b]).unwrap());
+}
+
+#[test]
+fn cold_identity_publication_rechecks_a_concurrent_replacement() {
+    let f = Fixture::new();
+    let manager = f.store.authority.clone();
+    let name = "cold_identity_race.admission";
+    let (entered, entry) = mpsc::channel();
+    let (resume, resumed) = mpsc::channel();
+    let resumed = Mutex::new(resumed);
+    let publications = std::sync::atomic::AtomicUsize::new(0);
+    *manager.file_identity_probe.lock().unwrap() = Some(Arc::new(move |target, stage| {
+        if target == name && stage == 1 && publications.fetch_add(1, Ordering::Relaxed) == 1 {
+            // The original file passed fresh validation and the shared check
+            // found no entry. Pause immediately before exclusive publication.
+            entered.send(()).unwrap();
+            resumed
+                .lock()
+                .unwrap()
+                .recv_timeout(Duration::from_secs(2))
+                .unwrap();
+        }
+    }));
+    let worker_manager = manager.clone();
+    let worker = std::thread::spawn(move || worker_manager.file(name));
+    entry.recv_timeout(Duration::from_secs(1)).unwrap();
+    let path = manager.directory.join(name);
+    let old = manager.directory.join("cold_identity_race_original");
+    fs::rename(&path, &old).unwrap();
+    replace_private_file(&path);
+    let current = manager.file(name).unwrap();
+    resume.send(()).unwrap();
+    let error = worker.join().unwrap().unwrap_err();
+    *manager.file_identity_probe.lock().unwrap() = None;
+
+    assert_eq!(error.code, "authority-unavailable");
+    assert_eq!(error.message, "Authority file changed");
+    let identity = manager
+        .lock_file_identity(&current.metadata().unwrap())
+        .unwrap();
+    let original = manager
+        .lock_file_identity(&fs::metadata(&old).unwrap())
+        .unwrap();
+    assert!(identity != original);
+    assert!(
+        manager
+            .file_identities
+            .read()
+            .unwrap()
+            .get(name)
+            .unwrap()
+            .identity
+            == identity
+    );
+    drop(
+        manager
+            .file(name)
+            .expect("stale open overwrote the newer namespace identity"),
+    );
 }

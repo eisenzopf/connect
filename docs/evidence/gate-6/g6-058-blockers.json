@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-06",
-  "run_status": "Focused V6: 104 of 104 passed. Shipping default lib/bins and instrumented target checks passed. Latest completed full matrix v197: 336 passed, 88 failed, eight blocked, and 0/32 qualified cells.",
+  "run_status": "Full v198 remains at 301 passed, 89 failed and 42 blocked requirements, with zero qualified cells; 29 cells were attempted and three were environment-blocked. Focused V5 passed all 145 Rust cases, fresh Node83/Python42, MacACL1, shipping defaults and required feature checks. Original source/checkers, full modes and all owner joins verified. Full32 revalidation remains pending. V4 remains failed at142/3, and its fresh-media timeout cause remains unproven.",
   "blockers": [
     {
       "id": "B01",
@@ -158,9 +158,9 @@
     {
       "id": "B20",
       "title": "Independent native helper recovery coverage",
-      "status": "v197 native recovery 8/8",
+      "status": "v198 native recovery 8/8",
       "change": "Compare exact SDK canonicalJson reference values instead of JS strict prototype identity. Actual SDK parseCanonicalJson returns null-prototype objects; JSON.parse fixture clones ordinary prototypes.",
-      "evidence": "Current v197 native service-contract/original-operation recovery: 8/8 passed, 0 failed, 0 blocked. Previous v196 evidence remains immutable. docs/evidence/gate-6/matrix-full-v197.json.",
+      "evidence": "Current v198 native service-contract/original-operation recovery: 8/8 passed, 0 failed, 0 blocked. Previous v197 evidence remains immutable. docs/evidence/gate-6/matrix-full-v198.json.",
       "next": "Preserve current authorization and original operation IDs while resolving remaining actual matrix outcomes."
     },
     {
@@ -254,17 +254,17 @@
     {
       "id": "B32",
       "title": "Transient private video preparation contention becomes fatal",
-      "status": "Component verified — v197 handoff 0/32",
+      "status": "Component verified — v198 handoff 0/32",
       "change": "Preserve typed pre-effect MetadataBusy and retry only that safe video-plan metadata refusal with fresh current reads, the pinned original target revision and unchanged existing five-second preparation budget. No repeated negotiation, mute or installed-route effect.",
-      "evidence": "Completed original v197: handoff 0/32 passed, 32 failed, 0 blocked; decoded-media 0/32 passed, 24 failed, 8 blocked. All 32 actual attempts and verifier integrity checks complete. Counts do not establish whether every specific contention/lifetime branch triggered. docs/evidence/gate-6/matrix-full-v197.json. Component scope remains 36 fresh Core plus 28 equivalent retained Service/signed checks; original failures are preserved.",
+      "evidence": "Completed original v198. Handoff 0/32 passed, 29 failed, 3 blocked. decoded-media 0/32 passed, 29 failed, 3 blocked. All selected requirement verdicts are terminal. The three unattempted ARM cells remain environment-blocked, with no behavior evidence. Counts do not establish whether every specific contention/lifetime branch triggered. docs/evidence/gate-6/matrix-full-v198.json. Focused V6 separately passed all 104 ARM checks and the shipping build. original failures are preserved.",
       "next": "Retain current authority and original lifetime/short retry boundaries. Diagnose remaining original failed/blocked cells, then validate fixes and rerun the complete matrix."
     },
     {
       "id": "B33",
       "title": "Readiness lifetime incorrectly uses a five-second start snapshot",
-      "status": "Component verified — v197 handoff 0/32",
+      "status": "Component verified — v198 handoff 0/32",
       "change": "Bind ReadyGate and the sealed Core private video binding to the unchanged original preparation/root lifetime. Keep installation/current-capture authority and MetadataBusy retry under their original shorter cutoffs. Every queued packet and signed Ready still requires fresh current authorization; no deadline or original lifetime is renewed.",
-      "evidence": "Completed original v197: handoff 0/32 passed, 32 failed, 0 blocked; decoded-media 0/32 passed, 24 failed, 8 blocked. All 32 actual attempts and verifier integrity checks complete. Counts do not establish whether every specific contention/lifetime branch triggered. docs/evidence/gate-6/matrix-full-v197.json. Component scope remains 36 fresh Core plus 28 equivalent retained Service/signed checks; original failures are preserved.",
+      "evidence": "Completed original v198. Handoff 0/32 passed, 29 failed, 3 blocked. decoded-media 0/32 passed, 29 failed, 3 blocked. All selected requirement verdicts are terminal. The three unattempted ARM cells remain environment-blocked, with no behavior evidence. Counts do not establish whether every specific contention/lifetime branch triggered. docs/evidence/gate-6/matrix-full-v198.json. Focused V6 separately passed all 104 ARM checks and the shipping build. original failures are preserved.",
       "next": "Retain current authority and original lifetime/short retry boundaries. Diagnose remaining original failed/blocked cells, then validate fixes and rerun the complete matrix."
     },
     {
@@ -272,16 +272,16 @@
       "title": "Partial browser initialization owner cleanup",
       "status": "Component verified — lifecycle edge observation unestablished",
       "change": "Close an already created first encoder if a later encoder constructor fails; retire exact peer-owned RTC receiver tracks rejected before accepted-map ownership. Preserve accepted owners and real cleanup failures.",
-      "evidence": "Actual v197 browser resource requirements: 0/24 passed, 24 failed, 0 blocked. Original 30 Node owner controls remain verified. The matrix aggregate does not establish an actual constructor/rejected-track failure-edge observation or its OS cause. docs/evidence/gate-6/matrix-full-v197.json.",
-      "next": "Keep exact-owner cleanup controls; use actual resource verdicts and concrete owner evidence to address remaining failures."
+      "evidence": "Actual v198 browser resource requirements: 0/24 passed, 21 failed, 3 blocked. Original 30 Node owner controls remain verified. The matrix aggregate does not establish an actual constructor/rejected-track failure-edge observation or its OS cause. docs/evidence/gate-6/matrix-full-v198.json.",
+      "next": "Keep exact-owner cleanup controls. use actual resource verdicts and concrete owner evidence to address remaining failures."
     },
     {
       "id": "B35",
       "title": "Selected regular-FD mapping attribution",
       "status": "Diagnostic component verified — resources 0/32",
       "change": "Add bounded numeric file-size and exact selected-inode VMA/RSS attribution under the original process-birth identity and existing post-counter census. Keep truncated, raced or unavailable observations explicit.",
-      "evidence": "Actual v197 resource requirements: 0/32 passed, 32 failed, 0 blocked. Original 28 owner-diagnostic and 4 idle Python controls remain verified. These unit results do not qualify OS budgets; actual matrix verdicts are recorded separately and no per-inode cause is inferred. docs/evidence/gate-6/matrix-full-v197.json.",
-      "next": "Attribute actual remaining owner/mapping failures from original evidence; preserve unchanged resource budgets and explicit unknown/partial diagnostics."
+      "evidence": "Actual v198 resource requirements: 0/32 passed, 29 failed, 3 blocked. Original 28 owner-diagnostic and 4 idle Python controls remain verified. These unit results do not qualify OS budgets. actual matrix verdicts are recorded separately and no per-inode cause is inferred. docs/evidence/gate-6/matrix-full-v198.json.",
+      "next": "Attribute actual remaining owner/mapping failures from original evidence. preserve unchanged resource budgets and explicit unknown/partial diagnostics."
     },
     {
       "id": "B36",
@@ -294,10 +294,10 @@
     {
       "id": "B37",
       "title": "WebRTC readiness still uses the expired start-admission cutoff",
-      "status": "Component verified — all eight signed RTC controls passed",
+      "status": "Component verified. Full matrix pending",
       "change": "Keep readiness on the original reservation lifetime; correct exact validation versus authority/state problem expectations, original terminal-boundary corroboration, progress handling and the cancellation selector. Preserve the strict delayed fresh-media oracle.",
-      "evidence": "V5 verifies genuine fresh decoded audio/video after 5.1 seconds, both signing algorithms, current authority and original physical teardown. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
-      "next": "Run the next complete local 32-cell matrix after the focused batch passes."
+      "evidence": "All eight signed RTC controls passed in V5, including the unchanged delayed fresh-media oracle and original-operation signed status recovery. The cause of the prior V4 fresh-media timeout remains unproven. docs/evidence/gate-6/blocker-components-post-v198-v5.json.",
+      "next": "Preserve the verified component behavior and execute every cell in the next full local transport matrix. Do not claim that the passing fixture proves the prior fresh-media timeout cause."
     },
     {
       "id": "B38",
@@ -310,18 +310,18 @@
     {
       "id": "B39",
       "title": "Managed Session cleanup aborts but does not join the original Core mixer",
-      "status": "Component verified — nine ARM teardown controls pass",
+      "status": "Mixer component verified. Full matrix resource checks still fail",
       "change": "Await completion of the same original mixer task during Session teardown, preserving cancellation/retry behavior and terminal replay metadata.",
       "evidence": "Nine exact normal-release ARM Core controls pass,0ignored: actual same-original mixer finalizer join, cancellation/retry, concurrent end, failure preservation and existing Session teardown. docs/evidence/gate-6/blocker-components-post-v197-partial.json. No OS resource improvement or whole-cell qualification claimed.",
-      "next": "Preserve original task ownership/replay semantics and validate unchanged OS budgets in the next complete matrix."
+      "next": "Verify the integrated post-v198 blocker batch and the complete next transport matrix."
     },
     {
       "id": "B40",
       "title": "Private replacement audio has no receiver-only copy of old selections",
-      "status": "Component verified — exact Core adoption and signed handoffs pass",
+      "status": "Core adoption verified. Full matrix private media remains unready",
       "change": "Prepare a receiver-only audio selection from exact old programme/audience metadata; preserve ordinary candidate mute, all-origin current Store authorization and same-root explicit adoption.",
       "evidence": "V6 passes Core receiver-only adoption, failure refusal, original expiry and successor controls, all 12 signed native cases and all eight signed RTC cases. docs/evidence/gate-6/blocker-components-post-v197-v6.json.",
-      "next": "Run the complete 32-cell local transport matrix."
+      "next": "Verify the integrated post-v198 blocker batch and the complete next transport matrix."
     },
     {
       "id": "B41",
@@ -334,10 +334,10 @@
     {
       "id": "B42",
       "title": "Neutral probe and real private mix use separate egress clocks",
-      "status": "Component verified — Core, native and RTC clock checks passed",
+      "status": "Clock components verified. Full matrix media budgets still fail",
       "change": "Serialize the same original egress clock owner using explicit producer/quantum metadata and actual writer certainty; refuse uncertainty and preserve original grants/packet age. Neutral probes stop only after actual same-preparation remote writer completion.",
       "evidence": "V6 verifies the exact clock controls, including same-target metadata through definitive ordinary adoption and unchanged original private expiry. docs/evidence/gate-6/blocker-components-post-v197-v6.json.",
-      "next": "Run the complete 32-cell local transport matrix."
+      "next": "Verify the integrated post-v198 blocker batch and the complete next transport matrix."
     },
     {
       "id": "B43",
@@ -402,6 +402,46 @@
       "change": "Wait for the recorded UTC expiry in both native post-expiry fixtures. Keep the original reservation, monotonic pre-expiry cutoff, signed Ready limits and 90-second outer timeout.",
       "evidence": "V6 verifies signed Ready refusal after the exact original reservation expires and survival of the already committed native connection after its preparation cutoff. docs/evidence/gate-6/blocker-components-post-v197-v6.json.",
       "next": "Run the complete 32-cell local transport matrix."
+    },
+    {
+      "id": "B51",
+      "title": "Native and browser credential timers wake before recorded UTC expiry",
+      "status": "Component verified. Full matrix pending",
+      "change": "Wait for the same recorded UTC expiry within the existing fixture caps. Preserve the original credential, mutation reference and strict live and fresh authentication refusals.",
+      "evidence": "All fourteen native/browser authority controls passed within fresh Node83, preserving recorded UTC expiry and original signed mutation recovery. docs/evidence/gate-6/blocker-components-post-v198-v5.json.",
+      "next": "Preserve the verified component behavior and execute every cell in the next full local transport matrix."
+    },
+    {
+      "id": "B52",
+      "title": "Independent warm authority readers serialize on inode metadata",
+      "status": "Component verified. Full matrix pending",
+      "change": "Use shared known-entry metadata lookup and confirmation. Keep exclusive cold compare, insertion and bounded eviction, fresh path and ACL checks, and actual kernel writer exclusion.",
+      "evidence": "The exact warm metadata overlap, bounded recency eviction and cold concurrent publication controls passed on ARM; the supported actual Mac inode/ACL regression also passed. docs/evidence/gate-6/blocker-components-post-v198-v5.json.",
+      "next": "Preserve the verified component behavior and execute every cell in the next full local transport matrix."
+    },
+    {
+      "id": "B53",
+      "title": "Immediate authority failures combine distinct lock causes",
+      "status": "Component verified. Full matrix pending",
+      "change": "Add bounded opt-in attribution after partial guards drop for inode lookup, inode publication, kernel admission and kernel resource exclusion. Preserve external errors.",
+      "evidence": "The exact lookup, publication, kernel admission and kernel resource attribution controls passed with original partial-guard release assertions. docs/evidence/gate-6/blocker-components-post-v198-v5.json.",
+      "next": "Preserve the verified component behavior and execute every cell in the next full local transport matrix."
+    },
+    {
+      "id": "B54",
+      "title": "Same-runtime replacement cleanup rejects public Session retirement fence",
+      "status": "Component verified. Full matrix pending",
+      "change": "Accept only the exact original plus one terminal retiring generation with cleared runtime observation, while preserving historical owner, attempt, effect, scope and physical absence checks.",
+      "evidence": "Both original retirement cases passed, including public Session end and leave, concurrent original cleanup, immutable completion fields, the single original cleanup fact, replay/idempotency, and wrong-absence/unsupported-terminal refusals. docs/evidence/gate-6/blocker-components-post-v198-v5.json.",
+      "next": "Preserve the verified component behavior and execute every cell in the next full local transport matrix."
+    },
+    {
+      "id": "B55",
+      "title": "Failed graceful server shutdown strands proven VM custody",
+      "status": "Component verified. Full matrix pending",
+      "change": "Record actual waited exit and process-group absence separately from graceful success. Release only proven physical custody while retaining the failed shutdown verdict.",
+      "evidence": "All seven server custody controls passed within fresh Python42, retaining failed graceful/forced shutdown verdicts while proving actual original exit and group absence. docs/evidence/gate-6/blocker-components-post-v198-v5.json.",
+      "next": "Preserve the verified component behavior and execute every cell in the next full local transport matrix."
     }
   ]
 }

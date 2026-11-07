@@ -151,6 +151,60 @@ fn public_problem(value: &Value) -> connect_protocol::canonical_http::Problem {
     );
     serde_json::from_value(value.clone()).unwrap()
 }
+fn ready_response_is_uncertain(problem: &connect_protocol::canonical_http::Problem) -> bool {
+    same_problem(
+        problem,
+        &connect_protocol::canonical_http::Problem::from_error(&connect_protocol::Error::new(
+            "authority-busy",
+            "fixture class only",
+        )),
+    )
+}
+
+async fn submit_original_ready(
+    target: &mut Peer,
+    ready: Value,
+    cid: &str,
+    operation: &str,
+    original_record: &str,
+) -> Option<connect_protocol::canonical_http::Problem> {
+    // One signed Ready submission. A response may be unavailable after its
+    // observation was captured; recover only that same original operation.
+    assert_eq!(ready["operation_id"], operation);
+    let request = target.send(ready, true).await;
+    for _ in 0..128 {
+        let event = target.read().await;
+        assert_eq!(event.original()["in_reply_to"], request);
+        match event.kind() {
+            "error" => {
+                let problem = public_problem(&event.original()["payload"]);
+                assert!(
+                    ready_response_is_uncertain(&problem),
+                    "{:?}",
+                    event.original()
+                );
+                let recovered =
+                    super::super::replacement::signed_original_status(target, cid, operation).await;
+                assert_eq!(recovered["record_id"], original_record);
+                assert_eq!(recovered["operation_id"], operation);
+                assert_eq!(recovered["command_type"], "connection.replace");
+                assert!(matches!(
+                    recovered["state"].as_str(),
+                    Some("preparing" | "completed")
+                ));
+                return Some(problem);
+            }
+            "operation.updated" => {
+                assert_eq!(event.original()["payload"]["record_id"], original_record);
+                assert_eq!(event.original()["payload"]["operation_id"], operation);
+            }
+            "ack" => return None,
+            _ => panic!("unexpected original Ready response: {:?}", event.original()),
+        }
+    }
+    panic!("original Ready response exceeded its bounded event count");
+}
+
 fn same_problem(
     actual: &connect_protocol::canonical_http::Problem,
     expected: &connect_protocol::canonical_http::Problem,
@@ -200,6 +254,21 @@ fn readiness_refusal_problems_and_progress_require_closed_exact_semantics() {
         assert!(is_public_refusal_shape(&Problem::from_error(&Error::new(
             code, "fixture"
         ))));
+    }
+    assert!(ready_response_is_uncertain(&Problem::from_error(
+        &Error::new("authority-busy", "fixture")
+    )));
+    for code in [
+        "invalid-request",
+        "unauthorized",
+        "forbidden",
+        "not-found",
+        "conflict",
+        "not-ready",
+    ] {
+        assert!(!ready_response_is_uncertain(&Problem::from_error(
+            &Error::new(code, "fixture")
+        )));
     }
     for code in [
         "invalid-request",
@@ -513,8 +582,15 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
     media["payload"]["replacement_preparation"]["profile"] = json!("connect-replacement-media-v1");
     let original_target_until = tokio::time::Instant::now() + Duration::from_secs(8);
     let private_cutoff = delay_after_admit.then_some(original_target_until);
-    let id = private_marker::until(private_cutoff, target_peer.send(media.clone(), true)).await;
-    let answer = private_marker::until(private_cutoff, target_peer.read()).await;
+    let id = private_marker::until_phase(
+        private_cutoff,
+        "original-media-send",
+        target_peer.send(media.clone(), true),
+    )
+    .await;
+    let answer =
+        private_marker::until_phase(private_cutoff, "original-media-answer", target_peer.read())
+            .await;
     assert_eq!(
         answer.kind(),
         "connection.answer",
@@ -614,26 +690,34 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
             return;
         }};
     }
-    private_marker::until(
+    private_marker::until_phase(
         private_cutoff,
+        "candidate-remote-answer",
         replacement.set_remote_answer(payload["substrate_setup"]["sdp"].as_str().unwrap()),
     )
     .await
     .unwrap();
-    private_marker::until(
+    private_marker::until_phase(
         private_cutoff,
+        "candidate-connected",
         replacement.wait_connected(Duration::from_secs(5)),
     )
     .await
     .unwrap();
     senders.push(opus::producer(&replacement, 660.0));
     senders.push(video_producer(&replacement, red.clone()));
-    let mut c = private_marker::until(private_cutoff, receive(&replacement, 2)).await;
+    let mut c = private_marker::until_phase(
+        private_cutoff,
+        "candidate-remote-tracks",
+        receive(&replacement, 2),
+    )
+    .await;
     if delay_after_admit || negative.is_some() {
         // Observe actual signed Store admission, never infer DTLS/resource
         // success from elapsed time or fabricate a ready decoder observation.
-        private_marker::until(
+        private_marker::until_phase(
             private_cutoff,
+            "original-resource-admission",
             tokio::time::timeout(Duration::from_secs(2), async {
                 loop {
                     let current = record(&f, &target_config, operation);
@@ -675,11 +759,10 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
         // This is an actual wait after admission, not a modified clock/read
         // expiry. It crosses every <=5s start capture before this boundary.
         if delay_after_admit {
-            private_marker::until(
-                private_cutoff,
-                tokio::time::sleep(Duration::from_millis(5100)),
-            )
-            .await;
+            // The same original receivers keep consuming playout during the
+            // deliberate input delay. Fresh marker decoding still starts only
+            // after this unchanged five-second admission boundary is crossed.
+            private_marker::active_playout_delay(&mut a, &mut b, &mut c, private_cutoff).await;
             // This SAME original retained publisher has never used these PCM
             // or VP8 inputs before the real boundary. Pending old packets may
             // be discarded but cannot decode as the new tone/green marker.
@@ -918,8 +1001,9 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
             );
             "invalid-request"
         };
-        private_marker::until(
+        private_marker::until_phase(
             private_cutoff,
+            "invalid-readiness-refusal",
             ready_shape_refused(&mut target_peer, bad, expected),
         )
         .await;
@@ -943,11 +1027,34 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
     } else {
         original_av(&mut a, &mut b, &red, &blue, &directory, "waiting-for-ready").await;
     }
+    let ready_until =
+        private_cutoff.unwrap_or_else(|| tokio::time::Instant::now() + Duration::from_secs(5));
     let original_ready = async {
-        command(&mut target_peer, renew(ready.clone())).await;
-        completed(&f, &target_config, operation).await
+        let uncertain = submit_original_ready(
+            &mut target_peer,
+            renew(ready.clone()),
+            &cid,
+            operation,
+            &prepared.record_id,
+        )
+        .await;
+        let done = completed(&f, &target_config, operation).await;
+        if let Some(problem) = uncertain {
+            assert!(ready_response_is_uncertain(&problem));
+            assert_eq!(done.record_id, prepared.record_id);
+            eprintln!(
+                "original signed Ready unavailable response recovered through the same operation; code={} category={:?} reason={:?}",
+                problem.code, problem.category, problem.reason
+            );
+        }
+        done
     };
-    let done = private_marker::until(private_cutoff, original_ready).await;
+    let done = private_marker::until_phase(
+        Some(ready_until),
+        "original-ready-and-status",
+        original_ready,
+    )
+    .await;
     assert_eq!(done.record_id, prepared.record_id);
     assert_eq!(done.result.as_ref().unwrap()["generation"], 2);
     let activation: connect_protocol::replacement_activation::NativeActivationBoundary =
@@ -1005,7 +1112,18 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
     // the exact signed observation may acknowledge it, but creates no second
     // allocation, readiness capture or movement. Full results are read through
     // operation.get because the ready acknowledgment is intentionally scoped.
-    command(&mut target_peer, renew(ready.clone())).await;
+    private_marker::until_phase(
+        Some(tokio::time::Instant::now() + Duration::from_secs(5)),
+        "same-original-ready-replay",
+        submit_original_ready(
+            &mut target_peer,
+            renew(ready.clone()),
+            &cid,
+            operation,
+            &prepared.record_id,
+        ),
+    )
+    .await;
     let recovered = record(&f, &target_config, operation);
     let observed =
         super::super::replacement::signed_original_status(&mut target_peer, &cid, operation).await;
@@ -1026,7 +1144,18 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
     changed_nonce["payload"]["replacement_preparation"]["readiness"]["nonce"] =
         json!("another-target-nonce");
     refused(&mut target_peer, changed_nonce, "forbidden", 403).await;
-    command(&mut target_peer, renew(ready)).await;
+    private_marker::until_phase(
+        Some(tokio::time::Instant::now() + Duration::from_secs(5)),
+        "same-original-ready-replay",
+        submit_original_ready(
+            &mut target_peer,
+            renew(ready),
+            &cid,
+            operation,
+            &prepared.record_id,
+        ),
+    )
+    .await;
     let unchanged = record(&f, &target_config, operation);
     assert_eq!(
         super::super::replacement::signed_original_status(&mut target_peer, &cid, operation).await,

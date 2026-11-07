@@ -35,6 +35,20 @@ from lib.mac_linux_fixture import MacLinuxFixture, MacLinuxIdle
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def record_server_custody(server, receipt):
+    """Observe the already waited original group separately from server success."""
+    receipt.update(original_pid=server.pid, original_exit_code=server.returncode,
+                   original_process_group_joined=False)
+    if server.returncode is None:
+        return
+    try:
+        os.killpg(server.pid, 0)
+    except ProcessLookupError:
+        receipt["original_process_group_joined"] = True
+    except OSError as error:
+        receipt["process_group_observation_error"] = type(error).__name__
+
+
 def runtime_spec(args, linux):
     browser = "firefox" if args.transport.startswith("firefox") else "chrome"
     retained = Path.home() / ".codex/worktrees/private-sip-lifetime/Connect/.local/gate-6"
@@ -145,8 +159,13 @@ def main():
         if server is None:
             return
         server.send_signal(signal.SIGTERM)
-        assert server.wait(timeout=10) == 0
-        report["servers"][-1]["original_joined"] = True
+        receipt = report["servers"][-1]
+        try:
+            code = server.wait(timeout=10)
+        finally:
+            record_server_custody(server, receipt)
+        assert code == 0 and receipt["original_process_group_joined"] is True
+        receipt["original_joined"] = True
         server = None
 
     def start_server(label, config, probe):
@@ -456,9 +475,13 @@ def main():
         except BaseException:
             report["server_cleanup_failed"] = True
             report["passed"] = False
-            if server is not None and server.poll() is None:
-                os.killpg(server.pid, signal.SIGKILL)
-                server.wait()
+            if server is not None:
+                receipt = report["servers"][-1]
+                if server.poll() is None:
+                    receipt["forced_cleanup"] = True
+                    os.killpg(server.pid, signal.SIGKILL)
+                    server.wait()
+                record_server_custody(server, receipt)
         for handle in log_handles:
             handle.close()
         try:

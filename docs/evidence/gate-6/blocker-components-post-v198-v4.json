@@ -1,0 +1,165 @@
+{
+  "format": "connect/g6-058-post-v198-focused-v4/1",
+  "status": "failed",
+  "source_revision": "aab53a12c406e801b5a8bc28b0b14ab56d1d1a36",
+  "workspace_sha256": "af6530cdcf38c61677842bd161bccc255545f696ad4df4d0a46da0ce1aadd670",
+  "source_lock_sha256": "b88e9e899badac7e719ecad1d9f87fc78c2c55c6bc32e76c4f20c67ee12f53d8",
+  "matrix_qualified": false,
+  "planned": 145,
+  "executed": 145,
+  "passed": 142,
+  "failed": 3,
+  "not_executed": 0,
+  "groups": [
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "planned": 24,
+      "executed": 24,
+      "passed": 24,
+      "failed": 0
+    },
+    {
+      "group": "connect-service-lib-connect_service",
+      "planned": 7,
+      "executed": 7,
+      "passed": 7,
+      "failed": 0
+    },
+    {
+      "group": "connect-store-lib-connect_store",
+      "planned": 60,
+      "executed": 60,
+      "passed": 59,
+      "failed": 1
+    },
+    {
+      "group": "rvoip-uctp-lib-rvoip_uctp",
+      "planned": 9,
+      "executed": 9,
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "group": "rvoip-webrtc-stack-lib-webrtc",
+      "planned": 10,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0
+    },
+    {
+      "group": "rvoip-webrtc-lib-rvoip_webrtc",
+      "planned": 15,
+      "executed": 15,
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "group": "connect-server-test-gate6_canonical_webtransport",
+      "planned": 8,
+      "executed": 8,
+      "passed": 6,
+      "failed": 2
+    },
+    {
+      "group": "connect-server-test-gate6_replacement_video",
+      "planned": 12,
+      "executed": 12,
+      "passed": 12,
+      "failed": 0
+    }
+  ],
+  "node": {
+    "passed": 83,
+    "failed": 0,
+    "skipped": 0,
+    "fresh": true
+  },
+  "python": {
+    "passed": 42,
+    "failed": 0,
+    "skipped": 0,
+    "fresh": true
+  },
+  "local_mac_acl": {
+    "passed": 1,
+    "failed": 0
+  },
+  "shipping_default_check_passed": true,
+  "instrumented_metadata_passed": true,
+  "source_unchanged": true,
+  "checker_sources_unchanged": true,
+  "all_original_command_groups_joined_without_force": true,
+  "lease_joined_released": true,
+  "failures": [
+    {
+      "case": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_finishes_original_fenced_session_end_and_leave_after_target_revoke",
+      "log_sha256": "5071e6ec5d61bbb5ef334e99c1f6aba2e5f8c2344ab8d6d3dc18ac48d529fee2",
+      "actual": [
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "case": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_private_readiness_survives_original_start_capture_after_actual_admission",
+      "log_sha256": "795b22923986f2db1c4fda50d2721181e9c8ebf29298656e513de6ab7ab5d80d",
+      "actual": [
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "case": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_replacement_waits_for_decoded_target_before_retiring_original_es256",
+      "log_sha256": "463920ae0b20d205dabc8808eddafb823b162ef2204126339dbf483813c87a72",
+      "actual": [
+        0,
+        1,
+        0
+      ]
+    }
+  ],
+  "retirement": {
+    "refusal_case_passed": true,
+    "positive_case_passed": false,
+    "session_end_concurrent_original_cleanup_reached_retired_generation_plus_two": true,
+    "original_completion_fields_match_except_current_causal_page": true,
+    "new_owner_visible_causal_ids": 1,
+    "positive_session_leave_executed": false,
+    "correction": "Validate the added original retirement fact, then compare immutable completion fields exactly.",
+    "correction_runtime_verified": false
+  },
+  "rtc": {
+    "planned": 8,
+    "passed": 6,
+    "failed": 2,
+    "diagnosis": "Pending independent original-log review."
+  },
+  "finding": "The negative retirement regression passed. The positive Session-end branch completed concurrent cleanup and reached retired original-generation-plus-two, then failed on its legitimate expanded causal page. Session leave remains unverified. Two signed RTC cases also failed. Their roots remain under investigation.",
+  "witnesses_sha256": {
+    ".local/gate-6/post-v198-validation-v4-candidate/sealed-config.json": "243b528cf583ad269e26f931f21ea6f7c63518032198e0a9141d44e59de98be9",
+    ".local/gate-6/post-v198-validation-v4-candidate/runtime-host-receipt.json": "219dfec716c513fc713e15632d12d49f5d12bf020250fa671f360caa6baafa09",
+    ".local/gate-6/post-v198-validation-v4-candidate/arm-receipt.json": "417bbfeaa2130e54a2226fc31cb781b95bb31af156b8efd55c72424a6c68cfdc",
+    ".local/gate-6/post-v198-validation-v4-candidate/mac-runtime/receipt.json": "8aea3eb1df63283240a20d545dde88c7addcbff32e97a52c8e99c07fd99383d1",
+    ".local/gate-6/post-v198-validation-v4-candidate/controller-exit.json": "967344e893932c87ee981cf1271d6b98cf8cc43b0520ac31683b16201d2d66d4",
+    ".local/gate-6/post-v198-validation-v4-candidate/controller-exit.log": "5a35c096af110c4c61b23242aa340a19ea5b23f141a757550eb7caf8ff96191a",
+    ".local/gate-6/post-v198-validation-v4-candidate/mirror-receipt.json": "0e4c0dc5045620b7b2dd2c023649740d9db08bcc3789f79f2ccb785efdd74d7d",
+    ".local/gate-6/post-v198-validation-v4-candidate/selector-plan.json": "c6855ccafedec06febc84ea1d59f7d64df0135f89089b16519c327cb082e5669",
+    ".local/gate-6/post-v198-validation-v4-candidate/script-plan.json": "b8f4c39625f140c2a3fb3ac7ff04b1b17bbd03aaf6922143b9334870cad24563",
+    ".local/gate-6/post-v198-validation-v4-candidate/final-host-mode-observation.json": "d92271dd52a6aa116d72049566fe2dc56ec6d8f2b393e99b159061f0c9717234",
+    ".local/gate-6/post-v198-validation-v4-candidate/baseline-mode-observation.json": "6d5931abd357e9f59b81739bcbd2dc3b85e986e3ff6f6963696905a3fae060f9",
+    "docs/evidence/gate-6/blocker-components-post-v198-v3.json": "323ae21f625330ec864b3e6fd08c0866375389fda0763cf263d932821adfc1e1",
+    "docs/evidence/gate-6/matrix-full-v198.json": "5babff88e1ae25ea408552b9a8915515c5d9ae4b5e7020788ff9ce6b6fb0ab80",
+    ".local/gate-6/v198-v4-terminal-causal-fact-fixture-candidate/original-v4-store-failure.log": "5071e6ec5d61bbb5ef334e99c1f6aba2e5f8c2344ab8d6d3dc18ac48d529fee2"
+  },
+  "latest_full_matrix": {
+    "run": "v198",
+    "passed": 301,
+    "failed": 89,
+    "blocked": 42,
+    "qualified_cells": 0,
+    "total_cells": 32,
+    "attempted_cells": 29
+  },
+  "prior_focused_evidence_preserved": "docs/evidence/gate-6/blocker-components-post-v198-v3.json"
+}

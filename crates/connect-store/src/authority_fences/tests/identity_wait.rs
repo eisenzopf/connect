@@ -17,6 +17,25 @@ fn exercise(stage: u8, outcome: Outcome) {
     let a_name = f.store.authority.name(&(a.kind, a.id.clone())).unwrap();
     let b_name = f.store.authority.name(&(b.kind, b.id.clone())).unwrap();
     let target = format!("{b_name}.resource");
+    // Open separate descriptions before the worker and registry barrier. The
+    // scoped trace can probe the same actual locks without opening more files
+    // or waiting on the inode registry while the failure is emitted.
+    let trace_probes = matches!(outcome, Outcome::Immediate).then(|| {
+        [
+            f.store
+                .authority
+                .file(&format!("{a_name}.admission"))
+                .unwrap(),
+            f.store
+                .authority
+                .file(&format!("{a_name}.resource"))
+                .unwrap(),
+            f.store
+                .authority
+                .file(&format!("{b_name}.admission"))
+                .unwrap(),
+        ]
+    });
     let (entered, entry) = mpsc::channel();
     let (resume, resumed) = mpsc::channel();
     let (waiting, blocked) = mpsc::channel();
@@ -52,15 +71,22 @@ fn exercise(stage: u8, outcome: Outcome) {
     let scopes = vec![a.clone(), b.clone()];
     let (completed, completion) = mpsc::channel();
     let worker = std::thread::spawn(move || {
-        let result = if matches!(outcome, Outcome::Immediate) {
-            store.try_acquire_authority(&scopes)
+        let result = if let Some(probes) = trace_probes {
+            let cause = match stage {
+                0 => "file-identity-lookup",
+                1 => "file-identity-publication",
+                _ => unreachable!("unexpected original inode metadata stage"),
+            };
+            super::admission_trace::observe_refusal(cause, probes, || {
+                store.try_acquire_authority(&scopes)
+            })
         } else {
             store.acquire_authority(&scopes, &wait)
         };
         completed.send((result, Instant::now())).unwrap();
     });
     entry.recv_timeout(Duration::from_secs(1)).unwrap();
-    let metadata = f.store.authority.file_identities.lock().unwrap();
+    let metadata = f.store.authority.file_identities.write().unwrap();
     // By this stage the first write scope and the second admission turnstile
     // are actually held. Raw independent opens avoid the intentionally blocked
     // metadata helper while observing their real kernel exclusion.
@@ -167,4 +193,44 @@ fn immediate_lookup_and_publication_refuse_without_waiting_or_partial_locks() {
     for stage in [0, 1] {
         exercise(stage, Outcome::Immediate);
     }
+}
+
+#[test]
+fn warmed_file_identity_allows_a_second_real_reader_during_shared_confirmation() {
+    let f = Fixture::new();
+    let scope = f.scope(AuthorityMode::Read);
+    drop(f.store.try_acquire_authority(&[scope.clone()]).unwrap());
+    let name = f
+        .store
+        .authority
+        .name(&(scope.kind, scope.id.clone()))
+        .unwrap();
+    let target = format!("{name}.admission");
+    let (entered, entry) = mpsc::channel();
+    let (resume, resumed) = mpsc::channel();
+    let resumed = Mutex::new(resumed);
+    let entered_once = AtomicBool::new(false);
+    *f.store.authority.file_identity_probe.lock().unwrap() = Some(Arc::new(move |name, stage| {
+        if name == target && stage == 4 && !entered_once.swap(true, Ordering::AcqRel) {
+            entered.send(()).unwrap();
+            resumed
+                .lock()
+                .unwrap()
+                .recv_timeout(Duration::from_secs(2))
+                .unwrap();
+        }
+    }));
+    let store = f.store.clone();
+    let first_scope = scope.clone();
+    let first = std::thread::spawn(move || store.try_acquire_authority(&[first_scope]));
+    entry.recv_timeout(Duration::from_secs(1)).unwrap();
+    // The first open holds a real shared identity guard. The second performs
+    // both registry checks and actual file admission before it can return.
+    let second = f.store.try_acquire_authority(&[scope.clone()]);
+    resume.send(()).unwrap();
+    let first = first.join().unwrap().unwrap();
+    *f.store.authority.file_identity_probe.lock().unwrap() = None;
+    let second = second.expect("warm identity confirmation must allow another reader");
+    assert!(first.covers(&[scope.clone()]));
+    assert!(second.covers(&[scope]));
 }

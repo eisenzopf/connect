@@ -31,7 +31,16 @@ export async function browserMatrixAuthority({Sdk,provision,endpoints,selected,p
                 result.expiry_boundary={started_date_ms:startedDate,started_performance_ms:startedPerformance,
                     original_issued_at:issued.issued_at,original_expires_at:issued.expires_at,requested_wait_ms:wait};
                 check(wait>0&&wait<=13000,'Original current expiry window');
-                await new Promise(resolve=>setTimeout(resolve,wait));
+                const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+                const cutoff=startedPerformance+13000;
+                await sleep(wait);
+                // A timer can wake while the original wall clock is still
+                // before expiry. Keep the same credential and wait budget.
+                while(Date.now()<issued.expires_at*1000){
+                    const remaining=cutoff-performance.now();
+                    if(remaining<=0)break;
+                    await sleep(Math.min(remaining,Math.max(1,issued.expires_at*1000-Date.now())));
+                }
                 const observedDate=Date.now(),observedPerformance=performance.now();
                 Object.assign(result.expiry_boundary,{observed_date_ms:observedDate,observed_performance_ms:observedPerformance,
                     observed_wall_elapsed_ms:observedDate-startedDate,observed_monotonic_elapsed_ms:observedPerformance-startedPerformance});

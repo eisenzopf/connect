@@ -1,0 +1,42 @@
+{
+  "format": "connect/post-v198-integrated-blocker-batch/1",
+  "integrated": true,
+  "base_revision": "aab53a12c406e801b5a8bc28b0b14ab56d1d1a36",
+  "candidate_patch_sha256": "89438d9e331fdd03724484b88bc886708f0d1a5cf55dce437a0b1dfce6ecb705",
+  "changed_source_files": {
+    "crates/connect-store/src/authority_fences.rs": "6da13af7897a0fc133a99c97a7602d7b87ce476fed353013526d8c30146b82e2",
+    "crates/connect-store/src/authority_fences/diagnostics.rs": "04b22f6fdd0fed630fa40e546184d78c1b5778b039a4e370a8fc71b78f46327b",
+    "crates/connect-store/src/authority_fences/tests.rs": "a68d52efa59f1593aef129f08310ada25aa402e84d63c31f329f75814b2e232d",
+    "crates/connect-store/src/authority_fences/tests/admission_trace.rs": "aa0cdd7e68aad142885d030839d2a029ac0725db505291c9fbb5a3181fdeb8aa",
+    "crates/connect-store/src/authority_fences/tests/admissions.rs": "d640896fcc99263b14c918b3568ad812acf15ae460e3d7b9e02b6fd24b08d2bc",
+    "crates/connect-store/src/authority_fences/tests/identity_wait.rs": "6dc8cf459307f62c4510978bcb6e4fc18dbb666682b7fa5e57c7d80b2a99a0e7",
+    "scripts/lib/browser_matrix_authority.mjs": "e679b40d69edadd79e5898379dfccc86eb99206abc9e0c6677adcedfda9e81ff",
+    "scripts/lib/native_matrix_authority.mjs": "2a17722e2a7cbbd89ded53891ae536ce84e790a4a0d626589d288323ff253642",
+    "scripts/tests/browser_matrix_authority.test.mjs": "f81db361f2c4bff6138fe9c1195bb5fbc52746d1b3e96f03741f3e09129caf3d",
+    "scripts/tests/native_matrix_authority.test.mjs": "0d7c4ae02c3c863069e334ba0a777552c27b0fe7a4eaffe7b4f4eb7d5b9e8bb5",
+    "crates/connect-store/src/peer_authority/connection_media/admission.rs": "5635e9fa1b8220e61468207c99114d5dbd26160a539c0446dac05586536824f8",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/commit.rs": "a9024a3e6412a98815050a7d9f3d508855f7efa89cdad9c6f505c1e2435d8991",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/commit/terminal_retirement.rs": "1c5021c82a253a77fa241c5f0b19bf8d0568aa89a298b0de3298fb82ebe0a11f",
+    "scripts/rehearse-gate6-browser-matrix.py": "6a6fc784a755fb2232a921368adc95e6b2ad3d4446176e450f3138f899246e29",
+    "scripts/lib/vm_workload_lease.py": "06b0ae52cd4eef366cd88ba42d37bec34edd6ea1e24dd49228074dea8945798b",
+    "scripts/tests/test_browser_server_custody.py": "2b054e06000b4dcbc7881cff470492e66f525cea5b3b77679b00cd554552b6a7"
+  },
+  "completed_matrix_evidence_sha256": "5babff88e1ae25ea408552b9a8915515c5d9ae4b5e7020788ff9ce6b6fb0ab80",
+  "guardian_audit_sha256": "296ff225502c6071b6fa28ddaad1e4da5ae7a98543d8cfd17fccf8f1758f5155",
+  "original_terminal_retirement_observation_sha256": "95df862e44ac700893831b86302c4ca131872c4db869037b0d2f28f2b83470f5",
+  "verification": {
+    "prepare": true,
+    "format": true,
+    "diff": true,
+    "rust_tests_executed": 0,
+    "node_tests_executed": 0,
+    "python_tests_executed": 0
+  },
+  "pending_scope": {
+    "arm_rust": 145,
+    "arm_node": 83,
+    "arm_python": 42,
+    "mac_acl": 1,
+    "full_matrix_cells": 32
+  }
+}

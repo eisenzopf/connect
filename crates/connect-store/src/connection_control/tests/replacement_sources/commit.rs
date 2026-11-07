@@ -1279,6 +1279,7 @@ mod activation_recovery;
 mod active_recovery;
 mod diagnostics;
 mod not_submitted;
+mod terminal_retirement;
 mod transaction_diagnostics;
 
 struct MetadataOnlyInstallationGuard;

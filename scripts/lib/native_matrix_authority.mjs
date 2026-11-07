@@ -6,7 +6,8 @@ const refusal=error=>({kind:error.kind??null,certainty:error.certainty??null,
 /** One current credential boundary on one saved operation. No changed intent,
  * new operation, replacement credential or timeout-only authentication proof. */
 export async function nativeAuthorityCase({kind,operationId,expiresAt,open,boundary,saveReference,
-    observeHelpers,helpersJoined,now=()=>Date.now()/1000,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
+    observeHelpers,helpersJoined,now=()=>Date.now()/1000,monotonicNow=()=>performance.now(),
+    sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
     assert.ok(['expiry','revocation'].includes(kind));
     const result={passed:false,executed:true,kind,mutation_submissions:0,opened_client_owners:0,closed_client_owners:0};
     const owners=[];let reference;
@@ -30,7 +31,15 @@ export async function nativeAuthorityCase({kind,operationId,expiresAt,open,bound
         await observeHelpers();
         if(kind==='expiry'){
             const delay=expiresAt-now();assert.ok(delay>0&&delay<=13,'Original expiry window must remain bounded');
+            // A monotonic timer can finish before the original UTC boundary.
+            // Recheck the same expiry within the original maximum wait.
+            const cutoff=monotonicNow()+13100;
             await sleep(delay*1000+100);
+            while(now()<expiresAt){
+                const remaining=cutoff-monotonicNow();
+                if(remaining<=0)break;
+                await sleep(Math.min(remaining,Math.max(1,Math.ceil((expiresAt-now())*1000))));
+            }
             result.original_expiry_elapsed=now()>=expiresAt;assert.equal(result.original_expiry_elapsed,true);
         }else{
             const observation=await boundary();assert.equal(observation.revoked,true);
