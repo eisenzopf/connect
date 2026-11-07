@@ -195,7 +195,7 @@ try{
         // Start once, return immediately to automation, and retain the exact
         // completion. Polling below never submits another operation/workload.
         void (async()=>{
-        const {BrowserSdkClient,BrowserClient}=await import('/sdk/browser.js');
+        const {BrowserSdkClient,BrowserClient,browserOperationKinds}=await import('/sdk/browser.js');
         // Diagnostic-only observer: retain the original low-level rejection in
         // the private browser log before the public SDK classifies it. No wire
         // bodies, credentials, retries or altered promise outcomes.
@@ -204,7 +204,7 @@ try{
         const {browserMatrixRetirementHooks,finishBrowserMatrixRetirement}=await import('/_matrix/retirement-hooks.mjs');
         const {browserMatrixPlan,browserMatrixAdmission,retireBrowserMatrixAdmission,browserMatrixCycleSummary,browserMatrixCycleOutcome}=await import('/_matrix/admission.mjs');
         const {browserMatrixSources}=await import('/_matrix/sources.mjs');
-        const {browserMatrixProgramme,browserMatrixKeepalive,retireBrowserMatrixProgramme,closeBrowserMatrixProgramme}=await import('/_matrix/programme.mjs');
+        const {browserMatrixProgramme,browserMatrixKeepalive,retireBrowserMatrixProgramme,closeBrowserMatrixProgramme,browserMatrixCleanupMoves}=await import('/_matrix/programme.mjs');
         const pin=Uint8Array.from(spec.tls.leafSha256.match(/../g),value=>parseInt(value,16));
         let pinRefusal;
         if(selected==='webtransport'){
@@ -235,7 +235,7 @@ try{
             if(performance.now()>=cycleDeadline)throw Error('Original browser cycle deadline');
             return window.matrixJournal({...event,cycle_index:cycle.index,workload_id:cycle.workload_id});
         };
-        const actors={};window.matrixActors=actors;let state={},sources,keepalive,observer,selectionEnrollment;
+        const actors={};window.matrixActors=actors;let state={},sources,keepalive,observer,selectionEnrollment,cleanupMoves;
         const {browserMatrixRetiredReferences}=await import('/_matrix/retired-references.mjs');
         const retiredReferences=browserMatrixRetiredReferences({actors,state});
         const selection={},currentAuthority={};
@@ -286,8 +286,9 @@ try{
             const sourceStartup=sources.observation();
             if(spec.stage!=='admission'){
                 window.matrixPhase='four-move-programme';
+                cleanupMoves=browserMatrixCleanupMoves({state,actors,plan,journal:event=>journal(event),operationKind:browserOperationKinds.connectionReplace});
                 await browserMatrixProgramme({state,actors,plan,sources,journal:event=>journal(event),
-                    keepalive,report:programmeReport,observer,selectedTransport:selected});
+                    keepalive,report:programmeReport,observer,selectedTransport:selected,cleanupMoves});
             }
             const retirement=await retireBrowserMatrixProgramme({keepalive,report:programmeReport,retire:async()=>{
                 window.matrixPhase='original-retirement';
@@ -295,7 +296,7 @@ try{
                     resourceTerminalRequested=true;
                     await resources('terminal',resourceClock.host+(programmeReport.terminal_ms-resourceClock.browser)/1000);
                 }
-                return retireBrowserMatrixAdmission({state,actors,plan,journal:event=>journal(event),
+                return retireBrowserMatrixAdmission({state,actors,plan,journal:event=>journal(event),cleanupMoves,
                     closeOriginalClients:perform=>retiredReferences.closeClients(perform),
                     ...(spec.stage!=='admission'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
             }});
@@ -313,6 +314,9 @@ try{
                     &&source.sources.every(s=>s.original_source_owner_live===false&&s.original_source_timer_active===false
                         &&s.original_source_retired===true&&s.attachments.every(a=>a.retired))
                     &&transportOwnersJoined;
+                if(cleanupMoves&&!(retirement.cleanupRecovery?.released===true
+                    &&retirement.cleanupRecovery.retained_move_records===0&&retirement.cleanupRecovery.retained_sdk_references===0))
+                    throw Error('Original movement cleanup references must be released before idle');
                 const fixtureReferences=retiredReferences.release({renderer,source:sourceReferences,transport:diagnosticHooks,keepalive:keepalive?.observation()});
                 const completedMs=performance.now()-programmeReport.terminal_ms;
                 retirement.passed&&=completedMs<=5000&&localOwnersJoined&&fixtureReferences.released;
@@ -348,6 +352,7 @@ try{
                 catch(failure){cleanupErrors.push({stage:'terminal',name:failure.name});}
             }
             const closes=await retiredReferences.closeClients(client=>client.close({timeoutMs:5000}));
+            cleanupMoves?.release();
             const {outcomes:local}=await closeBrowserMatrixProgramme({keepalive,observer,sources,report:programmeReport,previousFailure:true});
             local.forEach((value,index)=>{if(value.status==='rejected')cleanupErrors.push({stage:['keepalive','renderer','source'][index],name:value.reason?.name??'Error'});});
             const diagnosticHooks=await retirementHooks.finish();diagnosticHooksReported=true;
@@ -386,6 +391,7 @@ try{
                 idle_resources:failedIdle,original_cleanup_errors:cleanupErrors,original_client_closes:closes.map(value=>value.status)};
         } finally {
             const closed=await closeBrowserMatrixProgramme({keepalive,observer,sources,report:programmeReport,previousFailure:failureHandled});
+            cleanupMoves?.release();
             await finishBrowserMatrixRetirement({hooks:retirementHooks,closed,reported:diagnosticHooksReported,previousFailure:failureHandled});}
         })();
         value.original_cycle_budget={started_ms:cycleStarted,deadline_ms:cycleDeadline,finished_ms:performance.now(),budget_ms:210000};

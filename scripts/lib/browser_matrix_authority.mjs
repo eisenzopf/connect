@@ -27,26 +27,32 @@ export async function browserMatrixAuthority({Sdk,provision,endpoints,selected,p
             if(kind==='expiry'){
                 stage='original-expiry-wait';
                 const startedDate=Date.now(),startedPerformance=performance.now();
-                const wait=issued.expires_at*1000-startedDate+100;
+                const expiryDate=issued.expires_at*1000,targetDate=expiryDate+100;
+                const wait=targetDate-startedDate;
                 result.expiry_boundary={started_date_ms:startedDate,started_performance_ms:startedPerformance,
-                    original_issued_at:issued.issued_at,original_expires_at:issued.expires_at,requested_wait_ms:wait};
+                    original_issued_at:issued.issued_at,original_expires_at:issued.expires_at,requested_wait_ms:wait,
+                    original_target_date_ms:targetDate,original_observation_margin_ms:100};
                 check(wait>0&&wait<=13000,'Original current expiry window');
                 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
                 const cutoff=startedPerformance+13000;
                 await sleep(wait);
                 // A timer can wake while the original wall clock is still
-                // before expiry. Keep the same credential and wait budget.
-                while(Date.now()<issued.expires_at*1000){
+                // before the original observation target. Preserve its 100 ms
+                // margin through every fallback, with the same credential and
+                // original 13 second wait budget.
+                while(Date.now()<targetDate){
                     const remaining=cutoff-performance.now();
                     if(remaining<=0)break;
-                    await sleep(Math.min(remaining,Math.max(1,issued.expires_at*1000-Date.now())));
+                    await sleep(Math.min(remaining,Math.max(1,targetDate-Date.now())));
                 }
                 const observedDate=Date.now(),observedPerformance=performance.now();
                 Object.assign(result.expiry_boundary,{observed_date_ms:observedDate,observed_performance_ms:observedPerformance,
                     observed_wall_elapsed_ms:observedDate-startedDate,observed_monotonic_elapsed_ms:observedPerformance-startedPerformance});
-                result.original_expiry_elapsed=observedDate>=issued.expires_at*1000;
+                result.original_expiry_elapsed=observedDate>=expiryDate;
+                result.original_observation_margin_elapsed=observedDate>=targetDate;
                 stage='original-expiry-boundary';
                 check(result.original_expiry_elapsed,'Original credential expiry has not elapsed');
+                check(result.original_observation_margin_elapsed,'Original credential expiry observation margin has not elapsed');
             }else {stage='original-revocation';check((await provision('revoke')).revoked===true,'Original credential revocation');}
             stage='original-live-read';
             try{await owner.conversations.byId(state.conversation.id).refresh({timeoutMs:3000});}

@@ -138,6 +138,36 @@ pub(super) async fn until_phase<T>(
         None => future.await,
     }
 }
+/// Poll one original bounded observation while all old receivers keep playing.
+/// EOF is remembered and disabled, never spun on. Finish the same observation
+/// before returning an EOF failure: it may own a decoder requiring explicit
+/// original child kill+join. No sibling observation task or new timeout exists.
+pub(super) async fn with_original_playout<Frame, Observation>(
+    original: [&mut mpsc::Receiver<Frame>; 4],
+    observation: Observation,
+) -> Result<Observation::Output, &'static str>
+where
+    Observation: std::future::Future,
+{
+    let [audio_a, video_a, audio_b, video_b] = original;
+    let mut open = [true; 4];
+    let mut closed = false;
+    tokio::pin!(observation);
+    loop {
+        tokio::select! {
+            value = &mut observation => return if closed {
+                Err("an original receiver closed during private observation")
+            } else {
+                Ok(value)
+            },
+            frame = audio_a.recv(), if open[0] => if frame.is_none() { open[0] = false; closed = true; },
+            frame = video_a.recv(), if open[1] => if frame.is_none() { open[1] = false; closed = true; },
+            frame = audio_b.recv(), if open[2] => if frame.is_none() { open[2] = false; closed = true; },
+            frame = video_b.recv(), if open[3] => if frame.is_none() { open[3] = false; closed = true; },
+        }
+    }
+}
+
 pub(super) async fn active_playout_delay(
     a: &mut Received,
     b: &mut Received,
@@ -349,4 +379,114 @@ pub(super) async fn originals(
     .await;
     picture(&mut a.video, blue, "bounded-original-blue", dir, 2, cutoff).await;
     picture(&mut b.video, red, "bounded-retained-red", dir, 0, cutoff).await;
+}
+
+#[tokio::test]
+async fn private_observation_keeps_original_playout_and_the_same_deadline_and_owner() {
+    fn channels() -> ([mpsc::Sender<u8>; 4], [mpsc::Receiver<u8>; 4]) {
+        let (ta, ra) = mpsc::channel(1);
+        let (tv, rv) = mpsc::channel(1);
+        let (tb, rb) = mpsc::channel(1);
+        let (tw, rw) = mpsc::channel(1);
+        ([ta, tv, tb, tw], [ra, rv, rb, rw])
+    }
+    // The real helper must consume every old playout channel before this
+    // original observation can obtain the corresponding queue permits.
+    let (senders, receivers) = channels();
+    for sender in &senders {
+        sender.send(1).await.unwrap();
+    }
+    let [mut aa, mut av, mut ba, mut bv] = receivers;
+    let observed = tokio::time::timeout(
+        Duration::from_secs(1),
+        with_original_playout([&mut aa, &mut av, &mut ba, &mut bv], async {
+            for sender in &senders {
+                drop(sender.reserve().await.unwrap());
+            }
+            2880_u64
+        }),
+    )
+    .await
+    .expect("bounded synthetic original-consumption control")
+    .unwrap();
+    assert_eq!(observed, 2880);
+    for receiver in [&mut aa, &mut av, &mut ba, &mut bv] {
+        assert!(matches!(
+            receiver.try_recv(),
+            Err(mpsc::error::TryRecvError::Empty)
+        ));
+    }
+
+    // Continuous old traffic must neither recreate nor renew the one pinned
+    // candidate deadline. The producer is cancelled and naturally joined
+    // before any assertion, even if the bounded observation itself fails.
+    let (senders, receivers) = channels();
+    for sender in &senders {
+        sender.send(1).await.unwrap();
+    }
+    let [mut aa, mut av, mut ba, mut bv] = receivers;
+    let stop = CancellationToken::new();
+    let cancel = stop.clone();
+    let sender = senders[0].clone();
+    let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+    let producer = tokio::spawn(async move {
+        let mut sent = 0;
+        let mut started_tx = Some(started_tx);
+        let mut anchor = None;
+        loop {
+            tokio::select! {
+                _ = cancel.cancelled() => break,
+                result = sender.send(1) => {
+                    if result.is_err() { break; }
+                    sent += 1;
+                    if sent == 2 {
+                        let now = tokio::time::Instant::now();
+                        anchor = Some(now);
+                        let _ = started_tx.take().unwrap().send(now);
+                    }
+                },
+            }
+        }
+        (sent, anchor)
+    });
+    let result = tokio::time::timeout(
+        Duration::from_secs(1),
+        with_original_playout([&mut aa, &mut av, &mut ba, &mut bv], async {
+            // Establish the same fixed anchor only after old traffic has
+            // actually traversed the helper, independent of scheduler startup.
+            let deadline = started_rx.await.unwrap() + Duration::from_millis(20);
+            let outcome = tokio::time::timeout_at(deadline, std::future::pending::<()>()).await;
+            (deadline, outcome)
+        }),
+    )
+    .await;
+    stop.cancel();
+    let (sent, anchor) = producer.await.unwrap();
+    let (actual_deadline, outcome) = result.unwrap().unwrap();
+    assert_eq!(actual_deadline, anchor.unwrap() + Duration::from_millis(20));
+    assert!(outcome.is_err());
+    assert!(
+        sent > 1,
+        "original traffic must actually be consumed during the same wait"
+    );
+
+    // An EOF must fail, but cannot spin or drop the original observation
+    // before its own terminal step. There is no separate decoder future to
+    // abandon and no new budget around its existing owned cleanup.
+    let (senders, receivers) = channels();
+    drop(senders);
+    let [mut aa, mut av, mut ba, mut bv] = receivers;
+    let completed = std::sync::atomic::AtomicBool::new(false);
+    let result = tokio::time::timeout(
+        Duration::from_secs(1),
+        with_original_playout([&mut aa, &mut av, &mut ba, &mut bv], async {
+            tokio::task::yield_now().await;
+            tokio::task::yield_now().await;
+            completed.store(true, std::sync::atomic::Ordering::SeqCst);
+        }),
+    )
+    .await
+    .expect("bounded synthetic EOF/terminal control");
+    assert!(completed.load(std::sync::atomic::Ordering::SeqCst));
+    assert!(result.is_err());
 }

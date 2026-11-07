@@ -1,0 +1,507 @@
+{
+  "format": "connect/g6-058-post-v202-complete-unit-verified-batch-public/1",
+  "status": "UNIT VERIFIED; final full32 matrix pending",
+  "source_base_revision": "6380a65a5435d7e749374ee9d7fc687f62590042",
+  "unit_source_workspace_sha256": "33c4d457bf1acc5959af495ab8829bc17116b223df5a0839295a585b4c945e64",
+  "initial_full_v202_source_workspace_sha256": "f3451a910dbffd9efe58cf275a08193fe3ab91d6ad6bb1d8ad03845b32753498",
+  "code_files": [
+    {
+      "path": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+      "before_sha256": "7dd64f33b5917fc23d540dadda6761e4629270819ef89929561a56c61fedecf6",
+      "after_sha256": "6169921312482ce9caafd931748c78e2163c5ef66ca7d4deda84b98395060cfe"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av/private_marker.rs",
+      "before_sha256": "94cf78552b35fc0ccc893b9d11e18abe3ebc6d9584975105997f2f090b04cfe5",
+      "after_sha256": "49b2a59294370250b32e44f2a8e36151f8b6ab7eebafc32f05c561f70ac62c72"
+    },
+    {
+      "path": "dependencies/source-lock.json",
+      "before_sha256": "a9af4d23cb86101baead39598ee6690ef16d845e20b5d48dd72ae49b91b56c11",
+      "after_sha256": "34c60addf4bba2c01c10d161870564cd02d95f82dc34114ae7600b430c5cb928"
+    },
+    {
+      "path": "patches/rvoip/connect-private-video-route-phase-observations.patch",
+      "before_sha256": "9ed4696ba23261ffc2529a967d639aa729657e4bead3b9f05652dfe41ae396f0",
+      "after_sha256": "50dc617ce985d5caadc97247e2a44fab51c41b16165da0b779a5929a2c57158c"
+    },
+    {
+      "path": "patches/rvoip/connect-terminal-managed-runtime-release.patch",
+      "before_sha256": null,
+      "after_sha256": "dc85020edc96474f42656a5310edef23327e9c54739f6da6c38df81055c84dee"
+    },
+    {
+      "path": "scripts/lib/browser_matrix_admission.mjs",
+      "before_sha256": "180893899d38f4045e304589ae9b1230b77b45c9926e83f3790575a79d3ed9fe",
+      "after_sha256": "fbb27c12c069d478c3561dca331e90e2817a4fe310865a8c45b51380f6c7e69c"
+    },
+    {
+      "path": "scripts/lib/browser_matrix_authority.mjs",
+      "before_sha256": "e679b40d69edadd79e5898379dfccc86eb99206abc9e0c6677adcedfda9e81ff",
+      "after_sha256": "ada6d974ced73878f25b1e9488b438599256df6e68e38424546fc418b139167d"
+    },
+    {
+      "path": "scripts/lib/browser_matrix_programme.mjs",
+      "before_sha256": "905f8ff925f664575f160e311f960419620b1978c50244dd6ad091d97320d056",
+      "after_sha256": "df1f094cf79974dd92f221df0067b16ea0aff813746702701aa6ed75e61932c5"
+    },
+    {
+      "path": "scripts/lib/transport_matrix_execution.py",
+      "before_sha256": "cf44446f0d539423e47fdd13f38b15018684d1b798a304662f148fe2bad46f34",
+      "after_sha256": "d15ea3c807784fab236285cbc2b895bf011c04c6b1bc9811beb950c25b640a37"
+    },
+    {
+      "path": "scripts/rehearse-gate6-browser-matrix.py",
+      "before_sha256": "4168b7ea1a17a5b588b8834a7b497c37df87dd15a93e12a782a24e1eee3b8194",
+      "after_sha256": "826f0dc94d72725b2ba0152012dcad7b2402b055e87043912830e12248edc7cc"
+    },
+    {
+      "path": "scripts/tests/browser_matrix_admission.test.mjs",
+      "before_sha256": "4827a91838b20538451cc2ab9ecbf7eb58fd6a762c2a9adf277b08d2b506c592",
+      "after_sha256": "93cf3b39df5db809bf8556dd351f206397947ef5a59b012a83332f019415efe7"
+    },
+    {
+      "path": "scripts/tests/browser_matrix_authority.test.mjs",
+      "before_sha256": "f81db361f2c4bff6138fe9c1195bb5fbc52746d1b3e96f03741f3e09129caf3d",
+      "after_sha256": "f6a318f105a0824b6d64f196ac6f522acf2ceb54becbfe0e3aabd2d5ecc9d369"
+    },
+    {
+      "path": "scripts/tests/browser_matrix_programme.test.mjs",
+      "before_sha256": "60112bc375298fc45373a20808e86f6008da821310daf4a21cb43c14506ba8eb",
+      "after_sha256": "621c1bad894befcb8c4c6a9de030ac2e87030f4031b5c10dfb752649fd49f09f"
+    },
+    {
+      "path": "scripts/tests/test_browser_matrix_execution.py",
+      "before_sha256": "9b6313320b0284e5b3b12f66e1f1fc6f5bcb91cdf68e517bfa494d856c22b824",
+      "after_sha256": "3de1367c0353b61c4484226b9b65bcca2be9618bbfe7f92c5067cfdcb65fbd36"
+    },
+    {
+      "path": "scripts/video/browser_matrix_admission.mjs",
+      "before_sha256": "5b63896657116ec5e746a217d9f51d30169369c6ded35c804d8396a2bbcefc77",
+      "after_sha256": "56ef475a05346d571d1bf24e33289c3a15de074a5d2884b63436f20a104be557"
+    }
+  ],
+  "incremental_batch_changed_files": 12,
+  "total_git_dirty_code_paths": 15,
+  "actual_code_integration_receipt_sha256": "d1b8eadc181ce833edaa899ae701340a322d1c6110a9fdf32feaa1d3141a7e5e",
+  "reviewed_batch_sha256": "030472914f8c0045270729d2db86eb941f0b6b8692d50940a3a46432e9192142",
+  "fixes": [
+    {
+      "id": "W1",
+      "title": "Ordinary video/screen target metadata release",
+      "code_paths": [
+        "patches/rvoip/connect-private-video-route-phase-observations.patch"
+      ],
+      "status": "unit-verified; full-matrix-pending",
+      "checks": "Seven exact new current-generation/activation/queue/deadline Core controls pass."
+    },
+    {
+      "id": "W3",
+      "title": "Recover the same completed original operation target for cleanup",
+      "code_paths": [
+        "scripts/lib/browser_matrix_programme.mjs",
+        "scripts/lib/browser_matrix_admission.mjs",
+        "scripts/lib/transport_matrix_execution.py",
+        "scripts/rehearse-gate6-browser-matrix.py",
+        "scripts/video/browser_matrix_admission.mjs"
+      ],
+      "status": "unit-verified; full-matrix-pending",
+      "checks": "Five new Node controls and one new Python control pass. All six functional connection ends,two Session ends and seven client joins remain required. Original8s move failures are never relabeled.",
+      "followthrough": "Immediate status-owner recheck is early-refusal consistency; original later guards already prevented false cleanup publication."
+    },
+    {
+      "id": "W4",
+      "title": "Release exact terminal Core runtime after its original join",
+      "code_paths": [
+        "patches/rvoip/connect-terminal-managed-runtime-release.patch"
+      ],
+      "status": "unit-verified; full-matrix-pending",
+      "checks": "Eight new tests pass for exact runtime/mixer/scene release, terminal scalar/history, cancellation/finalizer failure/concurrency, legacy guards and no projection gap. No separate thread/RSS policy change."
+    },
+    {
+      "id": "W6",
+      "title": "Keep the original expiry observation margin",
+      "code_paths": [
+        "scripts/lib/browser_matrix_authority.mjs",
+        "scripts/tests/browser_matrix_authority.test.mjs"
+      ],
+      "status": "unit-verified; full-matrix-pending",
+      "checks": "The real-helper rollback/frozen-margin regression passes. Original E+100 target and13s cutoff/current refusal/credential remain; historical host read timestamp is unknown."
+    },
+    {
+      "id": "W7",
+      "title": "Keep original peer playout active during one bounded private observation",
+      "code_paths": [
+        "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+        "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av/private_marker.rs"
+      ],
+      "status": "unit-verified; full-matrix-pending",
+      "checks": "New same-helper consumption/deadline/EOF/owner control and the existing real RTC expiry negative pass. Same audio-then-video future, Opus sample/keyframe checks and original decoder/budgets remain. Historical backpressure cause remains a supported hypothesis, not a proved sole cause."
+    }
+  ],
+  "focused_verification": {
+    "status": "passed",
+    "scope": {
+      "rust_arm": 212,
+      "node": 288,
+      "python": 133,
+      "mac_acl": 1,
+      "explicit_ignored_rtc_executed": 6
+    },
+    "rust": {
+      "planned": 212,
+      "executed": 212,
+      "passed": 212,
+      "failed": 0,
+      "not_executed": 0
+    },
+    "node": {
+      "tests": 288,
+      "pass": 288,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "python": {
+      "executed": 133,
+      "passed": 133,
+      "unique_cases_verified": true
+    },
+    "mac_acl": {
+      "executed": 1,
+      "passed": 1
+    },
+    "shipping_default_check_passed": true,
+    "instrumented_target_metadata_passed": true,
+    "typescript_build_passed": true,
+    "sdk_generated_unchanged": true,
+    "source_and_checkers_unchanged": true,
+    "all_original_host_and_worker_groups_joined": true,
+    "all_groups_unforced": true,
+    "original_arm_lease_acquired_released_joined": true,
+    "original_controller_joined": true,
+    "original_controller_exit_code": 0,
+    "source_workspace_sha256": "33c4d457bf1acc5959af495ab8829bc17116b223df5a0839295a585b4c945e64",
+    "source_base_revision": "6380a65a5435d7e749374ee9d7fc687f62590042",
+    "source_lock_sha256": "34c60addf4bba2c01c10d161870564cd02d95f82dc34114ae7600b430c5cb928",
+    "prepared_graph": {
+      "rvoip": "372a23fd224b6962d372a22292fc566f27552b54846597956b1c9b05a7692974",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "actual_declared_prepared_files": 544,
+    "declared_count_note": "One physical new terminal test module and newly patched Session.rs both enter the prepared source declaration; the actual verified total is544.",
+    "configuration_sha256": "3243bcf693a760fb837a91445bb56bf554b9445e2d427f5071ebbfb7c254f7de",
+    "root_terminal_review_sha256": "fe626c6e07ac71ea1e536d224c8bf5e2d460a5f9295c3a2af0b95335ed43870b",
+    "receipt_sha256": {
+      "arm-receipt": "e96f045e3ecf78bc45adc223b7ae3e24a5cc17ca382843cf2d592a0f4a4bed8d",
+      "runtime-host-receipt": "9fd158bda7d8a9e3209d7faa366fda8c1d322e33adbbd0e979fb2369529f975e",
+      "mac-runtime_receipt": "ba87b14cb04f8c3c254aaaf31d48999e8a8009d5a14473748be335ac905aa18d",
+      "controller-exit": "af88e1eac25dabb0517c2f1cc550722fc9a941e16d0809f374bc7d2018c738e3"
+    },
+    "node_log_sha256": "c289b1b5d9709e8495d4ca48a9495689135de2b140cef4dde72143c7288aae39",
+    "python_log_sha256": "0f000d2f04d4db2e0061c00dbe021d5e3a6e697850259d1a70bffa22ef8fa37a",
+    "controller_log_sha256": "906731dcbca5bc893bda56a87723cf51f5f45c6261f8f29cd4f9b8e223a766fd",
+    "matrix_qualified": false,
+    "whole_gate_qualified": false
+  },
+  "workplan_tasks": [
+    {
+      "id": "S1",
+      "title": "Remove target metadata exclusion in ordinary video/screen forwarding",
+      "owner": "Core media implementation / expiry_review",
+      "dependencies": [],
+      "code_paths": [
+        "patches/rvoip/connect-private-video-route-phase-observations.patch",
+        "dependencies/source-lock.json"
+      ],
+      "solution": "Freeze the original consumer/scene state, release target State across external policy, and atomically revalidate original generations/activation/deadline before writer admission.",
+      "test_names": [
+        "staged_streams::tests::packet_admission::ordinary_video_receive_busy_postpolicy_state_keeps_original_packet_and_deadline",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_allows_an_existing_queued_writer_to_drain",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_freezes_consumer_membership_and_activation",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_preserves_exact_scene_activation_and_membership",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_refuses_model_aba_credential_and_original_port_changes",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_releases_target_state_for_video_and_screen",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_refuses_concurrent_scene_reactivation_before_enqueue"
+      ],
+      "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
+      "completion": "Actual full-matrix handoff/decoded-media checks pass; no unit-to-cell promotion.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S2",
+      "title": "Complete eight native three-cycle programme proofs",
+      "owner": "Full matrix runner / root",
+      "dependencies": [
+        "S1",
+        "S7"
+      ],
+      "code_paths": [
+        "scripts/lib/native_matrix_idle.py",
+        "scripts/lib/matrix_plateau.py"
+      ],
+      "solution": "Retest real3x62s native programmes after media fixes; preserve zero Session-owned resources, per-cycle joins and original10s idle observations. No separate leak conclusion from incomplete windows.",
+      "test_names": [
+        "test_matrix_plateau.MatrixPlateauTests.test_three_short_or_missing_original_workload_windows_do_not_qualify",
+        "test_native_matrix_producers.NativeMatrixPlateauProducer.test_short_original_native_programme_cannot_qualify_three_cycle_resources"
+      ],
+      "status": "Selected resource controls pass; actual complete native workloads and process plateau verification remain pending in full32. No resource-policy relaxation or cell closure.",
+      "completion": "All8 native cells provide genuine complete workloads and pass the unchanged resource evaluator.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S3",
+      "title": "Retire actual original replacement targets, not stale old source handles",
+      "owner": "Browser cleanup implementation / expiry_review",
+      "dependencies": [
+        "S1"
+      ],
+      "code_paths": [
+        "scripts/lib/browser_matrix_admission.mjs",
+        "scripts/lib/browser_matrix_programme.mjs",
+        "scripts/lib/transport_matrix_execution.py",
+        "scripts/rehearse-gate6-browser-matrix.py",
+        "scripts/tests/browser_matrix_admission.test.mjs",
+        "scripts/tests/browser_matrix_programme.test.mjs",
+        "scripts/tests/test_browser_matrix_execution.py",
+        "scripts/video/browser_matrix_admission.mjs"
+      ],
+      "solution": "Inspect the same original operation and its durable completed target for cleanup after an uncertain move observation; end the actual target and retain all six logical connection cleanup receipts. Do not retry a mutation, convert original8s deadline failure to success, or count an absent end ledger row as accepted.",
+      "test_names": [
+        "lost original replacement completion recovers only its target for cleanup without changing the failed move",
+        "unknown or preparing original moves never supply an inferred replacement cleanup owner",
+        "foreign original record candidate generation or physical owner cannot select a cleanup target",
+        "return movement cleanup uses its original source generation and actual target actor",
+        "original cleanup deadline and uncertain end response never trigger another mutation or retained registry",
+        "test_browser_matrix_execution.BrowserCycleJoinTests.test_actual_session_joins_do_not_hide_failed_functional_connection_ends"
+      ],
+      "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
+      "completion": "All14 affected cycle connection-retirement receipts are genuine and original Session/helper joins remain passing.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S4",
+      "title": "Release terminal Core shell ownership after Session retirement",
+      "owner": "Core resource lifecycle / v198_resources",
+      "dependencies": [],
+      "code_paths": [
+        ".deps/rvoip/crates/foundation/rvoip-core/src/session.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/records/capture.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator/participant_control/terminal_release_tests.rs"
+      ],
+      "solution": "Remove the demonstrated terminal Core shell strong-retention path while preserving in-flight/borrowed owner lifetime and late-identity safety. Bind actual source/test review before integration; no cache/pool tuning.",
+      "test_names": [
+        "orchestrator::participant_control::terminal_release_tests::successful_end_releases_exact_runtime_mixer_and_staged_scene_before_orchestrator_shutdown",
+        "orchestrator::participant_control::terminal_release_tests::repeated_terminal_sessions_keep_live_registry_constant_and_only_scalar_revision_in_history",
+        "orchestrator::participant_control::terminal_release_tests::cancelled_original_join_keeps_same_runtime_until_successful_retry_releases_it",
+        "orchestrator::participant_control::terminal_release_tests::failed_original_finalizer_never_publishes_terminal_metadata_or_removes_join_custody",
+        "orchestrator::participant_control::terminal_release_tests::concurrent_end_releases_one_original_runtime_after_join_and_keeps_stable_terminal_queries",
+        "orchestrator::participant_control::terminal_release_tests::terminal_scene_release_keeps_unrelated_live_runtime_and_original_mixer_owned",
+        "orchestrator::participant_control::terminal_release_tests::terminal_managed_marker_prevents_legacy_join_leave_takeover_and_binding_after_runtime_release",
+        "orchestrator::participant_control::terminal_release_tests::terminal_revision_publication_precedes_excluded_same_runtime_removal_without_query_gap"
+      ],
+      "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
+      "completion": "Targeted terminal retention/reuse/in-flight regressions pass, then all original three-cycle matrix resource observations pass.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S5",
+      "title": "Resolve measured thread/RSS plateau failures without changing the bar",
+      "owner": "Resource attribution / v198_resources",
+      "dependencies": [
+        "S3",
+        "S4"
+      ],
+      "code_paths": [
+        "scripts/lib/matrix_plateau.py",
+        "Runtime Core/Store owner paths identified by resource investigation"
+      ],
+      "solution": "Separate actual retained Core owners from persistent Tokio blocking-worker residency and Chromium MemoryInfra thread initialization. Fix source-proven retained ownership first; investigate any residual genuine growth with original identities. Preserve approved thread/FD/process and max8MiB/5% RSS limits; no forced GC or policy relaxation.",
+      "test_names": [
+        "test_matrix_plateau.MatrixPlateauTests.test_actual_cold_warmup_then_bounded_jitter_uses_fixed_cycle_one_reference",
+        "test_matrix_plateau.MatrixPlateauTests.test_bounded_decaying_warmup_can_plateau_but_linear_or_accelerating_growth_fails",
+        "test_matrix_plateau.MatrixPlateauTests.test_variance_bound_is_disclosed_for_larger_process_footprints",
+        "test_matrix_plateau.MatrixPlateauTests.test_later_thread_fd_or_process_growth_is_never_an_rss_allowance",
+        "test_matrix_plateau.MatrixPlateauTests.test_each_original_idle_window_requires_zero_session_owners_and_pool_restoration",
+        "test_matrix_plateau.MatrixPlateauTests.test_missing_cycle_unavailable_counters_and_reused_evidence_fail",
+        "test_matrix_plateau.MatrixPlateauTests.test_exact_original_pid_birth_role_and_all_actual_joins_are_required",
+        "test_matrix_plateau.MatrixPlateauTests.test_each_cycle_requires_its_own_original_join_evidence",
+        "test_matrix_plateau.MatrixPlateauTests.test_unknown_birth_placeholders_cannot_stand_in_for_original_owner_identity",
+        "test_matrix_plateau.MatrixPlateauTests.test_each_cycle_needs_a_fresh_baseline_after_previous_final_observation",
+        "test_matrix_plateau.MatrixPlateauTests.test_three_short_or_missing_original_workload_windows_do_not_qualify",
+        "test_matrix_plateau.MatrixPlateauTests.test_original_ten_second_budget_ordering_and_policy_are_not_relaxed",
+        "test_matrix_plateau.MatrixPlateauTests.test_producer_green_flags_cannot_clear_missing_observation_or_media_failure",
+        "test_native_matrix_producers.NativeMatrixPlateauProducer.test_three_native_cycles_accept_cold_warmup_only_with_original_roots_and_session_joins",
+        "test_native_matrix_producers.NativeMatrixPlateauProducer.test_native_cycle_session_leak_remains_failed_while_all_three_diagnostic_cycles_complete",
+        "test_native_matrix_producers.NativeMatrixPlateauProducer.test_three_cycle_verifiers_recompute_original_worker_and_cleanup_bounds",
+        "test_native_matrix_producers.NativeMatrixPlateauProducer.test_short_original_native_programme_cannot_qualify_three_cycle_resources",
+        "test_operational_process_resources.ProcessBoundary.test_browser_startup_failure_exposes_only_closed_metadata",
+        "test_operational_process_resources.ProcessBoundary.test_separate_owned_groups_preserve_numeric_metadata_without_names",
+        "test_operational_process_resources.ProcessBoundary.test_nonleader_worker_task_children_remain_in_original_helper_group",
+        "test_operational_process_resources.ProcessBoundary.test_reused_root_pid_cannot_adopt_unrelated_descendants",
+        "test_operational_process_resources.ProcessBoundary.test_missing_or_unreadable_metadata_is_not_zero_usage_availability",
+        "test_operational_process_resources.ProcessBoundary.test_duplicate_roots_and_cross_role_children_refuse",
+        "test_operational_process_resources.ProcessBoundary.test_native_two_roles_preserve_descriptor_unavailability_and_pid_identity"
+      ],
+      "status": "Selected resource controls pass; actual complete native workloads and process plateau verification remain pending in full32. No resource-policy relaxation or cell closure.",
+      "completion": "All13 completed browser workload cells pass original plateau comparisons, with any remaining failed metric explicitly retained.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S6",
+      "title": "Keep original expiry observation margin through fallback",
+      "owner": "Authority fixture / expiry_review",
+      "dependencies": [],
+      "code_paths": [
+        "scripts/lib/browser_matrix_authority.mjs",
+        "scripts/tests/browser_matrix_authority.test.mjs"
+      ],
+      "solution": "Keep absolute E+100 target under same13s budget; preserve exact credential, live-read refusal, fresh authentication refusal and owner joins. Historical host admission time remains unknown.",
+      "test_names": [
+        "a rolled-back browser clock preserves the original expiry observation margin before probing"
+      ],
+      "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
+      "completion": "All32 current authority requirements pass without reclassifying the3 historical failed cells.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S7",
+      "title": "Investigate current RTC private audio timeout before the expiry test boundary",
+      "owner": "RTC fixture / v199_driver",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+        "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av/private_marker.rs"
+      ],
+      "solution": "Keep original receivers playing while the same pinned candidate observation future runs, preserving the original audio3x5s and video timeout/keyframe/sample checks. Source shows old receivers are unconsumed with64-frame queues and pump drops; whether this caused the historical candidate audio stall remains a hypothesis. Stage the smallest helper/regression, review, then run actual tests before claiming a fix.",
+      "test_names": [
+        "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_original_reservation_expiry_refuses_genuine_private_observation",
+        "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::private_marker::private_observation_keeps_original_playout_and_the_same_deadline_and_owner"
+      ],
+      "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
+      "completion": "Targeted helper regression and the exact original RTC case pass, followed by the complete focused scope and all32 matrix cells.",
+      "completion_status": "full-matrix-pending"
+    }
+  ],
+  "historical_focused_attempts": [
+    {
+      "attempt": "Original post-v201 focused attempt",
+      "rust": {
+        "planned": 196,
+        "executed": 196,
+        "passed": 195,
+        "failed": 1
+      },
+      "failure": "New cancellation-attribution test expected Cancelled; existing retired private-route ticket refuses Authority by source contract. Raw original failure does not print the returned variant.",
+      "correction": "Test expectation corrected only; original no-writer/phase assertions retained.",
+      "verdict": "failed, preserved"
+    },
+    {
+      "attempt": "First203-case focused attempt, source838",
+      "rust": {
+        "planned": 203,
+        "executed": 159,
+        "passed": 159,
+        "not_executed": 44
+      },
+      "failure": "E0063: an existing CallbackPolicy test initializer omitted the newly explicit receive field. Core test binary did not compile; production libraries compiled.",
+      "correction": "One test-only receive:false field; no production or selector changes.",
+      "verdict": "failed, preserved"
+    },
+    {
+      "attempt": "First corrected retry, sourcea25",
+      "rust": {
+        "planned": 203,
+        "executed": 203,
+        "passed": 201,
+        "failed": 2,
+        "not_executed": 0
+      },
+      "failure": "Two new scene tests claimed their ordinary input/output handles after installing managed scenes, reaching Unsupported before the intended policy callback.",
+      "correction": "Move existing scene-install statements after original handle claims and before publication. No source/line multiset, assertion, production or case-count change.",
+      "failed_cases": [
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_preserves_exact_scene_activation_and_membership",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_refuses_concurrent_scene_reactivation_before_enqueue"
+      ],
+      "verdict": "failed, preserved"
+    },
+    {
+      "attempt": "Previous complete203-case corrected retry \u2014 terminal",
+      "rust": {
+        "planned": 203,
+        "executed": 203,
+        "passed": 202,
+        "failed": 1,
+        "not_executed": 0
+      },
+      "failure": "Existing RTC reservation-expiry negative times out waiting for genuine private audio BEFORE reaching the expiry boundary. A fixture continuous-playout correction is being investigated; historical cause is not yet proved.",
+      "source_workspace_sha256": "3386a946f5bd253819c7bd038b9e9c01111e776254b15e53029138292f3102da",
+      "scope": {
+        "rust": 203,
+        "node": 283,
+        "python": 132,
+        "mac_acl": 1,
+        "explicit_ignored": 6
+      },
+      "verdict": "FAILED \u2014 original203 executions/202 passes/1 failure retained; Node283/Python132/MacACL1 and source/owner guards pass"
+    },
+    {
+      "attempt": "Complete expanded batch",
+      "scope": {
+        "rust_arm": 212,
+        "node": 288,
+        "python": 133,
+        "mac_acl": 1,
+        "explicit_ignored_rtc_executed": 6
+      },
+      "rust": {
+        "executed": 212,
+        "passed": 212,
+        "failed": 0
+      },
+      "status": "passed",
+      "source_workspace_sha256": "33c4d457bf1acc5959af495ab8829bc17116b223df5a0839295a585b4c945e64",
+      "root_terminal_review_sha256": "fe626c6e07ac71ea1e536d224c8bf5e2d460a5f9295c3a2af0b95335ed43870b"
+    }
+  ],
+  "complete_matrix_verification": {
+    "latest": "v202",
+    "original_attempted_cells": 32,
+    "original_terminal_checks": 432,
+    "passed": 333,
+    "failed": 99,
+    "blocked": 0,
+    "unrun": 0,
+    "qualified_cells": 0,
+    "next": "v203",
+    "next_run_status": "../../../.local/gate-6/full-matrix-v203/status.html",
+    "next_run_started": false,
+    "new_qualified_cells": null
+  },
+  "source_lock_transition": {
+    "original_full_v202": "a9af4d23cb86101baead39598ee6690ef16d845e20b5d48dd72ae49b91b56c11",
+    "unit_verified": "34c60addf4bba2c01c10d161870564cd02d95f82dc34114ae7600b430c5cb928",
+    "prepared_graph": {
+      "rvoip": "372a23fd224b6962d372a22292fc566f27552b54846597956b1c9b05a7692974",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "actual_declared_prepared_files": 544
+  },
+  "original_all32_v202_scope_report_index_sha256": "807e9a293d96a7e3b829a9af5be56513b6fec50bf914d8a13a3a680f09df70e9",
+  "original_v202_terminal_audit_sha256": "b0faf09e9c9f29eea5462a900f9815cb23c15083ff8a24aef106930ef9e3fa4c",
+  "historical_evidence_preserved": {
+    "docs/evidence/gate-6/matrix-full-v201.json": "6bbe26877f906157ed7847ec305ca1cf0237ed91a3506a3a466ae598b754dffa",
+    "docs/evidence/gate-6/blocker-batch-post-v201-integrated.json": "b18049aa5ec9eb1b6330f6f197aa562b21d5b376b4a70162496f9422fffdbbf4"
+  },
+  "original_full_v201_false_custody_flags_and_none_archives_preserved": true,
+  "resource_policy_unchanged": true,
+  "deadlines_and_authorization_unchanged": true,
+  "no_matrix_promotion_from_unit_pass": true,
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "remaining": "Run the complete local Mac/ARM fullv203 matrix:all32 cells/all432 checks/three real cycles. Resource plateau, genuine cleanup, handoff, decoded media and authority must pass their original criteria before any cell qualifies."
+}

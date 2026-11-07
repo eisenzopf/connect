@@ -261,7 +261,7 @@ diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscription
 diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
 --- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
 +++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
-@@ -1296,3 +1296,239 @@
+@@ -1296,3 +1296,267 @@
          prepared.close();
      }
  }
@@ -455,20 +455,48 @@ diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consu
 +    let prepared = f.prepare(CancellationToken::new()).await;
 +    f.publish_video("bob", 306);
 +    let queued = outgoing(&mut f.target_output).await;
++    let private_ticket = queued.direct.as_ref().unwrap().delivery_ticket();
++    assert!(private_ticket.is_current());
++    let policy_before = prepared.delivery_observations();
++    let policy_ok_before = phase_sample(&policy_before[0], "target-policy").outcomes[1];
 +    prepared.close();
++    // Closing this private preparation retires its selection ticket. The
++    // existing direct-guard preflight refuses that ticket with Authority;
++    // source/target scene lifetime cancellation is a distinct later boundary.
++    assert!(!private_ticket.is_current());
++    assert!(queued.sources[0].ticket.is_current());
++    assert!(queued.target_ticket.is_current());
++    assert!(!prepared.is_current());
 +    assert!(matches!(
 +        queued
 +            .deliver_video_with_feedback(|_, _, _| async {
 +                panic!("cancelled original private route reached writer")
 +            })
 +            .await,
-+        Err(StreamControlError::Cancelled)
++        Err(StreamControlError::Authority)
 +    ));
 +    let observed = prepared.delivery_observations();
 +    assert_eq!(
-+        phase_sample(&observed[0], "queued-admission").outcomes[6],
++        phase_sample(&observed[0], "queued-admission").outcomes[4],
 +        1
 +    );
++    assert_eq!(
++        phase_sample(&observed[0], "source-admission").outcomes[1],
++        1
++    );
++    assert_eq!(
++        phase_sample(&observed[0], "target-policy").outcomes[1],
++        policy_ok_before + 1
++    );
++    assert_eq!(
++        phase_sample(&observed[0], "target-admission").outcomes[4],
++        1
++    );
++    assert_eq!(
++        phase_sample(&observed[0], "delivery-fence").outcomes,
++        [0; 12]
++    );
++    assert_eq!(phase_sample(&observed[0], "io-result").outcomes, [0; 12]);
 +    assert_eq!(
 +        phase_sample(&observed[0], "feedback-issuance").outcomes,
 +        [0; 12]
@@ -899,7 +927,59 @@ diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundat
  }
  
  struct State {
-@@ -2451,22 +2565,37 @@
+@@ -2325,10 +2439,21 @@
+             && port.binding.negotiated.requested.medium != Medium::Data
+             && matches!(&consumer, audio_consumer::ConsumerCheck::Current)
+             && scene.is_current_publish();
++        // Ordinary video forwarding also snapshots its target gates before a
++        // fresh Receive-policy read. Keeping State here otherwise excludes the
++        // target's queued writer for the entire external policy admission.
++        let fresh_forward = port.kind() == StreamKind::Video
++            && data.is_none()
++            && held.is_none()
++            && sending
++            && source.is_some()
++            && matches!(&consumer, audio_consumer::ConsumerCheck::OrdinaryForward)
++            && scene.is_current_receive();
+         // Retained realtime media pins the original consumer and scene. Video
+         // (including screen media) must leave model metadata available while
+         // external policy is read, just as retained audio does.
+         let detached = fresh_publication
++            || fresh_forward
+             || (port.kind() != StreamKind::Data
+                 && data.is_none()
+                 && held.is_none()
+@@ -2405,23 +2530,27 @@
+         let revision = state.model.revision();
+         // Freeze current generations before releasing metadata. A callback may
+         // change scene/consumer membership without changing the stream model.
+-        let frozen_consumer = if fresh_publication {
++        let frozen_consumer = if fresh_publication || fresh_forward {
+             self.current_consumer_stamp(port)?
+         } else {
+             None
+         };
+-        let frozen_scene = if fresh_publication {
++        let frozen_scene = if fresh_publication || fresh_forward {
+             self.current_scene_stamp()?
+         } else {
+             None
+         };
+         let consumer = if fresh_publication {
+             audio_consumer::ConsumerCheck::Retained(frozen_consumer.as_ref())
++        } else if fresh_forward {
++            audio_consumer::ConsumerCheck::FrozenForward(frozen_consumer.as_ref())
+         } else {
+             consumer
+         };
+         let scene = if fresh_publication {
+             scene_consumer::SceneCheck::retained_publish(frozen_scene.as_ref())
++        } else if fresh_forward {
++            scene.frozen_receive(frozen_scene.as_ref())
+         } else {
+             scene
+         };
+@@ -2451,22 +2580,37 @@
              {
                  return Err(StreamControlError::Deadline);
              }
@@ -957,3 +1037,604 @@ diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp
                      let audio_stamp = match queued.audio_egress_stamp() {
                          Ok(stamp) => stamp,
                          Err(_) => {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -236,6 +236,7 @@
+ pub(super) enum ConsumerCheck<'a> {
+     Current,
+     OrdinaryForward,
++    FrozenForward(Option<&'a ConsumerStamp>),
+     Retained(Option<&'a ConsumerStamp>),
+ }
+ pub(super) struct MediaAdmission {
+@@ -357,11 +358,23 @@
+         stamp: &ConsumerStamp,
+         sending: bool,
+     ) -> ControlResult<rvoip_core_traits::peer_switch::PeerDeliveryGuard> {
++        self.begin_frozen(stamp, sending, false)
++    }
++    fn begin_frozen(
++        self: &Arc<Self>,
++        stamp: &ConsumerStamp,
++        sending: bool,
++        frozen_activation: bool,
++    ) -> ControlResult<rvoip_core_traits::peer_switch::PeerDeliveryGuard> {
+         if !Weak::ptr_eq(&Arc::downgrade(self), &stamp.owner) {
+             return Err(StreamControlError::Authority);
+         }
+         let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+-        if !state.active || state.epoch != stamp.epoch || self.cancellation.is_cancelled() {
++        if !state.active
++            || state.epoch != stamp.epoch
++            || self.cancellation.is_cancelled()
++            || (frozen_activation && state.started != stamp.started)
++        {
+             return Err(StreamControlError::NotReady);
+         }
+         if !sending && !state.speaks {
+@@ -431,8 +444,10 @@
+             None => None,
+             Some(owner) => Some(owner.upgrade().ok_or(StreamControlError::NotReady)?),
+         };
+-        if matches!(expected, ConsumerCheck::OrdinaryForward)
+-            && port.binding.negotiated.requested.medium == Medium::Audio
++        if matches!(
++            expected,
++            ConsumerCheck::OrdinaryForward | ConsumerCheck::FrozenForward(_)
++        ) && port.binding.negotiated.requested.medium == Medium::Audio
+             && slot.is_some()
+         {
+             return Err(StreamControlError::Unsupported);
+@@ -441,7 +456,10 @@
+             owner.logical().as_ref() == Some(&port.binding.negotiated.requested.logical_id)
+         });
+         let Some(consumer) = consumer else {
+-            if matches!(expected, ConsumerCheck::Retained(Some(_))) {
++            if matches!(
++                expected,
++                ConsumerCheck::Retained(Some(_)) | ConsumerCheck::FrozenForward(Some(_))
++            ) {
+                 return Err(StreamControlError::NotReady);
+             }
+             return Ok(MediaAdmission {
+@@ -453,12 +471,17 @@
+                 _consumer: None,
+             });
+         };
++        let frozen_forward = matches!(&expected, ConsumerCheck::FrozenForward(_));
+         let stamp = match expected {
+             ConsumerCheck::Current | ConsumerCheck::OrdinaryForward => consumer.stamp(),
+-            ConsumerCheck::Retained(Some(stamp)) => stamp.clone(),
+-            ConsumerCheck::Retained(None) => return Err(StreamControlError::NotReady),
+-        };
+-        let guard = consumer.begin(&stamp, sending)?;
++            ConsumerCheck::Retained(Some(stamp)) | ConsumerCheck::FrozenForward(Some(stamp)) => {
++                stamp.clone()
++            }
++            ConsumerCheck::Retained(None) | ConsumerCheck::FrozenForward(None) => {
++                return Err(StreamControlError::NotReady)
++            }
++        };
++        let guard = consumer.begin_frozen(&stamp, sending, frozen_forward)?;
+         Ok(MediaAdmission {
+             consumer: Some(stamp),
+             _port: port_guard,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+@@ -60,10 +60,24 @@
+             cancel: self.cancel.clone(),
+         }
+     }
+-    fn begin(&self, stamp: &SceneStamp) -> ControlResult<PeerDeliveryGuard> {
++    fn begin(
++        &self,
++        stamp: &SceneStamp,
++        frozen_activation: Option<Instant>,
++    ) -> ControlResult<PeerDeliveryGuard> {
+         let s = self.state.lock().unwrap_or_else(|p| p.into_inner());
+         if !s.active || self.cancel.is_cancelled() || !stamp.ticket.is_current() {
+             return Err(StreamControlError::NotReady);
++        }
++        // Activation does not rotate the route ticket. Check its exact start
++        // under the same State guard as delivery admission, not in a separate
++        // active_at() observation that a concurrent activation could invalidate.
++        if frozen_activation.is_some_and(|admitted| {
++            s.started != stamp.started
++                || stamp.started > admitted
++                || !stamp.ticket.same_generation(&s.ticket)
++        }) {
++            return Err(StreamControlError::Authority);
+         }
+         stamp
+             .ticket
+@@ -108,12 +122,29 @@
+     retained: Option<Option<&'a SceneStamp>>,
+     source: Option<Option<&'a SceneStamp>>,
+     admitted: Option<Instant>,
++    frozen_activation: bool,
+ }
+ impl<'a> SceneCheck<'a> {
+     pub(super) fn is_current_publish(&self) -> bool {
+         self.retained.is_none() && self.source.is_none() && self.admitted.is_none()
+     }
+ 
++    pub(super) fn is_current_receive(&self) -> bool {
++        self.retained.is_none() && self.source.is_some() && self.admitted.is_some()
++    }
++
++    pub(super) fn frozen_receive<'b>(&self, target: Option<&'b SceneStamp>) -> SceneCheck<'b>
++    where
++        'a: 'b,
++    {
++        SceneCheck {
++            retained: Some(target),
++            source: self.source,
++            admitted: self.admitted,
++            frozen_activation: true,
++        }
++    }
++
+     pub(super) fn retains_target(&self) -> bool {
+         self.retained.is_some()
+     }
+@@ -123,6 +154,7 @@
+             retained: None,
+             source: None,
+             admitted: None,
++            frozen_activation: false,
+         }
+     }
+     pub(super) fn retained_publish(stamp: Option<&'a SceneStamp>) -> Self {
+@@ -130,6 +162,7 @@
+             retained: Some(stamp),
+             source: None,
+             admitted: None,
++            frozen_activation: false,
+         }
+     }
+     pub(super) fn receive(source: Option<&'a SceneStamp>, admitted: Instant) -> Self {
+@@ -137,6 +170,7 @@
+             retained: None,
+             source: Some(source),
+             admitted: Some(admitted),
++            frozen_activation: false,
+         }
+     }
+     pub(super) fn retained_receive(
+@@ -148,6 +182,7 @@
+             retained: Some(target),
+             source: Some(source),
+             admitted: Some(admitted),
++            frozen_activation: false,
+         }
+     }
+ }
+@@ -206,7 +241,14 @@
+         if !Weak::ptr_eq(&stamp.owner, &Arc::downgrade(&owner)) {
+             return Err(StreamControlError::Authority);
+         }
+-        let guard = owner.begin(&stamp)?;
++        let guard = owner.begin(
++            &stamp,
++            if check.frozen_activation {
++                check.admitted
++            } else {
++                None
++            },
++        )?;
+         Ok((Some(stamp), Some(guard)))
+     }
+ }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+@@ -6,10 +6,17 @@
+     inner: Arc<Policy>,
+     target: Arc<Mutex<Weak<StreamController>>>,
+     actions: Actions,
++    receive: bool,
+ }
+ impl MediaPolicy for CallbackPolicy {
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+-        if scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish) {
++        let selected = if self.receive {
++            scope.connection.as_str() == "bob"
++                && matches!(scope.purpose, MediaPurpose::Receive { .. })
++        } else {
++            scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish)
++        };
++        if selected {
+             let action = self.actions.lock().unwrap().take();
+             if let Some(action) = action {
+                 let target = self.target.lock().unwrap().upgrade().unwrap();
+@@ -20,6 +27,12 @@
+     }
+ }
+ fn fixture() -> (Fixture, Actions) {
++    callback_fixture(false)
++}
++fn receive_fixture() -> (Fixture, Actions) {
++    callback_fixture(true)
++}
++fn callback_fixture(receive: bool) -> (Fixture, Actions) {
+     let actions = Arc::new(Mutex::new(None));
+     let target = Arc::new(Mutex::new(Weak::new()));
+     let f = Fixture::with_policy(
+@@ -32,11 +45,12 @@
+                     inner,
+                     target,
+                     actions,
++                    receive,
+                 })
+             }
+         })),
+     );
+-    *target.lock().unwrap() = Arc::downgrade(&f.a);
++    *target.lock().unwrap() = Arc::downgrade(if receive { &f.b } else { &f.a });
+     (f, actions)
+ }
+ async fn queued(
+@@ -531,6 +545,7 @@
+                             inner,
+                             target,
+                             actions,
++                            receive: false,
+                         }),
+                         armed,
+                     })
+@@ -588,3 +603,353 @@
+         assert!(f.policy.0.try_write().is_ok());
+     }
+ }
++
++// Actual ordinary Receive callbacks must not exclude the target's queued writer.
++#[tokio::test]
++async fn ordinary_video_receive_policy_releases_target_state_for_video_and_screen() {
++    for medium in [Medium::Video, Medium::Screen] {
++        let (f, actions) = receive_fixture();
++        f.start(&[medium]).await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        let mut output = f.ba.port(medium).take_egress().unwrap();
++        source.try_publish(&frame(&source, 901)).unwrap();
++        let packet = receive(&mut input).await;
++        let admitted = packet.admitted_at;
++        *actions.lock().unwrap() = Some(Box::new(|controller| {
++            assert!(
++                controller.state.try_lock().is_ok(),
++                "ordinary Receive policy owns target State"
++            );
++        }));
++        packet
++            .try_forward_to(&f.b, &desired(medium).logical_id)
++            .unwrap();
++        assert!(actions.lock().unwrap().is_none(), "Receive callback was not entered");
++        assert_eq!(packet.admitted_at, admitted);
++        assert_video_packet(outgoing(&mut output).await).await;
++        assert!(
++            f.policy.0.try_write().is_ok(),
++            "completed forward retained authority"
++        );
++    }
++}
++
++#[tokio::test]
++async fn ordinary_video_receive_policy_refuses_model_aba_credential_and_original_port_changes() {
++    for changed in 0..5 {
++        let (f, actions) = receive_fixture();
++        f.start(&[Medium::Video]).await;
++        let source = f.aa.port(Medium::Video);
++        let mut input =
++            f.a.take_ingress(&desired(Medium::Video).logical_id)
++                .unwrap();
++        let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++        source.try_publish(&frame(&source, 902)).unwrap();
++        let packet = receive(&mut input).await;
++        let authority = f.policy.0.try_read().unwrap().owners["bob"].clone();
++        *actions.lock().unwrap() = Some(Box::new(move |controller| {
++            assert!(
++                controller.state.try_lock().is_ok(),
++                "ordinary Receive policy owns State"
++            );
++            match changed {
++                0 => {
++                    let mut state = controller.state.lock().unwrap();
++                    for paused in [true, false] {
++                        let expected = state.model.revision();
++                        state
++                            .model
++                            .set_paused(
++                                &authority.current(),
++                                expected,
++                                &desired(Medium::Video).logical_id,
++                                paused,
++                            )
++                            .unwrap();
++                    }
++                }
++                1 => controller.credential.lock().unwrap().revision += 1,
++                2 => controller.state.lock().unwrap().closed = true,
++                3 => controller.state.lock().unwrap().active[&desired(Medium::Video).logical_id]
++                    .retire(),
++                4 => controller.shutdown.cancel(),
++                _ => unreachable!(),
++            }
++        }));
++        assert!(
++            packet
++                .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
++                .is_err(),
++            "changed={changed}"
++        );
++        assert!(actions.lock().unwrap().is_none(), "Receive callback was not entered");
++        assert!(
++            output.try_recv().is_err(),
++            "changed={changed} reached egress"
++        );
++        assert!(
++            f.policy.0.try_write().is_ok(),
++            "refusal retained a policy reader"
++        );
++    }
++}
++
++#[tokio::test]
++async fn ordinary_video_receive_policy_freezes_consumer_membership_and_activation() {
++    use crate::staged_streams::audio_consumer::AudioConsumer;
++    for changed in 0..3 {
++        let (f, actions) = receive_fixture();
++        f.start(&[Medium::Video]).await;
++        let consumer = AudioConsumer::optional(Some(desired(Medium::Video).logical_id), 8000);
++        consumer.activate(true);
++        if changed != 0 {
++            *f.b.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&consumer));
++        }
++        let source = f.aa.port(Medium::Video);
++        let mut input =
++            f.a.take_ingress(&desired(Medium::Video).logical_id)
++                .unwrap();
++        let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++        source.try_publish(&frame(&source, 903)).unwrap();
++        let packet = receive(&mut input).await;
++        *actions.lock().unwrap() = Some(Box::new({
++            let consumer = consumer.clone();
++            move |controller| {
++                assert!(controller.state.try_lock().is_ok());
++                match changed {
++                    0 => {
++                        *controller.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&consumer))
++                    }
++                    1 => *controller.audio_consumer.lock().unwrap() = None,
++                    2 => consumer.activate(true),
++                    _ => unreachable!(),
++                }
++            }
++        }));
++        assert!(
++            matches!(
++                packet.try_forward_to(&f.b, &desired(Medium::Video).logical_id),
++                Err(StreamControlError::NotReady)
++            ),
++            "changed={changed}"
++        );
++        assert!(actions.lock().unwrap().is_none(), "Receive callback was not entered");
++        assert!(output.try_recv().is_err());
++        assert!(f.policy.0.try_write().is_ok());
++        // A fresh packet may use the new current gate; the refused packet
++        // above cannot lend it the earlier callback's authority.
++        assert_video_packet(queued_video(&f, &source, &mut input, &mut output, 913).await).await;
++    }
++}
++
++#[tokio::test]
++async fn ordinary_video_receive_policy_preserves_exact_scene_activation_and_membership() {
++    use crate::staged_streams::scene_consumer::SceneConsumer;
++    for changed in 0..4 {
++        let (f, actions) = receive_fixture();
++        f.start(&[Medium::Video]).await;
++        let source_scene = SceneConsumer::new(901);
++        source_scene.activate();
++        let target_scene = SceneConsumer::new(901);
++        if changed != 0 {
++            target_scene.activate();
++        }
++        // Same scene ID and a pre-packet activation cannot substitute a new owner.
++        let replacement_scene = SceneConsumer::new(901);
++        replacement_scene.activate();
++        let source = f.aa.port(Medium::Video);
++        let mut input =
++            f.a.take_ingress(&desired(Medium::Video).logical_id)
++                .unwrap();
++        let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++        *f.a.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&source_scene));
++        *f.b.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&target_scene));
++        source.try_publish(&frame(&source, 904)).unwrap();
++        let packet = receive(&mut input).await;
++        *actions.lock().unwrap() = Some(Box::new({
++            let target_scene = target_scene.clone();
++            let replacement_scene = replacement_scene.clone();
++            move |controller| {
++                assert!(controller.state.try_lock().is_ok());
++                match changed {
++                    0 | 1 => target_scene.activate(),
++                    2 => {
++                        *controller.scene_consumer.lock().unwrap() =
++                            Some(Arc::downgrade(&replacement_scene))
++                    }
++                    3 => *controller.scene_consumer.lock().unwrap() = None,
++                    _ => unreachable!(),
++                }
++            }
++        }));
++        assert!(
++            matches!(
++                packet.try_forward_to(&f.b, &desired(Medium::Video).logical_id),
++                Err(StreamControlError::Authority)
++            ),
++            "changed={changed}"
++        );
++        assert!(actions.lock().unwrap().is_none(), "Receive callback was not entered");
++        assert!(output.try_recv().is_err());
++        assert!(f.policy.0.try_write().is_ok());
++        if changed <= 1 {
++            assert_video_packet(queued_video(&f, &source, &mut input, &mut output, 914).await).await;
++        }
++    }
++}
++
++#[tokio::test]
++async fn ordinary_video_receive_policy_allows_an_existing_queued_writer_to_drain() {
++    let (f, actions) = receive_fixture();
++    f.start(&[Medium::Video]).await;
++    let source = f.aa.port(Medium::Video);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++    let first = queued_video(&f, &source, &mut input, &mut output, 905).await;
++    source.try_publish(&frame(&source, 906)).unwrap();
++    let second = receive(&mut input).await;
++    let (entered, waiting) = std::sync::mpsc::channel();
++    let (release, released) = std::sync::mpsc::channel();
++    *actions.lock().unwrap() = Some(Box::new(move |controller| {
++        let available = controller.state.try_lock().is_ok();
++        entered.send(available).unwrap();
++        // Pause before acquiring this target's policy grant, bounded even if a
++        // regression prevents the other writer. This is not production pacing.
++        let _ = released.recv_timeout(Duration::from_secs(2));
++    }));
++    let target = f.b.clone();
++    let worker = std::thread::spawn(move || {
++        second.try_forward_to(&target, &desired(Medium::Video).logical_id)
++    });
++    let state_available = waiting.recv_timeout(Duration::from_secs(1));
++    let wrote = AtomicBool::new(false);
++    let drained = if matches!(state_available, Ok(true)) {
++        first.deliver(|_| async {
++            wrote.store(true, Ordering::Release);
++            Ok(())
++        }).await
++    } else {
++        Err(StreamControlError::NotReady)
++    };
++    let _ = release.send(());
++    let second_result = worker.join().unwrap();
++    assert!(
++        matches!(state_available, Ok(true)),
++        "ordinary Receive policy excluded queued target admission"
++    );
++    assert!(
++        drained.is_ok(),
++        "existing queued packet did not drain while policy was paused"
++    );
++    assert!(wrote.load(Ordering::Acquire));
++    second_result.unwrap();
++    assert_video_packet(outgoing(&mut output).await).await;
++    assert!(f.policy.0.try_write().is_ok());
++}
++
++#[tokio::test]
++async fn ordinary_video_receive_busy_postpolicy_state_keeps_original_packet_and_deadline() {
++    let (f, actions) = receive_fixture();
++    f.start(&[Medium::Video]).await;
++    let source = f.aa.port(Medium::Video);
++    let target = f.ba.port(Medium::Video).0;
++    let ticket = target.ticket();
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++    source.try_publish(&frame(&source, 907)).unwrap();
++    let packet = receive(&mut input).await;
++    let admitted = packet.admitted_at;
++    let initial_deadline = tokio::time::Instant::from_std(admitted + Duration::from_millis(200));
++    let mut original_deadline = initial_deadline;
++    let (release, released) = std::sync::mpsc::channel();
++    let holder = Arc::new(Mutex::new(None));
++    *actions.lock().unwrap() = Some(Box::new({
++        let holder = holder.clone();
++        move |controller| {
++            assert!(controller.state.try_lock().is_ok());
++            let controller = controller.clone();
++            let (ready, waiting) = std::sync::mpsc::channel();
++            *holder.lock().unwrap() = Some(std::thread::spawn(move || {
++                let held = controller.state.lock().unwrap();
++                let _ = ready.send(());
++                let _ = released.recv_timeout(Duration::from_secs(2));
++                drop(held);
++            }));
++            let _ = waiting.recv_timeout(Duration::from_secs(1));
++        }
++    }));
++    let refused = packet.try_forward_to_pending(
++        &f.b,
++        &desired(Medium::Video).logical_id,
++        &target,
++        &ticket,
++        &mut original_deadline,
++    );
++    let readers_dropped = f.policy.0.try_write().is_ok();
++    let _ = release.send(());
++    holder.lock().unwrap().take().unwrap().join().unwrap();
++    assert!(actions.lock().unwrap().is_none(), "Receive callback was not entered");
++    assert!(matches!(refused, Err(StreamControlError::NotReady)));
++    assert!(
++        readers_dropped,
++        "refused attempt kept current policy readers"
++    );
++    assert!(output.try_recv().is_err());
++    assert!(original_deadline <= initial_deadline);
++    assert_eq!(packet.admitted_at, admitted);
++    packet
++        .try_forward_to_pending(
++            &f.b,
++            &desired(Medium::Video).logical_id,
++            &target,
++            &ticket,
++            &mut original_deadline,
++        )
++        .unwrap();
++    assert_eq!(packet.admitted_at, admitted);
++    assert!(original_deadline <= initial_deadline);
++    assert_video_packet(outgoing(&mut output).await).await;
++}
++
++#[tokio::test]
++async fn ordinary_video_receive_refuses_concurrent_scene_reactivation_before_enqueue() {
++    use crate::staged_streams::scene_consumer::SceneConsumer;
++    let (f, actions) = receive_fixture();
++    f.start(&[Medium::Video]).await;
++    let source_scene = SceneConsumer::new(902);
++    source_scene.activate();
++    let target_scene = SceneConsumer::new(902);
++    target_scene.activate();
++    let source = f.aa.port(Medium::Video);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++    *f.a.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&source_scene));
++    *f.b.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&target_scene));
++    source.try_publish(&frame(&source, 908)).unwrap();
++    let packet = receive(&mut input).await;
++    let (entered, waiting) = std::sync::mpsc::channel();
++    let (release, released) = std::sync::mpsc::channel();
++    *actions.lock().unwrap() = Some(Box::new(move |controller| {
++        entered.send(controller.state.try_lock().is_ok()).unwrap();
++        let _ = released.recv_timeout(Duration::from_secs(2));
++    }));
++    let target = f.b.clone();
++    let worker = std::thread::spawn(move || {
++        packet.try_forward_to(&target, &desired(Medium::Video).logical_id)
++    });
++    let state_available = waiting.recv_timeout(Duration::from_secs(1));
++    target_scene.activate();
++    let _ = release.send(());
++    let result = worker.join().unwrap();
++    assert!(matches!(state_available, Ok(true)));
++    assert!(matches!(result, Err(StreamControlError::Authority)));
++    assert!(output.try_recv().is_err());
++    assert!(f.policy.0.try_write().is_ok());
++}

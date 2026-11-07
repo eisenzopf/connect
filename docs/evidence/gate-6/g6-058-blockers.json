@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-07",
-  "run_status": "Full v201 remains329 passed,103 failed,0 blocked across all32 cells/432 requirements;0of32 cells qualify. The seven-feature focused attempt is terminal:196 Rust executed,195 passed and1new diagnostic test failed; Node282/282,Python132/132 andMacACL1/1 pass. Default shipping,instrumented andTypeScript builds pass; original source/checkers are unchanged and alloriginal command groups,leases,Macworker andcontroller joined. The original30-second expiry regression now passes. The sole failure expects Cancelled where the existing retired private-route ticket returns Authority; its test-only correction is staged for the next batch and is not applied. No all-pass focused verdict is claimed. Full32v202 is next on this unchanged tested implementation with the known failed unit disclosed. G6-058 remains in progress;G6-054 deferred.",
+  "run_status": "Complete focused verification PASSED:212/212 Rust,288/288 Node,133/133 Python and1/1 Mac ACL, including all six explicitly selected ignored RTC cases. Default shipping, instrumented metadata and TypeScript checks pass; source and checkers remain unchanged and every original command group,controller and ARM lease joined without force. Source33c4d457 uses lock34c60 and544 verified declared prepared files. The media-lock fix, original-operation cleanup recovery, terminal Core ownership release, expiry observation margin and RTC continuous-playout fixture are unit verified. Full v202 remains333 passed,99 failed,0 blocked or unrun across all32 cells/432 requirements;0of32 cells qualify. All99 failures remain original evidence until fullv203 reruns all32 cells with three real cycles. G6-058 stays in progress;G6-054 stays deferred.",
   "blockers": [
     {
       "id": "B01",
@@ -70,10 +70,10 @@
     {
       "id": "B09",
       "title": "Cleanup and resource reclamation",
-      "status": "Implemented. Focused verification passed. Matrix verification pending",
+      "status": "Resource release/cleanup controls unit verified; full32 resource qualification pending",
       "change": "Keep zero Session-owned resources and all original source, renderer, client and helper joins. Run three actual workload and idle cycles on the same original server, browser and helper processes. Compare later RSS, threads, descriptors and process counts with the first completed cycle while preserving every original media, authority and deadline check.",
-      "evidence": "Full v200 used three actual cycles where the workload started. Native startup and remote bridge defects prevented complete coverage. Browser resource growth still fails the recorded numeric plateau policy. Full v201 resource qualification fails in all32 cells; incomplete/failed workload windows cannot independently prove a leak. Original and revised three-cycle policy remain unchanged.",
-      "next": "Measure three actual cycles with the unchanged approved ownership/plateau policy in the complete local matrix.",
+      "evidence": "All eight terminal Core release tests, five original-move cleanup Node controls, new Session-join projection control and all existing plateau controls pass. Original v202 has8 incomplete native proofs,11 connection-retirement failures and13 measured browser plateau failures. These original failed results remain unchanged.",
+      "next": "Verify genuine three-cycle resource observations in every fullv203 cell, preserving zero Session-owned resources and approved thread/FD/process/RSS limits.",
       "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v199-integrated.json#focused_verified_retry"
     },
     {
@@ -407,10 +407,10 @@
     {
       "id": "B51",
       "title": "Native and browser credential timers wake before recorded UTC expiry",
-      "status": "Full matrix authority results recorded",
+      "status": "Expiry margin helper unit verified; original fullv202 authority29/3 preserved",
       "change": "Wait for the same recorded UTC expiry within the existing fixture caps. Preserve the original credential, mutation reference and strict live and fresh authentication refusals.",
-      "evidence": "Actual full-v199 current-authority requirement counts: {\"passed\": 32}. docs/evidence/gate-6/matrix-full-v199.json Full v201 current-authority check passes26/32; all6 Mac remote browser failures occur before issuance through the missing nested bridge, addressed by B75 pending verification.",
-      "next": "Preserve the actual full-run authority results and current expiry/revocation assertions."
+      "evidence": "Three Mac remote Chrome cells fail expiry live-read, across four cycle observations. Revocation and conflict pass. Original server admission timestamps are unavailable; fixture fallback loses its original100ms observation margin.",
+      "next": "Require all actual current-authority subcases to pass in fullv203; historical host clock cause remains unproven."
     },
     {
       "id": "B52",
@@ -439,10 +439,10 @@
     {
       "id": "B55",
       "title": "Failed graceful server shutdown strands proven VM custody",
-      "status": "Full run continuation recorded; verdicts retained",
+      "status": "Full v202 all32 terminal and actual original owner scopes joined",
       "change": "Record actual waited exit and process-group absence separately from graceful success. Release only proven physical custody while retaining the failed shutdown verdict.",
-      "evidence": "Original v199 attempted32 of32 cells; all432 results and original worker/controller/supervisor joins are terminal. Graceful shutdown and resource failures keep their actual verdicts. docs/evidence/gate-6/matrix-full-v199.json",
-      "next": "Retain actual custody proofs and continue full-matrix revalidation without relabeling shutdown/resource failures."
+      "evidence": "All32 original scope reports bound by807e9a29 and terminal controller/resource auditb0faf09e. Every original behavior verdict remains unchanged.",
+      "next": "Keep original full/failed-unit custody separate from future retry qualification."
     },
     {
       "id": "B56",
@@ -573,73 +573,325 @@
     {
       "id": "B70",
       "title": "Original native replacement status timeout retires shared source control",
-      "status": "Integrated \u2014 focused controls passed; full32v202 pending",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
       "change": "Apply the existing bounded read-only original-operation status continuation to native WebTransport as well as WebSocket; retain mutation uncertainty, current authorization and late-reply correlation.",
-      "evidence": "Source-proven lifetime gap; individual v201 source-close cause remains inferred. Existing target-local readiness preservation does not cover this separate source status waiter.",
-      "next": "Run the entire196/282/132/MacACL1 focused scope and all32v202 with unchanged acceptance criteria.",
-      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v201-integrated.json"
+      "evidence": "First ARM WT component completes all three62s windows and all28 keepalive requests per cycle without source control failures, while private video readiness remains sparse. This is scoped evidence, not whole-cell qualification.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
     },
     {
       "id": "B71",
       "title": "Expired original readiness loses explicit authority refusal",
-      "status": "Original expiry regression passed \u2014 full32v202 pending",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
       "change": "Use existing403 for absent exact original signed Ready/WebRTC preparation and strengthen the already-selected natural30-second expiry regression.",
       "evidence": "The prior focused expiry failure returned invalid-request after original retirement. Exact missing-root branch attribution is inferred; source classification gap is proven. The actual previously failing original expiry case now passes (original log prefix699999a1); this does not make the whole focused attempt pass.",
-      "next": "Run the entire196/282/132/MacACL1 focused scope and all32v202 with unchanged acceptance criteria.",
-      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v201-integrated.json"
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
     },
     {
       "id": "B72",
       "title": "Private video route phases lack delivery-gap attribution",
-      "status": "Integrated \u2014 one new diagnostic test failed; full32v202 pending",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
       "change": "Record fixed numeric original private-video route admission/queue/dequeue/feedback/writer phases and ages without changing permission, ordering, clocks or errors.",
-      "evidence": "Original native private-video policy callbacks can authorize while very few packets reach the packetizer; callback counts are not packet ratios. New diagnostics are pending runtime evidence. One newly added cancellation-attribution test fails because its expected Cancelled differs from the existing retired-route Authority refusal. The proposed correction changes test expectations only; production behavior remains unchanged.",
-      "next": "Run the entire196/282/132/MacACL1 focused scope and all32v202 with unchanged acceptance criteria.",
-      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v201-integrated.json"
+      "evidence": "Native ARM/Mac and RTC target-admission attempts frequently return NotReady before external target policy. Exact per-attempt leaf is not logged; source independently proves ordinary forward holds the same target State across external Receive policy while queued writer tries it. Callback counts are not unique packet counts.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
     },
     {
       "id": "B73",
       "title": "Compound scene repeats actor SQL within one packet projection",
-      "status": "Integrated \u2014 focused controls passed; full32v202 pending",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
       "change": "Reuse already-resolved actors only inside the same original compound observation, with all recipient/current authority, original expiry and external-commit reseals retained.",
-      "evidence": "Completed Store capture/reseal intervals are SQL-dominated in the original ChromeWSS sample. Removal of repeated actor reads is source-proven; actual runtime improvement remains unmeasured.",
-      "next": "Run the entire196/282/132/MacACL1 focused scope and all32v202 with unchanged acceptance criteria.",
-      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v201-integrated.json"
+      "evidence": "Original native v202 capture/reseal intervals remain SQL-dominated. Workloads and sample counts differ from v201, so no controlled performance improvement is claimed.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
     },
     {
       "id": "B74",
       "title": "Original browser terminal timers can wake early",
-      "status": "Integrated \u2014 focused controls passed; full32v202 pending",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
       "change": "Recheck the same original absolute deadline in programme and source-master timer callbacks; keep immediate close, no rebase, no elapsed clamp and no budget extension.",
-      "evidence": "ARM remote FirefoxES256 cycle2 recorded61999ms against62000ms and correctly failed declared workload. Early source-master stop is reachable from source but was not observed in that sample.",
-      "next": "Run the entire196/282/132/MacACL1 focused scope and all32v202 with unchanged acceptance criteria.",
-      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v201-integrated.json"
+      "evidence": "All32 original declared workload requirement checks pass; prior61999ms failure remains preserved in v201. Media/retirement/resource requirements still fail.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
     },
     {
       "id": "B75",
       "title": "Nested cross-host authority requests never reach issuer",
-      "status": "Integrated \u2014 focused controls passed; full32v202 pending",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
       "change": "Forward exactly cycles1..3 and sequences1..3 through the existing bounded guest/host authority bridge in both directions; preserve flat paths, write-once response equality, clocks and byte/symlink guards.",
-      "evidence": "All6 Mac remote browser cells fail current authority before original issuance. Original nested expiry/revocation requests exist without responses; the host issuer was never called.",
-      "next": "Run the entire196/282/132/MacACL1 focused scope and all32v202 with unchanged acceptance criteria.",
-      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v201-integrated.json"
+      "evidence": "All6 Mac remote browser fixtures issue their per-cycle original credentials. Remaining authority failures are expiry live-read boundary observations, not missing nested issuer responses.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
     },
     {
       "id": "B76",
       "title": "Remote failed workload is misreported as unjoined custody",
-      "status": "Integrated \u2014 focused controls passed; full32v202 pending",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
       "change": "Project original SSH/guest/allguest/lease/unforced/cleanup/input identity facts independently of functional success in normal and finally cleanup.",
-      "evidence": "All6 original remote browser fields remain false with no archive. Their exact original natural exit1 joins and separate fresh absence proof are preserved; future projection must not rewrite historical reports or pass a failed programme.",
-      "next": "Run the entire196/282/132/MacACL1 focused scope and all32v202 with unchanged acceptance criteria.",
-      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v201-integrated.json"
+      "evidence": "All32 original report custody fields are true with no false flag projection; all32 archived. Original six false fields/None archives from v201 remain unchanged.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
     },
     {
       "id": "B77",
       "title": "New diagnostic cancellation test expects the wrong existing refusal",
-      "status": "Test-only correction staged for next batch; current source frozen",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
       "change": "Expect the existing Authority refusal from an already-retired private route ticket and retain the no-writer and phase accounting assertions. No production code change.",
-      "evidence": "Actual new Core diagnostic test failure log6acc1b23; correction manifest4cfcbbfc is staged and unexecuted. All196 selected Rust identities remain required. Original focused attempt is terminal195/196Rust with this sole failure; Node282,Python132,MacACL1,shipping and alloriginal source/owner guards pass. The correction remains unapplied for v202.",
-      "next": "Preserve the current original failure and complete its actual owner joins. Do not combine different attempts into an all-pass result."
+      "evidence": "The retired private ticket expectation is corrected without production behavior change, and its selected Core regression passes in the complete212-case run. The original196/195+1 failed attempt remains preserved.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
+    },
+    {
+      "id": "B78",
+      "title": "Ordinary video forwarding excludes the queued writer during external policy",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
+      "change": "Release ordinary video/screen target metadata while external Receive policy runs; freeze and atomically revalidate original model/credential/ports/consumer/scene generations and activation before writer admission. Keep original packet deadline, authorization, audio/data behavior and errors.",
+      "evidence": "Source-proven shared-State lifetime gap; new private route phases strongly support pre-policy target exclusion on ARM/Mac native and RTC. Exact individual NotReady leaf remains unresolved.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
+    },
+    {
+      "id": "B79",
+      "title": "Expiry fallback discards its original100ms observation margin",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
+      "change": "Preserve the original credential expiry observation target E+100ms throughout timer fallback within the same13s budget. Keep factual expiry/margin witnesses separate and require original live-read and fresh-authentication refusals; historical host request time remains unknown.",
+      "evidence": "Four failed expiry cycle observations in three Mac remote cells reach guest E+0/+3ms. Some passing cycles also reach near E; server admission timestamps are absent, so historical causality is inferred. Source and rollback/frozen-margin regression prove the fixture gap.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
+    },
+    {
+      "id": "B80",
+      "title": "Old CallbackPolicy test initializer omits newly explicit receive field",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
+      "change": "Add receive:false to the single existing test initializer; no production or selector changes.",
+      "evidence": "The missing receive initializer and scene-input ordering fixture corrections are tested in the complete run. Original159passed/44unexecuted and201passed/2failed attempts remain failed; all212 selections now execute and pass.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
+    },
+    {
+      "id": "B81",
+      "title": "Existing RTC expiry negative times out before genuine private audio",
+      "status": "Unit verified in complete212/288/133/MacACL1 run; fullv203 verification pending",
+      "change": "Keep all four original playout receivers consumed while the same pinned audio-then-video observation owns its original bounds and decoder.",
+      "evidence": "Original pre-expiry private-audio timeout loga777188b remains failed. The new helper regression and exact real RTC expiry negative both pass in the complete212-case run. Backpressure is a source-backed hypothesis for that old timeout; no historical sole-cause claim.",
+      "next": "Retain all original failed histories and run all32 fullv203 cells with unchanged criteria; no unit-to-cell promotion.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
+    },
+    {
+      "id": "B82",
+      "title": "Stale old Connection handles after durably completed original moves",
+      "status": "Unit verified correction/control; full32 qualification pending",
+      "evidence": "Read-only original-operation recovery strictly checks exact record/key/target/source/retained/generation/endpoint/device and physical owner. Five Node and one Python controls pass; actual full-cycle cleanup remains pending.",
+      "next": "Run all32 fullv203 cells and retain any failed original metric or cleanup outcome.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
+    },
+    {
+      "id": "B83",
+      "title": "Terminal managed Core runtime remains strongly rooted after original join",
+      "status": "Unit verified correction/control; full32 qualification pending",
+      "evidence": "Release exact same-Arc runtime after successful mixer join and publish resource-free terminal revision first. Eight new tests pass, including cancellation/finalizer/concurrency/legacy/projection guards.",
+      "next": "Run all32 fullv203 cells and retain any failed original metric or cleanup outcome.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
+    },
+    {
+      "id": "B84",
+      "title": "Measured browser process plateau still needs full-run proof",
+      "status": "Unit verified correction/control; full32 qualification pending",
+      "evidence": "Unit-tested terminal retention release addresses a concrete strong owner. Tokio blocking-worker and Chromium MemoryInfra residency are separately observed; no policy tuning or allocation-leak inference qualifies the13 original plateau failures.",
+      "next": "Run all32 fullv203 cells and retain any failed original metric or cleanup outcome.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
     }
-  ]
+  ],
+  "workplan_tasks": [
+    {
+      "id": "S1",
+      "title": "Remove target metadata exclusion in ordinary video/screen forwarding",
+      "owner": "Core media implementation / expiry_review",
+      "dependencies": [],
+      "code_paths": [
+        "patches/rvoip/connect-private-video-route-phase-observations.patch",
+        "dependencies/source-lock.json"
+      ],
+      "solution": "Freeze the original consumer/scene state, release target State across external policy, and atomically revalidate original generations/activation/deadline before writer admission.",
+      "test_names": [
+        "staged_streams::tests::packet_admission::ordinary_video_receive_busy_postpolicy_state_keeps_original_packet_and_deadline",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_allows_an_existing_queued_writer_to_drain",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_freezes_consumer_membership_and_activation",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_preserves_exact_scene_activation_and_membership",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_refuses_model_aba_credential_and_original_port_changes",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_policy_releases_target_state_for_video_and_screen",
+        "staged_streams::tests::packet_admission::ordinary_video_receive_refuses_concurrent_scene_reactivation_before_enqueue"
+      ],
+      "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
+      "completion": "Actual full-matrix handoff/decoded-media checks pass; no unit-to-cell promotion.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S2",
+      "title": "Complete eight native three-cycle programme proofs",
+      "owner": "Full matrix runner / root",
+      "dependencies": [
+        "S1",
+        "S7"
+      ],
+      "code_paths": [
+        "scripts/lib/native_matrix_idle.py",
+        "scripts/lib/matrix_plateau.py"
+      ],
+      "solution": "Retest real3x62s native programmes after media fixes; preserve zero Session-owned resources, per-cycle joins and original10s idle observations. No separate leak conclusion from incomplete windows.",
+      "test_names": [
+        "test_matrix_plateau.MatrixPlateauTests.test_three_short_or_missing_original_workload_windows_do_not_qualify",
+        "test_native_matrix_producers.NativeMatrixPlateauProducer.test_short_original_native_programme_cannot_qualify_three_cycle_resources"
+      ],
+      "status": "Selected resource controls pass; actual complete native workloads and process plateau verification remain pending in full32. No resource-policy relaxation or cell closure.",
+      "completion": "All8 native cells provide genuine complete workloads and pass the unchanged resource evaluator.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S3",
+      "title": "Retire actual original replacement targets, not stale old source handles",
+      "owner": "Browser cleanup implementation / expiry_review",
+      "dependencies": [
+        "S1"
+      ],
+      "code_paths": [
+        "scripts/lib/browser_matrix_admission.mjs",
+        "scripts/lib/browser_matrix_programme.mjs",
+        "scripts/lib/transport_matrix_execution.py",
+        "scripts/rehearse-gate6-browser-matrix.py",
+        "scripts/tests/browser_matrix_admission.test.mjs",
+        "scripts/tests/browser_matrix_programme.test.mjs",
+        "scripts/tests/test_browser_matrix_execution.py",
+        "scripts/video/browser_matrix_admission.mjs"
+      ],
+      "solution": "Inspect the same original operation and its durable completed target for cleanup after an uncertain move observation; end the actual target and retain all six logical connection cleanup receipts. Do not retry a mutation, convert original8s deadline failure to success, or count an absent end ledger row as accepted.",
+      "test_names": [
+        "lost original replacement completion recovers only its target for cleanup without changing the failed move",
+        "unknown or preparing original moves never supply an inferred replacement cleanup owner",
+        "foreign original record candidate generation or physical owner cannot select a cleanup target",
+        "return movement cleanup uses its original source generation and actual target actor",
+        "original cleanup deadline and uncertain end response never trigger another mutation or retained registry",
+        "test_browser_matrix_execution.BrowserCycleJoinTests.test_actual_session_joins_do_not_hide_failed_functional_connection_ends"
+      ],
+      "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
+      "completion": "All14 affected cycle connection-retirement receipts are genuine and original Session/helper joins remain passing.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S4",
+      "title": "Release terminal Core shell ownership after Session retirement",
+      "owner": "Core resource lifecycle / v198_resources",
+      "dependencies": [],
+      "code_paths": [
+        ".deps/rvoip/crates/foundation/rvoip-core/src/session.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/records/capture.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator/participant_control/terminal_release_tests.rs"
+      ],
+      "solution": "Remove the demonstrated terminal Core shell strong-retention path while preserving in-flight/borrowed owner lifetime and late-identity safety. Bind actual source/test review before integration; no cache/pool tuning.",
+      "test_names": [
+        "orchestrator::participant_control::terminal_release_tests::successful_end_releases_exact_runtime_mixer_and_staged_scene_before_orchestrator_shutdown",
+        "orchestrator::participant_control::terminal_release_tests::repeated_terminal_sessions_keep_live_registry_constant_and_only_scalar_revision_in_history",
+        "orchestrator::participant_control::terminal_release_tests::cancelled_original_join_keeps_same_runtime_until_successful_retry_releases_it",
+        "orchestrator::participant_control::terminal_release_tests::failed_original_finalizer_never_publishes_terminal_metadata_or_removes_join_custody",
+        "orchestrator::participant_control::terminal_release_tests::concurrent_end_releases_one_original_runtime_after_join_and_keeps_stable_terminal_queries",
+        "orchestrator::participant_control::terminal_release_tests::terminal_scene_release_keeps_unrelated_live_runtime_and_original_mixer_owned",
+        "orchestrator::participant_control::terminal_release_tests::terminal_managed_marker_prevents_legacy_join_leave_takeover_and_binding_after_runtime_release",
+        "orchestrator::participant_control::terminal_release_tests::terminal_revision_publication_precedes_excluded_same_runtime_removal_without_query_gap"
+      ],
+      "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
+      "completion": "Targeted terminal retention/reuse/in-flight regressions pass, then all original three-cycle matrix resource observations pass.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S5",
+      "title": "Resolve measured thread/RSS plateau failures without changing the bar",
+      "owner": "Resource attribution / v198_resources",
+      "dependencies": [
+        "S3",
+        "S4"
+      ],
+      "code_paths": [
+        "scripts/lib/matrix_plateau.py",
+        "Runtime Core/Store owner paths identified by resource investigation"
+      ],
+      "solution": "Separate actual retained Core owners from persistent Tokio blocking-worker residency and Chromium MemoryInfra thread initialization. Fix source-proven retained ownership first; investigate any residual genuine growth with original identities. Preserve approved thread/FD/process and max8MiB/5% RSS limits; no forced GC or policy relaxation.",
+      "test_names": [
+        "test_matrix_plateau.MatrixPlateauTests.test_actual_cold_warmup_then_bounded_jitter_uses_fixed_cycle_one_reference",
+        "test_matrix_plateau.MatrixPlateauTests.test_bounded_decaying_warmup_can_plateau_but_linear_or_accelerating_growth_fails",
+        "test_matrix_plateau.MatrixPlateauTests.test_variance_bound_is_disclosed_for_larger_process_footprints",
+        "test_matrix_plateau.MatrixPlateauTests.test_later_thread_fd_or_process_growth_is_never_an_rss_allowance",
+        "test_matrix_plateau.MatrixPlateauTests.test_each_original_idle_window_requires_zero_session_owners_and_pool_restoration",
+        "test_matrix_plateau.MatrixPlateauTests.test_missing_cycle_unavailable_counters_and_reused_evidence_fail",
+        "test_matrix_plateau.MatrixPlateauTests.test_exact_original_pid_birth_role_and_all_actual_joins_are_required",
+        "test_matrix_plateau.MatrixPlateauTests.test_each_cycle_requires_its_own_original_join_evidence",
+        "test_matrix_plateau.MatrixPlateauTests.test_unknown_birth_placeholders_cannot_stand_in_for_original_owner_identity",
+        "test_matrix_plateau.MatrixPlateauTests.test_each_cycle_needs_a_fresh_baseline_after_previous_final_observation",
+        "test_matrix_plateau.MatrixPlateauTests.test_three_short_or_missing_original_workload_windows_do_not_qualify",
+        "test_matrix_plateau.MatrixPlateauTests.test_original_ten_second_budget_ordering_and_policy_are_not_relaxed",
+        "test_matrix_plateau.MatrixPlateauTests.test_producer_green_flags_cannot_clear_missing_observation_or_media_failure",
+        "test_native_matrix_producers.NativeMatrixPlateauProducer.test_three_native_cycles_accept_cold_warmup_only_with_original_roots_and_session_joins",
+        "test_native_matrix_producers.NativeMatrixPlateauProducer.test_native_cycle_session_leak_remains_failed_while_all_three_diagnostic_cycles_complete",
+        "test_native_matrix_producers.NativeMatrixPlateauProducer.test_three_cycle_verifiers_recompute_original_worker_and_cleanup_bounds",
+        "test_native_matrix_producers.NativeMatrixPlateauProducer.test_short_original_native_programme_cannot_qualify_three_cycle_resources",
+        "test_operational_process_resources.ProcessBoundary.test_browser_startup_failure_exposes_only_closed_metadata",
+        "test_operational_process_resources.ProcessBoundary.test_separate_owned_groups_preserve_numeric_metadata_without_names",
+        "test_operational_process_resources.ProcessBoundary.test_nonleader_worker_task_children_remain_in_original_helper_group",
+        "test_operational_process_resources.ProcessBoundary.test_reused_root_pid_cannot_adopt_unrelated_descendants",
+        "test_operational_process_resources.ProcessBoundary.test_missing_or_unreadable_metadata_is_not_zero_usage_availability",
+        "test_operational_process_resources.ProcessBoundary.test_duplicate_roots_and_cross_role_children_refuse",
+        "test_operational_process_resources.ProcessBoundary.test_native_two_roles_preserve_descriptor_unavailability_and_pid_identity"
+      ],
+      "status": "Selected resource controls pass; actual complete native workloads and process plateau verification remain pending in full32. No resource-policy relaxation or cell closure.",
+      "completion": "All13 completed browser workload cells pass original plateau comparisons, with any remaining failed metric explicitly retained.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S6",
+      "title": "Keep original expiry observation margin through fallback",
+      "owner": "Authority fixture / expiry_review",
+      "dependencies": [],
+      "code_paths": [
+        "scripts/lib/browser_matrix_authority.mjs",
+        "scripts/tests/browser_matrix_authority.test.mjs"
+      ],
+      "solution": "Keep absolute E+100 target under same13s budget; preserve exact credential, live-read refusal, fresh authentication refusal and owner joins. Historical host admission time remains unknown.",
+      "test_names": [
+        "a rolled-back browser clock preserves the original expiry observation margin before probing"
+      ],
+      "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
+      "completion": "All32 current authority requirements pass without reclassifying the3 historical failed cells.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S7",
+      "title": "Investigate current RTC private audio timeout before the expiry test boundary",
+      "owner": "RTC fixture / v199_driver",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+        "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av/private_marker.rs"
+      ],
+      "solution": "Keep original receivers playing while the same pinned candidate observation future runs, preserving the original audio3x5s and video timeout/keyframe/sample checks. Source shows old receivers are unconsumed with64-frame queues and pump drops; whether this caused the historical candidate audio stall remains a hypothesis. Stage the smallest helper/regression, review, then run actual tests before claiming a fix.",
+      "test_names": [
+        "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_original_reservation_expiry_refuses_genuine_private_observation",
+        "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::private_marker::private_observation_keeps_original_playout_and_the_same_deadline_and_owner"
+      ],
+      "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
+      "completion": "Targeted helper regression and the exact original RTC case pass, followed by the complete focused scope and all32 matrix cells.",
+      "completion_status": "full-matrix-pending"
+    }
+  ],
+  "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
+  "verified_focused_scope": {
+    "rust_arm": 212,
+    "node": 288,
+    "python": 133,
+    "mac_acl": 1,
+    "explicit_ignored_rtc_executed": 6
+  },
+  "verified_focused_source_workspace_sha256": "33c4d457bf1acc5959af495ab8829bc17116b223df5a0839295a585b4c945e64",
+  "verified_focused_root_review_sha256": "fe626c6e07ac71ea1e536d224c8bf5e2d460a5f9295c3a2af0b95335ed43870b"
 }

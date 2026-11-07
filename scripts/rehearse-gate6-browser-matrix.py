@@ -27,6 +27,7 @@ from lib.sealed_executable import seal_executable
 from lib.transport_actors import CONTROLLERS, DEVICES, enroll_actors
 from lib.transport_fixture import materialize, publish, toml_bytes
 from lib.transport_matrix import digest
+from lib.transport_matrix_execution import browser_cycle_session_owners_verified
 from lib.matrix_browser_capture import BrowserCapture
 from lib.matrix_idle import MatrixIdle
 from lib.matrix_plateau import POLICY as PLATEAU_POLICY, evaluate as evaluate_plateau
@@ -515,16 +516,9 @@ def main():
                     report["cycle_observations"].append(observed)
                     retirement = observed.get("retirement", {})
                     local = observed.get("idle_resources", {})
-                    session_joined = (retirement.get("passed") is True
-                        and retirement.get("originalEndsCompleted") == 6
-                        and retirement.get("originalSessionsEnded") == 2
-                        and retirement.get("originalClientsClosed") == 7
-                        and 0 <= retirement.get("allLocalOwnersElapsedMs", -1) <= 5000
-                        and len(retirement.get("originalConnectionEnds", [])) == 6
-                        and len(retirement.get("originalSessionEnds", [])) == 2
-                        and len(retirement.get("originalClientCloses", [])) == 7
-                        and all(row.get("status") == "fulfilled" for row in retirement["originalConnectionEnds"] + retirement["originalSessionEnds"])
-                        and all(row.get("status") == "fulfilled" and row.get("deadline_met") is True for row in retirement["originalClientCloses"]))
+                    # Session ownership is distinct from six required functional
+                    # Connection.end receipts. The final verifier retains both.
+                    session_joined = browser_cycle_session_owners_verified(observed)
                     helper_joined = (local.get("localOwnersJoined") is True
                         and local.get("renderer", {}).get("joined") is True
                         and local.get("diagnostic_hooks", {}).get("joined") is True
@@ -541,6 +535,7 @@ def main():
                         workload_evidence_sha256=archive["workload_evidence_sha256"],
                         persistent_owners=observed_idle.get("persistent_owners"), idle_resources=observed_idle,
                         joins=dict(session_owners_joined=session_joined, helper_work_joined=helper_joined,
+                                   functional_connection_retirement_passed=retirement.get("passed") is True,
                                    forced=False, evidence_sha256=digest(join_path))))
                 except (OSError, ValueError, KeyError, TypeError) as error:
                     report.setdefault("cycle_evidence_failures", []).append(dict(index=cycle["index"], name=type(error).__name__))

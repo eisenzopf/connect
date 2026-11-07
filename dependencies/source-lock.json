@@ -1877,8 +1877,13 @@
     },
     {
       "path": "patches/rvoip/connect-private-video-route-phase-observations.patch",
-      "sha256": "9ed4696ba23261ffc2529a967d639aa729657e4bead3b9f05652dfe41ae396f0",
-      "source": "Observe bounded per-original private video route enqueue, dequeue, policy/admission, cancellation/deadline, feedback issuance and IO phases without changing media authority, timing, routing or errors"
+      "sha256": "50dc617ce985d5caadc97247e2a44fab51c41b16165da0b779a5929a2c57158c",
+      "source": "Observe exact private video route phases and release visual ordinary-forward model State across current Receive policy while preserving frozen consumer and scene activation generations, current authority and original deadlines. Preserve the original retired private-route Authority refusal in its cancellation regression."
+    },
+    {
+      "path": "patches/rvoip/connect-terminal-managed-runtime-release.patch",
+      "sha256": "dc85020edc96474f42656a5310edef23327e9c54739f6da6c38df81055c84dee",
+      "source": "Release the exact ended Core managed participant runtime only after its original mixer join succeeds. Retain only terminal revision on the existing Session history, preserve managed legacy fences and end replay/cancellation/concurrency, and regress original runtime/scene Weak-owner retirement without changing resource thresholds."
     }
   ]
 }

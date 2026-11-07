@@ -185,17 +185,34 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
 
 // The admission-only caller requests one terminal intent here. Future full media
 // callers retain these same owners until the unchanged programme terminal.
-export async function retireBrowserMatrixAdmission({state,actors,plan,journal,now=()=>performance.now(),terminalMs,reason='matrix-admission-complete',closeOriginalClients}) {
+export async function retireBrowserMatrixAdmission({state,actors,plan,journal,now=()=>performance.now(),terminalMs,reason='matrix-admission-complete',closeOriginalClients,cleanupMoves}) {
     const terminal=terminalMs??now(),cutoff=terminal+5000;
     const left=()=>{const timeoutMs=Math.floor(cutoff-now());check(timeoutMs>0,"original browser teardown deadline");return {timeoutMs};};
-    const ends=await Promise.allSettled(state.connections.map(async(connection,index)=>{
-        const original=plan.routes[index].end;
-        const snapshot=await connection.refresh(left());
-        await journal({kind:"end-intent",operationId:original,connectionId:connection.id,expectedStreamRevision:snapshot.streamRevision});
-        const operation=await connection.end({reasonCode:0,reason,expectedStreamRevision:snapshot.streamRevision},
-            {...left(),operationId:original});
-        await journal({kind:"end-accepted",operationId:original,reference:operation.referenceJson()});
-        const result=await operation.wait(left());check(result.snapshot.state==="completed","original browser end must complete");
+    const endFacts=[];
+    const ends=await Promise.allSettled(state.connections.map(async(originalConnection,index)=>{
+        const original=plan.routes[index].end,fact=endFacts[index]={connection_id:originalConnection.id,
+            original_connection_id:originalConnection.id,operation_id:original};
+        let stage='original-current-owner';
+        try{
+            const resolved=cleanupMoves?await cleanupMoves.resolve(originalConnection,index,left):
+                {connection:originalConnection,snapshot:await originalConnection.refresh(left())};
+            const {connection,snapshot}=resolved;fact.connection_id=connection.id;
+            if(resolved.recovery)fact.cleanup_recovery={...resolved.recovery};
+            stage='original-end-intent';
+            await journal({kind:"end-intent",operationId:original,connectionId:connection.id,expectedStreamRevision:snapshot.streamRevision});
+            stage='original-end-submit';
+            const operation=await connection.end({reasonCode:0,reason,expectedStreamRevision:snapshot.streamRevision},
+                {...left(),operationId:original});
+            await journal({kind:"end-accepted",operationId:original,reference:operation.referenceJson()});
+            stage='original-end-wait';
+            const result=await operation.wait(left());check(result.snapshot.state==="completed","original browser end must complete");
+        }catch(error){
+            fact.failure={stage,name:String(error?.name??'Error').slice(0,64),
+                kind:typeof error?.kind==='string'?error.kind.slice(0,64):null,
+                certainty:typeof error?.certainty==='string'?error.certainty.slice(0,64):null,
+                problem:error?.problem?{code:error.problem.code,reason:String(error.problem.reason??'').slice(0,128)}:null};
+            throw error;
+        }
     }));
     const sessionEnds=await Promise.allSettled(state.sessions.map(async(session,index)=>{
         const original=plan.sessions[index].end;
@@ -220,9 +237,9 @@ export async function retireBrowserMatrixAdmission({state,actors,plan,journal,no
     const elapsedMs=now()-terminal;
     const passed=elapsedMs<=5000&&ends.every(value=>value.status==="fulfilled")&&sessionEnds.every(value=>value.status==="fulfilled")
         &&closes.every(value=>value.status==="fulfilled"&&value.value.deadlineMet);
-    return {passed,elapsedMs,
-        originalConnectionEnds:ends.map((outcome,index)=>({connection_id:state.connections[index].id,
-            operation_id:plan.routes[index].end,status:outcome.status})),
+    const cleanupRecovery=cleanupMoves?.release();
+    return {passed,elapsedMs,...(cleanupRecovery?{cleanupRecovery}:{}),
+        originalConnectionEnds:ends.map((outcome,index)=>({...endFacts[index],status:outcome.status})),
         originalSessionEnds:sessionEnds.map((outcome,index)=>({session_id:state.sessions[index].id,
             operation_id:plan.sessions[index].end,status:outcome.status})),
         originalClientCloses:closes.map((outcome,index)=>({role:Object.keys(actors)[index],

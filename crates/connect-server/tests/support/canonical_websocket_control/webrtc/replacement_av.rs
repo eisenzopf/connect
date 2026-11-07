@@ -794,11 +794,7 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
         drain(&mut c);
     }
     let decoded_samples = if delay_after_admit {
-        private_marker::audio(&mut c.audio, original_target_until).await
-    } else {
-        decoded_private_audio(&mut c.audio).await
-    };
-    if delay_after_admit {
+        let decoded_samples = private_marker::audio(&mut c.audio, original_target_until).await;
         private_marker::picture(
             &mut c.video,
             green.as_ref().unwrap(),
@@ -811,16 +807,29 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
         // Restore the SAME original publisher before proving both ordinary
         // original routes still deliver their original tone/color below.
         retained_marker.as_ref().unwrap().select(880.0, &blue);
+        decoded_samples
     } else {
-        private_marker::picture_once(
-            &mut c.video,
-            &blue,
-            "private-target-first-blue-keyframe",
-            &directory,
-            false,
+        // Original peers continue ordinary playout while this SAME private
+        // audio-then-video observation owns its existing bounds and decoder.
+        // Leaving their 64-frame receivers idle would manufacture backpressure.
+        private_marker::with_original_playout(
+            [&mut a.audio, &mut a.video, &mut b.audio, &mut b.video],
+            async {
+                let decoded_samples = decoded_private_audio(&mut c.audio).await;
+                private_marker::picture_once(
+                    &mut c.video,
+                    &blue,
+                    "private-target-first-blue-keyframe",
+                    &directory,
+                    false,
+                )
+                .await;
+                decoded_samples
+            },
         )
-        .await;
-    }
+        .await
+        .expect("original receivers remain available during private observation")
+    };
     let mut observation = challenge.clone();
     observation["audio"] =
         json!({"stream_id":"replacement-audio","decoded_samples":decoded_samples});

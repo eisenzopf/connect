@@ -227,13 +227,31 @@ def record_native_data_checks(cell, report, digest, passed):
                  "ten-second-idle-resource-restoration"])
 
 
+def browser_cycle_session_owners_verified(observation):
+    """Logical Session/client joins, separate from functional Connection ends."""
+    try:
+        retirement = observation["retirement"]
+        sessions, closes = retirement["originalSessionEnds"], retirement["originalClientCloses"]
+        return (0 <= retirement.get("allLocalOwnersElapsedMs", -1) <= 5000
+            and retirement.get("originalSessionsEnded") == len(sessions) == 2
+            and retirement.get("originalClientsClosed") == len(closes) == 7
+            and len({row["session_id"] for row in sessions}) == 2
+            and len({row["operation_id"] for row in sessions}) == 2
+            and len({row["device_id"] for row in closes}) == 7
+            and all(isinstance(row["operation_id"], str) and row["operation_id"]
+                and row["status"] == "fulfilled" for row in sessions)
+            and all(row["status"] == "fulfilled" and row["deadline_met"] is True for row in closes))
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
 def browser_cycle_joins_verified(observation):
     """Actual closed owners, including all original per-cycle joins and IDs."""
     try:
         local, retirement = observation["idle_resources"], observation["retirement"]
         closes = retirement["originalClientCloses"]
         ends, sessions = retirement["originalConnectionEnds"], retirement["originalSessionEnds"]
-        exact = (retirement.get("passed") is True and 0 <= retirement.get("allLocalOwnersElapsedMs", -1) <= 5000
+        exact = (browser_cycle_session_owners_verified(observation) and retirement.get("passed") is True and 0 <= retirement.get("allLocalOwnersElapsedMs", -1) <= 5000
             and retirement.get("originalEndsCompleted") == len(ends) == 6
             and retirement.get("originalSessionsEnded") == len(sessions) == 2
             and retirement.get("originalClientsClosed") == len(closes) == 7

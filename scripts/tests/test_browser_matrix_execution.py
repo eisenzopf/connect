@@ -105,5 +105,21 @@ class BrowserCycleJoinTests(unittest.TestCase):
         self.assertFalse(browser_cycle_joins_verified(rtc))
 
 
+    def test_actual_session_joins_do_not_hide_failed_functional_connection_ends(self):
+        from lib.transport_matrix_execution import browser_cycle_session_owners_verified, browser_cycle_joins_verified
+        import copy
+        original = self.original()
+        original["retirement"].update(passed=False, originalEndsCompleted=5)
+        original["retirement"]["originalConnectionEnds"][0]["status"] = "rejected"
+        self.assertTrue(browser_cycle_session_owners_verified(original))
+        self.assertFalse(browser_cycle_joins_verified(original), "A failed functional end still fails matrix retirement")
+        for change in [lambda v: v["retirement"]["originalSessionEnds"][0].update(status="rejected"),
+                       lambda v: v["retirement"]["originalSessionEnds"][1].update(session_id="session-0"),
+                       lambda v: v["retirement"]["originalClientCloses"][0].update(deadline_met=False),
+                       lambda v: v["retirement"].update(allLocalOwnersElapsedMs=5001)]:
+            value = copy.deepcopy(original); change(value)
+            self.assertFalse(browser_cycle_session_owners_verified(value))
+
+
 if __name__ == "__main__":
     unittest.main()

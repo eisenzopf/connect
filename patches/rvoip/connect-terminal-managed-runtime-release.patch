@@ -1,0 +1,641 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -4760,7 +4760,13 @@
+             .connection_registry_lock
+             .lock()
+             .unwrap_or_else(|poisoned| poisoned.into_inner());
+-        if self.participant_sessions.contains_key(session_id) {
++        if self.participant_sessions.contains_key(session_id)
++            || session
++                .read()
++                .expect("session lock poisoned")
++                .participant_terminal_revision
++                .is_some()
++        {
+             return Err(RvoipError::InvalidState(
+                 "use checked participant admission",
+             ));
+@@ -4935,7 +4941,13 @@
+             .connection_registry_lock
+             .lock()
+             .unwrap_or_else(|poisoned| poisoned.into_inner());
+-        if self.participant_sessions.contains_key(session_id) {
++        if self.participant_sessions.contains_key(session_id)
++            || session
++                .read()
++                .expect("session lock poisoned")
++                .participant_terminal_revision
++                .is_some()
++        {
+             return Err(RvoipError::InvalidState(
+                 "use checked participant admission",
+             ));
+@@ -5925,6 +5937,7 @@
+                     started_at: now,
+                     ended_at: None,
+                     end_reason: None,
++                    participant_terminal_revision: None,
+                 })),
+             );
+             self.emit(Event::SessionStarted {
+@@ -6413,6 +6426,7 @@
+             started_at: now,
+             ended_at: None,
+             end_reason: None,
++            participant_terminal_revision: None,
+         };
+         self.sessions
+             .insert(sid.clone(), Arc::new(RwLock::new(session)));
+@@ -6653,7 +6667,9 @@
+         let now = Utc::now();
+         let conv_id = {
+             let mut sess = sess_arc.write().expect("session lock poisoned");
+-            if self.participant_sessions.contains_key(&session_id) {
++            if self.participant_sessions.contains_key(&session_id)
++                || sess.participant_terminal_revision.is_some()
++            {
+                 return Err(RvoipError::InvalidState("use checked participant control"));
+             }
+             if matches!(
+@@ -6735,7 +6751,9 @@
+         let now = Utc::now();
+         let conv_id = {
+             let mut sess = sess_arc.write().expect("session lock poisoned");
+-            if self.participant_sessions.contains_key(&session_id) {
++            if self.participant_sessions.contains_key(&session_id)
++                || sess.participant_terminal_revision.is_some()
++            {
+                 return Err(RvoipError::InvalidState("use checked participant control"));
+             }
+             if !sess.participants.remove(&participant_id) {
+@@ -6902,7 +6920,9 @@
+             .map(|entry| Arc::clone(entry.value()))
+             .ok_or_else(|| RvoipError::SessionNotFound(session_id.clone()))?;
+         let session = session.read().expect("session lock poisoned");
+-        if self.participant_sessions.contains_key(session_id) {
++        if self.participant_sessions.contains_key(session_id)
++            || session.participant_terminal_revision.is_some()
++        {
+             return Err(RvoipError::InvalidState("use checked participant control"));
+         }
+         if matches!(
+@@ -6991,6 +7011,11 @@
+             .contains(&sid);
+         let externally_owned = externally_owned
+             || self.participant_sessions.contains_key(&sid)
++            || sess_arc
++                .read()
++                .expect("session lock poisoned")
++                .participant_terminal_revision
++                .is_some()
+             || self
+                 .peer_sessions
+                 .lock()
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -369,6 +369,7 @@
+             || !session.participants.is_empty()
+             || !session.connections.is_empty()
+             || self.participant_sessions.contains_key(session_id)
++            || session.participant_terminal_revision.is_some()
+         {
+             return Err(ParticipantTransitionError::Conflict.into());
+         }
+@@ -1060,14 +1061,30 @@
+             .ok_or(ParticipantControlError::Unsupported)?;
+         Ok(scene.selection_changes())
+     }
++    fn participant_terminal_revision(&self, session: &SessionId) -> Option<u64> {
++        self.session(session).and_then(|record| {
++            let revision = record
++                .read()
++                .expect("session lock poisoned")
++                .participant_terminal_revision;
++            revision
++        })
++    }
+     pub fn participant_revision(&self, session: &SessionId) -> ControlResult<u64> {
+-        Ok(self
+-            .participant_runtime(session)?
+-            .state
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .controller
+-            .revision())
++        // Take an existing live owner first. A missing owner can only follow
++        // publication of its terminal scalar, so release cannot create a gap.
++        match self.participant_runtime(session) {
++            Ok(runtime) => {
++                let revision = runtime
++                    .state
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .controller
++                    .revision();
++                Ok(revision)
++            }
++            Err(error) => self.participant_terminal_revision(session).ok_or(error),
++        }
+     }
+ 
+     /// Trusted runtime projection; public callers require the owning service's
+@@ -1077,9 +1094,14 @@
+         session: &SessionId,
+         participant: &ParticipantId,
+     ) -> ControlResult<Option<ParticipantRole>> {
+-        let runtime = self.participant_runtime(session)?;
+-        let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-        Ok(state.controller.role(participant).cloned())
++        match self.participant_runtime(session) {
++            Ok(runtime) => {
++                let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++                Ok(state.controller.role(participant).cloned())
++            }
++            Err(_) if self.participant_terminal_revision(session).is_some() => Ok(None),
++            Err(error) => Err(error),
++        }
+     }
+ 
+     /// Trusted process-internal hints. The returned mutation result and retained
+@@ -1092,9 +1114,14 @@
+     }
+ 
+     pub fn participant_capacity(&self, session: &SessionId) -> ControlResult<(usize, usize)> {
+-        let runtime = self.participant_runtime(session)?;
+-        let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-        Ok((state.routes.len(), state.pending.len()))
++        match self.participant_runtime(session) {
++            Ok(runtime) => {
++                let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++                Ok((state.routes.len(), state.pending.len()))
++            }
++            Err(_) if self.participant_terminal_revision(session).is_some() => Ok((0, 0)),
++            Err(error) => Err(error),
++        }
+     }
+ 
+     fn check_participant_authority(
+@@ -2312,7 +2339,34 @@
+         // No member/Core/authority lock crosses the original task join. A
+         // cancelled caller leaves that exact aborted handle for the next end.
+         drop(members);
+-        runtime.mixer.task.join().await
++        runtime.mixer.task.join().await?;
++        // Keep the original owner registered through cancellation, finalizer
++        // failure and concurrent joins. After success only the revision belongs
++        // to the already-owned Session history; no media/policy/receipt owner
++        // survives in a terminal runtime registry.
++        let revision = runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .controller
++            .revision();
++        if let Some(record) = self.session(session) {
++            let mut record = record.write().expect("session lock poisoned");
++            if record
++                .participant_terminal_revision
++                .is_some_and(|old| old != revision)
++            {
++                return Err(RvoipError::InvalidState(
++                    "terminal participant revision changed",
++                ));
++            }
++            record.participant_terminal_revision = Some(revision);
++        }
++        // No suspension after the terminal scalar. A concurrent end may already
++        // have removed this exact owner; never retire any other incarnation.
++        self.participant_sessions
++            .remove_if(session, |_, current| Arc::ptr_eq(current, &runtime));
++        Ok(())
+     }
+ }
+ 
+@@ -2348,3 +2402,6 @@
+     ParticipantReplacementAuthority, ParticipantReplacementControl, ParticipantReplacementLease,
+     ParticipantReplacementScope, ReplacementPhase,
+ };
++
++#[cfg(test)]
++mod terminal_release_tests;
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/terminal_release_tests.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/terminal_release_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/terminal_release_tests.rs
+@@ -0,0 +1,382 @@
++use super::*;
++#[allow(dead_code)]
++#[path = "../../../tests/support/participant_control_fixture.rs"]
++mod fixture;
++use fixture::{participant, Fixture};
++struct RefuseMedia;
++impl crate::staged_streams::MediaPolicy for RefuseMedia {
++    fn current(
++        &self,
++        _: &crate::staged_streams::MediaScope<'_>,
++    ) -> crate::staged_streams::ControlResult<Box<dyn crate::staged_streams::MediaAuthorityLease>>
++    {
++        Err(crate::staged_streams::StreamControlError::Authority)
++    }
++}
++async fn staged(f: &Fixture) -> SessionId {
++    let sid = f
++        .orch
++        .start_session(f.conversation.clone(), SessionMedium::Voice, vec![])
++        .await
++        .unwrap();
++    f.orch
++        .enable_staged_participant_control(
++            &sid,
++            f.policy.clone(),
++            Arc::new(RefuseMedia),
++            ParticipantLimits::default(),
++        )
++        .unwrap();
++    sid
++}
++fn terminal_events(events: &mut broadcast::Receiver<Event>, sid: &SessionId) -> usize {
++    let mut count = 0;
++    while let Ok(event) = events.try_recv() {
++        if matches!(event,Event::SessionEnded{session_id,..} if &session_id==sid) {
++            count += 1;
++        }
++    }
++    count
++}
++#[tokio::test]
++async fn successful_end_releases_exact_runtime_mixer_and_staged_scene_before_orchestrator_shutdown()
++{
++    let f = Fixture::new().await;
++    let sid = staged(&f).await;
++    let (runtime, mixer, scene) = {
++        let r = f.orch.participant_runtime(&sid).unwrap();
++        (
++            Arc::downgrade(&r),
++            Arc::downgrade(&r.mixer),
++            Arc::downgrade(r.mixer.staged.as_ref().unwrap()),
++        )
++    };
++    assert!(scene.upgrade().is_some());
++    f.orch
++        .end_session(sid.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert!(!f.orch.participant_sessions.contains_key(&sid));
++    assert!(runtime.upgrade().is_none());
++    assert!(mixer.upgrade().is_none());
++    assert!(scene.upgrade().is_none());
++    assert!(
++        f.orch.session(&sid).is_some(),
++        "logical history remains without its media owner"
++    );
++}
++#[tokio::test]
++async fn repeated_terminal_sessions_keep_live_registry_constant_and_only_scalar_revision_in_history(
++) {
++    let f = Fixture::new().await;
++    let live = f.orch.participant_sessions.len();
++    let history = f.orch.sessions.len();
++    for index in 0..8 {
++        let sid = staged(&f).await;
++        let before = f.orch.participant_revision(&sid).unwrap();
++        let weak = {
++            let r = f.orch.participant_runtime(&sid).unwrap();
++            Arc::downgrade(&r)
++        };
++        let mut events = f.orch.subscribe_events();
++        f.orch
++            .end_session(sid.clone(), EndReason::Cancelled)
++            .await
++            .unwrap();
++        assert_eq!(terminal_events(&mut events, &sid), 1);
++        f.orch
++            .end_session(sid.clone(), EndReason::Timeout)
++            .await
++            .unwrap();
++        assert_eq!(terminal_events(&mut events, &sid), 0);
++        assert!(weak.upgrade().is_none());
++        assert_eq!(f.orch.participant_sessions.len(), live);
++        assert_eq!(f.orch.participant_revision(&sid).unwrap(), before + 1);
++        assert_eq!(f.orch.participant_capacity(&sid).unwrap(), (0, 0));
++        assert_eq!(
++            f.orch
++                .participant_session_role(&sid, &participant("alice"))
++                .unwrap(),
++            None
++        );
++        let record = f.orch.session(&sid).unwrap();
++        let record = record.read().unwrap();
++        assert_eq!(record.participant_terminal_revision, Some(before + 1));
++        assert_eq!(record.state, SessionState::Ended);
++        assert!(matches!(record.end_reason, Some(EndReason::Cancelled)));
++        assert_eq!(f.orch.sessions.len(), history + index + 1);
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn cancelled_original_join_keeps_same_runtime_until_successful_retry_releases_it() {
++    let f = Fixture::new().await;
++    let sid = staged(&f).await;
++    let (weak, mut finalizer) = {
++        let r = f.orch.participant_runtime(&sid).unwrap();
++        tokio::time::timeout(Duration::from_secs(2), r.mixer.started_for_test.notified())
++            .await
++            .unwrap();
++        (
++            Arc::downgrade(&r),
++            r.mixer.hold_original_finalizer_for_test(),
++        )
++    };
++    let owner = f.orch.clone();
++    let id = sid.clone();
++    let end = tokio::spawn(async move { owner.end_session(id, EndReason::Cancelled).await });
++    tokio::time::timeout(Duration::from_secs(2), finalizer.entered())
++        .await
++        .unwrap();
++    end.abort();
++    assert!(end.await.unwrap_err().is_cancelled());
++    assert!(weak.upgrade().is_some());
++    assert!(Arc::ptr_eq(
++        &weak.upgrade().unwrap(),
++        f.orch.participant_sessions.get(&sid).unwrap().value()
++    ));
++    assert_eq!(
++        f.orch
++            .session(&sid)
++            .unwrap()
++            .read()
++            .unwrap()
++            .participant_terminal_revision,
++        None
++    );
++    finalizer.release();
++    f.orch
++        .end_session(sid.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert!(weak.upgrade().is_none());
++    assert!(!f.orch.participant_sessions.contains_key(&sid));
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn failed_original_finalizer_never_publishes_terminal_metadata_or_removes_join_custody() {
++    let f = Fixture::new().await;
++    let sid = staged(&f).await;
++    let weak = {
++        let r = f.orch.participant_runtime(&sid).unwrap();
++        tokio::time::timeout(Duration::from_secs(2), r.mixer.started_for_test.notified())
++            .await
++            .unwrap();
++        r.mixer.panic_original_finalizer_for_test();
++        Arc::downgrade(&r)
++    };
++    let mut events = f.orch.subscribe_events();
++    for _ in 0..2 {
++        assert!(f
++            .orch
++            .end_session(sid.clone(), EndReason::Normal)
++            .await
++            .is_err());
++    }
++    assert!(weak.upgrade().is_some());
++    assert!(f.orch.participant_sessions.contains_key(&sid));
++    assert_eq!(
++        f.orch
++            .session(&sid)
++            .unwrap()
++            .read()
++            .unwrap()
++            .participant_terminal_revision,
++        None
++    );
++    assert_eq!(
++        f.orch.session(&sid).unwrap().read().unwrap().state,
++        SessionState::Ending
++    );
++    assert_eq!(terminal_events(&mut events, &sid), 0);
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn concurrent_end_releases_one_original_runtime_after_join_and_keeps_stable_terminal_queries()
++{
++    let f = Fixture::new().await;
++    let sid = staged(&f).await;
++    let before = f.orch.participant_revision(&sid).unwrap();
++    let (weak, mut finalizer) = {
++        let r = f.orch.participant_runtime(&sid).unwrap();
++        tokio::time::timeout(Duration::from_secs(2), r.mixer.started_for_test.notified())
++            .await
++            .unwrap();
++        (
++            Arc::downgrade(&r),
++            r.mixer.hold_original_finalizer_for_test(),
++        )
++    };
++    let mut events = f.orch.subscribe_events();
++    let mut ends = Vec::new();
++    for _ in 0..4 {
++        let owner = f.orch.clone();
++        let id = sid.clone();
++        ends.push(tokio::spawn(async move {
++            owner.end_session(id, EndReason::Normal).await
++        }));
++    }
++    tokio::time::timeout(Duration::from_secs(2), finalizer.entered())
++        .await
++        .unwrap();
++    assert!(ends.iter().all(|e| !e.is_finished()));
++    assert!(weak.upgrade().is_some());
++    finalizer.release();
++    for end in ends {
++        end.await.unwrap().unwrap();
++    }
++    assert!(weak.upgrade().is_none());
++    assert_eq!(terminal_events(&mut events, &sid), 1);
++    assert_eq!(f.orch.participant_revision(&sid).unwrap(), before + 1);
++    assert_eq!(f.orch.participant_capacity(&sid).unwrap(), (0, 0));
++}
++#[tokio::test]
++async fn terminal_scene_release_keeps_unrelated_live_runtime_and_original_mixer_owned() {
++    let f = Fixture::new().await;
++    let (connection, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &connection).await;
++    let live = f.orch.participant_runtime(&f.session).unwrap();
++    let revision = f.orch.participant_revision(&f.session).unwrap();
++    let sid = staged(&f).await;
++    f.orch.end_session(sid, EndReason::Normal).await.unwrap();
++    assert!(Arc::ptr_eq(
++        &live,
++        &f.orch.participant_runtime(&f.session).unwrap()
++    ));
++    assert!(!live.state.lock().unwrap().ended);
++    assert!(!live.mixer.task.joined_and_released_for_test().await);
++    assert_eq!(f.orch.participant_revision(&f.session).unwrap(), revision);
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (1, 0));
++}
++#[tokio::test]
++async fn terminal_managed_marker_prevents_legacy_join_leave_takeover_and_binding_after_runtime_release(
++) {
++    let f = Fixture::new().await;
++    let (connection, _) = f.connection("alice", true).await;
++    let ticket = f
++        .orch
++        .capture_connection_lifecycles(std::slice::from_ref(&connection))
++        .unwrap()
++        .remove(0);
++    f.orch
++        .end_session(f.session.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert!(!f.orch.participant_sessions.contains_key(&f.session));
++    let before = f
++        .orch
++        .session(&f.session)
++        .unwrap()
++        .read()
++        .unwrap()
++        .participants
++        .clone();
++    let mut events = f.orch.subscribe_events();
++    assert!(matches!(
++        f.orch
++            .join_session(
++                f.session.clone(),
++                participant("alice"),
++                ParticipantKind::Human,
++                ParticipantRole::Agent
++            )
++            .await,
++        Err(RvoipError::InvalidState("use checked participant control"))
++    ));
++    assert!(matches!(
++        f.orch
++            .leave_session(f.session.clone(), participant("alice"))
++            .await,
++        Err(RvoipError::InvalidState("use checked participant control"))
++    ));
++    assert!(f
++        .orch
++        .take_over(
++            f.session.clone(),
++            participant("alice"),
++            ParticipantKind::Human
++        )
++        .await
++        .is_err());
++    assert!(f.orch.bind_connection_to_session_probe(&f.session).is_err());
++    assert!(matches!(
++        f.orch
++            .bind_published_connection_to_session(&ticket, &f.session, participant("alice")),
++        Err(RvoipError::InvalidState(
++            "use checked participant admission"
++        ))
++    ));
++    assert!(matches!(
++        f.orch.commit_outbound_connection(
++            &ticket,
++            Transport::Sip,
++            &f.session,
++            participant("alice")
++        ),
++        Err(RvoipError::InvalidState(
++            "use checked participant admission"
++        ))
++    ));
++    assert!(f
++        .orch
++        .enable_participant_control(&f.session, f.policy.clone(), ParticipantLimits::default())
++        .is_err());
++    assert_eq!(
++        f.orch
++            .session(&f.session)
++            .unwrap()
++            .read()
++            .unwrap()
++            .participants,
++        before
++    );
++    assert!(matches!(
++        events.try_recv(),
++        Err(broadcast::error::TryRecvError::Empty)
++    ));
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn terminal_revision_publication_precedes_excluded_same_runtime_removal_without_query_gap() {
++    let f = Fixture::new().await;
++    let sid = staged(&f).await;
++    let revision = f.orch.participant_revision(&sid).unwrap();
++    // An original read guard deterministically excludes map removal, while
++    // permitting the real original join and terminal scalar publication.
++    let held = f.orch.participant_sessions.get(&sid).unwrap();
++    let weak = Arc::downgrade(held.value());
++    let owner = f.orch.clone();
++    let id = sid.clone();
++    let end = tokio::spawn(async move { owner.end_session(id, EndReason::Normal).await });
++    let observed = tokio::time::timeout(Duration::from_secs(2), async {
++        loop {
++            if f.orch
++                .session(&sid)
++                .unwrap()
++                .read()
++                .unwrap()
++                .participant_terminal_revision
++                .is_some()
++            {
++                break;
++            }
++            tokio::task::yield_now().await;
++        }
++    })
++    .await;
++    assert!(observed.is_ok());
++    assert!(!end.is_finished());
++    assert_eq!(
++        held.value().state.lock().unwrap().controller.revision(),
++        revision + 1
++    );
++    drop(held);
++    end.await.unwrap().unwrap();
++    assert!(weak.upgrade().is_none());
++    // The missing-live-owner branch observes the already-published scalar.
++    assert_eq!(f.orch.participant_revision(&sid).unwrap(), revision + 1);
++    assert_eq!(f.orch.participant_capacity(&sid).unwrap(), (0, 0));
++    assert_eq!(
++        f.orch
++            .participant_session_role(&sid, &participant("alice"))
++            .unwrap(),
++        None
++    );
++}
+diff --git a/crates/foundation/rvoip-core/src/records/capture.rs b/crates/foundation/rvoip-core/src/records/capture.rs
+--- a/crates/foundation/rvoip-core/src/records/capture.rs
++++ b/crates/foundation/rvoip-core/src/records/capture.rs
+@@ -493,6 +493,7 @@
+             started_at: now,
+             ended_at: Some(now),
+             end_reason: Some(crate::adapter::EndReason::Normal),
++            participant_terminal_revision: None,
+         };
+         let builder = crate::vcon::DefaultVconBuilder::new();
+         use crate::vcon::VconBuilderHandle;
+@@ -592,6 +593,7 @@
+             started_at: now,
+             ended_at: Some(now),
+             end_reason: Some(crate::adapter::EndReason::Normal),
++            participant_terminal_revision: None,
+         };
+         let builder = DefaultVconBuilder::new();
+         builder.add_dialog(VconDialog {
+diff --git a/crates/foundation/rvoip-core/src/session.rs b/crates/foundation/rvoip-core/src/session.rs
+--- a/crates/foundation/rvoip-core/src/session.rs
++++ b/crates/foundation/rvoip-core/src/session.rs
+@@ -49,6 +49,9 @@
+     pub started_at: DateTime<Utc>,
+     pub ended_at: Option<DateTime<Utc>>,
+     pub end_reason: Option<EndReason>,
++    // Resource-free terminal metadata; the live managed runtime is released
++    // only after its original mixer join has succeeded. No second registry.
++    pub(crate) participant_terminal_revision: Option<u64>,
+ }
+ 
+ impl fmt::Debug for Session {
