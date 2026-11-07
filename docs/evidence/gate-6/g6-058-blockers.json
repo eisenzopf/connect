@@ -1,12 +1,12 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-06",
-  "run_status": "Full v199 attempted all32 cells and432 requirements with336 passes,96 failures,zero blocked andzero qualified cells. The post-v199 batch passed a complete focused retry with160 Rust,192 Node,117 Python,Mac ACL1,shipping/default and feature checks. Every original owner joined and source/mode checks passed. The first focused attempt and its seven Python fixture errors remain recorded. Full32-cell revalidation is pending. G6-054 stays deferred.",
+  "updated": "2026-11-07",
+  "run_status": "Full v200 remains 251 passed, 110 failed and 71 blocked requirements across 32 attempted cells, with zero qualified cells. B61–B69 are implemented with covered focused controls; the focused expiry failure remains unresolved. The same implementation is ready for a diagnostic full local Mac and ARM Linux 32-cell retest with that known failure disclosed. The remaining signed private-readiness reservation-expiry control returned invalid-request after its original 30-second expiry wait. Its cause remains unresolved. The separate unchanged-source Node269 diagnostic passed; it does not replace the earlier failed Node result or qualify a focused attempt. G6-054 stays deferred.",
   "blockers": [
     {
       "id": "B01",
       "title": "SDK native activation result",
-      "status": "Verified \u2014 parser regressions",
+      "status": "Verified — parser regressions",
       "change": "Rust and browser accept only the existing typed activation proof, bound to operation/target/generation/revision and outer record; malformed and unknown fields still reject.",
       "evidence": "43b1276a: normal-release ARM Rust parser tests2/2, browser/Node models103/103 and Python helper1/1 pass. Valid native activation, stopped/null history and malformed/foreign proof refusals covered.",
       "next": "Full signed native/browser matrix verifies end-to-end producer/SDK behavior; keep raw proof validation and original operation recovery."
@@ -14,7 +14,7 @@
     {
       "id": "B02",
       "title": "Post-Core audio continuation",
-      "status": "Verified \u2014 12-control ARM batch includes live continuation",
+      "status": "Verified — 12-control ARM batch includes live continuation",
       "change": "Validate installation epoch and the distinct database-bound transition runtime separately in both pending-target and original-operation lease queries. Keep all current attempt, actor/key, membership, recipient, expiry and Core publication checks.",
       "evidence": "fcae89ee: all 12 normal-release ARM controls pass, including current SQL exclusion/recovery/revocation, live duplex, explicit AV, actual retirement, original expiry and unpaused movement. Full signed-epoch matrix still fails before Core commit.",
       "next": "Preserve controls; remove the separate signed private receiver-epoch dependency cycle and rerun full matrix."
@@ -22,7 +22,7 @@
     {
       "id": "B03",
       "title": "Unpaused target disappears",
-      "status": "Verified \u2014 native runtime",
+      "status": "Verified — native runtime",
       "change": "Forward native cursor capability through the actual composite NativeMedia adapter. Backend supports it; wrapper currently inherits false and mislabels native activation unsupported.",
       "evidence": "43b1276a, release opt3: original unpaused control passes1/1,0 ignored; actual generations2/3 activate, both audio directions and old-key independence work, cleanup passes. See g6-058-native-blocker-runtime.json.",
       "next": "Preserve this control while fixing paused metadata continuation; fresh full matrix still required."
@@ -30,7 +30,7 @@
     {
       "id": "B04",
       "title": "Private-successor return binding",
-      "status": "Verified \u2014 Store regressions",
+      "status": "Verified — Store regressions",
       "change": "Fresh schema117 accepts exact latest matching-parent primary substitution; original history/audience stay immutable.",
       "evidence": "43b1276a, normal-release ARM:26/26 selected Store/schema checks pass,0 ignored; matching parent, repeated generation, malformed/stale context, current authority and recorded departure covered.",
       "next": "Keep Store controls green; confirm actual private replacement/return and resource cleanup in the full matrix."
@@ -38,7 +38,7 @@
     {
       "id": "B05",
       "title": "Audio/video probe demultiplexing",
-      "status": "Verified \u2014 native AV control and both models",
+      "status": "Verified — native AV control and both models",
       "change": "Demultiplex the original signed physical video reader, selected payload, observed SSRC and actually sent source frames. Validate every fragment against the final SDK-verified cut; preserve audio assertions.",
       "evidence": "9acd83eb, normal-release ARM: both demultiplexing/refusal models and actual paused explicit-video-transfer control pass. Original packet membership and decoded observations are retained; no full-cell quality qualification.",
       "next": "Preserve controls in the complete batch and run all 32 transport, quality and resource cells."
@@ -46,7 +46,7 @@
     {
       "id": "B06",
       "title": "Opus cadence session fixture",
-      "status": "Verified \u2014 native cadence runtime",
+      "status": "Verified — native cadence runtime",
       "change": "Negotiate Opus in both original Session invitation and acceptance; physical PCMU prerequisites unchanged.",
       "evidence": "43b1276a, normal-release ARM:all4 signed G711/Opus emission/contiguity cases plus service missing-session-capability refusal pass,0 ignored.",
       "next": "Retain capability-refusal check and complete transport matrix; no cadence, frame-count or deadline changes."
@@ -54,7 +54,7 @@
     {
       "id": "B07",
       "title": "Required-nullable protocol field",
-      "status": "Verified \u2014 component scope",
+      "status": "Verified — component scope",
       "change": "Restore required explicit-null active speaker semantics and preserve them through regeneration.",
       "evidence": "feee630f /1355f591:13 normal-release Rust controls and4 Python regeneration controls pass.",
       "next": "Full matrix still required; these component passes do not qualify a cell."
@@ -62,7 +62,7 @@
     {
       "id": "B08",
       "title": "Native cut test ownership and gates",
-      "status": "Verified \u2014 Core regression runtime",
+      "status": "Verified — Core regression runtime",
       "change": "Observe exact private delivery ticket; distinguish publication mute from receive hold.",
       "evidence": "43b1276a, normal-release ARM:all10 native-cut controls pass,0 ignored. Exact ticket ownership, publication mute, receive hold and cursor/feedback lifetime coverage.",
       "next": "Preserve these controls in the fresh full transport matrix."
@@ -72,14 +72,14 @@
       "title": "Cleanup and resource reclamation",
       "status": "Implemented. Focused verification passed. Matrix verification pending",
       "change": "Keep zero Session-owned resources and all original source, renderer, client and helper joins. Run three actual workload and idle cycles on the same original server, browser and helper processes. Compare later RSS, threads, descriptors and process counts with the first completed cycle while preserving every original media, authority and deadline check.",
-      "evidence": "Full v199 failed all 32 resource requirements under its original criteria. The owner approved the ownership and three-cycle resource revision. The integrated implementation and chosen numeric policy are recorded in docs/evidence/gate-6/blocker-batch-post-v199-integrated.json. Runtime verification is pending.",
-      "next": "Run all32 local Mac and ARM Linux cells with three real workload cycles per cell. Preserve every independent media, handoff, authority and resource verdict.",
+      "evidence": "Full v200 used three actual cycles where the workload started. Native startup and remote bridge defects prevented complete coverage. Browser resource growth still fails the recorded numeric plateau policy.",
+      "next": "Measure three actual cycles with the unchanged approved ownership/plateau policy in the complete local matrix.",
       "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v199-integrated.json#focused_verified_retry"
     },
     {
       "id": "B10",
       "title": "Interrupted local ARM run",
-      "status": "Recovered \u2014 full original run completed",
+      "status": "Recovered — full original run completed",
       "change": "Preserve interrupted results, use same ARM VM, start a fresh candidate run with durable ownership.",
       "evidence": "v193 completed all 32 attempts / 432 verdicts and original workers joined. No missing host reports; no matrix qualification.",
       "next": "Keep durable ownership and all-cell execution on next committed batch."
@@ -87,7 +87,7 @@
     {
       "id": "B11",
       "title": "WebRTC post-start metadata contention",
-      "status": "Open \u2014 Store control passes; live RTC still fails",
+      "status": "Open — Store control passes; live RTC still fails",
       "change": "Reobserve only effect-free native replacement origin acquisition on authority-busy after the same actual WebRTC start, using original cutoff and cancellation. No configure/mute/record or operation replay.",
       "evidence": "fcae89ee original Started SQL exclusion/recovery/revocation control passes. v193 RTC sends audio/video but target receives sparse audio and no reported inbound video; exact authority leaf still needs attribution.",
       "next": "Current receive leaf diagnostics are bounded14 per target. Rerun full matrix after combined library/fixture fixes; no speculative error-class changes."
@@ -95,7 +95,7 @@
     {
       "id": "B12",
       "title": "Mac remote fixture candidate integrity",
-      "status": "Remote candidate setup verified \u2014 full-load media open",
+      "status": "Remote candidate setup verified — full-load media open",
       "change": "Seal the exact prepared SDK manifest before seed runtime commands; preserve final exact digest comparison on every outcome.",
       "evidence": "All v193 verifier integrity fields pass; Mac remote seed create/list/replay/issuance succeeds. Guest programme fails because eagerly read public movement contract was omitted from its sealed transfer. All v194 remote profiles entered their real programmes; candidate integrity no longer prevents setup.",
       "next": "Independent native helper recovery is a genuine unexecuted subcase after AV abort; stage it before Session/AV using actual original-helper joins and original signed create/current-history proof. Verifier predicates remain intact."
@@ -103,15 +103,15 @@
     {
       "id": "B13",
       "title": "Signed private video epoch startup",
-      "status": "Native signed scenarios verified \u2014 full-load preparation open",
-      "change": "Issue genuine receiver epochs during private preparation using the same registration and fresh Store/Core authorization. Preserve private\u2192moving\u2192ordinary phase boundaries and keep original route active.",
-      "evidence": "4d4bbe80 normal ARM: actual private keyframe and postcommit interframe use SAME signed epoch and SAME real decoder, then both cases fail feedback recovery. Full6source native/WT/RTC targets still fail private downlink/readiness; minimal2peer proof is not full-load qualification. Phase2 all5 actual signed cases pass: baseline, original registration after its true30spreparation expiry, nonretained3rd-source selection,Opus andData\u2192AV. These do not reproduce the full concurrent4+2 workload.",
-      "next": "Fix proven feedback route promotion; run3peer/Opus/Data\u2192AV discriminators and actual RTC under admitted bounded diagnostics, then all32."
+      "status": "Native signed scenarios verified — full-load preparation open",
+      "change": "Issue genuine receiver epochs during private preparation using the same registration and fresh Store/Core authorization. Preserve private→moving→ordinary phase boundaries and keep original route active.",
+      "evidence": "4d4bbe80 normal ARM: actual private keyframe and postcommit interframe use SAME signed epoch and SAME real decoder, then both cases fail feedback recovery. Full6source native/WT/RTC targets still fail private downlink/readiness; minimal2peer proof is not full-load qualification. Phase2 all5 actual signed cases pass: baseline, original registration after its true30spreparation expiry, nonretained3rd-source selection,Opus andData→AV. These do not reproduce the full concurrent4+2 workload.",
+      "next": "Fix proven feedback route promotion; run3peer/Opus/Data→AV discriminators and actual RTC under admitted bounded diagnostics, then all32."
     },
     {
       "id": "B14",
       "title": "Internal authority read cost",
-      "status": "Verified \u2014 all10 normal ARM Store controls pass",
+      "status": "Verified — all10 normal ARM Store controls pass",
       "change": "Use opaque internal authority records with all current facts/effects but without public causal journal count/page rendering; public records unchanged.",
       "evidence": "4d4bbe80: all10 exact Store cases pass, joined/unforced/0ignored. Includes real original expiry, exact source/target/permission/phase gates, opaque/full row equality and no public journal-page rendering.",
       "next": "Preserve these current-authority controls with the next shared runtime batch; real full-load private receive remains unresolved."
@@ -119,7 +119,7 @@
     {
       "id": "B15",
       "title": "Remote fixture prerequisites",
-      "status": "Remote prerequisites verified \u2014 full-load media open",
+      "status": "Remote prerequisites verified — full-load media open",
       "change": "Include exact movement contract in Mac guest input staging; permit only approved runtime-retention log directive in strict Linux namespace guard.",
       "evidence": "Mac guest import fails before programme body due to omitted contract. Both Linux remote native cells stop at stale RUST_LOG allowlist before seed launch. Combined batch: 28 Node and 35 Python checks pass, zero skips; no real remote or decoded-media qualification. Follow-up full SDK855 + fixture34 + Python37 checks pass; no inherited transport qualification. v194 attempts all32cells with0unrun and0setup-blocked cells; media and sampled resource failures remain.",
       "next": "Byte-preservation and strict allowlist controls, then actual remote programmes."
@@ -127,7 +127,7 @@
     {
       "id": "B16",
       "title": "Independent browser owner observation",
-      "status": "Implemented \u2014 fixture controls pass; real transport pending",
+      "status": "Implemented — fixture controls pass; real transport pending",
       "change": "Keep sticky per-owner reachability failure while continuing fixed-cadence renewal of unaffected originals and independent programme observations; preserve failed overall outcome.",
       "evidence": "v193 keepalive failure globally aborts remaining observations before fixed programme completion. Combined batch: 28 Node and 35 Python checks pass, zero skips; no real remote or decoded-media qualification. Follow-up full SDK855 + fixture34 + Python37 checks pass; no inherited transport qualification.",
       "next": "Failure-isolation controls and full runtime; no subset promotion, deadline extension or reconnection."
@@ -135,7 +135,7 @@
     {
       "id": "B17",
       "title": "Renderer playback result vs physical cleanup",
-      "status": "Physical browser cleanup verified \u2014 OS resources still fail",
+      "status": "Physical browser cleanup verified — OS resources still fail",
       "change": "Expose immutable exact-owner renderer-local retirement only after original graph close and output detachment. Keep finished playback error independent. Fixture releases only proven original backing, reports semantic errors and requires playback success for overall cell.",
       "evidence": "Fresh v194 WT/RTC original8retirement promises fulfill, physical retirement<500ms, localOwnersJoined=true and retained_surfaces=0. RTC prepared playback deadline errors remain visible and failed. Both cells still fail sampled OS restoration; no resource waiver.",
       "next": "Release diagnostic-held owner references only after exact shutdown joins and retain numeric evidence; investigate remaining OS ownership and full-load media."
@@ -143,17 +143,17 @@
     {
       "id": "B18",
       "title": "Same-epoch feedback route promotion",
-      "status": "Native feedback recovery verified \u2014 full matrix pending",
+      "status": "Native feedback recovery verified — full matrix pending",
       "change": "Rebind only successful guarded receiver delivery to fresh current public route and exact existing history; keep epoch/replay/rate/firstpacket unchanged.",
-      "evidence": "Both actual signed cases complete movement/decoder continuity then PLI times out; endpoint and registry retain retired private route/current predicate. Recorded feedback refresh patch and fresh dependency preparation; actual same-history route/cursor and cold PLI cases pending. Phase1 actual bidirectional,3party,Opus andData\u2192AV signed cases pass. Mode7 also reaches private/public decode and recovery before its wrong journal-expiry assertion fails. This does not qualify the fullmatrix. Phase2 normal-release registry/Core-boundary regressions and actual signed bidirectional cold recovery pass. Decoder identity/history stays unchanged through real private/public delivery.",
+      "evidence": "Both actual signed cases complete movement/decoder continuity then PLI times out; endpoint and registry retain retired private route/current predicate. Recorded feedback refresh patch and fresh dependency preparation; actual same-history route/cursor and cold PLI cases pending. Phase1 actual bidirectional,3party,Opus andData→AV signed cases pass. Mode7 also reaches private/public decode and recovery before its wrong journal-expiry assertion fails. This does not qualify the fullmatrix. Phase2 normal-release registry/Core-boundary regressions and actual signed bidirectional cold recovery pass. Decoder identity/history stays unchanged through real private/public delivery.",
       "next": "Run registry and Core promotion negatives plus uncached actual signed recovery."
     },
     {
       "id": "B19",
       "title": "Native failure skips Session ends",
-      "status": "Failure-path Session cleanup observed \u2014 OS reclamation still fails",
+      "status": "Failure-path Session cleanup observed — OS reclamation still fails",
       "change": "Success and failure share same original end0/end1 attempts, current scopes and immutable first intent, within original terminal5s/global cutoff.",
-      "evidence": "v195 first ARM native EdDSA:both originalSessions ended,all9helpers+Worker joined1199ms;Tokio14\u219214. Extra7serverthreads and server/helperRSS remain. No full resource pass.",
+      "evidence": "v195 first ARM native EdDSA:both originalSessions ended,all9helpers+Worker joined1199ms;Tokio14→14. Extra7serverthreads and server/helperRSS remain. No full resource pass.",
       "next": "Preserve same Session handles/end IDs; investigate OS ownership separately."
     },
     {
@@ -167,7 +167,7 @@
     {
       "id": "B21",
       "title": "Diagnostic references retain closed browser owners",
-      "status": "Unit controls verified \u2014 full matrix references pending",
+      "status": "Unit controls verified — full matrix references pending",
       "change": "Snapshot numeric evidence then restore exact original shutdown hooks and release diagnostic strong references only after actual original joins.",
       "evidence": "Prototype wrapper closures retain retiredPeers/rtcRetirements owner objects through idle; physical cleanup already passes. OS retention effect remains unproved. Original shutdown joins, immutable numeric snapshots and exact hook restoration release diagnostic roots; OS effect remains unproved. Nine hook controls pass, including delayed/rejected joins, exact original error preservation, foreign hooks and bounded references; this proves diagnostic release semantics, not RSS restoration. Final69Node verifies exact original shutdown joins and diagnostic roots release; failed playback remains failed and resources remain measured.",
       "next": "Unit delayed/rejected joins and hook restoration/ownership negatives, then actual same-process resources."
@@ -175,7 +175,7 @@
     {
       "id": "B22",
       "title": "Darwin diagnostic thread identity",
-      "status": "Verified \u2014 actual Mac parent/child identity controls",
+      "status": "Verified — actual Mac parent/child identity controls",
       "change": "Read genuine SDK THREAD_IDENTIFIER_INFO.thread_handle and independently check numeric kernelTID.",
       "evidence": "pthread_self and libproc handles differ; no guessed-offset or false exact identity match is accepted. Fresh prepared SDK-backed Darwin identity; actual Mac parent/live-child controls pending. All3actual Mac identity cases pass; both Linux current-identity controls pass. Remaining OS retention requires attribution, not guessed handle offsets.",
       "next": "Real same-process parent/child libproc queries on Mac; Linux identity control unchanged."
@@ -183,7 +183,7 @@
     {
       "id": "B23",
       "title": "Private media refusal diagnostics filtered out",
-      "status": "Verified \u2014 actual filter and emitter controls",
+      "status": "Verified — actual filter and emitter controls",
       "change": "Use existing enabled canonical_replacement topic with unchanged14event cap; admit fixed scene terminal summaries under existing audio_summary filter.",
       "evidence": "v194 configured topics omit private_receive_refusal and scene_summary, so exact private gate leaf/starvation attribution is currently unavailable. Fresh prepared bounded private refusal and terminal scene topics; no full-load attribution yet. Both Service actual-runner filter cases and Core actual six-stage emitter case pass on Mac andARM; private receive logger remains bounded14events/target. Full-load runtime attribution pending.",
       "next": "Real tracing EnvFilter tests against actual runner literals, then focused full-load preparation diagnosis."
@@ -191,15 +191,15 @@
     {
       "id": "B24",
       "title": "Firefox current authority qualification",
-      "status": "Verified \u2014 all eight actual Firefox authority checks pass",
+      "status": "Verified — all eight actual Firefox authority checks pass",
       "change": "Inspect original expiry/revocation/conflict subcases and exact authenticated refusal, preserving single original wait and current credentials.",
-      "evidence": "v195 source73e6a9e5:all8Firefox current-revocation/expiry/conflicting-operation checks pass, including each current-authority subcase. Total matrix improves320\u2192328passedchecks;Firefox movement/media/resources remainfailed.",
+      "evidence": "v195 source73e6a9e5:all8Firefox current-revocation/expiry/conflicting-operation checks pass, including each current-authority subcase. Total matrix improves320→328passedchecks;Firefox movement/media/resources remainfailed.",
       "next": "Preserve exact in-page JSON snapshot; verify remaining independent requirements."
     },
     {
       "id": "B25",
       "title": "Publisher interleave prunes receiver history",
-      "status": "Native interleave verified \u2014 full matrix pending",
+      "status": "Native interleave verified — full matrix pending",
       "change": "Keep one immutable receiver history/revision per exact original Profile. Restore pruned identity only under fresh current guarded delivery; preserve capacity and revision limits. No permission, route or current predicate is cached.",
       "evidence": "Source audit: a genuine publisher announce can prune the retired private receiver row; both SDKs reset decoder history on the resulting newer receiver revision. Phase1 schedule did not exercise this interleave. Phase2 all3new pruned-history controls pass, including actual prune/current predicate/capacity/MAX/provenance. All5actual signed cases causally publish/decode target video and consume signed current feedback before same-decoder public interframe continuity.",
       "next": "Three pruning/capacity/provenance controls and actual target publication, remote decode and signed feedback before the same original decoder receives its public interframe; then fullmatrix."
@@ -207,15 +207,15 @@
     {
       "id": "B26",
       "title": "Repeated unary facts in sealed scene reads",
-      "status": "Component verified \u2014 full matrix retest pending",
-      "change": "Keep all current original actors/pairs/scopes/minexpiry and actual observer version/clock/writer checks. New exact-capture helper derives context+scope once, reducing5\u21923selection resolves only within one synchronous sealed projection; generic reads and mandatory post-admission revalidation unchanged.",
+      "status": "Component verified — full matrix retest pending",
+      "change": "Keep all current original actors/pairs/scopes/minexpiry and actual observer version/clock/writer checks. New exact-capture helper derives context+scope once, reducing5→3selection resolves only within one synchronous sealed projection; generic reads and mandatory post-admission revalidation unchanged.",
       "evidence": "Original normal-release ARM Store selection:25 passed,1 failed. The corrected Store assertion was rerun separately and passed; its original failure is retained. All other tested files, production, source-lock and prepared inputs are unchanged. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "Full matrix must measure the same-invocation consolidation with unchanged authority/version/clock/writer checks; no performance pass inferred."
     },
     {
       "id": "B27",
       "title": "Retired browser fixture references remain rooted",
-      "status": "Actual browser roots released \u2014 OS growth remains",
+      "status": "Actual browser roots released — OS growth remains",
       "change": "Join the exact original client/source/keepalive batches, preserve closed reports and dynamic counts, then release only matching global/local SDK wrappers and source nodes. Added cleanup remains inside the original5s accounting.",
       "evidence": "v195 firstARM WT EdDSA:all8renderer owners joined;5sharednativepeer shutdowns joined;bindings/queues/surfaces0;diagnosticowners/actorclients/statehandles0;6Connections/2Sessions/7clients closed517.5ms. Chrome tree still+2processes/+134FD/+24threads/+557830144RSSbytes;no liveJSowner cause established.",
       "next": "Use exact OS descendant/inode attribution; preserve original10s/5s bounds and failed verdict."
@@ -223,7 +223,7 @@
     {
       "id": "B28",
       "title": "Linux browser process/descriptor attribution missing",
-      "status": "Component verified \u2014 full matrix retest pending",
+      "status": "Component verified — full matrix retest pending",
       "change": "Bounded existing census records browser-owned descendants. New closed executable/flattened Chromium process-title taxonomy plus hashed(dev,ino,type) identity separates descriptor label hashes from actual objects; racy/partial/unavailable stays explicit.",
       "evidence": "All 23 Python owner-diagnostic controls pass. Closed taxonomy/redaction, actual hashed inode/type identity, process reuse, races and unavailable observations remain strict. Actual OS growth in v195 is unchanged. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "The integrated selected-FD mapping extension remains unvalidated; run its numeric identity/privacy/bounds controls before using new OS attribution. No memory or resource-budget pass is inferred."
@@ -231,7 +231,7 @@
     {
       "id": "B29",
       "title": "Private keyframe recovery stalls during receive silence",
-      "status": "Component verified \u2014 full matrix retest pending",
+      "status": "Component verified — full matrix retest pending",
       "change": "Existing receive select sends new cooldown-bound feedback under current signed history while decoder waits. Captures one absolute original receive deadline; no detachedtask, packet/sequence replay, authority cache or age/timeout extension.",
       "evidence": "Five normal-release signed client controls pass on each Mac/ARM platform; all seven actual signed ARM replacement-video server controls pass, including private delta-first current-hint and lost-hint/no-extra-frame cases. Original v195 media failures remain. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "Retest all32 original transport cells; preserve signed history, original receive deadline, keyframe proof and current authority."
@@ -239,7 +239,7 @@
     {
       "id": "B30",
       "title": "Audio work excludes private decoder preparation from scene members",
-      "status": "Component verified \u2014 full matrix retest pending",
+      "status": "Component verified — full matrix retest pending",
       "change": "Drop scene membership lock only around independent audio mixer; reacquire and rebuild direct controllers afterward. Preserve current consumers/ports/authority,originalcadence/work limits. Bounded failure-leaf diagnostics emit only after ownedguardsdrop.",
       "evidence": "All21 normal-release Core selections pass on each Mac/ARM platform, including actual callback preparation/revocation/removal concurrency, exact two-lock-segment timing, bounded refusal diagnostics and original endpoint/feedback controls. Direct-phase holds remain a separate unresolved cause. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "Full matrix must measure actual effect; no complete Core contention, A/V or resource qualification inferred."
@@ -247,7 +247,7 @@
     {
       "id": "B31",
       "title": "Closed Worker stdio remains referenced by diagnostic closures",
-      "status": "Component verified \u2014 full matrix retest pending",
+      "status": "Component verified — full matrix retest pending",
       "change": "Release only original ended,errorfree stdio stream references after actual writes/endjoin; retain pending/failed streams and errors.",
       "evidence": "All three original stdio ownership controls and two natural Worker/T+10 controls pass within the16-case Node selection. Pending/error/bound ownership stays failed; no measured RSS improvement is claimed. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "Retest original idle/resource observation without forced collection, process restart or budget changes."
@@ -255,7 +255,7 @@
     {
       "id": "B32",
       "title": "Transient private video preparation contention becomes fatal",
-      "status": "Component verified \u2014 v198 handoff 0/32",
+      "status": "Component verified — v198 handoff 0/32",
       "change": "Preserve typed pre-effect MetadataBusy and retry only that safe video-plan metadata refusal with fresh current reads, the pinned original target revision and unchanged existing five-second preparation budget. No repeated negotiation, mute or installed-route effect.",
       "evidence": "Completed original v198. Handoff 0/32 passed, 29 failed, 3 blocked. decoded-media 0/32 passed, 29 failed, 3 blocked. All selected requirement verdicts are terminal. The three unattempted ARM cells remain environment-blocked, with no behavior evidence. Counts do not establish whether every specific contention/lifetime branch triggered. docs/evidence/gate-6/matrix-full-v198.json. Focused V6 separately passed all 104 ARM checks and the shipping build. original failures are preserved.",
       "next": "Retain current authority and original lifetime/short retry boundaries. Diagnose remaining original failed/blocked cells, then validate fixes and rerun the complete matrix."
@@ -263,7 +263,7 @@
     {
       "id": "B33",
       "title": "Readiness lifetime incorrectly uses a five-second start snapshot",
-      "status": "Component verified \u2014 v198 handoff 0/32",
+      "status": "Component verified — v198 handoff 0/32",
       "change": "Bind ReadyGate and the sealed Core private video binding to the unchanged original preparation/root lifetime. Keep installation/current-capture authority and MetadataBusy retry under their original shorter cutoffs. Every queued packet and signed Ready still requires fresh current authorization; no deadline or original lifetime is renewed.",
       "evidence": "Completed original v198. Handoff 0/32 passed, 29 failed, 3 blocked. decoded-media 0/32 passed, 29 failed, 3 blocked. All selected requirement verdicts are terminal. The three unattempted ARM cells remain environment-blocked, with no behavior evidence. Counts do not establish whether every specific contention/lifetime branch triggered. docs/evidence/gate-6/matrix-full-v198.json. Focused V6 separately passed all 104 ARM checks and the shipping build. original failures are preserved.",
       "next": "Retain current authority and original lifetime/short retry boundaries. Diagnose remaining original failed/blocked cells, then validate fixes and rerun the complete matrix."
@@ -271,7 +271,7 @@
     {
       "id": "B34",
       "title": "Partial browser initialization owner cleanup",
-      "status": "Component verified \u2014 lifecycle edge observation unestablished",
+      "status": "Component verified — lifecycle edge observation unestablished",
       "change": "Close an already created first encoder if a later encoder constructor fails; retire exact peer-owned RTC receiver tracks rejected before accepted-map ownership. Preserve accepted owners and real cleanup failures.",
       "evidence": "Actual v198 browser resource requirements: 0/24 passed, 21 failed, 3 blocked. Original 30 Node owner controls remain verified. The matrix aggregate does not establish an actual constructor/rejected-track failure-edge observation or its OS cause. docs/evidence/gate-6/matrix-full-v198.json.",
       "next": "Keep exact-owner cleanup controls. use actual resource verdicts and concrete owner evidence to address remaining failures."
@@ -279,7 +279,7 @@
     {
       "id": "B35",
       "title": "Selected regular-FD mapping attribution",
-      "status": "Diagnostic component verified \u2014 resources 0/32",
+      "status": "Diagnostic component verified — resources 0/32",
       "change": "Add bounded numeric file-size and exact selected-inode VMA/RSS attribution under the original process-birth identity and existing post-counter census. Keep truncated, raced or unavailable observations explicit.",
       "evidence": "Actual v198 resource requirements: 0/32 passed, 29 failed, 3 blocked. Original 28 owner-diagnostic and 4 idle Python controls remain verified. These unit results do not qualify OS budgets. actual matrix verdicts are recorded separately and no per-inode cause is inferred. docs/evidence/gate-6/matrix-full-v198.json.",
       "next": "Attribute actual remaining owner/mapping failures from original evidence. preserve unchanged resource budgets and explicit unknown/partial diagnostics."
@@ -287,7 +287,7 @@
     {
       "id": "B36",
       "title": "Private full-scene authority refusal loses the Store subtype",
-      "status": "Diagnostic component verified \u2014 four ARM controls pass",
+      "status": "Diagnostic component verified — four ARM controls pass",
       "change": "Preserve a closed static Store authority-busy subtype in the existing bounded private receive diagnostic. Preserve current authorization, original packet error mapping, retry behavior and event budget.",
       "evidence": "Four exact normal-release ARM diagnostic controls pass,0ignored: actual emitter/filter/cap, static subtype mapping, privacy and guard release. Actual failed RTC leaves now identify original SQL observer ownership/reseal exclusion. docs/evidence/gate-6/blocker-components-post-v197-partial.json.",
       "next": "Use precise actual subtype evidence to validate the separately prepared original-slot reservation fix; full matrix still required."
@@ -303,7 +303,7 @@
     {
       "id": "B38",
       "title": "A native movement failure aborts retained-source decoder evidence",
-      "status": "Script component verified \u2014 full matrix pending",
+      "status": "Script component verified — full matrix pending",
       "change": "Persist actual joined decoder captures even when the original operation fails. Isolate only definitively refused original submissions before a physical target starts; unobserved or uncertain completion remains fatal. Preserve the exact first failure when an observation callback also fails.",
       "evidence": "Original Mac Node69:62pass and7platform-specific failures preserved;19Python pass. Exact later workspace delta is only reviewed Linux lifetime test correction; actual ARM7Node nowpass. These are retainedMac62/Python19 +freshARM7, not69newMacpasses. docs/evidence/gate-6/blocker-components-post-v197-partial.json.",
       "next": "Retain original failed movement result and exact first error; verify full native programme decoder diagnostics under the next committed complete matrix."
@@ -327,7 +327,7 @@
     {
       "id": "B41",
       "title": "Compound scene reseal loses its original SQL observer slot",
-      "status": "Component verified \u2014 five new and seven existing ARM controls pass",
+      "status": "Component verified — five new and seven existing ARM controls pass",
       "change": "Reserve only the same original observer slot through transaction-local SQL unlock and file admission, then atomically reclaim that slot for exact reseal. No retained IO grant, waiting pool expansion or authority caching.",
       "evidence": "Focused V3 and V4 execute all12 exact original observer-slot controls successfully, including actual competing reader, original reseal, unchanged4slots, SQL release and cancellation/unwind cleanup. Full matrix still pending. docs/evidence/gate-6/blocker-components-post-v197-v4.json.",
       "next": "Retest actual signed native/RTC handoffs and full32 matrix after shared compile correction; component pass does not close G6-058."
@@ -343,7 +343,7 @@
     {
       "id": "B43",
       "title": "Instrumented automatic integration target lacks required test-support declaration",
-      "status": "Verified \u2014 shipping build and actual instrumented target",
+      "status": "Verified — shipping build and actual instrumented target",
       "change": "Declare the instrumented target required-features=test-support; separately check default shipping --lib --bins. The actual instrumented integration target must still compile and execute every exact selected case with test-support enabled.",
       "evidence": "V5 shipping default lib/bins build and required-feature metadata pass. All eight instrumented RTC controls run successfully. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
       "next": "Run the next complete local 32-cell matrix after the focused batch passes."
@@ -351,7 +351,7 @@
     {
       "id": "B44",
       "title": "Private receiver repeats file admission while the original source already holds full custody",
-      "status": "Component verified \u2014 all ten custody controls pass",
+      "status": "Component verified — all ten custody controls pass",
       "change": "Reuse only the exact live original source interval after rederiving all current scene, target, operator, pair and audience facts; reseal the same observer and cap source/fresh/root expiry without fallback from invalid supplied custody. Correct revoked-credential expectations to exact unauthorized, admit an original two-second reservation and wait its immutable expiry, and introduce a schema-valid new identity membership to prove insufficient supplied custody refuses without fresh admission.",
       "evidence": "Focused V4 passes all10full-scene custody controls and19distinct combined Store cases. Original immutable2s expiry, strict revoked-credential unauthorized codes, schema-valid new uncovered scope, exact held-source expiry and no fresh fallback are exercised. Actual signed native12 and RTC7controls also pass. docs/evidence/gate-6/blocker-components-post-v197-v4.json.",
       "next": "Retain all19Store cases in104retry, then verify real matrix resource and media behavior."
@@ -359,7 +359,7 @@
     {
       "id": "B45",
       "title": "Video repair initializer misses the new audio clock metadata field",
-      "status": "Component verified \u2014 video and screen repair regression passed",
+      "status": "Component verified — video and screen repair regression passed",
       "change": "Record video_copy audio_timing:None through upstream patch/source-lock; video/screen repair stays outside the audio clock. Extend original repair regression to check original and retained copies contain no audio timing, preserving authority, packet bytes, age and repair bounds.",
       "evidence": "V5 executes the original repair regression through its observable interface, with original authority, expiry, bytes and budget assertions. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
       "next": "Run the next complete local 32-cell matrix after the focused batch passes."
@@ -367,7 +367,7 @@
     {
       "id": "B46",
       "title": "Native clock fixtures parse RTCP sender reports as RTP media",
-      "status": "Component verified \u2014 all nine native transport controls passed",
+      "status": "Component verified — all nine native transport controls passed",
       "change": "Separate valid RTCP before generic RTP parsing; malformed remaining media must fail, retain exact RTP/NTP/payload/SSRC assertions and require actual packet/report counts. Production clock source unchanged.",
       "evidence": "The corrected native wire fixtures verify RTP and RTCP independently, preserving exact timing and payload assertions. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
       "next": "Run the next complete local 32-cell matrix after the focused batch passes."
@@ -375,7 +375,7 @@
     {
       "id": "B47",
       "title": "Four existing RTC regressions have incorrect runner module names",
-      "status": "Component verified \u2014 all four corrected RTC selectors executed",
+      "status": "Component verified — all four corrected RTC selectors executed",
       "change": "Bind exact original --list names under canonical_audio_order_tests and source_clock_audio_tests; preserve all104function/features/ignored scopes and reject all other scope changes.",
       "evidence": "V5 executes all four exact selectors in the corrected namespaces with one pass each. All 15 adapter controls passed. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
       "next": "Run the next complete local 32-cell matrix after the focused batch passes."
@@ -383,7 +383,7 @@
     {
       "id": "B48",
       "title": "RTC physical-cancellation fixture leaves server physical owner live",
-      "status": "Component verified \u2014 explicit original physical teardown passed",
+      "status": "Component verified — explicit original physical teardown passed",
       "change": "After local peer close, end only the captured original server candidate via ConnectionAdapter::end under the SAME original5s cutoff, then require real route/slot removal, same-root terminal status, no commit/effects and refusal of genuine stale Ready. No root-write or new mutation ID.",
       "evidence": "V5 closes both ends of the exact candidate and verifies original root, route and slot retirement and refusal of stale Ready within the original five-second bound. Remote-close propagation latency remains unqualified. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
       "next": "Run the next complete local 32-cell matrix after the focused batch passes."
@@ -391,7 +391,7 @@
     {
       "id": "B49",
       "title": "Core audio fixture reuses the final operation ID during preparation",
-      "status": "Component verified \u2014 all four corrected Core adoption cases passed",
+      "status": "Component verified — all four corrected Core adoption cases passed",
       "change": "Use a distinct stable preparation audience and bind probe permission to that exact context. Preserve the final root ID, original expiry and strict no-adoption assertions after failed commit.",
       "evidence": "V6 reaches each original commit, failure, expiry and successor oracle under distinct preparation and original root identities. docs/evidence/gate-6/blocker-components-post-v197-v6.json.",
       "next": "Run the complete 32-cell local transport matrix."
@@ -399,7 +399,7 @@
     {
       "id": "B50",
       "title": "Native expiry fixture wakes before the original Store deadline",
-      "status": "Component verified \u2014 both original UTC expiry cases passed",
+      "status": "Component verified — both original UTC expiry cases passed",
       "change": "Wait for the recorded UTC expiry in both native post-expiry fixtures. Keep the original reservation, monotonic pre-expiry cutoff, signed Ready limits and 90-second outer timeout.",
       "evidence": "V6 verifies signed Ready refusal after the exact original reservation expires and survival of the already committed native connection after its preparation cutoff. docs/evidence/gate-6/blocker-components-post-v197-v6.json.",
       "next": "Run the complete 32-cell local transport matrix."
@@ -488,6 +488,87 @@
       "evidence": "docs/evidence/gate-6/blocker-batch-post-v199-integrated.json",
       "next": "Run all32 local Mac and ARM Linux cells with three real workload cycles per cell. Preserve every independent media, handoff, authority and resource verdict.",
       "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v199-integrated.json#focused_verified_retry"
+    },
+    {
+      "id": "B61",
+      "title": "Native programme output ownership",
+      "status": "Implemented; covered controls recorded; full matrix pending",
+      "change": "Create only the common media parent. The original native workload exclusively creates each cycle leaf.",
+      "evidence": "All native cycles stopped at EEXIST before AV. The three-cycle controller introduced the conflicting mkdir. Four failed focused attempts and the separate unchanged Node269 diagnostic are recorded. No all-pass focused verdict is claimed.",
+      "next": "Run all 32 cells locally; preserve the unresolved reservation-expiry failure and every original outcome.",
+      "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v200-integrated.json"
+    },
+    {
+      "id": "B62",
+      "title": "Three-cycle browser capture capacity",
+      "status": "Implemented; covered controls recorded; full matrix pending",
+      "change": "Scale the capture packet and byte limits by the declared cycle count while retaining completeness and privacy checks.",
+      "evidence": "The original capture stopped at its 200000-packet one-cycle limit during the three-cycle workload. Four failed focused attempts and the separate unchanged Node269 diagnostic are recorded. No all-pass focused verdict is claimed.",
+      "next": "Run all 32 cells locally; preserve the unresolved reservation-expiry failure and every original outcome.",
+      "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v200-integrated.json"
+    },
+    {
+      "id": "B63",
+      "title": "Local readiness timeout closes shared control",
+      "status": "Implemented; covered controls recorded; full matrix pending",
+      "change": "Retire the exact unsubmitted replacement target after local decoder timeout or cancellation while preserving the authenticated control client.",
+      "evidence": "Actual decoder deadline preceded whole-client closure and failed original Session refresh. Submitted or uncertain continuations retain their original handling. Four failed focused attempts and the separate unchanged Node269 diagnostic are recorded. No all-pass focused verdict is claimed.",
+      "next": "Run all 32 cells locally; preserve the unresolved reservation-expiry failure and every original outcome.",
+      "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v200-integrated.json"
+    },
+    {
+      "id": "B64",
+      "title": "Cross-host fixture lease queue and failure evidence",
+      "status": "Implemented; covered controls recorded; full matrix pending",
+      "change": "Use the explicit three-cycle preflight queue budget and preserve actual acquisition failure and process facts.",
+      "evidence": "The original wait lasted 1200.54 seconds. Five ARM guardians released during that interval. Historical Mac SSH metadata was discarded. Four failed focused attempts and the separate unchanged Node269 diagnostic are recorded. No all-pass focused verdict is claimed.",
+      "next": "Run all 32 cells locally; preserve the unresolved reservation-expiry failure and every original outcome.",
+      "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v200-integrated.json"
+    },
+    {
+      "id": "B65",
+      "title": "Owned three-cycle output transfer capacity",
+      "status": "Implemented; covered controls recorded; full matrix pending",
+      "change": "Bind the larger transfer limit to the exact original three-cycle job digest and output directory.",
+      "evidence": "Static range analysis found the one-cycle transfer bound could reject a permitted three-cycle capture. This was not an observed v200 failure. Four failed focused attempts and the separate unchanged Node269 diagnostic are recorded. No all-pass focused verdict is claimed.",
+      "next": "Run all 32 cells locally; preserve the unresolved reservation-expiry failure and every original outcome.",
+      "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v200-integrated.json"
+    },
+    {
+      "id": "B66",
+      "title": "Nested cross-host browser resource handshake",
+      "status": "Implemented; covered controls recorded; full matrix pending",
+      "change": "Exchange the actual cycles/cycle-N resource paths in both directions with fixed names, unchanged clocks and immutable responses.",
+      "evidence": "Six Mac remote browser cells timed out at the first nested baseline request. Their primary workload did not start. Four failed focused attempts and the separate unchanged Node269 diagnostic are recorded. No all-pass focused verdict is claimed.",
+      "next": "Run all 32 cells locally; preserve the unresolved reservation-expiry failure and every original outcome.",
+      "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v200-integrated.json"
+    },
+    {
+      "id": "B67",
+      "title": "Private delivery outcome attribution",
+      "status": "Implemented; covered controls recorded; full matrix pending",
+      "change": "Record fixed per-medium policy outcomes and actual native primary RTP attempts, acceptance and refusal.",
+      "evidence": "Sources continued producing keyframes while private return targets received sparse or zero video. These counters distinguish the remaining boundaries. Four failed focused attempts and the separate unchanged Node269 diagnostic are recorded. No all-pass focused verdict is claimed.",
+      "next": "Run all 32 cells locally; preserve the unresolved reservation-expiry failure and every original outcome.",
+      "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v200-integrated.json"
+    },
+    {
+      "id": "B68",
+      "title": "Terminal decoder readiness attribution",
+      "status": "Implemented; covered controls recorded; full matrix pending",
+      "change": "Emit one bounded scalar terminal observation from existing accepted output and current-identity observations.",
+      "evidence": "The old snapshots omitted the exact consecutive audio, keyframe, freshness and identity predicates at the deadline. Four failed focused attempts and the separate unchanged Node269 diagnostic are recorded. No all-pass focused verdict is claimed.",
+      "next": "Run all 32 cells locally; preserve the unresolved reservation-expiry failure and every original outcome.",
+      "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v200-integrated.json"
+    },
+    {
+      "id": "B69",
+      "title": "Shared packet observer contention attribution",
+      "status": "Implemented; covered controls recorded; full matrix pending",
+      "change": "Separate fixed slot claim phases from actual SQL intervals in the existing runtime retention observation.",
+      "evidence": "All six Mac WebRTC public receive paths stalled during preparation with repeated observer-slot refusals. No eight-second SQL retention was demonstrated. Four failed focused attempts and the separate unchanged Node269 diagnostic are recorded. No all-pass focused verdict is claimed.",
+      "next": "Run all 32 cells locally; preserve the unresolved reservation-expiry failure and every original outcome.",
+      "focused_evidence": "docs/evidence/gate-6/blocker-batch-post-v200-integrated.json"
     }
   ]
 }

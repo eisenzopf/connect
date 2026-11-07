@@ -2005,6 +2005,7 @@ export class BrowserMediaPeer {
         }, budget.remaining());
         options.signal?.addEventListener("abort", abort, { once: true });
         if (options.signal?.aborted) abort();
+        let awaitingNativeReadiness = false;
         try {
             const first = await Promise.race([
                 parameters.then((frame) => ({ frame })),
@@ -2092,6 +2093,7 @@ export class BrowserMediaPeer {
                     replacement.prepared(
                         new BrowserMediaConnection(this, state.scope.connid),
                     );
+                    awaitingNativeReadiness = true;
                     completed = await state.nativeReadiness.finish(
                         this.client,
                         until,
@@ -2129,6 +2131,7 @@ export class BrowserMediaPeer {
                         },
                         options.signal,
                     );
+                    awaitingNativeReadiness = false;
                     const receipt = replacementReceipt(
                         replacement.root,
                         completed,
@@ -2239,7 +2242,19 @@ export class BrowserMediaPeer {
             this.applyVideoControl(state, type, payload, completed);
             for (const kind of selectedKinds) state.selectedKinds.add(kind);
         } catch (error) {
+            // Signed parameter negotiation already joined. Before any ready
+            // continuation attempt, a local decode wait grants no activation.
+            // The outer owner retires this exact target without destroying the
+            // shared control peer or its unrelated live Connections.
+            const localUnsubmittedReadiness =
+                replacement !== undefined &&
+                awaitingNativeReadiness &&
+                state.nativeReadiness !== undefined &&
+                !state.nativeReadiness.readinessSubmissionAttempted &&
+                error instanceof ConnectError &&
+                (error.code === "timeout" || error.code === "cancelled");
             if (
+                !localUnsubmittedReadiness &&
                 !state.nativeReadiness?.mayHaveCommitted &&
                 (!(error instanceof ConnectError) ||
                     (!["refused", "historical-operation"].includes(

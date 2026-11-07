@@ -289,12 +289,14 @@ impl TargetPolicy {
         purpose: &local_audio::LocalAudioPurpose,
         output: bool,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
-        self.scope(scope)?;
-        let local_audio::LocalAudioPurpose::EndpointPreparation { operation_id } = purpose;
-        if self.preparation_operation.get() != Some(operation_id) {
-            return Err(StreamControlError::Authority);
-        }
-        let read = self
+        self.receive_diagnostics.begin_preparation(output);
+        let result = (|| {
+            self.scope(scope)?;
+            let local_audio::LocalAudioPurpose::EndpointPreparation { operation_id } = purpose;
+            if self.preparation_operation.get() != Some(operation_id) {
+                return Err(StreamControlError::Authority);
+            }
+            let read = self
             .base
             .store
             .try_native_replacement_media_read(
@@ -304,9 +306,12 @@ impl TargetPolicy {
                 tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,"Private replacement media read deferred");
                 crate::canonical_media::packet_authority_error(error)
             })?;
-        let mut owner = self.current_owner(&read)?;
-        owner.may_route_source = output;
-        Ok(Box::new(Fresh { owner, _read: read }))
+            let mut owner = self.current_owner(&read)?;
+            owner.may_route_source = output;
+            Ok(Box::new(Fresh { owner, _read: read }) as Box<dyn MediaAuthorityLease>)
+        })();
+        self.receive_diagnostics.preparation_result(output, &result);
+        result
     }
     fn held_owners(&self, i: &StartInvocation) -> ControlResult<(MediaOwner, MediaOwner)> {
         if !std::ptr::eq(self, Arc::as_ptr(&i.policy))
@@ -605,6 +610,7 @@ impl TargetPolicy {
         source: &MediaSource,
         held: Option<&connect_store::NativeMediaRead>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        self.receive_diagnostics.begin_receive(held.is_some());
         let mut leaf = 0;
         let mut medium = None;
         let mut store_busy = None;
@@ -697,6 +703,10 @@ impl TargetPolicy {
             owner.may_route_source = true;
             Ok(Box::new(PrivateReceive { owner, _read: read }) as Box<dyn MediaAuthorityLease>)
         })();
+        // Numeric accounting alone: an Ok still retains its ORIGINAL reader.
+        // No formatting, emission, locks or additional authority lookup here.
+        self.receive_diagnostics
+            .receive_result(held.is_some(), medium, leaf, &result, store_busy);
         // Failed admission has already dropped all SQL/current-owner readers.
         // Each original target emits at most one diagnostic per exact leaf.
         if let Err(error) = &result {

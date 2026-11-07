@@ -12,7 +12,11 @@ from .transport_matrix import digest
 
 
 class BrowserCapture:
-    def __init__(self, directory, *, interface, server_ip, native, wss, media_start, transport, env):
+    def __init__(self, directory, *, interface, server_ip, native, wss, media_start, transport, env, resource_cycles=1):
+        if type(resource_cycles) is not int or resource_cycles not in (1, 3):
+            raise ValueError("One or three explicit capture resource cycles required")
+        self.resource_cycles = resource_cycles
+        self.packet_limit, self.maximum_bytes = 200000 * resource_cycles, 256 * 1024**2 * resource_cycles
         self.directory, self.interface, self.server_ip = directory, interface, server_ip
         self.env, self.transport = env, transport
         self.native, self.wss, self.media_start = native, wss, media_start
@@ -27,7 +31,7 @@ class BrowserCapture:
         self.binary_hash = digest(self.binary)
         self.stream = self.log.open("xb")
         self.process = subprocess.Popen([self.binary, "-p", "-n", "-i", self.interface, "-U", "-s", "262144",
-            "-c", "200000", "-w", str(self.path), self.filter], env=self.env, stdin=subprocess.DEVNULL,
+            "-c", str(self.packet_limit), "-w", str(self.path), self.filter], env=self.env, stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL, stderr=self.stream, start_new_session=True)
         cutoff = time.monotonic() + 5
         while "listening on " not in self.log.read_text():
@@ -39,7 +43,8 @@ class BrowserCapture:
         if self.report is not None:
             return self.report
         self.report = dict(format="connect/browser-private-packet-capture/1", transport=self.transport,
-            observed=False, original_joined=False, owner_created=self.process is not None, raw_capture_private=True, filter=self.filter)
+            observed=False, original_joined=False, owner_created=self.process is not None, raw_capture_private=True, filter=self.filter, resource_cycles=self.resource_cycles,
+            packet_limit=self.packet_limit, maximum_pcap_bytes=self.maximum_bytes)
         try:
             if self.process is None:
                 raise ValueError("Capture was not started")
@@ -50,17 +55,21 @@ class BrowserCapture:
             raw = self.log.read_text()
             captured = re.search(r"(?m)^(\d+) packets captured$", raw)
             dropped = re.search(r"(?m)^(\d+) packets dropped by kernel$", raw)
+            if captured and dropped:
+                self.report.update(original_packets_captured=int(captured[1]), kernel_dropped_packets=int(dropped[1]))
             if code != 0 or not captured or not dropped or int(dropped[1]) != 0:
                 raise ValueError("Capture failed or lost packets")
-            if self.path.stat().st_mode & 0o077 or not 24 <= self.path.stat().st_size <= 256 * 1024**2:
+            if self.path.stat().st_mode & 0o077 or not 24 <= self.path.stat().st_size <= self.maximum_bytes:
                 raise ValueError("Capture bounds or privacy differ")
             counts = self.inspect()
-            if counts["packets"] != int(captured[1]) or not 0 < counts["packets"] < 200000 or not min(counts["to_server"], counts["from_server"]):
+            if counts["packets"] != int(captured[1]) or not 0 < counts["packets"] < self.packet_limit or not min(counts["to_server"], counts["from_server"]):
                 raise ValueError("Original duplex capture missing or incomplete")
             self.report.update(observed=digest(self.binary) == self.binary_hash,
                 executable_sha256=self.binary_hash, pcap_sha256=digest(self.path),
                 pcap_bytes=self.path.stat().st_size, kernel_dropped_packets=0, counts=counts)
         except (OSError, ValueError, struct.error, subprocess.SubprocessError) as error:
+            if isinstance(error, ValueError):
+                self.report["capture_failure_reason"] = str(error)
             self.report.update(failure=type(error).__name__, environment_failure=self.process is None or self.process.returncode != 0)
         finally:
             if self.process is not None and self.process.poll() is None:
@@ -100,6 +109,6 @@ class BrowserCapture:
                 counts["from_server"] += ip[12:16] == server and server_port(source_port)
                 counts["to_server"] += ip[16:20] == server and server_port(target_port)
                 counts["udp" if ip[9] == 17 else "tcp"] += 1
-                if counts["packets"] > 200000:
+                if counts["packets"] > self.packet_limit:
                     raise ValueError("Packet count bound")
         return counts

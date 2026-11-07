@@ -30,7 +30,11 @@ impl Runtime {
         while work.try_join_next().is_some() {}
         let runtime = self.clone();
         work.spawn(async move {
-            if let Err(error)=runtime.prepare_replacement_media(&root,&started,&peer).await {
+            let result = runtime.prepare_replacement_media(&root,&started,&peer).await;
+            // The original preparation future and all its guards are gone.
+            // A successful snapshot may include writes after public movement.
+            started.policy.receive_diagnostics.terminal(&started.policy, result.is_ok());
+            if let Err(error)=result {
                 tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,code=%error.code,"Private replacement preparation stopped");
                 root.handle.cancel();
             }

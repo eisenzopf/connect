@@ -58,6 +58,8 @@ struct Ownership {
     // Resource-free claims only. A transaction may release SQL while retaining
     // its original slot; no claim owns a Connection, permission or IO grant.
     claims: [AtomicU64; OBSERVERS],
+    claim_clock: std::time::Instant,
+    claim_diagnostics: ClaimDiagnostics,
 }
 struct Pool {
     ownership: Arc<Ownership>,
@@ -99,10 +101,135 @@ impl Drop for Observation {
         self.ownership.release(self.generation, false);
     }
 }
+// Separate claim availability from actual SQL mutex custody. No IO or logs
+// run on these paths; the existing retention observer reads fixed atomics.
+const CLAIM_PHASE_NAMES: [&str; 4] = ["unreserved", "capture", "file-admit", "reseal"];
+const UNRESERVED: usize = 0;
+const CAPTURE: usize = 1;
+const FILE_ADMIT: usize = 2;
+const RESEAL: usize = 3;
+#[derive(Default)]
+struct PhaseTimes {
+    entered: AtomicU64,
+    exited: AtomicU64,
+    total_ns: AtomicU64,
+    maximum_ns: AtomicU64,
+}
+fn diagnostic_add(value: &AtomicU64, amount: u64) {
+    let _ = value.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
+        Some(old.saturating_add(amount))
+    });
+}
+impl PhaseTimes {
+    fn enter(&self) {
+        diagnostic_add(&self.entered, 1);
+    }
+    fn exit(&self, elapsed: u64) {
+        diagnostic_add(&self.total_ns, elapsed);
+        self.maximum_ns.fetch_max(elapsed, Ordering::Relaxed);
+        diagnostic_add(&self.exited, 1);
+    }
+    fn snapshot(&self, phase: &'static str) -> serde_json::Value {
+        let entered = self.entered.load(Ordering::Relaxed);
+        let exited = self.exited.load(Ordering::Relaxed);
+        let total = self.total_ns.load(Ordering::Relaxed);
+        let maximum = self.maximum_ns.load(Ordering::Relaxed);
+        let saturated = [entered, exited, total, maximum].contains(&u64::MAX);
+        serde_json::json!({"phase":phase,"entered":entered,"exited":exited,
+            "in_flight_sample":entered.saturating_sub(exited),
+            "completed_intervals_total_ns":total,"completed_intervals_max_ns":maximum,
+            "saturated":saturated})
+    }
+}
+#[derive(Default)]
+struct ClaimDiagnostics {
+    timed_claims: AtomicU64,
+    untimed_claims: AtomicU64,
+    reserved_claim_attempts: AtomicU64,
+    reserved_results: [AtomicU64; 2],
+    claims: [PhaseTimes; 4],
+    sql: [PhaseTimes; 4],
+}
+struct ClaimTiming {
+    phase: std::sync::atomic::AtomicUsize,
+    started_ns: AtomicU64,
+    result_observed: AtomicBool,
+}
+// This owns only the existing resource-free ownership metadata. Guard declares
+// it last, so original SQL unlock and claim release order stays unchanged.
+struct SqlTiming {
+    ownership: Arc<Ownership>,
+    phase: usize,
+    started_ns: u64,
+}
+impl Ownership {
+    fn claim_now_ns(&self) -> u64 {
+        self.claim_clock
+            .elapsed()
+            .as_nanos()
+            .try_into()
+            .unwrap_or(u64::MAX)
+    }
+}
+fn claim_timing_enabled() -> bool {
+    tracing::enabled!(target: "connect_service::runtime_retention", tracing::Level::DEBUG)
+}
+#[cfg(test)]
+pub(crate) fn with_claim_timing_for_test(f: impl FnOnce()) {
+    struct Trace;
+    impl tracing::Subscriber for Trace {
+        fn enabled(&self, metadata: &tracing::Metadata<'_>) -> bool {
+            metadata.target() == "connect_service::runtime_retention"
+        }
+        fn new_span(&self, _: &tracing::span::Attributes<'_>) -> tracing::span::Id {
+            unreachable!("claim timing creates no spans")
+        }
+        fn record(&self, _: &tracing::span::Id, _: &tracing::span::Record<'_>) {}
+        fn record_follows_from(&self, _: &tracing::span::Id, _: &tracing::span::Id) {}
+        fn enter(&self, _: &tracing::span::Id) {}
+        fn exit(&self, _: &tracing::span::Id) {}
+        fn event(&self, _: &tracing::Event<'_>) {
+            panic!("claim timing must not emit packet-path events")
+        }
+    }
+    tracing::subscriber::with_default(Trace, f);
+}
+impl Drop for SqlTiming {
+    fn drop(&mut self) {
+        self.ownership.claim_diagnostics.sql[self.phase].exit(
+            self.ownership
+                .claim_now_ns()
+                .saturating_sub(self.started_ns),
+        );
+    }
+}
 struct SlotClaim {
     ownership: Arc<Ownership>,
     slot: usize,
     token: u64,
+    timing: Option<ClaimTiming>,
+}
+impl SlotClaim {
+    fn phase(&self, next: usize) {
+        if let Some(timing) = &self.timing {
+            let now = self.ownership.claim_now_ns();
+            let previous = timing.phase.swap(next, Ordering::Relaxed);
+            let started = timing.started_ns.swap(now, Ordering::Relaxed);
+            self.ownership.claim_diagnostics.claims[previous].exit(now.saturating_sub(started));
+            self.ownership.claim_diagnostics.claims[next].enter();
+        }
+    }
+    fn sql_timing(&self) -> Option<SqlTiming> {
+        let timing = self.timing.as_ref()?;
+        let phase = timing.phase.load(Ordering::Relaxed);
+        let started_ns = self.ownership.claim_now_ns();
+        self.ownership.claim_diagnostics.sql[phase].enter();
+        Some(SqlTiming {
+            ownership: self.ownership.clone(),
+            phase,
+            started_ns,
+        })
+    }
 }
 impl Drop for SlotClaim {
     fn drop(&mut self) {
@@ -111,6 +238,14 @@ impl Drop for SlotClaim {
             .is_err()
         {
             self.ownership.failed.store(true, Ordering::Release);
+        }
+        // Release the exact original claim FIRST, before observational teardown.
+        if let Some(timing) = &self.timing {
+            self.ownership.claim_diagnostics.claims[timing.phase.load(Ordering::Relaxed)].exit(
+                self.ownership
+                    .claim_now_ns()
+                    .saturating_sub(timing.started_ns.load(Ordering::Relaxed)),
+            );
         }
     }
 }
@@ -122,6 +257,27 @@ pub(crate) struct Reservation<'a> {
     id: ObserverId,
     _observation: &'a Observation,
 }
+impl Reservation<'_> {
+    pub(crate) fn begin_file_admission(&self) {
+        self.claim.phase(FILE_ADMIT);
+    }
+    pub(crate) fn begin_reseal(&self) {
+        self.claim.phase(RESEAL);
+    }
+    pub(crate) fn observe_result(&self, success: bool) {
+        if self
+            .claim
+            .timing
+            .as_ref()
+            .is_some_and(|timing| !timing.result_observed.swap(true, Ordering::Relaxed))
+        {
+            diagnostic_add(
+                &self.claim.ownership.claim_diagnostics.reserved_results[usize::from(!success)],
+                1,
+            );
+        }
+    }
+}
 pub(crate) struct Guard<'a> {
     slot: MutexGuard<'a, Slot>,
     id: ObserverId,
@@ -130,6 +286,7 @@ pub(crate) struct Guard<'a> {
     // SQL slot is declared first: unlock it before a plain read releases its
     // short claim, so an unclaimed slot cannot still own an ordinary SQL guard.
     _claim: Option<SlotClaim>,
+    _sql_timing: Option<SqlTiming>,
 }
 impl Guard<'_> {
     pub(crate) fn id(&self) -> ObserverId {
@@ -182,6 +339,8 @@ impl Observers {
                 }),
                 failed: AtomicBool::new(false),
                 claims: std::array::from_fn(|_| AtomicU64::new(0)),
+                claim_clock: std::time::Instant::now(),
+                claim_diagnostics: ClaimDiagnostics::default(),
             }),
             path: path.into(),
             slots: std::array::from_fn(|_| Mutex::new(Slot(None))),
@@ -321,7 +480,7 @@ impl Observers {
             if original.is_some_and(|id| id.slot != index) {
                 continue;
             }
-            let Some(claim) = self.claim(index, token) else {
+            let Some(claim) = self.claim(index, token, UNRESERVED) else {
                 continue;
             };
             let g = match slot.try_lock() {
@@ -341,6 +500,7 @@ impl Observers {
                 },
                 _observation: observation,
                 _reservation: None,
+                _sql_timing: claim.sql_timing(),
                 _claim: Some(claim),
             });
         }
@@ -357,14 +517,33 @@ impl Observers {
             })
             .map_err(|_| Error::storage())
     }
-    fn claim(&self, slot: usize, token: u64) -> Option<SlotClaim> {
+    fn claim(&self, slot: usize, token: u64, phase: usize) -> Option<SlotClaim> {
         self.0.ownership.claims[slot]
             .compare_exchange(0, token, Ordering::AcqRel, Ordering::Acquire)
             .ok()
-            .map(|_| SlotClaim {
-                ownership: self.0.ownership.clone(),
-                slot,
-                token,
+            .map(|_| {
+                let d = &self.0.ownership.claim_diagnostics;
+                let timing = if claim_timing_enabled() {
+                    diagnostic_add(&d.timed_claims, 1);
+                    if phase == CAPTURE {
+                        diagnostic_add(&d.reserved_claim_attempts, 1);
+                    }
+                    d.claims[phase].enter();
+                    Some(ClaimTiming {
+                        phase: std::sync::atomic::AtomicUsize::new(phase),
+                        started_ns: AtomicU64::new(self.0.ownership.claim_now_ns()),
+                        result_observed: AtomicBool::new(false),
+                    })
+                } else {
+                    diagnostic_add(&d.untimed_claims, 1);
+                    None
+                };
+                SlotClaim {
+                    ownership: self.0.ownership.clone(),
+                    slot,
+                    token,
+                    timing,
+                }
             })
     }
     /// Reserve one successful SQL slot for this exact compound transaction.
@@ -378,7 +557,7 @@ impl Observers {
         }
         let token = Self::next_claim()?;
         for (index, slot) in self.0.slots.iter().enumerate() {
-            let Some(claim) = self.claim(index, token) else {
+            let Some(claim) = self.claim(index, token, CAPTURE) else {
                 continue;
             };
             let sql = match slot.try_lock() {
@@ -389,7 +568,9 @@ impl Observers {
             if sql.0.is_none() {
                 return Err(Error::storage());
             }
+            let sql_timing = claim.sql_timing();
             drop(sql);
+            drop(sql_timing);
             return Ok(Reservation {
                 claim,
                 id: ObserverId {
@@ -436,6 +617,30 @@ impl Observers {
             _observation: observation,
             _reservation: Some(reservation),
             _claim: None,
+            _sql_timing: reservation.claim.sql_timing(),
+        })
+    }
+    pub(crate) fn claim_diagnostics(&self) -> serde_json::Value {
+        let d = &self.0.ownership.claim_diagnostics;
+        let reserved = d.reserved_claim_attempts.load(Ordering::Relaxed);
+        let results = d
+            .reserved_results
+            .each_ref()
+            .map(|v| v.load(Ordering::Relaxed));
+        serde_json::json!({
+            "format":"connect/packet-observer-claim-phases/1", "concurrent_snapshot":true,
+            "slot_capacity":OBSERVERS, "tracking_enabled_now":claim_timing_enabled(),
+            "occupied_slots_sample":self.0.ownership.claims.iter().filter(|v|v.load(Ordering::Acquire)!=0).count(),
+            "timed_claims":d.timed_claims.load(Ordering::Relaxed),
+            "untimed_claims":d.untimed_claims.load(Ordering::Relaxed),
+            "reserved_claim_attempts":reserved,"projection_returned_ok":results[0],"projection_returned_error":results[1],
+            "reserved_result_unreported_sample":reserved.saturating_sub(results[0].saturating_add(results[1])),
+            "claim_intervals":CLAIM_PHASE_NAMES.iter().enumerate().map(|(i,name)|d.claims[i].snapshot(name)).collect::<Vec<_>>(),
+            "sql_locked_intervals":CLAIM_PHASE_NAMES.iter().enumerate().map(|(i,name)|d.sql[i].snapshot(name)).collect::<Vec<_>>(),
+            "limitations":["Independent atomic samples can race; timings include only completed intervals and are not active-age bounds",
+                "Claim phases describe slot exclusion, not SQL locking; SQL custody is measured separately after actual acquisition",
+                "Unreported includes active, early reservation refusal and unwound captures; no failed/aborted result is invented",
+                "Projection Ok is metadata admission, never media delivery or decoder readiness; untimed claims are not observed durations"]
         })
     }
     /// Only an existing owned blocking custodian or trusted physical admission

@@ -197,3 +197,23 @@ test("original media setup failure remains explicit before any source clock or m
 test("in-workload control retires one Connection, rebinds a captured camera and preserves the shared participant second Session", context => checkFailure(context, false, false, true));
 
 test("the original control failure survives publisher refusals raised during its joined cleanup", context => checkFailure(context, false, false, true, true));
+
+// A controller must never adopt or erase another owner's existing output leaf.
+test("native AV refuses an occupied output leaf without touching its original bytes", async () => {
+    const parent = resolve(".local"); await mkdir(parent, { recursive: true, mode: 0o700 });
+    const directory = await mkdtemp(join(parent, "transport-av-occupied-"));
+    const sources = join(directory, "sources"), output = join(directory, "output");
+    await mkdir(sources, { mode: 0o700 }); await mkdir(output, { mode: 0o700 });
+    const marker = join(output, "original-owner"), original = Buffer.from("original output owner\n");
+    await writeFile(marker, original, { flag: "wx", mode: 0o600 });
+    await writeFile(join(sources, "manifest.json"), JSON.stringify({
+        format: "connect/native-av-sources/2", seconds: 62, observation_seconds: 60,
+    }), { flag: "wx", mode: 0o600 });
+    let touched = false;
+    const connection = new Proxy({}, { get() { touched = true; throw Error("media setup must remain untouched"); } });
+    try {
+        await assert.rejects(nativeAv(Array(6).fill(connection), {}, sources, output, {}), error => error.code === "EEXIST");
+        assert.equal(touched, false);
+        assert.deepEqual(await readFile(marker), original);
+    } finally { await rm(directory, { recursive: true, force: true }); }
+});

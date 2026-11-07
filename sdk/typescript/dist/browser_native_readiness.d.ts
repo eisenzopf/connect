@@ -57,8 +57,12 @@ export declare class BrowserNativeReadiness {
     private stopped;
     private completed;
     private revision;
+    private terminalDiagnosticLogged;
     readonly targetGeneration: number;
     constructor(root: BrowserReplacementRoot, original: JsonObject, scope: Scope, answer: Envelope, callback: Envelope, requestId: string, audioStreamId: string, videoStreamId: string | undefined, connectionGeneration: number);
+    /** Consumed before invoking the original readiness continuation. A later
+     * definitive refusal never erases the fact that its write was attempted. */
+    get readinessSubmissionAttempted(): boolean;
     get mayHaveCommitted(): boolean;
     get observing(): boolean;
     get savedReadiness(): JsonObject | undefined;
@@ -68,6 +72,8 @@ export declare class BrowserNativeReadiness {
     private sameCurrent;
     private freeze;
     close(): void;
+    /** One terminal metadata row, before caller cleanup; never an eligibility input. */
+    private logTerminal;
     /** The original caller supplies one absolute deadline and actual route check. */
     finish(client: BrowserClient, until: number, current: () => CurrentNativePreparation, signal?: AbortSignal): Promise<JsonObject>;
 }

@@ -489,23 +489,25 @@ fn acquire_with_facts_at<T>(
     // authority interval or memoized facts are returned. SQL still ends before
     // file admission, but another observation cannot steal this exact slot.
     let reservation = store.packet_connections.reserve(observation)?;
-    let (before, facts, scopes) = {
+    let result = (|| {
+        let (before, facts, scopes) = {
+            let c = store.try_packet_connection_reserved(observation, &reservation)?;
+            let before = version(&c, c.id())?;
+            let (facts, scopes) = current_refusal(&c, before, derive(&c, before))?;
+            (before, facts, scopes)
+        };
+        // Original SQL guard has ended; the exact slot remains claimed.
+        reservation.begin_file_admission();
+        let held = admit(&scopes)?;
+        reservation.begin_reseal();
         let c = store.try_packet_connection_reserved(observation, &reservation)?;
-        let before = version(&c, c.id())?;
-        let (facts, scopes) = current_refusal(&c, before, derive(&c, before))?;
-        (before, facts, scopes)
-    };
-    // File opens, hashing and try-locks over a large scene must not monopolize
-    // SQL. This remains immediate fresh admission, with every original scope.
-    let held = admit(&scopes)?;
-    // Releasing SQL does not discard the original observer's identity. A free
-    // earlier slot has unrelated counters and cannot validate this capture.
-    // A busy original slot still refuses immediately and releases the reader.
-    let c = store.try_packet_connection_reserved(observation, &reservation)?;
-    if c.id() != before.connection {
-        return Err(Error::storage());
-    }
-    seal(store, &c, before, facts, scopes, held, &mut derive, finish)
+        if c.id() != before.connection {
+            return Err(Error::storage());
+        }
+        seal(store, &c, before, facts, scopes, held, &mut derive, finish)
+    })();
+    reservation.observe_result(result.is_ok());
+    result
 }
 
 // The complete file interval is already owned. Coverage checks perform no file

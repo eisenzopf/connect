@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,existsSync,rmSync,openSync,closeSync,realpathSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,existsSync,rmSync,openSync,closeSync,realpathSync,lstatSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {setTimeout as sleep} from 'node:timers/promises';
@@ -74,7 +74,7 @@ test('existing private capture inspector retains exact byte custody when its cal
 
 test('three independent original cycles keep one Node process and retain the first quality failure after later natural joins',{timeout:45000},async()=>{
  const root=realpathSync(mkdtempSync(join(tmpdir(),'native-worker-three-'))),work=join(root,'work');mkdirSync(work);
- const resources=join(work,'resources'),media=join(work,'media'),input=join(work,'input.json'),output=join(work,'report.json');mkdirSync(resources);mkdirSync(media);
+ const resources=join(work,'resources'),media=join(work,'media'),input=join(work,'input.json'),output=join(work,'report.json');mkdirSync(resources);
  const fd=openSync(join(root,'original.log'),'wx',0o600),pid=process.pid;
  writeFileSync(input,JSON.stringify({format:'connect/transport-conversation-input/1',matrix_programme_profile:NATIVE_PROGRAMME_PROFILE,
   matrix_programme_budget_seconds:20,matrix_resource_cycles:3,matrix_resource_directory:resources,
@@ -107,6 +107,11 @@ test('three independent original cycles keep one Node process and retain the fir
    assert.equal(original.programme_worker.forced,false);assert.equal(original.programme_worker.exit_code,0);
    assert.ok(original.programme_report_loaded_monotonic_seconds>=terminals.get(cycle.index)+10);
    assert.equal(original.retirement.original_helpers_joined,true);
+   assert.equal(cycle.media_output_directory,join(media,'cycle-'+cycle.index));
+   const leaf=lstatSync(cycle.media_output_directory);assert.equal(leaf.isDirectory(),true);assert.equal(leaf.mode&0o777,0o700);
+   assert.deepEqual(original.exclusive_media_output,{directory:cycle.media_output_directory,cycle_index:cycle.index,
+    workload_id:cycle.workload_id,programme_owner:owners.get(cycle.index)});
+   assert.equal(original.quality_failure,cycle.index===1?'retained-framework-quality-failure':null);
   }
  }finally{stopping=true;await observer;closeSync(fd);rmSync(root,{recursive:true,force:true});}
 });

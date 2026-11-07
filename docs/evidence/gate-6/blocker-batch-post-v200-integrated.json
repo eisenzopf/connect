@@ -1,0 +1,1131 @@
+{
+  "format": "connect/post-v200-integrated-batch/1",
+  "status": "diagnostic-retest-ready-with-known-unit-failure",
+  "source_base_revision": "9ee2d24145ac525d58a67d5245a9ef98becc6b27",
+  "reviewed_composition_sha256": "b2ad05dbe1ccd76e4a17dfdefca9e6163109831abd10639a71d6899955c394fc",
+  "code_files": [
+    {
+      "path": "scripts/lib/native_programme_controller.mjs",
+      "before_sha256": "dc657820eb950ead2d994f998cf5471c000d05cc2f91c4817dd5ce7a72e48a73",
+      "after_sha256": "c7eac4eee134196f6cb9c7b749f40e6a2d2a812f2d167641bdb63a8163dcfcef"
+    },
+    {
+      "path": "scripts/tests/fixtures/native_programme_framework_workload.mjs",
+      "before_sha256": "1d1737f656d1d39137546b81284f5c8eea01fcc60557f97f20f11389ffe935cf",
+      "after_sha256": "f67c188ff0ff88404d004f2a14b16f4eb2a59526e5e792ee36658a525356b8bc"
+    },
+    {
+      "path": "scripts/tests/native_programme_worker.test.mjs",
+      "before_sha256": "cb5df915c1ef25ce61f950ebd4e938829c4522ee3a4ca3021f91b0b5675e77db",
+      "after_sha256": "21c35b9e93eebe305ba3d52ad41b42a74e903c7811594f6701447d1590d7508a"
+    },
+    {
+      "path": "scripts/tests/transport_av.test.mjs",
+      "before_sha256": "437ee7b8264f0a05e3334e332c3033d3455a447e1d65ef71e8c0897316c9b66a",
+      "after_sha256": "c31be7f2e5736f2b90616160f2dc822fcf20b6b55175cdaafaad5c1b3d6f300c"
+    },
+    {
+      "path": "scripts/lib/matrix_browser_capture.py",
+      "before_sha256": "584abee7d0dd8fa90f2ba4a14b4a3aae8c841697a81a777400e8ff14e49638d6",
+      "after_sha256": "6d7368ea9d6bdd27d0280c55f759f6e1969722d85758d31022c1204e74583215"
+    },
+    {
+      "path": "scripts/rehearse-gate6-browser-matrix.py",
+      "before_sha256": "94b7633c6634db55af3ab406476d728ca0d68d85df361310d0e80c3dee8e7ca3",
+      "after_sha256": "cd03a6d188a5c313211d59d719f0e6565c33c2fb9b6ebc112b961b71c1ee1202"
+    },
+    {
+      "path": "scripts/tests/test_browser_capture_cleanup.py",
+      "before_sha256": "072427d43da8958540fd689d65f41d4cd0ff04bad1d33cc781849ecf3f8f56fb",
+      "after_sha256": "91ee6e77d30f97eec01f30edfc27d5b531afe11ed8480e6efa28ce0eff1ee0de"
+    },
+    {
+      "path": "sdk/typescript/src/browser_media.ts",
+      "before_sha256": "c7dd1b0ff928d5706580079182c4b44684d269845d93105d708c04e70f55801c",
+      "after_sha256": "515f9237ed2364f95ec40c15ca9148680fe7dfe22176df20fdbf6bba0e01f094"
+    },
+    {
+      "path": "sdk/typescript/src/browser_native_readiness.ts",
+      "before_sha256": "721cd5822f8c881e58da94093fb0239ecb110c98cc1b4808e007b05fa9d3f1d5",
+      "after_sha256": "ceb864cda471dc8edd31de6ad9e712a6b6c35f9c8b57134fb08765d65c7ca08e"
+    },
+    {
+      "path": "sdk/tests/browser_replacement.test.mjs",
+      "before_sha256": "c414a8ee4c854a87dd11ba9da77995ba9920c084ebf2ca63f4e6d983972c7cdd",
+      "after_sha256": "860f696011876f8e3f2a6b053dbba40ae87a3f18225aa8dfd84c18f909e74315"
+    },
+    {
+      "path": "sdk/tests/browser_native_readiness.test.mjs",
+      "before_sha256": "fa84c02cae5640d9948d4901b84db5a8e58ba12ec7df56878cf055808527fad1",
+      "after_sha256": "5b5ed56b141e4c2bb2872abf556c751b7dd1e7dd06997328278da3bd1b8eb289"
+    },
+    {
+      "path": "sdk/tests/browser_native_readiness_diagnostics.test.mjs",
+      "before_sha256": null,
+      "after_sha256": "7de0edd9d36a8d120a12abed600fc2cf1ff20a5ca01632196437870293739b10"
+    },
+    {
+      "path": "scripts/lib/mac_linux_guest.py",
+      "before_sha256": "f5367d044fa6dbc7d3ed47d192f5f230c1173f290b9471d5aac061096a10d480",
+      "after_sha256": "1b77b51920c28171a0a33ba6e1869b74c25b5e9b983fa45c31fb672e299fcdd9"
+    },
+    {
+      "path": "scripts/lib/mac_linux_fixture.py",
+      "before_sha256": "ac3e83ff47331ab81b8ec3a8f22aa1cdb67e9beb1bfce00b03083f95cfbd25c4",
+      "after_sha256": "3667743bda4e018c65cbce824676f661edcce97c3afb974860803f2862faac9b"
+    },
+    {
+      "path": "scripts/tests/test_mac_linux_fixture.py",
+      "before_sha256": "6ac8b53a7d078d6327e2bb001bdf5a8006dc4208898f7976336942e8c7afa338",
+      "after_sha256": "2a36df702a19cedb84949d38764a2f70c6d3fe707a46e2b1190ce086f40b81b2"
+    },
+    {
+      "path": "scripts/check-transport-fixtures.py",
+      "before_sha256": "77fcc92f281d58bea3630f68ddbb758d70aed20e132aef998b9f307c79b4c1cb",
+      "after_sha256": "20c360191559669ad66bdaa2b43ac52ba1ce54c19481593b0b0fe727c1cbd2bd"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/diagnostics.rs",
+      "before_sha256": "7056a77399bf9d254c113be1ad42c57f4678173f8185e1745944b154500d4305",
+      "after_sha256": "c56c907ca303328d529ac690522bbbe1d079a1228bfcffa604a63a9b4b3e02e5"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/media.rs",
+      "before_sha256": "ace61e91bd0792dadbdaf1a4af9596d7b8c08396a414f5929b50babf7936b627",
+      "after_sha256": "f911c523bc949671580fc7241ab2da25558a1861ea04120a37680a65b2e04cf9"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/preparation.rs",
+      "before_sha256": "fc27e3574950ded63e8dfd5d1c3694536d964bb2a023c293768c50763dcf1aba",
+      "after_sha256": "bd01735aee368b1e53106d35e80955217371bfea22b8593788afaf5618325eb2"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/start.rs",
+      "before_sha256": "6c223e14747004f815378b39b2b387c743b9e471065784bbad1296fbdc28b2ff",
+      "after_sha256": "5fe6f608bc10deac55403e4065c43876d0a50612a126466e9b2ac367cd47e02f"
+    },
+    {
+      "path": "dependencies/source-lock.json",
+      "before_sha256": "b88e9e899badac7e719ecad1d9f87fc78c2c55c6bc32e76c4f20c67ee12f53d8",
+      "after_sha256": "f9c7544c3559e9a9bdcf83d763b5952daf867f551f31c221fd779e1158e0d55e"
+    },
+    {
+      "path": "patches/rvoip/connect-native-private-delivery-counters.patch",
+      "before_sha256": null,
+      "after_sha256": "a5d98687ec3fec7f7a01d6064b7581f7396a54223e09e1605453f35d7d95d549"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_runtime.rs",
+      "before_sha256": "91e699d1c1daaf69c8c53e71b7b20ae663c83eedf6f8a20a8aca8f0a44b99bec",
+      "after_sha256": "324249909067fad8857aedf2c796ba39f9b0b0e9b80183c1d43ffbb95729833d"
+    },
+    {
+      "path": "crates/connect-store/src/installation_ownership.rs",
+      "before_sha256": "acb2e0b3441ec3963723ecc3d1e50fa92b266d9c66563eebc5439b61cd76cf29",
+      "after_sha256": "c70f7070701d2dda96ba4bb4ca044938c84634dd178ca955786e9f2feb967003"
+    },
+    {
+      "path": "crates/connect-store/src/packet_observation/tests/slot_reservation.rs",
+      "before_sha256": "e25e139083a5dfde94042a04a17e068fb80890835409d49ea41c5644db2d685f",
+      "after_sha256": "70effc8f3fd4cfdaa8d7147f7af73241237d5185a597744d502f99ee93d30eb7"
+    },
+    {
+      "path": "crates/connect-store/src/packet_observation.rs",
+      "before_sha256": "2219a170161a56eadfc140a489eb23c049f80d0736963955dd212fb141467134",
+      "after_sha256": "24d55ba813e33544a0bde204786feecde6856bed8f1aa931aebf2366ed0f67a4"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/snapshot/tests/slot_reservation.rs",
+      "before_sha256": "5d65eb51af26c70c40a807aefb0c5d76ebc75dfd0831a9871f885beda9a48d2b",
+      "after_sha256": "569d8d2a22e0cec769237cf0a285de32be33ab7db79d650eca1d32c891145434"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/snapshot.rs",
+      "before_sha256": "9367ab8512980b19057f033423595d8b25803d39697c0b0d69ad7bfcaa0162d3",
+      "after_sha256": "7c20a20aff0d854379d6511bcc63c2c36da8d756d8e513512492a97f423400c2"
+    }
+  ],
+  "candidate_manifests": [
+    {
+      "candidate": "v200-native-media-output-ownership-candidate",
+      "manifest_sha256": "47d0b270ab71099ee97ff60b28203dbf182d0156e95c6d655a5ad95abf3c1678"
+    },
+    {
+      "candidate": "v200-browser-capture-cycle-budget-candidate",
+      "manifest_sha256": "896d67d895e60c11ef54aef369db3e4255bb29aa7ee0bfa6923d5465f942b3f6"
+    },
+    {
+      "candidate": "v200-native-readiness-isolation-candidate",
+      "manifest_sha256": "9281436965642abd1a1873dc0d73907d7360222e61dd7fdbfce64f69a90e677b"
+    },
+    {
+      "candidate": "v200-sdk-readable-case-labels-candidate",
+      "manifest_sha256": "a61d51d060c4f4306d01e4f8d995b8ecb2d57dfcf55c4c380ccbd08730faf446"
+    },
+    {
+      "candidate": "v200-native-readiness-diagnostics-candidate",
+      "manifest_sha256": "0ac11916100f11a83f5a25e41690b55dba148172d52ec7e001cfa8659d5ed71b"
+    },
+    {
+      "candidate": "v200-owned-output-transfer-bound-candidate",
+      "manifest_sha256": "4ad634c4719f14d51dc5cdb0ff512909a0d16d2c23791e9d4ce8a924f1b0fdfe"
+    },
+    {
+      "candidate": "v200-three-cycle-lease-preflight-candidate",
+      "manifest_sha256": "d3b1343b72ab9fa923823e04540ce53a005522057cdb38a16b50f951d3549603"
+    },
+    {
+      "candidate": "v200-private-delivery-counter-candidate",
+      "manifest_sha256": "f77c243e38f7e7ea8c46705ae20b6f0c863e22932dab5e3cc10da108f5b295e0"
+    },
+    {
+      "candidate": "v200-nested-resource-bridge-candidate",
+      "manifest_sha256": "62fc44b0c199f3082b30c22dadf354da968277bee48afd87beb7e920a8c266e4"
+    },
+    {
+      "candidate": "v200-observer-claim-diagnostics-candidate",
+      "manifest_sha256": "bf07cb5968318bee4a33968feef08a2e53c854d96fa6efa0563268e0fd23984c"
+    }
+  ],
+  "fixes": [
+    {
+      "id": "B61",
+      "title": "Native programme output ownership",
+      "change": "Create only the common media parent. The original native workload exclusively creates each cycle leaf.",
+      "observed": "All native cycles stopped at EEXIST before AV. The three-cycle controller introduced the conflicting mkdir."
+    },
+    {
+      "id": "B62",
+      "title": "Three-cycle browser capture capacity",
+      "change": "Scale the capture packet and byte limits by the declared cycle count while retaining completeness and privacy checks.",
+      "observed": "The original capture stopped at its 200000-packet one-cycle limit during the three-cycle workload."
+    },
+    {
+      "id": "B63",
+      "title": "Local readiness timeout closes shared control",
+      "change": "Retire the exact unsubmitted replacement target after local decoder timeout or cancellation while preserving the authenticated control client.",
+      "observed": "Actual decoder deadline preceded whole-client closure and failed original Session refresh. Submitted or uncertain continuations retain their original handling."
+    },
+    {
+      "id": "B64",
+      "title": "Cross-host fixture lease queue and failure evidence",
+      "change": "Use the explicit three-cycle preflight queue budget and preserve actual acquisition failure and process facts.",
+      "observed": "The original wait lasted 1200.54 seconds. Five ARM guardians released during that interval. Historical Mac SSH metadata was discarded."
+    },
+    {
+      "id": "B65",
+      "title": "Owned three-cycle output transfer capacity",
+      "change": "Bind the larger transfer limit to the exact original three-cycle job digest and output directory.",
+      "observed": "Static range analysis found the one-cycle transfer bound could reject a permitted three-cycle capture. This was not an observed v200 failure."
+    },
+    {
+      "id": "B66",
+      "title": "Nested cross-host browser resource handshake",
+      "change": "Exchange the actual cycles/cycle-N resource paths in both directions with fixed names, unchanged clocks and immutable responses.",
+      "observed": "Six Mac remote browser cells timed out at the first nested baseline request. Their primary workload did not start."
+    },
+    {
+      "id": "B67",
+      "title": "Private delivery outcome attribution",
+      "change": "Record fixed per-medium policy outcomes and actual native primary RTP attempts, acceptance and refusal.",
+      "observed": "Sources continued producing keyframes while private return targets received sparse or zero video. These counters distinguish the remaining boundaries."
+    },
+    {
+      "id": "B68",
+      "title": "Terminal decoder readiness attribution",
+      "change": "Emit one bounded scalar terminal observation from existing accepted output and current-identity observations.",
+      "observed": "The old snapshots omitted the exact consecutive audio, keyframe, freshness and identity predicates at the deadline."
+    },
+    {
+      "id": "B69",
+      "title": "Shared packet observer contention attribution",
+      "change": "Separate fixed slot claim phases from actual SQL intervals in the existing runtime retention observation.",
+      "observed": "All six Mac WebRTC public receive paths stalled during preparation with repeated observer-slot refusals. No eight-second SQL retention was demonstrated."
+    }
+  ],
+  "planned_focused_scope": {
+    "rust": 185,
+    "node": 269,
+    "python": 127,
+    "mac_acl": 1,
+    "explicitly_executed_ignored_rtc": 6
+  },
+  "focused_verification": {
+    "status": "diagnostic-retest-ready-with-known-unit-failure",
+    "focused_passed": false,
+    "source_workspace_sha256": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+    "source_lock_sha256": "412495a5bf8c1b3e68506ef4c9f083a7ab165e494e8b01e0741c0bccd26c1970",
+    "prepared": {
+      "rvoip": "da315273710eecc8f29ff0a03b2d115bf69c93674bd149337740cbb3b9f3c635",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "scope": {
+      "rust": 185,
+      "node": 269,
+      "python": 127,
+      "mac_acl": 1,
+      "explicit_ignored_rtc": 6
+    },
+    "latest_attempt": {
+      "stage": ".local/gate-6/post-v200-validation-final-candidate",
+      "status": "failed",
+      "planned_rust": 185,
+      "executed_rust": 185,
+      "passed_executed_rust": 184,
+      "failed_executed_rust": 1,
+      "compile_blocked_rust": 0,
+      "failed_rust_cases": [
+        {
+          "name": "sdk_handles::replacement_video_recovery::signed_private_readiness_cannot_outlive_its_exact_original_reservation_expiry",
+          "build": "connect-server-test-gate6_replacement_video",
+          "actual": [
+            0,
+            1,
+            0
+          ],
+          "log_sha256": "2699499277c79f2521763e385576dddb509539431fb03a8e3e3a942c2ccc7c67"
+        }
+      ],
+      "node_totals": {
+        "tests": 269,
+        "pass": 269,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "node_validation_passed": true,
+      "python_runner_methods": 127,
+      "python_identity_rows": 127,
+      "python_validation_passed": true,
+      "mac_executed": 1,
+      "mac_passed": 1,
+      "mac_status": "passed",
+      "shipping_default_check_passed": true,
+      "instrumented_metadata_passed": true,
+      "original_arm_source_seal_unchanged": true,
+      "source_before": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+      "source_after": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+      "all_original_owners_joined": true,
+      "witnesses": {
+        "config": {
+          "path": ".local/gate-6/post-v200-validation-final-candidate/sealed-config.json",
+          "sha256": "5b3a95be329c55139eb92dd1f164026ab9b0eeeafc1277cd0096259a995ac42d"
+        },
+        "arm": {
+          "path": ".local/gate-6/post-v200-validation-final-candidate/arm-receipt.json",
+          "sha256": "cdf9e0a169fdff04ed2ba7d5c76ad6b9d4cb9627eaf0203664ffc70da37f3388"
+        },
+        "host": {
+          "path": ".local/gate-6/post-v200-validation-final-candidate/runtime-host-receipt.json",
+          "sha256": "3c0e1ab2d023560932959ab9f2a442b2315547db20206e4e3a14c9c40dda5b7b"
+        },
+        "controller": {
+          "path": ".local/gate-6/post-v200-validation-final-candidate/controller-exit.json",
+          "sha256": "4b6275186683ec3d4600dbd6ddfa7c1f5f28a24699466a009120f821d27b0038"
+        },
+        "mac": {
+          "path": ".local/gate-6/post-v200-validation-final-candidate/mac-runtime/receipt.json",
+          "sha256": "dcf2b1b2102765e8e29c29de9b0d286981420277042d95ded12655abb4f44d01"
+        }
+      }
+    },
+    "attempt_history": [
+      {
+        "stage": ".local/gate-6/post-v200-validation-candidate",
+        "status": "failed",
+        "planned_rust": 185,
+        "executed_rust": 70,
+        "passed_executed_rust": 69,
+        "failed_executed_rust": 1,
+        "compile_blocked_rust": 115,
+        "failed_rust_cases": [
+          {
+            "name": "staged_media::delivery_counter_tests::repeated_video_input_with_zero_output_is_not_counted_as_a_writer_attempt",
+            "build": "rvoip-uctp-lib-rvoip_uctp",
+            "actual": [
+              0,
+              1,
+              0
+            ],
+            "log_sha256": "f16060da0cfeef3141942fad59b7a0a653aa676961ef4a8fff51011986cc1074"
+          }
+        ],
+        "node_totals": {
+          "tests": 269,
+          "pass": 269,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "node_validation_passed": true,
+        "python_runner_methods": 127,
+        "python_identity_rows": 126,
+        "python_validation_passed": false,
+        "mac_executed": 0,
+        "mac_passed": 0,
+        "mac_status": "failed",
+        "shipping_default_check_passed": false,
+        "instrumented_metadata_passed": true,
+        "original_arm_source_seal_unchanged": false,
+        "source_before": "be3c65de95c80928f74b9fbffa989796a6c84bdea2926840bf7ca68719a74073",
+        "source_after": "fd2d7f0f61c736ed0d37296ab42571df821ae381f9dced05daacdb7046c3a82e",
+        "all_original_owners_joined": true,
+        "witnesses": {
+          "config": {
+            "path": ".local/gate-6/post-v200-validation-candidate/sealed-config.json",
+            "sha256": "a8949d8314e5055c70586bd83e57910c676206cc3a81a0ac4c80a48a36e5b9ce"
+          },
+          "arm": {
+            "path": ".local/gate-6/post-v200-validation-candidate/arm-receipt.json",
+            "sha256": "3e93f25a8db47d182418be84c3ecd1d437c39ae9083ac342918dcde2496913c2"
+          },
+          "host": {
+            "path": ".local/gate-6/post-v200-validation-candidate/runtime-host-receipt.json",
+            "sha256": "c65a45c8a16f889f7a6599ed1b89d438f0f5d1685ca1ac6702e1f0a969cb34c0"
+          },
+          "controller": {
+            "path": ".local/gate-6/post-v200-validation-candidate/controller-exit.json",
+            "sha256": "c52b39091d67555b62d68f097be80edede6fa4f04db3fc1b45b1a0098491cc78"
+          },
+          "mac": {
+            "path": ".local/gate-6/post-v200-validation-candidate/mac-runtime/receipt.json",
+            "sha256": "68acb718853a24c69ce259fd0806a353c6ca92cec5ce69526c050d967cf50d06"
+          }
+        },
+        "generated_sdk_changes": [
+          "sdk/typescript/dist/browser_media.js",
+          "sdk/typescript/dist/browser_native_readiness.d.ts",
+          "sdk/typescript/dist/browser_native_readiness.js"
+        ]
+      },
+      {
+        "stage": ".local/gate-6/post-v200-validation-retry-candidate",
+        "status": "failed",
+        "planned_rust": 185,
+        "executed_rust": 184,
+        "passed_executed_rust": 184,
+        "failed_executed_rust": 0,
+        "compile_blocked_rust": 1,
+        "failed_rust_cases": [],
+        "node_totals": {
+          "tests": 269,
+          "pass": 269,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "node_validation_passed": true,
+        "python_runner_methods": 127,
+        "python_identity_rows": 127,
+        "python_validation_passed": true,
+        "mac_executed": 1,
+        "mac_passed": 1,
+        "mac_status": "passed",
+        "shipping_default_check_passed": true,
+        "instrumented_metadata_passed": true,
+        "original_arm_source_seal_unchanged": true,
+        "source_before": "fcd9f987775c99a1b1a6b1f5a14b2d6735444ea8a2cc47fe90c544df1d4cef12",
+        "source_after": "fcd9f987775c99a1b1a6b1f5a14b2d6735444ea8a2cc47fe90c544df1d4cef12",
+        "all_original_owners_joined": true,
+        "witnesses": {
+          "config": {
+            "path": ".local/gate-6/post-v200-validation-retry-candidate/sealed-config.json",
+            "sha256": "a37d2ce3c53dc5855ead9ccac37cabaaf45cade9025eb9c4334b78e27eddddac"
+          },
+          "arm": {
+            "path": ".local/gate-6/post-v200-validation-retry-candidate/arm-receipt.json",
+            "sha256": "280a5fd6ffab5a0cff8c00a5addf6f4f73b0fe29e4c98ae99bbc6be01bcf0343"
+          },
+          "host": {
+            "path": ".local/gate-6/post-v200-validation-retry-candidate/runtime-host-receipt.json",
+            "sha256": "f760635d06bb24d4ac3e549eaea8dd3e505ff0c9e838b3439bc1b71b292c02cc"
+          },
+          "controller": {
+            "path": ".local/gate-6/post-v200-validation-retry-candidate/controller-exit.json",
+            "sha256": "04212cb20f18f0ebc7e22b46b8dd7503b70736eaf35e29ab0f9b7b5ec4bdece0"
+          },
+          "mac": {
+            "path": ".local/gate-6/post-v200-validation-retry-candidate/mac-runtime/receipt.json",
+            "sha256": "f086e59d10d7d8c2ceb171854572cbb12c03f93c78fc9e148f064bfbb9e70205"
+          }
+        }
+      },
+      {
+        "stage": ".local/gate-6/post-v200-validation-retry-next-candidate",
+        "status": "failed",
+        "planned_rust": 185,
+        "executed_rust": 185,
+        "passed_executed_rust": 185,
+        "failed_executed_rust": 0,
+        "compile_blocked_rust": 0,
+        "failed_rust_cases": [],
+        "node_totals": {
+          "tests": 269,
+          "pass": 268,
+          "fail": 1,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "node_validation_passed": false,
+        "python_runner_methods": 127,
+        "python_identity_rows": 127,
+        "python_validation_passed": true,
+        "mac_executed": 1,
+        "mac_passed": 1,
+        "mac_status": "passed",
+        "shipping_default_check_passed": true,
+        "instrumented_metadata_passed": true,
+        "original_arm_source_seal_unchanged": true,
+        "source_before": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+        "source_after": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+        "all_original_owners_joined": true,
+        "witnesses": {
+          "config": {
+            "path": ".local/gate-6/post-v200-validation-retry-next-candidate/sealed-config.json",
+            "sha256": "2fbc873a684dd8330435153531c0488de6e8b853c0a7e435e910b5d0e478408f"
+          },
+          "arm": {
+            "path": ".local/gate-6/post-v200-validation-retry-next-candidate/arm-receipt.json",
+            "sha256": "22b07fdddadac82a20e9388bd230cc26c6305796a45a65273185460349c1fe37"
+          },
+          "host": {
+            "path": ".local/gate-6/post-v200-validation-retry-next-candidate/runtime-host-receipt.json",
+            "sha256": "7275dda1d1ee03f1630c8fad87ead6bbd2d191f427b49eece38e315db5975ca8"
+          },
+          "controller": {
+            "path": ".local/gate-6/post-v200-validation-retry-next-candidate/controller-exit.json",
+            "sha256": "a41b4f494e43aa24f98923a22705853c3be2c7c574c5ba09d70d811c06f6bd8b"
+          },
+          "mac": {
+            "path": ".local/gate-6/post-v200-validation-retry-next-candidate/mac-runtime/receipt.json",
+            "sha256": "0b207bd12c6522e6ea5d54a5ecdfb39d4367c4f6c0319f59e416d39f551e55e7"
+          }
+        }
+      },
+      {
+        "stage": ".local/gate-6/post-v200-validation-final-candidate",
+        "status": "failed",
+        "planned_rust": 185,
+        "executed_rust": 185,
+        "passed_executed_rust": 184,
+        "failed_executed_rust": 1,
+        "compile_blocked_rust": 0,
+        "failed_rust_cases": [
+          {
+            "name": "sdk_handles::replacement_video_recovery::signed_private_readiness_cannot_outlive_its_exact_original_reservation_expiry",
+            "build": "connect-server-test-gate6_replacement_video",
+            "actual": [
+              0,
+              1,
+              0
+            ],
+            "log_sha256": "2699499277c79f2521763e385576dddb509539431fb03a8e3e3a942c2ccc7c67"
+          }
+        ],
+        "node_totals": {
+          "tests": 269,
+          "pass": 269,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "node_validation_passed": true,
+        "python_runner_methods": 127,
+        "python_identity_rows": 127,
+        "python_validation_passed": true,
+        "mac_executed": 1,
+        "mac_passed": 1,
+        "mac_status": "passed",
+        "shipping_default_check_passed": true,
+        "instrumented_metadata_passed": true,
+        "original_arm_source_seal_unchanged": true,
+        "source_before": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+        "source_after": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+        "all_original_owners_joined": true,
+        "witnesses": {
+          "config": {
+            "path": ".local/gate-6/post-v200-validation-final-candidate/sealed-config.json",
+            "sha256": "5b3a95be329c55139eb92dd1f164026ab9b0eeeafc1277cd0096259a995ac42d"
+          },
+          "arm": {
+            "path": ".local/gate-6/post-v200-validation-final-candidate/arm-receipt.json",
+            "sha256": "cdf9e0a169fdff04ed2ba7d5c76ad6b9d4cb9627eaf0203664ffc70da37f3388"
+          },
+          "host": {
+            "path": ".local/gate-6/post-v200-validation-final-candidate/runtime-host-receipt.json",
+            "sha256": "3c0e1ab2d023560932959ab9f2a442b2315547db20206e4e3a14c9c40dda5b7b"
+          },
+          "controller": {
+            "path": ".local/gate-6/post-v200-validation-final-candidate/controller-exit.json",
+            "sha256": "4b6275186683ec3d4600dbd6ddfa7c1f5f28a24699466a009120f821d27b0038"
+          },
+          "mac": {
+            "path": ".local/gate-6/post-v200-validation-final-candidate/mac-runtime/receipt.json",
+            "sha256": "dcf2b1b2102765e8e29c29de9b0d286981420277042d95ded12655abb4f44d01"
+          }
+        }
+      }
+    ],
+    "unchanged_node_diagnostic": {
+      "status": "passed-diagnostic-only",
+      "node_totals": {
+        "tests": 269,
+        "pass": 269,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "source": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+      "unchanged_source": true,
+      "full_focused_pass_claimed": false,
+      "matrix_qualified": false,
+      "witnesses": {
+        "host-receipt.json": {
+          "path": ".local/gate-6/post-v200-node269-diagnostic/host-receipt.json",
+          "sha256": "347439cf4f51cb8e8bfffde8c533cfaf401550f8f6471a9e48c0ba27d5d810b2"
+        },
+        "arm-receipt.json": {
+          "path": ".local/gate-6/post-v200-node269-diagnostic/arm-receipt.json",
+          "sha256": "24f08aaac1dd624e59efb9b5d74d98662b41933b89b0b4a7802e9df844536828"
+        },
+        "controller-exit.json": {
+          "path": ".local/gate-6/post-v200-node269-diagnostic/controller-exit.json",
+          "sha256": "349a9e41b4118aed9d07a5478a3d8d47e59594ddab3c577139ac7ed587f72941"
+        },
+        "independent-tap-audit.json": {
+          "path": ".local/gate-6/post-v200-node269-diagnostic/independent-tap-audit.json",
+          "sha256": "c0d5a82b37db1e0be2c1c7ca4b8cefa99153cbcc2f05e8f08130bef57326afc8"
+        },
+        "diagnostic-node269.log": {
+          "path": ".local/gate-6/post-v200-node269-diagnostic/diagnostic-node269.log",
+          "sha256": "efc3a3a5ff409f99c8766b3fbf26afe783b149ca55c45f6095578df909b7ff36"
+        }
+      }
+    },
+    "known_failure": "Signed private readiness reservation-expiry control: invalid-request after the original 30-second expiry wait; root cause unresolved.",
+    "matrix_qualified": false
+  },
+  "complete_matrix_verification": null,
+  "matrix_qualified": false,
+  "implementation_flaw": "The previous three-cycle controller created media output leaves that the original workload must exclusively create.",
+  "resource_policy": {
+    "owner_approval": "Zero Session-owned resources and bounded three-cycle plateau.",
+    "numerical_policy_chosen_by_agent": true,
+    "rss_allowance": "max(8 MiB, 5% of cycle-one idle RSS)",
+    "positive_growth_rule": "Fail two rises of at least 1 MiB when the second is at least 75% of the first.",
+    "threads_descriptors_processes": "Later cycles cannot exceed cycle-one idle counts."
+  },
+  "remaining": [
+    "Private return video delivery",
+    "Shared observer contention during WebRTC preparation",
+    "Actual media continuity and AV sync",
+    "Measured memory and thread plateau"
+  ],
+  "source_lock_transition": {
+    "before": "b88e9e899badac7e719ecad1d9f87fc78c2c55c6bc32e76c4f20c67ee12f53d8",
+    "after": "412495a5bf8c1b3e68506ef4c9f083a7ab165e494e8b01e0741c0bccd26c1970",
+    "new_prepared_graph_observed": true,
+    "prepared": {
+      "rvoip": "da315273710eecc8f29ff0a03b2d115bf69c93674bd149337740cbb3b9f3c635",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    }
+  },
+  "current_code_files": [
+    {
+      "path": "crates/connect-service/src/canonical_replacement/diagnostics.rs",
+      "sha256": "c56c907ca303328d529ac690522bbbe1d079a1228bfcffa604a63a9b4b3e02e5"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/media.rs",
+      "sha256": "f911c523bc949671580fc7241ab2da25558a1861ea04120a37680a65b2e04cf9"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/preparation.rs",
+      "sha256": "bd01735aee368b1e53106d35e80955217371bfea22b8593788afaf5618325eb2"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_replacement/start.rs",
+      "sha256": "5fe6f608bc10deac55403e4065c43876d0a50612a126466e9b2ac367cd47e02f"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_runtime.rs",
+      "sha256": "324249909067fad8857aedf2c796ba39f9b0b0e9b80183c1d43ffbb95729833d"
+    },
+    {
+      "path": "crates/connect-store/src/installation_ownership.rs",
+      "sha256": "c70f7070701d2dda96ba4bb4ca044938c84634dd178ca955786e9f2feb967003"
+    },
+    {
+      "path": "crates/connect-store/src/packet_observation.rs",
+      "sha256": "5cac6c01103269a4bf8cf39ecfc9d681e884457777149b860cf8459a33ec7b64"
+    },
+    {
+      "path": "crates/connect-store/src/packet_observation/tests/slot_reservation.rs",
+      "sha256": "31abaf189e9f459e9bb915a4ba21f8aa74f78fd983f783ecdad77aa771699d65"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/snapshot.rs",
+      "sha256": "da79e166192e8a9e18b31e8b75f8ed6e80bc10821b55325e6b035871d937a70b"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/snapshot/tests/slot_reservation.rs",
+      "sha256": "569d8d2a22e0cec769237cf0a285de32be33ab7db79d650eca1d32c891145434"
+    },
+    {
+      "path": "dependencies/source-lock.json",
+      "sha256": "412495a5bf8c1b3e68506ef4c9f083a7ab165e494e8b01e0741c0bccd26c1970"
+    },
+    {
+      "path": "patches/rvoip/connect-held-control-fixture-audio-preparation-denial.patch",
+      "sha256": "71f08015fb5d2c52b2240610e72e6179a83f1e4d294bdb1c32ba2d90ec9db3f3"
+    },
+    {
+      "path": "patches/rvoip/connect-native-private-delivery-counters.patch",
+      "sha256": "a750d133629c7d479cb95d3295d91846ef558f52f5403cbd34dc490042acac2c"
+    },
+    {
+      "path": "scripts/check-transport-fixtures.py",
+      "sha256": "20c360191559669ad66bdaa2b43ac52ba1ce54c19481593b0b0fe727c1cbd2bd"
+    },
+    {
+      "path": "scripts/lib/mac_linux_fixture.py",
+      "sha256": "3667743bda4e018c65cbce824676f661edcce97c3afb974860803f2862faac9b"
+    },
+    {
+      "path": "scripts/lib/mac_linux_guest.py",
+      "sha256": "1b77b51920c28171a0a33ba6e1869b74c25b5e9b983fa45c31fb672e299fcdd9"
+    },
+    {
+      "path": "scripts/lib/matrix_browser_capture.py",
+      "sha256": "6d7368ea9d6bdd27d0280c55f759f6e1969722d85758d31022c1204e74583215"
+    },
+    {
+      "path": "scripts/lib/native_programme_controller.mjs",
+      "sha256": "c7eac4eee134196f6cb9c7b749f40e6a2d2a812f2d167641bdb63a8163dcfcef"
+    },
+    {
+      "path": "scripts/rehearse-gate6-browser-matrix.py",
+      "sha256": "cd03a6d188a5c313211d59d719f0e6565c33c2fb9b6ebc112b961b71c1ee1202"
+    },
+    {
+      "path": "scripts/tests/fixtures/native_programme_framework_workload.mjs",
+      "sha256": "f67c188ff0ff88404d004f2a14b16f4eb2a59526e5e792ee36658a525356b8bc"
+    },
+    {
+      "path": "scripts/tests/native_programme_worker.test.mjs",
+      "sha256": "21c35b9e93eebe305ba3d52ad41b42a74e903c7811594f6701447d1590d7508a"
+    },
+    {
+      "path": "scripts/tests/test_browser_capture_cleanup.py",
+      "sha256": "91ee6e77d30f97eec01f30edfc27d5b531afe11ed8480e6efa28ce0eff1ee0de"
+    },
+    {
+      "path": "scripts/tests/test_mac_linux_fixture.py",
+      "sha256": "3ece50f7bb2ab2787c304b6d33d1fbc84397f4c71017123a2f67dac433b58a46"
+    },
+    {
+      "path": "scripts/tests/transport_av.test.mjs",
+      "sha256": "c31be7f2e5736f2b90616160f2dc822fcf20b6b55175cdaafaad5c1b3d6f300c"
+    },
+    {
+      "path": "sdk/tests/browser_native_readiness.test.mjs",
+      "sha256": "5b5ed56b141e4c2bb2872abf556c751b7dd1e7dd06997328278da3bd1b8eb289"
+    },
+    {
+      "path": "sdk/tests/browser_native_readiness_diagnostics.test.mjs",
+      "sha256": "7de0edd9d36a8d120a12abed600fc2cf1ff20a5ca01632196437870293739b10"
+    },
+    {
+      "path": "sdk/tests/browser_replacement.test.mjs",
+      "sha256": "860f696011876f8e3f2a6b053dbba40ae87a3f18225aa8dfd84c18f909e74315"
+    },
+    {
+      "path": "sdk/typescript/dist/browser_media.js",
+      "sha256": "1907145ada88e0e40cca2163359f63dc8c2948cb40b97353056d23aaf30fc0b8"
+    },
+    {
+      "path": "sdk/typescript/dist/browser_native_readiness.d.ts",
+      "sha256": "ccec8d93e3d88682c0aa5fc3db0b43832028cafc3c16f3bce85dc8503a18b899"
+    },
+    {
+      "path": "sdk/typescript/dist/browser_native_readiness.js",
+      "sha256": "0bee928ec2f2361809199c29029f02ab4e1d6db13b0b6f00a04f07f9ab2c65e6"
+    },
+    {
+      "path": "sdk/typescript/src/browser_media.ts",
+      "sha256": "515f9237ed2364f95ec40c15ca9148680fe7dfe22176df20fdbf6bba0e01f094"
+    },
+    {
+      "path": "sdk/typescript/src/browser_native_readiness.ts",
+      "sha256": "ceb864cda471dc8edd31de6ad9e712a6b6c35f9c8b57134fb08765d65c7ca08e"
+    }
+  ],
+  "current_source": {
+    "format": "connect/precommit-working-source-seal/1",
+    "base_revision": "9ee2d24145ac525d58a67d5245a9ef98becc6b27",
+    "workspace_sha256": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+    "prepared": {
+      "rvoip": "da315273710eecc8f29ff0a03b2d115bf69c93674bd149337740cbb3b9f3c635",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "source_lock_sha256": "412495a5bf8c1b3e68506ef4c9f083a7ab165e494e8b01e0741c0bccd26c1970"
+  },
+  "first_focused_attempt": {
+    "stage": ".local/gate-6/post-v200-validation-candidate",
+    "status": "failed",
+    "planned_rust": 185,
+    "executed_rust": 70,
+    "passed_executed_rust": 69,
+    "failed_executed_rust": 1,
+    "compile_blocked_rust": 115,
+    "failed_rust_cases": [
+      {
+        "name": "staged_media::delivery_counter_tests::repeated_video_input_with_zero_output_is_not_counted_as_a_writer_attempt",
+        "build": "rvoip-uctp-lib-rvoip_uctp",
+        "actual": [
+          0,
+          1,
+          0
+        ],
+        "log_sha256": "f16060da0cfeef3141942fad59b7a0a653aa676961ef4a8fff51011986cc1074"
+      }
+    ],
+    "node_totals": {
+      "tests": 269,
+      "pass": 269,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "node_validation_passed": true,
+    "python_runner_methods": 127,
+    "python_identity_rows": 126,
+    "python_validation_passed": false,
+    "mac_executed": 0,
+    "mac_passed": 0,
+    "mac_status": "failed",
+    "shipping_default_check_passed": false,
+    "instrumented_metadata_passed": true,
+    "original_arm_source_seal_unchanged": false,
+    "source_before": "be3c65de95c80928f74b9fbffa989796a6c84bdea2926840bf7ca68719a74073",
+    "source_after": "fd2d7f0f61c736ed0d37296ab42571df821ae381f9dced05daacdb7046c3a82e",
+    "all_original_owners_joined": true,
+    "witnesses": {
+      "config": {
+        "path": ".local/gate-6/post-v200-validation-candidate/sealed-config.json",
+        "sha256": "a8949d8314e5055c70586bd83e57910c676206cc3a81a0ac4c80a48a36e5b9ce"
+      },
+      "arm": {
+        "path": ".local/gate-6/post-v200-validation-candidate/arm-receipt.json",
+        "sha256": "3e93f25a8db47d182418be84c3ecd1d437c39ae9083ac342918dcde2496913c2"
+      },
+      "host": {
+        "path": ".local/gate-6/post-v200-validation-candidate/runtime-host-receipt.json",
+        "sha256": "c65a45c8a16f889f7a6599ed1b89d438f0f5d1685ca1ac6702e1f0a969cb34c0"
+      },
+      "controller": {
+        "path": ".local/gate-6/post-v200-validation-candidate/controller-exit.json",
+        "sha256": "c52b39091d67555b62d68f097be80edede6fa4f04db3fc1b45b1a0098491cc78"
+      },
+      "mac": {
+        "path": ".local/gate-6/post-v200-validation-candidate/mac-runtime/receipt.json",
+        "sha256": "68acb718853a24c69ce259fd0806a353c6ca92cec5ce69526c050d967cf50d06"
+      }
+    },
+    "generated_sdk_changes": [
+      "sdk/typescript/dist/browser_media.js",
+      "sdk/typescript/dist/browser_native_readiness.d.ts",
+      "sdk/typescript/dist/browser_native_readiness.js"
+    ]
+  },
+  "focused_attempt_history": [
+    {
+      "stage": ".local/gate-6/post-v200-validation-candidate",
+      "status": "failed",
+      "planned_rust": 185,
+      "executed_rust": 70,
+      "passed_executed_rust": 69,
+      "failed_executed_rust": 1,
+      "compile_blocked_rust": 115,
+      "failed_rust_cases": [
+        {
+          "name": "staged_media::delivery_counter_tests::repeated_video_input_with_zero_output_is_not_counted_as_a_writer_attempt",
+          "build": "rvoip-uctp-lib-rvoip_uctp",
+          "actual": [
+            0,
+            1,
+            0
+          ],
+          "log_sha256": "f16060da0cfeef3141942fad59b7a0a653aa676961ef4a8fff51011986cc1074"
+        }
+      ],
+      "node_totals": {
+        "tests": 269,
+        "pass": 269,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "node_validation_passed": true,
+      "python_runner_methods": 127,
+      "python_identity_rows": 126,
+      "python_validation_passed": false,
+      "mac_executed": 0,
+      "mac_passed": 0,
+      "mac_status": "failed",
+      "shipping_default_check_passed": false,
+      "instrumented_metadata_passed": true,
+      "original_arm_source_seal_unchanged": false,
+      "source_before": "be3c65de95c80928f74b9fbffa989796a6c84bdea2926840bf7ca68719a74073",
+      "source_after": "fd2d7f0f61c736ed0d37296ab42571df821ae381f9dced05daacdb7046c3a82e",
+      "all_original_owners_joined": true,
+      "witnesses": {
+        "config": {
+          "path": ".local/gate-6/post-v200-validation-candidate/sealed-config.json",
+          "sha256": "a8949d8314e5055c70586bd83e57910c676206cc3a81a0ac4c80a48a36e5b9ce"
+        },
+        "arm": {
+          "path": ".local/gate-6/post-v200-validation-candidate/arm-receipt.json",
+          "sha256": "3e93f25a8db47d182418be84c3ecd1d437c39ae9083ac342918dcde2496913c2"
+        },
+        "host": {
+          "path": ".local/gate-6/post-v200-validation-candidate/runtime-host-receipt.json",
+          "sha256": "c65a45c8a16f889f7a6599ed1b89d438f0f5d1685ca1ac6702e1f0a969cb34c0"
+        },
+        "controller": {
+          "path": ".local/gate-6/post-v200-validation-candidate/controller-exit.json",
+          "sha256": "c52b39091d67555b62d68f097be80edede6fa4f04db3fc1b45b1a0098491cc78"
+        },
+        "mac": {
+          "path": ".local/gate-6/post-v200-validation-candidate/mac-runtime/receipt.json",
+          "sha256": "68acb718853a24c69ce259fd0806a353c6ca92cec5ce69526c050d967cf50d06"
+        }
+      },
+      "generated_sdk_changes": [
+        "sdk/typescript/dist/browser_media.js",
+        "sdk/typescript/dist/browser_native_readiness.d.ts",
+        "sdk/typescript/dist/browser_native_readiness.js"
+      ]
+    },
+    {
+      "stage": ".local/gate-6/post-v200-validation-retry-candidate",
+      "status": "failed",
+      "planned_rust": 185,
+      "executed_rust": 184,
+      "passed_executed_rust": 184,
+      "failed_executed_rust": 0,
+      "compile_blocked_rust": 1,
+      "failed_rust_cases": [],
+      "node_totals": {
+        "tests": 269,
+        "pass": 269,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "node_validation_passed": true,
+      "python_runner_methods": 127,
+      "python_identity_rows": 127,
+      "python_validation_passed": true,
+      "mac_executed": 1,
+      "mac_passed": 1,
+      "mac_status": "passed",
+      "shipping_default_check_passed": true,
+      "instrumented_metadata_passed": true,
+      "original_arm_source_seal_unchanged": true,
+      "source_before": "fcd9f987775c99a1b1a6b1f5a14b2d6735444ea8a2cc47fe90c544df1d4cef12",
+      "source_after": "fcd9f987775c99a1b1a6b1f5a14b2d6735444ea8a2cc47fe90c544df1d4cef12",
+      "all_original_owners_joined": true,
+      "witnesses": {
+        "config": {
+          "path": ".local/gate-6/post-v200-validation-retry-candidate/sealed-config.json",
+          "sha256": "a37d2ce3c53dc5855ead9ccac37cabaaf45cade9025eb9c4334b78e27eddddac"
+        },
+        "arm": {
+          "path": ".local/gate-6/post-v200-validation-retry-candidate/arm-receipt.json",
+          "sha256": "280a5fd6ffab5a0cff8c00a5addf6f4f73b0fe29e4c98ae99bbc6be01bcf0343"
+        },
+        "host": {
+          "path": ".local/gate-6/post-v200-validation-retry-candidate/runtime-host-receipt.json",
+          "sha256": "f760635d06bb24d4ac3e549eaea8dd3e505ff0c9e838b3439bc1b71b292c02cc"
+        },
+        "controller": {
+          "path": ".local/gate-6/post-v200-validation-retry-candidate/controller-exit.json",
+          "sha256": "04212cb20f18f0ebc7e22b46b8dd7503b70736eaf35e29ab0f9b7b5ec4bdece0"
+        },
+        "mac": {
+          "path": ".local/gate-6/post-v200-validation-retry-candidate/mac-runtime/receipt.json",
+          "sha256": "f086e59d10d7d8c2ceb171854572cbb12c03f93c78fc9e148f064bfbb9e70205"
+        }
+      }
+    },
+    {
+      "stage": ".local/gate-6/post-v200-validation-retry-next-candidate",
+      "status": "failed",
+      "planned_rust": 185,
+      "executed_rust": 185,
+      "passed_executed_rust": 185,
+      "failed_executed_rust": 0,
+      "compile_blocked_rust": 0,
+      "failed_rust_cases": [],
+      "node_totals": {
+        "tests": 269,
+        "pass": 268,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "node_validation_passed": false,
+      "python_runner_methods": 127,
+      "python_identity_rows": 127,
+      "python_validation_passed": true,
+      "mac_executed": 1,
+      "mac_passed": 1,
+      "mac_status": "passed",
+      "shipping_default_check_passed": true,
+      "instrumented_metadata_passed": true,
+      "original_arm_source_seal_unchanged": true,
+      "source_before": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+      "source_after": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+      "all_original_owners_joined": true,
+      "witnesses": {
+        "config": {
+          "path": ".local/gate-6/post-v200-validation-retry-next-candidate/sealed-config.json",
+          "sha256": "2fbc873a684dd8330435153531c0488de6e8b853c0a7e435e910b5d0e478408f"
+        },
+        "arm": {
+          "path": ".local/gate-6/post-v200-validation-retry-next-candidate/arm-receipt.json",
+          "sha256": "22b07fdddadac82a20e9388bd230cc26c6305796a45a65273185460349c1fe37"
+        },
+        "host": {
+          "path": ".local/gate-6/post-v200-validation-retry-next-candidate/runtime-host-receipt.json",
+          "sha256": "7275dda1d1ee03f1630c8fad87ead6bbd2d191f427b49eece38e315db5975ca8"
+        },
+        "controller": {
+          "path": ".local/gate-6/post-v200-validation-retry-next-candidate/controller-exit.json",
+          "sha256": "a41b4f494e43aa24f98923a22705853c3be2c7c574c5ba09d70d811c06f6bd8b"
+        },
+        "mac": {
+          "path": ".local/gate-6/post-v200-validation-retry-next-candidate/mac-runtime/receipt.json",
+          "sha256": "0b207bd12c6522e6ea5d54a5ecdfb39d4367c4f6c0319f59e416d39f551e55e7"
+        }
+      }
+    },
+    {
+      "stage": ".local/gate-6/post-v200-validation-final-candidate",
+      "status": "failed",
+      "planned_rust": 185,
+      "executed_rust": 185,
+      "passed_executed_rust": 184,
+      "failed_executed_rust": 1,
+      "compile_blocked_rust": 0,
+      "failed_rust_cases": [
+        {
+          "name": "sdk_handles::replacement_video_recovery::signed_private_readiness_cannot_outlive_its_exact_original_reservation_expiry",
+          "build": "connect-server-test-gate6_replacement_video",
+          "actual": [
+            0,
+            1,
+            0
+          ],
+          "log_sha256": "2699499277c79f2521763e385576dddb509539431fb03a8e3e3a942c2ccc7c67"
+        }
+      ],
+      "node_totals": {
+        "tests": 269,
+        "pass": 269,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "node_validation_passed": true,
+      "python_runner_methods": 127,
+      "python_identity_rows": 127,
+      "python_validation_passed": true,
+      "mac_executed": 1,
+      "mac_passed": 1,
+      "mac_status": "passed",
+      "shipping_default_check_passed": true,
+      "instrumented_metadata_passed": true,
+      "original_arm_source_seal_unchanged": true,
+      "source_before": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+      "source_after": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+      "all_original_owners_joined": true,
+      "witnesses": {
+        "config": {
+          "path": ".local/gate-6/post-v200-validation-final-candidate/sealed-config.json",
+          "sha256": "5b3a95be329c55139eb92dd1f164026ab9b0eeeafc1277cd0096259a995ac42d"
+        },
+        "arm": {
+          "path": ".local/gate-6/post-v200-validation-final-candidate/arm-receipt.json",
+          "sha256": "cdf9e0a169fdff04ed2ba7d5c76ad6b9d4cb9627eaf0203664ffc70da37f3388"
+        },
+        "host": {
+          "path": ".local/gate-6/post-v200-validation-final-candidate/runtime-host-receipt.json",
+          "sha256": "3c0e1ab2d023560932959ab9f2a442b2315547db20206e4e3a14c9c40dda5b7b"
+        },
+        "controller": {
+          "path": ".local/gate-6/post-v200-validation-final-candidate/controller-exit.json",
+          "sha256": "4b6275186683ec3d4600dbd6ddfa7c1f5f28a24699466a009120f821d27b0038"
+        },
+        "mac": {
+          "path": ".local/gate-6/post-v200-validation-final-candidate/mac-runtime/receipt.json",
+          "sha256": "dcf2b1b2102765e8e29c29de9b0d286981420277042d95ded12655abb4f44d01"
+        }
+      }
+    }
+  ],
+  "unchanged_node_diagnostic": {
+    "status": "passed-diagnostic-only",
+    "node_totals": {
+      "tests": 269,
+      "pass": 269,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "source": "9244170baeb0dfa105edc2e469ab1b5ac9ce59993182e7248e203292ba448fbb",
+    "unchanged_source": true,
+    "full_focused_pass_claimed": false,
+    "matrix_qualified": false,
+    "witnesses": {
+      "host-receipt.json": {
+        "path": ".local/gate-6/post-v200-node269-diagnostic/host-receipt.json",
+        "sha256": "347439cf4f51cb8e8bfffde8c533cfaf401550f8f6471a9e48c0ba27d5d810b2"
+      },
+      "arm-receipt.json": {
+        "path": ".local/gate-6/post-v200-node269-diagnostic/arm-receipt.json",
+        "sha256": "24f08aaac1dd624e59efb9b5d74d98662b41933b89b0b4a7802e9df844536828"
+      },
+      "controller-exit.json": {
+        "path": ".local/gate-6/post-v200-node269-diagnostic/controller-exit.json",
+        "sha256": "349a9e41b4118aed9d07a5478a3d8d47e59594ddab3c577139ac7ed587f72941"
+      },
+      "independent-tap-audit.json": {
+        "path": ".local/gate-6/post-v200-node269-diagnostic/independent-tap-audit.json",
+        "sha256": "c0d5a82b37db1e0be2c1c7ca4b8cefa99153cbcc2f05e8f08130bef57326afc8"
+      },
+      "diagnostic-node269.log": {
+        "path": ".local/gate-6/post-v200-node269-diagnostic/diagnostic-node269.log",
+        "sha256": "efc3a3a5ff409f99c8766b3fbf26afe783b149ca55c45f6095578df909b7ff36"
+      }
+    }
+  },
+  "initial_source_lock_transition": {
+    "before": "b88e9e899badac7e719ecad1d9f87fc78c2c55c6bc32e76c4f20c67ee12f53d8",
+    "after": "f9c7544c3559e9a9bdcf83d763b5952daf867f551f31c221fd779e1158e0d55e",
+    "new_prepared_graph_observed": false
+  }
+}

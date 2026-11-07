@@ -16,6 +16,11 @@ const transient = (error) => error instanceof ConnectError &&
                 error.problem.reason === "authority_unavailable") ||
                 (error.problem.category === "storage" &&
                     error.problem.reason === "storage_unavailable"))));
+const decodedAudioBlockSamples = 960;
+const requiredAudioSamples = 2880;
+const maxOutputAgeMs = 200;
+const decodedVideoWidth = 640;
+const decodedVideoHeight = 360;
 /** A new instance belongs to precisely one installed target route set. */
 export class BrowserNativeReadiness {
     root;
@@ -42,6 +47,7 @@ export class BrowserNativeReadiness {
     stopped = false;
     completed = false;
     revision = -1;
+    terminalDiagnosticLogged = false;
     targetGeneration;
     constructor(root, original, scope, answer, callback, requestId, audioStreamId, videoStreamId, connectionGeneration) {
         this.root = root;
@@ -129,6 +135,11 @@ export class BrowserNativeReadiness {
         this.original = copy(original);
         this.scope = { ...scope };
     }
+    /** Consumed before invoking the original readiness continuation. A later
+     * definitive refusal never erases the fact that its write was attempted. */
+    get readinessSubmissionAttempted() {
+        return this.attempted;
+    }
     get mayHaveCommitted() {
         return this.attempted && !this.refused;
     }
@@ -151,10 +162,10 @@ export class BrowserNativeReadiness {
             return;
         const now = performance.now();
         if (!this.accepts(value.identity, this.audioStreamId) ||
-            value.samples !== 960 ||
+            value.samples !== decodedAudioBlockSamples ||
             !Number.isFinite(value.arrived) ||
             now < value.arrived ||
-            now - value.arrived >= 200)
+            now - value.arrived >= maxOutputAgeMs)
             return;
         const previous = this.audio;
         // Repeated original input is not another actual eligible observation.
@@ -167,7 +178,8 @@ export class BrowserNativeReadiness {
             (canonicalJson(previous.identity) !==
                 canonicalJson(value.identity) ||
                 value.sequence !== ((previous.sequence + 1) & 65535) ||
-                value.timestamp !== (previous.timestamp + 960) >>> 0))
+                value.timestamp !==
+                    (previous.timestamp + decodedAudioBlockSamples) >>> 0))
             this.audioSamples = 0;
         this.audio = { ...value, identity: { ...value.identity } };
         this.audioSamples += value.samples;
@@ -178,11 +190,11 @@ export class BrowserNativeReadiness {
         const now = performance.now();
         if (!this.accepts(value.identity, this.videoStreamId) ||
             !value.epoch ||
-            value.width !== 640 ||
-            value.height !== 360 ||
+            value.width !== decodedVideoWidth ||
+            value.height !== decodedVideoHeight ||
             !Number.isFinite(value.arrived) ||
             now < value.arrived ||
-            now - value.arrived >= 200)
+            now - value.arrived >= maxOutputAgeMs)
             return;
         if (this.video &&
             (this.video.epoch !== value.epoch ||
@@ -216,13 +228,13 @@ export class BrowserNativeReadiness {
         }
         const now = performance.now();
         if (!this.audio ||
-            this.audioSamples < 2880 ||
-            now - this.audio.arrived >= 200 ||
+            this.audioSamples < requiredAudioSamples ||
+            now - this.audio.arrived >= maxOutputAgeMs ||
             !this.sameCurrent(current) ||
             (this.videoStreamId &&
                 (!this.video ||
                     !this.videoKeys ||
-                    now - this.video.arrived >= 200)))
+                    now - this.video.arrived >= maxOutputAgeMs)))
             return false;
         this.frozenAudio = { ...this.audio.identity };
         this.frozenVideo = this.video
@@ -256,8 +268,73 @@ export class BrowserNativeReadiness {
         this.stopped = true;
         this.audio = this.video = undefined;
     }
+    /** One terminal metadata row, before caller cleanup; never an eligibility input. */
+    logTerminal(until, current, currentObservedAt, audio, video) {
+        if (this.terminalDiagnosticLogged)
+            return;
+        this.terminalDiagnosticLogged = true;
+        try {
+            const now = performance.now(), audioIdentity = this.frozenAudio ?? audio?.identity, videoIdentity = this.frozenVideo?.identity ?? video?.identity, videoEpoch = this.frozenVideo?.epoch ?? video?.epoch;
+            // Fixed scalar fields only: no offer, nonce, SSRC, media or epoch bytes.
+            console.debug("Original native readiness terminal", JSON.stringify({
+                audio_samples: this.audioSamples,
+                video_frames: this.videoFrames,
+                video_keys: this.videoKeys,
+                audio_present: !!audio,
+                video_present: !!video,
+                video_required: !!this.videoStreamId,
+                audio_arrival_age_ms: audio ? now - audio.arrived : null,
+                video_arrival_age_ms: video ? now - video.arrived : null,
+                current_observed: !!current,
+                current_observation_age_ms: currentObservedAt === undefined
+                    ? null
+                    : now - currentObservedAt,
+                current_matches: current ? this.sameCurrent(current) : null,
+                audio_identity_accepted: audioIdentity
+                    ? this.accepts(audioIdentity, this.audioStreamId)
+                    : null,
+                video_identity_accepted: videoIdentity && this.videoStreamId
+                    ? this.accepts(videoIdentity, this.videoStreamId)
+                    : null,
+                current_audio_identity_matches: current && audioIdentity
+                    ? canonicalJson((current.audio ??
+                        null)) ===
+                        canonicalJson(audioIdentity)
+                    : null,
+                current_video_identity_matches: current && videoIdentity
+                    ? canonicalJson((current.video?.identity ??
+                        null)) ===
+                        canonicalJson(videoIdentity)
+                    : null,
+                current_video_epoch_matches: current && videoEpoch !== undefined
+                    ? current.video?.epoch === videoEpoch
+                    : null,
+                target_generation: this.targetGeneration,
+                audio_generation: audioIdentity?.generation ?? null,
+                video_generation: videoIdentity?.generation ?? null,
+                current_audio_generation: current?.audio?.generation ?? null,
+                current_video_generation: current?.video?.identity.generation ?? null,
+                frozen: !!this.frozen,
+                attempted: this.attempted,
+                refused: this.refused,
+                completed: this.completed,
+                stopped: this.stopped,
+                deadline_remaining_ms: until - now,
+                audio_block_samples: decodedAudioBlockSamples,
+                required_audio_samples: requiredAudioSamples,
+                required_video_keys: this.videoStreamId ? 1 : 0,
+                max_output_age_ms: maxOutputAgeMs,
+                video_width: decodedVideoWidth,
+                video_height: decodedVideoHeight,
+            }));
+        }
+        catch {
+            // Diagnostics must not replace an original result, refusal or stack.
+        }
+    }
     /** The original caller supplies one absolute deadline and actual route check. */
     async finish(client, until, current, signal) {
+        let observedCurrent, currentObservedAt;
         const check = () => {
             if (this.stopped || client.closed)
                 throw new ConnectError("closed", "Original native readiness owner closed");
@@ -265,7 +342,10 @@ export class BrowserNativeReadiness {
                 throw new ConnectError("cancelled", "Original native readiness wait cancelled");
             if (until - performance.now() < 1)
                 throw new ConnectError("timeout", "Original native readiness deadline expired");
-            return current();
+            const value = current();
+            observedCurrent = value;
+            currentObservedAt = performance.now();
+            return value;
         };
         const pause = async () => {
             check();
@@ -276,8 +356,6 @@ export class BrowserNativeReadiness {
             signal,
             timeoutMs: Math.max(1, Math.min(1000, Math.floor((until - performance.now()) / 2))),
         });
-        while (!this.freeze(check()))
-            await pause();
         let attempts = 0, replay = false, replayDisabled = false, next = 0, definitive;
         const observe = (value) => {
             if (Number(value.revision) < this.revision)
@@ -321,6 +399,8 @@ export class BrowserNativeReadiness {
             }
         };
         try {
+            while (!this.freeze(check()))
+                await pause();
             await send();
             for (;;) {
                 check();
@@ -358,6 +438,7 @@ export class BrowserNativeReadiness {
                         bad("Native activation generation changed");
                     this.activation = activation;
                     this.completed = true;
+                    this.logTerminal(until, observedCurrent, currentObservedAt, this.audio, this.video);
                     this.audio = this.video = undefined;
                     if (definitive)
                         throw definitive;
@@ -392,6 +473,9 @@ export class BrowserNativeReadiness {
         }
         catch (error) {
             throw definitive ?? error;
+        }
+        finally {
+            this.logTerminal(until, observedCurrent, currentObservedAt, this.audio, this.video);
         }
     }
 }

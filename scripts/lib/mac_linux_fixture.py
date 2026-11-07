@@ -60,24 +60,36 @@ def archive_files(files):
     return buffer.getvalue()
 
 
-def unpack_verified(raw, destination):
+def unpack_verified(raw, destination, *, owned_job=None):
     destination = Path(destination)
     if destination.is_symlink():
         raise ValueError("Private result destination symlink")
     destination = destination.resolve()
-    if len(raw) > LIMIT:
+    cycles = 1
+    if owned_job is not None:
+        if (set(owned_job) != {"format", "run_id", "output", "resource_cycles", "job_sha256"}
+                or owned_job["format"] != "connect/owned-job-output-transfer/1"
+                or type(owned_job["resource_cycles"]) is not int or owned_job["resource_cycles"] not in (1, 3)):
+            raise ValueError("Original owned collection profile required")
+        cycles = owned_job["resource_cycles"]
+    if len(raw) > LIMIT * cycles:
         raise ValueError("Private result transfer bound")
     values = {}
     with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as archive:
         for item in archive.getmembers():
             name = PurePosixPath(item.name)
             if (not item.isfile() or name.is_absolute() or ".." in name.parts or "\\" in item.name
-                    or item.name in values or len(values) > 10000):
+                    or item.name in values or len(values) > 10000 + (1 if owned_job is not None else 0)):
                 raise ValueError("Ordinary private result required")
             values[item.name] = archive.extractfile(item).read()
     manifest = json.loads(values.pop("TRANSFER-MANIFEST.json"))
     if {name: hashlib.sha256(body).hexdigest() for name, body in values.items()} != manifest:
         raise ValueError("Guest result transfer digest mismatch")
+    if owned_job is not None:
+        if json.loads(values.get("TRANSFER-PROFILE.json", b"null")) != owned_job:
+            raise ValueError("Original owned collection profile mismatch")
+    elif "TRANSFER-PROFILE.json" in values:
+        raise ValueError("Original owned collection context required")
     for name, body in values.items():
         path = Path(destination) / name
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -111,7 +123,11 @@ def programme_source_files(root):
 
 
 class MacLinuxFixture:
-    def __init__(self, root, directory, env, *, run_command=subprocess.run):
+    def __init__(self, root, directory, env, *, run_command=subprocess.run, resource_cycles=1):
+        if type(resource_cycles) is not int or resource_cycles not in (1, 3):
+            raise ValueError("One or three original preflight cycles required")
+        self.resource_cycles = resource_cycles
+        self.lease_attempt = None
         self.root, self.directory, self.env = Path(root), Path(directory), env
         self.run_command = run_command
         self.run_id = "mac-remote-" + uuid.uuid4().hex
@@ -190,7 +206,7 @@ from lib.vm_workload_lease import VmWorkloadLease
 sys.path.insert(0,'/workspace/scripts/lib')
 from mac_linux_guest import lease_owners_joined,atomic
 root=Path(sys.argv[1]);root.mkdir(parents=True,exist_ok=True,mode=0o700)
-with VmWorkloadLease():
+with VmWorkloadLease(timeout=int(sys.argv[2])):
  print('original-vm-lease-acquired',flush=True)
  sys.stdin.buffer.read()
  while not lease_owners_joined(root):
@@ -198,14 +214,50 @@ with VmWorkloadLease():
   time.sleep(.25)
  atomic(root/'lease-state.json',{'state':'released','original_owners_joined':True})
 """
-        self.lease = subprocess.Popen(self.ssh(["python3", "-c", code, self.remote_root]), cwd=self.root, env=self.env,
+        queue_timeout = 1200 * self.resource_cycles
+        self.lease_attempt = dict(format="connect/mac-linux-lease-acquisition/1", resource_cycles=self.resource_cycles,
+            queue_timeout_seconds=queue_timeout, host_wait_seconds=queue_timeout + 10,
+            started_unix=time.time(), started_monotonic_seconds=time.monotonic(), acquired=False)
+        self.lease = subprocess.Popen(self.ssh(["python3", "-c", code, self.remote_root, str(queue_timeout)]), cwd=self.root, env=self.env,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
         with selectors.DefaultSelector() as selector:
             selector.register(self.lease.stdout, selectors.EVENT_READ)
-            if not selector.select(timeout=1210) or self.lease.stdout.readline() != b"original-vm-lease-acquired\n":
+            if not selector.select(timeout=queue_timeout + 10) or self.lease.stdout.readline() != b"original-vm-lease-acquired\n":
                 self.lease.stdin.close()
-                self.lease.wait(timeout=5)
+                try:
+                    self.lease.wait(timeout=5)
+                finally:
+                    self._record_failed_lease()
                 raise ValueError("Existing ARM VM workload lease unavailable")
+        self.lease_attempt["acquired"] = True
+        self.lease_attempt["acquired_unix"] = time.time()
+        (self.directory / "lease-acquisition.json").write_text(json.dumps(self.lease_attempt) + "\n")
+
+    def _record_failed_lease(self):
+        code = self.lease.poll()
+        group_joined = False
+        if code is not None:
+            try:
+                os.killpg(self.lease.pid, 0)
+            except ProcessLookupError:
+                group_joined = True
+            except PermissionError:
+                pass
+        details = dict(self.lease_attempt, ended_unix=time.time(), ended_monotonic_seconds=time.monotonic(),
+            original_ssh_pid=self.lease.pid, original_ssh_exit_code=code,
+            original_ssh_process_exited=code is not None, original_ssh_group_joined=group_joined,
+            guest_job_created=self.owner is not None, guest_inputs_staged=bool(self.inputs))
+        try:
+            os.set_blocking(self.lease.stderr.fileno(), False)
+            raw = self.lease.stderr.read(65537) or b""
+            if raw:
+                stderr_path = self.directory / "lease-acquisition.stderr"
+                stderr_path.write_bytes(raw[:65536])
+                details.update(stderr_sha256=hashlib.sha256(raw[:65536]).hexdigest(), stderr_truncated=len(raw) > 65536)
+        except (OSError, ValueError):
+            details["stderr_available"] = False
+        self.lease_attempt = details
+        (self.directory / "lease-acquisition.json").write_text(json.dumps(details) + "\n")
 
     def owned_arguments(self, command, *, timeout, pass_stdin=False):
         identity = "command-" + uuid.uuid4().hex
@@ -414,6 +466,8 @@ print(json.dumps(prepare(target)))"""
         config = dict(run_id=self.run_id, source_revision=self.revision, command=list(map(str, command)),
                       output=self.output_relative, timeout_seconds=timeout, container=container, role=role, capture=capture, resource_cycles=resource_cycles)
         self.stage({"job.json": ((json.dumps(config) + "\n").encode(), False), "job-intent.json": ((json.dumps({"run_id":self.run_id})+"\n").encode(),False)})
+        self.owned_output_profile = dict(format="connect/owned-job-output-transfer/1", run_id=self.run_id,
+            output=self.output_relative, resource_cycles=resource_cycles, job_sha256=self.inputs["job.json"])
         self.log = Path(log).open("xb")
         self.owner = subprocess.Popen(self.ssh(["python3", self.remote_root / "scripts/lib/mac_linux_guest.py", "run", self.remote_root]),
             cwd=self.root, env=self.env, stdin=subprocess.DEVNULL, stdout=self.log, stderr=subprocess.STDOUT, start_new_session=True)
@@ -421,11 +475,18 @@ print(json.dumps(prepare(target)))"""
 
     def poll(self):
         responses = {}
-        for pattern in ("authority-*-response.json", "resources-*-response.json", "revoke-response.json"):
-            for path in self.output.glob(pattern):
-                if path.is_symlink() or path.stat().st_size > 4096:
-                    raise ValueError("Bounded private response required")
-                responses[path.name] = json.loads(path.read_text())
+        directories = [self.output, *(self.output / "cycles" / ("cycle-" + str(cycle))
+                                     for cycle in (1, 2, 3))]
+        for directory in directories:
+            if directory.is_symlink() or directory.parent.is_symlink():
+                raise ValueError("Original bridge directory cannot use a symlink")
+            patterns = (("authority-*-response.json", "resources-*-response.json", "revoke-response.json")
+                        if directory == self.output else ("resources-*-response.json",))
+            for pattern in patterns:
+                for path in directory.glob(pattern):
+                    if path.is_symlink() or path.stat().st_size > 4096:
+                        raise ValueError("Bounded private response required")
+                    responses[path.relative_to(self.output).as_posix()] = json.loads(path.read_text())
         started = time.monotonic()
         value = json.loads(self.call(["python3", self.remote_root / "scripts/lib/mac_linux_guest.py", "exchange", self.remote_root],
             data=json.dumps(dict(directory=self.output_relative, responses=responses)).encode(), timeout=5))
@@ -437,9 +498,18 @@ print(json.dumps(prepare(target)))"""
         self.latest = value
         for name, request in value["requests"].items():
             path = self.output / name
+            allowed = {*(f"authority-{index}-request.json" for index in (1, 2, 3)), "revoke-request.json",
+                *(f"resources-{prefix}{phase}.json" for prefix in ("", "cycle-1-", "cycle-2-", "cycle-3-")
+                  for phase in ("baseline", "terminal", "retired")),
+                *(f"cycles/cycle-{cycle}/resources-{phase}.json" for cycle in (1, 2, 3)
+                  for phase in ("baseline", "terminal", "retired"))}
+            if (name not in allowed or any(parent.is_symlink() for parent in (path, path.parent, path.parent.parent))
+                    or len(json.dumps(request).encode()) > 4096):
+                raise ValueError("Bounded original cross-host request required")
             if path.exists() and json.loads(path.read_text()) != request:
                 raise ValueError("Original cross-host request changed")
             if not path.exists():
+                path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
                 path.write_text(json.dumps(request) + "\n")
                 path.chmod(0o600)
         return value
@@ -453,7 +523,11 @@ print(json.dumps(prepare(target)))"""
 
     def collect(self):
         raw = self.call(["python3", self.remote_root / "scripts/lib/mac_linux_guest.py", "collect", self.remote_root, self.output_relative], timeout=90)
-        manifest = unpack_verified(raw, self.output)
+        profile = getattr(self, "owned_output_profile", None)
+        if profile is not None and (profile["run_id"] != self.run_id or profile["output"] != self.output_relative
+                or profile["job_sha256"] != self.inputs.get("job.json")):
+            raise ValueError("Original owned collection context changed")
+        manifest = unpack_verified(raw, self.output, owned_job=profile)
         (self.directory / "output-transfer.json").write_text(json.dumps(manifest, sort_keys=True) + "\n")
         (self.directory / "clock-alignments.json").write_text(json.dumps(self.alignments) + "\n")
         return manifest
@@ -467,6 +541,20 @@ print(json.dumps(prepare(target)))"""
         if self.closed:
             if release_lease:
                 self.release_lease()
+            return self.receipt
+        if (self.lease_attempt is not None and not self.lease_attempt["acquired"]
+                and self.owner is None and not self.inputs and self.lease is not None):
+            self._record_failed_lease()
+            self.receipt = dict(format="connect/mac-linux-owner/1", run_id=self.run_id, passed=False,
+                preflight_only=True, guest_job_started=False, guest_sources_staged=False,
+                guest_namespace_started=False, original_joined=False, forced=False,
+                original_lease_ssh_joined=self.lease_attempt["original_ssh_group_joined"],
+                lease_acquisition=dict(self.lease_attempt),
+                cleanup_scope="Only the original pre-acquisition SSH process existed. No guest workload owner was created.",
+                cleanup_failures=[] if self.lease_attempt["original_ssh_group_joined"] else ["original-lease-ssh-join-unconfirmed"])
+            if self.lease.poll() is not None:
+                self.lease.stdout.close();self.lease.stderr.close()
+            self.closed = True
             return self.receipt
         failures = []
         forced = self.owner is not None and self.owner.poll() is None

@@ -126,7 +126,7 @@ export async function runNativeProgrammeWorker(options){
   const directory=join(dirname(options.inputPath),'native-cycle-'+index);mkdirSync(directory,{mode:0o700});
   const inputPath=join(directory,'input.json'),outputPath=options.outputPath+'.cycle-'+index+'.json';
   const workloadId='native-cycle-'+index+'-'+process.pid;
-  const mediaOutput=join(input.media_output_directory,'cycle-'+index);mkdirSync(mediaOutput,{recursive:true,mode:0o700});
+  const mediaOutput=join(input.media_output_directory,'cycle-'+index);mkdirSync(dirname(mediaOutput),{recursive:true,mode:0o700});
   writeFileSync(inputPath,JSON.stringify({...input,matrix_resource_cycles:1,matrix_resource_prefix:'cycle-'+index+'-',
    matrix_workload_id:workloadId,matrix_cycle_index:index,media_output_directory:mediaOutput})+'\n',{flag:'wx',mode:0o600});
   const fd=openSync(inputPath,'r');try{fsyncSync(fd);}finally{closeSync(fd);}

@@ -522,6 +522,7 @@ impl Runtime {
             "role_projections": self.role_projections.load(std::sync::atomic::Ordering::Relaxed),
             "retirement_failed": self.retirement_failed.load(std::sync::atomic::Ordering::Acquire),
             "media_policy": self.media.retention_counts(),
+            "packet_observer_claims": self.media.store.packet_observer_claim_diagnostics(),
             "unobserved": ["Core orphan controllers/ports outside the service registry", "codec heap capacities", "allocator retained pages"]
         })
     }

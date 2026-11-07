@@ -53,11 +53,11 @@ def cleanup_program():
     return compile(ast.Module(body=initializers + original.finalbody[:last + 1], type_ignores=[]), str(RUNNER), "exec")
 
 
-def pcap(transport, *, empty=False, truncated=False):
+def pcap(transport, *, empty=False, truncated=False, foreign=False):
     data = struct.pack("<IHHiIII", 0xa1b2c3d4, 2, 4, 0, 0, 262144, 1)
     if empty:
         return data
-    server, client = socket.inet_aton("10.203.0.1"), socket.inet_aton("10.203.0.2")
+    server, client = socket.inet_aton("10.203.0.99" if foreign else "10.203.0.1"), socket.inet_aton("10.203.0.2")
     port, protocol = (4433, 17) if transport == "chrome-webtransport" else (8443, 6)
     for source, target, sport, dport in [(client, server, 50000, port), (server, client, port, 50000)]:
         body = b"\0" * 12 + b"\x08\0" + struct.pack("!BBHHHBBH4s4s", 0x45, 0, 28, 1, 0, 64, protocol, 0, source, target)
@@ -67,15 +67,16 @@ def pcap(transport, *, empty=False, truncated=False):
 
 
 class CaptureCleanup(unittest.TestCase):
-    def execute(self, *, transport="chrome-webtransport", empty=False, dropped=0, truncated=False, started=True, resource_cycles=1):
+    def execute(self, *, transport="chrome-webtransport", empty=False, dropped=0, truncated=False, started=True, resource_cycles=1, captured_pairs=1, foreign=False):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             events = []
             interface = SimpleNamespace(alive=True)
             capture = BrowserCapture(directory, interface="br-original", server_ip="10.203.0.1",
-                native=4433, wss=8443, media_start=40000, transport=transport, env={})
+                native=4433, wss=8443, media_start=40000, transport=transport, env={}, resource_cycles=resource_cycles)
             capture.path, capture.log = directory / "browser.pcap", directory / "capture.log"
-            capture.path.write_bytes(pcap(transport, empty=empty, truncated=truncated)); capture.path.chmod(0o600)
+            raw = pcap(transport, empty=empty, truncated=truncated, foreign=foreign)
+            capture.path.write_bytes(raw[:24] + raw[24:] * captured_pairs); capture.path.chmod(0o600)
             capture.binary = directory / "fixture-binary"; capture.binary.write_bytes(b"synthetic capture owner")
             capture.binary_hash = digest(capture.binary)
             capture.log.write_text("")
@@ -89,7 +90,7 @@ class CaptureCleanup(unittest.TestCase):
 
                 def terminate(self, code):
                     self.returncode = code
-                    count = 0 if empty else 2
+                    count = 0 if empty else 2 * captured_pairs
                     capture.log.write_text(("tcpdump: pcap_loop: The interface disappeared\n" if code else "") +
                         f"{count} packets captured\n{count} packets received by filter\n{dropped} packets dropped by kernel\n")
 
@@ -163,13 +164,33 @@ class CaptureCleanup(unittest.TestCase):
                         self.assertEqual(len({row["workload_id"] for row in ids}), 3)
 
     def test_rejected_capture_keeps_failure_and_still_joins_fixture_owners(self):
-        for options in (dict(empty=True), dict(dropped=1), dict(truncated=True)):
-            with self.subTest(options=options):
-                report, events = self.execute(**options)
-                self.assertFalse(report["passed"]); self.assertFalse(report["packet_capture"]["observed"])
-                self.assertTrue(report["packet_capture"]["original_joined"])
-                self.assertTrue(report["client_network_removed"])
+        for resource_cycles in (1, 3):
+            for options in (dict(empty=True), dict(dropped=1), dict(truncated=True), dict(foreign=True)):
+                with self.subTest(options=options, resource_cycles=resource_cycles):
+                    report, events = self.execute(resource_cycles=resource_cycles, **options)
+                    self.assertFalse(report["passed"]); self.assertFalse(report["packet_capture"]["observed"])
+                    self.assertTrue(report["packet_capture"]["original_joined"])
+                    self.assertTrue(report["client_network_removed"])
+                    self.assertEqual(events, ["traffic-joined", "capture-joined", "network-removed", "server-joined"])
+
+    def test_three_cycle_capture_scales_only_aggregate_packet_evidence_budget(self):
+        for resource_cycles, pairs, observed in ((1, 100000, False), (3, 100000, True), (3, 300000, False)):
+            with self.subTest(resource_cycles=resource_cycles, packets=2*pairs):
+                report, events = self.execute(resource_cycles=resource_cycles, captured_pairs=pairs)
+                capture = report["packet_capture"]
+                self.assertEqual(capture["observed"], observed)
+                self.assertEqual(capture["packet_limit"], 200000*resource_cycles)
+                self.assertEqual(capture["maximum_pcap_bytes"], 256*1024**2*resource_cycles)
+                self.assertEqual(capture["original_packets_captured"], 2*pairs)
+                self.assertEqual(capture["kernel_dropped_packets"], 0)
+                self.assertTrue(capture["original_joined"])
                 self.assertEqual(events, ["traffic-joined", "capture-joined", "network-removed", "server-joined"])
+                if resource_cycles == 3:
+                    self.assertFalse(report["passed"], "Capture cannot qualify missing real three-cycle media evidence")
+        for invalid in (0, 2, 4, True, "3"):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                BrowserCapture(Path("unused"), interface="lo", server_ip="127.0.0.1", native=4433,
+                    wss=8443, media_start=40000, transport="chrome-webtransport", env={}, resource_cycles=invalid)
 
     def test_unstarted_capture_never_becomes_proof_and_still_removes_owned_network(self):
         for resource_cycles in (1, 3):

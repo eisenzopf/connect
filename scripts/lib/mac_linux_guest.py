@@ -126,7 +126,7 @@ def checked_root(value):
     return path
 
 
-def regular_files(directory):
+def regular_files(directory, *, maximum_bytes=LIMIT):
     result = []
     for path in sorted(directory.rglob("*")):
         if path.relative_to(directory).parts[0] in {"trusted-profile", "untrusted-profile"}:
@@ -135,7 +135,7 @@ def regular_files(directory):
             raise ValueError("No private symlink transfer")
         if path.is_file():
             result.append(path)
-    if len(result) > 10000 or sum(path.stat().st_size for path in result) > LIMIT:
+    if len(result) > 10000 or sum(path.stat().st_size for path in result) > maximum_bytes:
         raise ValueError("Private transfer bound")
     return result
 
@@ -172,13 +172,35 @@ def collect(root, relative):
     directory = root / relative
     if not directory.resolve().is_relative_to(root.resolve()):
         raise ValueError("Original output directory required")
-    paths = regular_files(directory)
+    profile = None
+    job_path = root / "job.json"
+    if job_path.exists():
+        if job_path.is_symlink() or job_path.stat().st_size > 65536:
+            raise ValueError("Original bounded job required")
+        job_bytes = job_path.read_bytes()
+        job = json.loads(job_bytes)
+        cycles = job.get("resource_cycles", 1)
+        if type(cycles) is not int or cycles not in (1, 3) or job["run_id"] != root.name:
+            raise ValueError("Original owned collection profile required")
+        if relative == job["output"]:
+            profile = dict(format="connect/owned-job-output-transfer/1", run_id=job["run_id"],
+                output=relative, resource_cycles=cycles, job_sha256=hashlib.sha256(job_bytes).hexdigest())
+    paths = regular_files(directory, maximum_bytes=LIMIT * (profile["resource_cycles"] if profile else 1))
+    if any(path.relative_to(directory).as_posix() in {"TRANSFER-MANIFEST.json", "TRANSFER-PROFILE.json"} for path in paths):
+        raise ValueError("Reserved private transfer metadata")
+    profile_bytes = (json.dumps(profile, sort_keys=True) + "\n").encode() if profile else None
     manifest = {str(path.relative_to(directory)): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
+    if profile_bytes is not None:
+        manifest["TRANSFER-PROFILE.json"] = hashlib.sha256(profile_bytes).hexdigest()
     raw = (json.dumps(manifest, sort_keys=True) + "\n").encode()
     with tarfile.open(fileobj=sys.stdout.buffer, mode="w|") as archive:
         item = tarfile.TarInfo("TRANSFER-MANIFEST.json")
         item.size, item.mode = len(raw), 0o600
         archive.addfile(item, io.BytesIO(raw))
+        if profile_bytes is not None:
+            item = tarfile.TarInfo("TRANSFER-PROFILE.json")
+            item.size, item.mode = len(profile_bytes), 0o600
+            archive.addfile(item, io.BytesIO(profile_bytes))
         for path in paths:
             archive.add(path, arcname=str(path.relative_to(directory)), recursive=False)
 
@@ -189,22 +211,29 @@ def exchange(root):
     if not output.resolve().is_relative_to(root.resolve()):
         raise ValueError("Original output bridge required")
     resource_phases = [prefix + phase for prefix in ("", "cycle-1-", "cycle-2-", "cycle-3-") for phase in ("baseline", "terminal", "retired")]
+    resource_requests = [*(f"resources-{phase}.json" for phase in resource_phases),
+        *(f"cycles/cycle-{cycle}/resources-{phase}.json" for cycle in (1, 2, 3)
+          for phase in ("baseline", "terminal", "retired"))]
     allowed_responses = {f"authority-{i}-response.json" for i in (1, 2, 3)} | {
-        f"resources-{phase}-response.json" for phase in resource_phases} | {"revoke-response.json"}
+        name.removesuffix(".json") + "-response.json" for name in resource_requests} | {"revoke-response.json"}
     for name, value in request.get("responses", {}).items():
         if name not in allowed_responses or len(json.dumps(value).encode()) > 4096:
             raise ValueError("Bounded original response required")
         target = output / name
+        if any(parent.is_symlink() for parent in (target, target.parent, target.parent.parent)):
+            raise ValueError("Original bridge response cannot use a symlink")
         if target.exists() and json.loads(target.read_text()) != value:
             raise ValueError("Original response cannot be changed")
         if not target.exists():
+            target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             atomic(target, value)
     values = {}
     for name in [*(f"authority-{i}-request.json" for i in (1, 2, 3)),
-                 *(f"resources-{phase}.json" for phase in resource_phases), "revoke-request.json"]:
+                 *resource_requests, "revoke-request.json"]:
         path = output / name
         if path.exists():
-            if path.is_symlink() or path.stat().st_size > 4096:
+            if (any(parent.is_symlink() for parent in (path, path.parent, path.parent.parent))
+                    or path.stat().st_size > 4096):
                 raise ValueError("Bounded original request required")
             values[name] = json.loads(path.read_text())
     state_path = root / "job-state.json"

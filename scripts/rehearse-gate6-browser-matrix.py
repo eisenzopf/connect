@@ -201,7 +201,7 @@ def main():
         if args.network != "local":
             phase = "owned-remote-browser-topology"
             if not linux:
-                remote = MacLinuxFixture(ROOT, private / "remote-owner", env)
+                remote = MacLinuxFixture(ROOT, private / "remote-owner", env, resource_cycles=cycle_count)
                 report["actual_topology"] = remote.start(revision, image=args.image)
                 args.image = remote.image
                 report["browser_image_id"] = remote.image
@@ -389,7 +389,7 @@ def main():
         log_handles.append(handle)
         if args.stage == "quality" and remote is None:
             capture = BrowserCapture(private / "packet-capture", interface=interface, server_ip=server_ip,
-                native=native, wss=wss, media_start=media_start, transport=args.transport, env=env)
+                native=native, wss=wss, media_start=media_start, transport=args.transport, env=env, resource_cycles=cycle_count)
             try:
                 capture.start()
             except (OSError, RuntimeError):
@@ -397,7 +397,7 @@ def main():
                 capture = None
         browser_owner = (remote.launch(command_args, browser_output, private / "guest-supervisor.log", timeout=browser_timeout, resource_cycles=cycle_count, container=container,
                             capture=dict(kind="browser", interface=remote.topology["guest"]["route"]["dev"], server_ip=server_ip, client_ip=client_ip,
-                                         native=native, wss=wss, media_start=media_start, transport=args.transport) if args.stage == "quality" else None)
+                                         native=native, wss=wss, media_start=media_start, transport=args.transport, resource_cycles=cycle_count) if args.stage == "quality" else None)
                          if remote is not None else subprocess.Popen(command_args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
                                          stdout=handle, stderr=subprocess.STDOUT, start_new_session=True))
         report["browser_owner_started"] = True

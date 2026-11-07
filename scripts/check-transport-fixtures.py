@@ -204,7 +204,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
 
         if mac_remote:
             phase = "owned-mac-linux-client-setup"
-            remote = MacLinuxFixture(ROOT, PRIVATE / "remote-owner", env)
+            remote = MacLinuxFixture(ROOT, PRIVATE / "remote-owner", env, resource_cycles=resource_cycles)
             report["actual_topology"] = remote.start(report["source_revision"], image=False)
             runtime = remote.compile_native(media=media_workload)
             report["client_binary_sha256"] = remote.client_binary_sha256
@@ -820,7 +820,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         if remote is not None:
             try:
                 report["remote_client_owner"] = remote.close()
-                report["remote_binaries_unchanged"] = remote.verify_binaries()
+                report["remote_binaries_unchanged"] = (None if report["remote_client_owner"].get("preflight_only")
+                    else remote.verify_binaries())
                 report["passed"] = bool(report["passed"] and report["remote_client_owner"]["passed"] and report["remote_binaries_unchanged"])
             except Exception:
                 report["remote_client_owner"] = dict(passed=False, failure="original-guest-owner-or-binary-unconfirmed")

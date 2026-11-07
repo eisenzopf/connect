@@ -1864,6 +1864,16 @@
       "path": "patches/rvoip/connect-private-audio-fixture-phase-identity.patch",
       "sha256": "5f3d7bda4cd400a1c993898a3cff7e8635643056c19b4b432e57e8d3829ab0ea",
       "source": "Use distinct stable audio preparation and final operation identities in Core test fixtures, preserving exact authorization, original expiry and failed-commit refusal."
+    },
+    {
+      "path": "patches/rvoip/connect-native-private-delivery-counters.patch",
+      "sha256": "a750d133629c7d479cb95d3295d91846ef558f52f5403cbd34dc490042acac2c",
+      "source": "Observe exact original native target policy outcomes and primary RTP local transport attempts/acceptance/refusal by medium without changing authorization, media errors, clocks, deadlines or RTCP behavior"
+    },
+    {
+      "path": "patches/rvoip/connect-held-control-fixture-audio-preparation-denial.patch",
+      "sha256": "71f08015fb5d2c52b2240610e72e6179a83f1e4d294bdb1c32ba2d90ec9db3f3",
+      "source": "Keep the authenticated connection.update test fixture exhaustive after the existing replacement-audio Core API; explicitly refuse replacement audio and video preparation without granting an unrelated held invocation."
     }
   ]
 }

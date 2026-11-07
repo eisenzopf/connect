@@ -1,0 +1,883 @@
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
+@@ -100,13 +100,14 @@
+                     }
+                     context
+                         .packetizer
+-                        .send(
++                        .send_observed(
+                             frame,
+                             origin,
+                             context.audio_stamp,
+                             &route.binding,
+                             route.pt,
+                             route.transport.as_ref(),
++                            Some(route.counters.as_ref()),
+                             |bytes| {
+                                 route.counters.local_sends.fetch_add(1, Ordering::AcqRel);
+                                 if let (Some(flow), Some(port)) =
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -2,16 +2,16 @@
+ //! Negotiation is supplied by the authenticated application profile; this
+ //! module never invents peer readiness or translates legacy control commands.
+ use crate::substrate::{
+-    CheckedMediaIngress, ObservedRtpDatagram, PeerMediaRegistration, PeerMediaReservation,
+-    PeerMediaRouteKey, PeerMediaRouter, RtpDatagram, RtpMediaPayload, observe_rtp,
+-    pack_observed_rtp_datagram, pack_rtp_datagram,
++    observe_rtp, pack_observed_rtp_datagram, pack_rtp_datagram, CheckedMediaIngress,
++    ObservedRtpDatagram, PeerMediaRegistration, PeerMediaReservation, PeerMediaRouteKey,
++    PeerMediaRouter, RtpDatagram, RtpMediaPayload,
+ };
+ use async_trait::async_trait;
+ use bytes::Bytes;
+ use dashmap::DashMap;
+ use futures::{
++    future::{BoxFuture, Shared},
+     FutureExt,
+-    future::{BoxFuture, Shared},
+ };
+ use rvoip_core::{
+     capability::CodecInfo,
+@@ -26,8 +26,8 @@
+ use std::{
+     num::NonZeroU16,
+     sync::{
++        atomic::{AtomicU64, Ordering},
+         Arc, Mutex, Weak,
+-        atomic::{AtomicU64, Ordering},
+     },
+ };
+ use tokio::sync::mpsc;
+@@ -226,6 +226,7 @@
+     rejected: AtomicU64,
+     local_sends: AtomicU64,
+     send_errors: AtomicU64,
++    io: [RtpIoCounters; 3],
+ }
+ #[derive(Clone, Copy, Debug)]
+ pub struct StagedRtpSnapshot {
+@@ -244,6 +245,139 @@
+         }
+     }
+ }
++
++/// Fixed numeric metadata only. These counters retain no transport, port,
++/// authority, payload or task, and never grant readiness or delivery.
++#[derive(Default)]
++struct RtpIoCounters {
++    inputs: AtomicU64,
++    input_completions: AtomicU64,
++    input_ok: AtomicU64,
++    input_zero_datagrams: AtomicU64,
++    input_refused_before_primary: AtomicU64,
++    input_errors: [AtomicU64; 10],
++    primary_attempts: AtomicU64,
++    primary_accepted: AtomicU64,
++    primary_refused: AtomicU64,
++    primary_bytes_accepted: AtomicU64,
++    primary_errors: [AtomicU64; 10],
++}
++const RTP_IO_ERROR_CODES: [&str; 10] = [
++    "model",
++    "unsupported",
++    "authority",
++    "not-recipient",
++    "cancelled",
++    "deadline",
++    "not-ready",
++    "metadata-busy",
++    "backpressure",
++    "cleanup-unconfirmed",
++];
++fn rtp_io_error(error: &StreamControlError) -> usize {
++    match error {
++        StreamControlError::Model(_) => 0,
++        StreamControlError::Unsupported => 1,
++        StreamControlError::Authority => 2,
++        StreamControlError::NotRecipient => 3,
++        StreamControlError::Cancelled => 4,
++        StreamControlError::Deadline => 5,
++        StreamControlError::NotReady => 6,
++        StreamControlError::MetadataBusy => 7,
++        StreamControlError::Backpressure => 8,
++        StreamControlError::CleanupUnconfirmed => 9,
++    }
++}
++fn io_add(counter: &AtomicU64, amount: u64) {
++    let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
++        Some(old.saturating_add(amount))
++    });
++}
++#[derive(Clone, Debug)]
++pub struct RtpIoObservation {
++    pub medium: &'static str,
++    pub inputs: u64,
++    pub input_completions: u64,
++    pub inputs_in_flight_sample: u64,
++    pub input_ok: u64,
++    pub input_zero_datagrams: u64,
++    pub input_refused_before_primary: u64,
++    pub error_codes: [&'static str; 10],
++    pub input_errors: [u64; 10],
++    pub primary_attempts: u64,
++    pub primary_accepted: u64,
++    pub primary_refused: u64,
++    pub primary_in_flight_sample: u64,
++    pub primary_bytes_accepted: u64,
++    pub primary_errors: [u64; 10],
++    pub saturated: bool,
++}
++impl RtpIoCounters {
++    fn snapshot(&self, medium: &'static str) -> RtpIoObservation {
++        let load = |counter: &AtomicU64| counter.load(Ordering::Relaxed);
++        let inputs = load(&self.inputs);
++        let input_completions = load(&self.input_completions);
++        let primary_attempts = load(&self.primary_attempts);
++        let primary_accepted = load(&self.primary_accepted);
++        let primary_refused = load(&self.primary_refused);
++        let input_errors = self.input_errors.each_ref().map(load);
++        let primary_errors = self.primary_errors.each_ref().map(load);
++        let mut observation = RtpIoObservation {
++            medium,
++            inputs,
++            input_completions,
++            inputs_in_flight_sample: inputs.saturating_sub(input_completions),
++            input_ok: load(&self.input_ok),
++            input_zero_datagrams: load(&self.input_zero_datagrams),
++            input_refused_before_primary: load(&self.input_refused_before_primary),
++            error_codes: RTP_IO_ERROR_CODES,
++            input_errors,
++            primary_attempts,
++            primary_accepted,
++            primary_refused,
++            primary_in_flight_sample: primary_attempts
++                .saturating_sub(primary_accepted.saturating_add(primary_refused)),
++            primary_bytes_accepted: load(&self.primary_bytes_accepted),
++            primary_errors,
++            saturated: false,
++        };
++        observation.saturated = [
++            observation.inputs,
++            observation.input_completions,
++            observation.input_ok,
++            observation.input_zero_datagrams,
++            observation.input_refused_before_primary,
++            observation.primary_attempts,
++            observation.primary_accepted,
++            observation.primary_refused,
++            observation.primary_bytes_accepted,
++        ]
++        .contains(&u64::MAX)
++            || input_errors.contains(&u64::MAX)
++            || primary_errors.contains(&u64::MAX);
++        observation
++    }
++}
++impl StagedRtpCounters {
++    fn io_for(&self, kind: StreamKind) -> &RtpIoCounters {
++        &self.io[match kind {
++            StreamKind::Audio => 0,
++            StreamKind::Video => 1,
++            StreamKind::Data => 2,
++        }]
++    }
++    /// Concurrent independent atomic samples, not a coherent frozen final
++    /// total. In-flight differences saturate: a concurrent outcome load can
++    /// overtake its earlier attempt load. RTCP metadata is excluded.
++    pub fn io_snapshot(&self) -> [RtpIoObservation; 3] {
++        [
++            self.io[0].snapshot("audio"),
++            self.io[1].snapshot("video"),
++            self.io[2].snapshot("other"),
++        ]
++    }
++}
++
+ struct PortIngress {
+     feedback: Option<Arc<video_feedback::Endpoint>>,
+     clock: source_clock::Track,
+@@ -716,7 +850,75 @@
+         self.outer = sequence.wrapping_add(1);
+         Ok(sequence)
+     }
++    #[cfg(test)]
+     fn send(
++        &mut self,
++        frame: MediaFrame,
++        origin: Option<MediaDeliveryOrigin>,
++        audio_stamp: Option<audio_egress_clock::AudioEgressStamp>,
++        binding: &ReadyMediaBinding,
++        pt: u8,
++        transport: &dyn StagedDatagramTransport,
++        submitted: impl FnMut(usize),
++    ) -> ControlResult<usize> {
++        self.send_observed(
++            frame,
++            origin,
++            audio_stamp,
++            binding,
++            pt,
++            transport,
++            None,
++            submitted,
++        )
++    }
++    fn send_observed(
++        &mut self,
++        frame: MediaFrame,
++        origin: Option<MediaDeliveryOrigin>,
++        audio_stamp: Option<audio_egress_clock::AudioEgressStamp>,
++        binding: &ReadyMediaBinding,
++        pt: u8,
++        transport: &dyn StagedDatagramTransport,
++        counters: Option<&StagedRtpCounters>,
++        submitted: impl FnMut(usize),
++    ) -> ControlResult<usize> {
++        let io = counters.map(|counters| counters.io_for(frame.kind));
++        if let Some(io) = io {
++            io_add(&io.inputs, 1);
++        }
++        let mut primary_attempts = 0u64;
++        let result = self.send_counted(
++            frame,
++            origin,
++            audio_stamp,
++            binding,
++            pt,
++            transport,
++            io,
++            &mut primary_attempts,
++            submitted,
++        );
++        if let Some(io) = io {
++            match &result {
++                Ok(count) => {
++                    io_add(&io.input_ok, 1);
++                    if *count == 0 {
++                        io_add(&io.input_zero_datagrams, 1);
++                    }
++                }
++                Err(error) => {
++                    io_add(&io.input_errors[rtp_io_error(error)], 1);
++                    if primary_attempts == 0 {
++                        io_add(&io.input_refused_before_primary, 1);
++                    }
++                }
++            }
++            io_add(&io.input_completions, 1);
++        }
++        result
++    }
++    fn send_counted(
+         &mut self,
+         mut frame: MediaFrame,
+         origin: Option<MediaDeliveryOrigin>,
+@@ -724,6 +926,8 @@
+         binding: &ReadyMediaBinding,
+         pt: u8,
+         transport: &dyn StagedDatagramTransport,
++        io: Option<&RtpIoCounters>,
++        primary_attempts: &mut u64,
+         mut submitted: impl FnMut(usize),
+     ) -> ControlResult<usize> {
+         if frame
+@@ -866,7 +1070,27 @@
+             }
+             let bytes = packet.len();
+             let octets = rtcp::payload_octets(&packet).ok_or(StreamControlError::NotReady)?;
+-            transport.send_datagram(packet)?;
++            *primary_attempts = (*primary_attempts).saturating_add(1);
++            if let Some(io) = io {
++                io_add(&io.primary_attempts, 1);
++            }
++            let transport_result = transport.send_datagram(packet);
++            if let Some(io) = io {
++                match &transport_result {
++                    Ok(()) => {
++                        io_add(&io.primary_accepted, 1);
++                        io_add(
++                            &io.primary_bytes_accepted,
++                            bytes.try_into().unwrap_or(u64::MAX),
++                        );
++                    }
++                    Err(error) => {
++                        io_add(&io.primary_refused, 1);
++                        io_add(&io.primary_errors[rtp_io_error(error)], 1);
++                    }
++                }
++            }
++            transport_result?;
+             // Primary audio admission is one synchronous datagram. Commit here,
+             // before later RTCP metadata can fail; the primary cannot be replayed.
+             if let Some(reservation) = audio {
+@@ -1191,21 +1415,25 @@
+                                 packetizer.as_ref().expect("owned packetizer").outer,
+                                 frame.timestamp_rtp,
+                             );
+-                            let result = packetizer.as_mut().expect("owned packetizer").send(
+-                                frame,
+-                                origin,
+-                                audio_stamp,
+-                                &binding,
+-                                pt,
+-                                transport.as_ref(),
+-                                |bytes| {
+-                                    counters.local_sends.fetch_add(1, Ordering::AcqRel);
+-                                    if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
+-                                        flow.sent(&port);
+-                                        flow.record_rtp(&port, false, bytes);
+-                                    }
+-                                },
+-                            );
++                            let result = packetizer
++                                .as_mut()
++                                .expect("owned packetizer")
++                                .send_observed(
++                                    frame,
++                                    origin,
++                                    audio_stamp,
++                                    &binding,
++                                    pt,
++                                    transport.as_ref(),
++                                    Some(counters.as_ref()),
++                                    |bytes| {
++                                        counters.local_sends.fetch_add(1, Ordering::AcqRel);
++                                        if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
++                                            flow.sent(&port);
++                                            flow.record_rtp(&port, false, bytes);
++                                        }
++                                    },
++                                );
+                             result.map(|_| {
+                                 let packetizer = packetizer.as_ref().expect("owned packetizer");
+                                 packetizer.previous_video.as_ref().map(|source| {
+@@ -1254,7 +1482,11 @@
+                 if let Some(port) = weak.upgrade() {
+                     let _ = port.report_terminal();
+                 }
+-                if incomplete { Err(()) } else { Ok(()) }
++                if incomplete {
++                    Err(())
++                } else {
++                    Ok(())
++                }
+             });
+             *resources.task.lock().unwrap_or_else(|p| p.into_inner()) =
+                 Some(async move { task.await.map_err(|_| ())? }.boxed().shared());
+@@ -1298,14 +1530,12 @@
+         assert!(codec(&audio, Medium::Audio, Some(111)).is_ok());
+         assert!(codec(&audio, Medium::Audio, Some(0)).is_err());
+         assert!(codec(&audio, Medium::Video, Some(111)).is_err());
+-        assert!(
+-            codec(
+-                &MediaFormat::ReliableOrdered(rvoip_core::capability::DataProtocol::Json),
+-                Medium::Data,
+-                None
+-            )
+-            .is_err()
+-        );
++        assert!(codec(
++            &MediaFormat::ReliableOrdered(rvoip_core::capability::DataProtocol::Json),
++            Medium::Data,
++            None
++        )
++        .is_err());
+     }
+     #[test]
+     fn retired_clock_routes_cannot_reach_the_datagram_transport() {
+@@ -1373,11 +1603,9 @@
+             octets: 0,
+             last_report: None,
+         };
+-        assert!(
+-            packetizer
+-                .send(frame, None, None, &binding, 0, &NoSend, |_| {})
+-                .is_err()
+-        );
++        assert!(packetizer
++            .send(frame, None, None, &binding, 0, &NoSend, |_| {})
++            .is_err());
+     }
+     #[test]
+     fn measured_egress_keeps_successful_video_prefix_when_a_later_datagram_fails() {
+@@ -1452,18 +1680,34 @@
+             last_report: None,
+         };
+         let mut observed = Vec::new();
+-        assert!(
+-            packetizer
+-                .send(frame, None, None, &binding, 96, &transport, |bytes| {
+-                    observed.push(bytes)
+-                })
+-                .is_err()
+-        );
++        let counters = StagedRtpCounters::default();
++        assert!(packetizer
++            .send_observed(
++                frame,
++                None,
++                None,
++                &binding,
++                96,
++                &transport,
++                Some(&counters),
++                |bytes| { observed.push(bytes) }
++            )
++            .is_err());
+         assert!(
+             packetizer.outer > 1,
+             "every pre-packetized original fragment, including failed and unsent reservations, remains in the cursor"
+         );
++        let io = &counters.io_snapshot()[1];
++        assert_eq!((io.inputs, io.input_completions, io.input_ok), (1, 1, 0));
++        assert_eq!(
++            (io.primary_attempts, io.primary_accepted, io.primary_refused),
++            (2, 1, 1)
++        );
++        assert_eq!(io.input_refused_before_primary, 0);
++        assert_eq!(io.input_errors[8], 1);
++        assert_eq!(io.primary_errors[8], 1);
+         let sent = transport.0.lock().unwrap();
++        assert_eq!(io.primary_bytes_accepted, sent[0].len() as u64);
+         assert_eq!(
+             sent.len(),
+             1,
+@@ -1671,3 +1915,356 @@
+ 
+ #[cfg(test)]
+ mod audio_egress_clock_tests;
++
++#[cfg(test)]
++mod delivery_counter_tests {
++    use super::*;
++    struct Wire {
++        packets: Mutex<Vec<Bytes>>,
++        refuse: bool,
++        maximum: usize,
++    }
++    impl StagedDatagramTransport for Wire {
++        fn maximum_datagram_bytes(&self) -> Option<usize> {
++            Some(self.maximum)
++        }
++        fn is_closed(&self) -> bool {
++            false
++        }
++        fn send_datagram(&self, packet: Bytes) -> ControlResult<()> {
++            if self.refuse {
++                return Err(StreamControlError::Backpressure);
++            }
++            self.packets.lock().unwrap().push(packet);
++            Ok(())
++        }
++    }
++    fn fixture(video: bool, maximum: usize) -> (ReadyMediaBinding, Packetizer, Wire, MediaFrame) {
++        let binding = ReadyMediaBinding {
++            negotiated: rvoip_core::stream_lifecycle::NegotiatedStream {
++                requested: rvoip_core::stream_lifecycle::DesiredStream {
++                    logical_id: StreamId::new(),
++                    medium: if video { Medium::Video } else { Medium::Audio },
++                    direction: StreamDirection::Both,
++                },
++                format: MediaFormat::Encoded {
++                    name: if video { "vp8" } else { "pcmu" }.into(),
++                    clock_rate_hz: if video { 90000 } else { 8000 },
++                    channels: if video { 0 } else { 1 },
++                    fmtp: None,
++                },
++            },
++            transport_id: StreamId::new(),
++            stream_local_id: 7,
++            generation: 1,
++            connection_generation: 1,
++            source_ready: true,
++            sink_ready: true,
++        };
++        let packetizer = Packetizer {
++            cursor: None,
++            feedback_epoch: None,
++            outer: 0,
++            rtp: 0,
++            ssrc: 1,
++            video: Default::default(),
++            previous_video: None,
++            clock_origin: None,
++            audio_clock: Default::default(),
++            cname: "io-counter-test".into(),
++            packets: 0,
++            octets: 0,
++            last_report: None,
++        };
++        let payload = if video {
++            let mut payload = vec![0u8; 800];
++            payload[0] = 0x10;
++            let mut header = rvoip_rtp_core::RtpHeader::new(96, 1, 3000, 1);
++            header.marker = true;
++            rvoip_rtp_core::RtpPacket::new(header, Bytes::from(payload))
++                .serialize()
++                .unwrap()
++        } else {
++            Bytes::from_static(b"encoded")
++        };
++        let frame = MediaFrame {
++            stream_id: binding.transport_id.clone(),
++            kind: if video {
++                StreamKind::Video
++            } else {
++                StreamKind::Audio
++            },
++            payload,
++            timestamp_rtp: 3000,
++            captured_at: chrono::Utc::now(),
++            payload_type: Some(if video { 96 } else { 0 }),
++            source_clock: None,
++        };
++        (
++            binding,
++            packetizer,
++            Wire {
++                packets: Mutex::new(Vec::new()),
++                refuse: false,
++                maximum,
++            },
++            frame,
++        )
++    }
++    #[test]
++    fn actual_primary_audio_acceptance_excludes_rtcp_metadata_and_video() {
++        use rvoip_core::stream::{MediaClockAnchor, MediaSourceClock};
++        let (binding, mut packetizer, wire, mut frame) = fixture(false, 1200);
++        frame.source_clock = Some(MediaSourceClock {
++            source_id: 42,
++            generation: 1,
++            supported: true,
++            rtp_offset: 0,
++            anchor: Some(MediaClockAnchor {
++                ntp_time: rtcp::now_ntp(),
++                rtp_time: 3000,
++                clock_rate: 8000,
++            }),
++            is_current: Arc::new(|| true),
++        });
++        let counters = StagedRtpCounters::default();
++        let mut submitted = 0;
++        assert_eq!(
++            packetizer
++                .send_observed(
++                    frame,
++                    None,
++                    None,
++                    &binding,
++                    0,
++                    &wire,
++                    Some(&counters),
++                    |_| submitted += 1
++                )
++                .unwrap(),
++            1
++        );
++        let packets = wire.packets.lock().unwrap();
++        assert_eq!(
++            packets
++                .iter()
++                .filter(|packet| !rtcp::is_rtcp(packet))
++                .count(),
++            1
++        );
++        assert!(
++            packets.iter().any(|packet| rtcp::is_rtcp(packet)),
++            "test must actually submit RTCP"
++        );
++        let snapshot = counters.io_snapshot();
++        assert_eq!(
++            (
++                snapshot[0].inputs,
++                snapshot[0].input_ok,
++                snapshot[0].primary_attempts,
++                snapshot[0].primary_accepted
++            ),
++            (1, 1, 1, 1)
++        );
++        assert_eq!(
++            snapshot[0].primary_bytes_accepted,
++            packets
++                .iter()
++                .find(|packet| !rtcp::is_rtcp(packet))
++                .unwrap()
++                .len() as u64
++        );
++        assert_eq!(snapshot[1].inputs, 0);
++        assert_eq!(submitted, 1);
++    }
++    #[test]
++    fn actual_fragmented_video_counts_each_primary_datagram_without_relabeling_inputs() {
++        let (binding, mut packetizer, wire, frame) = fixture(true, 120);
++        let counters = StagedRtpCounters::default();
++        let count = packetizer
++            .send_observed(
++                frame,
++                None,
++                None,
++                &binding,
++                96,
++                &wire,
++                Some(&counters),
++                |_| {},
++            )
++            .unwrap();
++        assert!(count > 1);
++        let snapshot = counters.io_snapshot();
++        let io = &snapshot[1];
++        assert_eq!((io.inputs, io.input_completions, io.input_ok), (1, 1, 1));
++        assert_eq!(
++            (io.primary_attempts, io.primary_accepted, io.primary_refused),
++            (count as u64, count as u64, 0)
++        );
++        assert_eq!(
++            io.primary_bytes_accepted,
++            wire.packets
++                .lock()
++                .unwrap()
++                .iter()
++                .map(|p| p.len() as u64)
++                .sum::<u64>()
++        );
++        assert_eq!(snapshot[0].inputs, 0);
++    }
++    #[test]
++    fn actual_first_primary_refusal_is_distinct_from_packetizer_refusal() {
++        let (binding, mut packetizer, mut wire, frame) = fixture(false, 1200);
++        wire.refuse = true;
++        let counters = StagedRtpCounters::default();
++        assert!(matches!(
++            packetizer.send_observed(
++                frame,
++                None,
++                None,
++                &binding,
++                0,
++                &wire,
++                Some(&counters),
++                |_| panic!("refused primary reported accepted")
++            ),
++            Err(StreamControlError::Backpressure)
++        ));
++        let io = &counters.io_snapshot()[0];
++        assert_eq!(
++            (io.primary_attempts, io.primary_accepted, io.primary_refused),
++            (1, 0, 1)
++        );
++        assert_eq!(io.input_refused_before_primary, 0);
++        assert_eq!(io.primary_errors[8], 1);
++        assert!(wire.packets.lock().unwrap().is_empty());
++    }
++    #[test]
++    fn actual_retired_clock_refusal_never_counts_a_primary_attempt() {
++        let (binding, mut packetizer, wire, mut frame) = fixture(false, 1200);
++        frame.source_clock = Some(rvoip_core::stream::MediaSourceClock {
++            source_id: 1,
++            generation: 1,
++            anchor: None,
++            supported: true,
++            rtp_offset: 0,
++            is_current: Arc::new(|| false),
++        });
++        let counters = StagedRtpCounters::default();
++        assert!(matches!(
++            packetizer.send_observed(
++                frame,
++                None,
++                None,
++                &binding,
++                0,
++                &wire,
++                Some(&counters),
++                |_| panic!("retired clock submitted")
++            ),
++            Err(StreamControlError::NotReady)
++        ));
++        let io = &counters.io_snapshot()[0];
++        assert_eq!(
++            (
++                io.inputs,
++                io.input_completions,
++                io.input_refused_before_primary,
++                io.input_errors[6]
++            ),
++            (1, 1, 1, 1)
++        );
++        assert_eq!(io.primary_attempts, 0);
++        assert!(wire.packets.lock().unwrap().is_empty());
++    }
++    #[test]
++    fn repeated_video_input_with_zero_output_is_not_counted_as_a_writer_attempt() {
++        let (binding, mut packetizer, wire, frame) = fixture(true, 1200);
++        let counters = StagedRtpCounters::default();
++        assert_eq!(
++            packetizer
++                .send_observed(
++                    frame.clone(),
++                    None,
++                    None,
++                    &binding,
++                    96,
++                    &wire,
++                    Some(&counters),
++                    |_| {}
++                )
++                .unwrap(),
++            1
++        );
++        // Exact repeats intentionally reuse the original fragments and write.
++        assert_eq!(
++            packetizer
++                .send_observed(
++                    frame.clone(),
++                    None,
++                    None,
++                    &binding,
++                    96,
++                    &wire,
++                    Some(&counters),
++                    |_| {}
++                )
++                .unwrap(),
++            1
++        );
++        // A conflicting repeat keeps the same sequence and source identity,
++        // but its changed payload is rejected before any primary write.
++        let mut conflicting = frame;
++        let mut payload = conflicting.payload.to_vec();
++        *payload.last_mut().unwrap() ^= 1;
++        conflicting.payload = Bytes::from(payload);
++        assert!(matches!(
++            packetizer.send_observed(
++                conflicting,
++                None,
++                None,
++                &binding,
++                96,
++                &wire,
++                Some(&counters),
++                |_| panic!("conflicting repeat reached writer"),
++            ),
++            Err(StreamControlError::NotReady)
++        ));
++        let io = &counters.io_snapshot()[1];
++        assert_eq!(
++            (
++                io.inputs,
++                io.input_completions,
++                io.primary_attempts,
++                io.primary_accepted,
++                io.input_refused_before_primary,
++                io.input_errors[6],
++                io.input_zero_datagrams,
++            ),
++            (3, 3, 2, 2, 1, 1, 0)
++        );
++        assert_eq!(io.primary_refused, 0);
++        assert_eq!(io.input_ok, 2);
++        assert_eq!(wire.packets.lock().unwrap().len(), 2);
++    }
++    #[test]
++    fn saturating_and_concurrent_counter_samples_never_underflow() {
++        let counters = StagedRtpCounters::default();
++        let io = counters.io_for(StreamKind::Audio);
++        io.inputs.store(u64::MAX, Ordering::Relaxed);
++        io_add(&io.inputs, 1);
++        io.primary_attempts.store(1, Ordering::Relaxed);
++        io.primary_accepted.store(u64::MAX, Ordering::Relaxed);
++        io_add(&io.primary_accepted, 3);
++        io.primary_refused.store(u64::MAX, Ordering::Relaxed);
++        io.input_completions.store(u64::MAX, Ordering::Relaxed);
++        let snapshot = counters.io_snapshot();
++        assert_eq!(snapshot[0].inputs, u64::MAX);
++        assert_eq!(snapshot[0].primary_accepted, u64::MAX);
++        assert_eq!(snapshot[0].primary_in_flight_sample, 0);
++        assert!(snapshot[0].saturated);
++        io.inputs.store(0, Ordering::Relaxed);
++        assert_eq!(counters.io_snapshot()[0].inputs_in_flight_sample, 0);
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1999,6 +1999,23 @@
+             .as_ref()
+             .map(|data| data.queued())
+     }
++    /// Numeric IO metadata for this exact installed connection. The returned
++    /// Arc owns counters only, never a port, transport, authority or task.
++    pub fn media_counters(
++        &self,
++        id: &ConnectionId,
++    ) -> Option<Arc<crate::staged_media::StagedRtpCounters>> {
++        self.routes
++            .get(id)?
++            .installation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()?
++            .backend
++            .rtp
++            .as_ref()
++            .map(|media| media.counters())
++    }
+     pub fn data_counters(
+         &self,
+         id: &ConnectionId,
+@@ -2684,3 +2701,16 @@
+         Ok(())
+     }
+ }
++
++#[cfg(test)]
++mod media_counter_tests {
++    use super::*;
++    #[test]
++    fn absent_connections_have_no_media_counter_handle() {
++        for transport in [Transport::Quic, Transport::WebTransport] {
++            let adapter = CanonicalNativeAdapter::new(transport).unwrap();
++            assert!(adapter.media_counters(&ConnectionId::new()).is_none());
++            assert_eq!(adapter.route_count(), 0);
++        }
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+@@ -590,7 +590,18 @@
+ async fn actual_tls_guarded_mixer_admits_four_distinct_people_reoffers_and_preserves_other_audio() {
+     for kind in ["quic", "wt"] {
+         let s = Scene::new(kind).await;
++        let adapter = s.factory.adapters.values().next().unwrap();
++        let first = adapter.media_counters(&s.live[0].leg.id).unwrap();
++        let second = adapter.media_counters(&s.live[1].leg.id).unwrap();
++        assert!(Arc::ptr_eq(
++            &first,
++            &adapter.media_counters(&s.live[0].leg.id).unwrap()
++        ));
++        assert!(!Arc::ptr_eq(&first, &second));
++        assert!(adapter.media_counters(&ConnectionId::new()).is_none());
+         s.tone(0, 1).await;
++        assert!(second.io_snapshot()[0].primary_accepted > 0);
++        assert_eq!(second.io_snapshot()[1].primary_accepted, 0);
+         let before = binding(&s.live[0].leg, Medium::Audio);
+         let controller = &s.live[0].leg.controller;
+         controller
+@@ -643,6 +654,12 @@
+         );
+         s.tone(1, 2).await;
+         s.stop().await;
++        assert!(adapter.media_counters(&s.live[0].leg.id).is_none());
++        assert!(adapter.media_counters(&s.live[1].leg.id).is_none());
++        // Retained metadata cannot keep original transports/tasks alive: the
++        // existing stop above already required zero routes and peer owners.
++        assert!(second.io_snapshot()[0].primary_accepted > 0);
++        assert_eq!(first.io_snapshot()[1].primary_accepted, 0);
+     }
+ }
+ #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

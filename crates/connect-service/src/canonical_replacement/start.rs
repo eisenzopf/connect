@@ -202,6 +202,8 @@ impl Runtime {
             self.media.register_replacement_target(&policy).map_err(|_|Error::forbidden())?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="configure","Replacement resource start");
             let controller=native.configure_negotiated_media_with_held(&id,&a,ConversationId::from_string(intent.conversation_id.clone()),scope,self.media.clone(),policy.profile.clone(),policy.data_observer.clone().map(|observer| observer as Arc<dyn rvoip_uctp::v2::native_negotiation::NativeDataObserver>),8,invocation.as_ref()).map_err(|_|Error::forbidden())?;
+            // Capture numeric metadata once, never a hot-path route lookup.
+            policy.receive_diagnostics.install_io(native.media_counters(&id));
             let activation=native.native_media_activation(&id,&a).map_err(|_|Error::forbidden())?;
             policy.activation.set(Arc::new(super::media::Activation::Native(activation.clone()))).map_err(|_|Error::forbidden())?;
             // The exact current Store read and peer invocation retain authority

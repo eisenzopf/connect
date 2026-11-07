@@ -112,3 +112,90 @@ fn compound_slot_claim_releases_on_derive_admission_finish_and_runtime_cancellat
         .collect::<Vec<_>>();
     assert_eq!(guards.len(), 4);
 }
+
+#[test]
+fn actual_compound_projection_reports_capture_file_admission_and_reseal_without_extending_custody()
+{
+    crate::packet_observation::with_claim_timing_for_test(|| {
+        let f = Fixture::new();
+        let (value, grant) = acquire_with(
+            &f.store,
+            |c, _| {
+                let s = f.store.packet_observer_claim_diagnostics();
+                assert_eq!(s["claim_intervals"][1]["in_flight_sample"], 1);
+                assert_eq!(s["sql_locked_intervals"][1]["in_flight_sample"], 1);
+                f.derive(c)
+            },
+            |_| {
+                let s = f.store.packet_observer_claim_diagnostics();
+                assert_eq!(s["claim_intervals"][3]["in_flight_sample"], 1);
+                assert_eq!(s["sql_locked_intervals"][3]["in_flight_sample"], 1);
+                Ok(())
+            },
+            |scopes| {
+                let s = f.store.packet_observer_claim_diagnostics();
+                assert_eq!(s["claim_intervals"][2]["in_flight_sample"], 1);
+                assert_eq!(s["sql_locked_intervals"][1]["in_flight_sample"], 0);
+                f.store.try_acquire_authority(scopes)
+            },
+        )
+        .unwrap();
+        assert_eq!(value, 1);
+        let s = f.store.packet_observer_claim_diagnostics();
+        assert_eq!(s["occupied_slots_sample"], 0);
+        assert_eq!(s["projection_returned_ok"], 1);
+        assert_eq!(s["projection_returned_error"], 0);
+        all_four_sql_slots_available(&f.store);
+        drop(grant);
+        drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());
+    });
+}
+#[test]
+fn actual_compound_projection_preserves_each_original_failure_and_reports_its_last_claim_phase() {
+    crate::packet_observation::with_claim_timing_for_test(|| {
+        for stage in ["derive", "admission", "finish"] {
+            let f = Fixture::new();
+            let result = acquire_with(
+                &f.store,
+                |c, _| {
+                    if stage == "derive" {
+                        Err(Error::new("controlled", stage))
+                    } else {
+                        f.derive(c)
+                    }
+                },
+                |_| {
+                    if stage == "finish" {
+                        Err(Error::new("controlled", stage))
+                    } else {
+                        Ok(())
+                    }
+                },
+                |scopes| {
+                    if stage == "admission" {
+                        Err(Error::new("controlled", stage))
+                    } else {
+                        f.store.try_acquire_authority(scopes)
+                    }
+                },
+            );
+            let error = result.err().unwrap();
+            assert_eq!(error.code, "controlled");
+            assert_eq!(error.message, stage);
+            let s = f.store.packet_observer_claim_diagnostics();
+            assert_eq!(s["projection_returned_ok"], 0);
+            assert_eq!(s["projection_returned_error"], 1);
+            assert_eq!(s["occupied_slots_sample"], 0);
+            assert_eq!(
+                s["claim_intervals"][2]["entered"],
+                u64::from(stage != "derive")
+            );
+            assert_eq!(
+                s["claim_intervals"][3]["entered"],
+                u64::from(stage == "finish")
+            );
+            all_four_sql_slots_available(&f.store);
+            drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());
+        }
+    });
+}

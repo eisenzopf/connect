@@ -1,0 +1,14 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/media_control.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -131,8 +131,9 @@
+         }
+         let intent_matches = match intent {
+             // This fixture captures only connection.update commands; it owns
+-            // no authenticated replacement-video preparation invocation.
+-            MediaControlIntent::PrepareReplacementVideo { .. } => false,
++            // no authenticated replacement preparation invocation.
++            MediaControlIntent::PrepareReplacementAudio { .. }
++            | MediaControlIntent::PrepareReplacementVideo { .. } => false,
+             MediaControlIntent::Initialize => {
+                 held.action == ConnectionUpdateAction::CodecRenegotiate
+             }

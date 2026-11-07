@@ -1361,6 +1361,7 @@ export class BrowserMediaPeer {
         options.signal?.addEventListener("abort", abort, { once: true });
         if (options.signal?.aborted)
             abort();
+        let awaitingNativeReadiness = false;
         try {
             const first = await Promise.race([
                 parameters.then((frame) => ({ frame })),
@@ -1421,6 +1422,7 @@ export class BrowserMediaPeer {
                     // IO can satisfy the server's private readiness phase.
                     this.install(state, plan);
                     replacement.prepared(new BrowserMediaConnection(this, state.scope.connid));
+                    awaitingNativeReadiness = true;
                     completed = await state.nativeReadiness.finish(this.client, until, () => {
                         this.requireState(state);
                         const audio = state.routes.get(replacement.audio), video = replacement.video
@@ -1446,6 +1448,7 @@ export class BrowserMediaPeer {
                         };
                         return current;
                     }, options.signal);
+                    awaitingNativeReadiness = false;
                     const receipt = replacementReceipt(replacement.root, completed);
                     if (state.connectionGeneration !== 0 &&
                         state.connectionGeneration !== receipt.generation)
@@ -1526,7 +1529,18 @@ export class BrowserMediaPeer {
                 state.selectedKinds.add(kind);
         }
         catch (error) {
-            if (!state.nativeReadiness?.mayHaveCommitted &&
+            // Signed parameter negotiation already joined. Before any ready
+            // continuation attempt, a local decode wait grants no activation.
+            // The outer owner retires this exact target without destroying the
+            // shared control peer or its unrelated live Connections.
+            const localUnsubmittedReadiness = replacement !== undefined &&
+                awaitingNativeReadiness &&
+                state.nativeReadiness !== undefined &&
+                !state.nativeReadiness.readinessSubmissionAttempted &&
+                error instanceof ConnectError &&
+                (error.code === "timeout" || error.code === "cancelled");
+            if (!localUnsubmittedReadiness &&
+                !state.nativeReadiness?.mayHaveCommitted &&
                 (!(error instanceof ConnectError) ||
                     (!["refused", "historical-operation"].includes(error.code) &&
                         !(error.code === "closed" &&
