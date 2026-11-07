@@ -72,6 +72,16 @@ pub(super) fn current_prepared(
     c: &Connection,
     receipt: &NativeReplacementPrepared,
 ) -> Result<serde_json::Value> {
+    current_prepared_with_packet_context(store, c, receipt, None)
+}
+// Some is supplied only by this module's scene capture before its original
+// SQL observer is released. All durable custody and plan comparisons remain.
+fn current_prepared_with_packet_context(
+    store: &Store,
+    c: &Connection,
+    receipt: &NativeReplacementPrepared,
+    captured: Option<&crate::NativeReplacementContext>,
+) -> Result<serde_json::Value> {
     local_owner(store, &receipt.owner, &receipt.runtime)?;
     receipt.selection.origin.require(store, c)?;
     let saved: Option<(String,i64)> = c.query_row("SELECT n.plan_json,n.expires_at FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='prepare' JOIN operation_effects e ON e.id=s.effect_id AND e.state='confirmed' JOIN operations o ON o.record_id=n.operation_record_id AND o.state='preparing' AND o.cancel_requested=0 WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND s.observation_json=?7",params![receipt.record,receipt.runtime,receipt.reservation,receipt.hash,receipt.attempt,receipt.effect,receipt.observation],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?;
@@ -102,7 +112,13 @@ pub(super) fn current_prepared(
             .map_err(|_| invalid())?,
     };
     let runtime = saved["candidate_runtime_id"].as_str().ok_or_else(invalid)?;
-    if plan(store, c, &receipt.selection, &request, runtime)? != saved {
+    let current = match captured {
+        Some(context) => {
+            plan_with_packet_context(store, c, &receipt.selection, &request, runtime, context)?
+        }
+        None => plan(store, c, &receipt.selection, &request, runtime)?,
+    };
+    if current != saved {
         return Err(conflict());
     }
     Ok(saved)

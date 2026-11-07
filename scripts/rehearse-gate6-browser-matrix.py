@@ -29,6 +29,7 @@ from lib.transport_fixture import materialize, publish, toml_bytes
 from lib.transport_matrix import digest
 from lib.matrix_browser_capture import BrowserCapture
 from lib.matrix_idle import MatrixIdle
+from lib.matrix_plateau import POLICY as PLATEAU_POLICY, evaluate as evaluate_plateau
 from lib.matrix_authority import MatrixAuthority
 from lib.mac_linux_fixture import MacLinuxFixture, MacLinuxIdle
 
@@ -76,6 +77,7 @@ def port(kind):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stage", choices=("admission", "programme", "quality"), required=True)
+    parser.add_argument("--resource-cycles", type=int, choices=(1, 3), default=1)
     parser.add_argument("--transport", choices=("chrome-webtransport", "chrome-wss-webrtc", "firefox-wss-webrtc"), required=True)
     parser.add_argument("--signing", choices=("EdDSA", "ES256"), required=True)
     parser.add_argument("--image", help="Exact already installed local ARM browser image ID")
@@ -84,6 +86,8 @@ def main():
     parser.add_argument("--chrome", type=Path)
     parser.add_argument("--firefox", type=Path)
     args = parser.parse_args()
+    if args.resource_cycles == 3 and args.stage != "quality":
+        parser.error("Three resource cycles require the full quality workload")
     if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
         parser.error("Use the owner's local ARM resources")
     linux = platform.system() == "Linux"
@@ -131,6 +135,11 @@ def main():
     log_handles = []
     capture = None
     idle = None
+    idle_observers, idle_results = [], []
+    cycle_count = args.resource_cycles
+    cycle_workloads = [dict(index=index, workload_id="browser-cycle-" + uuid.uuid4().hex)
+                      for index in range(1, cycle_count + 1)]
+    browser_timeout = 240 * cycle_count
     network_name = None
     remote = None
     server_ip = client_ip = "127.0.0.1"
@@ -320,8 +329,14 @@ def main():
         phase = "actual-browser-" + args.stage
         browser_output = private / "browser"
         browser_output.mkdir()
-        authority = MatrixAuthority(browser_output, actors_root, records, instance,
-            initial / "operator.application.toml", cli, args.signing)
+        authorities = []
+        for cycle in cycle_workloads:
+            folder = browser_output if cycle_count == 1 else browser_output / "cycles" / ("cycle-" + str(cycle["index"]))
+            folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+            authority_actors = actors_root if cycle_count == 1 else actors_root / ("cycle-authority-" + str(cycle["index"]))
+            authority_actors.mkdir(mode=0o700, exist_ok=True)
+            authorities.append(MatrixAuthority(folder, authority_actors, records, instance,
+                initial / "operator.application.toml", cli, args.signing))
         # Docker cannot create a nested destination beneath the read-only
         # workspace mount. This empty ignored host mountpoint supplies the
         # short private alias required by the Unix audio socket path limit.
@@ -334,7 +349,7 @@ def main():
             for name in ("browserBinary", "puppeteerModule"):
                 client_runtime[name] = client_runtime[name].replace(str(ROOT), "/workspace")
         publish(browser_input, (json.dumps(dict(format="connect/browser-matrix-admission-input/1", sourceRevision=revision,
-            transport=args.transport, signingAlgorithm=args.signing, origin=origin, stage=args.stage,
+            transport=args.transport, signingAlgorithm=args.signing, origin=origin, stage=args.stage, resourceCycles=cycle_count, cycleWorkloads=cycle_workloads,
             fixtureAddresses=sorted({server_ip, client_ip}),
             endpoints={"webtransport": f"https://{server_ip}:{native}/connect", "wss-webrtc": f"wss://{server_ip}:{wss}/connect"},
             actors=exported, output=str(browser_output),
@@ -380,19 +395,22 @@ def main():
             except (OSError, RuntimeError):
                 report["packet_capture"] = capture.finish()
                 capture = None
-        browser_owner = (remote.launch(command_args, browser_output, private / "guest-supervisor.log", timeout=240, container=container,
+        browser_owner = (remote.launch(command_args, browser_output, private / "guest-supervisor.log", timeout=browser_timeout, resource_cycles=cycle_count, container=container,
                             capture=dict(kind="browser", interface=remote.topology["guest"]["route"]["dev"], server_ip=server_ip, client_ip=client_ip,
                                          native=native, wss=wss, media_start=media_start, transport=args.transport) if args.stage == "quality" else None)
                          if remote is not None else subprocess.Popen(command_args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
                                          stdout=handle, stderr=subprocess.STDOUT, start_new_session=True))
         report["browser_owner_started"] = True
-        browser_cutoff = time.monotonic() + 240
+        browser_cutoff = time.monotonic() + browser_timeout
         while browser_owner.poll() is None:
             if remote is not None:
                 remote.poll()
-            authority.poll()
+            for authority in authorities:
+                authority.poll()
             if args.stage == "quality":
-                if idle is None and (browser_output / "resources-baseline.json").exists() and (remote is None or (remote.latest.get("state") or {}).get("resources")):
+                next_cycle = len(idle_results) + 1
+                idle_folder = browser_output if cycle_count == 1 else browser_output / "cycles" / ("cycle-" + str(next_cycle))
+                if idle is None and next_cycle <= cycle_count and (idle_folder / "resources-baseline.json").exists() and (remote is None or (remote.latest.get("state") or {}).get("resources")):
                     if linux:
                         cid = cidfile.read_text().strip()
                         assert re.fullmatch("[0-9a-f]{64}", cid)
@@ -402,13 +420,23 @@ def main():
                     else:
                         browser_pid = browser_owner.pid
                     credential = tomllib.loads((initial / "operator.application.toml").read_text())["credential"]
-                    idle = (MacLinuxIdle(browser_output, server.pid, remote, f"http://127.0.0.1:{http}/v1/operations", credential)
-                            if remote is not None else MatrixIdle(browser_output, server.pid, browser_pid,
-                        f"http://127.0.0.1:{http}/v1/operations", credential))
+                    original_baseline = idle_results[0]["baseline"] if idle_results else None
+                    shared_sampler = idle_observers[0].sampler if idle_observers else None
+                    idle = (MacLinuxIdle(idle_folder, server.pid, remote, f"http://127.0.0.1:{http}/v1/operations", credential,
+                                cycle_mode=cycle_count == 3, original_baseline=original_baseline,
+                                sampler=shared_sampler, resource_cycles=cycle_count)
+                            if remote is not None else MatrixIdle(idle_folder, server.pid, browser_pid,
+                                f"http://127.0.0.1:{http}/v1/operations", credential,
+                                cycle_mode=cycle_count == 3, original_baseline=original_baseline,
+                                sampler=shared_sampler, resource_cycles=cycle_count))
+                    idle_observers.append(idle)
                 if idle is not None:
                     idle.poll()
+                    if idle.done:
+                        idle_results.append(idle.finish())
+                        idle = None
             if time.monotonic() >= browser_cutoff:
-                raise subprocess.TimeoutExpired(command_args, 240)
+                raise subprocess.TimeoutExpired(command_args, browser_timeout)
             time.sleep(.05)
         report["browser_exit_code"] = browser_owner.wait(timeout=1)
         report["browser_owner_joined"] = True
@@ -462,12 +490,74 @@ def main():
         if network_name is not None:
             cleanup = subprocess.run(["docker", "network", "rm", network_name], capture_output=True, timeout=15)
             report["client_network_removed"] = cleanup.returncode == 0
-        if idle is not None:
-            report["idle_resources"] = idle.finish()
-            report["passed"] &= report["idle_resources"]["passed"]
+        if args.stage == "quality" and cycle_count == 3:
+            if idle is not None:
+                idle_results.append(idle.finish())
+            cycles = []
+            report["cycle_observations"] = []
+            archives = report.get("browser_observation", {}).get("resource_cycles", [])
+            for cycle, observed_idle, archive in zip(cycle_workloads, idle_results, archives):
+                folder = browser_output / "cycles" / ("cycle-" + str(cycle["index"]))
+                try:
+                    if archive["index"] != cycle["index"] or archive["workload_id"] != cycle["workload_id"]:
+                        raise ValueError("Original cycle archive binding changed")
+                    for name, key in (("cycle-observation.json", "observation_sha256"),
+                                      ("workload.json", "workload_evidence_sha256"),
+                                      ("original-joins.json", "join_evidence_sha256")):
+                        if digest(folder / name) != archive[key]:
+                            raise ValueError("Original cycle evidence digest changed")
+                    observed = json.loads((folder / "cycle-observation.json").read_text())
+                    original_joins = json.loads((folder / "original-joins.json").read_text())
+                    if observed.get("cycle") != cycle or original_joins.get("cycle") != cycle:
+                        raise ValueError("Original logical cycle identity changed")
+                    report["cycle_observations"].append(observed)
+                    retirement = observed.get("retirement", {})
+                    local = observed.get("idle_resources", {})
+                    session_joined = (retirement.get("passed") is True
+                        and retirement.get("originalEndsCompleted") == 6
+                        and retirement.get("originalSessionsEnded") == 2
+                        and retirement.get("originalClientsClosed") == 7
+                        and 0 <= retirement.get("allLocalOwnersElapsedMs", -1) <= 5000
+                        and len(retirement.get("originalConnectionEnds", [])) == 6
+                        and len(retirement.get("originalSessionEnds", [])) == 2
+                        and len(retirement.get("originalClientCloses", [])) == 7
+                        and all(row.get("status") == "fulfilled" for row in retirement["originalConnectionEnds"] + retirement["originalSessionEnds"])
+                        and all(row.get("status") == "fulfilled" and row.get("deadline_met") is True for row in retirement["originalClientCloses"]))
+                    helper_joined = (local.get("localOwnersJoined") is True
+                        and local.get("renderer", {}).get("joined") is True
+                        and local.get("diagnostic_hooks", {}).get("joined") is True
+                        and local.get("fixture_reference_retirement", {}).get("released") is True
+                        and observed.get("diagnostic_cycle_retirement", {}).get("released") is True)
+                    join_evidence = dict(cycle=cycle, persistent_owners=observed_idle.get("persistent_owners"),
+                                         original_join_receipt=original_joins)
+                    join_path = folder / "cycle-join-evidence.json"
+                    publish(join_path, (json.dumps(join_evidence, sort_keys=True) + "\n").encode())
+                    cycles.append(dict(**cycle, workload_started=observed.get("workload_started") is True,
+                        workload_complete=observed.get("workload_complete") is True
+                            and observed.get("programme", {}).get("source_programme", {}).get("durationMs") == 62000
+                            and 62000 <= observed.get("programme", {}).get("finished_ms", -1) < 67000,
+                        workload_evidence_sha256=archive["workload_evidence_sha256"],
+                        persistent_owners=observed_idle.get("persistent_owners"), idle_resources=observed_idle,
+                        joins=dict(session_owners_joined=session_joined, helper_work_joined=helper_joined,
+                                   forced=False, evidence_sha256=digest(join_path))))
+                except (OSError, ValueError, KeyError, TypeError) as error:
+                    report.setdefault("cycle_evidence_failures", []).append(dict(index=cycle["index"], name=type(error).__name__))
+            original = idle_results[0] if idle_results else {}
+            plateau = dict(format="connect/matrix-plateau-observation/1", policy=PLATEAU_POLICY,
+                baseline=original.get("baseline"), persistent_owners=original.get("persistent_owners"), cycles=cycles,
+                original_cycle_ids=cycle_workloads)
+            plateau["verdict"] = evaluate_plateau(plateau)
+            plateau["passed"] = plateau["verdict"]["passed"]
+            report["idle_resources"] = plateau
+            if "browser_output" in locals():
+                publish(browser_output / "resource-plateau.json", (json.dumps(plateau, indent=2) + "\n").encode())
+            report["passed"] &= plateau["passed"]
+            report["passed"] &= len(report["cycle_observations"]) == 3 and all(c.get("passed") is True for c in report["cycle_observations"])
         elif args.stage == "quality":
-            report["idle_resources"] = dict(passed=False, failure="idle-observer-not-started")
-            report["passed"] = False
+            if idle is not None:
+                idle_results.append(idle.finish())
+            report["idle_resources"] = idle_results[0] if idle_results else dict(passed=False, failure="idle-observer-not-started")
+            report["passed"] &= report["idle_resources"]["passed"]
         if args.stage == "quality":
             report["passed"] &= report.get("packet_capture", {}).get("observed") is True
         try:

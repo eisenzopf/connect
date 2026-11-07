@@ -264,18 +264,19 @@ impl Store {
             return Err(invalid());
         }
         let mut c = self.try_connection()?;
+        // An empty read must not compete for SQLite's writer. This is only a
+        // preflight: every nonempty scan reselects current work in its write
+        // transaction, and later periodic scans see newly queued batches.
+        if reconciliation_ids(&c, 1)?.is_empty() {
+            if !owner.current() {
+                return Err(Error::forbidden());
+            }
+            return Ok(0);
+        }
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let ids = {
-            let mut q=tx.prepare("SELECT b.operation_record_id FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id WHERE o.state IN ('accepted','preparing','unknown') ORDER BY CASE WHEN o.state='unknown' THEN 1 ELSE 0 END,o.rowid LIMIT ?1").map_err(|_|Error::storage())?;
-            let rows = q
-                .query_map([limit as u64], |r| r.get::<_, String>(0))
-                .map_err(|_| Error::storage())?
-                .collect::<rusqlite::Result<Vec<_>>>()
-                .map_err(|_| Error::storage())?;
-            rows
-        };
+        let ids = reconciliation_ids(&tx, limit)?;
         for id in &ids {
             tx.execute("UPDATE session_codec_targets SET state=CASE WHEN EXISTS(SELECT 1 FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id JOIN session_control s ON s.session_id=o.session_id WHERE b.operation_record_id=?1 AND s.codec_policy_operation_id!=b.policy_operation_id) THEN 'superseded' WHEN (SELECT cancel_requested FROM operations WHERE record_id=?1)=1 THEN 'cancelled' ELSE 'unavailable' END WHERE batch_record_id=?1 AND state='queued' AND native_operation_record_id IS NULL AND (EXISTS(SELECT 1 FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id JOIN session_control s ON s.session_id=o.session_id WHERE b.operation_record_id=?1 AND (b.runtime_epoch!=?2 OR b.expires_at<=?3 OR o.cancel_requested=1 OR s.codec_policy_operation_id!=b.policy_operation_id)) OR EXISTS(SELECT 1 FROM connections c JOIN operations o ON o.record_id=?1 JOIN sessions s ON s.id=o.session_id WHERE c.id=session_codec_targets.connection_id AND (c.generation!=session_codec_targets.generation OR c.state NOT IN ('ready','active') OR s.state IN ('ended','cancelled','rejected','failed'))))",params![id,self.runtime_epoch(),crate::now()]).map_err(|_|Error::storage())?;
             tx.execute("UPDATE session_codec_targets SET state=CASE WHEN (SELECT state FROM operations WHERE record_id=native_operation_record_id)='completed' THEN CASE WHEN COALESCE((SELECT json_extract(result_json,'$.resources_changed') FROM operations WHERE record_id=native_operation_record_id),1)=1 THEN 'updated' ELSE 'unchanged' END WHEN (SELECT state FROM operations WHERE record_id=native_operation_record_id) IN ('failed','cancelled') THEN CASE WHEN (SELECT cancel_requested FROM operations WHERE record_id=?1)=1 THEN 'cancelled' ELSE 'refused' END ELSE 'unknown' END WHERE batch_record_id=?1 AND state IN ('preparing','unknown') AND native_operation_record_id IS NOT NULL AND (SELECT state FROM operations WHERE record_id=native_operation_record_id) IN ('completed','failed','cancelled','unknown','interrupted')",[id]).map_err(|_|Error::storage())?;
@@ -288,6 +289,16 @@ impl Store {
         Ok(ids.len())
     }
 }
+fn reconciliation_ids(c: &Connection, limit: usize) -> Result<Vec<String>> {
+    let mut q=c.prepare("SELECT b.operation_record_id FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id WHERE o.state IN ('accepted','preparing','unknown') ORDER BY CASE WHEN o.state='unknown' THEN 1 ELSE 0 END,o.rowid LIMIT ?1").map_err(|_|Error::storage())?;
+    let ids = q
+        .query_map([limit as u64], |r| r.get::<_, String>(0))
+        .map_err(|_| Error::storage())?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|_| Error::storage())?;
+    Ok(ids)
+}
+
 pub(crate) fn settle(c: &Connection, record: &str, store: &Store) -> Result<()> {
     let value = outcome(c, record)?;
     let counts = &value.counts;

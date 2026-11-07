@@ -1,0 +1,704 @@
+{
+  "format": "connect/post-v199-reviewed-batch-integrated/1",
+  "source_revision": "7195b4b1e496efc5164d62de63ea47d1aabdb13f",
+  "implementation_status": "Complete batch passed focused runtime verification. Full32-cell matrix verification is pending.",
+  "code_files": [
+    {
+      "path": "crates/connect-service/src/canonical_replacement/media.rs",
+      "before_sha256": "6f1bd7909024ed9cc7f94d98bebee415d03268700dad81a479f9d72d7b4ac642",
+      "after_sha256": "ace61e91bd0792dadbdaf1a4af9596d7b8c08396a414f5929b50babf7936b627"
+    },
+    {
+      "path": "crates/connect-store/src/authority_fences.rs",
+      "before_sha256": "6da13af7897a0fc133a99c97a7602d7b87ce476fed353013526d8c30146b82e2",
+      "after_sha256": "d704f230467108c0856a81cdaa39945d2a2488c4e82895dec782b6a40fab99ff"
+    },
+    {
+      "path": "crates/connect-store/src/authority_fences/tests.rs",
+      "before_sha256": "a68d52efa59f1593aef129f08310ada25aa402e84d63c31f329f75814b2e232d",
+      "after_sha256": "d7d9a314996bd210f5cf253a172cfc4746acdd9f7d4a5af18b18f7a81d8e3a49"
+    },
+    {
+      "path": "crates/connect-store/src/authority_fences/tests/resource_preparation.rs",
+      "before_sha256": "be1c2477506a1cd001287e5c2e5fe30fdd0f40dbae0294672a591e99b8025e54",
+      "after_sha256": "3ef5c9e879c06b272fbe8a47626c0993c9fb5ee60d40ecd5da1a9e11aaec1a16"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/native_stream_authority.rs",
+      "before_sha256": "965ad3967b8adcea2cfaa7f3accab8ef6443c44d032d29c4968d22f3ba977180",
+      "after_sha256": "14cbd9b8cca76c7f900a014879ef3ac7463876351a2713e69d43a142971039c4"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/native_stream_authority/session_codecs/recovery.rs",
+      "before_sha256": "33130dc0c80ec01ae3eb5f1acfc035fbd188777b26f5299312f9142c61ac6337",
+      "after_sha256": "70ab5c090294a0ba66fdde34f4ed7e22c66845070c555da7b90672ed29627fb7"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary.rs",
+      "before_sha256": "2c3fdef8a8101b5957589cf99de50b04c9f5536f5a2a6ca2b99528cf993b9321",
+      "after_sha256": "0c8ec1bd7932aed5fff5e22cbb4cdfc12bffd711e0366adbf88242c25bcff533"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary/custody.rs",
+      "before_sha256": "2712bc83f1761906647946b68308a18dbe033f5234b22a7c5ac72fbf0248dbe6",
+      "after_sha256": "a0e5e38837ca0b091856b7af6aeb5b29879a6cd431393cb6e8c3f2292fe53dde"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary/custody/packet_subset.rs",
+      "before_sha256": null,
+      "after_sha256": "6db6df0ea81f2c3f19ded74870cb708bd699d9707f8d79087605157a47d15821"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_replacements.rs",
+      "before_sha256": "78466265b696a951e14e1fff9f827da5c362c03c7e51bb003c54aa5322645841",
+      "after_sha256": "0f482796b3e4a7d66bb51fb4a6cec32d662d4266684db3144418a8d2d049cc25"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_replacements/allocation.rs",
+      "before_sha256": "7ea7d6222d0d07ef2117f5ebd67fa6630d38a49d260aaca96f8cd8aecafd5e10",
+      "after_sha256": "ab45d520603ae4bc1fd02f9e537605e4e81cefbe9c1245146b699bc33fcfe328"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_replacements/allocation/start.rs",
+      "before_sha256": "20e43b885ad8954e1d3d4b2e26c97f9d1f99892cffa454ce029807b86baadc08",
+      "after_sha256": "fc2fb3c50f0679c8df148e5136f1b7b80cb380516fef8a32e3a5fb73fbad3b16"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_streams.rs",
+      "before_sha256": "5fb62067d04ab1cd112c5b4e133b6df8060ef400fbe80a9428b31f7b87d018fd",
+      "after_sha256": "5bb54eb171fe5d3e39e02bb220acdea826d7bc9d3ab6e4f82ba85a6ebdda3a0b"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/session_codecs.rs",
+      "before_sha256": "4565da2983a746cbaad4511b1b89a496848e2615e621335b3a17c9ed75a737a1",
+      "after_sha256": "37254ba1b747c3c05ea1241aaf6052fb074ebd0c702f6f0ceac496626f29b1b7"
+    },
+    {
+      "path": "scripts/check-transport-conversation.mjs",
+      "before_sha256": "e26baff5e675b8e6b8cef408e6e944976bc13ed57d477f41c24aa50b6f1bb714",
+      "after_sha256": "cef3b0294214e4a16cc1dbcc1d3b3b1ff0e8485f3b44ef2dd373d5b440d1d7cb"
+    },
+    {
+      "path": "scripts/check-transport-fixtures.py",
+      "before_sha256": "e8572879bce850f6cca28b8f8b1c891a9f49325a7bda032e6a01097401136e4e",
+      "after_sha256": "77fcc92f281d58bea3630f68ddbb758d70aed20e132aef998b9f307c79b4c1cb"
+    },
+    {
+      "path": "scripts/lib/browser_matrix_admission.mjs",
+      "before_sha256": "6cad90bbbfe0fee1926f5941a74ae30e475fa5ed8d0169ad68a5bdb54403e2eb",
+      "after_sha256": "180893899d38f4045e304589ae9b1230b77b45c9926e83f3790575a79d3ed9fe"
+    },
+    {
+      "path": "scripts/lib/mac_linux_fixture.py",
+      "before_sha256": "dd5889faf50e5597adbb4c8c6c780ba0dfc8a24bc191e1064da714276f0296dd",
+      "after_sha256": "ac3e83ff47331ab81b8ec3a8f22aa1cdb67e9beb1bfce00b03083f95cfbd25c4"
+    },
+    {
+      "path": "scripts/lib/mac_linux_guest.py",
+      "before_sha256": "2e248ea86949366e4678715833de4996265ec078df87d09decfe87db0b51243f",
+      "after_sha256": "f5367d044fa6dbc7d3ed47d192f5f230c1173f290b9471d5aac061096a10d480"
+    },
+    {
+      "path": "scripts/lib/matrix_authority_bridge.mjs",
+      "before_sha256": "643cc560d2319e04ae1bad11935723a57c782a5131664aa471ea4bd15508f2fd",
+      "after_sha256": "b5aee95dae6e23688d18b42f42acb1f6c39d1ab8299ce65cede5aacb4232e8de"
+    },
+    {
+      "path": "scripts/lib/matrix_idle.py",
+      "before_sha256": "7a67921c4ae00fe52b854d04253f3bcb02ec8694ad584080c8756d7e19bc0bba",
+      "after_sha256": "2559c3d13cb47d04ced628b1c2c0142d35bf3f2a082c11f67fe1d506164f6155"
+    },
+    {
+      "path": "scripts/lib/matrix_plateau.py",
+      "before_sha256": null,
+      "after_sha256": "e5d7d8f398b4e00a36ee9f4e6dfa59d36a4b65a2decf0362804dad13f8420f1d"
+    },
+    {
+      "path": "scripts/lib/matrix_resource_bridge.mjs",
+      "before_sha256": "31da3b615378630a4dcd98271bc8b86e11083dcc955f2a0aaf7a15124cd6eb9d",
+      "after_sha256": "83761ef3fbe097d5706340674cd1c9de032263c8201201459f64a96efd821957"
+    },
+    {
+      "path": "scripts/lib/matrix_unavailable_transports.mjs",
+      "before_sha256": "d9296f504de8ac86ad26536032c7e7938e8ba45b43f7fe092264aa62b738c062",
+      "after_sha256": "c0668d752393cedbeadbe3c116a62fcc20a1e82f0ebb998d4287d2df26396e6a"
+    },
+    {
+      "path": "scripts/lib/native_matrix_idle.py",
+      "before_sha256": "3763a6a2e7a2e4a926d2c8fab6b0b1a052b406b023c63513e570cb591abfab90",
+      "after_sha256": "8d2403dfc699f891550d7015246f1f0e43ff6f1eebc4cde922fd33e2a0f34cfa"
+    },
+    {
+      "path": "scripts/lib/native_matrix_lifecycle.mjs",
+      "before_sha256": "d95dfdc76162c01b42199918c8357f0b4f15a838599cc3bd53cb77fe997f8c93",
+      "after_sha256": "0549cff7171f6a664d99b2c3bcb1b8be7ef9dd80ab01a346abe353bb3d21c7b7"
+    },
+    {
+      "path": "scripts/lib/native_programme_controller.mjs",
+      "before_sha256": "67ce79edcf61d19ed9f99b511b68e3d183ae80989746255ad8606dd235099276",
+      "after_sha256": "dc657820eb950ead2d994f998cf5471c000d05cc2f91c4817dd5ce7a72e48a73"
+    },
+    {
+      "path": "scripts/lib/operational_process_resources.py",
+      "before_sha256": "8870e070d4921f8e97917ae0b06ca950b43fbe575ebea99bcc47125cf1f7c9a8",
+      "after_sha256": "bb62ba75875609e18153e2f601081fd868a277e978d555109ddda4615d18b1bb"
+    },
+    {
+      "path": "scripts/lib/transport_capture.py",
+      "before_sha256": "17be9053dcb7730c8cb61fe9aa69b18822f15a5c8946a4ec2360c5d575203de4",
+      "after_sha256": "5c6c3b7404a82713ddb8a97c855c0521294889edbc0b269cd2322b416970d490"
+    },
+    {
+      "path": "scripts/lib/transport_matrix_execution.py",
+      "before_sha256": "44f078aa8c80f1093ed7300c3fd2c2020fa17aaf45e373b3abfd2d0fe93bb5bc",
+      "after_sha256": "cf44446f0d539423e47fdd13f38b15018684d1b798a304662f148fe2bad46f34"
+    },
+    {
+      "path": "scripts/lib/transport_matrix_verdict.py",
+      "before_sha256": "01c9fa2d4b464ba78edf17dfd21a6d8edca6d39ef53e3fa96e266b51a542cfe5",
+      "after_sha256": "482af82ade6e36e38a769609324778e52e8b1d45f9640b8747b87206c296bd44"
+    },
+    {
+      "path": "scripts/lib/transport_namespace.py",
+      "before_sha256": "51ddb9a70892a75d3f1125cdec8582cc27a3566fd11514ff7d0c8264e12fb1dd",
+      "after_sha256": "6a19cfd190c4d0b22bc004fd3636765a39079b0d4da3d749966d1a5eb0dbbd9d"
+    },
+    {
+      "path": "scripts/rehearse-gate6-browser-matrix.py",
+      "before_sha256": "6a6fc784a755fb2232a921368adc95e6b2ad3d4446176e450f3138f899246e29",
+      "after_sha256": "94b7633c6634db55af3ab406476d728ca0d68d85df361310d0e80c3dee8e7ca3"
+    },
+    {
+      "path": "scripts/run-gate6-transport-matrix.py",
+      "before_sha256": "e20cabadfd192535e71615b9d55a8acdfd62ab813aa8adc3ad8ead21effb3d37",
+      "after_sha256": "c349a78c84abe2a947a7a67ce1b5316acd97b2599a5b4d2bed952b93e268629a"
+    },
+    {
+      "path": "scripts/tests/browser_matrix_admission.test.mjs",
+      "before_sha256": "648ea97d04dff43f93edda2a2b79c58e9c77b825a4eb140809d4f8714e73242a",
+      "after_sha256": "4827a91838b20538451cc2ab9ecbf7eb58fd6a762c2a9adf277b08d2b506c592"
+    },
+    {
+      "path": "scripts/tests/browser_matrix_stages.test.mjs",
+      "before_sha256": "83b8c0427d54f392086302b657f2e3bce927b969850264fc0fe38edd057a1b09",
+      "after_sha256": "5db9749b0531268336e8b1396c148732bef2afc4bcd66094e2b890fe953bbcf4"
+    },
+    {
+      "path": "scripts/tests/fixtures/native_programme_framework_workload.mjs",
+      "before_sha256": "5f01541eb0ba4953cc0431053057a313b69462d9d03dd8165d6add737941565a",
+      "after_sha256": "1d1737f656d1d39137546b81284f5c8eea01fcc60557f97f20f11389ffe935cf"
+    },
+    {
+      "path": "scripts/tests/matrix_resource_bridge.test.mjs",
+      "before_sha256": "50008d0e2967974256640990c7c55dcf8a748d354786b56be2c73105f99cc598",
+      "after_sha256": "cf995369c85ab865159a9a1a6b2e9dc323f97fdd003fce9dbeb5972bb29c1c42"
+    },
+    {
+      "path": "scripts/tests/native_programme_worker.test.mjs",
+      "before_sha256": "afcf1f2cbb489ff51c0dd4f102536453f670abdd8388e74421e186263d6f3d7f",
+      "after_sha256": "cb5df915c1ef25ce61f950ebd4e938829c4522ee3a4ca3021f91b0b5675e77db"
+    },
+    {
+      "path": "scripts/tests/test_browser_capture_cleanup.py",
+      "before_sha256": "923506c4637be6eb14183850edae6d8e3a4f6633dd38d972da08654e3a4859a6",
+      "after_sha256": "072427d43da8958540fd689d65f41d4cd0ff04bad1d33cc781849ecf3f8f56fb"
+    },
+    {
+      "path": "scripts/tests/test_browser_matrix_execution.py",
+      "before_sha256": "3b73900fbb9014f6a62ceac091ab98d57e1e6a270de59f7a804433b91ccbbe6b",
+      "after_sha256": "9b6313320b0284e5b3b12f66e1f1fc6f5bcb91cdf68e517bfa494d856c22b824"
+    },
+    {
+      "path": "scripts/tests/test_matrix_idle.py",
+      "before_sha256": "f72f2773d14267ad4d4c5be826dcb5a2320a453dd983518ec4ab370382f2e819",
+      "after_sha256": "ed88ef27b719fccb9bf1a06eee4675506c89fe48a7eb028eb2d25e011dc2399d"
+    },
+    {
+      "path": "scripts/tests/test_matrix_plateau.py",
+      "before_sha256": null,
+      "after_sha256": "46fab19a4da3028645fc822cda9608f802dbdc3024fad14aafbf916c35a68d9d"
+    },
+    {
+      "path": "scripts/tests/test_native_matrix_producers.py",
+      "before_sha256": "cf9d3081fa147a689388897cead644002bc3989b1faec6dc25bb49b9edaed36f",
+      "after_sha256": "c5566196aa1bb15b5f131b7e47edbe247af2288ade1e45549754366dc8b7d869"
+    },
+    {
+      "path": "scripts/tests/test_transport_capture.py",
+      "before_sha256": "57076a12c03ddc5a6039f541e1f7bb9bfb692bb38bd87cff6d458368199b67f5",
+      "after_sha256": "1c9b0d72c8410f559c1f89322bc15229304d7a3e94ff59da4824bfa0cbfb1f07"
+    },
+    {
+      "path": "scripts/tests/test_transport_namespace.py",
+      "before_sha256": "b6a8f9fa72b1408443e4488d766cf7dd233eba5b6f09adc744de74b96d4a64dd",
+      "after_sha256": "35ffc3d79c52f2d4ce7b7af6b80df16f08c3faf39494358c76fd6063a478448e"
+    },
+    {
+      "path": "scripts/video/browser_failure.mjs",
+      "before_sha256": "54799cac083ca7c9d6158f3f2bc5239f87dd24676181457133e5fbe81c870b9b",
+      "after_sha256": "357edbc61a012db53dec7961a229d11c94d3395f844052d8a67d65cee381b099"
+    },
+    {
+      "path": "scripts/video/browser_matrix_admission.mjs",
+      "before_sha256": "186b005153429d817f93b1f6d02f2a8068685c6bbbd131c835624d9a0ce71f6b",
+      "after_sha256": "5b63896657116ec5e746a217d9f51d30169369c6ded35c804d8396a2bbcefc77"
+    }
+  ],
+  "approved_manifests": [
+    {
+      "path": ".local/gate-6/v199-reader-registry-shared-candidate/manifest.json",
+      "sha256": "fd6540f5d41b4a93e9faa5cea9ddb9ac2be0ca367bebe5f11864a257d349e7b9"
+    },
+    {
+      "path": ".local/gate-6/v199-private-receive-subset-candidate/manifest.json",
+      "sha256": "b7a40f0f6246ced7828c4fe9b08c884c53307d5bb62ce0866e6aadf662c026f8"
+    },
+    {
+      "path": ".local/gate-6/v199-empty-recovery-write-candidate/manifest.json",
+      "sha256": "d9224ad44fbbb2885443913e9e5cb1c31cbe6b4da69fe74114142b3b4d7eed74"
+    },
+    {
+      "path": ".local/gate-6/v199-packet-plan-context-candidate/manifest.json",
+      "sha256": "1840ef6ba11cc63b8d6179d0ea5a39759678442ca569c0416b4559c8cd1f2d9f"
+    },
+    {
+      "path": ".local/gate-6/v199-bounded-authority-summary-candidate/manifest.json",
+      "sha256": "a16645771a50d816c5b73cf3a247a9eedde61b3a8d089c99ff75167da6b93389"
+    }
+  ],
+  "planned_rust": 160,
+  "planned_node": 192,
+  "planned_python": 117,
+  "planned_mac_acl": 1,
+  "explicit_ignored_rtc": 6,
+  "runtime_tests_executed": true,
+  "criteria_changed": true,
+  "resource_check_implementation": true,
+  "matrix_qualified": false,
+  "original_v199_summary": {
+    "cells": {
+      "passed": 0,
+      "failed": 32,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0,
+      "incomplete": 0
+    },
+    "required_cells": 32,
+    "required_checks": 432,
+    "checks": {
+      "passed": 336,
+      "failed": 96,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0
+    }
+  },
+  "original_v199_witnesses_sha256": {
+    ".local/gate-6/retained-two-native-archives-v199-candidate/completed.json": "d049229439e2eb3ef308e6e00995928028bebd46a2f9a4a11cc6dfd980a030f2",
+    ".local/gate-6/retained-focused-binaries-v198-candidate/completed.json": "abc52deefb19c3e29a4f68dc4957404271f5608e2fb45ab1f5be249f04c2c6e9",
+    ".local/gate-6/full-matrix-v199/state.json": "bb1de7048e5dbc5ad013a0be38af0f75944bc5f7da5a96f5024af3cd0597cab4",
+    ".local/gate-6/full-matrix-v199/matrix.json": "cec680a368ca378dda196cca7f399013509172d6dd92d3e8fd69483517b0061a",
+    ".local/gate-6/v199-focused-admission-templates/full-matrix-controller.json": "1226a0975e8d8767f7fbb83609cb3d1f335e53dfb1784ac258b80430ea45c56f",
+    ".local/gate-6/v199-focused-admission-templates/matrix-controller-exit.json": "7b66190fb0c0a155a2dec94a303f540d2e8e820bf9881f248ad529b7cbe40106",
+    ".local/gate-6/v199-focused-admission-templates/matrix-controller-exit.log": "dae8bf97f0f39c5273efb9df927c9af455d591fd099c14dfd9afa2a3307c0285",
+    ".local/gate-6/post-v199-validation-next-candidate/baseline-mode-observation.json": "6b9cf0605da364e99102c07380e0356ba4429c9d0a6e9befe2fcdbec6692cb09",
+    ".local/gate-6/post-v199-validation-next-candidate/baseline-mode-observation-host.json": "4338d4293fd96f2aa2fa83f9681658a91620bb6a6fba4c5ed7ef18c6c5ae0c50"
+  },
+  "criteria_revision_scope": "The approved resource revision applies to future runs. Original v199 criteria and all original verdicts remain unchanged.",
+  "original_v199_criteria_changed": false,
+  "focused_plan_before_resource_revision": {
+    "planned_rust": 160,
+    "planned_node": 83,
+    "planned_python": 52,
+    "planned_mac_acl": 1,
+    "explicit_ignored_rtc": 6
+  },
+  "expanded_scope_enumeration_pending": false,
+  "planned_scope_note": "The combined sealed scope contains 160 Rust tests, 192 Node tests, 117 Python tests and one Mac ACL check. Six explicitly selected ignored Rust controls are included. Execution is pending.",
+  "resource_revision": {
+    "implementation_status": "implemented-awaiting-runtime-verification",
+    "owner_approved": true,
+    "approved_scope": "Zero Session-owned resources and three actual workload cycles on the same persistent original process owners, with bounded later process residency.",
+    "numeric_policy_selected_by": "Implementation review selected the numeric RSS and trend thresholds within the approved bounded plateau approach.",
+    "policy": {
+      "profile": "connect/matrix-resource-plateau/1",
+      "cycles": 3,
+      "idle_seconds": 10,
+      "sample_seconds": 1,
+      "session_physical_owners": 0,
+      "session_owned_tasks": 0,
+      "rss_variance_floor_bytes": 8388608,
+      "rss_variance_fraction": 0.05,
+      "rss_monotonic_step_floor_bytes": 1048576,
+      "rss_persistent_step_ratio_min": 0.75,
+      "later_extra_processes": 0,
+      "later_extra_threads": 0,
+      "later_extra_descriptors": 0
+    },
+    "policy_explanation": "Cycle one records actual initialization and warm residency. Cycles two and three must stay within the greater of 8 MiB or 5 percent of cycle-one idle RSS. Two consecutive increases of at least 1 MiB fail when the second increase is at least 75 percent of the first. Later thread, descriptor and live process counts cannot exceed cycle one.",
+    "preserved_checks": {
+      "native_programme_seconds": 62,
+      "browser_programme_seconds": 62,
+      "decoded_media_window_seconds": 60,
+      "movement_seconds": 8,
+      "native_local_owner_join_seconds": 10,
+      "browser_local_owner_join_seconds": 5,
+      "idle_seconds": 10,
+      "full_matrix_cells": 32,
+      "full_matrix_requirements": 432
+    },
+    "ownership": "The original server, browser and helper process identities and the same sampler map persist across all three cycles. Cycle IDs, public operation references, full media reports and actual join receipts remain distinct and retained.",
+    "scope": "Full runs explicitly select three cycles. Standalone component checks keep their one-cycle default. Test execution uses local Mac and ARM Linux resources.",
+    "failure_handling": "An early abort cannot count as a complete workload cycle. Missing observations, unjoined original owners and every functional or media failure remain failures. Resource verification does not change those outcomes.",
+    "forbidden_shortcuts": [
+      "forced garbage collection",
+      "allocator tuning",
+      "resource pool tuning",
+      "a replacement process or fitted later baseline"
+    ],
+    "verification_status": "All focused ownership, cycle, cleanup, capture and malformed-evidence controls passed. Full32-cell resource qualification is pending.",
+    "runtime_tests_executed": true,
+    "candidate_manifests": [
+      {
+        "path": ".local/gate-6/v199-resource-plateau-candidate/manifest.json",
+        "sha256": "3c8ced27c145dc1b2971935dda104e10e8b06b896aca636813b351065d27e089"
+      },
+      {
+        "path": ".local/gate-6/v199-native-three-cycle-candidate/manifest.json",
+        "sha256": "d3abf80cc4bd510c42d9f68e72577aaa8140af00f0c10bbf555573d02513fac5"
+      },
+      {
+        "path": ".local/gate-6/v199-browser-three-cycle-candidate/manifest.json",
+        "sha256": "18b17f2fdf7cbd1938a93466a5705fef0b84077fd783b142ce3a6002abc9cb54"
+      }
+    ],
+    "integrated_files": [
+      {
+        "path": "scripts/check-transport-conversation.mjs",
+        "sha256": "cef3b0294214e4a16cc1dbcc1d3b3b1ff0e8485f3b44ef2dd373d5b440d1d7cb"
+      },
+      {
+        "path": "scripts/check-transport-fixtures.py",
+        "sha256": "77fcc92f281d58bea3630f68ddbb758d70aed20e132aef998b9f307c79b4c1cb"
+      },
+      {
+        "path": "scripts/lib/browser_matrix_admission.mjs",
+        "sha256": "180893899d38f4045e304589ae9b1230b77b45c9926e83f3790575a79d3ed9fe"
+      },
+      {
+        "path": "scripts/lib/mac_linux_fixture.py",
+        "sha256": "ac3e83ff47331ab81b8ec3a8f22aa1cdb67e9beb1bfce00b03083f95cfbd25c4"
+      },
+      {
+        "path": "scripts/lib/mac_linux_guest.py",
+        "sha256": "f5367d044fa6dbc7d3ed47d192f5f230c1173f290b9471d5aac061096a10d480"
+      },
+      {
+        "path": "scripts/lib/matrix_authority_bridge.mjs",
+        "sha256": "b5aee95dae6e23688d18b42f42acb1f6c39d1ab8299ce65cede5aacb4232e8de"
+      },
+      {
+        "path": "scripts/lib/matrix_idle.py",
+        "sha256": "2559c3d13cb47d04ced628b1c2c0142d35bf3f2a082c11f67fe1d506164f6155"
+      },
+      {
+        "path": "scripts/lib/matrix_plateau.py",
+        "sha256": "e5d7d8f398b4e00a36ee9f4e6dfa59d36a4b65a2decf0362804dad13f8420f1d"
+      },
+      {
+        "path": "scripts/lib/matrix_resource_bridge.mjs",
+        "sha256": "83761ef3fbe097d5706340674cd1c9de032263c8201201459f64a96efd821957"
+      },
+      {
+        "path": "scripts/lib/matrix_unavailable_transports.mjs",
+        "sha256": "c0668d752393cedbeadbe3c116a62fcc20a1e82f0ebb998d4287d2df26396e6a"
+      },
+      {
+        "path": "scripts/lib/native_matrix_idle.py",
+        "sha256": "8d2403dfc699f891550d7015246f1f0e43ff6f1eebc4cde922fd33e2a0f34cfa"
+      },
+      {
+        "path": "scripts/lib/native_matrix_lifecycle.mjs",
+        "sha256": "0549cff7171f6a664d99b2c3bcb1b8be7ef9dd80ab01a346abe353bb3d21c7b7"
+      },
+      {
+        "path": "scripts/lib/native_programme_controller.mjs",
+        "sha256": "dc657820eb950ead2d994f998cf5471c000d05cc2f91c4817dd5ce7a72e48a73"
+      },
+      {
+        "path": "scripts/lib/operational_process_resources.py",
+        "sha256": "bb62ba75875609e18153e2f601081fd868a277e978d555109ddda4615d18b1bb"
+      },
+      {
+        "path": "scripts/lib/transport_capture.py",
+        "sha256": "5c6c3b7404a82713ddb8a97c855c0521294889edbc0b269cd2322b416970d490"
+      },
+      {
+        "path": "scripts/lib/transport_matrix_execution.py",
+        "sha256": "cf44446f0d539423e47fdd13f38b15018684d1b798a304662f148fe2bad46f34"
+      },
+      {
+        "path": "scripts/lib/transport_matrix_verdict.py",
+        "sha256": "482af82ade6e36e38a769609324778e52e8b1d45f9640b8747b87206c296bd44"
+      },
+      {
+        "path": "scripts/lib/transport_namespace.py",
+        "sha256": "6a19cfd190c4d0b22bc004fd3636765a39079b0d4da3d749966d1a5eb0dbbd9d"
+      },
+      {
+        "path": "scripts/rehearse-gate6-browser-matrix.py",
+        "sha256": "94b7633c6634db55af3ab406476d728ca0d68d85df361310d0e80c3dee8e7ca3"
+      },
+      {
+        "path": "scripts/run-gate6-transport-matrix.py",
+        "sha256": "c349a78c84abe2a947a7a67ce1b5316acd97b2599a5b4d2bed952b93e268629a"
+      },
+      {
+        "path": "scripts/tests/browser_matrix_admission.test.mjs",
+        "sha256": "4827a91838b20538451cc2ab9ecbf7eb58fd6a762c2a9adf277b08d2b506c592"
+      },
+      {
+        "path": "scripts/tests/browser_matrix_stages.test.mjs",
+        "sha256": "5db9749b0531268336e8b1396c148732bef2afc4bcd66094e2b890fe953bbcf4"
+      },
+      {
+        "path": "scripts/tests/fixtures/native_programme_framework_workload.mjs",
+        "sha256": "1d1737f656d1d39137546b81284f5c8eea01fcc60557f97f20f11389ffe935cf"
+      },
+      {
+        "path": "scripts/tests/matrix_resource_bridge.test.mjs",
+        "sha256": "cf995369c85ab865159a9a1a6b2e9dc323f97fdd003fce9dbeb5972bb29c1c42"
+      },
+      {
+        "path": "scripts/tests/native_programme_worker.test.mjs",
+        "sha256": "cb5df915c1ef25ce61f950ebd4e938829c4522ee3a4ca3021f91b0b5675e77db"
+      },
+      {
+        "path": "scripts/tests/test_browser_matrix_execution.py",
+        "sha256": "9b6313320b0284e5b3b12f66e1f1fc6f5bcb91cdf68e517bfa494d856c22b824"
+      },
+      {
+        "path": "scripts/tests/test_matrix_idle.py",
+        "sha256": "ed88ef27b719fccb9bf1a06eee4675506c89fe48a7eb028eb2d25e011dc2399d"
+      },
+      {
+        "path": "scripts/tests/test_matrix_plateau.py",
+        "sha256": "46fab19a4da3028645fc822cda9608f802dbdc3024fad14aafbf916c35a68d9d"
+      },
+      {
+        "path": "scripts/tests/test_native_matrix_producers.py",
+        "sha256": "c5566196aa1bb15b5f131b7e47edbe247af2288ade1e45549754366dc8b7d869"
+      },
+      {
+        "path": "scripts/tests/test_transport_capture.py",
+        "sha256": "1c9b0d72c8410f559c1f89322bc15229304d7a3e94ff59da4824bfa0cbfb1f07"
+      },
+      {
+        "path": "scripts/tests/test_transport_namespace.py",
+        "sha256": "35ffc3d79c52f2d4ce7b7af6b80df16f08c3faf39494358c76fd6063a478448e"
+      },
+      {
+        "path": "scripts/video/browser_failure.mjs",
+        "sha256": "357edbc61a012db53dec7961a229d11c94d3395f844052d8a67d65cee381b099"
+      },
+      {
+        "path": "scripts/video/browser_matrix_admission.mjs",
+        "sha256": "5b63896657116ec5e746a217d9f51d30169369c6ded35c804d8396a2bbcefc77"
+      }
+    ],
+    "historical_v199_summary_unchanged": true,
+    "matrix_qualified": false,
+    "focused_summary": {
+      "arm_rust_passed": 160,
+      "current_node_executions": 192,
+      "current_python_executions": 117,
+      "mac_acl_passed": 1,
+      "explicit_av_executions": 6,
+      "ignored": 0,
+      "skipped": 0,
+      "shipping_default_check_passed": true,
+      "instrumented_metadata_passed": true,
+      "all_original_owners_joined": true,
+      "complete_modes_observed_after_join": true,
+      "matrix_qualified": false,
+      "required_full_matrix_resource_cycles": 3
+    }
+  },
+  "focused_first_attempt": {
+    "source_workspace_sha256": "267d2fe62b72460f9c92a2df97ae30af7ad5f88761e06d5fe84fdaf67a73a36f",
+    "rust": {
+      "executed": 160,
+      "passed": 160,
+      "failed": 0
+    },
+    "node": {
+      "tests": 192,
+      "pass": 192,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "python": {
+      "executed_methods": 117,
+      "errors": 7,
+      "affected_methods": 3,
+      "cause": "Extracted cleanup fixture omitted cycle_count and related resource locals. Production main initializes these before its try.",
+      "status": "failed"
+    },
+    "mac_acl": {
+      "executed": 1,
+      "passed": 1
+    },
+    "shipping_default_check_passed": true,
+    "all_original_owners_joined": true,
+    "overall_status": "failed",
+    "witnesses_sha256": {
+      ".local/gate-6/post-v199-validation-next-candidate/sealed-config.json": "e78747d53362f20d6718e9136444b0fc5e6bede052ac4a3d96cea80bd8a0ef3b",
+      ".local/gate-6/post-v199-validation-next-candidate/arm-receipt.json": "e7a2fefc8f62eba7626051c74501117cb0e5db54e396761290d5a7c585f815be",
+      ".local/gate-6/post-v199-validation-next-candidate/runtime-host-receipt.json": "0c7d6dee2be38cd3989f0eff5fc65e11fc8f71498a7dc622c3f710dc17448e11",
+      ".local/gate-6/post-v199-validation-next-candidate/controller-exit.json": "5fb346d68648ecb92bc3601701b1d12de599798b55159a1ab8029e95aad1edfa",
+      ".local/gate-6/post-v199-validation-next-candidate/mac-runtime/receipt.json": "bc12a77429bf2db52e77e02857b64986b8f0d9eb4de19f78547cb385c651b509"
+    },
+    "fixture_correction": {
+      "path": "scripts/tests/test_browser_capture_cleanup.py",
+      "before_sha256": "923506c4637be6eb14183850edae6d8e3a4f6633dd38d972da08654e3a4859a6",
+      "after_sha256": "072427d43da8958540fd689d65f41d4cd0ff04bad1d33cc781849ecf3f8f56fb",
+      "production_code_changed": false,
+      "existing_subtests_cover_cycles": [
+        1,
+        3
+      ],
+      "retest_pending": true
+    },
+    "full_v199_results_unchanged": true
+  },
+  "initial_five_candidate_code_files": [
+    {
+      "path": "crates/connect-service/src/canonical_replacement/media.rs",
+      "before_sha256": "6f1bd7909024ed9cc7f94d98bebee415d03268700dad81a479f9d72d7b4ac642",
+      "after_sha256": "ace61e91bd0792dadbdaf1a4af9596d7b8c08396a414f5929b50babf7936b627"
+    },
+    {
+      "path": "crates/connect-store/src/authority_fences.rs",
+      "before_sha256": "6da13af7897a0fc133a99c97a7602d7b87ce476fed353013526d8c30146b82e2",
+      "after_sha256": "d704f230467108c0856a81cdaa39945d2a2488c4e82895dec782b6a40fab99ff"
+    },
+    {
+      "path": "crates/connect-store/src/authority_fences/tests.rs",
+      "before_sha256": "a68d52efa59f1593aef129f08310ada25aa402e84d63c31f329f75814b2e232d",
+      "after_sha256": "d7d9a314996bd210f5cf253a172cfc4746acdd9f7d4a5af18b18f7a81d8e3a49"
+    },
+    {
+      "path": "crates/connect-store/src/authority_fences/tests/resource_preparation.rs",
+      "before_sha256": "be1c2477506a1cd001287e5c2e5fe30fdd0f40dbae0294672a591e99b8025e54",
+      "after_sha256": "3ef5c9e879c06b272fbe8a47626c0993c9fb5ee60d40ecd5da1a9e11aaec1a16"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/native_stream_authority.rs",
+      "before_sha256": "965ad3967b8adcea2cfaa7f3accab8ef6443c44d032d29c4968d22f3ba977180",
+      "after_sha256": "65ced2a266bb4601db0f5c2b8d9cf9218dc3297ea599cf581d73f87fb5147318"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/native_stream_authority/session_codecs/recovery.rs",
+      "before_sha256": "33130dc0c80ec01ae3eb5f1acfc035fbd188777b26f5299312f9142c61ac6337",
+      "after_sha256": "70ab5c090294a0ba66fdde34f4ed7e22c66845070c555da7b90672ed29627fb7"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary.rs",
+      "before_sha256": "2c3fdef8a8101b5957589cf99de50b04c9f5536f5a2a6ca2b99528cf993b9321",
+      "after_sha256": "0c8ec1bd7932aed5fff5e22cbb4cdfc12bffd711e0366adbf88242c25bcff533"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary/custody.rs",
+      "before_sha256": "2712bc83f1761906647946b68308a18dbe033f5234b22a7c5ac72fbf0248dbe6",
+      "after_sha256": "a0e5e38837ca0b091856b7af6aeb5b29879a6cd431393cb6e8c3f2292fe53dde"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary/custody/packet_subset.rs",
+      "before_sha256": null,
+      "after_sha256": "6db6df0ea81f2c3f19ded74870cb708bd699d9707f8d79087605157a47d15821"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_replacements.rs",
+      "before_sha256": "78466265b696a951e14e1fff9f827da5c362c03c7e51bb003c54aa5322645841",
+      "after_sha256": "0f482796b3e4a7d66bb51fb4a6cec32d662d4266684db3144418a8d2d049cc25"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_replacements/allocation.rs",
+      "before_sha256": "7ea7d6222d0d07ef2117f5ebd67fa6630d38a49d260aaca96f8cd8aecafd5e10",
+      "after_sha256": "ab45d520603ae4bc1fd02f9e537605e4e81cefbe9c1245146b699bc33fcfe328"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_replacements/allocation/start.rs",
+      "before_sha256": "20e43b885ad8954e1d3d4b2e26c97f9d1f99892cffa454ce029807b86baadc08",
+      "after_sha256": "fc2fb3c50f0679c8df148e5136f1b7b80cb380516fef8a32e3a5fb73fbad3b16"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/native_streams.rs",
+      "before_sha256": "5fb62067d04ab1cd112c5b4e133b6df8060ef400fbe80a9428b31f7b87d018fd",
+      "after_sha256": "5bb54eb171fe5d3e39e02bb220acdea826d7bc9d3ab6e4f82ba85a6ebdda3a0b"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/session_codecs.rs",
+      "before_sha256": "4565da2983a746cbaad4511b1b89a496848e2615e621335b3a17c9ed75a737a1",
+      "after_sha256": "37254ba1b747c3c05ea1241aaf6052fb074ebd0c702f6f0ceac496626f29b1b7"
+    },
+    {
+      "path": "scripts/lib/transport_namespace.py",
+      "before_sha256": "51ddb9a70892a75d3f1125cdec8582cc27a3566fd11514ff7d0c8264e12fb1dd",
+      "after_sha256": "855bb2d64f0d437e7cf7436a7c6ce8fde1a259915a5edba59dbe01c0b8300898"
+    },
+    {
+      "path": "scripts/run-gate6-transport-matrix.py",
+      "before_sha256": "e20cabadfd192535e71615b9d55a8acdfd62ab813aa8adc3ad8ead21effb3d37",
+      "after_sha256": "b17510a215c32890b72d58f58b8556cebff58065a2f76bc83d14753bcccd4eba"
+    },
+    {
+      "path": "scripts/tests/test_transport_namespace.py",
+      "before_sha256": "b6a8f9fa72b1408443e4488d766cf7dd233eba5b6f09adc744de74b96d4a64dd",
+      "after_sha256": "e906c911c7d13065d0cb8e3ea10c2cef1b9dd663bde27f6db15e9e1e8541d7db"
+    }
+  ],
+  "initial_file_hash_scope": "Intermediate candidate bytes before Rust formatting and resource composition. The code_files field below binds the complete tested batch.",
+  "focused_verified_retry": {
+    "verified_utc": "2026-11-07T06:54:45.857015+00:00",
+    "tested_parent_revision": "7195b4b1e496efc5164d62de63ea47d1aabdb13f",
+    "tested_workspace_sha256": "2865a428a7ee0e3d89afb9fe97d65a25a2a23abe1e1c929187344952120f88ef",
+    "source_lock_sha256": "b88e9e899badac7e719ecad1d9f87fc78c2c55c6bc32e76c4f20c67ee12f53d8",
+    "summary": {
+      "arm_rust_passed": 160,
+      "current_node_executions": 192,
+      "current_python_executions": 117,
+      "mac_acl_passed": 1,
+      "explicit_av_executions": 6,
+      "ignored": 0,
+      "skipped": 0,
+      "shipping_default_check_passed": true,
+      "instrumented_metadata_passed": true,
+      "all_original_owners_joined": true,
+      "complete_modes_observed_after_join": true,
+      "matrix_qualified": false,
+      "required_full_matrix_resource_cycles": 3
+    },
+    "normal_release": {
+      "optimization_level": 3,
+      "debug_assertions": false,
+      "arm_build_jobs": 6,
+      "mac_build_jobs": 8
+    },
+    "witnesses_sha256": {
+      ".local/gate-6/post-v199-validation-retry-candidate/sealed-config.json": "458b2fae996bfe7a4cc2795ca37fba9e07d6883f17efbf34c4c076cac531cc92",
+      ".local/gate-6/post-v199-validation-retry-candidate/arm-receipt.json": "d6601c3244e150a8da80321a21964e46eb29a7063a2bad92b7af361d845d71f1",
+      ".local/gate-6/post-v199-validation-retry-candidate/runtime-host-receipt.json": "93a2383656dce28249bbb168647323619a8ba5f4a02cc28c31fe4b08d2e18337",
+      ".local/gate-6/post-v199-validation-retry-candidate/controller-exit.json": "ac5ad5505d57d6809eb1374a7acdf477a97c354f2cd103d4369d4a944fa1f17a",
+      ".local/gate-6/post-v199-validation-retry-candidate/mac-runtime/receipt.json": "6e775c3f455d1c25ca46fddfeca7736a18673fc22379651a1baf3f3c96f7f147",
+      ".local/gate-6/post-v199-validation-retry-candidate/completion-modes.json": "b1f6df82748580c937927dccdedb30f66352189e7b76727bf54210b5e4fc531e",
+      ".local/gate-6/post-v199-validation-retry-candidate/success-admission.stdout.json": "55eb837c8530303398f323c8fa2cc7e29548daaa61bef8ca7d674a6edcad66bd"
+    },
+    "historical_failed_attempt_preserved": true,
+    "matrix_qualified": false,
+    "next": "Run every one of the32 local Mac and ARM Linux cells with three original workload cycles per cell."
+  }
+}

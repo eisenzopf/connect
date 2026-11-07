@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from lib.matrix_idle import POLICY
 from lib.native_matrix_authority import authority_verdict
-from lib.native_matrix_idle import NativeMatrixIdle, native_idle_verdict, restoration
+from lib.native_matrix_idle import NativeMatrixIdle, NativeMatrixPlateau, native_cycle_retirement_verified, native_idle_verdict, restoration
 from lib.native_matrix_process import NativeOwner
 from lib.native_process_owner import live_workers
 from lib.native_programme_profile import PROFILE
@@ -64,6 +64,87 @@ def authority_result(kind):
         **{("original_expiry_elapsed" if kind == "expiry" else "original_credential_revoked"): True},
         original_config_unchanged=True, executable_unchanged=True, original_issuance_unchanged=True,
         process_owner=dict(original_supervisor_joined=True, original_workers_joined=True, forced=False, exit_code=0))
+
+
+class NativeMatrixPlateauProducer(unittest.TestCase):
+    def exercise(self, leaked_cycle=None, incomplete_cycle=None):
+        clock=[1.0];cycle_index=[1]
+        class Sampler:
+            roots={"server":(41,111),"helper":(42,222)}
+            def __init__(self):self.samples=[]
+            def sample(self):
+                value=sample(clock[0],"process")
+                for group in value["groups"].values():group["sampled_rss_bytes"]=4096 if clock[0]<10 else 8192
+                self.samples.append(value);return value
+            def summary(self):return dict(sample_count=len(self.samples),groups={})
+        with tempfile.TemporaryDirectory() as temporary:
+            path=Path(temporary);sampler=Sampler()
+            def health():
+                return dict(physical_owners=0,owned_tasks=int(cycle_index[0]==leaked_cycle and clock[0]%30>=10),**{"pool:quic":0})
+            monitor=NativeMatrixPlateau(path,sampler,health,clock=lambda:clock[0])
+            for index in (1,2,3):
+                cycle_index[0]=index;start=1+(index-1)*30
+                owner=programme_owner();owner["logical_worker_thread_id"]=index
+                def boundary(phase,at,**extra):
+                    clock[0]=at
+                    (path/f"resources-cycle-{index}-{phase}.json").write_text(json.dumps(dict(phase=phase,monotonic_seconds=at,programme_owner=owner,**extra)))
+                    monitor.poll()
+                boundary("baseline",start);clock[0]=start+1;monitor.poll()
+                boundary("terminal",start+9)
+                closed=retirement(start+9);closed["programme_worker"]["owner"]=owner
+                closed["programme_worker"]["report_sha256"]=str(index)*64
+                closed["workload_observation"]=dict(actual_connection_workload_observed=True,
+                    programme_window_observed=index!=incomplete_cycle,seconds=62,routes=6,original_receive_tasks_joined=True)
+                closed["original_session_retirement"]={"format":"connect/original-session-retirement/1","passed":True,
+                    "sessions":[dict(status="ended",original_operation_sha256=str(index*2+j)*64) for j in (0,1)]}
+                boundary("retired",start+9.2,retirement=closed)
+                for offset in (10.3,11.4,12.5,13.6,14.7,15.8,16.9,18,19.01):clock[0]=start+offset;monitor.poll()
+                self.assertTrue((path/f"resource-observation-cycle-{index}.json").exists())
+            return monitor.finish()
+
+    def test_three_native_cycles_accept_cold_warmup_only_with_original_roots_and_session_joins(self):
+        observed=self.exercise()
+        self.assertTrue(observed["passed"],observed["evaluation"])
+        self.assertEqual(len(observed["cycles"]),3)
+        self.assertEqual(len({v["workload_evidence_sha256"] for v in observed["cycles"]}),3)
+        self.assertTrue(all(v["joins"]["session_owners_joined"] for v in observed["cycles"]))
+        self.assertGreater(observed["cycles"][1]["idle_resources"]["baseline"]["monotonic_seconds"],
+                           observed["cycles"][0]["idle_resources"]["samples"][-1]["monotonic_seconds"])
+
+    def test_native_cycle_session_leak_remains_failed_while_all_three_diagnostic_cycles_complete(self):
+        observed=self.exercise(leaked_cycle=2)
+        self.assertEqual(len(observed["cycles"]),3)
+        self.assertFalse(observed["passed"])
+        self.assertFalse(observed["cycles"][1]["idle_resources"]["passed"])
+        self.assertTrue(observed["cycles"][2]["idle_resources"]["passed"])
+
+
+    def test_three_cycle_verifiers_recompute_original_worker_and_cleanup_bounds(self):
+        from lib.transport_matrix_verdict import native_cycle_join_verified
+        original = retirement()
+        resource = dict(original_programme_owner=programme_owner())
+        def both(closed):
+            control = dict(retirement=closed, programme_worker=closed["programme_worker"])
+            return (native_cycle_retirement_verified(closed, programme_owner(), 20),
+                    native_cycle_join_verified(control, resource))
+        self.assertEqual(both(original), (True, True))
+        for field, value in (("original_helpers_joined", False), ("original_clients_closed", False),
+                             ("observed_helpers", 0), ("all_local_owners_elapsed_ms", 10001)):
+            changed = copy.deepcopy(original); changed[field] = value
+            self.assertEqual(both(changed), (False, False), field)
+        for field, value in (("forced", True), ("original_exit_observed", False),
+                             ("owner", dict(programme_owner(), logical_worker_thread_id=2))):
+            changed = copy.deepcopy(original); changed["programme_worker"][field] = value
+            self.assertTrue(changed["passed"])
+            self.assertEqual(both(changed), (False, False), field)
+
+    def test_short_original_native_programme_cannot_qualify_three_cycle_resources(self):
+        observed=self.exercise(incomplete_cycle=1)
+        self.assertEqual(len(observed["cycles"]),3)
+        self.assertFalse(observed["cycles"][0]["workload_complete"])
+        self.assertTrue(all(v["workload_complete"] for v in observed["cycles"][1:]))
+        self.assertFalse(observed["passed"])
+
 
 
 class NativeMatrixProducers(unittest.TestCase):

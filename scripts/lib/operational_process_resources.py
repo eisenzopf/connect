@@ -31,7 +31,7 @@ class ProcessResources:
         if (not roles or len(set(roles)) != len(roles) or not set(roles) <= set(ROLES)
                 or set(roots) != set(roles) or len(set(roots.values())) != len(roles)):
             raise ValueError("Distinct roots for the exact declared process roles required")
-        if type(open_resources) is not bool or type(max_samples) is not int or not 1 <= max_samples <= 600:
+        if type(open_resources) is not bool or type(max_samples) is not int or not 1 <= max_samples <= 1800:
             raise ValueError("Invalid process observation bounds")
         self.roles = tuple(roles)
         self.open_resources = open_resources

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {test} from "node:test";
-import {browserMatrixAdmission,browserMatrixPlan,retireBrowserMatrixAdmission} from "../lib/browser_matrix_admission.mjs";
+import {browserMatrixAdmission,browserMatrixPlan,retireBrowserMatrixAdmission,browserMatrixCycleSummary,browserMatrixCycleOutcome} from "../lib/browser_matrix_admission.mjs";
 function fixture(create) {
     const roles=["participant-1","participant-2","participant-3","participant-4","replacement-1","controller-1","controller-2"];
     return Object.fromEntries(roles.map((role,index)=>[role,{identityId:"identity-"+(index<4?index:0),deviceId:"device-"+index,
@@ -88,4 +88,30 @@ test('reference ownership joins the original cleanup callback and preserves a mi
     assert.equal(refs.release(proof).released,true,'Actual local cleanup can release refs without changing the failed deadline');
     assert.equal(result.passed,false);assert.deepEqual(refs.counts(),{authenticated_owners:1,actual_connections:1});
     await refs.closeClients(()=>{throw Error('No new close after release');});assert.deepEqual(options,[1,60000]);
+});
+
+test('three original cycle plans keep distinct stable operation and Session namespaces',()=>{
+    const plans=[1,2,3].map(index=>{let next=0;return browserMatrixPlan(()=>String(++next),{index,workload_id:'original-cycle-'+index});});
+    const ids=plans.flatMap(plan=>[...Object.values(plan.operations),...plan.sessions.map(session=>session.id),...plan.routes.map(route=>route.connection)]);
+    assert.equal(new Set(ids).size,ids.length);
+    assert.ok(plans.every(plan=>plan.programmeMs===62000&&plan.moves.length===4));
+    assert.deepEqual(plans.map(plan=>plan.cycle.index),[1,2,3]);
+    assert.throws(()=>browserMatrixPlan(()=> 'original',{index:4,workload_id:'unknown'}),/cycle identity/);
+});
+test('cycle summaries retain first actual failure and no full AV or owner reference graph',()=>{
+    const source={privateLargeAvData:[1,2,3]},failure={stage:'decoded-media-quality',name:'OriginalQualityFailure'};
+    const summaries=[1,2,3].map(index=>{
+        const cycle={index,workload_id:'original-cycle-'+index};
+        const value={passed:index!==2,workload_started:true,workload_complete:true,programme:source,...(index===2?{failure}:{})};
+        return browserMatrixCycleSummary(cycle,value,{...cycle,observation_sha256:String(index).repeat(64),
+            workload_evidence_sha256:String(index+3).repeat(64),join_evidence_sha256:String(index+6).repeat(64)});
+    });
+    source.privateLargeAvData.push(4);
+    assert.ok(summaries.every(value=>!('programme' in value)&&!('decoded_media' in value)));
+    const result=browserMatrixCycleOutcome(summaries);
+    assert.equal(result.passed,false);assert.equal(result.first_failed_cycle,2);assert.deepEqual(result.failure,failure);
+    assert.equal(result.cycles.length,3);
+    assert.throws(()=>browserMatrixCycleOutcome(summaries.slice(0,2)),/Three distinct/);
+    const incomplete=structuredClone(summaries);incomplete[1].passed=true;incomplete[1].workload_complete=false;
+    assert.equal(browserMatrixCycleOutcome(incomplete).passed,false);
 });

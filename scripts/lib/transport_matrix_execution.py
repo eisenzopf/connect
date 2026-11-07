@@ -227,6 +227,54 @@ def record_native_data_checks(cell, report, digest, passed):
                  "ten-second-idle-resource-restoration"])
 
 
+def browser_cycle_joins_verified(observation):
+    """Actual closed owners, including all original per-cycle joins and IDs."""
+    try:
+        local, retirement = observation["idle_resources"], observation["retirement"]
+        closes = retirement["originalClientCloses"]
+        ends, sessions = retirement["originalConnectionEnds"], retirement["originalSessionEnds"]
+        exact = (retirement.get("passed") is True and 0 <= retirement.get("allLocalOwnersElapsedMs", -1) <= 5000
+            and retirement.get("originalEndsCompleted") == len(ends) == 6
+            and retirement.get("originalSessionsEnded") == len(sessions) == 2
+            and retirement.get("originalClientsClosed") == len(closes) == 7
+            and len({row["connection_id"] for row in ends}) == 6
+            and len({row["session_id"] for row in sessions}) == 2
+            and len({row["device_id"] for row in closes}) == 7
+            and all(isinstance(row["operation_id"], str) and row["operation_id"] and row["status"] == "fulfilled" for row in ends + sessions)
+            and all(row["status"] == "fulfilled" and row["deadline_met"] is True for row in closes)
+            and local.get("localOwnersJoined") is True and local.get("active_bindings") == 0
+            and local.get("renderer", {}).get("joined") is True and local["renderer"].get("owners") == 10
+            and local.get("diagnostic_hooks", {}).get("joined") is True
+            and local.get("fixture_reference_retirement", {}).get("released") is True
+            and observation.get("diagnostic_cycle_retirement", {}).get("released") is True)
+        if not exact:
+            return False
+        if "rtc_owners" in local:
+            owners = local["rtc_owners"]
+            return 6 <= len(owners) <= 10 and all(owner.get("original_shutdown_joined") is True
+                and owner.get("closed") is True and owner.get("peerConnectionState") == "closed"
+                and owner.get("remoteTracks") == 0 and owner.get("liveRemoteTracks") == 0
+                and owner.get("captureActive") is False and owner.get("renderActive") is False for owner in owners)
+        return (4 <= local.get("media_peers", 0) <= 7
+                and local.get("queued_packets") == 0 and local.get("queued_bytes") == 0)
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def browser_resource_plateau_verified(report):
+    from .matrix_plateau import plateau_verdict
+    try:
+        idle, cycles = report["idle_resources"], report["cycle_observations"]
+        if not plateau_verdict(idle) or len(cycles) != 3:
+            return False
+        return all(observed["cycle"]["index"] == index
+            and observed["cycle"]["workload_id"] == resource["workload_id"]
+            and observed.get("workload_started") is True and browser_cycle_joins_verified(observed)
+            for index, (observed, resource) in enumerate(zip(cycles, idle["cycles"]), 1))
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
 def record_browser_result(matrix, cell, report, report_sha256, exit_code):
     """An actual admission observation is a partial stage, never cell evidence."""
     if (cell not in matrix["cells"] or cell["execution"].get("producer") not in {"browser-admission", "browser-programme", "browser-quality"}
@@ -311,6 +359,12 @@ def record_browser_result(matrix, cell, report, report_sha256, exit_code):
             and browser.get("original_process_joined") is True and browser.get("forced_kill") is False
             and audio.get("original_process_joined") is True and audio.get("forced_kill", False) is False
             and len(report.get("servers", [])) == 2 and all(s.get("original_joined") is True for s in report["servers"]))
+        if idle.get("format") == "connect/matrix-plateau-observation/1":
+            reclaimed = (report["stage"] == "quality" and all(guards.values())
+                and browser_resource_plateau_verified(report)
+                and browser.get("original_process_joined") is True and browser.get("forced_kill") is False
+                and audio.get("original_process_joined") is True and audio.get("forced_kill", False) is False
+                and len(report.get("servers", [])) == 2 and all(s.get("original_joined") is True for s in report["servers"]))
         cell["check_results"]["owned-drain-and-resource-reclamation"] = dict(
             status="passed" if reclaimed else "failed",
             evidence=dict(report_sha256=report_sha256, source_revision=report["source_revision"], section="idle_resources"))

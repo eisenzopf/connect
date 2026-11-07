@@ -3,9 +3,12 @@
 const check = (ok, message) => { if (!ok) throw Error(message); };
 const nonempty = values => { check(values.length > 0, "nonempty fixture values"); return {first: values[0], rest: values.slice(1)}; };
 const roles = ["participant-1", "participant-2", "participant-3", "participant-4"];
-export function browserMatrixPlan(uuid = () => crypto.randomUUID()) {
+export function browserMatrixPlan(uuid = () => crypto.randomUUID(), cycle) {
+    if(cycle!==undefined)check(Number.isInteger(cycle.index)&&cycle.index>=1&&cycle.index<=3
+        &&typeof cycle.workload_id==='string'&&/^[a-zA-Z0-9_-]{1,48}$/.test(cycle.workload_id), 'Original cycle identity');
+    const prefix=cycle?cycle.workload_id+'_':'';
     const ids = new Set();
-    const id = kind => {const value = "matrix_" + kind + "_" + uuid(); check(!ids.has(value), "distinct original fixture IDs"); ids.add(value); return value;};
+    const id = kind => {const value = "matrix_" + prefix + kind + "_" + uuid(); check(!ids.has(value), "distinct original fixture IDs"); ids.add(value); return value;};
     const operationNames = ["create", "add", "update", "stale", "remove", "readd", "before", "included", "from4", "after"];
     const operations = Object.fromEntries(operationNames.map(name => [name, id("op")]));
     const messages = Object.fromEntries(["before", "included", "from4", "after"].map(name => [name, id("message")]));
@@ -18,7 +21,7 @@ export function browserMatrixPlan(uuid = () => crypto.randomUUID()) {
         operation: id("op"), selection: id("op"), audio: id("audio"), video: id("video"), receiveVideo: id("receive-video"),
         targetRole: ordinal ? "participant-1" : "replacement-1"})));
     return {format: "connect/browser-matrix-plan/1", movementProfile: "gate6-realistic-device-roundtrip-v1",
-        programmeMs: 62000, operations, messages, sessions, routes, moves};
+        programmeMs: 62000, operations, messages, sessions, routes, moves,...(cycle?{cycle:{...cycle}}:{})};
 }
 
 export async function browserMatrixAdmission({actors, plan, journal, selectedTransport, startMedia, state={}, afterControl}) {
@@ -217,8 +220,37 @@ export async function retireBrowserMatrixAdmission({state,actors,plan,journal,no
     const elapsedMs=now()-terminal;
     const passed=elapsedMs<=5000&&ends.every(value=>value.status==="fulfilled")&&sessionEnds.every(value=>value.status==="fulfilled")
         &&closes.every(value=>value.status==="fulfilled"&&value.value.deadlineMet);
-    return {passed,elapsedMs,originalEndsCompleted:ends.filter(value=>value.status==="fulfilled").length,
+    return {passed,elapsedMs,
+        originalConnectionEnds:ends.map((outcome,index)=>({connection_id:state.connections[index].id,
+            operation_id:plan.routes[index].end,status:outcome.status})),
+        originalSessionEnds:sessionEnds.map((outcome,index)=>({session_id:state.sessions[index].id,
+            operation_id:plan.sessions[index].end,status:outcome.status})),
+        originalClientCloses:closes.map((outcome,index)=>({role:Object.keys(actors)[index],
+            device_id:Object.values(actors)[index].deviceId??null,status:outcome.status,
+            deadline_met:outcome.status==='fulfilled'&&outcome.value.deadlineMet===true})),
+        originalEndsCompleted:ends.filter(value=>value.status==="fulfilled").length,
         originalSessionsEnded:sessionEnds.filter(value=>value.status==="fulfilled").length,
         originalClientsClosed:closes.filter(value=>value.status==="fulfilled").length,
         scope:"Admission component terminal only; no ten-second idle resource restoration or full media programme claim"};
+}
+
+// Only closed scalar proof summaries survive into the next actual workload.
+// The original full report is persisted by the host before this projection.
+export function browserMatrixCycleSummary(cycle,result,evidence){
+    check(Number.isInteger(cycle.index)&&cycle.index>=1&&cycle.index<=3,'Declared cycle index');
+    check(evidence?.index===cycle.index&&evidence.workload_id===cycle.workload_id,'Original archived cycle binding');
+    for(const key of ['observation_sha256','workload_evidence_sha256','join_evidence_sha256'])
+        check(typeof evidence[key]==='string'&&/^[a-f0-9]{64}$/.test(evidence[key]),'Original cycle evidence digest');
+    return {index:cycle.index,workload_id:cycle.workload_id,passed:result.passed===true,
+        workload_started:result.workload_started===true,workload_complete:result.workload_complete===true,
+        ...(result.failure?{failure:structuredClone(result.failure)}:{}),
+        evidence:structuredClone(evidence)};
+}
+export function browserMatrixCycleOutcome(cycles){
+    check(cycles.length===3&&cycles.every((cycle,index)=>cycle.index===index+1)
+        &&new Set(cycles.map(cycle=>cycle.workload_id)).size===3,'Three distinct original cycles required');
+    const first=cycles.find(cycle=>cycle.failure||!cycle.passed);
+    return {format:'connect/browser-matrix-three-cycle-summary/1',cycle_profile:'connect/matrix-three-cycle/1',
+        passed:cycles.every(cycle=>cycle.passed&&cycle.workload_started&&cycle.workload_complete),cycles:structuredClone(cycles),
+        ...(first?{failure:first.failure??{stage:'cycle-outcome',name:'OriginalCycleFailed'},first_failed_cycle:first.index}:{})};
 }

@@ -227,3 +227,66 @@ fn session_codec_bounded_reconciliation_prioritizes_pending_work_over_older_unkn
     assert_eq!(status(&f, &manager, &older).state, OperationState::Unknown);
     assert_eq!(f.count("operation_effects"), 2);
 }
+
+#[test]
+fn empty_codec_reconciliation_skips_external_writer_then_settles_later_batch_once() {
+    let (f, origin, manager) = fixture();
+    f.store
+        .connection()
+        .unwrap()
+        .busy_timeout(std::time::Duration::ZERO)
+        .unwrap();
+    let mut writer = rusqlite::Connection::open(f.store.path()).unwrap();
+    let held = writer
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    let before = (
+        f.count("operations"),
+        f.count("operation_effects"),
+        f.count("journal"),
+    );
+    assert_eq!(f.store.reconcile_session_codec_jobs(1).unwrap(), 0);
+    assert!(!held.is_autocommit(), "The independent writer remains held");
+    assert_eq!(
+        (
+            f.count("operations"),
+            f.count("operation_effects"),
+            f.count("journal")
+        ),
+        before
+    );
+    held.rollback().unwrap();
+
+    let (_, receipt, target) = queue(&f, &manager, "after-empty-scan-policy");
+    let original = status(&f, &manager, &receipt);
+    let effects = f.count("operation_effects");
+    assert_eq!(target.batch_record_id, original.record_id);
+    // Controlled retirement in this Store-only fixture makes queued work
+    // settle without fabricating a native effect or changing its identity.
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE connections SET state='retired' WHERE id=?1",
+            [origin.connection_id()],
+        )
+        .unwrap();
+    let held = writer
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    assert!(
+        f.store.reconcile_session_codec_jobs(1).is_err(),
+        "Candidates still require the write transaction"
+    );
+    held.rollback().unwrap();
+    assert_eq!(f.store.reconcile_session_codec_jobs(1).unwrap(), 1);
+    assert_eq!(f.store.reconcile_session_codec_jobs(1).unwrap(), 0);
+    let completed = status(&f, &manager, &receipt);
+    assert_eq!(completed.record_id, original.record_id);
+    assert_eq!(completed.operation_id, original.operation_id);
+    assert_eq!(completed.state, OperationState::Completed);
+    assert_eq!(counts(&completed).unavailable, 1);
+    assert_eq!(completed.effects, original.effects);
+    assert_eq!(f.count("operation_effects"), effects);
+    assert!(f.store.pending_session_codec_targets(1).unwrap().is_empty());
+}

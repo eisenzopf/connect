@@ -358,12 +358,12 @@ print(json.dumps(prepare(target)))"""
         actual = json.loads(self.call(["python3", "-c", code, self.remote_root], data=json.dumps(self.inputs).encode(), timeout=30))
         return actual == self.inputs
 
-    def run_native_programme(self, command, log, *, directory, server_pid, endpoint, credential, capture=None, budget=300):
-        from .native_matrix_idle import NativeMatrixIdle, health_reader
+    def run_native_programme(self, command, log, *, directory, server_pid, endpoint, credential, capture=None, budget=300, resource_cycles=1):
+        from .native_matrix_idle import NativeMatrixIdle, NativeMatrixPlateau, health_reader
         remote = self
         class GuestIdle(NativeMatrixIdle):
             def request(self, phase):
-                path = self.directory / ("resources-" + phase + ".json")
+                path = self.directory / ("resources-" + self.prefix + phase + ".json")
                 if not path.exists():
                     return None
                 if path.is_symlink() or path.stat().st_size > 4096:
@@ -378,9 +378,10 @@ print(json.dumps(prepare(target)))"""
                     monotonic_seconds=remote.host_time(value["monotonic_seconds"]))
         directory = Path(directory)
         directory.mkdir(mode=0o700, parents=True, exist_ok=True)
-        owned = self.launch(command, directory, log, timeout=budget, role="helper", capture=capture)
-        sampler = MacLinuxSampler(self, server_pid, role="helper")
-        idle = GuestIdle(directory, sampler, health_reader(endpoint, credential))
+        owned = self.launch(command, directory, log, timeout=budget, role="helper", capture=capture, resource_cycles=resource_cycles)
+        sampler = MacLinuxSampler(self, server_pid, role="helper", resource_cycles=resource_cycles)
+        idle = (NativeMatrixPlateau(directory, sampler, health_reader(endpoint, credential), child_class=GuestIdle)
+                if resource_cycles == 3 else GuestIdle(directory, sampler, health_reader(endpoint, credential)))
         cutoff = time.monotonic() + budget + 10
         try:
             while owned.poll() is None:
@@ -401,13 +402,17 @@ print(json.dumps(prepare(target)))"""
         (directory / "process-resources.json").write_text(json.dumps(resources, indent=2) + "\n")
         return owned.returncode, resources, result
 
-    def launch(self, command, output, log, *, timeout=300, container=None, role="browser", capture=None):
+    def launch(self, command, output, log, *, timeout=300, container=None, role="browser", capture=None, resource_cycles=1):
+        if type(resource_cycles) is not int or resource_cycles not in (1, 3):
+            raise ValueError("One or three original guest cycles required")
+        if not 1 <= timeout <= (900 if resource_cycles == 3 else 360):
+            raise ValueError("Original per-cycle guest budget required")
         if self.owner is not None:
             raise ValueError("One original guest workload per owner")
         self.output = Path(output)
         self.output_relative = str(self.output.resolve().relative_to(self.root.resolve()))
         config = dict(run_id=self.run_id, source_revision=self.revision, command=list(map(str, command)),
-                      output=self.output_relative, timeout_seconds=timeout, container=container, role=role, capture=capture)
+                      output=self.output_relative, timeout_seconds=timeout, container=container, role=role, capture=capture, resource_cycles=resource_cycles)
         self.stage({"job.json": ((json.dumps(config) + "\n").encode(), False), "job-intent.json": ((json.dumps({"run_id":self.run_id})+"\n").encode(),False)})
         self.log = Path(log).open("xb")
         self.owner = subprocess.Popen(self.ssh(["python3", self.remote_root / "scripts/lib/mac_linux_guest.py", "run", self.remote_root]),
@@ -552,9 +557,9 @@ print(json.dumps(removed))"""
 
 
 class MacLinuxSampler:
-    def __init__(self, remote, server_pid, *, role="browser"):
+    def __init__(self, remote, server_pid, *, role="browser", resource_cycles=1):
         self.remote, self.role = remote, role
-        self.server = MacProcessResources({"server": server_pid}, roles=("server",))
+        self.server = MacProcessResources({"server": server_pid}, roles=("server",), max_samples=300 if resource_cycles == 1 else 1800)
         self.samples = []
         self.root = None
 
@@ -563,7 +568,7 @@ class MacLinuxSampler:
         state = latest["state"]
         if state is None or "resources" not in state or not 0 <= latest["monotonic_seconds"] - state["sampled_at_monotonic_seconds"] <= 1.5:
             raise ValueError("Live original ARM guest sample unavailable")
-        identity = (state["run_id"], state["sampled_root"])
+        identity = (state["run_id"], state["sampled_root"], state["sampled_root_start_ticks"])
         if self.root is None:
             self.root = identity
         if identity != self.root or state["source_revision"] != self.remote.revision:
@@ -575,16 +580,29 @@ class MacLinuxSampler:
         self.samples.append(value)
         return value
 
+    def owner_identities(self):
+        state = self.remote.latest["state"]
+        if self.root != (state["run_id"], state["sampled_root"], state["sampled_root_start_ticks"]):
+            raise ValueError("Original remote process changed")
+        birth = state["sampled_root_start_ticks"]
+        if type(birth) is not int or birth <= 0:
+            raise ValueError("Original remote process birth unavailable")
+        result = {role: dict(pid=identity[0], start_identity=identity[1], host_profile="macos-arm64")
+                  for role, identity in self.server.roots.items()}
+        result[self.role] = dict(pid=state["sampled_root"], start_identity=birth, host_profile="ubuntu24-arm64")
+        return result
+
     def summary(self):
         return dict(scope="Actual Mac server libproc and original Ubuntu ARM guest process tree; retained raw monotonic clock alignments.",
                     samples=self.samples, server=self.server.summary(), run_id=self.remote.run_id)
 
 
 class MacLinuxIdle(MatrixIdle):
-    def __init__(self, directory, server_pid, remote, endpoint, credential):
+    def __init__(self, directory, server_pid, remote, endpoint, credential, *, cycle_mode=False, original_baseline=None, sampler=None, resource_cycles=1):
         self.remote = remote
         super().__init__(directory, server_pid, -1, endpoint, credential,
-                         sampler=MacLinuxSampler(remote, server_pid))
+                         sampler=sampler or MacLinuxSampler(remote, server_pid, resource_cycles=resource_cycles),
+                         cycle_mode=cycle_mode, original_baseline=original_baseline, resource_cycles=resource_cycles)
 
     def request(self, phase):
         path = self.directory / ("resources-" + phase + ".json")

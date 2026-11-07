@@ -6,18 +6,19 @@ import {nativeProgrammeBridge} from './native_programme_bridge.mjs';
 import {now,workerJoinVerified} from './native_programme_profile.mjs';
 /** Same-kernel original programme boundaries. Public health polling is owned by
  * the parent; this helper never creates another transport or changes media. */
-export function nativeMatrixLifecycle(directory,{owner,originalTerminal,workerReceipt,cutoff=Infinity}={}){
+export function nativeMatrixLifecycle(directory,{owner,originalTerminal,workerReceipt,cutoff=Infinity,prefix=''}={}){
+    if(!['','cycle-1-','cycle-2-','cycle-3-'].includes(prefix))throw Error('Explicit original resource cycle required');
     const bridge=nativeProgrammeBridge();owner??=bridge?.owner;cutoff=Math.min(cutoff,bridge?.cutoff??Infinity);
     let terminal=originalTerminal;
     const announce=async(phase,extra={},when=now())=>{
-        const request=join(directory,`resources-${phase}.json`),temporary=request+'.tmp';
+        const request=join(directory,`resources-${prefix}${phase}.json`),temporary=request+'.tmp';
         await writeFile(temporary,JSON.stringify({phase,monotonic_seconds:when,...(owner?{programme_owner:owner}:{}),...extra})+'\n',{flag:'wx',mode:0o600});
         await rename(temporary,request);
         return when;
     };
     const exchange=async(phase,extra={})=>{
         const when=await announce(phase,extra);
-        const until=Math.min(cutoff,phase==='retired'&&owner?terminal+13:when+(phase==='retired'?13:5)),response=join(directory,`resources-${phase}-response.json`);
+        const until=Math.min(cutoff,phase==='retired'&&owner?terminal+13:when+(phase==='retired'?13:5)),response=join(directory,`resources-${prefix}${phase}-response.json`);
         while(now()<until){
             try{
                 const info=await stat(response);if(info.size>2048)throw Error('Original resource response bound');
@@ -37,11 +38,13 @@ export function nativeMatrixLifecycle(directory,{owner,originalTerminal,workerRe
             // A missing observer must never postpone original client cleanup.
             return {passed:true};
         });},
-        retired:async({observedHelpers,helpersJoined,closeFailed})=>{
+        retired:async({observedHelpers,helpersJoined,closeFailed,sessionRetirement,workloadObservation})=>{
             const local={passed:terminal!==undefined&&observedHelpers>0&&helpersJoined&&!closeFailed,
                 observed_helpers:observedHelpers,original_helpers_joined:helpersJoined,
                 original_clients_closed:!closeFailed,
                 all_local_owners_elapsed_ms:terminal===undefined?null:Math.round((now()-terminal)*1000)};
+            if(workloadObservation!==undefined)local.workload_observation=workloadObservation;
+            if(sessionRetirement!==undefined){local.original_session_retirement=sessionRetirement;local.passed&&=sessionRetirement.passed===true;}
             local.passed&&=local.all_local_owners_elapsed_ms<=10000;
             if(bridge){bridge.retired(local);return {retirement:local,worker_parent_idle_required:true};}
             if(owner){

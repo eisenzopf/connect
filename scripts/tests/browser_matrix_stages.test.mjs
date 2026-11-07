@@ -122,3 +122,23 @@ test('RTC statistics attempts remain bounded when every original read rejects',a
   assert.equal((await sampler.close()).joined,true);callback();await Promise.resolve();assert.equal(calls,64);
  }finally{await sampler.close();globalThis.setInterval=originalSet;globalThis.clearInterval=originalClear;}
 });
+
+test('three diagnostics cycles release only closed original peers and retain each archived snapshot',()=>{
+ class Peer{constructor(){this.connectionState=this.iceConnectionState='new';this.iceGatheringState='new';this.signalingState='stable';this.listeners=[];}
+  getTransceivers(){return [];}addEventListener(type,fn){this.listeners.push([type,fn]);}
+  removeEventListener(type,fn){this.listeners=this.listeners.filter(row=>row[0]!==type||row[1]!==fn);}
+  close(){this.connectionState=this.signalingState='closed';}}
+ const scope={RTCPeerConnection:Peer,performance:{now:()=>17}};vm.createContext(scope);
+ vm.runInContext('('+installPeerDiagnostics.toString()+')({peerBound:16})',scope);
+ const archived=[];
+ for(let cycle=1;cycle<=3;cycle++){
+  const peers=Array.from({length:16},()=>new scope.RTCPeerConnection());
+  assert.equal(scope.connectPeerRetireCycle().released,false);
+  assert.equal(scope.connectPeerDiagnostics().peers.length,16);
+  for(const peer of peers)peer.close();
+  const retired=scope.connectPeerRetireCycle();assert.equal(retired.released,true);archived.push(retired.snapshot);
+  assert.equal(retired.snapshot.peers.length,16);assert.equal(scope.connectPeerDiagnostics().peers.length,0);
+  assert.ok(peers.every(peer=>peer.listeners.length===0));
+ }
+ assert.equal(archived.length,3);assert.ok(archived.every(snapshot=>snapshot.omitted_peers===0&&snapshot.peer_bound===16));
+});

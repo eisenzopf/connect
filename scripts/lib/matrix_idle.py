@@ -13,6 +13,7 @@ from pathlib import Path
 from .operational_process_resources import ProcessResources
 from .matrix_macos_resources import MacProcessResources
 from .matrix_owner_diagnostics import idle_owner_diagnostics
+from .matrix_plateau import CYCLE_POLICY, cycle_restoration, cycle_idle_verdict
 
 
 POLICY = dict(profile="connect/matrix-idle/1", idle_seconds=10, sample_seconds=1,
@@ -62,6 +63,8 @@ def restoration(baseline, sample):
 
 def idle_verdict(report):
     """Recompute restoration from retained samples, not a producer's green flag."""
+    if report.get("policy") == CYCLE_POLICY:
+        return cycle_idle_verdict(report)
     try:
         if report["format"] != "connect/matrix-idle-observation/1" or report["policy"] != POLICY:
             return False
@@ -83,12 +86,18 @@ def idle_verdict(report):
 
 
 class MatrixIdle:
-    def __init__(self, directory, server_pid, browser_pid, endpoint, credential, *, sampler=None):
+    def __init__(self, directory, server_pid, browser_pid, endpoint, credential, *, sampler=None, cycle_mode=False, original_baseline=None, resource_cycles=1):
         self.directory = Path(directory)
+        if type(resource_cycles) is not int or resource_cycles not in (1, 3):
+            raise ValueError("One or three original resource cycles required")
+        self.policy = CYCLE_POLICY if cycle_mode else POLICY
+        self.reference_baseline = original_baseline
+        if original_baseline is not None and not cycle_mode:
+            raise ValueError("Original baseline is only shared by declared workload cycles")
         self.endpoint, self.credential = endpoint, credential
         collector = MacProcessResources if sys.platform == "darwin" else ProcessResources
         self.sampler = sampler or collector(dict(server=server_pid, browser=browser_pid),
-            roles=("server", "browser"), open_resources=True, max_samples=300)
+            roles=("server", "browser"), open_resources=True, max_samples=300 * resource_cycles)
         self.samples, self.baselines = [], []
         self.terminal = None
         self.retired = False
@@ -97,6 +106,17 @@ class MatrixIdle:
         self.done = False
         self.baseline = None
         self.result = None
+
+    def restore(self, baseline, sample):
+        return (cycle_restoration(self.reference_baseline if self.reference_baseline is not None else baseline, sample)
+                if self.policy == CYCLE_POLICY else restoration(baseline, sample))
+
+    def persistent_owners(self):
+        if hasattr(self.sampler, "owner_identities"):
+            return self.sampler.owner_identities()
+        return {role: dict(pid=identity[0], start_identity=identity[1],
+                    host_profile="macos-arm64" if sys.platform == "darwin" else "ubuntu24-arm64")
+                for role, identity in self.sampler.roots.items()}
 
     def take(self, stage):
         started = time.monotonic()
@@ -161,7 +181,7 @@ class MatrixIdle:
             elif now - self.pending_baseline >= 1:
                 self.baselines.append(self.take("baseline"))
                 first, last = self.baselines
-                if first.get("error") or last.get("error") or restoration(first, first) or restoration(last, last):
+                if first.get("error") or last.get("error") or self.restore(first, first) or self.restore(last, last):
                     raise ValueError("Original baseline observations unavailable")
                 # Fixed pre-workload high water, never fitted to a later leak.
                 self.baseline = json.loads(json.dumps(last))
@@ -170,7 +190,10 @@ class MatrixIdle:
                         self.baseline["groups"][role][field] = max(s["groups"][role][field] for s in self.baselines)
                 if first["usage"] != last["usage"]:
                     raise ValueError("Live resource baseline is not stable")
-                self.respond("baseline", dict(passed=True, policy=POLICY))
+                if self.reference_baseline is not None:
+                    if cycle_restoration(self.reference_baseline, self.baseline):
+                        raise ValueError("Original Session baseline changed between cycles")
+                self.respond("baseline", dict(passed=True, policy=self.policy))
             return
         if self.terminal is None:
             self.terminal = self.request("terminal")
@@ -187,17 +210,18 @@ class MatrixIdle:
             final = self.take("idle-final")
             idle = [s for s in self.samples if s["stage"] == "idle"]
             within = [s for s in idle if s["monotonic_seconds"] <= self.terminal + POLICY["idle_seconds"]]
-            observed = [(s, restoration(self.baseline, s)) for s in within]
+            observed = [(s, self.restore(self.baseline, s)) for s in within]
             restored = next((s["monotonic_seconds"] - self.terminal for s, errors in observed if not errors), None)
-            failures = restoration(self.baseline, final)
+            failures = self.restore(self.baseline, final)
             stable = len(observed) >= 2 and all(not errors for _, errors in observed[-2:])
             passed = restored is not None and stable and not failures
-            self.result = dict(format="connect/matrix-idle-observation/1", policy=POLICY,
+            self.result = dict(format="connect/matrix-idle-observation/1", policy=self.policy,
                 passed=passed, terminal_monotonic_seconds=self.terminal,
                 observed_seconds=time.monotonic() - self.terminal,
                 restored_within_seconds=restored, final_failures=failures,
                 baseline=self.baseline, baseline_samples=self.baselines, samples=self.samples,
-                process_summary=self.sampler.summary(), native_helper="absent",
+                process_summary=json.loads(json.dumps(self.sampler.summary())) if self.policy == CYCLE_POLICY else self.sampler.summary(), native_helper="absent",
+                **(dict(persistent_owners=self.persistent_owners()) if self.policy == CYCLE_POLICY else {}),
                 scope="Same live server and original container browser tree (Chrome, Node driver and owned PulseAudio fixture); numeric RSS/CPU/descriptors/threads and public live owner/pool counts. No process restart or forced GC. CPU is descriptive; no capacity claim. Browser sources/renderers/client joins are separate required evidence.",
                 cell_qualified=False)
             self.result["passed"] = passed and idle_verdict(self.result)
@@ -205,7 +229,7 @@ class MatrixIdle:
             self.done = True
 
     def finish(self):
-        result = self.result or dict(format="connect/matrix-idle-observation/1", policy=POLICY,
+        result = self.result or dict(format="connect/matrix-idle-observation/1", policy=self.policy,
             passed=False, failure="original-idle-observation-incomplete", samples=self.samples, cell_qualified=False)
         (self.directory / "resource-observation.json").write_text(json.dumps(result, indent=2) + "\n")
         return result

@@ -6,6 +6,7 @@ Public health is sampled only before the workload and after that terminal;
 active media gets numeric process observations, without additional control IO.
 """
 import copy
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -15,6 +16,7 @@ import time
 import urllib.request
 
 from .matrix_idle import POLICY, owned_usage
+from .matrix_plateau import POLICY as PLATEAU_POLICY, CYCLE_POLICY, cycle_restoration, cycle_idle_verdict, evaluate
 from .matrix_macos_resources import MacProcessResources
 from .matrix_owner_diagnostics import idle_owner_diagnostics
 from .operational_process_resources import ProcessResources
@@ -104,13 +106,19 @@ def health_reader(endpoint, credential):
 
 
 class NativeMatrixIdle:
-    def __init__(self, directory, sampler, health, *, clock=time.monotonic):
+    def __init__(self, directory, sampler, health, *, clock=time.monotonic, prefix="", cycle_baseline=None):
+        if prefix not in ("", "cycle-1-", "cycle-2-", "cycle-3-"):
+            raise ValueError("Explicit original resource cycle required")
+        self.prefix, self.cycle_baseline = prefix, cycle_baseline
         self.directory, self.sampler, self.health, self.clock = Path(directory), sampler, health, clock
         self.samples, self.baselines = [], []
         self.baseline = self.terminal = self.retirement = self.result = None
         self.programme_owner = self.original_baseline = self.original_terminal = None
         self.next_sample = self.next_process = 0
         self.failure = None
+
+    def restore(self, baseline, sample):
+        return cycle_restoration(baseline, sample) if self.prefix else restoration(baseline, sample)
 
     def take(self, stage):
         when = self.clock()
@@ -128,7 +136,7 @@ class NativeMatrixIdle:
         return sample
 
     def request(self, phase):
-        path = self.directory / ("resources-" + phase + ".json")
+        path = self.directory / ("resources-" + self.prefix + phase + ".json")
         if not path.exists():
             return None
         if path.is_symlink() or path.stat().st_size > 4096:
@@ -144,7 +152,7 @@ class NativeMatrixIdle:
         return dict(value, original_monotonic_seconds=when)
 
     def respond(self, phase, passed):
-        path = self.directory / ("resources-" + phase + "-response.json")
+        path = self.directory / ("resources-" + self.prefix + phase + "-response.json")
         if not path.exists():
             publish(path, dict(passed=bool(passed)))
 
@@ -157,7 +165,7 @@ class NativeMatrixIdle:
             # Missing process/health observations must not cancel the media or
             # suppress its finally cleanup. Answer each original boundary false.
             for phase in ("baseline", "terminal", "retired"):
-                if (self.directory / ("resources-" + phase + ".json")).exists():
+                if (self.directory / ("resources-" + self.prefix + phase + ".json")).exists():
                     self.respond(phase, False)
 
     def _poll(self):
@@ -176,7 +184,7 @@ class NativeMatrixIdle:
             elif now - self.baselines[0]["monotonic_seconds"] >= 1:
                 self.baselines.append(self.take("baseline"))
                 first, last = self.baselines
-                if restoration(first, first) or restoration(last, last) or first["usage"] != last["usage"]:
+                if self.restore(first, first) or self.restore(last, last) or first["usage"] != last["usage"]:
                     raise ValueError("Native pre-workload baseline unavailable or unstable")
                 self.baseline = copy.deepcopy(last)
                 for role in ROLES:
@@ -213,17 +221,19 @@ class NativeMatrixIdle:
             self.take("idle" if self.retirement is not None else "drain")
         if now >= self.terminal + POLICY["idle_seconds"]:
             final = self.take("idle-final")
-            failures = restoration(self.baseline, final)
-            self.result = dict(format="connect/native-matrix-idle-observation/2", policy=POLICY,
+            failures = self.restore(self.cycle_baseline or self.baseline, final)
+            self.result = dict(format="connect/native-matrix-idle-observation/2", policy=CYCLE_POLICY if self.prefix else POLICY,
                 passed=False, terminal_monotonic_seconds=self.terminal,
                 programme_owner=self.programme_owner, original_baseline_monotonic_seconds=self.original_baseline,
                 original_terminal_monotonic_seconds=self.original_terminal,
                 observed_seconds=self.clock() - self.terminal, baseline=self.baseline,
                 baseline_samples=self.baselines, samples=self.samples, retirement=self.retirement or {},
-                final_failures=failures, process_summary=self.sampler.summary(),
+                final_failures=failures, process_summary=copy.deepcopy(self.sampler.summary()) if self.prefix else self.sampler.summary(),
                 scope="Same live server and original native Node controller/supervisor tree. Existing native SDK helpers and physical codecs must join. Terminal is recorded before client close. Numeric RSS/descriptors/threads and public owner/pool usage have zero retained-resource allowance; CPU is descriptive. No process restart, forced GC or media during idle.",
                 cell_qualified=False)
-            self.result["passed"] = native_idle_verdict(self.result)
+            if self.prefix:
+                self.result["scope"] = "Original per-cycle ten-second idle with exact Session-resource restoration; process warmup and plateau are evaluated separately across three real cycles of the same original OS owners."
+            self.result["passed"] = (cycle_idle_verdict(self.result, self.cycle_baseline) if self.prefix else native_idle_verdict(self.result))
             if self.retirement is not None:
                 self.respond("retired", self.result["passed"])
 
@@ -237,8 +247,118 @@ class NativeMatrixIdle:
         return result
 
 
-def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, endpoint, credential, wrap=None):
-    if type(budget) not in (int, float) or not math.isfinite(budget) or not 20 <= budget <= 300:
+def native_cycle_retirement_verified(retirement, owner, terminal):
+    """Recompute original cleanup bounds independently of producer green flags."""
+    try:
+        elapsed = retirement["all_local_owners_elapsed_ms"]
+        return (retirement.get("passed") is True and retirement.get("original_helpers_joined") is True
+            and retirement.get("original_clients_closed") is True
+            and type(retirement.get("observed_helpers")) is int and retirement["observed_helpers"] >= 1
+            and type(elapsed) in (int, float) and math.isfinite(elapsed) and 0 <= elapsed <= 10000
+            and worker_join_verified(retirement.get("programme_worker"), owner, terminal))
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+class NativeMatrixPlateau:
+    """Three disjoint boundary files; all raw per-cycle reports remain on disk."""
+    def __init__(self, directory, sampler, health, *, child_class=NativeMatrixIdle, clock=time.monotonic):
+        self.directory, self.sampler, self.health = Path(directory), sampler, health
+        self.clock, self.child_class = clock, child_class
+        self.children, self.cycles = [], []
+        self.baseline, self.original_owners = None, None
+        self.current = None
+        self.failure = None
+
+    def owners(self, programme):
+        if hasattr(self.sampler, "owner_identities"):
+            owners = self.sampler.owner_identities()
+        else:
+            if not hasattr(self.sampler, "roots"):
+                raise ValueError("Original native owner identities unavailable")
+            owners = {role:dict(pid=pid, birth=list(birth) if isinstance(birth, tuple) else birth)
+                      for role, (pid, birth) in self.sampler.roots.items()}
+        # The helper tree root is the original supervisor; its actual Node
+        # descendant must also remain the identical programme process.
+        owners["helper"]["programme_node_pid"] = programme["original_node_pid"]
+        return owners
+
+    def poll(self):
+        if len(self.cycles) >= 3 or self.failure:
+            return
+        index = len(self.cycles) + 1
+        if self.current is None:
+            prefix = "cycle-" + str(index) + "-"
+            if not (self.directory / ("resources-" + prefix + "baseline.json")).exists():
+                return
+            self.current = self.child_class(self.directory, self.sampler, self.health,
+                clock=self.clock, prefix=prefix, cycle_baseline=self.baseline)
+            self.children.append(self.current)
+        child = self.current
+        child.poll()
+        if child.baseline is not None and self.baseline is None:
+            self.baseline = copy.deepcopy(child.baseline)
+        if child.failure and child.retirement is None:
+            try:
+                request = child.request("retired")
+                terminal_request = child.request("terminal")
+                if request and terminal_request and self.clock() >= terminal_request["monotonic_seconds"] + 10:
+                    child.retirement = request["retirement"]
+                    child.programme_owner = request["programme_owner"]
+                    child.original_terminal = terminal_request["original_monotonic_seconds"]
+                    child.result = child.finish()
+            except (OSError, KeyError, ValueError, TypeError):
+                return
+        if child.result is None or child.retirement is None:
+            return
+        idle = child.finish()
+        retirement = child.retirement
+        owner = child.programme_owner
+        try:
+            owners = self.owners(owner)
+            if self.original_owners is None:
+                self.original_owners = copy.deepcopy(owners)
+            receipt = retirement["programme_worker"]
+            workload = retirement.get("workload_observation", {})
+            sessions = retirement.get("original_session_retirement", {})
+            session_rows = sessions.get("sessions", [])
+            sessions_joined = (sessions.get("format") == "connect/original-session-retirement/1"
+                and sessions.get("passed") is True and len(session_rows) == 2
+                and all(v.get("status") in ("ended", "already-terminal") for v in session_rows)
+                and len({v.get("original_operation_sha256") for v in session_rows}) == 2)
+            cycle = dict(index=index, workload_id="native-cycle-" + str(index) + "-" + str(owner["original_node_pid"]),
+                workload_started=workload.get("actual_connection_workload_observed") is True,
+                workload_complete=(workload.get("programme_window_observed") is True and workload.get("seconds") == 62
+                    and workload.get("routes") == 6 and workload.get("original_receive_tasks_joined") is True),
+                workload_observation=workload, workload_evidence_sha256=receipt["report_sha256"],
+                workload_evidence_kind="original-digest-verified-native-worker-programme-report",
+                original_programme_owner=owner, original_worker_receipt=receipt,
+                persistent_owners=owners,
+                joins=dict(session_owners_joined=sessions_joined and native_cycle_retirement_verified(retirement, owner, child.original_terminal),
+                    helper_work_joined=native_cycle_retirement_verified(retirement, owner, child.original_terminal),
+                    forced=receipt["forced"],
+                    evidence_sha256=hashlib.sha256(json.dumps(retirement, sort_keys=True, separators=(",", ":")).encode()).hexdigest()),
+                idle_resources=idle)
+            self.cycles.append(cycle)
+            publish(self.directory / ("resource-observation-cycle-" + str(index) + ".json"), idle)
+        except (KeyError, ValueError, TypeError) as error:
+            self.failure = type(error).__name__
+        self.current = None
+
+    def finish(self):
+        report = dict(format="connect/matrix-plateau-observation/1", policy=PLATEAU_POLICY,
+            baseline=self.baseline, persistent_owners=self.original_owners, cycles=self.cycles,
+            failure=self.failure, passed=False, cell_qualified=False)
+        report["evaluation"] = evaluate(report)
+        report["passed"] = report["evaluation"]["passed"] and self.failure is None
+        publish(self.directory / "resource-observation.json", report)
+        return report
+
+
+def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, endpoint, credential, wrap=None, resource_cycles=1):
+    if resource_cycles not in (1, 3) or type(resource_cycles) is not int:
+        raise ValueError("One or three actual native cycles required")
+    if type(budget) not in (int, float) or not math.isfinite(budget) or not 20 <= budget <= 300 * resource_cycles:
         raise ValueError("Bounded native workload and original idle interval required")
     directory = Path(directory)
     directory.mkdir(mode=0o700, exist_ok=True)
@@ -258,7 +378,7 @@ def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, 
             time.sleep(.02)
         collector = MacProcessResources if sys.platform == "darwin" else ProcessResources
         try:
-            sampler = collector(dict(server=server_pid, helper=owner.pid), roles=ROLES, open_resources=True, max_samples=360)
+            sampler = collector(dict(server=server_pid, helper=owner.pid), roles=ROLES, open_resources=True, max_samples=360 * resource_cycles)
         except (OSError, ValueError) as error:
             failure = type(error).__name__
             class UnavailableSampler:
@@ -267,7 +387,7 @@ def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, 
                 def summary(self):
                     return dict(sample_count=0, groups={})
             sampler = UnavailableSampler()
-        idle = NativeMatrixIdle(directory, sampler, health_reader(endpoint, credential))
+        idle = (NativeMatrixPlateau if resource_cycles == 3 else NativeMatrixIdle)(directory, sampler, health_reader(endpoint, credential))
         while True:
             idle.poll()
             code = owner.poll()

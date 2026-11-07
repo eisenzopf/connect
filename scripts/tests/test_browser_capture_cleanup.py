@@ -4,6 +4,7 @@ The pcap validator and its strict packet/drop rules are real. The process and
 network effects are local fakes; these tests are not packet-capture evidence.
 """
 import ast
+import json
 from pathlib import Path
 import signal
 import socket
@@ -13,11 +14,13 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+import uuid
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib.matrix_browser_capture import BrowserCapture
 from lib.transport_matrix import digest
+from lib.matrix_plateau import POLICY as PLATEAU_POLICY, evaluate as evaluate_plateau
 
 RUNNER = Path(__file__).resolve().parents[1] / "rehearse-gate6-browser-matrix.py"
 
@@ -30,7 +33,24 @@ def cleanup_program():
     # source-hash/report serialization is outside this resource-owner boundary.
     last = next(index for index, node in enumerate(original.finalbody)
                 if isinstance(node, ast.For) and isinstance(node.target, ast.Name) and node.target.id == "handle")
-    return compile(ast.Module(body=original.finalbody[:last + 1], type_ignores=[]), str(RUNNER), "exec")
+    # The extracted finally block runs in the same resource-state scope as
+    # production main. Reuse its actual pure declarations, rather than inventing
+    # cycle defaults or bypassing the three-cycle missing-evidence refusal.
+    required = {"idle_observers", "idle_results", "cycle_count", "cycle_workloads"}
+    initializers, found = [], set()
+    for node in main.body[:main.body.index(original)]:
+        if not isinstance(node, ast.Assign):
+            continue
+        names = {value.id for target in node.targets for value in ast.walk(target)
+                 if isinstance(value, ast.Name)}
+        if names & required:
+            if not names <= required:
+                raise AssertionError("Resource declaration includes an unmodeled owner")
+            initializers.append(node)
+            found.update(names)
+    if found != required:
+        raise AssertionError("Original pre-cleanup resource declarations changed")
+    return compile(ast.Module(body=initializers + original.finalbody[:last + 1], type_ignores=[]), str(RUNNER), "exec")
 
 
 def pcap(transport, *, empty=False, truncated=False):
@@ -47,7 +67,7 @@ def pcap(transport, *, empty=False, truncated=False):
 
 
 class CaptureCleanup(unittest.TestCase):
-    def execute(self, *, transport="chrome-webtransport", empty=False, dropped=0, truncated=False, started=True):
+    def execute(self, *, transport="chrome-webtransport", empty=False, dropped=0, truncated=False, started=True, resource_cycles=1):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             events = []
@@ -108,22 +128,39 @@ class CaptureCleanup(unittest.TestCase):
             report = dict(passed=True)
             scope = dict(remote=None, browser_owner=TrafficOwner(), network_name="original-network",
                 capture=capture, idle=SimpleNamespace(finish=lambda: dict(passed=True)),
-                args=SimpleNamespace(stage="quality", transport=transport), report=report,
+                args=SimpleNamespace(stage="quality", transport=transport, resource_cycles=resource_cycles), report=report,
                 stop_server=lambda: events.append("server-joined"), server=None, log_handles=[],
-                subprocess=subprocess, signal=signal)
+                subprocess=subprocess, signal=signal, uuid=uuid, json=json,
+                PLATEAU_POLICY=PLATEAU_POLICY, evaluate_plateau=evaluate_plateau)
             with patch("lib.matrix_browser_capture.os.killpg", side_effect=killpg), patch.object(subprocess, "run", side_effect=remove_network):
                 exec(cleanup_program(), scope)
             return report, events
 
     def test_original_duplex_capture_joins_before_its_interface_is_removed(self):
-        for transport in ("chrome-webtransport", "chrome-wss-webrtc", "firefox-wss-webrtc"):
-            with self.subTest(transport=transport):
-                report, events = self.execute(transport=transport)
-                self.assertTrue(report["packet_capture"]["observed"])
-                self.assertEqual(report["packet_capture"]["counts"]["packets"], 2)
-                self.assertEqual(report["packet_capture"]["kernel_dropped_packets"], 0)
-                self.assertEqual(events, ["traffic-joined", "capture-joined", "network-removed", "server-joined"])
-                self.assertTrue(report["browser_owner_joined"]); self.assertTrue(report["client_network_removed"])
+        for resource_cycles in (1, 3):
+            for transport in ("chrome-webtransport", "chrome-wss-webrtc", "firefox-wss-webrtc"):
+                with self.subTest(transport=transport, resource_cycles=resource_cycles):
+                    report, events = self.execute(transport=transport, resource_cycles=resource_cycles)
+                    self.assertTrue(report["packet_capture"]["observed"])
+                    self.assertEqual(report["packet_capture"]["counts"]["packets"], 2)
+                    self.assertEqual(report["packet_capture"]["kernel_dropped_packets"], 0)
+                    self.assertEqual(events, ["traffic-joined", "capture-joined", "network-removed", "server-joined"])
+                    self.assertTrue(report["browser_owner_joined"]); self.assertTrue(report["client_network_removed"])
+                    if resource_cycles == 1:
+                        self.assertTrue(report["passed"])
+                        self.assertEqual(report["idle_resources"], dict(passed=True))
+                    else:
+                        # Capture and cleanup facts survive independently. This
+                        # model ran no three-cycle media and cannot qualify it.
+                        self.assertFalse(report["passed"])
+                        idle = report["idle_resources"]
+                        self.assertEqual(idle["format"], "connect/matrix-plateau-observation/1")
+                        self.assertEqual(idle["policy"], PLATEAU_POLICY)
+                        self.assertFalse(idle["passed"])
+                        self.assertEqual(idle["cycles"], [])
+                        ids = idle["original_cycle_ids"]
+                        self.assertEqual([row["index"] for row in ids], [1, 2, 3])
+                        self.assertEqual(len({row["workload_id"] for row in ids}), 3)
 
     def test_rejected_capture_keeps_failure_and_still_joins_fixture_owners(self):
         for options in (dict(empty=True), dict(dropped=1), dict(truncated=True)):
@@ -135,11 +172,13 @@ class CaptureCleanup(unittest.TestCase):
                 self.assertEqual(events, ["traffic-joined", "capture-joined", "network-removed", "server-joined"])
 
     def test_unstarted_capture_never_becomes_proof_and_still_removes_owned_network(self):
-        report, events = self.execute(started=False)
-        self.assertFalse(report["passed"]); self.assertFalse(report["packet_capture"]["observed"])
-        self.assertFalse(report["packet_capture"]["owner_created"])
-        self.assertTrue(report["client_network_removed"])
-        self.assertEqual(events, ["traffic-joined", "network-removed", "server-joined"])
+        for resource_cycles in (1, 3):
+            with self.subTest(resource_cycles=resource_cycles):
+                report, events = self.execute(started=False, resource_cycles=resource_cycles)
+                self.assertFalse(report["passed"]); self.assertFalse(report["packet_capture"]["observed"])
+                self.assertFalse(report["packet_capture"]["owner_created"])
+                self.assertTrue(report["client_network_removed"])
+                self.assertEqual(events, ["traffic-joined", "network-removed", "server-joined"])
 
 
 if __name__ == "__main__":

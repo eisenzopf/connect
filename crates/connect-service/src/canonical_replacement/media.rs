@@ -629,9 +629,18 @@ impl TargetPolicy {
                     .find(|binding| binding.requested.logical_id == source.logical_id)
                     .map(|binding| binding.requested.medium)
             });
+            // One physical receive needs the original replacement owners and
+            // this exact publisher. Generic preparation/commit still captures
+            // the full scene; unrelated peers lend no permission to this IO.
+            let intent = self.pending.intent();
             let origins = entries
-                .values()
-                .map(|entry| entry.origin.clone())
+                .iter()
+                .filter(|(connection, _)| {
+                    **connection == intent.source
+                        || **connection == intent.retained
+                        || **connection == source.connection
+                })
+                .map(|(_, entry)| entry.origin.clone())
                 .collect::<Vec<_>>();
             leaf = 4;
             let origin = self.origin.get().ok_or(StreamControlError::NotReady)?;

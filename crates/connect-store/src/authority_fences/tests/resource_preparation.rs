@@ -63,7 +63,7 @@ fn busy_registry_after_resource_preparation_refuses_and_releases_its_original_fi
         blocked = Some(
             manager
                 .readers
-                .try_lock()
+                .try_write()
                 .expect("resource factory must run outside the registry"),
         );
         Ok(file)
@@ -251,4 +251,106 @@ fn blocked_shared_reader_keeps_original_deadline_and_releases_partial_scopes() {
     );
     drop(held);
     drop(f.store.try_acquire_authority(&[a, b]).unwrap());
+}
+
+#[test]
+fn warm_readers_share_registry_and_original_resource_without_bypassing_writer() {
+    let f = Fixture::new();
+    let scope = f.scope(AuthorityMode::Read);
+    let first = f.store.try_acquire_authority(&[scope.clone()]).unwrap();
+    let Held::Read {
+        _resource: original,
+    } = &first._held[0]
+    else {
+        panic!("expected original reader");
+    };
+    let weak = Arc::downgrade(original);
+    // Hold a real shared metadata guard throughout the second complete Store
+    // admission. An exclusive warm lookup deterministically refuses here.
+    let registry = f.store.authority.readers.read().unwrap();
+    let store = f.store.clone();
+    let other_scope = scope.clone();
+    let (sent, received) = mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        sent.send(store.try_acquire_authority(&[other_scope]))
+            .unwrap();
+    });
+    let result = received.recv_timeout(Duration::from_secs(1));
+    drop(registry);
+    worker.join().unwrap();
+    let second = result
+        .expect("warm admission blocked behind another shared registry guard")
+        .expect("warm registry readers must coexist");
+    let Held::Read { _resource: current } = &second._held[0] else {
+        panic!("expected concurrent reader");
+    };
+    assert!(Arc::ptr_eq(original, current));
+    assert!(first.covers(&[scope.clone()]));
+    assert!(second.covers(&[scope]));
+    let write = f.scope(AuthorityMode::Write);
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[write.clone()])
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(first);
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[write.clone()])
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(second);
+    assert!(
+        weak.upgrade().is_none(),
+        "registry pinned an inactive reader"
+    );
+    drop(f.store.try_acquire_authority(&[write]).unwrap());
+}
+
+#[test]
+fn cold_publication_prunes_expired_weak_metadata_without_unlocking_a_foreign_owner() {
+    let f = Fixture::new();
+    let scope = AuthorityScope::identity("expired_reader", AuthorityMode::Read).unwrap();
+    let manager = &f.store.authority;
+    let name = manager.name(&(scope.kind, scope.id.clone())).unwrap();
+    let first = f.store.try_acquire_authority(&[scope.clone()]).unwrap();
+    let Held::Read {
+        _resource: original,
+    } = &first._held[0]
+    else {
+        panic!("expected original reader");
+    };
+    let weak = Arc::downgrade(original);
+    drop(first);
+    assert!(weak.upgrade().is_none());
+    // The manager remains alive, but its stale weak entry holds no kernel lock.
+    let foreign = manager.file(&format!("{name}.resource")).unwrap();
+    lock_with(&foreign, None).expect("expired reader kept its resource locked");
+    assert!(manager.readers.read().unwrap().contains_key(&name));
+    let other = AuthorityScope::identity("cold_reader", AuthorityMode::Read).unwrap();
+    let fresh = f.store.try_acquire_authority(&[other]).unwrap();
+    assert!(
+        !manager.readers.read().unwrap().contains_key(&name),
+        "cold publication did not sweep expired weak metadata"
+    );
+    let probe = manager.file(&format!("{name}.resource")).unwrap();
+    assert!(
+        lock_with(&probe, None).is_err(),
+        "sweep unlocked a foreign owner"
+    );
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[scope.clone()])
+            .unwrap_err()
+            .code,
+        "authority-unavailable"
+    );
+    drop(probe);
+    drop(foreign);
+    drop(fresh);
+    drop(f.store.try_acquire_authority(&[scope]).unwrap());
 }

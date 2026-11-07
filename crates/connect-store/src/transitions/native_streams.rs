@@ -671,6 +671,14 @@ impl Store {
             }
             (ids, scopes)
         };
+        // No candidates means no authority scopes or SQL writes to recover.
+        // A later periodic scan still selects work queued after this read.
+        if ids.is_empty() {
+            if !owner.current() {
+                return Err(Error::forbidden());
+            }
+            return Ok(0);
+        }
         let held = self.acquire_authority(
             &scopes,
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),

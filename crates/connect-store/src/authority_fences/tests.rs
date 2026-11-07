@@ -82,7 +82,7 @@ fn brief_metadata_wait_bounds_local_registry_and_preserves_original_owner() {
     // The writer acquires its first scope, then encounters a real local
     // registry exclusion at the record reader. Neither mutex acquisition nor
     // partial file custody may outlive the original short admission window.
-    let held = f.store.authority.readers.lock().unwrap();
+    let held = f.store.authority.readers.write().unwrap();
     let began = Instant::now();
     assert_eq!(
         f.store
@@ -777,7 +777,7 @@ fn immediate_admission_refuses_queued_writer_and_releases_partial_scopes() {
 fn immediate_admission_refuses_reader_map_contention_without_waiting() {
     let f = Fixture::new();
     let scope = f.scope(AuthorityMode::Read);
-    let map = f.store.authority.readers.lock().unwrap();
+    let map = f.store.authority.readers.write().unwrap();
     let store = f.store.clone();
     let target = scope.clone();
     let (sent, received) = mpsc::channel();

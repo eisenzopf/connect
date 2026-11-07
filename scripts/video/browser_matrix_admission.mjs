@@ -26,6 +26,12 @@ assert.equal(spec.format,'connect/browser-matrix-admission-input/1');
 assert.ok(['admission','programme','quality'].includes(spec.stage));
 assert.ok(['chrome-webtransport','chrome-wss-webrtc','firefox-wss-webrtc'].includes(spec.transport));
 assert.ok(['EdDSA','ES256'].includes(spec.signingAlgorithm));
+const cycleCount=spec.resourceCycles??1;
+assert.ok([1,3].includes(cycleCount)&& (cycleCount===1||spec.stage==='quality'));
+assert.equal(spec.cycleWorkloads.length,cycleCount);
+assert.ok(spec.cycleWorkloads.every((cycle,index)=>cycle.index===index+1
+    &&typeof cycle.workload_id==='string'&&/^[a-zA-Z0-9_-]{1,48}$/.test(cycle.workload_id)));
+assert.equal(new Set(spec.cycleWorkloads.map(cycle=>cycle.workload_id)).size,cycleCount);
 assert.ok(['linux','darwin'].includes(process.platform)&&process.arch==='arm64');
 if(process.platform==='linux')assert.equal(process.env.CONNECT_GATE6_OWNED_BROWSER_CONTAINER,'1');
 const output=await fs.realpath(spec.output);
@@ -72,7 +78,7 @@ const report={format:'connect/browser-matrix-admission-observation/1',source_rev
         leaf_sha256:leafSha256,leaf_key:'ECDSA-P256',leaf_validity_seconds:(notAfter-notBefore)/1000,certificate_errors_ignored:false}};
 // The parent owns a 240-second process deadline. Leave room here for the
 // original browser and listener joins, while preserving every inner deadline.
-const programmeDeadline=performance.now()+210000;
+const programmeDeadline=performance.now()+210000*cycleCount;
 let owner,server,page,journal,stun,unavailable,stage='asset-listener',events=0,serial=Promise.resolve(),diagnostics=Promise.resolve(),diagnosticBytes=0;
 const diagnostic=text=>{
     const body=String(text).slice(0,8192)+'\n';diagnosticBytes+=Buffer.byteLength(body);
@@ -132,24 +138,58 @@ try{
     // Bind only the actual client interface already authenticated by the
     // fixture certificate, retaining ordinary browser mDNS/privacy policy.
     stun=await openLoopbackStun(new URL(spec.origin).hostname,fixtureAddresses);spec.rtcConfiguration={iceServers:[{urls:stun.url}]};
-    unavailable=await matrixUnavailableTransports();spec.unavailableEndpoints=unavailable.endpoints;
+    unavailable=await matrixUnavailableTransports({cycles:cycleCount});spec.unavailableEndpoints=unavailable.endpoints;
     page=await owner.browser.newPage();
     await page.addInitScript(installPeerDiagnostics,{peerBound:16});
     page.on('console',message=>diagnostic(message.text()));
     page.on('pageerror',error=>diagnostic(error.stack??error));
     await page.goto(spec.origin,{timeout:5000});
-    if(spec.stage==='quality')await page.exposeFunction('matrixResources',matrixResourceBridge(output));
-    await page.exposeFunction('matrixAuthority',matrixAuthorityBridge(output));
+    if(spec.stage==='quality')await page.exposeFunction('matrixResources',matrixResourceBridge(output,{cycles:cycleCount}));
+    await page.exposeFunction('matrixAuthority',matrixAuthorityBridge(output,{cycles:cycleCount}));
+    const cycleArchives=[],cycleSocketBaselines=[];
+    await page.exposeFunction('matrixCycleStart',cycle=>{
+        assert.equal(cycle.index,cycleSocketBaselines.length+1);
+        assert.deepEqual(cycle,spec.cycleWorkloads[cycle.index-1]);
+        cycleSocketBaselines.push(unavailable.observation());
+    });
+    await page.exposeFunction('matrixCycleArchive',async(cycle,valueJson)=>{
+        assert.equal(typeof valueJson,'string');assert.ok(Buffer.byteLength(valueJson)<=16*1024*1024);
+        const value=JSON.parse(valueJson);
+        assert.equal(cycle.index,cycleArchives.length+1);
+        assert.deepEqual(cycle,spec.cycleWorkloads[cycle.index-1]);
+        const folder=path.join(output,'cycles',`cycle-${cycle.index}`);
+        await fs.mkdir(folder,{recursive:true,mode:0o700});
+        const save=async(name,data)=>{
+            const body=JSON.stringify(data)+'\n';assert.ok(Buffer.byteLength(body)<=16*1024*1024);
+            await fs.writeFile(path.join(folder,name),body,{flag:'wx',mode:0o600});
+            return createHash('sha256').update(body).digest('hex');
+        };
+        const socketStart=cycleSocketBaselines[cycle.index-1],socketEnd=unavailable.observation();
+        value.transport_probe_delta={udp_datagrams:socketEnd.udp_datagrams-socketStart.udp_datagrams,
+            tcp_connections:socketEnd.tcp_connections-socketStart.tcp_connections,
+            errors:socketEnd.errors-socketStart.errors,overflow:socketEnd.overflow};
+        const joins={cycle,original_node_pid:process.pid,retirement:value.retirement,
+            idle_resources:value.idle_resources,original_client_closes:value.original_client_closes,
+            diagnostic_cycle_retirement:value.diagnostic_cycle_retirement};
+        const evidence={...cycle,observation_sha256:await save('cycle-observation.json',value),
+            workload_evidence_sha256:await save('workload.json',value.programme??{}),
+            join_evidence_sha256:await save('original-joins.json',joins)};
+        cycleArchives.push(evidence);return evidence;
+    });
+    const cycleEvents=Array(cycleCount).fill(0);
     journal=await fs.open(path.join(output,'original-operations.jsonl'),'wx',0o600);
     await page.exposeFunction('matrixJournal',event=>{
         serial=serial.then(async()=>{
-            const body=JSON.stringify(event)+'\n';assert.ok(Buffer.byteLength(body)<=65536&&++events<=256);
+            const body=JSON.stringify(event)+'\n';assert.ok(Buffer.byteLength(body)<=65536&&++events<=256*cycleCount);
+            assert.ok(Number.isInteger(event.cycle_index)&&event.cycle_index>=1&&event.cycle_index<=cycleCount);
+            assert.equal(event.workload_id,spec.cycleWorkloads[event.cycle_index-1].workload_id);
+            assert.ok(++cycleEvents[event.cycle_index-1]<=256);
             await journal.write(body);await journal.sync();
             if(event.name)report.last_original_stage=event.name;
         });return serial;
     });
     const selected=spec.transport==='chrome-webtransport'?'webtransport':'wss-webrtc';
-    await page.evaluate(({spec,selected})=>{
+    await page.evaluate(({spec,selected,cycleCount})=>{
         if(globalThis.connectMatrixOriginalProgramme)throw Error('Original browser programme already started');
         const original=globalThis.connectMatrixOriginalProgramme={state:'pending'};
         // Start once, return immediately to automation, and retain the exact
@@ -162,8 +202,7 @@ try{
         const {BrowserMediaPeer}=await import('/sdk/browser_media.js');
         const {BrowserRtcConnection}=await import('/sdk/browser_sdk_webrtc.js');
         const {browserMatrixRetirementHooks,finishBrowserMatrixRetirement}=await import('/_matrix/retirement-hooks.mjs');
-        const retirementHooks=browserMatrixRetirementHooks(BrowserMediaPeer,BrowserRtcConnection);
-        const {browserMatrixPlan,browserMatrixAdmission,retireBrowserMatrixAdmission}=await import('/_matrix/admission.mjs');
+        const {browserMatrixPlan,browserMatrixAdmission,retireBrowserMatrixAdmission,browserMatrixCycleSummary,browserMatrixCycleOutcome}=await import('/_matrix/admission.mjs');
         const {browserMatrixSources}=await import('/_matrix/sources.mjs');
         const {browserMatrixProgramme,browserMatrixKeepalive,retireBrowserMatrixProgramme,closeBrowserMatrixProgramme}=await import('/_matrix/programme.mjs');
         const pin=Uint8Array.from(spec.tls.leafSha256.match(/../g),value=>parseInt(value,16));
@@ -185,6 +224,17 @@ try{
             pinRefusal={mismatched_leaf_refused:true,original_transport_closed:true,application_streams_created:0,application_mutations_submitted:0};
         }
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
+        const cycles=[];
+        for(const cycle of spec.cycleWorkloads){
+        const cycleStarted=performance.now(),cycleDeadline=cycleStarted+210000;
+        await window.matrixCycleStart(cycle);
+        let value=await (async()=>{
+        const retirementHooks=browserMatrixRetirementHooks(BrowserMediaPeer,BrowserRtcConnection);
+        const resources=(phase,terminal)=>window.matrixResources(phase,terminal,cycle.index);
+        const journal=event=>{
+            if(performance.now()>=cycleDeadline)throw Error('Original browser cycle deadline');
+            return window.matrixJournal({...event,cycle_index:cycle.index,workload_id:cycle.workload_id});
+        };
         const actors={};window.matrixActors=actors;let state={},sources,keepalive,observer,selectionEnrollment;
         const {browserMatrixRetiredReferences}=await import('/_matrix/retired-references.mjs');
         const retiredReferences=browserMatrixRetiredReferences({actors,state});
@@ -192,7 +242,7 @@ try{
         const programmeReport={};let resourceClock,resourceTerminalRequested=false,resourceRetiredRequested=false,failureHandled=false,diagnosticHooksReported=false;
         try{
             if(spec.stage==='quality'){
-                const baseline=await window.matrixResources('baseline');
+                const baseline=await resources('baseline');
                 resourceClock={host:baseline.monotonic_seconds,browser:performance.now()};
             }
             for(const [name,configuration] of Object.entries(spec.actors)){
@@ -211,7 +261,7 @@ try{
                 actors[name]={identityId:configuration.identityId,deviceId:configuration.device.id,endpointId:configuration.endpointId,client};
             }
             if(spec.stage!=='admission')keepalive=browserMatrixKeepalive(actors);
-            window.matrixPhase='admission';const plan=browserMatrixPlan();
+            window.matrixPhase='admission';const plan=browserMatrixPlan(undefined,cycle);
             sources=await browserMatrixSources();
             if(spec.stage==='quality'){
                 const {browserMatrixObservation}=await import('/_matrix/observation.mjs');
@@ -219,33 +269,33 @@ try{
                 observer=browserMatrixObservation(BrowserMediaRenderer,plan,selected==='webtransport'?BrowserMediaPeer:null,
                     selected==='wss-webrtc'?BrowserRtcConnection:null);
             }
-            state=await browserMatrixAdmission({actors,plan,state,selectedTransport:selected,journal:event=>window.matrixJournal(event),
+            state=await browserMatrixAdmission({actors,plan,state,selectedTransport:selected,journal:event=>journal(event),
                 startMedia:input=>sources.start(input),afterControl:async state=>{
                     window.matrixPhase='transport-selection';
                     const {browserMatrixSelection}=await import('/_matrix/selection.mjs');
                     try{await browserMatrixSelection({Sdk:BrowserSdkClient,Client:BrowserClient,enrollment:selectionEnrollment,
                         endpoints:spec.endpoints,unavailable:spec.unavailableEndpoints,reference:state.createReference,
-                        conversationId:state.conversation.id,journal:event=>window.matrixJournal(event),report:selection});}
+                        conversationId:state.conversation.id,journal:event=>journal(event),report:selection});}
                     catch(error){selection.failure??={name:error.name,kind:error.kind??null};}
                     window.matrixPhase='current-authority-refusals';
                     const {browserMatrixAuthority}=await import('/_matrix/authority.mjs');
-                    await browserMatrixAuthority({Sdk:BrowserSdkClient,provision:kind=>window.matrixAuthority(kind),
+                    await browserMatrixAuthority({Sdk:BrowserSdkClient,provision:kind=>window.matrixAuthority(kind,cycle.index),
                         endpoints:spec.endpoints,selected,pin,state,report:currentAuthority});
                     window.matrixPhase='six-browser-media-offers';
                 }});
             const sourceStartup=sources.observation();
             if(spec.stage!=='admission'){
                 window.matrixPhase='four-move-programme';
-                await browserMatrixProgramme({state,actors,plan,sources,journal:event=>window.matrixJournal(event),
+                await browserMatrixProgramme({state,actors,plan,sources,journal:event=>journal(event),
                     keepalive,report:programmeReport,observer,selectedTransport:selected});
             }
             const retirement=await retireBrowserMatrixProgramme({keepalive,report:programmeReport,retire:async()=>{
                 window.matrixPhase='original-retirement';
                 if(spec.stage==='quality'){
                     resourceTerminalRequested=true;
-                    await window.matrixResources('terminal',resourceClock.host+(programmeReport.terminal_ms-resourceClock.browser)/1000);
+                    await resources('terminal',resourceClock.host+(programmeReport.terminal_ms-resourceClock.browser)/1000);
                 }
-                return retireBrowserMatrixAdmission({state,actors,plan,journal:event=>window.matrixJournal(event),
+                return retireBrowserMatrixAdmission({state,actors,plan,journal:event=>journal(event),
                     closeOriginalClients:perform=>retiredReferences.closeClients(perform),
                     ...(spec.stage!=='admission'?{terminalMs:programmeReport.terminal_ms,reason:'matrix-programme-complete'}:{})});
             }});
@@ -269,14 +319,16 @@ try{
                 retirement.allLocalOwnersElapsedMs=completedMs;
                 window.matrixPhase='ten-second-idle-observation';
                 resourceRetiredRequested=true;
-                const measured=await window.matrixResources('retired');
+                const measured=await resources('retired');
                 idleResources={passed:measured.passed&&localOwnersJoined&&fixtureReferences.released,localOwnersJoined,renderer,diagnostic_hooks:diagnosticHooks,fixture_reference_retirement:fixtureReferences,
                     ...(selected==='webtransport'?{media_peers:peers.length,active_bindings:peers.reduce((n,p)=>n+p.activeBindings,0),
                         queued_packets:peers.reduce((n,p)=>n+p.queuedPackets,0),queued_bytes:peers.reduce((n,p)=>n+p.queuedBytes,0)}:
                         {rtc_owners:rtc,media_peers:rtc.length,active_bindings:rtc.filter(p=>!p.closed).length,
                             queue_observation:'RTC has no SDK datagram queues; original RTCPeerConnections must be closed and shutdown joined'})};
             }
-            return {passed:retirement.passed&&selection.passed&&currentAuthority.passed&&(spec.stage==='admission'||programmeReport.passed)&&(!observer||(programmeReport.decoded_media.passed&&idleResources?.renderer.playback_passed===true))&&(!idleResources||idleResources.passed),
+            return {workload_started:Boolean(programmeReport.source_programme),
+                workload_complete:programmeReport.source_programme?.durationMs===62000
+                    &&programmeReport.finished_ms>=62000&&programmeReport.finished_ms<67000,cycle:{...cycle},passed:retirement.passed&&selection.passed&&currentAuthority.passed&&(spec.stage==='admission'||programmeReport.passed)&&(!observer||(programmeReport.decoded_media.passed&&idleResources?.renderer.playback_passed===true))&&(!idleResources||idleResources.passed),
                 ...(observer?{decoded_media:programmeReport.decoded_media,
                     ...(programmeReport.decoded_media.passed?{}:{failure:{stage:'decoded-media-quality',name:'ProfileBudgetsFailed'}})}:{}),wrong_pin_refusal:pinRefusal,authenticated_owners:retiredReferences.counts().authenticated_owners,admission:state.report,
                 ...(programmeReport.keepalive_failure?{failure:{stage:'original-keepalive',...programmeReport.keepalive_failure}}:{}),
@@ -292,7 +344,7 @@ try{
                 // its actual failure/cleanup boundary once; this does not claim
                 // that the fixed media programme or its retirement completed.
                 resourceTerminalRequested=true;
-                try{await window.matrixResources('terminal',resourceClock.host+(performance.now()-resourceClock.browser)/1000);}
+                try{await resources('terminal',resourceClock.host+(performance.now()-resourceClock.browser)/1000);}
                 catch(failure){cleanupErrors.push({stage:'terminal',name:failure.name});}
             }
             const closes=await retiredReferences.closeClients(client=>client.close({timeoutMs:5000}));
@@ -308,16 +360,23 @@ try{
             if(spec.stage==='quality'&&resourceClock&&resourceTerminalRequested&&!resourceRetiredRequested){
                 resourceRetiredRequested=true;
                 try{
-                    const measured=await window.matrixResources('retired');
+                    const measured=await resources('retired');
                     failedIdle={passed:false,localOwnersJoined:false,original_failure_cleanup_observed:true,
                         resource_restoration:measured.passed,
+                        originalCleanupOwnersJoined:closes.every(value=>value.status==='fulfilled')
+                            &&local[1].status==='fulfilled'&&local[1].value.joined===true
+                            &&sourceReferences?.joined===true&&sourceReferences?.released===true
+                            &&diagnosticHooks.joined===true&&keepalive?.observation().stopped===true
+                            &&keepalive?.observation().original_batch_joined===true,
                         original_client_closes:closes.map(value=>value.status),
                         local_cleanup:local.map(value=>value.status),
                         renderer:local[1].status==='fulfilled'?local[1].value:{joined:false,playback_passed:false},
                         diagnostic_hooks:diagnosticHooks,fixture_reference_retirement:fixtureReferences,errors:cleanupErrors};
                 }catch(failure){cleanupErrors.push({stage:'retired',name:failure.name});}
             }
-            return {passed:false,wrong_pin_refusal:pinRefusal,authenticated_owners:retiredReferences.counts().authenticated_owners,
+            return {workload_started:Boolean(programmeReport.source_programme),
+                workload_complete:programmeReport.source_programme?.durationMs===62000
+                    &&programmeReport.finished_ms>=62000&&programmeReport.finished_ms<67000,cycle:{...cycle},passed:false,wrong_pin_refusal:pinRefusal,authenticated_owners:retiredReferences.counts().authenticated_owners,
                 admission:state.report,actual_connections:retiredReferences.counts().actual_connections,failure:{stage:window.matrixPhase,
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
@@ -328,13 +387,39 @@ try{
         } finally {
             const closed=await closeBrowserMatrixProgramme({keepalive,observer,sources,report:programmeReport,previousFailure:failureHandled});
             await finishBrowserMatrixRetirement({hooks:retirementHooks,closed,reported:diagnosticHooksReported,previousFailure:failureHandled});}
+        })();
+        value.original_cycle_budget={started_ms:cycleStarted,deadline_ms:cycleDeadline,finished_ms:performance.now(),budget_ms:210000};
+        value.passed&&=value.original_cycle_budget.finished_ms<cycleDeadline;
+        const closedOwners=value.idle_resources?.localOwnersJoined===true
+            ||value.idle_resources?.originalCleanupOwnersJoined===true;
+        value.diagnostic_cycle_retirement=cycleCount===1?{released:true,scope:'single-cycle-no-diagnostic-reset'}:
+            closedOwners?globalThis.connectPeerRetireCycle?.()??{released:false}:
+                {released:false,reason:'original-render-source-client-joins-unproven'};
+        value.passed&&=value.diagnostic_cycle_retirement.released===true;
+        const evidence=await window.matrixCycleArchive(cycle,JSON.stringify(value));
+        cycles.push(browserMatrixCycleSummary(cycle,value,evidence));
+        // Full AV, diagnostics and closure graphs are held only by the host
+        // archive after this point. Keep no previous workload owner in JS.
+        const joined=value.diagnostic_cycle_retirement.released===true;
+        value=undefined;
+        if(!joined)break; // Never start more workload behind an unjoined original owner.
+        }
+        if(cycleCount===3&&cycles.length===3)return browserMatrixCycleOutcome(cycles);
+        const first=cycles.find(value=>value.failure||!value.passed)??cycles[0];
+        return {...first,passed:cycleCount===1&&first.passed,cycles,
+            unstarted_cycles:spec.cycleWorkloads.slice(cycles.length),
+            ...(cycleCount===1&&first.passed||first.failure?{}:{failure:{stage:'original-cycle-joins',name:'OriginalCycleIncomplete'}})};
         })().then(value=>{original.value=value;original.state='fulfilled';},error=>{
             original.error={name:error.name,message:String(error.message??error),stack:String(error.stack??error)};
             original.state='rejected';
         });
-    },{spec,selected});
+    },{spec,selected,cycleCount});
     const result=await originalBrowserMatrixResult(page,{deadline:programmeDeadline});
-    Object.assign(report,result);report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
+    assert.ok(cycleArchives.length>0&&cycleArchives.length<=cycleCount);
+    const primaryIndex=result.first_failed_cycle??1;
+    const primary=JSON.parse(await fs.readFile(path.join(output,'cycles',`cycle-${primaryIndex}`,'cycle-observation.json'),'utf8'));
+    Object.assign(report,primary,result);report.resource_cycles=cycleArchives;
+    report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
     stage='browser-retirement';
     report.trusted_browser=await owner.close();owner=undefined;
     report.passed=Boolean(report.passed&&report.trusted_browser.original_process_joined&&!report.trusted_browser.forced_kill);

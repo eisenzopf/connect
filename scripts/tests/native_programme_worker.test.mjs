@@ -70,3 +70,43 @@ test('existing private capture inspector retains exact byte custody when its cal
   assert.equal(result.worker_joined,true);assert.deepEqual(result.observation.received,[{original_root_completed_observed:false}]);assert.match(result.sha256,/^[a-f0-9]{64}$/);
  }finally{if(worker&&worker.threadId!==-1)await worker.terminate();rmSync(root,{recursive:true,force:true});}
 });
+
+
+test('three independent original cycles keep one Node process and retain the first quality failure after later natural joins',{timeout:45000},async()=>{
+ const root=realpathSync(mkdtempSync(join(tmpdir(),'native-worker-three-'))),work=join(root,'work');mkdirSync(work);
+ const resources=join(work,'resources'),media=join(work,'media'),input=join(work,'input.json'),output=join(work,'report.json');mkdirSync(resources);mkdirSync(media);
+ const fd=openSync(join(root,'original.log'),'wx',0o600),pid=process.pid;
+ writeFileSync(input,JSON.stringify({format:'connect/transport-conversation-input/1',matrix_programme_profile:NATIVE_PROGRAMME_PROFILE,
+  matrix_programme_budget_seconds:20,matrix_resource_cycles:3,matrix_resource_directory:resources,
+  media_output_directory:media,reported_quality_passed:[false,true,true]}),{mode:0o600});
+ let stopping=false;const owners=new Map(),terminals=new Map();
+ const observer=(async()=>{while(!stopping){
+  for(const index of[1,2,3])for(const phase of['baseline','terminal','retired']){
+   const prefix='cycle-'+index+'-',request=join(resources,`resources-${prefix}${phase}.json`),response=join(resources,`resources-${prefix}${phase}-response.json`);
+   if(!existsSync(request)||existsSync(response))continue;const value=JSON.parse(readFileSync(request,'utf8'));
+   assert.equal(value.programme_owner.original_node_pid,pid);
+   if(phase==='baseline')owners.set(index,value.programme_owner);
+   if(phase==='terminal')terminals.set(index,value.monotonic_seconds);
+   if(phase==='retired'){
+    assert.ok(workerJoinVerified(value.retirement.programme_worker,owners.get(index),terminals.get(index)));
+    if(now()<terminals.get(index)+10)continue;
+   }
+   writeFileSync(response,JSON.stringify({passed:true}),{flag:'wx',mode:0o600});
+  }await sleep(5);
+ }})();
+ try{
+  const result=await runNativeProgrammeWorker({inputPath:input,outputPath:output,privateRoot:root,
+   programmeUrl:new URL('./fixtures/native_programme_framework_workload.mjs',import.meta.url),logFds:[fd,fd],originalDeadline:now()+59});
+  const report=JSON.parse(readFileSync(output,'utf8'));
+  assert.equal(result.passed,false);assert.equal(report.passed,false);assert.equal(report.original_node_pid,pid);
+  assert.equal(report.resource_cycles.length,3);assert.equal(new Set([...owners.values()].map(v=>v.logical_worker_thread_id)).size,3);
+  assert.deepEqual(report.resource_cycles.map(v=>v.passed),[false,true,true]);
+  assert.equal(new Set(report.resource_cycles.map(v=>v.workload_id)).size,3);
+  for(const cycle of report.resource_cycles){
+   const original=JSON.parse(readFileSync(cycle.output_path,'utf8'));assert.equal(original.original_node_pid,pid);
+   assert.equal(original.programme_worker.forced,false);assert.equal(original.programme_worker.exit_code,0);
+   assert.ok(original.programme_report_loaded_monotonic_seconds>=terminals.get(cycle.index)+10);
+   assert.equal(original.retirement.original_helpers_joined,true);
+  }
+ }finally{stopping=true;await observer;closeSync(fd);rmSync(root,{recursive:true,force:true});}
+});

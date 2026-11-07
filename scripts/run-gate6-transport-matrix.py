@@ -268,6 +268,8 @@ def main():
                 original_argv = sys.argv
                 sys.argv = [str(module.__file__), "--stage", cell["execution"]["stage"], "--transport", cell["transport"],
                             "--signing", cell["signing"], "--network", cell["network"], "--output", str(directory)]
+                if args.stage == "full":
+                    sys.argv += ["--resource-cycles", "3"]
                 if args.browser_image:
                     sys.argv += ["--image", args.browser_image]
                 sys.argv += browser_runtime_arguments(cell, args)
@@ -285,7 +287,8 @@ def main():
             with (directory / "controller.log").open("x") as log, contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
                 code = module.main(media_workload=args.stage != "non-av", data_workload=args.stage == "non-av", signing_algorithm=cell["signing"],
                                    network_profile="local" if cell["network"] == "local" else "remote",
-                                   host_capture=True, native_replacement_commit_trace=args.stage == "full")
+                                   host_capture=True, native_replacement_commit_trace=args.stage == "full",
+                                   native_authority_summary=args.stage == "full", resource_cycles=3 if args.stage == "full" else 1)
             path = directory / ("evidence/data/rehearsal.json" if args.stage == "non-av" else "evidence/media/rehearsal.json")
             return json.loads(path.read_text()), digest(path), code
 

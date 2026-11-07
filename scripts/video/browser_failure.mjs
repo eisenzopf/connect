@@ -173,6 +173,13 @@ export function installPeerDiagnostics({peerBound=4}={}) {
         transceivers:peer.getTransceivers().slice(0,4).map(tx=>({
             direction:state(tx.direction,["sendrecv","sendonly","recvonly","inactive","stopped"]),
             current_direction:tx.currentDirection===null?null:state(tx.currentDirection,["sendrecv","sendonly","recvonly","inactive","stopped"])}))});
+    globalThis.connectPeerRetireCycle=()=>{
+        const snapshot=globalThis.connectPeerDiagnostics();
+        if(entries.some(entry=>entry.peer!==null||entry.detach!==null))
+            return {released:false,reason:'original-peer-still-live',snapshot};
+        entries.length=0;omittedPeers=0;
+        return {released:true,retained_peer_owners:0,snapshot};
+    };
     globalThis.connectPeerCodecDiagnostics=()=>entries.map(entry=>{
         if(!entry.peer)return {closed:true,...(entry.codecs??{unavailable:true})};
         try{return codecSnapshot(entry.peer);}catch{return {unavailable:true};}

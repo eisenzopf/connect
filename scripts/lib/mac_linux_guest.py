@@ -188,8 +188,9 @@ def exchange(root):
     output = root / request["directory"]
     if not output.resolve().is_relative_to(root.resolve()):
         raise ValueError("Original output bridge required")
+    resource_phases = [prefix + phase for prefix in ("", "cycle-1-", "cycle-2-", "cycle-3-") for phase in ("baseline", "terminal", "retired")]
     allowed_responses = {f"authority-{i}-response.json" for i in (1, 2, 3)} | {
-        f"resources-{phase}-response.json" for phase in ("baseline", "terminal", "retired")} | {"revoke-response.json"}
+        f"resources-{phase}-response.json" for phase in resource_phases} | {"revoke-response.json"}
     for name, value in request.get("responses", {}).items():
         if name not in allowed_responses or len(json.dumps(value).encode()) > 4096:
             raise ValueError("Bounded original response required")
@@ -200,7 +201,7 @@ def exchange(root):
             atomic(target, value)
     values = {}
     for name in [*(f"authority-{i}-request.json" for i in (1, 2, 3)),
-                 *(f"resources-{phase}.json" for phase in ("baseline", "terminal", "retired")), "revoke-request.json"]:
+                 *(f"resources-{phase}.json" for phase in resource_phases), "revoke-request.json"]:
         path = output / name
         if path.exists():
             if path.is_symlink() or path.stat().st_size > 4096:
@@ -217,7 +218,9 @@ def run(root):
     assert config["run_id"] == root.name
     release = platform.freedesktop_os_release()
     assert release["ID"] == "ubuntu" and release["VERSION_ID"] == "24.04"
-    assert 1 <= config["timeout_seconds"] <= 360
+    resource_cycles = config.get("resource_cycles", 1)
+    assert type(resource_cycles) is int and resource_cycles in (1, 3)
+    assert 1 <= config["timeout_seconds"] <= (900 if resource_cycles == 3 else 360)
     stopped = False
     def stop(_signum, _frame):
         nonlocal stopped
@@ -284,8 +287,9 @@ def run(root):
                         role = config.get("role", "browser")
                         assert role in {"browser", "helper"}
                         sampler = ProcessResources({role: pid}, roles=(role,),
-                            open_resources=True, max_samples=600)
+                            open_resources=True, max_samples=600 * resource_cycles)
                         state["sampled_root"] = pid
+                        state["sampled_root_start_ticks"] = sampler.roots[role][1]
                 if sampler is not None:
                     state["resources"] = sampler.sample()
                     state["sampled_at_monotonic_seconds"] = time.monotonic()

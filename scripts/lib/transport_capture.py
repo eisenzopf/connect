@@ -17,15 +17,16 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def inspect_pcap(path, server_port, server_ip="127.0.0.1", peer_ip="127.0.0.1", *, media_workload=False, mac_linux_guest=False):
+def inspect_pcap(path, server_port, server_ip="127.0.0.1", peer_ip="127.0.0.1", *, media_workload=False, mac_linux_guest=False, resource_cycles=1):
     """Validate every captured Ethernet/IPv4/UDP record, without emitting bodies."""
     assert type(media_workload) is bool
+    assert type(resource_cycles) is int and resource_cycles in (1, 3) and (resource_cycles == 1 or media_workload)
     assert type(server_port) is int and 1 <= server_port <= 65535
     assert type(mac_linux_guest) is bool
     assert (mac_linux_guest and server_ip != peer_ip and all(ipaddress.ip_address(ip).is_private and not ipaddress.ip_address(ip).is_loopback for ip in (server_ip, peer_ip))) or (server_ip, peer_ip) in {("127.0.0.1", "127.0.0.1"), ("10.203.0.1", "10.203.0.2")}
     server_address, peer_address = socket.inet_aton(server_ip), socket.inet_aton(peer_ip)
-    packet_limit = 200000 if media_workload else 8192
-    maximum_bytes = (256 if media_workload else 64) * 1024 * 1024
+    packet_limit = (200000 if media_workload else 8192) * resource_cycles
+    maximum_bytes = (256 if media_workload else 64) * 1024 * 1024 * resource_cycles
     assert 24 <= path.stat().st_size <= maximum_bytes
     counts = dict(packets=0, to_server_packets=0, from_server_packets=0,
         captured_bytes=0, udp_payload_bytes=0, to_server_udp_bytes=0, from_server_udp_bytes=0)
@@ -74,11 +75,13 @@ def inspect_pcap(path, server_port, server_ip="127.0.0.1", peer_ip="127.0.0.1", 
 
 class NativeCapture:
     """The caller owns this process and must finish it on success and failure."""
-    def __init__(self, directory, server_port, env, *, interface=None, server_ip="127.0.0.1", peer_ip="127.0.0.1", media_workload=False, mac_linux_guest=False):
+    def __init__(self, directory, server_port, env, *, interface=None, server_ip="127.0.0.1", peer_ip="127.0.0.1", media_workload=False, mac_linux_guest=False, resource_cycles=1):
         assert type(media_workload) is bool
+        assert type(resource_cycles) is int and resource_cycles in (1, 3) and (resource_cycles == 1 or media_workload)
+        self.resource_cycles = resource_cycles
         self.media_workload = media_workload
         self.mac_linux_guest = mac_linux_guest
-        self.packet_limit = 200000 if media_workload else 8192
+        self.packet_limit = (200000 if media_workload else 8192) * resource_cycles
         self.directory = directory
         self.port = server_port
         self.env = env
@@ -169,11 +172,11 @@ class NativeCapture:
             captured = re.search(r"(?m)^(\d+) packets captured$", raw)
             dropped = re.search(r"(?m)^(\d+) packets dropped by kernel$", raw)
             assert captured and dropped and int(dropped[1]) == 0, "capture-loss-or-incomplete-status"
-            counts = inspect_pcap(self.path, self.port, self.server_ip, self.peer_ip, media_workload=self.media_workload, mac_linux_guest=self.mac_linux_guest)
+            counts = inspect_pcap(self.path, self.port, self.server_ip, self.peer_ip, media_workload=self.media_workload, mac_linux_guest=self.mac_linux_guest, resource_cycles=self.resource_cycles)
             assert counts["packets"] < self.packet_limit, "capture-packet-limit-reached"
             assert counts["packets"] == int(captured[1]), "capture-count-disagreement"
             link_type = counts.pop("link_type")
-            report.update(observed=True, packet_limit=self.packet_limit, media_workload=self.media_workload, version=self.version, executable_sha256=self.binary_sha256,
+            report.update(observed=True, resource_cycles=self.resource_cycles, packet_limit=self.packet_limit, media_workload=self.media_workload, version=self.version, executable_sha256=self.binary_sha256,
                 pcap_sha256=digest(self.path), pcap_bytes=self.path.stat().st_size,
                 captured_seconds=time.monotonic() - self.started, kernel_dropped_packets=0,
                 interface=self.interface if self.server_ip == "127.0.0.1" else "owned-veth", link_type=link_type,

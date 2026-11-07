@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {Worker} from 'node:worker_threads';
-import {readFileSync,writeFileSync,realpathSync,lstatSync,fstatSync,openSync,closeSync,fsyncSync} from 'node:fs';
+import {readFileSync,writeFileSync,realpathSync,lstatSync,fstatSync,openSync,closeSync,fsyncSync,mkdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -13,7 +13,7 @@ const safeName=error=>['AssertionError','Error','TypeError','RangeError','Syntax
 /** Original parent owns only bounded control/file summaries until idle finishes.
  * programmeUrl is a private framework test injection; the production launcher
  * always supplies the repository's unchanged full native programme entrypoint. */
-export async function runNativeProgrammeWorker({inputPath,outputPath,programmeUrl,privateRoot,logFds=[1,2],originalDeadline=Number(process.env.CONNECT_NATIVE_PROGRAMME_DEADLINE_MONOTONIC_SECONDS)}){
+async function runNativeProgrammeCycle({inputPath,outputPath,programmeUrl,privateRoot,logFds=[1,2],originalDeadline=Number(process.env.CONNECT_NATIVE_PROGRAMME_DEADLINE_MONOTONIC_SECONDS)}){
  const created=now(),buffer=Buffer.allocUnsafe(65536);
  inputPath=realpathSync(inputPath);outputPath=resolve(outputPath);privateRoot=realpathSync(privateRoot);
  assert.ok(inputPath.startsWith(privateRoot+'/')&&realpathSync(dirname(outputPath)).startsWith(privateRoot+'/'));
@@ -23,7 +23,7 @@ export async function runNativeProgrammeWorker({inputPath,outputPath,programmeUr
   assert.equal(input.format,'connect/transport-conversation-input/1');
   assert.ok(Number.isFinite(input.matrix_programme_budget_seconds)&&input.matrix_programme_budget_seconds>=20&&input.matrix_programme_budget_seconds<=300);
   const directory=realpathSync(input.matrix_resource_directory);assert.ok(directory.startsWith(privateRoot+'/'));
-  return {directory,budget:input.matrix_programme_budget_seconds};})();
+  return {directory,budget:input.matrix_programme_budget_seconds,prefix:input.matrix_resource_prefix??''};})();
  for(const fd of logFds)assert.ok(fstatSync(fd).isFile(),'Inherited ordinary log descriptors required');
  assert.ok(Number.isFinite(originalDeadline)&&originalDeadline>created&&originalDeadline<=created+config.budget,'Existing original supervisor deadline is required');
  const cutoff=originalDeadline,workReportPath=outputPath+'.worker.json';
@@ -78,9 +78,10 @@ export async function runNativeProgrammeWorker({inputPath,outputPath,programmeUr
   report_sha256:sealed?.sha256??null,report_bytes:sealed?.bytes??null,failure};
  let observation={retirement:{passed:false,programme_worker:receipt},idle_observer:{passed:false,failure:'original-worker-boundary-unavailable'}};
  if(owner&&terminal!==undefined){
-  const lifecycle=nativeMatrixLifecycle(config.directory,{owner,originalTerminal:terminal,workerReceipt:receipt,cutoff});
+  const lifecycle=nativeMatrixLifecycle(config.directory,{owner,originalTerminal:terminal,workerReceipt:receipt,cutoff,prefix:config.prefix});
   observation=await lifecycle.retired({observedHelpers:cleanup?.observed_helpers??0,
-   helpersJoined:cleanup?.original_helpers_joined===true,closeFailed:cleanup?.original_clients_closed!==true});
+   helpersJoined:cleanup?.original_helpers_joined===true,closeFailed:cleanup?.original_clients_closed!==true,
+   sessionRetirement:cleanup?.original_session_retirement,workloadObservation:cleanup?.workload_observation});
   // Even a failed/early observer reply cannot move the original T+10 boundary.
   if(now()<terminal+10&&now()<cutoff)await sleep(Math.max(0,(Math.min(terminal+10,cutoff)-now())*1000));
  }
@@ -100,6 +101,51 @@ export async function runNativeProgrammeWorker({inputPath,outputPath,programmeUr
  report.passed=Boolean(report.passed&&observation.retirement.passed&&observation.idle_observer.passed&&!failure);
  writeFileSync(outputPath,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});
  const fd=openSync(outputPath,'r');try{fsyncSync(fd);}finally{closeSync(fd);}
- return {passed:report.passed,checks:report.checks.length,cell_qualified:false,profile:NATIVE_PROGRAMME_PROFILE,
+ const summary={passed:report.passed,checks:report.checks.length,cell_qualified:false,profile:NATIVE_PROGRAMME_PROFILE,
   original_node_pid:process.pid,logical_worker_thread_id:logicalId,natural_worker_joined:!forced&&exitCode===0,report_sha256:hash(readFileSync(outputPath))};
+ report=undefined;return summary;
+}
+
+/** Three actual programmes share this original Node process and server. Each
+ * programme gets fresh persisted mutation IDs and original Worker/SDK owners;
+ * failure remains sticky while subsequent independently owned cycles run. */
+export async function runNativeProgrammeWorker(options){
+ const input=JSON.parse(readFileSync(options.inputPath,'utf8'));
+ if((input.matrix_resource_cycles??1)===1)return runNativeProgrammeCycle(options);
+ assert.equal(input.matrix_resource_cycles,3);
+ assert.ok(Number.isFinite(input.matrix_programme_budget_seconds)&&input.matrix_programme_budget_seconds>=20&&input.matrix_programme_budget_seconds<=300);
+ const deadline=options.originalDeadline??Number(process.env.CONNECT_NATIVE_PROGRAMME_DEADLINE_MONOTONIC_SECONDS);
+ assert.ok(Number.isFinite(deadline)&&deadline>now()&&deadline<=now()+3*input.matrix_programme_budget_seconds);
+ const originalSeal=sealedFile(options.inputPath,Buffer.allocUnsafe(65536));
+ const cycles=[];let passed=true;
+ for(let index=1;index<=3;index++){
+  // A failed quality verdict does not restart or repeat the preceding cycle.
+  // Missing original ownership/deadline aborts safely and leaves an incomplete
+  // plateau proof rather than manufacturing a third observation.
+  if(now()>=deadline){passed=false;break;}
+  const directory=join(dirname(options.inputPath),'native-cycle-'+index);mkdirSync(directory,{mode:0o700});
+  const inputPath=join(directory,'input.json'),outputPath=options.outputPath+'.cycle-'+index+'.json';
+  const workloadId='native-cycle-'+index+'-'+process.pid;
+  const mediaOutput=join(input.media_output_directory,'cycle-'+index);mkdirSync(mediaOutput,{recursive:true,mode:0o700});
+  writeFileSync(inputPath,JSON.stringify({...input,matrix_resource_cycles:1,matrix_resource_prefix:'cycle-'+index+'-',
+   matrix_workload_id:workloadId,matrix_cycle_index:index,media_output_directory:mediaOutput})+'\n',{flag:'wx',mode:0o600});
+  const fd=openSync(inputPath,'r');try{fsyncSync(fd);}finally{closeSync(fd);}
+  let result;
+  try{result=await runNativeProgrammeCycle({...options,inputPath,outputPath,originalDeadline:Math.min(deadline,now()+input.matrix_programme_budget_seconds)});}
+  catch(error){cycles.push({index,workload_id:workloadId,passed:false,failure:safeName(error)});passed=false;break;}
+  let bytes=readFileSync(outputPath),report=JSON.parse(bytes);passed&&=result.passed;
+  cycles.push({index,workload_id:workloadId,input_path:inputPath,output_path:outputPath,
+   media_output_directory:mediaOutput,report_sha256:hash(bytes),passed:result.passed,
+   original_node_pid:process.pid,programme_worker:report.programme_worker});
+  report=undefined;bytes=undefined;
+ }
+ assert.equal(sealedFile(options.inputPath,Buffer.allocUnsafe(65536)).sha256,originalSeal.sha256);
+ const first=cycles[0]?.output_path?JSON.parse(readFileSync(cycles[0].output_path,'utf8')):undefined;
+ const report={...(first??{format:'connect/transport-conversation-control/3',checks:[]}),
+  passed:Boolean(passed&&cycles.length===3),matrix_resource_cycles:3,resource_cycles:cycles,
+  input_sha256:originalSeal.sha256,original_node_pid:process.pid};
+ writeFileSync(options.outputPath,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});
+ const fd=openSync(options.outputPath,'r');try{fsyncSync(fd);}finally{closeSync(fd);}
+ return {passed:report.passed,checks:report.checks.length,cell_qualified:false,profile:NATIVE_PROGRAMME_PROFILE,
+  original_node_pid:process.pid,resource_cycles:cycles.length,report_sha256:hash(readFileSync(options.outputPath))};
 }

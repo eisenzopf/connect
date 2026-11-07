@@ -83,6 +83,25 @@ class CaptureBoundary(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "foreign-port"):
             inspect_pcap(self.path, 4433, media_workload=True)
 
+    def test_three_cycle_capture_scales_only_aggregate_evidence_bounds(self):
+        ordinary=NativeCapture(self.path.parent,4433,{},media_workload=True)
+        aggregate=NativeCapture(self.path.parent,4433,{},media_workload=True,resource_cycles=3)
+        self.assertEqual(ordinary.packet_limit,200000)
+        self.assertEqual(aggregate.packet_limit,600000)
+        raw=pcap(self.duplex)
+        self.path.write_bytes(raw[:24]+raw[24:]*100001)
+        with self.assertRaisesRegex(AssertionError,"packet-bound"):
+            inspect_pcap(self.path,4433,media_workload=True)
+        self.assertEqual(inspect_pcap(self.path,4433,media_workload=True,resource_cycles=3)["packets"],200002)
+        self.path.write_bytes(pcap([*self.duplex,packet(50123,9999)]))
+        with self.assertRaisesRegex(AssertionError,"foreign-port"):
+            inspect_pcap(self.path,4433,media_workload=True,resource_cycles=3)
+        for invalid in (0,2,4,True,"3"):
+            with self.subTest(invalid=invalid),self.assertRaises(AssertionError):
+                NativeCapture(self.path.parent,4433,{},media_workload=True,resource_cycles=invalid)
+        with self.assertRaises(AssertionError):
+            NativeCapture(self.path.parent,4433,{},resource_cycles=3)
+
     def test_unknown_link_type_and_file_format_refuse(self):
         for data in (pcap(self.duplex, link=101), b"xxxx" + pcap(self.duplex)[4:]):
             with self.assertRaisesRegex(AssertionError, "capture-(link-profile|format)"):

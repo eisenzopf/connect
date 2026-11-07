@@ -85,4 +85,48 @@ class MatrixIdleTests(unittest.TestCase):
             self.assertFalse(matrix["matrix_qualified"])
 
 
+class MatrixCycleIdleTests(unittest.TestCase):
+    def test_cycle_collector_keeps_fresh_baseline_and_original_session_reference(self):
+        from lib.matrix_idle import MatrixIdle
+        from lib.matrix_plateau import CYCLE_POLICY
+        from unittest.mock import patch
+        import json
+        import tempfile
+        class Sampler:
+            roots = {"server": (101, 1001), "browser": (202, 2002)}
+            def sample(self):
+                value = sample(0, "ignored")["groups"]
+                for group in value.values():
+                    group["sampled_rss_bytes"] += 8 * 1024 * 1024
+                    group["sampled_threads"] += 2
+                clock[0] += .001
+                return {"groups": value}
+            def summary(self): return {}
+        original = sample(10, "baseline"); original["usage"]["owned_tasks"] = 0
+        with tempfile.TemporaryDirectory() as folder:
+            clock = [100.0]
+            def request(phase, at):
+                Path(folder, "resources-" + phase + ".json").write_text(json.dumps(dict(phase=phase, monotonic_seconds=at)))
+            with patch("lib.matrix_idle.time.monotonic", side_effect=lambda: clock[0]), \
+                 patch("lib.matrix_idle.owned_usage", return_value=original["usage"]), \
+                 patch("lib.matrix_idle.urllib.request.build_opener") as opener, \
+                 patch("lib.matrix_idle.idle_owner_diagnostics", return_value={"diagnostic": True}):
+                opener.return_value.open.return_value.__enter__.return_value.read.return_value = b'{"result":{"Ok":{"kind":"health","data":{}}}}'
+                idle = MatrixIdle(folder, 101, 202, "http://fixture", "credential", sampler=Sampler(),
+                                  cycle_mode=True, original_baseline=original)
+                request("baseline", 100); idle.poll(); clock[0] = 101; idle.poll()
+                self.assertEqual(idle.baseline["monotonic_seconds"], 101)
+                self.assertEqual(idle.reference_baseline["monotonic_seconds"], 10)
+                request("terminal", 120); request("retired", 120.1)
+                for at in [121, 127, 128, 130.01]: clock[0] = at; idle.poll()
+                observed = idle.finish()
+            self.assertTrue(observed["passed"])
+            self.assertEqual(observed["policy"], CYCLE_POLICY)
+            self.assertEqual(observed["baseline"]["monotonic_seconds"], 101)
+            self.assertEqual(observed["persistent_owners"]["server"]["pid"], 101)
+            self.assertEqual(observed["persistent_owners"]["browser"]["start_identity"], 2002)
+            current = sample(131, "idle"); current["usage"]["owned_tasks"] = 1
+            self.assertIn("owned_tasks", idle.restore(original, current))
+
+
 if __name__ == "__main__": unittest.main()

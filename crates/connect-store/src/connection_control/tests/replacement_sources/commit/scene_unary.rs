@@ -498,3 +498,24 @@ fn packet_capture_retained_receiver_permission_changes_are_fresh_without_replayi
 }
 
 mod custody;
+
+#[test]
+fn packet_plan_context_matches_independent_resolution_and_refuses_another_original() {
+    let m = scene();
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    m.f.store
+        .assert_packet_plan_context_equivalence_for_test(&m.origin)
+        .unwrap();
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    let read =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    assert!(read.current());
+    assert_eq!(
+        read.media().target().connection.connection_id,
+        "replacement-next"
+    );
+    assert_eq!(read.media().target().connection.generation, 2);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+}

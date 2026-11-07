@@ -3,14 +3,15 @@
 import dgram from 'node:dgram';
 import net from 'node:net';
 
-export async function matrixUnavailableTransports() {
+export async function matrixUnavailableTransports({cycles=1}={}) {
+    if(![1,3].includes(cycles))throw Error('Declared original unavailable transport cycles');
     const udp=dgram.createSocket('udp4'),tcp=net.createServer(),connections=new Set();
     const stats={udp_datagrams:0,tcp_connections:0,errors:0,overflow:false,original_sockets_joined:false};
     let udpBound=false,tcpBound=false,closing;
-    udp.on('message',()=>{if(stats.udp_datagrams<256)stats.udp_datagrams++;else stats.overflow=true;});
+    udp.on('message',()=>{if(stats.udp_datagrams<256*cycles)stats.udp_datagrams++;else stats.overflow=true;});
     udp.on('error',()=>stats.errors++);tcp.on('error',()=>stats.errors++);
     tcp.on('connection',socket=>{
-        stats.tcp_connections++;if(stats.tcp_connections>16)stats.overflow=true;
+        stats.tcp_connections++;if(stats.tcp_connections>16*cycles)stats.overflow=true;
         connections.add(socket);socket.on('error',()=>stats.errors++);
         socket.once('close',()=>connections.delete(socket));socket.destroy();
     });

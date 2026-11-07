@@ -33,7 +33,10 @@ class NativeNamespace:
     client_ip = "10.203.0.2"
     prefix = "10.203.0.0/30"
 
-    def __init__(self, directory, root, env):
+    def __init__(self, directory, root, env, *, resource_cycles=1):
+        if type(resource_cycles) is not int or resource_cycles not in (1, 3):
+            raise ValueError("One or three explicitly owned resource cycles required")
+        self.resource_cycles = resource_cycles
         self.directory, self.root, self.env = Path(directory), Path(root), fixture_environment(env)
         token = uuid.uuid4().hex[:10]
         self.name, self.interface, self.peer = "g6t-" + token, "g6th" + token, "g6tc" + token
@@ -122,12 +125,13 @@ class NativeNamespace:
             retention = ",connect_service::runtime_retention=debug"
             assert env["RUST_LOG"].count(retention) <= 1
             profile = env["RUST_LOG"].replace(retention, "")
-            assert profile in {base, commit, base + ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug"}
+            summary = ",connect_store::authority_summary=debug,connect_service::peer_authority_lifetime=debug"
+            assert profile in {base, commit, commit + summary, base + ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug"}
             selected["RUST_LOG"] = env["RUST_LOG"]
         return ["sudo", "-n", "systemd-run", "--quiet", "--collect", "--wait", "--pipe",
             "--unit=" + self.unit, "--uid=" + str(os.getuid()), "--gid=" + str(os.getgid()),
             "--working-directory=" + str(self.root), "--property=KillMode=control-group",
-            "--property=RuntimeMaxSec=600", "--property=TimeoutStopSec=10s", "--property=NoNewPrivileges=yes",
+            "--property=RuntimeMaxSec=" + str(600 * self.resource_cycles), "--property=TimeoutStopSec=10s", "--property=NoNewPrivileges=yes",
             *("--setenv=" + k + "=" + v for k, v in sorted(selected.items())),
             str(binary), "serve", "--config", str(config)]
 

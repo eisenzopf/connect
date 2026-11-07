@@ -1351,3 +1351,119 @@ mod dtmf_recipients;
 mod credential_refresh;
 
 mod session_codecs;
+
+#[test]
+fn empty_native_recovery_skips_external_writer_then_recovers_later_original_attempt_once() {
+    use connect_protocol::transitions::OperationState;
+    let (f, request, _) = parent(true, true);
+    f.store
+        .connection()
+        .unwrap()
+        .busy_timeout(Duration::ZERO)
+        .unwrap();
+    let mut writer = rusqlite::Connection::open(f.store.path()).unwrap();
+    let held = writer
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    let before = (
+        f.count("operations"),
+        f.count("operation_effects"),
+        f.count("journal"),
+    );
+    assert_eq!(f.store.recover_native_streams(1).unwrap(), 0);
+    assert!(!held.is_autocommit(), "The independent writer remains held");
+    assert_eq!(
+        (
+            f.count("operations"),
+            f.count("operation_effects"),
+            f.count("journal")
+        ),
+        before
+    );
+    held.rollback().unwrap();
+
+    // Work arriving after an empty scan still uses the original command/effect.
+    let proof = admit(&f, &request).unwrap();
+    f.store
+        .accept_native_stream_with_peer(&f.keys[0], &proof)
+        .unwrap();
+    let (lease, started) = f
+        .store
+        .begin_native_stream_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .unwrap();
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE operations SET lease_expires_at=?2 WHERE record_id=?1",
+            params![lease.record_id(), crate::now() - 1],
+        )
+        .unwrap();
+    let effects = f.count("operation_effects");
+    f.store
+        .connection()
+        .unwrap()
+        .busy_timeout(Duration::ZERO)
+        .unwrap();
+    let held = writer
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    assert!(
+        f.store.recover_native_streams(1).is_err(),
+        "Candidates still require the write transaction"
+    );
+    held.rollback().unwrap();
+    assert_eq!(f.store.recover_native_streams(1).unwrap(), 1);
+    assert_eq!(f.store.recover_native_streams(1).unwrap(), 0);
+    let recovered = operation(&f);
+    assert_eq!(recovered.record_id, started.record_id);
+    assert_eq!(recovered.operation_id, started.operation_id);
+    assert_eq!(recovered.state, OperationState::Unknown);
+    assert_eq!(recovered.effects.len(), 1);
+    assert_eq!(recovered.effects[0].id, lease.effect_id());
+    assert_eq!(recovered.effects[0].attempt, started.effects[0].attempt);
+    assert_eq!(
+        recovered.effects[0].submission_generation,
+        started.effects[0].submission_generation
+    );
+    assert_eq!(f.count("operation_effects"), effects);
+    assert!(f
+        .store
+        .begin_native_stream_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .is_none());
+}
+
+#[test]
+fn empty_periodic_recovery_keeps_limit_and_runtime_owner_checks() {
+    let (f, _, _) = parent(true, true);
+    assert_eq!(
+        f.store.recover_native_streams(0).unwrap_err().code,
+        "invalid-request"
+    );
+    assert_eq!(
+        f.store.recover_native_streams(257).unwrap_err().code,
+        "invalid-request"
+    );
+    assert_eq!(
+        f.store.reconcile_session_codec_jobs(0).unwrap_err().code,
+        "invalid-request"
+    );
+    assert_eq!(
+        f.store
+            .reconcile_session_codec_jobs(f.store.limits().connections + 1)
+            .unwrap_err()
+            .code,
+        "invalid-request"
+    );
+    f.store.require_runtime_owner().unwrap().retire();
+    assert_eq!(
+        f.store.recover_native_streams(1).unwrap_err().code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store.reconcile_session_codec_jobs(1).unwrap_err().code,
+        "forbidden"
+    );
+}

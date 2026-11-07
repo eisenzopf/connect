@@ -19,11 +19,27 @@ def blocked(reason, evidence=None, category="dependency"):
     return dict(status="blocked", reason=reason, category=category, evidence=evidence)
 
 
+def native_cycle_join_verified(control, resource):
+    from .native_programme_profile import worker_join_verified
+    try:
+        retirement = control["retirement"]
+        elapsed = retirement["all_local_owners_elapsed_ms"]
+        return (retirement.get("passed") is True and retirement.get("original_helpers_joined") is True
+            and retirement.get("original_clients_closed") is True
+            and type(retirement.get("observed_helpers")) is int and retirement["observed_helpers"] >= 1
+            and type(elapsed) in (int, float) and 0 <= elapsed <= 10000
+            and worker_join_verified(control.get("programme_worker"), resource.get("original_programme_owner"),
+                                     retirement.get("original_terminal_monotonic_seconds")))
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
 def evaluate_cell(cell, report, report_sha256, *, environment, revision):
     """Evaluate all 12 native / 14 browser requirements, without short circuit."""
-    from .transport_matrix_execution import browser_selection_verified
+    from .transport_matrix_execution import browser_selection_verified, browser_resource_plateau_verified
     from .matrix_idle import idle_verdict
     from .native_matrix_idle import native_idle_verdict
+    from .matrix_plateau import plateau_verdict
     from .native_programme_profile import PROFILE
     from .native_matrix_authority import authority_verdict
 
@@ -35,6 +51,11 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
         raise ValueError("Cell requirements differ from the full contract")
     observation = report.get("browser_observation", {}) if browser else report.get("conversation_control", {})
     checks = observation.get("admission", observation).get("checks", [])
+    plateau = report.get("idle_resources", {}).get("format") == "connect/matrix-plateau-observation/1"
+    cycles = report.get("cycle_observations", []) if browser and plateau else [observation]
+    complete_cycles = not plateau or not browser or len(cycles) == 3
+    if browser and plateau:
+        checks = sorted(set.intersection(*(set(c.get("admission", {}).get("checks", [])) for c in cycles))) if len(cycles) == 3 else []
     producer_checks = report.get("checks", [])
     guards = ("source_inputs_unchanged", "sdk_dist_inputs_unchanged",
               "executable_unchanged" if browser else "executables_unchanged")
@@ -62,7 +83,8 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
     record("normal-tls-and-current-device-key-authority",
            bool(observation.get("authenticated_owners")) if browser else bool(report.get("actor_enrollment")),
            (observation.get("unconfigured_ca_refused") is True and trust.get("certificate_errors_ignored") is False
-            and observation.get("authenticated_owners") == 7 and len(report.get("actor_bindings", {})) == 7)
+            and observation.get("authenticated_owners") == 7 and len(report.get("actor_bindings", {})) == 7
+            and (not plateau or complete_cycles and all(c.get("authenticated_owners") == 7 for c in cycles)))
            if browser else report.get("current_trust_verified") is True,
            "browser_observation.tls_trust" if browser else "current_trust_verified")
     record("selected-transport-and-authenticated-discovery", bool(checks),
@@ -90,6 +112,11 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
         programme.get("original_moves_completed") == 4 and len(moves) == 4
         and all(m.get("original_reference_preserved") is True and m.get("original_retired") is True
             and m.get("camera_transfer_admitted") is True for m in moves))
+    if browser and plateau:
+        movement_passed = complete_cycles and all(c.get("programme", {}).get("passed") is True
+            and len(c["programme"].get("moves", [])) == 4
+            and all(m.get("original_capture_closed") is True and m.get("source_master_continues") is True for m in c["programme"]["moves"])
+            for c in cycles)
     record("device-replacement-and-old-owner-retirement", bool(programme),
            movement_passed,
            "browser_observation.programme" if browser else "movement", programme.get("failure", {}).get("kind"))
@@ -97,6 +124,14 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
         observation.get("actual_connection_workload_observed") is True
         and observation.get("maximum_active_members_observed") == 4
         and observation.get("concurrent_session_intents_observed") == 2)
+    if browser and plateau:
+        workload = complete_cycles and all(c.get("actual_connections") == 6
+            and c.get("programme", {}).get("source_programme", {}).get("durationMs") == 62000
+            and 62000 <= c.get("programme", {}).get("finished_ms", -1) < 67000
+            and c.get("original_cycle_budget", {}).get("budget_ms") == 210000
+            and abs(c["original_cycle_budget"].get("deadline_ms", -1) - c["original_cycle_budget"].get("started_ms", -1) - 210000) <= .001
+            and c["original_cycle_budget"].get("started_ms", -1) < c["original_cycle_budget"].get("finished_ms", -1) < c["original_cycle_budget"].get("deadline_ms", -1)
+            for c in cycles)
     record("declared-concurrent-workload", bool(observation), workload, "browser_observation" if browser else "conversation_control")
     capture = report.get("packet_capture", {})
     record("actual-private-packet-capture", bool(capture), capture.get("observed") is True
@@ -104,27 +139,49 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
            "packet_capture", capture.get("failure"), "environment" if capture.get("environment_failure") else "behavior")
     decoded = observation.get("decoded_media", {}) if browser else report.get("native_av_decoded", {})
     record("independently-decoded-duplex-media-and-profile-budgets", bool(decoded),
-           decoded.get("passed") is True, "browser_observation.decoded_media" if browser else "native_av_decoded")
+           (complete_cycles and all(c.get("decoded_media", {}).get("passed") is True for c in cycles))
+           if browser and plateau else decoded.get("passed") is True, "browser_observation.decoded_media" if browser else "native_av_decoded")
     authority = report.get("current_authority", observation.get("current_authority", {}))
     record("current-revocation-expiry-and-conflicting-operation-refusals",
            all(name in authority for name in ("revocation", "expiry", "conflict"))
            and (browser or all(authority[name].get("executed") is True for name in ("revocation", "expiry"))),
            all(authority.get(name, {}).get("passed") is True for name in ("revocation", "expiry", "conflict"))
+           and (not (browser and plateau) or complete_cycles and all(
+               all(c.get("current_authority", {}).get(name, {}).get("passed") is True for name in ("revocation", "expiry", "conflict")) for c in cycles))
            and (browser or all(authority_verdict(authority[name], name) for name in ("revocation", "expiry"))),
            "current_authority", "every-current-authority-subcase-required")
     idle = report.get("idle_resources", {})
     retirement = observation.get("retirement", {})
-    record("owned-drain-and-resource-reclamation", bool(idle),
-           (idle_verdict(idle) if browser else native_idle_verdict(idle)) and retirement.get("passed") is True
-           and (browser or (len(report.get("servers", [])) == 2
-               and observation.get("programme_profile") == PROFILE
-               and observation.get("programme_worker") == idle.get("retirement", {}).get("programme_worker")
-               and retirement == idle.get("retirement")))
-           and all(s.get("original_joined") is True for s in report.get("servers", [])),
-           "idle_resources")
+    if plateau:
+        if browser:
+            resource_passed = browser_resource_plateau_verified(report)
+        else:
+            receipts = observation.get("resource_cycles", [])
+            resource_passed = (plateau_verdict(idle) and observation.get("matrix_resource_cycles") == 3
+                and observation.get("programme_profile") == PROFILE
+                and report.get("native_cycle_mutation_inventory", {}).get("passed") is True
+                and len(receipts) == 3 and len(report.get("native_cycle_controls", [])) == 3
+                and all(receipt.get("index") == index
+                    and receipt.get("programme_worker") == resource.get("original_worker_receipt")
+                    and receipt.get("original_node_pid") == idle.get("persistent_owners", {}).get("helper", {}).get("programme_node_pid")
+                    and receipt.get("programme_worker", {}).get("original_exit_observed") is True
+                    and receipt.get("programme_worker", {}).get("forced") is False
+                    and control.get("index") == index and native_cycle_join_verified(control, resource)
+                    and control.get("programme_worker") == receipt.get("programme_worker")
+                    for index, (receipt, resource, control) in enumerate(zip(receipts, idle.get("cycles", []), report.get("native_cycle_controls", [])), 1)))
+    else:
+        resource_passed = ((idle_verdict(idle) if browser else native_idle_verdict(idle)) and retirement.get("passed") is True
+            and (browser or (observation.get("programme_profile") == PROFILE
+                and observation.get("programme_worker") == idle.get("retirement", {}).get("programme_worker")
+                and retirement == idle.get("retirement"))))
+    record("owned-drain-and-resource-reclamation", bool(idle), resource_passed
+           and len(report.get("servers", [])) == 2
+           and all(s.get("original_joined") is True for s in report.get("servers", [])), "idle_resources")
     if browser:
         for name in SELECTION_CHECKS:
-            record(name, bool(observation.get("selection")), browser_selection_verified(observation), "browser_observation.selection")
+            record(name, bool(observation.get("selection")),
+                   (complete_cycles and all(browser_selection_verified({**observation, **c,
+                       "unavailable_transports": {**observation.get("unavailable_transports", {}), **c.get("transport_probe_delta", {})}}) for c in cycles)) if plateau else browser_selection_verified(observation), "browser_observation.selection")
     if set(outcomes) != required:
         raise ValueError("Requirement evaluator coverage differs")
     cell["check_results"] = outcomes

@@ -103,9 +103,17 @@ fn allocated_current(
     c: &Connection,
     allocated: &NativeReplacementAllocated,
 ) -> Result<serde_json::Value> {
+    allocated_current_with_packet_context(store, c, allocated, None)
+}
+fn allocated_current_with_packet_context(
+    store: &Store,
+    c: &Connection,
+    allocated: &NativeReplacementAllocated,
+    captured: Option<&crate::NativeReplacementContext>,
+) -> Result<serde_json::Value> {
     let a = &allocated.attempt;
     let prepared = &a.prepared;
-    let saved = current_prepared(store, c, prepared)?;
+    let saved = current_prepared_with_packet_context(store, c, prepared, captured)?;
     let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.state='confirmed' WHERE s.operation_record_id=?1 AND s.phase='allocate' AND s.attempt_id=?2 AND s.effect_id=?3 AND s.started=1 AND s.observation_json=?4 AND e.observation_json=?5)",params![prepared.record,a.attempt,a.effect,allocated.observation,a.target],|r|r.get(0)).map_err(|_|Error::storage())?;
     if !exact {
         return Err(Error::forbidden());
@@ -475,7 +483,12 @@ fn media_facts_with_packet_capture(
 )> {
     let start = &origin.started.attempt;
     let prepared = &start.allocated.attempt.prepared;
-    let saved = allocated_current(store, c, &start.allocated)?;
+    let saved = allocated_current_with_packet_context(
+        store,
+        c,
+        &start.allocated,
+        captured.map(|(context, _)| context),
+    )?;
     let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.state='confirmed' WHERE s.operation_record_id=?1 AND s.phase='start' AND s.attempt_id=?2 AND s.effect_id=?3 AND s.started=1 AND s.observation_json=?4 AND e.observation_json=?5)",params![prepared.record,start.attempt,start.effect,origin.started.observation,start.target],|r|r.get(0)).map_err(|_|Error::storage())?;
     if !exact {
         return Err(Error::forbidden());
@@ -888,5 +901,53 @@ impl Store {
             }
             None => self.try_current_packet_projection(derive, finish),
         }
+    }
+}
+
+#[cfg(test)]
+impl Store {
+    pub(crate) fn assert_packet_plan_context_equivalence_for_test(
+        &self,
+        origin: &NativeReplacementMediaOrigin,
+    ) -> Result<()> {
+        let prepared = &origin.started.attempt.allocated.attempt.prepared;
+        self.try_current_packet_projection(
+            |c| {
+                prepared
+                    .selection
+                    .with_packet_capture_context(self, c, |context, scopes| {
+                        let fresh = current_prepared(self, c, prepared)?;
+                        let captured =
+                            current_prepared_with_packet_context(self, c, prepared, Some(context))?;
+                        assert_eq!(
+                            captured, fresh,
+                            "captured and independently resolved plans differ"
+                        );
+                        for changed in ["record", "generation", "device"] {
+                            let mut other = context.clone();
+                            match changed {
+                                "record" => other.operation_record_id.push_str("-different"),
+                                "generation" => other.source_generation += 1,
+                                "device" => other.target_device_id.push_str("-different"),
+                                _ => unreachable!(),
+                            }
+                            assert_eq!(
+                                current_prepared_with_packet_context(
+                                    self,
+                                    c,
+                                    prepared,
+                                    Some(&other)
+                                )
+                                .unwrap_err()
+                                .code,
+                                "conflict",
+                                "different original context was accepted: {changed}",
+                            );
+                        }
+                        Ok(((), scopes.to_vec(), crate::now() + 5))
+                    })
+            },
+            |_, _, _, _| Ok(()),
+        )
     }
 }

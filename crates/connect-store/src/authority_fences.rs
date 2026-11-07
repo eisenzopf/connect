@@ -282,7 +282,7 @@ pub(crate) struct Manager {
     state_identity: String,
     // Bounded namespace metadata only: never a file, lock, reader or grant.
     names: Mutex<BTreeMap<(Kind, String), String>>,
-    readers: Mutex<BTreeMap<String, Weak<LockFile>>>,
+    readers: RwLock<BTreeMap<String, Weak<LockFile>>>,
     // Bounded inode knowledge preserves path-replacement refusal without FDs.
     file_identities: RwLock<BTreeMap<String, RememberedLockFile>>,
     file_identity_epoch: Instant,
@@ -338,7 +338,7 @@ impl Manager {
             secret: secret.as_bytes().to_vec(),
             fingerprint,
             names: Mutex::new(BTreeMap::new()),
-            readers: Mutex::new(BTreeMap::new()),
+            readers: RwLock::new(BTreeMap::new()),
             file_identities: RwLock::new(BTreeMap::new()),
             file_identity_epoch: Instant::now(),
             #[cfg(test)]
@@ -466,8 +466,9 @@ impl Manager {
         prepare: impl FnOnce() -> Result<LockFile>,
     ) -> Result<Arc<LockFile>> {
         let existing = {
-            let mut readers = self.reader_registry(wait)?;
-            readers.retain(|_, file| file.strong_count() > 0);
+            // Warm readers only inspect weak metadata; they may share this
+            // interval without serializing unrelated current packet reads.
+            let readers = self.reader_registry(wait, || self.readers.try_read())?;
             readers.get(name).and_then(Weak::upgrade)
         };
         if let Some(resource) = existing {
@@ -489,7 +490,9 @@ impl Manager {
         // redundant shared file outside the registry. This retains one owned
         // resource per live name without retaining idle authority. A busy
         // immediate registry still drops this original file before returning.
-        let mut readers = self.reader_registry(wait)?;
+        let mut readers = self.reader_registry(wait, || self.readers.try_write())?;
+        // Prune weak metadata only at cold publication, never on warm reads.
+        readers.retain(|_, file| file.strong_count() > 0);
         if let Some(existing) = readers.get(name).and_then(Weak::upgrade) {
             drop(readers);
             return Ok(existing);
@@ -498,15 +501,16 @@ impl Manager {
         drop(readers);
         Ok(resource)
     }
-    fn reader_registry(
+    fn reader_registry<T>(
         &self,
         wait: Option<&AuthorityWait>,
-    ) -> Result<std::sync::MutexGuard<'_, BTreeMap<String, Weak<LockFile>>>> {
+        try_access: impl Fn() -> std::sync::TryLockResult<T>,
+    ) -> Result<T> {
         loop {
             if let Some(wait) = wait {
                 wait.check()?;
             }
-            match self.readers.try_lock() {
+            match try_access() {
                 Ok(readers) => return Ok(readers),
                 Err(std::sync::TryLockError::WouldBlock) => match wait {
                     Some(wait) => wait.pause()?,

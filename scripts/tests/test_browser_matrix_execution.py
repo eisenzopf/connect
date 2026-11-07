@@ -73,5 +73,37 @@ class BrowserMatrixExecution(unittest.TestCase):
             self.assertFalse(cell["execution"]["component"]["passed"])
 
 
+class BrowserCycleJoinTests(unittest.TestCase):
+    def original(self):
+        return dict(passed=False, retirement=dict(passed=True, allLocalOwnersElapsedMs=400,
+            originalEndsCompleted=6, originalSessionsEnded=2, originalClientsClosed=7,
+            originalConnectionEnds=[dict(connection_id="connection-"+str(i), operation_id="end-"+str(i), status="fulfilled") for i in range(6)],
+            originalSessionEnds=[dict(session_id="session-"+str(i), operation_id="session-end-"+str(i), status="fulfilled") for i in range(2)],
+            originalClientCloses=[dict(role="role-"+str(i), device_id="device-"+str(i), status="fulfilled", deadline_met=True) for i in range(7)]),
+            idle_resources=dict(localOwnersJoined=True, active_bindings=0, media_peers=5, queued_packets=0, queued_bytes=0,
+                renderer=dict(joined=True, owners=10), diagnostic_hooks=dict(joined=True), fixture_reference_retirement=dict(released=True)),
+            diagnostic_cycle_retirement=dict(released=True))
+
+    def test_each_cycle_keeps_original_join_ids_and_refusals_independent_of_media_failure(self):
+        from lib.transport_matrix_execution import browser_cycle_joins_verified
+        import copy
+        original = self.original()
+        self.assertTrue(browser_cycle_joins_verified(original), "Media failure cannot erase actual closed-owner facts")
+        for mutate in [lambda v: v["retirement"]["originalClientCloses"][0].update(deadline_met=False),
+                       lambda v: v["retirement"]["originalConnectionEnds"][0].update(status="rejected"),
+                       lambda v: v["retirement"]["originalSessionEnds"][1].update(session_id="session-0"),
+                       lambda v: v["idle_resources"].update(queued_packets=1),
+                       lambda v: v["diagnostic_cycle_retirement"].update(released=False)]:
+            value = copy.deepcopy(original); mutate(value)
+            self.assertFalse(browser_cycle_joins_verified(value))
+        rtc = copy.deepcopy(original)
+        rtc["idle_resources"].pop("queued_packets"); rtc["idle_resources"].pop("queued_bytes")
+        rtc["idle_resources"]["rtc_owners"] = [dict(original_shutdown_joined=True, closed=True,
+            peerConnectionState="closed", remoteTracks=0, liveRemoteTracks=0, captureActive=False, renderActive=False) for _ in range(6)]
+        self.assertTrue(browser_cycle_joins_verified(rtc))
+        rtc["idle_resources"]["rtc_owners"][0]["liveRemoteTracks"] = 1
+        self.assertFalse(browser_cycle_joins_verified(rtc))
+
+
 if __name__ == "__main__":
     unittest.main()

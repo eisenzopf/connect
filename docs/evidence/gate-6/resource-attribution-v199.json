@@ -1,0 +1,406 @@
+{
+  "format": "connect/v199-aligned-resource-numeric-public/1",
+  "source_sha256": "0846ef0e6e8799f8d23bf893e21ace42a2a7e0f6bfad3a3c23bc8edeb5171f15",
+  "source_revision": "7195b4b1e496efc5164d62de63ea47d1aabdb13f",
+  "criteria_changed": false,
+  "resource_fix_implemented": false,
+  "original_idle_passed": false,
+  "attribution": {
+    "binding": {
+      "pid": 384102,
+      "start_ticks": 11183031,
+      "uid": 501,
+      "boot_id_sha256": "521267176c51ebd837582d7eb4b7199678be952ee7756e24cc10adc80d489700",
+      "executable_stat": {
+        "dev": 64769,
+        "inode": 3188334,
+        "type": 32768,
+        "bytes": 194663728,
+        "mtime_ns": 1794026061707604338,
+        "ctime_ns": 1794027739711672722
+      },
+      "executable_sha256": "a5565b8639b41c1fc94e181ff63a976d220698cde283e62d8c41bf7e2fdea7a0",
+      "command_sha256": "13d60067af34dccc367eb4d623888d21336d271e9a13f1173ea4d6b2f5388140",
+      "config_sha256": "85930d336717a7ea0ba75ffac226c1702cf6aa9f5d06f4f8db7febff2c697fa9",
+      "config_stat": {
+        "dev": 64769,
+        "inode": 3188414,
+        "type": 32768,
+        "bytes": 2233,
+        "mtime_ns": 1794027740622631119,
+        "ctime_ns": 1794027740622631119
+      },
+      "source_manifest_sha256": "78305d6886dfde493758b553e5b6d48640af519efd7c3df38612832ded460862",
+      "source_manifest_stat": {
+        "dev": 64769,
+        "inode": 3188331,
+        "type": 32768,
+        "bytes": 1500999,
+        "mtime_ns": 1794027739066702309,
+        "ctime_ns": 1794027739066702309
+      },
+      "bound_monotonic_ns": 111831176999298,
+      "binding_sha256": "e06258db72a129f5ea0b63232bc9e3f9ba6544ff5712f5cee94f662bdd932a5d"
+    },
+    "capture": {
+      "complete_samples": 103,
+      "unavailable_samples": 0,
+      "finish": {
+        "samples": 103,
+        "elapsed_seconds": 188.17836381599773
+      },
+      "controller": {
+        "pid": 325,
+        "joined": true,
+        "exit_code": 0,
+        "log_sha256": "4f1faf541fef2f58a9971e31d3691b43b95f96228725caf12d2a26abc9c20e0b",
+        "started_unix": 1794027656.0164921,
+        "ended_unix": 1794027844.517503
+      }
+    },
+    "original_idle_verdict": {
+      "passed": false,
+      "policy": {
+        "idle_seconds": 10,
+        "sample_seconds": 1,
+        "rss_retention_bytes": 0,
+        "extra_descriptors": 0,
+        "extra_threads": 0
+      },
+      "final_failures": [],
+      "baseline_monotonic_seconds": 111836.072531714,
+      "terminal_monotonic_seconds": 111921.32474376798,
+      "last_idle_monotonic_seconds": 111931.373123011,
+      "before_server": {
+        "live_processes": 1,
+        "unavailable_processes": 0,
+        "retired_processes": 0,
+        "sampled_rss_bytes": 65753088,
+        "observed_cpu_seconds": 0.19,
+        "open_resource_unavailable_processes": 0,
+        "sampled_open_descriptors": 25,
+        "sampled_threads": 13
+      },
+      "after_server": {
+        "live_processes": 1,
+        "unavailable_processes": 0,
+        "retired_processes": 0,
+        "sampled_rss_bytes": 135536640,
+        "observed_cpu_seconds": 79.03,
+        "open_resource_unavailable_processes": 0,
+        "sampled_open_descriptors": 25,
+        "sampled_threads": 15
+      }
+    },
+    "original_rollup": {
+      "before": {
+        "Rss_bytes": 66359296,
+        "Pss_bytes": 64774144,
+        "Shared_Clean_bytes": 1662976,
+        "Shared_Dirty_bytes": 0,
+        "Private_Clean_bytes": 131072,
+        "Private_Dirty_bytes": 64565248,
+        "Anonymous_bytes": 18849792,
+        "LazyFree_bytes": 0,
+        "Swap_bytes": 0
+      },
+      "after": {
+        "Rss_bytes": 136470528,
+        "Pss_bytes": 134872064,
+        "Shared_Clean_bytes": 1724416,
+        "Shared_Dirty_bytes": 0,
+        "Private_Clean_bytes": 61718528,
+        "Private_Dirty_bytes": 73027584,
+        "Anonymous_bytes": 72994816,
+        "LazyFree_bytes": 0,
+        "Swap_bytes": 0
+      }
+    },
+    "alignment": {
+      "baseline_bracket": {
+        "before": {
+          "started_monotonic_seconds": 111835.068886354,
+          "ended_monotonic_seconds": 111835.07195851,
+          "start_offset_seconds": -1.0036453600041568,
+          "totals": {
+            "Size_bytes": 2050146304,
+            "Rss_bytes": 66338816,
+            "Pss_bytes": 64752640,
+            "Shared_Clean_bytes": 1662976,
+            "Shared_Dirty_bytes": 0,
+            "Private_Clean_bytes": 131072,
+            "Private_Dirty_bytes": 64544768,
+            "Referenced_bytes": 66338816,
+            "Anonymous_bytes": 18829312,
+            "LazyFree_bytes": 0,
+            "AnonHugePages_bytes": 0,
+            "ShmemPmdMapped_bytes": 0,
+            "FilePmdMapped_bytes": 0,
+            "Swap_bytes": 0,
+            "SwapPss_bytes": 0,
+            "Locked_bytes": 0
+          },
+          "class_rss": {
+            "named-anonymous-or-kernel-special/non-x": 4608000,
+            "original-executable-file/x": 45613056,
+            "original-executable-file/non-x": 2461696,
+            "unlabelled-anonymous/non-x": 11436032,
+            "explicit-brk-heap/non-x": 73728,
+            "runtime-shared-object-file/x": 1789952,
+            "runtime-shared-object-file/non-x": 61440,
+            "sqlite-state-shm/non-x": 32768,
+            "named-anonymous-or-kernel-special/x": 4096,
+            "explicit-main-stack/non-x": 258048
+          }
+        },
+        "after": {
+          "started_monotonic_seconds": 111836.079098634,
+          "ended_monotonic_seconds": 111836.095838735,
+          "start_offset_seconds": 0.006566919997567311,
+          "totals": {
+            "Size_bytes": 2050146304,
+            "Rss_bytes": 66342912,
+            "Pss_bytes": 64756736,
+            "Shared_Clean_bytes": 1662976,
+            "Shared_Dirty_bytes": 0,
+            "Private_Clean_bytes": 131072,
+            "Private_Dirty_bytes": 64548864,
+            "Referenced_bytes": 66342912,
+            "Anonymous_bytes": 18833408,
+            "LazyFree_bytes": 0,
+            "AnonHugePages_bytes": 0,
+            "ShmemPmdMapped_bytes": 0,
+            "FilePmdMapped_bytes": 0,
+            "Swap_bytes": 0,
+            "SwapPss_bytes": 0,
+            "Locked_bytes": 0
+          },
+          "class_rss": {
+            "named-anonymous-or-kernel-special/non-x": 4608000,
+            "original-executable-file/x": 45613056,
+            "original-executable-file/non-x": 2461696,
+            "unlabelled-anonymous/non-x": 11440128,
+            "explicit-brk-heap/non-x": 73728,
+            "runtime-shared-object-file/x": 1789952,
+            "runtime-shared-object-file/non-x": 61440,
+            "sqlite-state-shm/non-x": 32768,
+            "named-anonymous-or-kernel-special/x": 4096,
+            "explicit-main-stack/non-x": 258048
+          }
+        }
+      },
+      "terminal_bracket": {
+        "before": {
+          "started_monotonic_seconds": 111921.119633909,
+          "ended_monotonic_seconds": 111921.12584006,
+          "start_offset_seconds": -0.20510985898727085,
+          "totals": {
+            "Size_bytes": 2188730368,
+            "Rss_bytes": 133435392,
+            "Pss_bytes": 131835904,
+            "Shared_Clean_bytes": 1724416,
+            "Shared_Dirty_bytes": 0,
+            "Private_Clean_bytes": 61206528,
+            "Private_Dirty_bytes": 70504448,
+            "Referenced_bytes": 133435392,
+            "Anonymous_bytes": 70483968,
+            "LazyFree_bytes": 0,
+            "AnonHugePages_bytes": 0,
+            "ShmemPmdMapped_bytes": 0,
+            "FilePmdMapped_bytes": 0,
+            "Swap_bytes": 0,
+            "SwapPss_bytes": 0,
+            "Locked_bytes": 0
+          },
+          "class_rss": {
+            "named-anonymous-or-kernel-special/non-x": 33492992,
+            "original-executable-file/x": 60686336,
+            "original-executable-file/non-x": 2461696,
+            "unlabelled-anonymous/non-x": 34205696,
+            "explicit-brk-heap/non-x": 73728,
+            "runtime-shared-object-file/x": 2158592,
+            "runtime-shared-object-file/non-x": 61440,
+            "sqlite-state-shm/non-x": 32768,
+            "named-anonymous-or-kernel-special/x": 4096,
+            "explicit-main-stack/non-x": 258048
+          }
+        },
+        "after": {
+          "started_monotonic_seconds": 111922.125276128,
+          "ended_monotonic_seconds": 111922.149383795,
+          "start_offset_seconds": 0.8005323600227712,
+          "totals": {
+            "Size_bytes": 2188730368,
+            "Rss_bytes": 136011776,
+            "Pss_bytes": 134412288,
+            "Shared_Clean_bytes": 1724416,
+            "Shared_Dirty_bytes": 0,
+            "Private_Clean_bytes": 61259776,
+            "Private_Dirty_bytes": 73027584,
+            "Referenced_bytes": 136011776,
+            "Anonymous_bytes": 72994816,
+            "LazyFree_bytes": 0,
+            "AnonHugePages_bytes": 0,
+            "ShmemPmdMapped_bytes": 0,
+            "FilePmdMapped_bytes": 0,
+            "Swap_bytes": 0,
+            "SwapPss_bytes": 0,
+            "Locked_bytes": 0
+          },
+          "class_rss": {
+            "named-anonymous-or-kernel-special/non-x": 35819520,
+            "original-executable-file/x": 60751872,
+            "original-executable-file/non-x": 2461696,
+            "unlabelled-anonymous/non-x": 34390016,
+            "explicit-brk-heap/non-x": 73728,
+            "runtime-shared-object-file/x": 2158592,
+            "runtime-shared-object-file/non-x": 61440,
+            "sqlite-state-shm/non-x": 32768,
+            "named-anonymous-or-kernel-special/x": 4096,
+            "explicit-main-stack/non-x": 258048
+          }
+        }
+      },
+      "last_idle_bracket": {
+        "before": {
+          "started_monotonic_seconds": 111931.136893045,
+          "ended_monotonic_seconds": 111931.159701159,
+          "start_offset_seconds": -0.23622996600170154,
+          "totals": {
+            "Size_bytes": 2188730368,
+            "Rss_bytes": 136470528,
+            "Pss_bytes": 134871040,
+            "Shared_Clean_bytes": 1724416,
+            "Shared_Dirty_bytes": 0,
+            "Private_Clean_bytes": 61718528,
+            "Private_Dirty_bytes": 73027584,
+            "Referenced_bytes": 136470528,
+            "Anonymous_bytes": 72994816,
+            "LazyFree_bytes": 0,
+            "AnonHugePages_bytes": 0,
+            "ShmemPmdMapped_bytes": 0,
+            "FilePmdMapped_bytes": 0,
+            "Swap_bytes": 0,
+            "SwapPss_bytes": 0,
+            "Locked_bytes": 0
+          },
+          "class_rss": {
+            "named-anonymous-or-kernel-special/non-x": 35819520,
+            "original-executable-file/x": 61210624,
+            "original-executable-file/non-x": 2461696,
+            "unlabelled-anonymous/non-x": 34390016,
+            "explicit-brk-heap/non-x": 73728,
+            "runtime-shared-object-file/x": 2158592,
+            "runtime-shared-object-file/non-x": 61440,
+            "sqlite-state-shm/non-x": 32768,
+            "named-anonymous-or-kernel-special/x": 4096,
+            "explicit-main-stack/non-x": 258048
+          }
+        },
+        "after": {
+          "started_monotonic_seconds": 111932.137397061,
+          "ended_monotonic_seconds": 111932.158841748,
+          "start_offset_seconds": 0.7642740500014042,
+          "totals": {
+            "Size_bytes": 2188730368,
+            "Rss_bytes": 136470528,
+            "Pss_bytes": 134871040,
+            "Shared_Clean_bytes": 1724416,
+            "Shared_Dirty_bytes": 0,
+            "Private_Clean_bytes": 61718528,
+            "Private_Dirty_bytes": 73027584,
+            "Referenced_bytes": 136470528,
+            "Anonymous_bytes": 72994816,
+            "LazyFree_bytes": 0,
+            "AnonHugePages_bytes": 0,
+            "ShmemPmdMapped_bytes": 0,
+            "FilePmdMapped_bytes": 0,
+            "Swap_bytes": 0,
+            "SwapPss_bytes": 0,
+            "Locked_bytes": 0
+          },
+          "class_rss": {
+            "named-anonymous-or-kernel-special/non-x": 35819520,
+            "original-executable-file/x": 61210624,
+            "original-executable-file/non-x": 2461696,
+            "unlabelled-anonymous/non-x": 34390016,
+            "explicit-brk-heap/non-x": 73728,
+            "runtime-shared-object-file/x": 2158592,
+            "runtime-shared-object-file/non-x": 61440,
+            "sqlite-state-shm/non-x": 32768,
+            "named-anonymous-or-kernel-special/x": 4096,
+            "explicit-main-stack/non-x": 258048
+          }
+        }
+      },
+      "chosen_baseline_start_offset_seconds": 0.006566919997567311,
+      "chosen_final_start_offset_seconds": -0.23622996600170154
+    },
+    "selected_sample_totals": {
+      "before": {
+        "Size_bytes": 2050146304,
+        "Rss_bytes": 66342912,
+        "Pss_bytes": 64756736,
+        "Shared_Clean_bytes": 1662976,
+        "Shared_Dirty_bytes": 0,
+        "Private_Clean_bytes": 131072,
+        "Private_Dirty_bytes": 64548864,
+        "Referenced_bytes": 66342912,
+        "Anonymous_bytes": 18833408,
+        "LazyFree_bytes": 0,
+        "AnonHugePages_bytes": 0,
+        "ShmemPmdMapped_bytes": 0,
+        "FilePmdMapped_bytes": 0,
+        "Swap_bytes": 0,
+        "SwapPss_bytes": 0,
+        "Locked_bytes": 0
+      },
+      "after": {
+        "Size_bytes": 2188730368,
+        "Rss_bytes": 136470528,
+        "Pss_bytes": 134871040,
+        "Shared_Clean_bytes": 1724416,
+        "Shared_Dirty_bytes": 0,
+        "Private_Clean_bytes": 61718528,
+        "Private_Dirty_bytes": 73027584,
+        "Referenced_bytes": 136470528,
+        "Anonymous_bytes": 72994816,
+        "LazyFree_bytes": 0,
+        "AnonHugePages_bytes": 0,
+        "ShmemPmdMapped_bytes": 0,
+        "FilePmdMapped_bytes": 0,
+        "Swap_bytes": 0,
+        "SwapPss_bytes": 0,
+        "Locked_bytes": 0
+      },
+      "delta": {
+        "Size_bytes": 138584064,
+        "Rss_bytes": 70127616,
+        "Pss_bytes": 70114304,
+        "Shared_Clean_bytes": 61440,
+        "Shared_Dirty_bytes": 0,
+        "Private_Clean_bytes": 61587456,
+        "Private_Dirty_bytes": 8478720,
+        "Referenced_bytes": 70127616,
+        "Anonymous_bytes": 54161408,
+        "LazyFree_bytes": 0,
+        "AnonHugePages_bytes": 0,
+        "ShmemPmdMapped_bytes": 0,
+        "FilePmdMapped_bytes": 0,
+        "Swap_bytes": 0,
+        "SwapPss_bytes": 0,
+        "Locked_bytes": 0
+      }
+    }
+  },
+  "witnesses_sha256": [
+    "2a17ac3311dc89ea33bc1dcb0796096701704c0cb57bdadaedbc3e42eb916bf8",
+    "5192a1a2eb3753d67af45dc4f28ee6531e2654bd5bcda48d7a8d017937cd1188",
+    "59dd6aa6f57b5ee6a1cbe9f29d8c9f2f049ff8f1903a9815f5ae6f166996d80e",
+    "6d24f8d1d804fcf5e023b126485348dc5890b9cc02dc7365300149d1bac83074",
+    "7073707ebd750a30897265576fe23e4179ebf437fb9b60ed3695f411113ec92c",
+    "b8c46d9cc9fe99d4f740689548493a7d0682190f2a2a8a72bd086e76afee92f1",
+    "c6fd0515e825fe5c2dce0e0f5eb5e2c53f6a0eae99a9ebbb119f8277a5f28e29",
+    "def0088fa0c2330af336bb97a7771ced04b5920da4b12d78b2e38358cb216bbd"
+  ]
+}

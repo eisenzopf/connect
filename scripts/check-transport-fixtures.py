@@ -43,7 +43,9 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
-def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True, native_port=None, arm64_component=False, native_replacement_metadata_trace=False, native_replacement_commit_trace=False, native_packet_policy_trace=False, native_authority_summary=False):
+def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True, native_port=None, arm64_component=False, native_replacement_metadata_trace=False, native_replacement_commit_trace=False, native_packet_policy_trace=False, native_authority_summary=False, resource_cycles=1):
+    assert type(resource_cycles) is int and resource_cycles in (1, 3)
+    assert resource_cycles == 1 or media_workload
     global PRIVATE, OUTPUT
     assert type(host_capture) is bool and (host_capture or media_workload and network_profile == "local")
     assert native_port is None or (type(native_port) is int and 1024 <= native_port <= 65535 and media_workload and network_profile == "local")
@@ -115,6 +117,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     report["native_authority_summary_requested"] = native_authority_summary
     report["native_packet_policy_trace_requested"] = native_packet_policy_trace
     report["sdk_helper_timing_trace_requested"] = native_replacement_metadata_trace
+    report["resource_cycles_requested"] = resource_cycles
     report["host_capture_requested"] = host_capture
     report["requested_native_port"] = native_port
     report["host_capture_required_for_complete_cell"] = True
@@ -215,7 +218,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 report["native_av_source_manifest_sha256"] = digest(PRIVATE / "av-sources/manifest.json")
         elif network_profile == "remote":
             phase = "owned-remote-network-setup"
-            namespace = NativeNamespace(PRIVATE / "network", ROOT, env)
+            namespace = NativeNamespace(PRIVATE / "network", ROOT, env, resource_cycles=resource_cycles)
             namespace.start()
 
         def run(name, arguments, data=None, *, success=True):
@@ -550,7 +553,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         interface=None if namespace is None else namespace.interface,
                         server_ip="127.0.0.1" if namespace is None else namespace.server_ip,
                         peer_ip="127.0.0.1" if namespace is None else namespace.client_ip,
-                        media_workload=media_workload)
+                        media_workload=media_workload, resource_cycles=resource_cycles)
                     capture_failure = capture.start_observed()
                     if capture_failure is not None:
                         report["packet_capture"] = capture_failure
@@ -590,6 +593,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     media_output_directory=str(PRIVATE / "av-received") if media_workload else None,
                     matrix_resource_directory=str(PRIVATE / "process-profile") if media_workload else None,
                     matrix_programme_profile="connect/native-programme-worker/1" if media_workload else None,
+                    matrix_resource_cycles=resource_cycles,
                     matrix_programme_budget_seconds=300 if media_workload else None), indent=2) + "\n").encode())
                 if media_workload:
                     # Independent current-authority cases run before AV. A media
@@ -632,12 +636,13 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         remote.stage_json(input_path, json.loads(input_path.read_text()))
                         remote.call(["mkdir", "-p", remote.mapped(OUTPUT)])
                         guest_command = rewrite_paths(command, ROOT, remote.remote_root)
-                        capture_config = dict(server_port=native, interface=remote.topology["guest"]["route"]["dev"],
+                        capture_config = dict(server_port=native, resource_cycles=resource_cycles, interface=remote.topology["guest"]["route"]["dev"],
                             server_ip=remote.server_ip, peer_ip=remote.client_ip) if host_capture else None
                         code, resources, idle = remote.run_native_programme(guest_command,
                             PRIVATE / "conversation-control.log", directory=PRIVATE / "process-profile", server_pid=server_pid,
-                            endpoint=f"http://127.0.0.1:{http}/v1/operations", credential=administrative["credential"], capture=capture_config)
-                        for directory in (OUTPUT, PRIVATE / "conversation-control", PRIVATE / "av-received"):
+                            endpoint=f"http://127.0.0.1:{http}/v1/operations", credential=administrative["credential"], capture=capture_config,
+                            resource_cycles=resource_cycles, budget=300 * resource_cycles)
+                        for directory in (OUTPUT, *( [PRIVATE / ("native-cycle-" + str(i)) for i in (1, 2, 3)] if resource_cycles == 3 else [PRIVATE / "conversation-control"]), PRIVATE / "av-received"):
                             remote.collect_directory(directory)
                         report["remote_client_owner"] = remote.close(release_lease=False)
                         report["server_after_guest"] = remote.server_proof(server_pid, binary, report["binary_sha256"], native)
@@ -646,7 +651,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                             report["packet_capture"] = json.loads(capture_path.read_text())
                     else:
                         code, resources, idle = run_native_matrix(command,
-                            PRIVATE / "conversation-control.log", env, 300, server_pid=server_pid,
+                            PRIVATE / "conversation-control.log", env, 300 * resource_cycles, resource_cycles=resource_cycles, server_pid=server_pid,
                             directory=PRIVATE / "process-profile", cwd=ROOT,
                             endpoint=f"http://127.0.0.1:{http}/v1/operations", credential=administrative["credential"],
                             wrap=None if namespace is None else namespace.client_command)
@@ -671,11 +676,60 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 if (OUTPUT / "conversation.json").is_file():
                     report["conversation_report_sha256"] = digest(OUTPUT / "conversation.json")
                 observed = json.loads((OUTPUT / "conversation.json").read_text())
+                cycle_observations = [observed]
+                if resource_cycles == 3:
+                    cycle_observations = []
+                    cycle_failures = []
+                    original_mutations = set()
+                    for index, cycle in enumerate(observed.get("resource_cycles", []), 1):
+                        try:
+                            assert cycle["index"] == index and 1 <= index <= 3
+                            cycle_path = Path(cycle["output_path"])
+                            if remote is not None:
+                                cycle_path = Path(rewrite_paths(str(cycle_path), str(remote.remote_root), str(ROOT)))
+                            assert cycle_path.resolve().is_relative_to(OUTPUT.resolve())
+                            assert not cycle_path.is_symlink() and digest(cycle_path) == cycle["report_sha256"]
+                            original = json.loads(cycle_path.read_text())
+                            original["resource_cycle_index"] = index
+                            cycle_observations.append(original)
+                            plan_path = PRIVATE / ("native-cycle-" + str(index)) / "conversation-control/plan.json"
+                            assert not plan_path.is_symlink() and digest(plan_path) == original["plan_sha256"]
+                            plan = json.loads(plan_path.read_text())
+                            planned_ids = set(plan.values())
+                            assert len(planned_ids) == len(plan) and not original_mutations.intersection(planned_ids)
+                            original_mutations.update(planned_ids)
+                        except (OSError, KeyError, ValueError, TypeError, AssertionError) as error:
+                            cycle_failures.append(dict(index=index, failure=type(error).__name__))
+                    cycle_inputs_complete = (len(cycle_observations) == 3 and not cycle_failures
+                        and len({c.get("plan_sha256") for c in cycle_observations}) == 3)
+                    report["native_cycle_input_failures"] = cycle_failures
+                    report["native_cycle_mutation_inventory"] = dict(cycles=len(cycle_observations),
+                        distinct_original_ids=len(original_mutations), original_plans_sha256=[c.get("plan_sha256") for c in cycle_observations],
+                        passed=cycle_inputs_complete)
+                    report["native_cycle_controls"] = [dict(index=c["resource_cycle_index"], passed=c.get("passed") is True,
+                        programme_worker=c.get("programme_worker"), plan_sha256=c.get("plan_sha256"),
+                        failure=c.get("failure"), retirement=c.get("retirement")) for c in cycle_observations]
+                    observed["passed"] = bool(observed.get("passed") and cycle_inputs_complete)
+                    observed["checks"] = sorted(set.intersection(*(set(c.get("checks", [])) for c in cycle_observations))) if cycle_inputs_complete else []
+                    for field in ("all_observed_helpers_joined", "actual_connection_workload_observed", "actual_topology_verified"):
+                        observed[field] = cycle_inputs_complete and all(c.get(field) is True for c in cycle_observations)
+                    for field, required in (("maximum_active_members_observed", 4), ("concurrent_session_intents_observed", 2)):
+                        if not cycle_inputs_complete or not all(c.get(field) == required for c in cycle_observations):
+                            observed[field] = None
+                    observed["retirement"] = dict(observed.get("retirement", {}),
+                        passed=cycle_inputs_complete and all(c.get("retirement", {}).get("passed") is True for c in cycle_observations))
                 report["conversation_control"] = {key: observed.get(key) for key in (
                     "passed", "checks", "all_observed_helpers_joined", "workload_mode", "programme_profile", "programme_worker",
                     "maximum_active_members_observed", "concurrent_session_intents_observed",
-                    "actual_connection_workload_observed", "actual_topology_verified", "retirement")}
+                    "actual_connection_workload_observed", "actual_topology_verified", "retirement", "resource_cycles", "matrix_resource_cycles")}
                 report["movement"] = observed.get("device_movement", {})
+                if resource_cycles == 3:
+                    report["movement_cycles"] = [c.get("device_movement", {}) for c in cycle_observations]
+                    if not cycle_inputs_complete or not all(m.get("original_moves_completed") == 4 and len(m.get("moves", [])) == 4
+                            and all(x.get("original_reference_preserved") is True and x.get("original_retired") is True
+                                and x.get("camera_transfer_admitted") is True for x in m["moves"])
+                            for m in report["movement_cycles"]):
+                        report["movement"] = dict(report["movement"], original_moves_completed=0)
                 if not report["movement"] and observed.get("native_av_observation"):
                     report["movement"] = dict(passed=False, moves=[], failure=observed.get("failure", {}))
                 report.setdefault("current_authority", {})["conflict"] = dict(passed=
@@ -685,7 +739,19 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 decoded = None
                 if media_workload:
                     try:
-                        decoded = decode_completed_av(observed, PRIVATE / "av-received", media_sources)
+                        if resource_cycles == 3:
+                            decoded_cycles = []
+                            for cycle in cycle_observations:
+                                index = cycle["resource_cycle_index"]
+                                try:
+                                    value = decode_completed_av(cycle, PRIVATE / "av-received" / ("cycle-" + str(index)), media_sources)
+                                    decoded_cycles.append(dict(index=index, observation=value, passed=value is not None and value.get("passed") is True))
+                                except Exception as error:
+                                    decoded_cycles.append(dict(index=index, passed=False, failure=type(error).__name__))
+                            decoded = dict(format="connect/native-three-cycle-decoded-media/1", cycles=decoded_cycles,
+                                passed=len(decoded_cycles) == 3 and all(c["passed"] for c in decoded_cycles), cell_qualified=False)
+                        else:
+                            decoded = decode_completed_av(observed, PRIVATE / "av-received", media_sources)
                         if decoded is not None:
                             report["native_av_decoded"] = decoded
                     except Exception as decode_error:
@@ -855,6 +921,7 @@ if __name__ == "__main__":
     parser.add_argument("--trace-replacement-metadata", action="store_true", help="Media diagnostic only: enable existing private replacement phase and metadata diagnostics")
     parser.add_argument("--trace-replacement-commit", action="store_true", help="Media diagnostic only: original replacement phase/error events without authority backtraces, SQL custody or helper timing")
     parser.add_argument("--trace-packet-policy", action="store_true", help="Media diagnostic only: existing current-packet policy outcomes; logging can perturb timing and does not qualify quality")
+    parser.add_argument("--resource-cycles", type=int, choices=(1, 3), default=1, help="Explicit full Gate6 resource profile: three real programmes on the same original server/controller")
     parser.add_argument("--actors", action="store_true", help="Include scoped enrollment, original resume and current-authority checks")
     parser.add_argument("--conversation", action="store_true", help="Include actual public Node SDK membership and Session control")
     parser.add_argument("--data-workload", action="store_true", help="Include six actual native data Connections, four participants/two Sessions and observed loopback topology")
@@ -864,6 +931,8 @@ if __name__ == "__main__":
     parser.add_argument("--signing-algorithm", choices=("EdDSA", "ES256"), default="EdDSA", help="Generate and exercise the exact server/operator/actor signing cohort")
     parser.add_argument("--network-profile", choices=("local", "remote"), default="local", help="Owned native loopback or isolated Ubuntu systemd/network-namespace fixture")
     args = parser.parse_args()
+    if args.resource_cycles == 3 and not args.media_workload:
+        parser.error("--resource-cycles=3 requires the full media workload")
     if args.trace_replacement_metadata and not args.media_workload:
         parser.error("--trace-replacement-metadata requires --media-workload")
     if args.trace_replacement_commit and not args.media_workload:
@@ -876,4 +945,4 @@ if __name__ == "__main__":
         parser.error("--without-host-capture requires the explicit local --media-workload component")
     if args.native_port is not None and (not args.media_workload or args.network_profile != "local" or not 1024 <= args.native_port <= 65535):
         parser.error("--native-port requires an explicit local media fixture port in1024..65535")
-    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload, not args.without_host_capture, args.native_port, args.arm64_component, args.trace_replacement_metadata, args.trace_replacement_commit, args.trace_packet_policy))
+    raise SystemExit(main(args.actors, args.conversation, args.data_workload, args.signing_algorithm, args.network_profile, args.media_workload, not args.without_host_capture, args.native_port, args.arm64_component, args.trace_replacement_metadata, args.trace_replacement_commit, args.trace_packet_policy, resource_cycles=args.resource_cycles))

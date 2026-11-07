@@ -1,0 +1,1705 @@
+{
+  "format": "connect/g6-058-full-v199-public/1",
+  "run": "v199",
+  "source_revision": "7195b4b1e496efc5164d62de63ea47d1aabdb13f",
+  "source_lock_sha256": "b88e9e899badac7e719ecad1d9f87fc78c2c55c6bc32e76c4f20c67ee12f53d8",
+  "summary": {
+    "cells": {
+      "passed": 0,
+      "failed": 32,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0,
+      "incomplete": 0
+    },
+    "required_cells": 32,
+    "required_checks": 432,
+    "checks": {
+      "passed": 336,
+      "failed": 96,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0
+    }
+  },
+  "original_attempts": 32,
+  "unattempted_environment_cells": [],
+  "requirement_counts": {
+    "identified-candidate-client-server-versions": {
+      "passed": 32
+    },
+    "normal-tls-and-current-device-key-authority": {
+      "passed": 32
+    },
+    "selected-transport-and-authenticated-discovery": {
+      "passed": 32
+    },
+    "one-service-contract-and-original-operation-recovery": {
+      "passed": 32
+    },
+    "participant-add-update-remove-and-current-audiences": {
+      "passed": 32
+    },
+    "session-upgrade-and-current-capability-refusal": {
+      "passed": 32
+    },
+    "device-replacement-and-old-owner-retirement": {
+      "failed": 32
+    },
+    "declared-concurrent-workload": {
+      "passed": 32
+    },
+    "actual-private-packet-capture": {
+      "passed": 32
+    },
+    "independently-decoded-duplex-media-and-profile-budgets": {
+      "failed": 32
+    },
+    "current-revocation-expiry-and-conflicting-operation-refusals": {
+      "passed": 32
+    },
+    "owned-drain-and-resource-reclamation": {
+      "failed": 32
+    },
+    "neither-path-usable-refuses-without-mutation-resubmission": {
+      "passed": 24
+    },
+    "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+      "passed": 24
+    }
+  },
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "original_all32_selected_all432_terminal": true,
+  "original_controller_supervisor_workers_joined": true,
+  "witnesses_sha256": {
+    ".local/gate-6/retained-two-native-archives-v199-candidate/completed.json": "d049229439e2eb3ef308e6e00995928028bebd46a2f9a4a11cc6dfd980a030f2",
+    ".local/gate-6/retained-focused-binaries-v198-candidate/completed.json": "abc52deefb19c3e29a4f68dc4957404271f5608e2fb45ab1f5be249f04c2c6e9",
+    ".local/gate-6/full-matrix-v199/state.json": "bb1de7048e5dbc5ad013a0be38af0f75944bc5f7da5a96f5024af3cd0597cab4",
+    ".local/gate-6/full-matrix-v199/matrix.json": "cec680a368ca378dda196cca7f399013509172d6dd92d3e8fd69483517b0061a",
+    ".local/gate-6/v199-focused-admission-templates/full-matrix-controller.json": "1226a0975e8d8767f7fbb83609cb3d1f335e53dfb1784ac258b80430ea45c56f",
+    ".local/gate-6/v199-focused-admission-templates/matrix-controller-exit.json": "7b66190fb0c0a155a2dec94a303f540d2e8e820bf9881f248ad529b7cbe40106",
+    ".local/gate-6/v199-focused-admission-templates/matrix-controller-exit.log": "dae8bf97f0f39c5273efb9df927c9af455d591fd099c14dfd9afa2a3307c0285",
+    ".local/gate-6/post-v199-validation-next-candidate/baseline-mode-observation.json": "6b9cf0605da364e99102c07380e0356ba4429c9d0a6e9befe2fcdbec6692cb09",
+    ".local/gate-6/post-v199-validation-next-candidate/baseline-mode-observation-host.json": "4338d4293fd96f2aa2fa83f9681658a91620bb6a6fba4c5ed7ef18c6c5ae0c50"
+  },
+  "cells": [
+    {
+      "id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "attempted": true,
+      "checks": {
+        "identified-candidate-client-server-versions": {
+          "status": "passed"
+        },
+        "normal-tls-and-current-device-key-authority": {
+          "status": "passed"
+        },
+        "selected-transport-and-authenticated-discovery": {
+          "status": "passed"
+        },
+        "one-service-contract-and-original-operation-recovery": {
+          "status": "passed"
+        },
+        "participant-add-update-remove-and-current-audiences": {
+          "status": "passed"
+        },
+        "session-upgrade-and-current-capability-refusal": {
+          "status": "passed"
+        },
+        "device-replacement-and-old-owner-retirement": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "declared-concurrent-workload": {
+          "status": "passed"
+        },
+        "actual-private-packet-capture": {
+          "status": "passed"
+        },
+        "independently-decoded-duplex-media-and-profile-budgets": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "current-revocation-expiry-and-conflicting-operation-refusals": {
+          "status": "passed"
+        },
+        "owned-drain-and-resource-reclamation": {
+          "status": "failed",
+          "category": "behavior"
+        },
+        "wt-unavailable-selects-documented-wss-fallback-with-reason": {
+          "status": "passed"
+        },
+        "neither-path-usable-refuses-without-mutation-resubmission": {
+          "status": "passed"
+        }
+      }
+    }
+  ]
+}

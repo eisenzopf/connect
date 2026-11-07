@@ -155,6 +155,19 @@ fn plan(
 ) -> Result<serde_json::Value> {
     validate_request(request)?;
     let ctx = selection.context(store, c)?;
+    plan_with_packet_context(store, c, selection, request, runtime, &ctx)
+}
+// Context is borrowed only during an exact-version packet capture. This is
+// pure plan construction, never an authority proof or reusable media grant.
+fn plan_with_packet_context(
+    store: &Store,
+    c: &Connection,
+    selection: &NativeReplacementSelection,
+    request: &ReplacementPreparationRequest,
+    runtime: &str,
+    ctx: &crate::NativeReplacementContext,
+) -> Result<serde_json::Value> {
+    validate_request(request)?;
     let candidate = &request.candidate_connection_id;
     if candidate == &ctx.source_connection_id
         || candidate == &ctx.retained_connection_id

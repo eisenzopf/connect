@@ -42,7 +42,7 @@ if (programmeWorker) {
     assert.ok(mediaWorkload && input.matrix_resource_directory);
 } else assert.notEqual(input.matrix_programme_profile, NATIVE_PROGRAMME_PROFILE);
 const matrixLifecycle = mediaWorkload && input.matrix_resource_directory
-    ? nativeMatrixLifecycle(input.matrix_resource_directory) : undefined;
+    ? nativeMatrixLifecycle(input.matrix_resource_directory,{prefix:input.matrix_resource_prefix??''}) : undefined;
 assert.equal(input.format, "connect/transport-conversation-input/1");
 assert.ok(["EdDSA", "ES256"].includes(input.signing_algorithm));
 assert.equal(input.client_platform ?? input.server_platform, nativeHost().platform);
@@ -594,7 +594,15 @@ try {
     report.all_observed_helpers_joined = !report.helper_survived && !report.helper_close_failed;
     if (matrixLifecycle) {
         const observed = await matrixLifecycle.retired({observedHelpers: observedHelpers.size,
-            helpersJoined: report.all_observed_helpers_joined, closeFailed: report.helper_close_failed === true});
+            helpersJoined: report.all_observed_helpers_joined, closeFailed: report.helper_close_failed === true,
+            sessionRetirement: report.original_session_retirement,
+            workloadObservation: input.matrix_resource_prefix ? {
+                format: "connect/native-original-cycle-workload/1", plan_sha256: report.plan_sha256,
+                actual_connection_workload_observed: report.actual_connection_workload_observed === true,
+                programme_window_observed: report.native_av?.programme_window_observed === true,
+                seconds: report.native_av?.seconds ?? null, routes: report.native_av?.routes?.length ?? 0,
+                original_receive_tasks_joined: report.native_av?.original_receive_tasks_joined === true,
+            } : undefined});
         if (observed.worker_parent_idle_required) {
             // Provisional programme/helper cleanup; only the original parent can
             // attest this Worker's actual exit and the unchanged T+10 observer.
