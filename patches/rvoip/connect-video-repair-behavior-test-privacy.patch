@@ -1,0 +1,19 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs
+@@ -34,7 +34,6 @@
+         let original = Arc::new(Mutex::new(None));
+         let saved = original.clone();
+         let packet = queued(&f, medium).await;
+-        assert!(packet.audio_timing.is_none());
+         assert!(packet.audio_egress_stamp().unwrap().is_none());
+         let repair = packet
+             .deliver_video_with_repair(move |frame, origin| async move {
+@@ -43,8 +42,6 @@
+             })
+             .await
+             .unwrap();
+-        assert!(repair.queued.audio_timing.is_none());
+-        assert!(repair.queued.audio_egress_stamp().unwrap().is_none());
+         // Retention must not block an unrelated current-policy writer.
+         assert!(f.policy.0.try_write().is_ok());
+         for _ in 0..MAX_VIDEO_REPAIRS {

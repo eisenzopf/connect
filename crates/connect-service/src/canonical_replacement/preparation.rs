@@ -4,6 +4,7 @@ use super::{
     continuation::{Invocation, Phase},
     start::StartedReplacement,
 };
+mod audio;
 mod audio_clock;
 mod video;
 use audio_clock::PreparationAudioClock;
@@ -268,6 +269,12 @@ impl Runtime {
                 }
             }
         }
+        if let Some(gate) = &started.policy.readiness {
+            let prepared = self.prepare_private_audio(root, started).await?;
+            gate.audio_preroll
+                .set(Arc::new(prepared))
+                .map_err(|_| Error::forbidden())?;
+        }
         started
             .policy
             .preparation_operation
@@ -340,13 +347,24 @@ impl Runtime {
                     tracing::debug!(target: "connect_service::replacement_phase_trace",
                         operation = %root.origin.request().operation_id, "Replacement endpoint waiting for duplex activity");
                 }
-                let _ = started.controller.try_queue_local_silence(
-                    &binding.negotiated.requested.logical_id,
-                    LocalAudioPurpose::EndpointPreparation {
-                        operation_id: context.operation_id().into(),
-                    },
-                    timestamp_rtp,
-                );
+                // Neutral probes cannot compete with the same receiver's real
+                // remote mix once its existing guarded writer actually delivered.
+                // This metadata is not enqueue, a grant, or decoder readiness.
+                let has_remote_audio = started
+                    .policy
+                    .readiness
+                    .as_ref()
+                    .and_then(|gate| gate.audio_preroll.get())
+                    .is_some_and(|p| p.has_delivered_remote_audio());
+                if !has_remote_audio {
+                    let _ = started.controller.try_queue_local_silence(
+                        &binding.negotiated.requested.logical_id,
+                        LocalAudioPurpose::EndpointPreparation {
+                            operation_id: context.operation_id().into(),
+                        },
+                        timestamp_rtp,
+                    );
+                }
                 continue;
             }
             // The original endpoint remains public until its new peer has

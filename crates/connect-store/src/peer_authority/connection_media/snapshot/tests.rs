@@ -965,3 +965,7 @@ fn packet_sql_observers_are_read_only_and_release_after_saturation() {
     drop(held);
     assert_eq!(acquire(&f.store, |c| f.derive(c)).unwrap().0, 1);
 }
+
+mod full_custody;
+
+mod slot_reservation;

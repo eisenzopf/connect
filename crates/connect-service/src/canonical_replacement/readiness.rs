@@ -20,6 +20,8 @@ pub(super) struct ReadyGate {
     deadline: tokio::time::Instant,
     observation: Mutex<Option<Observation>>,
     pub(super) preroll: OnceLock<Arc<VideoReplacementPreparation>>,
+    pub(super) audio_preroll:
+        OnceLock<Arc<rvoip_core::staged_streams::audio_subscriptions::AudioReplacementPreparation>>,
 }
 impl ReadyGate {
     pub(super) fn new(
@@ -88,6 +90,7 @@ impl ReadyGate {
             deadline,
             observation: Mutex::new(None),
             preroll: OnceLock::new(),
+            audio_preroll: OnceLock::new(),
         }))
     }
     pub(super) fn challenge(&self) -> serde_json::Value {
@@ -149,6 +152,7 @@ impl ReadyGate {
     fn capture(&self, value: &serde_json::Value) -> Result<()> {
         let value = self.parse(value)?;
         if tokio::time::Instant::now() >= self.deadline
+            || self.audio_preroll.get().is_none_or(|p| !p.is_current())
             || (self.video.is_some() && self.preroll.get().is_none_or(|p| !p.is_current()))
         {
             return Err(Error::new(
@@ -156,6 +160,11 @@ impl ReadyGate {
                 "Original private media preparation is not current",
             ));
         }
+        self.freeze_observation(value)
+    }
+    /// Immutable observation history only. This helper creates no readiness
+    /// grant; capture() separately requires actual live private preparations.
+    fn freeze_observation(&self, value: Observation) -> Result<()> {
         let mut guard = self.observation.lock().map_err(|_| Error::storage())?;
         match guard.as_ref() {
             Some(old) if *old != value => {
@@ -171,6 +180,7 @@ impl ReadyGate {
     }
     pub(super) fn observed(&self) -> bool {
         tokio::time::Instant::now() < self.deadline
+            && self.audio_preroll.get().is_some_and(|p| p.is_current())
             && self.observation.lock().is_ok_and(|v| v.is_some())
             && (self.video.is_none() || self.preroll.get().is_some_and(|p| p.is_current()))
     }
@@ -178,20 +188,21 @@ impl ReadyGate {
         if tokio::time::Instant::now() >= self.deadline {
             return false;
         }
-        self.preroll.get().is_some_and(|p| {
-            p.is_current()
-                && p.sources().iter().any(|s| {
-                    s.conversation == source.conversation
-                        && s.session == source.session
-                        && s.connection == source.connection
-                        && s.participant == source.participant
-                        && s.membership_epoch == source.membership_epoch
-                        && s.connection_generation == source.connection_generation
-                        && s.logical_id == source.logical_id
-                        && s.transport_id == source.transport_id
-                        && s.stream_generation == source.stream_generation
-                })
-        })
+        self.audio_preroll.get().is_some_and(|p| p.permits(source))
+            || self.preroll.get().is_some_and(|p| {
+                p.is_current()
+                    && p.sources().iter().any(|s| {
+                        s.conversation == source.conversation
+                            && s.session == source.session
+                            && s.connection == source.connection
+                            && s.participant == source.participant
+                            && s.membership_epoch == source.membership_epoch
+                            && s.connection_generation == source.connection_generation
+                            && s.logical_id == source.logical_id
+                            && s.transport_id == source.transport_id
+                            && s.stream_generation == source.stream_generation
+                    })
+            })
     }
 }
 impl Runtime {
@@ -310,6 +321,7 @@ mod decoder_contract_tests {
             deadline: tokio::time::Instant::now() + Duration::from_secs(1),
             observation: Mutex::new(None),
             preroll: OnceLock::new(),
+            audio_preroll: OnceLock::new(),
         }
     }
     fn observation(video: bool) -> serde_json::Value {
@@ -325,9 +337,20 @@ mod decoder_contract_tests {
         let gate = gate(true, false);
         let original = observation(false);
         assert!(!gate.existing(&original).unwrap());
-        gate.capture(&original).unwrap();
+        assert!(
+            gate.capture(&original).is_err(),
+            "missing actual audio preparation must refuse even valid shape"
+        );
+        assert!(!gate.observed());
+        // Exercise immutable historical equality independently of real Core
+        // preparation. This history alone cannot authorize readiness.
+        gate.freeze_observation(gate.parse(&original).unwrap())
+            .unwrap();
         assert!(gate.existing(&original).unwrap());
-        gate.capture(&original).unwrap();
+        gate.freeze_observation(gate.parse(&original).unwrap())
+            .unwrap();
+        assert!(gate.capture(&original).is_err());
+        assert!(!gate.observed());
         let mut changed = original.clone();
         changed["audio"]["decoded_samples"] = serde_json::json!(320);
         assert_eq!(gate.existing(&changed).err().unwrap().code, "conflict");

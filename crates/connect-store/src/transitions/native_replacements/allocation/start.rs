@@ -704,6 +704,44 @@ impl Store {
         origin: &NativeReplacementMediaOrigin,
         sources: &[Arc<crate::NativeMediaOrigin>],
     ) -> Result<NativeReplacementSceneRead> {
+        self.native_replacement_scene_read_with_custody(origin, sources, None)
+    }
+    /// Full current scene for one exact original source packet. The source
+    /// contributes only its live complete file custody and earlier expiry.
+    /// Every target/operator/origin/pair/audience fact is rederived unchanged.
+    pub fn try_native_replacement_scene_read_under(
+        &self,
+        origin: &NativeReplacementMediaOrigin,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        packet_source: &crate::NativeMediaOrigin,
+        held_source: &crate::NativeMediaRead,
+    ) -> Result<NativeReplacementSceneRead> {
+        if !sources
+            .iter()
+            .any(|source| std::ptr::eq(source.as_ref(), packet_source))
+        {
+            return Err(Error::forbidden());
+        }
+        let interval = self.native_media_packet_custody(packet_source, held_source)?;
+        let read = self.native_replacement_scene_read_with_custody(
+            origin,
+            sources,
+            Some((&interval, held_source.expires_at())),
+        )?;
+        // Recheck the original owner after complete construction, including a
+        // real policy-clock edge. No fresh capture may renew its earlier bound.
+        self.native_media_packet_custody(packet_source, held_source)?;
+        if !read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
+    }
+    fn native_replacement_scene_read_with_custody(
+        &self,
+        origin: &NativeReplacementMediaOrigin,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        custody: Option<(&Arc<AuthorityGuardSet>, i64)>,
+    ) -> Result<NativeReplacementSceneRead> {
         let prepared = &origin.started.attempt.allocated.attempt.prepared;
         // Continue on independent current SQL observers, even while command
         // status/watch owns its connection. Derive every scene scope before one
@@ -711,9 +749,8 @@ impl Store {
         // source/target/audience construction without a second reader.
         let descriptor: serde_json::Value =
             serde_json::from_str(&origin.started.attempt.target).map_err(|_| Error::storage())?;
-        self.try_current_packet_projection(
-            |c| {
-                prepared.selection.with_packet_capture_context(
+        let derive = |c: &Connection| {
+            prepared.selection.with_packet_capture_context(
                     self,
                     c,
                     |context, captured_scopes| {
@@ -746,28 +783,75 @@ impl Store {
                                 &context.session_id,
                             )?;
                         scopes.extend(scene_scopes);
+                        // current_prepared checked this exact original reservation
+                        // in the SAME SQL capture. Its existing persisted expiry,
+                        // not a new relative window, also bounds the returned IO.
+                        let reservation_expiry: i64 = c.query_row(
+                            "SELECT expires_at FROM native_replacements WHERE operation_record_id=?1 AND runtime_epoch=?2 AND reservation_id=?3",
+                            params![prepared.record, prepared.runtime, prepared.reservation],
+                            |row| row.get(0),
+                        ).map_err(|_| Error::storage())?;
                         Ok((
                             (context.clone(), member, saved, facts),
                             AuthorityScope::merged(&scopes)?,
-                            expiry.min(scene_expiry),
+                            expiry.min(scene_expiry).min(reservation_expiry),
                         ))
                     },
                 )
-            },
-            |c, (context, member, saved, facts), held, expiry| {
-                let mut facts = facts.clone();
-                let source =
-                    prepared
-                        .selection
-                        .read_with_connection(self, c, held.clone(), expiry)?;
-                let target = projection(&source, member.clone(), saved, &descriptor)?;
-                self.native_replacement_scene_pairs(
+        };
+        let finish = |c: &Connection,
+                      (context, member, saved, facts): &(
+            crate::NativeReplacementContext,
+            connect_protocol::membership::MemberView,
+            serde_json::Value,
+            crate::peer_authority::SceneFacts,
+        ),
+                      held: Arc<AuthorityGuardSet>,
+                      expiry| {
+            let mut facts = facts.clone();
+            let source = prepared
+                .selection
+                .read_with_connection(self, c, held.clone(), expiry)?;
+            let target = projection(&source, member.clone(), saved, &descriptor)?;
+            self.native_replacement_scene_pairs(
+                c,
+                sources,
+                &mut facts,
+                &context.source_runtime_connection_id,
+                source.source().telephone(),
+                &target,
+                origin
+                    .started
+                    .attempt
+                    .request
+                    .credentials
+                    .last()
+                    .ok_or_else(Error::forbidden)?,
+            )?;
+            let mut audience_sources = audience::origins(c, sources, &target, &prepared.record)?;
+            let mut telephone_pairs = std::collections::BTreeMap::new();
+            if let Some(phone) = source.source().telephone() {
+                audience::telephone_origin(c, phone, &mut audience_sources)?;
+                for native in sources {
+                    let actor = self.native_media_route_actor(c, native)?;
+                    let view = &facts
+                        .get(&(native.runtime_connection_id().into(), None))
+                        .ok_or_else(Error::forbidden)?
+                        .0;
+                    let both = phone
+                        .route_actor()
+                        .permits_recipient(&view.session.actor.identity_id)
+                        && actor.permits_recipient(&phone.member().identity_id);
+                    telephone_pairs.insert(
+                        native.runtime_connection_id().into(),
+                        (
+                            both && actor.permits("stream.subscribe"),
+                            both && phone.route_actor().permits("stream.subscribe"),
+                        ),
+                    );
+                }
+                let actor = actor_from_connection(
                     c,
-                    sources,
-                    &mut facts,
-                    &context.source_runtime_connection_id,
-                    source.source().telephone(),
-                    &target,
                     origin
                         .started
                         .attempt
@@ -776,61 +860,33 @@ impl Store {
                         .last()
                         .ok_or_else(Error::forbidden)?,
                 )?;
-                let mut audience_sources =
-                    audience::origins(c, sources, &target, &prepared.record)?;
-                let mut telephone_pairs = std::collections::BTreeMap::new();
-                if let Some(phone) = source.source().telephone() {
-                    audience::telephone_origin(c, phone, &mut audience_sources)?;
-                    for native in sources {
-                        let actor = self.native_media_route_actor(c, native)?;
-                        let view = &facts
-                            .get(&(native.runtime_connection_id().into(), None))
-                            .ok_or_else(Error::forbidden)?
-                            .0;
-                        let both = phone
-                            .route_actor()
-                            .permits_recipient(&view.session.actor.identity_id)
-                            && actor.permits_recipient(&phone.member().identity_id);
-                        telephone_pairs.insert(
-                            native.runtime_connection_id().into(),
-                            (
-                                both && actor.permits("stream.subscribe"),
-                                both && phone.route_actor().permits("stream.subscribe"),
-                            ),
-                        );
-                    }
-                    let actor = actor_from_connection(
-                        c,
-                        origin
-                            .started
-                            .attempt
-                            .request
-                            .credentials
-                            .last()
-                            .ok_or_else(Error::forbidden)?,
-                    )?;
-                    let both = phone.route_actor().permits_recipient(&actor.identity_id)
-                        && actor.permits_recipient(&phone.member().identity_id);
-                    telephone_pairs.insert(
-                        target.runtime_connection_id.clone(),
-                        (
-                            both && actor.permits("stream.subscribe"),
-                            both && phone.route_actor().permits("stream.subscribe"),
-                        ),
-                    );
-                }
-                let reads = self.native_scene_reads(facts, held.clone(), expiry)?;
-                Ok(NativeReplacementSceneRead {
-                    media: Arc::new(NativeReplacementMediaRead {
-                        source,
-                        target,
-                        interval: held,
-                    }),
-                    reads,
-                    audience_sources,
-                    telephone_pairs,
-                })
-            },
-        )
+                let both = phone.route_actor().permits_recipient(&actor.identity_id)
+                    && actor.permits_recipient(&phone.member().identity_id);
+                telephone_pairs.insert(
+                    target.runtime_connection_id.clone(),
+                    (
+                        both && actor.permits("stream.subscribe"),
+                        both && phone.route_actor().permits("stream.subscribe"),
+                    ),
+                );
+            }
+            let reads = self.native_scene_reads(facts, held.clone(), expiry)?;
+            Ok(NativeReplacementSceneRead {
+                media: Arc::new(NativeReplacementMediaRead {
+                    source,
+                    target,
+                    interval: held,
+                }),
+                reads,
+                audience_sources,
+                telephone_pairs,
+            })
+        };
+        match custody {
+            Some((held, expiry)) => {
+                self.try_current_packet_projection_under(derive, finish, held, expiry)
+            }
+            None => self.try_current_packet_projection(derive, finish),
+        }
     }
 }

@@ -1,0 +1,160 @@
+{
+  "format": "connect/g6-058-focused-batch-v5/1",
+  "status": "failed",
+  "matrix_qualified": false,
+  "workspace_sha256": "334572cf80202b6ca874a4a2f483724fd00b0a7a70b2da93226a12e01d5701fe",
+  "source_lock_sha256": "d4a0d1ae534d386f8824e71aba90faf8949b9714e064795d4c273db3eea16ccc",
+  "planned": 104,
+  "executed": 104,
+  "passed": 99,
+  "failed": 5,
+  "not_executed": 0,
+  "groups": [
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "planned": 24,
+      "executed": 24,
+      "passed": 20,
+      "failed": 4,
+      "not_executed": 0
+    },
+    {
+      "group": "connect-service-lib-connect_service",
+      "planned": 7,
+      "executed": 7,
+      "passed": 7,
+      "failed": 0,
+      "not_executed": 0
+    },
+    {
+      "group": "connect-store-lib-connect_store",
+      "planned": 19,
+      "executed": 19,
+      "passed": 19,
+      "failed": 0,
+      "not_executed": 0
+    },
+    {
+      "group": "rvoip-uctp-lib-rvoip_uctp",
+      "planned": 9,
+      "executed": 9,
+      "passed": 9,
+      "failed": 0,
+      "not_executed": 0
+    },
+    {
+      "group": "rvoip-webrtc-stack-lib-webrtc",
+      "planned": 10,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "not_executed": 0
+    },
+    {
+      "group": "rvoip-webrtc-lib-rvoip_webrtc",
+      "planned": 15,
+      "executed": 15,
+      "passed": 15,
+      "failed": 0,
+      "not_executed": 0
+    },
+    {
+      "group": "connect-server-test-gate6_canonical_webtransport",
+      "planned": 8,
+      "executed": 8,
+      "passed": 8,
+      "failed": 0,
+      "not_executed": 0
+    },
+    {
+      "group": "connect-server-test-gate6_replacement_video",
+      "planned": 12,
+      "executed": 12,
+      "passed": 11,
+      "failed": 1,
+      "not_executed": 0
+    }
+  ],
+  "failures": [
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "case": "staged_streams::tests::private_consult::replacement::audio_preroll::actual_same_target_clock_metadata_survives_definitive_adoption_and_original_private_expiry_without_renewal",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "log_sha256": "0b79eb756356537895fd1956899fad26444a7d704a450c9ff7c9cb4044525b4e"
+    },
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "case": "staged_streams::tests::private_consult::replacement::audio_preroll::private_audio_preroll_commit_retires_private_fences_and_preserves_new_ordinary_audio",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "log_sha256": "c5b09422c4bde1b13353edb9e33d74d79abfd677c1786e52fab778449822ccb1"
+    },
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "case": "staged_streams::tests::private_consult::replacement::audio_preroll::private_audio_preroll_failed_commit_never_adopts_an_invalid_private_stamp",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "log_sha256": "fdd2fe91fa89cc22ce2e5cab7bd9542886844c169c8e8b040d76f935fd2bd4f2"
+    },
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "case": "staged_streams::tests::private_consult::replacement::audio_preroll::private_audio_preroll_successor_generation_uses_adopted_ordinary_selection_after_original_expiry",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "log_sha256": "1c3b6a14f5eee38a40937c76f798709e34aa9bb5adf57de83b2cef6c7880ddd5"
+    },
+    {
+      "group": "connect-server-test-gate6_replacement_video",
+      "case": "sdk_handles::replacement_video_recovery::signed_private_readiness_cannot_outlive_its_exact_original_reservation_expiry",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "log_sha256": "2f99a9e15aa48e0253d66da996fb65599b5b38a2f817cbf90eda319e305efae8"
+    }
+  ],
+  "shipping_default_check_passed": true,
+  "required_feature_metadata_passed": true,
+  "source_unchanged": true,
+  "checker_sources_unchanged": true,
+  "all_original_vm_commands_joined_without_force": true,
+  "lease_joined_released": true,
+  "original_host_controller_wait_observed": false,
+  "original_host_process_group_absent": true,
+  "witnesses_sha256": {
+    ".local/gate-6/post-v197-validation-v5-candidate/sealed-config.json": "c719cdf1ca94a07a75e07c203093236a783426ca1d3587da4b54516c57b841a1",
+    ".local/gate-6/post-v197-validation-v5-candidate/arm-receipt.json": "c6387b4b3f6a5d54d058ef15e773916e21cef7dc2929303820d6ee5607b1f0f6",
+    ".local/gate-6/post-v197-validation-v5-candidate/runtime-host-receipt.json": "840f605c3e6c8644e0150caa18474e25f7c83214431527aee9c1a071910610ac",
+    ".local/gate-6/post-v197-validation-v5-candidate/controller-recovery.json": "1018beac437f050e78659b5e612d4e83caaf182451ff21eeaa214c4ab1bf2f00",
+    ".local/gate-6/post-v197-validation-v5-candidate/arm-runtime-original.log": "630c09d3db4593c7f2a229dc0673513ed331911d4b07021d9094462d668d307a"
+  },
+  "findings": [
+    "All eight signed WebRTC checks pass. Six selected ignored AV tests executed explicitly. Both signing algorithms and fresh decoded markers after 5.1 seconds pass. Explicit teardown joins both original ends and proves route retirement and stale Ready refusal.",
+    "All 19 Store, nine native transport, 10 WebRTC stack and 15 WebRTC adapter checks pass. The original video repair regression and nine mixer teardown checks pass.",
+    "Four Core audio adoption cases stopped before commit because their fixture reused the final replacement operation ID for a preparation audience. The integrated fixture separates the phase ID and preserves the original final operation ID. Adoption and expiry assertions still require execution.",
+    "One native signed expiry check decoded genuine private media and stopped before the Store read because its projected monotonic timer completed before the persisted UTC boundary. The integrated fixture waits for the exact wall-clock boundary within the existing 90-second case timeout.",
+    "The host launcher ended before collecting its child status. The original worker receipt, terminal output, absence of the host process group and released VM lease establish completion of the failed attempt. The original host controller exit status is unavailable."
+  ],
+  "latest_full_matrix": {
+    "run": "v197",
+    "passed": 336,
+    "failed": 88,
+    "blocked": 8,
+    "qualified_cells": 0,
+    "total_cells": 32
+  }
+}

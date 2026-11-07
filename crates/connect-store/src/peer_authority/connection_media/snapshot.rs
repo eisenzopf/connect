@@ -310,10 +310,30 @@ impl Store {
     pub(crate) fn try_current_packet_projection<T, U>(
         &self,
         derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>, i64)>,
+        finish: impl FnMut(&Connection, &T, Arc<AuthorityGuardSet>, i64) -> Result<U>,
+    ) -> Result<U> {
+        self.current_packet_projection_with_custody(derive, finish, None)
+    }
+    /// Derive the same complete current facts and reseal the same SQL observer.
+    /// Only an exact still-owned packet interval can replace file admission;
+    /// uncovered scopes refuse without acquiring another reader or falling back.
+    pub(crate) fn try_current_packet_projection_under<T, U>(
+        &self,
+        derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>, i64)>,
+        finish: impl FnMut(&Connection, &T, Arc<AuthorityGuardSet>, i64) -> Result<U>,
+        held: &Arc<AuthorityGuardSet>,
+        original_expiry: i64,
+    ) -> Result<U> {
+        self.current_packet_projection_with_custody(derive, finish, Some((held, original_expiry)))
+    }
+    fn current_packet_projection_with_custody<T, U>(
+        &self,
+        derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>, i64)>,
         mut finish: impl FnMut(&Connection, &T, Arc<AuthorityGuardSet>, i64) -> Result<U>,
+        custody: Option<(&Arc<AuthorityGuardSet>, i64)>,
     ) -> Result<U> {
         let derive = std::cell::RefCell::new(derive);
-        let expires = std::cell::Cell::new(i64::MAX);
+        let expires = std::cell::Cell::new(custody.map_or(i64::MAX, |(_, expiry)| expiry));
         let capture = |c: &Connection, stamp| {
             let (facts, scopes, until) = derive.borrow_mut()(c)?;
             expires.set(expires.get().min(until));
@@ -383,7 +403,15 @@ impl Store {
                 ))
             },
             |scopes| {
-                let held = self.try_acquire_authority(scopes)?;
+                let held = match custody {
+                    Some((held, expiry)) => {
+                        if crate::now() >= expiry || !self.authority_covers(held, scopes) {
+                            return Err(Error::forbidden());
+                        }
+                        held.clone()
+                    }
+                    None => self.try_acquire_authority(scopes)?,
+                };
                 interval.replace(Some(held.clone()));
                 Ok(held)
             },
@@ -457,8 +485,12 @@ fn acquire_with_facts_at<T>(
     finish: impl FnOnce(&Connection, &T) -> Result<()>,
     admit: impl FnOnce(&[AuthorityScope]) -> Result<Arc<AuthorityGuardSet>>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    // This local resource-free reservation ends before any current read,
+    // authority interval or memoized facts are returned. SQL still ends before
+    // file admission, but another observation cannot steal this exact slot.
+    let reservation = store.packet_connections.reserve(observation)?;
     let (before, facts, scopes) = {
-        let c = store.try_packet_connection(observation)?;
+        let c = store.try_packet_connection_reserved(observation, &reservation)?;
         let before = version(&c, c.id())?;
         let (facts, scopes) = current_refusal(&c, before, derive(&c, before))?;
         (before, facts, scopes)
@@ -469,7 +501,10 @@ fn acquire_with_facts_at<T>(
     // Releasing SQL does not discard the original observer's identity. A free
     // earlier slot has unrelated counters and cannot validate this capture.
     // A busy original slot still refuses immediately and releases the reader.
-    let c = store.try_packet_connection_for(observation, before.connection)?;
+    let c = store.try_packet_connection_reserved(observation, &reservation)?;
+    if c.id() != before.connection {
+        return Err(Error::storage());
+    }
     seal(store, &c, before, facts, scopes, held, &mut derive, finish)
 }
 

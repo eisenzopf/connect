@@ -1,0 +1,101 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -342,11 +342,9 @@
+         let mut p = room
+             .scene
+             .plan_audio_audience(AudioAudienceRequest {
+-                operation_id: if muted_preroll {
+-                    pending.intent().operation_id.clone()
+-                } else {
+-                    "device-isolated".into()
+-                },
++                // Distinct stable preparation-phase identity, as production's
++                // activate_{original_nonce}; the final move keeps its root ID.
++                operation_id: "device-isolated".into(),
+                 expected_revision: room.scene.audience_revision(),
+                 private_connections: BTreeSet::from([ConnectionId::from_string("device")]),
+                 receivers: BTreeMap::from([(ConnectionId::from_string("device"), vec![])]),
+@@ -359,6 +357,12 @@
+         }
+         let (_, context) = room.apply(p).await.unwrap();
+         let audio_probe = if muted_preroll {
++            // The exact private probe phase is independently authorized by the
++            // existing strict fixture policy; it is not the final root command.
++            room.domain.local_preparations.lock().unwrap().insert(
++                ConnectionId::from_string("device"),
++                context.operation_id().to_owned(),
++            );
+             Some(
+                 room.scene
+                     .prepare_audio_endpoint(
+@@ -407,8 +411,16 @@
+             },
+         )
+     }
++    fn local_preparation_operation(&self) -> &str {
++        if self._audio_probe.is_some() {
++            self.context.operation_id()
++        } else {
++            &self.pending.intent().operation_id
++        }
++    }
+     fn queue_prompt(&mut self, sample: i16) -> ControlResult<()> {
+         use rvoip_media_core::{AudioFrame, codec::factory::CodecFactory};
++        let preparation_operation = self.local_preparation_operation().to_owned();
+         let node = self.room.nodes.get_mut("device").unwrap();
+         node.sequence += 1;
+         let port = node.adapter.port(Medium::Audio);
+@@ -428,7 +440,7 @@
+             &desired(Medium::Audio).logical_id,
+             f,
+             LocalAudioPurpose::EndpointPreparation {
+-                operation_id: self.pending.intent().operation_id.clone(),
++                operation_id: preparation_operation,
+             },
+         )
+     }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs
+@@ -314,7 +314,10 @@
+         .domain
+         .deny_replacement
+         .store(true, Ordering::Release);
+-    assert!(f.commit(plan).await.is_err());
++    assert!(
++        matches!(f.commit(plan).await, Err(StreamControlError::Unsupported)),
++        "the explicit current replacement-policy denial must cause this failed commit"
++    );
+     assert!(prepared.is_current());
+     // Retiring only the original selection after a failed commit must not
+     // turn the new receiver into an ordinary route.
+@@ -346,6 +349,12 @@
+         .upgrade()
+         .unwrap();
+     assert!(consumer.subscriptions.ordinary_program_is_empty_for_test());
++    assert!(consumer.subscriptions.private_mode_for_test());
++    drop(prepared);
++    assert!(
++        consumer.subscriptions.private_mode_for_test(),
++        "failed commit plus invalid/dropped preparation cannot adopt ordinary mode"
++    );
+ }
+ 
+ #[tokio::test]
+@@ -542,7 +551,7 @@
+         Err(StreamControlError::Unsupported)
+     ));
+     let purpose = LocalAudioPurpose::EndpointPreparation {
+-        operation_id: f.pending.intent().operation_id.clone(),
++        operation_id: f.local_preparation_operation().to_owned(),
+     };
+     target
+         .try_queue_local_silence(&desired(Medium::Audio).logical_id, purpose, 160)
+@@ -623,7 +632,7 @@
+         .try_queue_local_silence(
+             &desired(Medium::Audio).logical_id,
+             LocalAudioPurpose::EndpointPreparation {
+-                operation_id: f.pending.intent().operation_id.clone(),
++                operation_id: f.local_preparation_operation().to_owned(),
+             },
+             160,
+         )

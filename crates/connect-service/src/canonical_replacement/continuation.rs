@@ -17,6 +17,7 @@ use rvoip_core::{
 pub(crate) enum Phase {
     Attach,
     Activate(AudioAudiencePlan),
+    AudioPreroll(u64),
     Preroll(
         rvoip_core::staged_streams::device_replacement::ReplacementVideoRequest,
         u64,
@@ -45,6 +46,7 @@ impl Invocation {
             Phase::Attach => "attach",
             Phase::Activate(_) => "activate",
             Phase::Preroll(_, _) => "preroll",
+            Phase::AudioPreroll(_) => "audio-preroll",
             Phase::Signal(_) => "signal",
             Phase::Commit(_) => "commit",
         };
@@ -187,6 +189,20 @@ impl Invocation {
                 expected.same_intent(plan)
             }
             (
+                Phase::AudioPreroll(original_revision),
+                MediaControlIntent::PrepareReplacementAudio { source, expected },
+            ) => {
+                scope.connection == self.policy.pending.binding().connection()
+                    && source.as_str()
+                        == self
+                            .read
+                            .media()
+                            .source()
+                            .context()
+                            .source_runtime_connection_id
+                    && expected == original_revision
+            }
+            (
                 Phase::Preroll(expected, original_revision),
                 MediaControlIntent::PrepareReplacementVideo {
                     source,
@@ -307,12 +323,19 @@ impl ParticipantReplacementLease for Invocation {
                 (Phase::Commit(expected), Some(plan)) => {
                     expected.media().audience().same_intent(plan.audience())
                 }
-                (Phase::Attach | Phase::Activate(_) | Phase::Preroll(_, _), None) => true,
+                (
+                    Phase::Attach
+                    | Phase::Activate(_)
+                    | Phase::Preroll(_, _)
+                    | Phase::AudioPreroll(_),
+                    None,
+                ) => true,
                 _ => false,
             }
             || !matches!(
                 (&self.phase, scope.phase),
                 (Phase::Preroll(_, _), ReplacementPhase::Preroll)
+                    | (Phase::AudioPreroll(_), ReplacementPhase::Preroll)
                     | (Phase::Attach, ReplacementPhase::Attach)
                     | (Phase::Activate(_), ReplacementPhase::Activate)
                     | (Phase::Commit(_), ReplacementPhase::Commit)

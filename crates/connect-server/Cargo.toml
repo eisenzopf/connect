@@ -96,3 +96,8 @@ workspace = true
 name = "connect"
 path = "src/main.rs"
 required-features = ["cli"]
+
+[[test]]
+name = "gate6_canonical_webtransport"
+path = "tests/gate6_canonical_webtransport.rs"
+required-features = ["test-support"]

@@ -394,6 +394,27 @@ impl Store {
         self.packet_connection(observation, None)
     }
     #[track_caller]
+    pub(crate) fn try_packet_connection_reserved<'a>(
+        &'a self,
+        observation: &'a crate::packet_observation::Observation,
+        reservation: &'a crate::packet_observation::Reservation<'a>,
+    ) -> Result<PacketConnectionGuard<'a>> {
+        // Reservation itself owns no installation permit or SQL. Reacquisition
+        // still checks the original runtime owner on every actual SQL interval.
+        let owner = self.runtime_ownership.permit(&self.path)?;
+        let connection = self
+            .packet_connections
+            .connection_reserved(observation, reservation)?;
+        if let Some(owner) = &owner {
+            owner.check(&self.path)?;
+        }
+        Ok(PacketConnectionGuard {
+            connection,
+            _owner: owner,
+            _timing: SqlCustodyTiming::capture(),
+        })
+    }
+    #[track_caller]
     pub(crate) fn try_packet_connection_for<'a>(
         &'a self,
         observation: &'a crate::packet_observation::Observation,

@@ -86,6 +86,27 @@ pub(super) fn prepared_target_for_scene_named(
     PeerAuthorityRequest,
     Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
 ) {
+    prepared_target_for_scene_named_with_timeout(extra_operations, scene, label, None)
+}
+pub(super) fn prepared_target_for_scene_named_with_timeout(
+    extra_operations: &[&str],
+    scene: (
+        Fixture,
+        String,
+        TransitionCommand,
+        crate::NativeReplacementOrigin,
+        Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
+    ),
+    label: &str,
+    timeout_seconds: Option<u32>,
+) -> (
+    Fixture,
+    String,
+    TransitionCommand,
+    NativeReplacementPrepared,
+    PeerAuthorityRequest,
+    Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
+) {
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
     use ring::signature::{Ed25519KeyPair, KeyPair};
     let (f, key, command, origin, sources) = scene;
@@ -99,6 +120,9 @@ pub(super) fn prepared_target_for_scene_named(
         )
         .unwrap();
     let mut requested = request();
+    if let Some(timeout_seconds) = timeout_seconds {
+        requested.timeout_seconds = timeout_seconds;
+    }
     requested.candidate_connection_id = format!("{label}-next");
     requested.participant_revision=f.store.connection().unwrap().query_row("SELECT json_extract(readiness_json,'$.participant_revision') FROM connections WHERE id=?1",[sources[0].connection_id()],|r|r.get::<_,Option<u64>>(0)).unwrap().unwrap_or(1);
     let lease = f

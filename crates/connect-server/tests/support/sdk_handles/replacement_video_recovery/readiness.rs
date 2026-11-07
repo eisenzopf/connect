@@ -672,6 +672,16 @@ pub(super) async fn private_bootstrap(
     frozen
 }
 
+pub(super) async fn wait_for_original_expiry(original: &OriginalPreparation) {
+    // The projected monotonic cutoff bounds pre-expiry media work. The
+    // Store expires this reservation against Unix wall time. Confirm that
+    // same boundary before testing the original operation after expiry.
+    tokio::time::sleep_until(original.cutoff).await;
+    while chrono::Utc::now().timestamp() < original.expires_at {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
 fn assert_original_preparation(f: &Fixture, original: &OriginalPreparation) {
     let actual: (String, i64, String, String, u64) = rusqlite::Connection::open(&f.config.database).unwrap()
         .query_row("SELECT reservation_id,expires_at,candidate_connection_id,candidate_runtime_id,generation FROM native_replacements WHERE operation_record_id=?1",
@@ -773,8 +783,7 @@ pub(super) async fn refuse_original_boundary(
     assert_original_preparation(f, original);
     assert_unpublished(f, original);
     if mode == 14 {
-        tokio::time::sleep_until(original.cutoff + Duration::from_millis(20)).await;
-        assert!(chrono::Utc::now().timestamp() >= original.expires_at);
+        wait_for_original_expiry(original).await;
     } else {
         assert!(Instant::now() < original.cutoff);
         let admin = f.server.store.authenticate(&f.admin).unwrap();

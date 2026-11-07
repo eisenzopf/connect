@@ -143,6 +143,152 @@ async fn original_av(
     )
     .await;
 }
+fn public_problem(value: &Value) -> connect_protocol::canonical_http::Problem {
+    assert_eq!(
+        value.as_object().unwrap().len(),
+        3,
+        "closed canonical problem shape"
+    );
+    serde_json::from_value(value.clone()).unwrap()
+}
+fn same_problem(
+    actual: &connect_protocol::canonical_http::Problem,
+    expected: &connect_protocol::canonical_http::Problem,
+) -> bool {
+    actual.code == expected.code
+        && actual.category == expected.category
+        && actual.reason == expected.reason
+}
+fn is_public_refusal_shape(problem: &connect_protocol::canonical_http::Problem) -> bool {
+    // Exact public shapes only. Public400/state/operation_rejected also covers
+    // unknown internal errors; no internal class can be recovered from it.
+    // Qualification separately requires the original domain-boundary witness.
+    [
+        "not-ready",
+        "unauthorized",
+        "forbidden",
+        "not-found",
+        "conflict",
+    ]
+    .iter()
+    .any(|code| {
+        same_problem(
+            problem,
+            &connect_protocol::canonical_http::Problem::from_error(&connect_protocol::Error::new(
+                *code,
+                "fixture class only",
+            )),
+        )
+    })
+}
+fn is_refusal_progress(state: Option<&str>) -> bool {
+    matches!(
+        state,
+        Some("accepted" | "preparing" | "failed" | "cancelled")
+    )
+}
+#[test]
+fn readiness_refusal_problems_and_progress_require_closed_exact_semantics() {
+    use connect_protocol::{canonical_http::Problem, Error};
+    for code in [
+        "not-ready",
+        "unauthorized",
+        "forbidden",
+        "not-found",
+        "conflict",
+    ] {
+        assert!(is_public_refusal_shape(&Problem::from_error(&Error::new(
+            code, "fixture"
+        ))));
+    }
+    for code in [
+        "invalid-request",
+        "storage-unavailable",
+        "authority-busy",
+        "unsupported-feature",
+    ] {
+        assert!(!is_public_refusal_shape(&Problem::from_error(&Error::new(
+            code, "fixture"
+        ))));
+    }
+    for (code, category, reason) in [
+        (400, "validation", "invalid_request"),
+        (400, "auth", "operation_rejected"),
+        (403, "auth", "operation_rejected"),
+        (503, "state", "operation_rejected"),
+    ] {
+        assert!(!is_public_refusal_shape(&Problem {
+            code,
+            category: category.into(),
+            reason: reason.into()
+        }));
+    }
+    let unknown = Problem::from_error(&Error::new("unrecognized-private-error", "fixture"));
+    let not_ready = Problem::from_error(&Error::new("not-ready", "fixture"));
+    assert!(
+        same_problem(&unknown, &not_ready),
+        "publicstate400 intentionally hides internal class"
+    );
+    assert!(is_public_refusal_shape(&unknown));
+    assert!(
+        !qualified_negative(&unknown, None),
+        "genericpublic400ALONE is not negative qualification"
+    );
+    assert!(
+        !qualified_negative(&not_ready, None),
+        "even knownpublicshape needs original boundary evidence"
+    );
+    for state in [
+        Some("accepted"),
+        Some("preparing"),
+        Some("failed"),
+        Some("cancelled"),
+    ] {
+        assert!(is_refusal_progress(state));
+    }
+    for state in [Some("completed"), Some("uncertain"), None] {
+        assert!(!is_refusal_progress(state));
+    }
+}
+// Fixture-only corroboration marker; never media authority or a public API.
+// Its only production test construction is AFTER all actual original terminal,
+// boundary, no-effect and physical retirement assertions in the macro below.
+struct OriginalNegativeTerminal;
+fn qualified_negative(
+    problem: &connect_protocol::canonical_http::Problem,
+    corroboration: Option<&OriginalNegativeTerminal>,
+) -> bool {
+    is_public_refusal_shape(problem) && corroboration.is_some()
+}
+async fn ready_shape_refused(ws: &mut Peer, value: Value, internal_code: &str) {
+    let expected = connect_protocol::canonical_http::Problem::from_error(
+        &connect_protocol::Error::new(internal_code, "fixture class only"),
+    );
+    let id = ws.send(value, true).await;
+    tokio::time::timeout(Duration::from_secs(5), async {
+        for _ in 0..128 {
+            let event = ws.read().await;
+            assert_eq!(event.original()["in_reply_to"], id);
+            match event.kind() {
+                "error" => {
+                    assert!(
+                        same_problem(&public_problem(&event.original()["payload"]), &expected),
+                        "exact readiness refusal problem differs"
+                    );
+                    return;
+                }
+                "operation.updated" => assert!(
+                    is_refusal_progress(event.original()["payload"]["state"].as_str()),
+                    "rejected readiness unexpectedly completed"
+                ),
+                _ => panic!("unexpected rejected readiness event kind={}", event.kind()),
+            }
+        }
+        panic!("rejected readiness did not produce exact terminal problem")
+    })
+    .await
+    .expect("exact rejected readiness reply cutoff");
+}
 async fn full_replacement(algorithm: &str) {
     full_replacement_with_private_delay(algorithm, false).await;
 }
@@ -386,8 +532,8 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
     // Every negative uses the actual original route, socket, peer and Store
     // record, then joins those exact owners. No substitute decoder/connection.
     macro_rules! finish_failed_original {
-        ($received:expr, $physical_closed:expr) => {{
-            tokio::time::timeout(Duration::from_secs(5), async {
+        ($received:expr, $physical_closed:expr, $negative_cleanup_until:expr,$boundary:expr,$public_problem:expr) => {{
+            tokio::time::timeout_at($negative_cleanup_until, async {
                 loop {
                     let current = record(&f, &target_config, operation);
                     if matches!(
@@ -420,6 +566,18 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
             assert!(host.adapter().is_connection_live(&old_runtime));
             assert!(host.adapter().is_connection_live(&retained_runtime));
             assert_eq!(connection_state(&f, "rtc-connection-0").1, 1);
+            match $boundary {
+                "expiry" => assert!(chrono::Utc::now().timestamp() >= captured_reservation.2),
+                "operator-revoked" => assert!(f.server.store.revalidate(&key.id).is_err()),
+                "physical-cancel" => assert!(!host.adapter().is_connection_live(
+                    &rvoip_core::ids::ConnectionId::from_string(captured_reservation.3.clone())
+                )),
+                _ => unreachable!(),
+            }
+            // Only these independent actual original assertions qualify the
+            // negative. The closed public400 alone has no internal diagnosis.
+            let corroboration = OriginalNegativeTerminal;
+            assert!(qualified_negative(&$public_problem, Some(&corroboration)));
             original_av(
                 &mut a,
                 &mut b,
@@ -590,6 +748,27 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
     ready["payload"]["replacement_preparation"]["profile"] = json!("connect-replacement-ready-v1");
     ready["payload"]["replacement_preparation"]["readiness"] = observation;
     if let Some(boundary) = negative {
+        let before_boundary = record(&f, &target_config, operation);
+        assert_eq!(before_boundary.record_id, prepared.record_id);
+        assert_eq!(
+            before_boundary.state,
+            OperationState::Preparing,
+            "negative boundary must act on a genuinely pending original"
+        );
+        assert!(before_boundary.result.is_none());
+        assert!(!before_boundary.effects.iter().any(|e| {
+            ["native-replacement-readiness", "native-replacement-commit"]
+                .contains(&e.provider.as_str())
+                && e.state == EffectState::Confirmed
+        }));
+        assert!(host
+            .adapter()
+            .is_connection_live(&rvoip_core::ids::ConnectionId::from_string(
+                captured_reservation.3.clone()
+            )));
+        assert!(host.adapter().is_connection_live(&old_runtime));
+        assert!(host.adapter().is_connection_live(&retained_runtime));
+        let mut negative_cleanup_until = None;
         match boundary {
             "expiry" => {
                 let remaining = captured_reservation.2 - chrono::Utc::now().timestamp();
@@ -613,69 +792,135 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
             }
             "physical-cancel" => {
                 assert!(chrono::Utc::now().timestamp() < captured_reservation.2);
-                replacement.close().await.unwrap();
+                let until = tokio::time::Instant::now() + Duration::from_secs(5);
+                negative_cleanup_until = Some(until);
+                tokio::time::timeout_at(until, replacement.close())
+                    .await
+                    .expect("same original physical close cutoff")
+                    .unwrap();
+                // This scenario explicitly cancels both ends of the original
+                // physical fixture. Remote ICE failure propagation has no five-
+                // second acknowledgement contract, so a completed local close
+                // alone cannot establish the server boundary tested below.
+                // The captured runtime ID was minted by this exact reservation;
+                // adapter end closes its original driver/backend/controller and
+                // joins the actual terminal event. It is not a Store/root write.
+                let original_target =
+                    rvoip_core::ids::ConnectionId::from_string(captured_reservation.3.clone());
+                tokio::time::timeout_at(
+                    until,
+                    host.adapter().end(
+                        original_target.clone(),
+                        rvoip_core::adapter::EndReason::Normal,
+                    ),
+                )
+                .await
+                .expect("same original server physical teardown shares cleanup cutoff")
+                .expect("same original server physical teardown must join");
+                assert!(!host.adapter().is_connection_live(&original_target));
+                // Require the actual original root/route/slot boundary before
+                // testing whether stale genuine readiness can revive it.
+                tokio::time::timeout_at(until,async {
+                    loop {
+                        let current=record(&f,&target_config,operation);
+                        if matches!(current.state,OperationState::Failed|OperationState::Cancelled)
+                            && !host.adapter().is_connection_live(&rvoip_core::ids::ConnectionId::from_string(captured_reservation.3.clone()))
+                            && host.adapter().route_count()==2 && host.available_slots()==1 {
+                            assert_eq!(current.record_id,prepared.record_id);
+                            assert!(!current.effects.iter().any(|e|["native-replacement-readiness","native-replacement-commit"].contains(&e.provider.as_str())&&e.state==EffectState::Confirmed));
+                            break;
+                        }
+                        tokio::time::sleep(Duration::from_millis(10)).await;
+                    }
+                }).await.expect("actual original server route and root must cancel within existing cleanup cutoff");
             }
             _ => unreachable!(),
         }
         assert_eq!(original_reservation(), captured_reservation);
         // This observation came from the actual pre-boundary Opus/VP8 decoder.
         // Even a genuine signed history cannot revive current authority.
+        connect_protocol::replacement_readiness::validate_marker(
+            &ready["payload"]["replacement_preparation"],
+        )
+        .expect("genuine original readiness must remain valid wire shape");
+        let negative_cleanup_until = negative_cleanup_until
+            .unwrap_or_else(|| tokio::time::Instant::now() + Duration::from_secs(5));
         let id = target_peer.send(renew(ready.clone()), true).await;
-        let refused_current = tokio::time::timeout(Duration::from_secs(5), async {
-            let mut refused_current = false;
+        let observed_public_problem = tokio::time::timeout_at(negative_cleanup_until, async {
+            let mut observed_public_problem = None;
             for _ in 0..128 {
                 let event = target_peer.read().await;
                 assert_eq!(event.original()["in_reply_to"], id);
                 match event.kind() {
                     "error" => {
-                        let code = event.original()["payload"]["code"].as_u64().unwrap();
-                        assert!(
-                            [403, 404, 409, 410].contains(&code),
-                            "{:?}",
-                            event.original()
-                        );
-                        refused_current = true;
+                        let problem=public_problem(&event.original()["payload"]);
+                        assert!(is_public_refusal_shape(&problem),"stale valid readiness did not receive an admitted exact public problem shape");
+                        observed_public_problem = Some(problem);
                         break;
                     }
                     "operation.updated" => {
                         assert!(
-                            matches!(
-                                event.original()["payload"]["state"].as_str(),
-                                Some("failed" | "cancelled")
-                            ),
-                            "{:?}",
-                            event.original()
+                            is_refusal_progress(event.original()["payload"]["state"].as_str()),
+                            "stale readiness unexpectedly completed"
                         );
                     }
-                    _ => panic!(
-                        "stale private Ready acquired an unexpected receipt: {:?}",
-                        event.original()
-                    ),
+                    _ => panic!("stale private Ready acquired unexpected receipt kind={}",event.kind()),
                 }
             }
-            refused_current
+            observed_public_problem
         })
         .await
-        .expect("same original signed stale Ready refusal is bounded");
-        assert!(
-            refused_current,
-            "actual signed stale Ready must receive a definitive authority refusal"
+        .expect("same original signed stale Ready refusal is bounded")
+        .expect("actual signed stale Ready must return a matched public problem, not just progress");
+        finish_failed_original!(
+            vec![a, b, c],
+            boundary == "physical-cancel",
+            negative_cleanup_until,
+            boundary,
+            observed_public_problem
         );
-        finish_failed_original!(vec![a, b, c], boundary == "physical-cancel");
     }
-    for invalid in ["nonce", "generation", "audio", "video"] {
+    for invalid in [
+        "nonce",
+        "generation-shape",
+        "generation-owner",
+        "audio",
+        "video",
+    ] {
         let mut bad = renew(ready.clone());
         let value = &mut bad["payload"]["replacement_preparation"]["readiness"];
         match invalid {
             "nonce" => value["nonce"] = json!("another-target-nonce"),
-            "generation" => value["target_generation"] = json!(3),
+            "generation-shape" => value["target_generation"] = json!(3),
+            "generation-owner" => {
+                value["source_generation"] = json!(2);
+                value["target_generation"] = json!(3);
+            }
             "audio" => value["audio"]["decoded_samples"] = json!(0),
             "video" => value["video"]["decoded_keyframes"] = json!(0),
             _ => unreachable!(),
         }
+        let expected = if matches!(invalid, "nonce" | "generation-owner") {
+            connect_protocol::replacement_readiness::validate_marker(
+                &bad["payload"]["replacement_preparation"],
+            )
+            .unwrap();
+            "forbidden"
+        } else {
+            assert_eq!(
+                connect_protocol::replacement_readiness::validate_marker(
+                    &bad["payload"]["replacement_preparation"]
+                )
+                .err()
+                .unwrap()
+                .code,
+                "invalid-request"
+            );
+            "invalid-request"
+        };
         private_marker::until(
             private_cutoff,
-            refused(&mut target_peer, bad, "forbidden", 403),
+            ready_shape_refused(&mut target_peer, bad, expected),
         )
         .await;
         let pending = record(&f, &target_config, operation);

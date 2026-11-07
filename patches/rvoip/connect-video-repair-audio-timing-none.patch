@@ -1,0 +1,34 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/video_repair.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_repair.rs
+@@ -48,6 +48,8 @@
+     fn video_copy(&self) -> Self {
+         Self {
+             frame: self.frame.clone(),
++            // Video repair never participates in the audio producer clock.
++            audio_timing: None,
+             data: None,
+             local: None,
+             sources: self.sources.clone(),
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs
+@@ -33,14 +33,18 @@
+         f.start(&[medium]).await;
+         let original = Arc::new(Mutex::new(None));
+         let saved = original.clone();
+-        let repair = queued(&f, medium)
+-            .await
++        let packet = queued(&f, medium).await;
++        assert!(packet.audio_timing.is_none());
++        assert!(packet.audio_egress_stamp().unwrap().is_none());
++        let repair = packet
+             .deliver_video_with_repair(move |frame, origin| async move {
+                 *saved.lock().unwrap() = Some((frame, origin));
+                 Ok(())
+             })
+             .await
+             .unwrap();
++        assert!(repair.queued.audio_timing.is_none());
++        assert!(repair.queued.audio_egress_stamp().unwrap().is_none());
+         // Retention must not block an unrelated current-policy writer.
+         assert!(f.policy.0.try_write().is_ok());
+         for _ in 0..MAX_VIDEO_REPAIRS {

@@ -1,0 +1,2588 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -549,6 +549,8 @@
+     state: Mutex<PortState>,
+     diagnostics: std::sync::OnceLock<diagnostics::PortDiagnostics>,
+     native_egress: std::sync::OnceLock<Arc<native_activation::Cursor>>,
++    audio_egress_owner: std::sync::OnceLock<u128>,
++    audio_egress_binding: std::sync::OnceLock<audio_egress_clock::AudioEgressBinding>,
+     ingress: mpsc::Sender<MediaPacket>,
+     input: Mutex<Option<mpsc::Receiver<MediaPacket>>>,
+     egress: mpsc::Sender<QueuedMedia>,
+@@ -1189,6 +1191,7 @@
+         target
+             .enqueue_egress(QueuedMedia {
+                 frame,
++                audio_timing: None,
+                 data: self.data.clone(),
+                 local: None,
+                 sources: vec![Contribution {
+@@ -1238,6 +1241,7 @@
+ }
+ pub struct QueuedMedia {
+     frame: MediaFrame,
++    audio_timing: Option<audio_egress_clock::AudioProducerTiming>,
+     data: Option<reliable_data::StagedData>,
+     local: Option<local_audio::LocalAudioStamp>,
+     sources: Vec<Contribution>,
+@@ -1268,6 +1272,8 @@
+     },
+     Submitted(ControlResult<()>),
+ }
++
++pub mod audio_egress_clock;
+ 
+ impl QueuedMedia {
+     fn delivery_origin(&self) -> Option<MediaDeliveryOrigin> {
+@@ -2878,6 +2884,8 @@
+                 }),
+                 diagnostics: std::sync::OnceLock::new(),
+                 native_egress: std::sync::OnceLock::new(),
++                audio_egress_owner: std::sync::OnceLock::new(),
++                audio_egress_binding: std::sync::OnceLock::new(),
+                 ingress,
+                 input: Mutex::new(Some(input)),
+                 egress,
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_egress_clock.rs
+@@ -0,0 +1,406 @@
++//! Original receiver-port producer coordinates, serialized by the actual writer.
++//! Numeric history only: no frame, current authorization or physical owner.
++use super::{ControlResult, StreamControlError};
++use std::sync::atomic::{AtomicU64, Ordering};
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++struct BindingIdentity {
++    family: u128,
++    ordinal: u64,
++}
++/// One metadata family for an actual physical track/SSRC writer. Reserving a
++/// prepared binding never changes which binding has actually emitted media.
++pub struct AudioEgressBindings {
++    family: u128,
++    next: AtomicU64,
++}
++impl Default for AudioEgressBindings {
++    fn default() -> Self {
++        Self {
++            family: uuid::Uuid::new_v4().as_u128(),
++            next: AtomicU64::new(1),
++        }
++    }
++}
++impl AudioEgressBindings {
++    pub fn reserve(&self) -> ControlResult<AudioEgressBinding> {
++        let ordinal = self
++            .next
++            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |old| {
++                old.checked_add(1)
++            })
++            .map_err(|_| StreamControlError::Authority)?;
++        Ok(AudioEgressBinding {
++            identity: BindingIdentity {
++                family: self.family,
++                ordinal,
++            },
++        })
++    }
++    pub fn owns(&self, stamp: &AudioEgressStamp) -> bool {
++        stamp.identity.family == self.family
++            && stamp.identity.ordinal > 0
++            && stamp.identity.ordinal < self.next.load(Ordering::Acquire)
++    }
++}
++/// Move-only adapter metadata installed before the original Port reader is
++/// taken. No deserialization or permission; every write still needs fresh Core.
++pub struct AudioEgressBinding {
++    identity: BindingIdentity,
++}
++impl AudioEgressBinding {
++    #[cfg(any(test, feature = "test-support"))]
++    pub fn silence_for_test(&self, samples: u32, enabled: bool) -> AudioEgressStamp {
++        AudioEgressStamp::new(
++            self.identity,
++            enabled,
++            AudioProducerTiming::silence(samples),
++        )
++    }
++    #[cfg(any(test, feature = "test-support"))]
++    pub fn mixed_for_test(
++        &self,
++        mixer: u128,
++        capture: Option<(u128, u64, u32)>,
++        samples: u32,
++        enabled: bool,
++    ) -> AudioEgressStamp {
++        AudioEgressStamp::new(
++            self.identity,
++            enabled,
++            AudioProducerTiming::mixed(mixer, capture, samples),
++        )
++    }
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(super) enum Producer {
++    Silence,
++    Mixed {
++        mixer: u128,
++        capture: Option<(u128, u64, u32)>,
++    },
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(super) struct AudioProducerTiming {
++    producer: Producer,
++    samples: u32,
++}
++impl AudioProducerTiming {
++    pub(super) fn silence(samples: u32) -> Self {
++        Self {
++            producer: Producer::Silence,
++            samples,
++        }
++    }
++    pub(super) fn mixed(mixer: u128, capture: Option<(u128, u64, u32)>, samples: u32) -> Self {
++        Self {
++            producer: Producer::Mixed { mixer, capture },
++            samples,
++        }
++    }
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct AudioEgressStamp {
++    identity: BindingIdentity,
++    timing: AudioProducerTiming,
++    enabled: bool,
++}
++impl AudioEgressStamp {
++    fn new(identity: BindingIdentity, enabled: bool, timing: AudioProducerTiming) -> Self {
++        Self {
++            identity,
++            enabled,
++            timing,
++        }
++    }
++    pub fn samples(&self) -> u32 {
++        self.timing.samples
++    }
++    pub fn enabled(&self) -> bool {
++        self.enabled
++    }
++    #[cfg(any(test, feature = "test-support"))]
++    pub fn silence_for_test(owner: u128, samples: u32) -> Self {
++        Self::new(
++            BindingIdentity {
++                family: owner,
++                ordinal: 1,
++            },
++            true,
++            AudioProducerTiming::silence(samples),
++        )
++    }
++    #[cfg(any(test, feature = "test-support"))]
++    pub fn mixed_for_test(
++        owner: u128,
++        mixer: u128,
++        capture: Option<(u128, u64, u32)>,
++        samples: u32,
++    ) -> Self {
++        Self::new(
++            BindingIdentity {
++                family: owner,
++                ordinal: 1,
++            },
++            true,
++            AudioProducerTiming::mixed(mixer, capture, samples),
++        )
++    }
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++struct Position {
++    stamp: AudioEgressStamp,
++    source: u32,
++    wire: u32,
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
++pub struct AudioEgressClock {
++    last: Option<Position>,
++    resume: bool,
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct AudioEgressReservation {
++    next: Position,
++    mapping_changed: bool,
++}
++impl AudioEgressReservation {
++    pub fn timestamp(&self) -> u32 {
++        self.next.wire
++    }
++    pub fn mapping_changed(&self) -> bool {
++        self.mapping_changed
++    }
++}
++impl AudioEgressClock {
++    pub fn active(&self) -> bool {
++        self.last.is_some()
++    }
++    pub fn prepare(
++        &self,
++        stamp: AudioEgressStamp,
++        source: u32,
++        last_wire: Option<u32>,
++    ) -> ControlResult<AudioEgressReservation> {
++        if stamp.timing.samples == 0 {
++            return Err(StreamControlError::NotReady);
++        }
++        let wire = match self.last {
++            None => last_wire.map_or(source, |last| last.wrapping_add(stamp.timing.samples)),
++            Some(old) => {
++                if old.stamp.identity.family != stamp.identity.family {
++                    return Err(StreamControlError::Authority);
++                }
++                if stamp.identity.ordinal < old.stamp.identity.ordinal {
++                    return Err(StreamControlError::NotReady);
++                }
++                if stamp.identity.ordinal > old.stamp.identity.ordinal {
++                    // Only an actual fresh-admitted mixed write can adopt a new ordinary
++                    // Port. Preparing its metadata does not silence the original binding.
++                    if !matches!(stamp.timing.producer, Producer::Mixed { .. }) {
++                        return Err(StreamControlError::NotReady);
++                    }
++                    last_wire
++                        .unwrap_or(old.wire)
++                        .wrapping_add(stamp.timing.samples)
++                } else {
++                    if old.stamp.timing.samples != stamp.timing.samples {
++                        return Err(StreamControlError::Unsupported);
++                    }
++                    match (old.stamp.timing.producer, stamp.timing.producer) {
++                        (Producer::Mixed { .. }, Producer::Silence) => {
++                            return Err(StreamControlError::NotReady);
++                        }
++                        (before, after) if before != after || self.resume => last_wire
++                            .unwrap_or(old.wire)
++                            .wrapping_add(stamp.timing.samples),
++                        _ => {
++                            let delta = source.wrapping_sub(old.source);
++                            if delta == 0 || delta >= (1u32 << 31) {
++                                return Err(StreamControlError::NotReady);
++                            }
++                            old.wire.wrapping_add(delta)
++                        }
++                    }
++                }
++            }
++        };
++        let mapping_changed = self.last.is_none_or(|old| {
++            old.stamp.identity != stamp.identity
++                || old.stamp.timing.producer != stamp.timing.producer
++        }) || self.resume;
++        Ok(AudioEgressReservation {
++            next: Position {
++                stamp,
++                source,
++                wire,
++            },
++            mapping_changed,
++        })
++    }
++    /// Actual successful primary IO. This is not remote decoded readiness.
++    pub fn commit(&mut self, reservation: AudioEgressReservation) {
++        self.last = Some(reservation.next);
++        self.resume = false;
++    }
++    /// The exact original IO may have happened. Consume its source/wire coordinate
++    /// without delivery/readiness credit; a distinct fresh packet can continue.
++    pub fn burn(&mut self, reservation: AudioEgressReservation) {
++        self.commit(reservation);
++    }
++    pub fn telephone_event(&mut self) {
++        self.resume = true;
++    }
++}
++impl super::AdapterMediaPort {
++    /// Attach actual physical-writer metadata to this exact prepared audio Port.
++    /// Consumes its one-use token; no active clock transition occurs here.
++    pub fn install_audio_egress_binding(&self, binding: AudioEgressBinding) -> ControlResult<()> {
++        let output = self
++            .0
++            .output
++            .lock()
++            .map_err(|_| StreamControlError::Authority)?;
++        let state = self
++            .0
++            .state
++            .lock()
++            .map_err(|_| StreamControlError::Authority)?;
++        if !matches!(
++            state.status,
++            super::PortStatus::Prepared | super::PortStatus::Active | super::PortStatus::Paused
++        ) || output.is_none()
++            || self.0.binding.negotiated.requested.medium != super::Medium::Audio
++            || !self.0.binding.sink_ready
++        {
++            return Err(StreamControlError::Authority);
++        }
++        self.0
++            .audio_egress_binding
++            .set(binding)
++            .map_err(|_| StreamControlError::Authority)
++    }
++}
++impl super::QueuedMedia {
++    /// Exact immutable Core binding/producer coordinates, not authorization.
++    pub fn audio_egress_stamp(&self) -> ControlResult<Option<AudioEgressStamp>> {
++        if self.frame.kind != super::StreamKind::Audio {
++            return Ok(None);
++        }
++        let enabled = self.target.audio_egress_owner.get().is_some();
++        let identity = match self.target.audio_egress_binding.get() {
++            Some(binding) => binding.identity,
++            None => match self.target.audio_egress_owner.get().copied() {
++                Some(family) => BindingIdentity { family, ordinal: 1 },
++                None => return Ok(None),
++            },
++        };
++        let Some(timing) = self.audio_timing else {
++            return if enabled {
++                Err(StreamControlError::Unsupported)
++            } else {
++                Ok(None)
++            };
++        };
++        Ok(Some(AudioEgressStamp::new(identity, enabled, timing)))
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn silence() -> AudioEgressStamp {
++        AudioEgressStamp::new(
++            BindingIdentity {
++                family: 1,
++                ordinal: 1,
++            },
++            true,
++            AudioProducerTiming::silence(960),
++        )
++    }
++    fn mixed(epoch: u128, capture: Option<(u128, u64, u32)>) -> AudioEgressStamp {
++        AudioEgressStamp::new(
++            BindingIdentity {
++                family: 1,
++                ordinal: 1,
++            },
++            true,
++            AudioProducerTiming::mixed(epoch, capture, 960),
++        )
++    }
++    #[test]
++    fn explicit_original_epoch_maps_first_remote_once_then_preserves_capture_deltas_wrap_and_refuses_queued_neutral()
++     {
++        let mut clock = AudioEgressClock::default();
++        let p = clock.prepare(silence(), u32::MAX - 479, None).unwrap();
++        clock.commit(p);
++        let first = clock.prepare(mixed(10, None), 0, None).unwrap();
++        assert_eq!(first.timestamp(), 480);
++        clock.commit(first);
++        assert!(clock.prepare(silence(), 480, None).is_err());
++        let next = clock.prepare(mixed(10, None), 2880, None).unwrap();
++        assert_eq!(next.timestamp(), 3360);
++        clock.commit(next);
++        assert!(clock.prepare(mixed(10, None), 2880, None).is_err());
++        let actual_epoch = clock
++            .prepare(mixed(10, Some((20, 2, 48000))), 0, None)
++            .unwrap();
++        assert_eq!(actual_epoch.timestamp(), 4320);
++        clock.commit(actual_epoch);
++        assert!(
++            clock
++                .prepare(
++                    AudioEgressStamp::new(
++                        BindingIdentity {
++                            family: 2,
++                            ordinal: 1
++                        },
++                        true,
++                        AudioProducerTiming::mixed(10, None, 960)
++                    ),
++                    960,
++                    None
++                )
++                .is_err()
++        );
++    }
++    #[test]
++    fn definitive_refusal_preserves_neutral_but_possible_original_packet_consumes_coordinates_not_future_media()
++     {
++        let mut clock = AudioEgressClock::default();
++        let p = clock.prepare(silence(), 960, None).unwrap();
++        clock.commit(p);
++        let _refused = clock.prepare(mixed(10, None), 960, None).unwrap();
++        let p = clock.prepare(silence(), 1920, None).unwrap();
++        clock.commit(p);
++        let uncertain = clock.prepare(mixed(10, None), 960, None).unwrap();
++        assert_eq!(uncertain.timestamp(), 2880);
++        clock.burn(uncertain);
++        assert!(clock.prepare(silence(), 2880, None).is_err());
++        assert!(clock.prepare(mixed(10, None), 960, None).is_err());
++        let fresh = clock.prepare(mixed(10, None), 1920, None).unwrap();
++        assert_eq!(fresh.timestamp(), 3840);
++        clock.commit(fresh);
++    }
++    #[test]
++    fn actual_prepared_binding_reservation_does_not_replace_old_owner_but_first_admitted_higher_binding_fences_old()
++     {
++        let bindings = AudioEgressBindings::default();
++        let original = bindings.reserve().unwrap();
++        let a = original.mixed_for_test(10, None, 960, true);
++        let mut clock = AudioEgressClock::default();
++        clock.commit(clock.prepare(a, 960, None).unwrap());
++        let next = bindings.reserve().unwrap();
++        let b = next.mixed_for_test(11, None, 960, false);
++        assert!(bindings.owns(&a) && bindings.owns(&b));
++        clock.commit(clock.prepare(a, 1920, None).unwrap());
++        let moved = clock.prepare(b, 0, None).unwrap();
++        assert_eq!(moved.timestamp(), 2880);
++        clock.commit(moved);
++        assert!(clock.prepare(a, 2880, None).is_err());
++        assert!(
++            clock
++                .prepare(next.silence_for_test(960, false), 960, None)
++                .is_err()
++        );
++        assert_eq!(clock.prepare(b, 960, None).unwrap().timestamp(), 3840);
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs
+@@ -345,6 +345,11 @@
+             .iter()
+             .map(|s| s.descriptor.clone())
+             .collect();
++        // Numeric egress metadata lives with this exact Port, including after
++        // definitive ordinary adoption. It grants no permission or lifetime.
++        target_port
++            .audio_egress_owner
++            .get_or_init(|| uuid::Uuid::new_v4().as_u128());
+         *slot = Some(binding.clone());
+         Ok(AudioReplacementPreparation { binding, sources })
+     }
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -519,8 +519,17 @@
+         self.previous_sources = provenance.clone();
+         tracing::trace!(target: "rvoip_core::audio_path", target = %self.controller.connection,
+             age_us = oldest.elapsed().as_micros() as u64, "Guarded audio queued");
++        let capture_epoch = self
++            .source_timeline
++            .as_ref()
++            .map(|timeline| (timeline.source, timeline.generation, timeline.previous.rate));
+         Some(QueuedMedia {
+             frame,
++            audio_timing: Some(audio_egress_clock::AudioProducerTiming::mixed(
++                self.clock_source,
++                capture_epoch,
++                self.codecs.info.clock_rate_hz / 50,
++            )),
+             data: None,
+             local: None,
+             sources: provenance,
+--- a/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
+@@ -128,17 +128,37 @@
+             super::guarded_audio::Codecs::new(&port.binding.negotiated.format, pt, *clock_rate_hz)?;
+         let mut frame = codecs.encode(vec![0; (*clock_rate_hz / 50) as usize], timestamp_rtp)?;
+         frame.stream_id = port.binding.transport_id.clone();
+-        self.try_queue_local_audio(logical, frame, purpose)
++        // Only this helper has actually encoded one negotiated 20ms quantum.
++        self.queue_local_audio(
++            logical,
++            frame,
++            purpose,
++            Some(audio_egress_clock::AudioProducerTiming::silence(
++                *clock_rate_hz / 50,
++            )),
++        )
+     }
+     /// The host encodes an authorized local prompt using this exact negotiated
+     /// binding. No call media is borrowed, and enqueuing is not output readiness.
+     /// The installed policy must independently authorize this exact purpose at
+-    /// enqueue AND actual send; the default is Unsupported.
++    /// enqueue AND actual send; the default is Unsupported. On a target with
++    /// the canonical replacement egress clock, arbitrary encoded duration has
++    /// no sealed timing metadata and canonical writers refuse Unsupported. Use
++    /// try_queue_local_silence for the reviewed actual20ms preparation probe.
+     pub fn try_queue_local_audio(
+         &self,
+         logical: &StreamId,
+         frame: MediaFrame,
+         purpose: LocalAudioPurpose,
++    ) -> ControlResult<()> {
++        self.queue_local_audio(logical, frame, purpose, None)
++    }
++    fn queue_local_audio(
++        &self,
++        logical: &StreamId,
++        frame: MediaFrame,
++        purpose: LocalAudioPurpose,
++        audio_timing: Option<audio_egress_clock::AudioProducerTiming>,
+     ) -> ControlResult<()> {
+         purpose.validate()?;
+         let port = {
+@@ -175,6 +195,7 @@
+         let _subscription_guard = subscription.begin_local(self)?;
+         port.enqueue_egress(QueuedMedia {
+             frame,
++            audio_timing,
+             data: None,
+             local: Some(LocalAudioStamp {
+                 purpose,
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs
+@@ -519,3 +519,185 @@
+     assert!(!f.room.nodes["device"].controller.shutdown.is_cancelled());
+     assert!(f.room.publish("device-next", 12000).is_err());
+ }
++
++#[tokio::test]
++async fn actual_private_codec_queue_seals_only_known_silence_and_original_mixer_epoch_without_renewing_frame_age()
++ {
++    use crate::staged_streams::audio_egress_clock::AudioEgressClock;
++    let mut f = Move::for_audio_preroll().await;
++    let prepared = prepare(&f, deadline(), CancellationToken::new()).await;
++    let target = f.room.nodes["device"].controller.clone();
++    // A public arbitrary encoded prompt has no fabricated packet duration.
++    f.queue_prompt(4000).unwrap();
++    let arbitrary = f
++        .room
++        .nodes
++        .get_mut("device")
++        .unwrap()
++        .out
++        .try_recv()
++        .unwrap();
++    assert!(matches!(
++        arbitrary.audio_egress_stamp(),
++        Err(StreamControlError::Unsupported)
++    ));
++    let purpose = LocalAudioPurpose::EndpointPreparation {
++        operation_id: f.pending.intent().operation_id.clone(),
++    };
++    target
++        .try_queue_local_silence(&desired(Medium::Audio).logical_id, purpose, 160)
++        .unwrap();
++    let neutral = f
++        .room
++        .nodes
++        .get_mut("device")
++        .unwrap()
++        .out
++        .try_recv()
++        .unwrap();
++    let original_age = neutral.admitted_at;
++    let neutral_stamp = neutral.audio_egress_stamp().unwrap().unwrap();
++    assert_eq!(neutral_stamp.samples(), 160);
++    let mut clock = AudioEgressClock::default();
++    neutral
++        .deliver(|frame| {
++            assert!(original_age.elapsed() < Duration::from_millis(200));
++            let pending = clock
++                .prepare(neutral_stamp, frame.timestamp_rtp, None)
++                .unwrap();
++            assert_eq!(pending.timestamp(), 160);
++            clock.commit(pending);
++            std::future::ready(Ok(()))
++        })
++        .await
++        .unwrap();
++    assert!(
++        !prepared.has_delivered_remote_audio(),
++        "actual neutral output cannot count as remote media"
++    );
++    f.room.publish("bob", 6000).unwrap();
++    f.room.tick();
++    let real = f
++        .room
++        .nodes
++        .get_mut("device")
++        .unwrap()
++        .out
++        .try_recv()
++        .unwrap();
++    let original_frame_age = real.admitted_at;
++    let stamp = real.audio_egress_stamp().unwrap().unwrap();
++    real.deliver(|frame| {
++        assert!(original_frame_age.elapsed() < Duration::from_millis(200));
++        use rvoip_media_core::codec::factory::CodecFactory;
++        let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++        let decoded = codec.decode(&frame.payload).unwrap();
++        let mean = decoded.samples.iter().map(|s| i32::from(*s)).sum::<i32>()
++            / decoded.samples.len() as i32;
++        assert!((mean - 6000).abs() < 400);
++        let pending = clock.prepare(stamp, frame.timestamp_rtp, None).unwrap();
++        assert_eq!(pending.timestamp(), 320);
++        clock.commit(pending);
++        std::future::ready(Ok(()))
++    })
++    .await
++    .unwrap();
++
++    assert!(prepared.has_delivered_remote_audio());
++    assert!(!target.shutdown.is_cancelled());
++    assert!(!f.room.nodes["alice"].controller.shutdown.is_cancelled());
++}
++
++#[tokio::test]
++async fn actual_same_target_clock_metadata_survives_definitive_adoption_and_original_private_expiry_without_renewal()
++ {
++    use crate::staged_streams::audio_egress_clock::AudioEgressClock;
++    let mut f = Move::for_audio_preroll().await;
++    f.io().await;
++    f.confirm().await;
++    drain_outputs(&mut f);
++    let until = tokio::time::Instant::now() + Duration::from_millis(80);
++    let prepared = prepare(&f, until, CancellationToken::new()).await;
++    let target = f.room.nodes["device"].controller.clone();
++    target
++        .try_queue_local_silence(
++            &desired(Medium::Audio).logical_id,
++            LocalAudioPurpose::EndpointPreparation {
++                operation_id: f.pending.intent().operation_id.clone(),
++            },
++            160,
++        )
++        .unwrap();
++    let first = f
++        .room
++        .nodes
++        .get_mut("device")
++        .unwrap()
++        .out
++        .try_recv()
++        .unwrap();
++    let stamp = first.audio_egress_stamp().unwrap().unwrap();
++    let mut clock = AudioEgressClock::default();
++    first
++        .deliver(|frame| {
++            let reserved = clock.prepare(stamp, frame.timestamp_rtp, None).unwrap();
++            assert_eq!(reserved.timestamp(), 160);
++            clock.commit(reserved);
++            std::future::ready(Ok(()))
++        })
++        .await
++        .unwrap();
++    f.room.publish("bob", 6000).unwrap();
++    f.room.tick();
++    let private = f
++        .room
++        .nodes
++        .get_mut("device")
++        .unwrap()
++        .out
++        .try_recv()
++        .unwrap();
++    let stamp = private.audio_egress_stamp().unwrap().unwrap();
++    private
++        .deliver(|frame| {
++            let reserved = clock.prepare(stamp, frame.timestamp_rtp, None).unwrap();
++            assert_eq!(reserved.timestamp(), 320);
++            clock.commit(reserved);
++            std::future::ready(Ok(()))
++        })
++        .await
++        .unwrap();
++    assert!(prepared.has_delivered_remote_audio());
++    drain_outputs(&mut f);
++    let plan = f.plan().unwrap();
++    f.commit(plan).await.unwrap();
++    assert!(!prepared.is_current());
++    tokio::time::sleep_until(until).await;
++    f.room.publish("bob", 7000).unwrap();
++    f.room.tick();
++    let ordinary = f
++        .room
++        .nodes
++        .get_mut("device")
++        .unwrap()
++        .out
++        .try_recv()
++        .unwrap();
++    let stamp = ordinary.audio_egress_stamp().unwrap().unwrap();
++    ordinary
++        .deliver(|frame| {
++            use rvoip_media_core::codec::factory::CodecFactory;
++            let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++            let decoded = codec.decode(&frame.payload).unwrap();
++            let mean = decoded.samples.iter().map(|s| i32::from(*s)).sum::<i32>()
++                / decoded.samples.len() as i32;
++            assert!((mean - 7000).abs() < 400);
++            let reserved = clock.prepare(stamp, frame.timestamp_rtp, None).unwrap();
++            assert_eq!(reserved.timestamp(), 480);
++            clock.commit(reserved);
++            std::future::ready(Ok(()))
++        })
++        .await
++        .unwrap();
++    assert!(f.room.publish("alice", 9000).is_err());
++}
+--- a/crates/uctp/rvoip-uctp/Cargo.toml
++++ b/crates/uctp/rvoip-uctp/Cargo.toml
+@@ -60,7 +60,7 @@
+ tracing-subscriber.workspace = true
+ # Browser and bridge examples negotiate Opus and must exercise the real
+ # media-graph backend rather than compiling a signaling-only graph.
+-rvoip-core = { workspace = true, features = ["opus", "vcon-signing"] }
++rvoip-core = { workspace = true, features = ["opus", "vcon-signing", "test-support"] }
+ 
+ # Phase 4 demo + bridge_smoke test consume the SIP family + adapter crates.
+ # Forward dev-deps: path-only (no version) so `cargo publish` strips them from
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -2,16 +2,16 @@
+ //! Negotiation is supplied by the authenticated application profile; this
+ //! module never invents peer readiness or translates legacy control commands.
+ use crate::substrate::{
+-    observe_rtp, pack_observed_rtp_datagram, pack_rtp_datagram, CheckedMediaIngress,
+-    ObservedRtpDatagram, PeerMediaRegistration, PeerMediaReservation, PeerMediaRouteKey,
+-    PeerMediaRouter, RtpDatagram, RtpMediaPayload,
++    CheckedMediaIngress, ObservedRtpDatagram, PeerMediaRegistration, PeerMediaReservation,
++    PeerMediaRouteKey, PeerMediaRouter, RtpDatagram, RtpMediaPayload, observe_rtp,
++    pack_observed_rtp_datagram, pack_rtp_datagram,
+ };
+ use async_trait::async_trait;
+ use bytes::Bytes;
+ use dashmap::DashMap;
+ use futures::{
++    FutureExt,
+     future::{BoxFuture, Shared},
+-    FutureExt,
+ };
+ use rvoip_core::{
+     capability::CodecInfo,
+@@ -26,8 +26,8 @@
+ use std::{
+     num::NonZeroU16,
+     sync::{
++        Arc, Mutex, Weak,
+         atomic::{AtomicU64, Ordering},
+-        Arc, Mutex, Weak,
+     },
+ };
+ use tokio::sync::mpsc;
+@@ -95,6 +95,8 @@
+ pub trait StagedDatagramTransport: Send + Sync {
+     fn maximum_datagram_bytes(&self) -> Option<usize>;
+     /// Nonblocking local transport admission only, not remote delivery.
++    /// Err guarantees this supplied datagram was not accepted. A transport that
++    /// may have accepted it must not report a definitive refusal here.
+     fn send_datagram(&self, bytes: Bytes) -> ControlResult<()>;
+     fn is_closed(&self) -> bool;
+ }
+@@ -698,6 +700,7 @@
+     video: rvoip_core::video_packetizer::Vp8Packetizer,
+     previous_video: Option<VideoOrigin>,
+     clock_origin: Option<(u128, u64, bool, bool)>,
++    audio_clock: audio_egress_clock::AudioEgressClock,
+     cname: String,
+     packets: u32,
+     octets: u32,
+@@ -705,14 +708,19 @@
+ }
+ impl Packetizer {
+     fn reserve_outer(&mut self) -> ControlResult<u32> {
+-        let sequence=if let Some(cursor)=self.cursor.as_mut(){cursor.reserve_next()?}else{self.outer};
+-        self.outer=sequence.wrapping_add(1);
++        let sequence = if let Some(cursor) = self.cursor.as_mut() {
++            cursor.reserve_next()?
++        } else {
++            self.outer
++        };
++        self.outer = sequence.wrapping_add(1);
+         Ok(sequence)
+     }
+     fn send(
+         &mut self,
+-        frame: MediaFrame,
++        mut frame: MediaFrame,
+         origin: Option<MediaDeliveryOrigin>,
++        audio_stamp: Option<audio_egress_clock::AudioEgressStamp>,
+         binding: &ReadyMediaBinding,
+         pt: u8,
+         transport: &dyn StagedDatagramTransport,
+@@ -724,6 +732,25 @@
+             .is_some_and(|clock| !(clock.is_current)())
+         {
+             return Err(StreamControlError::NotReady);
++        }
++        let audio = if frame.kind == StreamKind::Audio {
++            match audio_stamp {
++                Some(stamp) if stamp.enabled() || self.audio_clock.active() => {
++                    Some(self.audio_clock.prepare(stamp, frame.timestamp_rtp, None)?)
++                }
++                None if self.audio_clock.active() => return Err(StreamControlError::Unsupported),
++                _ => None,
++            }
++        } else {
++            None
++        };
++        if let Some(reservation) = audio {
++            let source = frame.timestamp_rtp;
++            let wire = reservation.timestamp();
++            frame.timestamp_rtp = wire;
++            frame.source_clock = frame
++                .source_clock
++                .map(|clock| clock.translated_rtp(source, wire));
+         }
+         let clock = frame.source_clock.clone();
+         let clock_origin = clock
+@@ -795,19 +822,27 @@
+                         .min(1180),
+                 )
+                 .ok_or(StreamControlError::NotReady)?;
+-            packets.into_iter().map(|packet| {
+-                let rtp = observe_rtp(packet).map_err(|_| StreamControlError::NotReady)?;
+-                let sequence = self.reserve_outer()?;
+-                let wire = pack_observed_rtp_datagram(&ObservedRtpDatagram {
+-                    flags:0,stream_local_id:binding.stream_local_id,seq:sequence,rtp,
+-                }).map_err(|_|StreamControlError::NotReady)?;
+-                match self.feedback_epoch {
+-                    Some(epoch) => crate::substrate::tag_video_epoch_datagram(&wire,epoch).map_err(|_|StreamControlError::NotReady),
+-                    None => Ok(wire),
+-                }
+-            }).collect::<ControlResult<Vec<_>>>()?
++            packets
++                .into_iter()
++                .map(|packet| {
++                    let rtp = observe_rtp(packet).map_err(|_| StreamControlError::NotReady)?;
++                    let sequence = self.reserve_outer()?;
++                    let wire = pack_observed_rtp_datagram(&ObservedRtpDatagram {
++                        flags: 0,
++                        stream_local_id: binding.stream_local_id,
++                        seq: sequence,
++                        rtp,
++                    })
++                    .map_err(|_| StreamControlError::NotReady)?;
++                    match self.feedback_epoch {
++                        Some(epoch) => crate::substrate::tag_video_epoch_datagram(&wire, epoch)
++                            .map_err(|_| StreamControlError::NotReady),
++                        None => Ok(wire),
++                    }
++                })
++                .collect::<ControlResult<Vec<_>>>()?
+         } else {
+-            let sequence=self.reserve_outer()?;
++            let sequence = self.reserve_outer()?;
+             let packet = pack_rtp_datagram(&RtpDatagram {
+                 flags: 0,
+                 stream_local_id: binding.stream_local_id,
+@@ -832,6 +867,17 @@
+             let bytes = packet.len();
+             let octets = rtcp::payload_octets(&packet).ok_or(StreamControlError::NotReady)?;
+             transport.send_datagram(packet)?;
++            // Primary audio admission is one synchronous datagram. Commit here,
++            // before later RTCP metadata can fail; the primary cannot be replayed.
++            if let Some(reservation) = audio {
++                // A new actual producer/capture epoch changes wire coordinates.
++                // Publish the matching current report in this existing guarded
++                // call, just as a real egress SSRC change already does.
++                if reservation.mapping_changed() {
++                    self.last_report = None;
++                }
++                self.audio_clock.commit(reservation);
++            }
+             self.packets = self.packets.wrapping_add(1);
+             self.octets = self.octets.wrapping_add(octets);
+             submitted(bytes);
+@@ -872,7 +918,9 @@
+ }
+ #[async_trait]
+ impl StagedMediaAdapter for StagedRtpMedia {
+-    fn native_sequence_cursors(&self) -> bool { true }
++    fn native_sequence_cursors(&self) -> bool {
++        true
++    }
+     async fn prepare(
+         &self,
+         ports: Vec<PortPreparation>,
+@@ -981,7 +1029,11 @@
+             if self.streams.contains_key(&port.binding().transport_id) {
+                 return Err(StreamControlError::NotReady);
+             }
+-            let mut cursor=if port.binding().sink_ready{Some(port.install_native_egress_cursor()?)}else{None};
++            let mut cursor = if port.binding().sink_ready {
++                Some(port.install_native_egress_cursor()?)
++            } else {
++                None
++            };
+             let stream: Arc<dyn MediaStream> = Arc::new(RoutedStream {
+                 port: port.clone(),
+                 codec: descriptor,
+@@ -996,7 +1048,10 @@
+                         self.transport.clone(),
+                         resources.cancel.clone(),
+                         self.lifetime.clone(),
+-                        cursor.as_mut().map(|writer|writer.take_feedback_reservation()).transpose()?,
++                        cursor
++                            .as_mut()
++                            .map(|writer| writer.take_feedback_reservation())
++                            .transpose()?,
+                     )
+                 })
+                 .transpose()?;
+@@ -1082,6 +1137,7 @@
+                     video: Default::default(),
+                     previous_video: None,
+                     clock_origin: None,
++                    audio_clock: Default::default(),
+                     cname,
+                     packets: 0,
+                     octets: 0,
+@@ -1099,6 +1155,13 @@
+                         }
+                     };
+                     let queued = tokio::select! {biased;_=cancel.cancelled()=>break,_=lifetime.cancelled()=>break,next=next=>match next {Some(value)=>value,None=>break}};
++                    let audio_stamp = match queued.audio_egress_stamp() {
++                        Ok(stamp) => stamp,
++                        Err(_) => {
++                            counters.send_errors.fetch_add(1, Ordering::AcqRel);
++                            continue;
++                        }
++                    };
+                     let result = if queued.can_batch_audio() {
+                         match ready_audio
+                             .send(
+@@ -1120,37 +1183,65 @@
+                         }
+                     } else {
+                         let mut send = |frame: MediaFrame, origin, epoch| {
+-                            packetizer.as_mut().expect("owned packetizer").feedback_epoch = epoch;
+-                            let boundary = (packetizer.as_ref().expect("owned packetizer").outer,frame.timestamp_rtp);
++                            packetizer
++                                .as_mut()
++                                .expect("owned packetizer")
++                                .feedback_epoch = epoch;
++                            let boundary = (
++                                packetizer.as_ref().expect("owned packetizer").outer,
++                                frame.timestamp_rtp,
++                            );
+                             let result = packetizer.as_mut().expect("owned packetizer").send(
+-                                frame,origin,&binding,pt,transport.as_ref(),|bytes| {
++                                frame,
++                                origin,
++                                audio_stamp,
++                                &binding,
++                                pt,
++                                transport.as_ref(),
++                                |bytes| {
+                                     counters.local_sends.fetch_add(1, Ordering::AcqRel);
+                                     if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
+-                                        flow.sent(&port); flow.record_rtp(&port,false,bytes);
++                                        flow.sent(&port);
++                                        flow.record_rtp(&port, false, bytes);
+                                     }
+-                                });
++                                },
++                            );
+                             result.map(|_| {
+-                                let packetizer=packetizer.as_ref().expect("owned packetizer");
+-                                packetizer.previous_video.as_ref().map(|source|
+-                                    (packetizer.ssrc,source.ssrc,boundary.0,boundary.1))
++                                let packetizer = packetizer.as_ref().expect("owned packetizer");
++                                packetizer.previous_video.as_ref().map(|source| {
++                                    (packetizer.ssrc, source.ssrc, boundary.0, boundary.1)
++                                })
+                             })
+                         };
+                         if let Some(feedback) = &feedback {
+-                            queued.deliver_video_with_feedback(|frame,origin,route| {
+-                                let result=send(frame,origin,Some(route.epoch()));
+-                                if let Ok(Some((ssrc,source_ssrc,sequence,timestamp)))=&result {
+-                                    // This is AFTER this original send succeeded,
+-                                    // and BEFORE its fresh Core guards release.
+-                                    // A metadata refusal cannot replay sent media.
+-                                    let _=feedback.delivered(route,*ssrc,*source_ssrc,*sequence,*timestamp);
+-                                }
+-                                std::future::ready(result.map(|_|()))
+-                            }).await.map(|_|())
++                            queued
++                                .deliver_video_with_feedback(|frame, origin, route| {
++                                    let result = send(frame, origin, Some(route.epoch()));
++                                    if let Ok(Some((ssrc, source_ssrc, sequence, timestamp))) =
++                                        &result
++                                    {
++                                        // This is AFTER this original send succeeded,
++                                        // and BEFORE its fresh Core guards release.
++                                        // A metadata refusal cannot replay sent media.
++                                        let _ = feedback.delivered(
++                                            route,
++                                            *ssrc,
++                                            *source_ssrc,
++                                            *sequence,
++                                            *timestamp,
++                                        );
++                                    }
++                                    std::future::ready(result.map(|_| ()))
++                                })
++                                .await
++                                .map(|_| ())
+                         } else {
+-                            queued.deliver_with_origin(|frame,origin|
+-                                std::future::ready(send(frame,origin,None).map(|_|()))).await
++                            queued
++                                .deliver_with_origin(|frame, origin| {
++                                    std::future::ready(send(frame, origin, None).map(|_| ()))
++                                })
++                                .await
+                         }
+-
+                     };
+                     if let Err(problem) = &result {
+                         tracing::trace!(target: "rvoip_uctp::native_egress", connection=connection.as_str(), stream=binding.transport_id.as_str(), source_ready=binding.source_ready, sink_ready=binding.sink_ready, ?problem, "Native guarded egress refused");
+@@ -1163,11 +1254,7 @@
+                 if let Some(port) = weak.upgrade() {
+                     let _ = port.report_terminal();
+                 }
+-                if incomplete {
+-                    Err(())
+-                } else {
+-                    Ok(())
+-                }
++                if incomplete { Err(()) } else { Ok(()) }
+             });
+             *resources.task.lock().unwrap_or_else(|p| p.into_inner()) =
+                 Some(async move { task.await.map_err(|_| ())? }.boxed().shared());
+@@ -1211,12 +1298,14 @@
+         assert!(codec(&audio, Medium::Audio, Some(111)).is_ok());
+         assert!(codec(&audio, Medium::Audio, Some(0)).is_err());
+         assert!(codec(&audio, Medium::Video, Some(111)).is_err());
+-        assert!(codec(
+-            &MediaFormat::ReliableOrdered(rvoip_core::capability::DataProtocol::Json),
+-            Medium::Data,
+-            None
+-        )
+-        .is_err());
++        assert!(
++            codec(
++                &MediaFormat::ReliableOrdered(rvoip_core::capability::DataProtocol::Json),
++                Medium::Data,
++                None
++            )
++            .is_err()
++        );
+     }
+     #[test]
+     fn retired_clock_routes_cannot_reach_the_datagram_transport() {
+@@ -1278,14 +1367,17 @@
+             video: Default::default(),
+             previous_video: None,
+             clock_origin: None,
++            audio_clock: Default::default(),
+             cname: "clock-test".into(),
+             packets: 0,
+             octets: 0,
+             last_report: None,
+         };
+-        assert!(packetizer
+-            .send(frame, None, &binding, 0, &NoSend, |_| {})
+-            .is_err());
++        assert!(
++            packetizer
++                .send(frame, None, None, &binding, 0, &NoSend, |_| {})
++                .is_err()
++        );
+     }
+     #[test]
+     fn measured_egress_keeps_successful_video_prefix_when_a_later_datagram_fails() {
+@@ -1353,17 +1445,24 @@
+             video: Default::default(),
+             previous_video: None,
+             clock_origin: None,
++            audio_clock: Default::default(),
+             cname: "clock-test".into(),
+             packets: 0,
+             octets: 0,
+             last_report: None,
+         };
+         let mut observed = Vec::new();
+-        assert!(packetizer
+-            .send(frame, None, &binding, 96, &transport, |bytes| observed
+-                .push(bytes))
+-            .is_err());
+-        assert!(packetizer.outer > 1, "every pre-packetized original fragment, including failed and unsent reservations, remains in the cursor");
++        assert!(
++            packetizer
++                .send(frame, None, None, &binding, 96, &transport, |bytes| {
++                    observed.push(bytes)
++                })
++                .is_err()
++        );
++        assert!(
++            packetizer.outer > 1,
++            "every pre-packetized original fragment, including failed and unsent reservations, remains in the cursor"
++        );
+         let sent = transport.0.lock().unwrap();
+         assert_eq!(
+             sent.len(),
+@@ -1384,7 +1483,7 @@
+     }
+     #[test]
+     fn sender_clock_reports_actual_submissions_and_never_counts_metadata_as_rtp() {
+-        struct Wire(Mutex<Vec<Bytes>>,std::sync::atomic::AtomicBool);
++        struct Wire(Mutex<Vec<Bytes>>, std::sync::atomic::AtomicBool);
+         impl StagedDatagramTransport for Wire {
+             fn maximum_datagram_bytes(&self) -> Option<usize> {
+                 Some(1200)
+@@ -1393,7 +1492,9 @@
+                 false
+             }
+             fn send_datagram(&self, b: Bytes) -> ControlResult<()> {
+-                if rtcp::is_rtcp(&b) && self.1.swap(false,Ordering::AcqRel) {return Err(StreamControlError::Backpressure);}
++                if rtcp::is_rtcp(&b) && self.1.swap(false, Ordering::AcqRel) {
++                    return Err(StreamControlError::Backpressure);
++                }
+                 self.0.lock().unwrap().push(b);
+                 Ok(())
+             }
+@@ -1428,6 +1529,7 @@
+             video: Default::default(),
+             previous_video: None,
+             clock_origin: None,
++            audio_clock: Default::default(),
+             cname: "clock-test".into(),
+             packets: 0,
+             octets: 0,
+@@ -1455,20 +1557,27 @@
+                 is_current: Arc::new(|| true),
+             }),
+         };
+-        let wire = Wire(Mutex::new(Vec::new()),std::sync::atomic::AtomicBool::new(false));
++        let wire = Wire(
++            Mutex::new(Vec::new()),
++            std::sync::atomic::AtomicBool::new(false),
++        );
+         let mut observed = 0;
+         assert_eq!(
+             packetizer
+-                .send(make(true), None, &binding, 0, &wire, |_| observed += 1)
++                .send(make(true), None, None, &binding, 0, &wire, |_| observed +=
++                    1)
+                 .unwrap(),
+             1
+         );
+         assert_eq!(observed, 1);
+         let packets = wire.0.lock().unwrap();
+         assert_eq!(packets.len(), 2);
+-        assert_eq!(packetizer.outer,2,"RTP and its original RTCP each reserve one cursor ordinal");
+-        assert_eq!(u32::from_be_bytes(packets[0][4..8].try_into().unwrap()),0);
+-        assert_eq!(u32::from_be_bytes(packets[1][4..8].try_into().unwrap()),1);
++        assert_eq!(
++            packetizer.outer, 2,
++            "RTP and its original RTCP each reserve one cursor ordinal"
++        );
++        assert_eq!(u32::from_be_bytes(packets[0][4..8].try_into().unwrap()), 0);
++        assert_eq!(u32::from_be_bytes(packets[1][4..8].try_into().unwrap()), 1);
+         let rtp = crate::substrate::observe_rtp_datagram(&packets[0]).unwrap();
+         let (handle, report) = rtcp::parse(&packets[1]).unwrap();
+         assert_eq!(handle, binding.stream_local_id);
+@@ -1479,7 +1588,9 @@
+         let first_ssrc = report.ssrc;
+         drop(packets);
+         packetizer
+-            .send(make(true), None, &binding, 0, &wire, |_| observed += 1)
++            .send(make(true), None, None, &binding, 0, &wire, |_| {
++                observed += 1
++            })
+             .unwrap();
+         assert_eq!(
+             wire.0.lock().unwrap().len(),
+@@ -1487,7 +1598,9 @@
+             "report timer escaped current packet send"
+         );
+         packetizer
+-            .send(make(false), None, &binding, 0, &wire, |_| observed += 1)
++            .send(make(false), None, None, &binding, 0, &wire, |_| {
++                observed += 1
++            })
+             .unwrap();
+         let packets = wire.0.lock().unwrap();
+         assert_eq!(packets.len(), 4);
+@@ -1515,7 +1628,7 @@
+         let mut waiting = make(true);
+         waiting.source_clock.as_mut().unwrap().anchor = None;
+         packetizer
+-            .send(waiting, None, &binding, 0, &wire, |_| observed += 1)
++            .send(waiting, None, None, &binding, 0, &wire, |_| observed += 1)
+             .unwrap();
+         let packets = wire.0.lock().unwrap();
+         assert_eq!(packets.len(), 5);
+@@ -1529,15 +1642,32 @@
+             prior
+         );
+         assert_eq!(observed, 4);
+-        let before_packets=packets.len();drop(packets);
+-        let before=packetizer.outer;packetizer.last_report=None;
+-        wire.1.store(true,Ordering::Release);
+-        packetizer.send(make(true),None,&binding,0,&wire,|_|observed+=1).unwrap();
+-        assert_eq!(wire.0.lock().unwrap().len(),before_packets+1,"failed original RTCP did not become observed IO");
+-        assert_eq!(packetizer.outer,before+2,"failed RTCP still consumed its unique original reservation");
+-        assert_eq!(observed,5);
++        let before_packets = packets.len();
++        drop(packets);
++        let before = packetizer.outer;
++        packetizer.last_report = None;
++        wire.1.store(true, Ordering::Release);
++        packetizer
++            .send(make(true), None, None, &binding, 0, &wire, |_| {
++                observed += 1
++            })
++            .unwrap();
++        assert_eq!(
++            wire.0.lock().unwrap().len(),
++            before_packets + 1,
++            "failed original RTCP did not become observed IO"
++        );
++        assert_eq!(
++            packetizer.outer,
++            before + 2,
++            "failed RTCP still consumed its unique original reservation"
++        );
++        assert_eq!(observed, 5);
+     }
+ }
+ 
+ #[cfg(test)]
+ mod clock_acquisition_tests;
++
++#[cfg(test)]
++mod audio_egress_clock_tests;
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs
+@@ -0,0 +1,287 @@
++use super::*;
++use rvoip_core::staged_streams::audio_egress_clock::AudioEgressStamp;
++use std::sync::atomic::AtomicBool;
++struct Wire {
++    packets: Mutex<Vec<Bytes>>,
++    refuse: AtomicBool,
++}
++impl StagedDatagramTransport for Wire {
++    fn maximum_datagram_bytes(&self) -> Option<usize> {
++        Some(1200)
++    }
++    fn is_closed(&self) -> bool {
++        false
++    }
++    fn send_datagram(&self, b: Bytes) -> ControlResult<()> {
++        if self.refuse.swap(false, Ordering::AcqRel) {
++            return Err(StreamControlError::Backpressure);
++        }
++        self.packets.lock().unwrap().push(b);
++        Ok(())
++    }
++}
++fn fixture() -> (ReadyMediaBinding, Packetizer, Wire) {
++    let binding = ReadyMediaBinding {
++        negotiated: rvoip_core::stream_lifecycle::NegotiatedStream {
++            requested: rvoip_core::stream_lifecycle::DesiredStream {
++                logical_id: StreamId::new(),
++                medium: Medium::Audio,
++                direction: StreamDirection::Both,
++            },
++            format: MediaFormat::Encoded {
++                name: "pcmu".into(),
++                clock_rate_hz: 8000,
++                channels: 1,
++                fmtp: None,
++            },
++        },
++        transport_id: StreamId::new(),
++        stream_local_id: 1,
++        generation: 1,
++        connection_generation: 2,
++        source_ready: true,
++        sink_ready: true,
++    };
++    let packetizer = Packetizer {
++        cursor: None,
++        feedback_epoch: None,
++        outer: 0,
++        rtp: 0,
++        ssrc: 1,
++        video: Default::default(),
++        previous_video: None,
++        clock_origin: None,
++        audio_clock: Default::default(),
++        cname: "handover".into(),
++        packets: 0,
++        octets: 0,
++        last_report: None,
++    };
++    (
++        binding,
++        packetizer,
++        Wire {
++            packets: Mutex::new(Vec::new()),
++            refuse: AtomicBool::new(false),
++        },
++    )
++}
++fn frame(binding: &ReadyMediaBinding, timestamp: u32) -> MediaFrame {
++    MediaFrame {
++        stream_id: binding.transport_id.clone(),
++        kind: StreamKind::Audio,
++        payload: Bytes::from(vec![0x55; 160]),
++        timestamp_rtp: timestamp,
++        captured_at: chrono::Utc::now(),
++        payload_type: Some(0),
++        source_clock: None,
++    }
++}
++fn timestamps(wire: &Wire) -> Vec<u32> {
++    wire.packets
++        .lock()
++        .unwrap()
++        .iter()
++        .filter(|p| !rtcp::is_rtcp(p))
++        .map(|p| {
++            crate::substrate::unpack_rtp_datagram(p)
++                .unwrap()
++                .rtp
++                .timestamp
++        })
++        .collect()
++}
++#[test]
++fn same_native_writer_maps_retained_first_remote_and_fences_queued_neutral_without_erasing_real_gaps()
++ {
++    let (b, mut p, wire) = fixture();
++    let neutral = AudioEgressStamp::silence_for_test(1, 160);
++    let remote = AudioEgressStamp::mixed_for_test(1, 2, None, 160);
++    p.send(frame(&b, 160), None, Some(neutral), &b, 0, &wire, |_| {})
++        .unwrap();
++    p.send(frame(&b, 160), None, Some(remote), &b, 0, &wire, |_| {})
++        .unwrap();
++    let cursor = p.outer;
++    assert!(
++        p.send(frame(&b, 320), None, Some(neutral), &b, 0, &wire, |_| {})
++            .is_err()
++    );
++    assert_eq!(
++        p.outer, cursor,
++        "queued neutral must refuse before reserving physical RTP"
++    );
++    p.send(frame(&b, 480), None, Some(remote), &b, 0, &wire, |_| {})
++        .unwrap();
++    let epoch = AudioEgressStamp::mixed_for_test(1, 2, Some((7, 3, 8000)), 160);
++    p.send(frame(&b, 0), None, Some(epoch), &b, 0, &wire, |_| {})
++        .unwrap();
++    assert_eq!(timestamps(&wire), vec![160, 320, 640, 800]);
++    assert!(
++        p.send(frame(&b, 960), None, None, &b, 0, &wire, |_| {})
++            .is_err(),
++        "arbitrary public local audio has no invented20ms stamp"
++    );
++}
++#[test]
++fn native_definitive_transport_refusal_leaves_neutral_clock_and_actual_primary_effect_commits_before_rtcp_failure()
++ {
++    let (b, mut p, wire) = fixture();
++    let neutral = AudioEgressStamp::silence_for_test(1, 160);
++    let remote = AudioEgressStamp::mixed_for_test(1, 2, None, 160);
++    p.send(frame(&b, 160), None, Some(neutral), &b, 0, &wire, |_| {})
++        .unwrap();
++    let before = p.audio_clock;
++    wire.refuse.store(true, Ordering::Release);
++    assert!(
++        p.send(frame(&b, 160), None, Some(remote), &b, 0, &wire, |_| {})
++            .is_err()
++    );
++    assert_eq!(p.audio_clock, before);
++    assert_eq!(timestamps(&wire), vec![160]);
++    p.send(frame(&b, 320), None, Some(neutral), &b, 0, &wire, |_| {})
++        .unwrap();
++    let mut real = frame(&b, 160);
++    let anchor = rvoip_core::stream::MediaClockAnchor {
++        ntp_time: rtcp::now_ntp(),
++        rtp_time: 160,
++        clock_rate: 8000,
++    };
++    real.source_clock = Some(rvoip_core::stream::MediaSourceClock {
++        source_id: 2,
++        generation: 3,
++        anchor: Some(anchor),
++        supported: true,
++        rtp_offset: 0,
++        is_current: Arc::new(|| true),
++    });
++    let ntp = real.source_clock.as_ref().unwrap().anchor.unwrap().ntp_time;
++    // The same actual callback accepts RTP; it then makes only the later RTCP
++    // transport admission fail. Primary success cannot be undone by metadata.
++    p.send(real, None, Some(remote), &b, 0, &wire, |_| {
++        wire.refuse.store(true, Ordering::Release)
++    })
++    .unwrap();
++    assert_eq!(timestamps(&wire), vec![160, 320, 480]);
++    assert!(
++        p.send(frame(&b, 480), None, Some(neutral), &b, 0, &wire, |_| {})
++            .is_err()
++    );
++    assert_eq!(
++        anchor.ntp_time, ntp,
++        "original capture anchor is never rewritten"
++    );
++    assert!(
++        wire.packets
++            .lock()
++            .unwrap()
++            .iter()
++            .all(|p| !rtcp::is_rtcp(p))
++    );
++}
++#[test]
++fn native_derived_clock_translation_retains_original_capture_ntp_and_payload() {
++    let (b, mut p, wire) = fixture();
++    let neutral = AudioEgressStamp::silence_for_test(1, 160);
++    let remote = AudioEgressStamp::mixed_for_test(1, 2, None, 160);
++    p.send(frame(&b, 160), None, Some(neutral), &b, 0, &wire, |_| {})
++        .unwrap();
++    let anchor = rvoip_core::stream::MediaClockAnchor {
++        ntp_time: rtcp::now_ntp(),
++        rtp_time: 160,
++        clock_rate: 8000,
++    };
++    let mut real = frame(&b, 160);
++    let payload = real.payload.clone();
++    real.source_clock = Some(rvoip_core::stream::MediaSourceClock {
++        source_id: 2,
++        generation: 1,
++        anchor: Some(anchor),
++        supported: true,
++        rtp_offset: 0,
++        is_current: Arc::new(|| true),
++    });
++    p.send(real, None, Some(remote), &b, 0, &wire, |_| {})
++        .unwrap();
++    let rows = wire.packets.lock().unwrap();
++    let media = rows
++        .iter()
++        .filter_map(|p| crate::substrate::unpack_rtp_datagram(p).ok())
++        .last()
++        .unwrap();
++    assert_eq!(media.rtp.timestamp, 320);
++    assert_eq!(media.rtp.payload, payload);
++    let report = rows.iter().filter_map(|p| rtcp::parse(p)).last().unwrap().1;
++    assert_eq!(report.rtp, rtcp::rtp_at(report.ntp, anchor, 160).unwrap());
++}
++
++#[test]
++fn explicit_actual_capture_epoch_remap_publishes_matching_report_without_waiting_for_old_throttle()
++{
++    let (b, mut p, wire) = fixture();
++    let neutral = AudioEgressStamp::silence_for_test(1, 160);
++    let remote = AudioEgressStamp::mixed_for_test(1, 2, None, 160);
++    p.send(frame(&b, 160), None, Some(neutral), &b, 0, &wire, |_| {})
++        .unwrap();
++    let anchor = rvoip_core::stream::MediaClockAnchor {
++        ntp_time: rtcp::now_ntp(),
++        rtp_time: 160,
++        clock_rate: 8000,
++    };
++    let make = |timestamp, anchor| {
++        let mut f = frame(&b, timestamp);
++        f.source_clock = Some(rvoip_core::stream::MediaSourceClock {
++            source_id: 2,
++            generation: 1,
++            anchor: Some(anchor),
++            supported: true,
++            rtp_offset: 0,
++            is_current: Arc::new(|| true),
++        });
++        f
++    };
++    p.send(make(160, anchor), None, Some(remote), &b, 0, &wire, |_| {})
++        .unwrap();
++    let first_ssrc = p.ssrc;
++    let next_anchor = rvoip_core::stream::MediaClockAnchor {
++        ntp_time: anchor.ntp_time.wrapping_add(1u64 << 24),
++        rtp_time: 0,
++        clock_rate: 8000,
++    };
++    let epoch = AudioEgressStamp::mixed_for_test(1, 2, Some((7, 3, 8000)), 160);
++    p.send(
++        make(0, next_anchor),
++        None,
++        Some(epoch),
++        &b,
++        0,
++        &wire,
++        |_| {},
++    )
++    .unwrap();
++    assert_eq!(
++        p.ssrc, first_ssrc,
++        "explicit translation does not invent a new public source identity"
++    );
++    let rows = wire.packets.lock().unwrap();
++    let reports = rows
++        .iter()
++        .filter_map(|b| rtcp::parse(b))
++        .map(|(_, r)| r)
++        .collect::<Vec<_>>();
++    assert_eq!(
++        reports.len(),
++        2,
++        "a matching explicit epoch report must not wait for old one-second throttle"
++    );
++    assert_eq!(
++        reports[1].rtp,
++        rtcp::rtp_at(reports[1].ntp, next_anchor, 480).unwrap()
++    );
++    assert_eq!(
++        rows.iter()
++            .filter_map(|b| crate::substrate::unpack_rtp_datagram(b).ok())
++            .map(|d| d.rtp.timestamp)
++            .collect::<Vec<_>>(),
++        vec![160, 320, 480]
++    );
++}
+--- a/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
+@@ -39,7 +39,7 @@
+         sink_ready: true,
+     };
+     let mut p = Packetizer {
+-        cursor:None,
++        cursor: None,
+         feedback_epoch: None,
+         outer: 0,
+         rtp: 0,
+@@ -47,6 +47,7 @@
+         video: Default::default(),
+         previous_video: None,
+         clock_origin: None,
++        audio_clock: Default::default(),
+         cname: "video-clock".into(),
+         packets: 0,
+         octets: 0,
+@@ -81,7 +82,8 @@
+             }),
+         };
+         assert_eq!(
+-            p.send(frame, None, &binding, 96, &wire, |_| {}).unwrap(),
++            p.send(frame, None, None, &binding, 96, &wire, |_| {})
++                .unwrap(),
+             1,
+             "initial clock acquisition discarded an in-progress frame"
+         );
+--- a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
+@@ -21,6 +21,7 @@
+ }
+ struct SendContext {
+     packetizer: Packetizer,
++    audio_stamp: Option<audio_egress_clock::AudioEgressStamp>,
+     route: Arc<SendRoute>,
+     reply: oneshot::Sender<Completion>,
+ }
+@@ -44,11 +45,16 @@
+         packetizer: Packetizer,
+         route: Arc<SendRoute>,
+     ) -> Result<BatchWait, (Packetizer, StreamControlError)> {
++        let audio_stamp = match queued.audio_egress_stamp() {
++            Ok(stamp) => stamp,
++            Err(problem) => return Err((packetizer, problem)),
++        };
+         let (reply, response) = oneshot::channel();
+         let job = Job {
+             queued,
+             context: SendContext {
+                 packetizer,
++                audio_stamp,
+                 route,
+                 reply,
+             },
+@@ -97,6 +103,7 @@
+                         .send(
+                             frame,
+                             origin,
++                            context.audio_stamp,
+                             &route.binding,
+                             route.pt,
+                             route.transport.as_ref(),
+@@ -159,7 +166,7 @@
+                     }
+                 }
+                 ReadyAudioDelivery::Refused { problem, .. } => {
+-                    return Ok((packetizer, Err(problem)))
++                    return Ok((packetizer, Err(problem)));
+                 }
+                 ReadyAudioDelivery::Submitted(result) => return Ok((packetizer, result)),
+             }
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs
+@@ -32,6 +32,9 @@
+ const PENDING: u8 = 0;
+ const STARTED: u8 = 1;
+ const CANCELLED: u8 = 2;
++// An original RTP producer completed without ever entering IO. Preserve its
++// semantic refusal result, but no clone may claim/start this consumed ticket.
++const FINISHED_WITHOUT_WRITE: u8 = 3;
+ struct State {
+     live: AtomicBool,
+     phase: AtomicU8,
+@@ -74,6 +77,24 @@
+         };
+         self.0.cancelled.notify_waiters();
+         uncertain
++    }
++    pub(crate) fn freeze_producer(&self) -> bool {
++        match self.0.phase.compare_exchange(
++            PENDING,
++            FINISHED_WITHOUT_WRITE,
++            Ordering::AcqRel,
++            Ordering::Acquire,
++        ) {
++            Ok(_) | Err(CANCELLED | FINISHED_WITHOUT_WRITE) => false,
++            Err(STARTED) => {
++                self.cancel();
++                true
++            }
++            Err(_) => {
++                self.cancel();
++                true
++            }
++        }
+     }
+     pub(crate) async fn cancelled(&self) {
+         // Register before checking current state so cancellation cannot fall
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
+@@ -23,6 +23,9 @@
+ pub trait OwnedRtpIo: Send {
+     async fn write(&mut self, packet: rtp::Packet) -> Result<()>;
+     fn written(&self) -> bool;
++    /// Exact original driver submission. Freezing it atomically proves a
++    /// never-started refusal; a true result means possible IO and no rollback.
++    fn submission_control(&self) -> OwnedRtpControl;
+     /// Check source lifetime and apply timing only after successful primary IO.
+     /// A repair checks lifetime without replacing the current sender mapping.
+     /// A sink without this reviewed operation must refuse, never drop metadata.
+@@ -73,6 +76,11 @@
+     /// True means actual submission may have started; never retry that packet.
+     pub fn cancel(&self) -> bool {
+         self.inner.cancel()
++    }
++    /// Freeze the original producer without replacing a completed semantic
++    /// refusal with cancellation. True means actual IO may have started.
++    pub fn freeze_producer(&self) -> bool {
++        self.inner.freeze_producer()
+     }
+     pub(crate) fn claim(&self) -> bool {
+         self.current() && self.inner.claim()
+@@ -186,3 +194,85 @@
+         result => result,
+     }
+ }
++
++#[cfg(test)]
++mod producer_freeze_tests {
++    use super::*;
++    struct Io {
++        control: OwnedRtpControl,
++    }
++    #[async_trait::async_trait]
++    impl OwnedRtpIo for Io {
++        async fn write(&mut self, _: rtp::Packet) -> Result<()> {
++            panic!("definitive refusal performed IO")
++        }
++        fn written(&self) -> bool {
++            false
++        }
++        fn submission_control(&self) -> OwnedRtpControl {
++            self.control.clone()
++        }
++    }
++    struct Refused;
++    #[async_trait::async_trait]
++    impl OwnedRtpProducer for Refused {
++        async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
++            assert!(!io.submission_control().freeze_producer());
++            Err(OwnedRtpError::Refused)
++        }
++    }
++    #[tokio::test]
++    async fn exact_finished_no_write_preserves_completed_refusal_and_clones_cannot_claim_or_begin()
++    {
++        let control = OwnedRtpControl::new(Instant::now() + std::time::Duration::from_millis(200));
++        let mut io = Io {
++            control: control.clone(),
++        };
++        assert_eq!(
++            complete(&Refused, &mut io, &control).await,
++            Err(OwnedRtpError::Refused)
++        );
++        assert!(!control.clone().claim());
++        assert!(!control.clone().begin());
++        assert!(!control.cancel());
++    }
++    #[tokio::test]
++    async fn completed_freeze_does_not_override_actual_deadline_or_caller_cancellation_result() {
++        for cancelled in [false, true] {
++            let control = OwnedRtpControl::new(if cancelled {
++                Instant::now() + std::time::Duration::from_millis(200)
++            } else {
++                Instant::now()
++            });
++            if cancelled {
++                assert!(!control.cancel());
++            }
++            let mut io = Io {
++                control: control.clone(),
++            };
++            assert_eq!(
++                complete(&Refused, &mut io, &control).await,
++                Err(OwnedRtpError::DeadlineBeforeWrite)
++            );
++        }
++    }
++    #[test]
++    fn current_deadline_and_caller_cancellation_still_refuse_finished_ticket_and_started_is_uncertain()
++     {
++        let cancelled =
++            OwnedRtpControl::new(Instant::now() + std::time::Duration::from_millis(200));
++        assert!(!cancelled.cancel());
++        assert!(!cancelled.freeze_producer());
++        assert!(!cancelled.current());
++        assert!(!cancelled.begin());
++        let expired = OwnedRtpControl::new(Instant::now());
++        assert!(!expired.freeze_producer());
++        assert!(!expired.current());
++        assert!(!expired.begin());
++        let started = OwnedRtpControl::new(Instant::now() + std::time::Duration::from_millis(200));
++        assert!(started.claim());
++        assert!(started.begin());
++        assert!(started.freeze_producer());
++        assert_eq!(stopped(&started), OwnedRtpError::OutcomeUnknown);
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -961,6 +961,9 @@
+     fn written(&self) -> bool {
+         self.written
+     }
++    fn submission_control(&self) -> crate::media_stream::track_local::owned_rtp::OwnedRtpControl {
++        self.control.clone()
++    }
+     async fn write(&mut self, packet: rtp::Packet) -> Result<()> {
+         self.submit(packet, None).await
+     }
+@@ -996,7 +999,10 @@
+             .as_ref()
+             .is_some_and(|(clock, update)| !clock.permits(primary_ssrc, update.as_ref()))
+         {
+-            return Err(refused("clock-before-core", Error::ErrRTPTransceiverCodecUnsupported));
++            return Err(refused(
++                "clock-before-core",
++                Error::ErrRTPTransceiverCodecUnsupported,
++            ));
+         }
+         let inner = self.driver.inner.clone();
+         let (fact, output) = {
+@@ -1008,7 +1014,10 @@
+                 .as_ref()
+                 .is_some_and(|(clock, _)| !core.owns_sender_clock(clock))
+             {
+-                return Err(refused("clock-custody", Error::ErrRTPTransceiverCodecUnsupported));
++                return Err(refused(
++                    "clock-custody",
++                    Error::ErrRTPTransceiverCodecUnsupported,
++                ));
+             }
+             if let Some(prior) = core.poll_write() {
+                 self.driver.deferred_transmits.push_back(prior);
+@@ -1021,23 +1030,35 @@
+                 if sender.track().track_id() != track
+                     || !owned_video::same_primary(&packet, expected)
+                 {
+-                    return Err(refused("repair-primary", Error::ErrRTPTransceiverCodecUnsupported));
+-                }
+-            }
+-            let (packet, clock) = sender.prepare_owned_rtp(packet).map_err(|error| refused("sender-prepare", error))?;
++                    return Err(refused(
++                        "repair-primary",
++                        Error::ErrRTPTransceiverCodecUnsupported,
++                    ));
++                }
++            }
++            let (packet, clock) = sender
++                .prepare_owned_rtp(packet)
++                .map_err(|error| refused("sender-prepare", error))?;
+             let original = packet.clone();
+             let track = sender.track().track_id().to_string();
+             if clock == 90000 && rtc::shared::marshal::MarshalSize::marshal_size(&packet) > 1600 {
+-                return Err(refused("packet-size", Error::ErrRTPTransceiverCodecUnsupported));
++                return Err(refused(
++                    "packet-size",
++                    Error::ErrRTPTransceiverCodecUnsupported,
++                ));
+             }
+             if !self.control.begin() {
+                 return Err(refused("begin-io", Error::ErrConnectionClosed));
+             }
+             let fact = if self.expected.is_some() {
+-                sender.write_owned_video_repair(packet).map_err(|error| refused("repair-pipeline", error))?
++                sender
++                    .write_owned_video_repair(packet)
++                    .map_err(|error| refused("repair-pipeline", error))?
+             } else {
+                 let fact = packet.clone();
+-                sender.write_rtp(packet).map_err(|error| refused("sender-pipeline", error))?;
++                sender
++                    .write_rtp(packet)
++                    .map_err(|error| refused("sender-pipeline", error))?;
+                 fact
+             };
+             if clock == 90000 {
+@@ -1071,7 +1092,8 @@
+         let message = self
+             .driver
+             .ice_gatherer
+-            .relay_output(&message).map_err(|error| refused("relay-encapsulation", error))?
++            .relay_output(&message)
++            .map_err(|error| refused("relay-encapsulation", error))?
+             .unwrap_or(message);
+         let address = self
+             .driver
+--- a/crates/webrtc/rvoip-webrtc/Cargo.toml
++++ b/crates/webrtc/rvoip-webrtc/Cargo.toml
+@@ -127,7 +127,7 @@
+ # real media-graph backend. Keeping this on the dev side, as rvoip-uctp does,
+ # stops the library from forcing libopus onto every consumer: the facade's
+ # pure-Rust bundle includes this crate and must stay free of native codecs.
+-rvoip-core = { workspace = true, features = ["opus"] }
++rvoip-core = { workspace = true, features = ["opus", "test-support"] }
+ tokio = { workspace = true, features = ["full", "test-util"] }
+ tracing-subscriber.workspace = true
+ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+@@ -11,15 +11,15 @@
+ };
+ use std::{
+     sync::{
++        Arc, Mutex,
+         atomic::{AtomicU64, Ordering},
+-        Arc, Mutex,
+     },
+     time::Instant,
+ };
+-use tokio::sync::{mpsc, OwnedMutexGuard};
++use tokio::sync::{OwnedMutexGuard, mpsc};
+ use webrtc::media_stream::{
++    Track,
+     track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+-    Track,
+ };
+ 
+ static AUDIO_WRITE_TIMING: AtomicU64 = AtomicU64::new(0);
+@@ -100,6 +100,8 @@
+         if writer.clock_rate_hz() != *clock_rate_hz {
+             return Err(StreamControlError::Unsupported);
+         }
++        // Metadata only: preparing a successor does not replace an active clock.
++        port.install_audio_egress_binding(writer.audio_bindings.reserve()?)?;
+         let output = port.take_egress()?;
+         Ok(Self {
+             output,
+@@ -155,67 +157,172 @@
+ #[async_trait::async_trait]
+ impl OwnedRtpProducer for CoreProducer {
+     async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
+-        let Packet { queued, mut state } = self
++        let Packet { queued, state } = self
+             .packet
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+             .take()
+             .ok_or(OwnedRtpError::Refused)?;
++        let audio_stamp = queued
++            .audio_egress_stamp()
++            .map_err(|_| OwnedRtpError::Refused)?;
++        let mut state = CoreAudioState::new(state, io.submission_control());
+         // Only Core can disclose the frame. Its fresh source/target authority,
+         // route generation, cancellation and original age cover this IO future.
+         queued
+             .deliver(|frame| async move {
+-                if frame.kind != StreamKind::Audio
+-                    || frame.payload_type != Some(self.payload_type)
+-                    || frame.payload.is_empty()
+-                    || frame.payload.len() > 1600
+-                {
+-                    return Err(StreamControlError::NotReady);
++                write_frame(
++                    &mut state,
++                    self.writer.as_ref(),
++                    self.payload_type,
++                    audio_stamp,
++                    frame,
++                    io,
++                )
++                .await
++            })
++            .await
++            .map_err(|_| OwnedRtpError::Refused)
++    }
++}
++
++// Holds the original writer mutex before Core admission, without any grant.
++// Only the exact driver's atomic freeze can prove that before-state is reusable.
++struct CoreAudioState {
++    state: OwnedMutexGuard<OutboundAudioRtpState>,
++    before: OutboundAudioRtpState,
++    control: OwnedRtpControl,
++    accepted: bool,
++    reserved_timestamp: Option<(u32, u32)>,
++    reserved_clock: Option<rvoip_core::staged_streams::audio_egress_clock::AudioEgressReservation>,
++}
++impl CoreAudioState {
++    fn new(state: OwnedMutexGuard<OutboundAudioRtpState>, control: OwnedRtpControl) -> Self {
++        let before = *state;
++        Self {
++            state,
++            before,
++            control,
++            accepted: false,
++            reserved_timestamp: None,
++            reserved_clock: None,
++        }
++    }
++}
++impl Drop for CoreAudioState {
++    fn drop(&mut self) {
++        if !self.accepted {
++            if self.control.freeze_producer() {
++                if let Some(reservation) = self.reserved_clock {
++                    self.state.audio_egress.burn(reservation);
++                    if let Some((source, wire)) = self.reserved_timestamp {
++                        self.state.accepted_core_timestamp(source, wire);
++                    }
+                 }
+-                let samples = super::core_audio_profile::packet_samples(
+-                    self.writer.clock_rate_hz(),
+-                    &frame.payload,
+-                )?;
+-                let timestamp = state.allocate_audio_timestamp(frame.timestamp_rtp, samples);
+-                let packet = rtc::rtp::Packet {
+-                    header: rtc::rtp::Header {
+-                        version: 2,
+-                        payload_type: self.payload_type,
+-                        ssrc: self.writer.ssrc(),
+-                        sequence_number: state.next_sequence_number(),
+-                        timestamp,
+-                        ..Default::default()
+-                    },
+-                    payload: frame.payload.to_vec().into(),
+-                };
+-                let mut update =
+-                    super::clock::update(frame.source_clock, self.writer.clock_rate_hz());
+-                if let Some(update) = &mut update {
+-                    update.rtp_offset = update
+-                        .rtp_offset
+-                        .wrapping_add(timestamp.wrapping_sub(frame.timestamp_rtp));
+-                }
+-                let timing_count=audio_timing_next();
+-                let timing_started=timing_count.map(|_|Instant::now());
+-                let sequence=packet.header.sequence_number;
+-                let result = if let Some(clock) = self.writer.sender_clock() {
+-                    io.write_with_clock(packet, clock, update).await
+-                } else if update.is_none() {
+-                    io.write(packet).await
+-                } else {
+-                    return Err(StreamControlError::Unsupported);
+-                };
+-                if let Some(count)=timing_count {
+-                    tracing::trace!(target:"rvoip_webrtc::audio_timing",stage="driver-write",count,
+-                        target_ssrc=self.writer.ssrc(),source_timestamp=frame.timestamp_rtp,
++            } else {
++                *self.state = self.before;
++            }
++        }
++    }
++}
++async fn write_frame(
++    state: &mut CoreAudioState,
++    writer: &OutboundAudioRtpWriter,
++    payload_type: u8,
++    audio_stamp: Option<rvoip_core::staged_streams::audio_egress_clock::AudioEgressStamp>,
++    frame: rvoip_core::stream::MediaFrame,
++    io: &mut dyn OwnedRtpIo,
++) -> ControlResult<()> {
++    if frame.kind != StreamKind::Audio
++        || frame.payload_type != Some(payload_type)
++        || frame.payload.is_empty()
++        || frame.payload.len() > 1600
++    {
++        return Err(StreamControlError::NotReady);
++    }
++    let samples =
++        super::core_audio_profile::packet_samples(writer.clock_rate_hz(), &frame.payload)?;
++    if audio_stamp.is_some_and(|stamp| stamp.samples() != samples) {
++        return Err(StreamControlError::Unsupported);
++    }
++    if audio_stamp
++        .as_ref()
++        .is_some_and(|stamp| !writer.audio_bindings.owns(stamp))
++    {
++        return Err(StreamControlError::Authority);
++    }
++    let reservation = match audio_stamp {
++        Some(stamp) if stamp.enabled() || state.state.audio_egress.active() => {
++            Some(state.state.audio_egress.prepare(
++                stamp,
++                frame.timestamp_rtp,
++                state.state.last_wire_timestamp(),
++            )?)
++        }
++        None if state.state.audio_egress.active() => return Err(StreamControlError::Unsupported),
++        _ => None,
++    };
++    let timestamp = reservation.map_or_else(
++        || {
++            state
++                .state
++                .allocate_audio_timestamp(frame.timestamp_rtp, samples)
++        },
++        |pending| pending.timestamp(),
++    );
++    // Burn this exact coordinate on uncertain IO, including other same-SSRC
++    // purposes. Definitive no-write restoration still restores the entire state.
++    state.reserved_timestamp = Some((frame.timestamp_rtp, timestamp));
++    state.reserved_clock = reservation;
++    let packet = rtc::rtp::Packet {
++        header: rtc::rtp::Header {
++            version: 2,
++            payload_type: payload_type,
++            ssrc: writer.ssrc(),
++            sequence_number: state.state.next_sequence_number(),
++            timestamp,
++            ..Default::default()
++        },
++        payload: frame.payload.to_vec().into(),
++    };
++    let mut update = super::clock::update(frame.source_clock, writer.clock_rate_hz());
++    if let Some(update) = &mut update {
++        update.rtp_offset = update
++            .rtp_offset
++            .wrapping_add(timestamp.wrapping_sub(frame.timestamp_rtp));
++    }
++    let timing_count = audio_timing_next();
++    let timing_started = timing_count.map(|_| Instant::now());
++    let sequence = packet.header.sequence_number;
++    let result = if let Some(clock) = writer.sender_clock() {
++        io.write_with_clock(packet, clock, update).await
++    } else if update.is_none() {
++        io.write(packet).await
++    } else {
++        return Err(StreamControlError::Unsupported);
++    };
++    if let Some(count) = timing_count {
++        tracing::trace!(target:"rvoip_webrtc::audio_timing",stage="driver-write",count,
++                        target_ssrc=writer.ssrc(),source_timestamp=frame.timestamp_rtp,
+                         wire_timestamp=timestamp,sequence,samples,
+                         age_us=chrono::Utc::now().signed_duration_since(frame.captured_at).num_microseconds(),
+                         write_us=timing_started.map(|at|at.elapsed().as_micros()as u64),accepted=result.is_ok(),error=?result.as_ref().err(),
+                         "Original RTC audio timing");
+-                }
+-                result.map_err(|_| StreamControlError::NotReady)
+-            })
+-            .await
+-            .map_err(|_| OwnedRtpError::Refused)
+-    }
+-}
++    }
++    if result.is_ok() && io.written() {
++        if let Some(reservation) = reservation {
++            state.state.audio_egress.commit(reservation);
++            state
++                .state
++                .accepted_core_timestamp(frame.timestamp_rtp, timestamp);
++        }
++        state.accepted = true;
++    }
++    if result.is_ok() && !io.written() {
++        return Err(StreamControlError::NotReady);
++    }
++    result.map_err(|_| StreamControlError::NotReady)
++}
++
++#[cfg(test)]
++mod clock_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio/clock_tests.rs
+@@ -0,0 +1,338 @@
++//! Actual original driver + same shared writer controls, not private Ready evidence.
++use super::*;
++use rvoip_core::{
++    ids::StreamId,
++    staged_streams::audio_egress_clock::AudioEgressStamp,
++    stream::{MediaFrame, MediaSourceClock},
++};
++use std::time::Duration;
++use webrtc::media_stream::track_remote::TrackRemoteEvent;
++struct TestPacket {
++    state: OwnedMutexGuard<OutboundAudioRtpState>,
++    frame: MediaFrame,
++    stamp: AudioEgressStamp,
++}
++struct Producer {
++    packet: Mutex<Option<TestPacket>>,
++    writer: Arc<OutboundAudioRtpWriter>,
++    after_write_error: bool,
++}
++struct FailAfterWrite<'a>(&'a mut dyn OwnedRtpIo);
++#[async_trait::async_trait]
++impl OwnedRtpIo for FailAfterWrite<'_> {
++    async fn write(&mut self, packet: rtc::rtp::Packet) -> rtc::shared::error::Result<()> {
++        self.0.write(packet).await?;
++        Err(rtc::shared::error::Error::ErrConnectionClosed)
++    }
++    async fn write_with_clock(
++        &mut self,
++        packet: rtc::rtp::Packet,
++        clock: rtc::interceptor::SenderClockHandle,
++        update: Option<rtc::interceptor::SenderClockUpdate>,
++    ) -> rtc::shared::error::Result<()> {
++        self.0.write_with_clock(packet, clock, update).await?;
++        Err(rtc::shared::error::Error::ErrConnectionClosed)
++    }
++    fn written(&self) -> bool {
++        self.0.written()
++    }
++    fn submission_control(&self) -> OwnedRtpControl {
++        self.0.submission_control()
++    }
++}
++#[async_trait::async_trait]
++impl OwnedRtpProducer for Producer {
++    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
++        let TestPacket {
++            state,
++            frame,
++            stamp,
++        } = self
++            .packet
++            .lock()
++            .unwrap()
++            .take()
++            .ok_or(OwnedRtpError::Refused)?;
++        let mut state = CoreAudioState::new(state, io.submission_control());
++        let result = if self.after_write_error {
++            write_frame(
++                &mut state,
++                &self.writer,
++                111,
++                Some(stamp),
++                frame,
++                &mut FailAfterWrite(io),
++            )
++            .await
++        } else {
++            write_frame(&mut state, &self.writer, 111, Some(stamp), frame, io).await
++        };
++        result.map_err(|_| OwnedRtpError::Refused)
++    }
++}
++fn frame(timestamp: u32) -> MediaFrame {
++    MediaFrame {
++        stream_id: StreamId::new(),
++        kind: StreamKind::Audio,
++        payload: bytes::Bytes::from_static(&[0xf8, 0xff, 0xfe]),
++        timestamp_rtp: timestamp,
++        captured_at: chrono::Utc::now(),
++        payload_type: Some(111),
++        source_clock: None,
++    }
++}
++async fn submit(
++    writer: &Arc<OutboundAudioRtpWriter>,
++    frame: MediaFrame,
++    stamp: AudioEgressStamp,
++    after_write_error: bool,
++) -> OwnedRtpResult {
++    let state = writer.state_for_test().lock_owned().await;
++    let producer = Producer {
++        packet: Mutex::new(Some(TestPacket {
++            state,
++            frame,
++            stamp,
++        })),
++        writer: writer.clone(),
++        after_write_error,
++    };
++    let write = writer.track_for_test().owned_rtp(
++        Arc::new(producer),
++        Instant::now() + Duration::from_millis(200),
++    );
++    let result = write.result().await;
++    let joined = write.cancel_and_drain().await;
++    joined?;
++    result
++}
++async fn receive(
++    receiver: &Arc<crate::peer::RvoipPeerConnection>,
++    count: usize,
++) -> Result<Vec<rtc::rtp::Packet>, String> {
++    let track = receiver
++        .wait_remote_track_kind(
++            rtc::rtp_transceiver::rtp_sender::RtpCodecKind::Audio,
++            Duration::from_secs(2),
++        )
++        .await
++        .ok_or("no actual received track")?;
++    tokio::time::timeout(Duration::from_secs(2), async {
++        let mut output = Vec::new();
++        while output.len() < count {
++            match track.poll().await {
++                Some(TrackRemoteEvent::OnRtpPacket(packet, _)) => output.push(packet),
++                Some(TrackRemoteEvent::OnEnded | TrackRemoteEvent::OnError) | None => {
++                    return Err("actual track stopped".into());
++                }
++                _ => {}
++            }
++        }
++        Ok(output)
++    })
++    .await
++    .map_err(|_| "actual received RTP timeout".to_owned())?
++}
++async fn peers() -> (
++    Arc<crate::peer::RvoipPeerConnection>,
++    Arc<crate::peer::RvoipPeerConnection>,
++) {
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    crate::peer::connect_loopback(&crate::WebRtcConfig::loopback())
++        .await
++        .unwrap()
++}
++#[tokio::test]
++async fn same_actual_rtc_writer_maps_first_remote_fences_queued_neutral_and_preserves_real_capture_delta()
++ {
++    let (sender, receiver) = peers().await;
++    let writer = sender.outbound_audio_writer().unwrap();
++    let binding = writer.audio_bindings.reserve().unwrap();
++    let neutral = binding.silence_for_test(960, true);
++    let remote = binding.mixed_for_test(2, None, 960, true);
++    let result = async {
++        submit(&writer, frame(960), neutral, false)
++            .await
++            .map_err(|e| format!("probe:{e:?}"))?;
++        submit(&writer, frame(960), remote, false)
++            .await
++            .map_err(|e| format!("remote:{e:?}"))?;
++        let late = submit(&writer, frame(1920), neutral, false).await;
++        if late != Err(OwnedRtpError::Refused) {
++            return Err(format!("queued neutral:{late:?}"));
++        }
++        submit(&writer, frame(2880), remote, false)
++            .await
++            .map_err(|e| format!("next:{e:?}"))?;
++        submit(
++            &writer,
++            frame(0),
++            binding.mixed_for_test(2, Some((7, 3, 48000)), 960, true),
++            false,
++        )
++        .await
++        .map_err(|e| format!("epoch:{e:?}"))?;
++        receive(&receiver, 4).await
++    }
++    .await;
++    let first = sender.close().await;
++    let second = receiver.close().await;
++    first.unwrap();
++    second.unwrap();
++    let packets = result.unwrap();
++    assert_eq!(
++        packets
++            .iter()
++            .map(|p| p.header.timestamp)
++            .collect::<Vec<_>>(),
++        vec![960, 1920, 3840, 4800]
++    );
++    assert!(packets.windows(2).all(
++        |pair| pair[1].header.sequence_number == pair[0].header.sequence_number.wrapping_add(1)
++    ));
++}
++#[tokio::test]
++async fn actual_rtc_driver_before_begin_denial_restores_same_writer_and_keeps_original_neutral_usable()
++ {
++    let (sender, receiver) = peers().await;
++    let writer = sender.outbound_audio_writer().unwrap();
++    let binding = writer.audio_bindings.reserve().unwrap();
++    let neutral = binding.silence_for_test(960, true);
++    let remote = binding.mixed_for_test(2, None, 960, true);
++    let result = async {
++        if writer.sender_clock().is_none() {
++            return Err("missing actual driver sender-clock custody".to_owned());
++        }
++        submit(&writer, frame(960), neutral, false)
++            .await
++            .map_err(|e| format!("probe:{e:?}"))?;
++        let before = *writer.state_for_test().lock().await;
++        let mut denied = frame(960);
++        denied.source_clock = Some(MediaSourceClock {
++            source_id: 2,
++            generation: 1,
++            anchor: None,
++            supported: true,
++            rtp_offset: 0,
++            is_current: Arc::new(|| false),
++        });
++        let refused = submit(&writer, denied, remote, false).await;
++        if refused != Err(OwnedRtpError::Refused) || *writer.state_for_test().lock().await != before
++        {
++            return Err(format!("definitive denial changed owner:{refused:?}"));
++        }
++        submit(&writer, frame(1920), neutral, false)
++            .await
++            .map_err(|e| format!("original neutral:{e:?}"))?;
++        receive(&receiver, 2).await
++    }
++    .await;
++    let first = sender.close().await;
++    let second = receiver.close().await;
++    first.unwrap();
++    second.unwrap();
++    let packets = result.unwrap();
++    assert_eq!(
++        packets
++            .iter()
++            .map(|p| p.header.timestamp)
++            .collect::<Vec<_>>(),
++        vec![960, 1920]
++    );
++}
++#[tokio::test]
++async fn actual_primary_rtc_uncertainty_burns_only_original_packet_next_fresh_mix_continues_and_neutral_refuses()
++ {
++    let (sender, receiver) = peers().await;
++    let writer = sender.outbound_audio_writer().unwrap();
++    let binding = writer.audio_bindings.reserve().unwrap();
++    let neutral = binding.silence_for_test(960, true);
++    let remote = binding.mixed_for_test(2, None, 960, true);
++    let result = async {
++        submit(&writer, frame(960), neutral, false)
++            .await
++            .map_err(|e| format!("probe:{e:?}"))?;
++        let uncertain = submit(&writer, frame(960), remote, true).await;
++        if uncertain != Err(OwnedRtpError::OutcomeUnknown) {
++            return Err(format!("lost original uncertainty:{uncertain:?}"));
++        }
++        if writer.state_for_test().lock().await.last_wire_timestamp() != Some(1920) {
++            return Err("possible actual RTP coordinate was not burned".into());
++        }
++        if submit(&writer, frame(1920), neutral, false).await != Err(OwnedRtpError::Refused) {
++            return Err("possible effect reopened neutral".into());
++        }
++        if submit(&writer, frame(960), remote, false).await != Err(OwnedRtpError::Refused) {
++            return Err("original uncertain packet replayed".into());
++        }
++        submit(&writer, frame(1920), remote, false)
++            .await
++            .map_err(|e| format!("distinct fresh packet blocked:{e:?}"))?;
++        receive(&receiver, 3).await
++    }
++    .await;
++    let first = sender.close().await;
++    let second = receiver.close().await;
++    first.unwrap();
++    second.unwrap();
++    let packets = result.unwrap();
++    assert_eq!(
++        packets
++            .iter()
++            .map(|p| p.header.timestamp)
++            .collect::<Vec<_>>(),
++        vec![960, 1920, 2880]
++    );
++}
++
++#[tokio::test]
++async fn same_actual_physical_rtc_writer_prepared_successor_preserves_old_until_new_ordinary_binding_writes()
++ {
++    let (sender, receiver) = peers().await;
++    let writer = sender.outbound_audio_writer().unwrap();
++    let old = writer.audio_bindings.reserve().unwrap();
++    let neutral = old.silence_for_test(960, true);
++    let remote = old.mixed_for_test(2, None, 960, true);
++    let result = async {
++        submit(&writer, frame(960), neutral, false)
++            .await
++            .map_err(|e| format!("probe:{e:?}"))?;
++        submit(&writer, frame(960), remote, false)
++            .await
++            .map_err(|e| format!("private:{e:?}"))?;
++        let prepared = writer
++            .audio_bindings
++            .reserve()
++            .map_err(|e| format!("binding:{e:?}"))?;
++        let ordinary = prepared.mixed_for_test(3, None, 960, false);
++        submit(&writer, frame(1920), remote, false)
++            .await
++            .map_err(|e| format!("preparing successor silenced old:{e:?}"))?;
++        submit(&writer, frame(0), ordinary, false)
++            .await
++            .map_err(|e| format!("new ordinary port blocked:{e:?}"))?;
++        if submit(&writer, frame(2880), remote, false).await != Err(OwnedRtpError::Refused) {
++            return Err("old binding resumed after publication".into());
++        }
++        submit(&writer, frame(960), ordinary, false)
++            .await
++            .map_err(|e| format!("new ordinary continuation:{e:?}"))?;
++        receive(&receiver, 5).await
++    }
++    .await;
++    let a = sender.close().await;
++    let b = receiver.close().await;
++    a.unwrap();
++    b.unwrap();
++    let packets = result.unwrap();
++    assert_eq!(
++        packets
++            .iter()
++            .map(|p| p.header.timestamp)
++            .collect::<Vec<_>>(),
++        vec![960, 1920, 2880, 3840, 4800]
++    );
++    assert!(packets.windows(2).all(
++        |pair| pair[1].header.sequence_number == pair[0].header.sequence_number.wrapping_add(1)
++    ));
++}
+--- a/crates/webrtc/rvoip-webrtc/src/media/outbound.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/outbound.rs
+@@ -8,9 +8,9 @@
+ use rtc::rtp::extension::HeaderExtension;
+ use rtc::shared::marshal::{Marshal, MarshalSize};
+ use tokio::sync::Mutex;
++use webrtc::media_stream::Track;
++use webrtc::media_stream::track_local::TrackLocal;
+ use webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP;
+-use webrtc::media_stream::track_local::TrackLocal;
+-use webrtc::media_stream::Track;
+ 
+ use crate::peer::builder::HDREXT_SDES_MID;
+ 
+@@ -47,6 +47,7 @@
+     next_sequence_number: u16,
+     last_wire_timestamp: Option<u32>,
+     last_source_timestamp: Option<u32>,
++    pub(super) audio_egress: rvoip_core::staged_streams::audio_egress_clock::AudioEgressClock,
+ }
+ 
+ impl Default for OutboundAudioRtpState {
+@@ -55,11 +56,19 @@
+             next_sequence_number: 1,
+             last_wire_timestamp: None,
+             last_source_timestamp: None,
++            audio_egress: Default::default(),
+         }
+     }
+ }
+ 
+ impl OutboundAudioRtpState {
++    pub(super) fn accepted_core_timestamp(&mut self, source: u32, wire: u32) {
++        self.last_source_timestamp = Some(source);
++        self.last_wire_timestamp = Some(wire);
++    }
++    pub(super) fn last_wire_timestamp(&self) -> Option<u32> {
++        self.last_wire_timestamp
++    }
+     pub(crate) fn next_sequence_number(&mut self) -> u16 {
+         let sequence_number = self.next_sequence_number;
+         self.next_sequence_number = self.next_sequence_number.wrapping_add(1);
+@@ -119,6 +128,7 @@
+         .max(1) as u32;
+         self.last_wire_timestamp = Some(start_audio.wrapping_add(duration_audio));
+         self.last_source_timestamp = None;
++        self.audio_egress.telephone_event();
+ 
+         // RFC 4733 requires named events to use the regular audio channel's
+         // timestamp base. Only the duration field uses the telephone-event
+@@ -150,6 +160,7 @@
+             if let Some(p) = self.reservation {
+                 self.state.last_wire_timestamp = p.last_wire_timestamp;
+                 self.state.last_source_timestamp = p.last_source_timestamp;
++                self.state.audio_egress = p.audio_egress;
+             }
+         } else {
+             *self.state = self.before;
+@@ -165,6 +176,7 @@
+     clock_rate_hz: u32,
+     mid: SyncMutex<Option<String>>,
+     state: Arc<Mutex<OutboundAudioRtpState>>,
++    pub(super) audio_bindings: rvoip_core::staged_streams::audio_egress_clock::AudioEgressBindings,
+ }
+ 
+ #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+@@ -221,6 +233,7 @@
+             sender_clock: SyncMutex::new(None),
+             mid: SyncMutex::new(None),
+             state: Arc::new(Mutex::new(OutboundAudioRtpState::default())),
++            audio_bindings: Default::default(),
+         });
+         writers.insert(key, Arc::downgrade(&writer));
+         writer
+@@ -264,6 +277,15 @@
+         let producer =
+             super::core_audio::CoreProducer::new(queued, state, self.clone(), payload_type);
+         Ok(self.track.owned_rtp(Arc::new(producer), deadline))
++    }
++
++    #[cfg(test)]
++    pub(super) fn state_for_test(&self) -> Arc<Mutex<OutboundAudioRtpState>> {
++        self.state.clone()
++    }
++    #[cfg(test)]
++    pub(super) fn track_for_test(&self) -> Arc<TrackLocalStaticRTP> {
++        self.track.clone()
+     }
+ 
+     pub(crate) fn ssrc(&self) -> u32 {
+@@ -448,6 +470,11 @@
+         source_clock: Option<rvoip_core::stream::MediaSourceClock>,
+     ) -> webrtc::error::Result<()> {
+         let mut state = self.state.lock().await;
++        if state.audio_egress.active() {
++            return Err(webrtc::error::Error::Other(
++                "configured Core audio clock requires its exact queued producer".into(),
++            ));
++        }
+         let samples_per_frame = (self.clock_rate_hz / 50).max(1);
+         let timestamp = state.allocate_audio_timestamp(source_timestamp, samples_per_frame);
+         let packet = rtp::Packet {
+@@ -562,6 +589,7 @@
+             next_sequence_number: 41,
+             last_wire_timestamp: Some(48_000),
+             last_source_timestamp: Some(48_000),
++            audio_egress: Default::default(),
+         };
+         *writer.state.lock().await = before;
+         struct Denied;
+@@ -588,7 +616,8 @@
+             OutboundAudioRtpState {
+                 next_sequence_number: 42,
+                 last_wire_timestamp: Some(48_960),
+-                last_source_timestamp: Some(48_960)
++                last_source_timestamp: Some(48_960),
++                audio_egress: Default::default()
+             }
+         );
+         sender.close().await.unwrap();
+@@ -620,6 +649,7 @@
+             next_sequence_number: 40,
+             last_wire_timestamp: Some(48_000),
+             last_source_timestamp: Some(48_000),
++            audio_egress: Default::default(),
+         };
+         let event_timestamp = state.reserve_telephone_event_timestamp(48_000, 48_000, 5_760);
+         assert_eq!(event_timestamp, 48_960);

@@ -1,0 +1,73 @@
+{
+  "format": "connect/g6-058-focused-batch-v6/1",
+  "status": "passed",
+  "source_revision": "8ba62483646296978ab4d8898437e464eb088923",
+  "workspace_sha256": "e78f7d740e6de57485ef45b2d376393fb37e46083ca4fb17415f2299f92b677d",
+  "source_lock_sha256": "b88e9e899badac7e719ecad1d9f87fc78c2c55c6bc32e76c4f20c67ee12f53d8",
+  "matrix_qualified": false,
+  "summary": {
+    "arm_rust_passed": 104,
+    "current_node_executions": 0,
+    "current_python_executions": 0,
+    "scoped_retained_node_controls": 69,
+    "scoped_retained_python_controls": 19,
+    "actual_ignored": 0,
+    "skipped": 0,
+    "explicit_av_executions": 6,
+    "shipping_default_check_passed": true,
+    "instrumented_metadata_passed": true,
+    "original_mac_platform_failures_retained": 7
+  },
+  "groups": [
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "passed": 24
+    },
+    {
+      "group": "connect-service-lib-connect_service",
+      "passed": 7
+    },
+    {
+      "group": "connect-store-lib-connect_store",
+      "passed": 19
+    },
+    {
+      "group": "rvoip-uctp-lib-rvoip_uctp",
+      "passed": 9
+    },
+    {
+      "group": "rvoip-webrtc-stack-lib-webrtc",
+      "passed": 10
+    },
+    {
+      "group": "rvoip-webrtc-lib-rvoip_webrtc",
+      "passed": 15
+    },
+    {
+      "group": "connect-server-test-gate6_canonical_webtransport",
+      "passed": 8
+    },
+    {
+      "group": "connect-server-test-gate6_replacement_video",
+      "passed": 12
+    }
+  ],
+  "original_controller_joined": true,
+  "all_original_vm_command_groups_joined": true,
+  "source_unchanged": true,
+  "lease_joined_released": true,
+  "witnesses_sha256": {
+    ".local/gate-6/post-v197-validation-v6-candidate/sealed-config.json": "57ed62a1869eaac4665a1623e8244195c27eb61ca6c1808c9032fe01e25b235b",
+    ".local/gate-6/post-v197-validation-v6-candidate/arm-receipt.json": "45016214641a6a25985c7db447f4633a488d7114c6e815d7a43eb5463aa4fbca",
+    ".local/gate-6/post-v197-validation-v6-candidate/runtime-host-receipt.json": "dbcf0aa0dfc8c6976d985e38d888563d9de00ef06571aa68d04caa7d707715ed",
+    ".local/gate-6/post-v5-batch-integration/v6-batch-exit.json": "8df96a38d4a47d901d22d9e75e4423b56310165a4d6a2f97c51faf14e374a1c2"
+  },
+  "latest_full_matrix": {
+    "run": "v197",
+    "passed": 336,
+    "failed": 88,
+    "blocked": 8,
+    "qualified_cells": 0,
+    "total_cells": 32
+  }
+}

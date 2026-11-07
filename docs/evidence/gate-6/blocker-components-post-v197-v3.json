@@ -1,0 +1,104 @@
+{
+  "format": "connect/g6-058-focused-batch-v3/1",
+  "matrix_qualified": false,
+  "status": "failed",
+  "workspace_sha256": "c1a5499f8ce8ab3bcb159a55412708e79fb1073005e55a060eed5c2c6189e1b5",
+  "source_lock_sha256": "dbd91e6ab67544aab8e52bc29d5ba0a1e17257501535b7a09f614e38b1c041ff",
+  "planned": 103,
+  "executed": 29,
+  "passed": 26,
+  "failed": 3,
+  "not_executed": 74,
+  "groups": [
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "planned": 23,
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "not_executed": 23
+    },
+    {
+      "group": "connect-service-lib-connect_service",
+      "planned": 7,
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "not_executed": 7
+    },
+    {
+      "group": "connect-store-lib-connect_store",
+      "planned": 19,
+      "executed": 19,
+      "passed": 16,
+      "failed": 3,
+      "not_executed": 0
+    },
+    {
+      "group": "rvoip-uctp-lib-rvoip_uctp",
+      "planned": 9,
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "not_executed": 9
+    },
+    {
+      "group": "rvoip-webrtc-stack-lib-webrtc",
+      "planned": 10,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "not_executed": 0
+    },
+    {
+      "group": "rvoip-webrtc-lib-rvoip_webrtc",
+      "planned": 15,
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "not_executed": 15
+    },
+    {
+      "group": "connect-server-test-gate6_canonical_webtransport",
+      "planned": 8,
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "not_executed": 8
+    },
+    {
+      "group": "connect-server-test-gate6_replacement_video",
+      "planned": 12,
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "not_executed": 12
+    }
+  ],
+  "shipping_default_check_passed": false,
+  "instrumented_required_feature_metadata_passed": true,
+  "source_unchanged": true,
+  "all_original_commands_joined_without_force": true,
+  "lease_joined_and_released": true,
+  "witnesses_sha256": {
+    ".local/gate-6/post-v197-validation-v3-candidate/sealed-config.json": "b32e4f199df6a5c8dccbc3664ab2168f86684035dc85b60376e885f2e0aecd52",
+    ".local/gate-6/post-v197-validation-v3-candidate/arm-receipt.json": "b8edd369159111bd71e2dd8a8021b7660dd513797b9f46651579d52d9d6643c7",
+    ".local/gate-6/post-v197-validation-v3-candidate/runtime-host-receipt.json": "97607c67907214043ec72357725ca7f53c7dd96dae0aca39afbf3041d3b230a0",
+    ".local/gate-6/post-v197-validation-v3-candidate/controller-join.json": "2baa6768d5340b7a3033a185f48d2e9649caaec5a864c501ec123feb24a46b95"
+  },
+  "findings": [
+    "Core video_copy initializer omitted new audio_timing field; shared E0063 blocked74 executions and shipping check. Recorded video-onlyNone correction is prepared but unverified.",
+    "Store3 failed fixtures: immutable reservation-expiry writes, schema-invalid participant reactivation and incorrect revoked-credential refusal expectation. Correct controls must preserve real original expiry and schema constraints.",
+    "Store slot reservation5new+7existing controls all passed; full-scene custody7/10 passed.",
+    "WebRTC stack10 controls passed, including3 new exact no-write freeze controls and7 existing DTMF/socket regressions. This does not qualify native/RTC media clock delivery."
+  ],
+  "latest_full_matrix": {
+    "run": "v197",
+    "passed": 336,
+    "failed": 88,
+    "blocked": 8,
+    "qualified_cells": 0,
+    "total_cells": 32
+  },
+  "completed_unix": 1794007204.3194897
+}

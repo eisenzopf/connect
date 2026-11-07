@@ -1,0 +1,108 @@
+{
+  "format": "connect/g6-058-focused-batch-v4/1",
+  "status": "failed",
+  "matrix_qualified": false,
+  "workspace_sha256": "6367e0737bc41974ff65f2182b896f6e2a23fd325a0fbc6a49c7b0a800766509",
+  "source_lock_sha256": "c48c0935966618b0180c09020b3fa94d17f836e88d881682c4c113ca8eb6d918",
+  "planned": 104,
+  "executed": 76,
+  "passed": 73,
+  "failed": 3,
+  "not_executed": 28,
+  "groups": [
+    {
+      "group": "rvoip-core-lib-rvoip_core",
+      "planned": 24,
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "not_executed": 24
+    },
+    {
+      "group": "connect-service-lib-connect_service",
+      "planned": 7,
+      "executed": 7,
+      "passed": 7,
+      "failed": 0,
+      "not_executed": 0
+    },
+    {
+      "group": "connect-store-lib-connect_store",
+      "planned": 19,
+      "executed": 19,
+      "passed": 19,
+      "failed": 0,
+      "not_executed": 0
+    },
+    {
+      "group": "rvoip-uctp-lib-rvoip_uctp",
+      "planned": 9,
+      "executed": 9,
+      "passed": 7,
+      "failed": 2,
+      "not_executed": 0
+    },
+    {
+      "group": "rvoip-webrtc-stack-lib-webrtc",
+      "planned": 10,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "not_executed": 0
+    },
+    {
+      "group": "rvoip-webrtc-lib-rvoip_webrtc",
+      "planned": 15,
+      "executed": 11,
+      "passed": 11,
+      "failed": 0,
+      "not_executed": 4
+    },
+    {
+      "group": "connect-server-test-gate6_canonical_webtransport",
+      "planned": 8,
+      "executed": 8,
+      "passed": 7,
+      "failed": 1,
+      "not_executed": 0
+    },
+    {
+      "group": "connect-server-test-gate6_replacement_video",
+      "planned": 12,
+      "executed": 12,
+      "passed": 12,
+      "failed": 0,
+      "not_executed": 0
+    }
+  ],
+  "shipping_default_check_passed": true,
+  "required_feature_metadata_passed": true,
+  "source_unchanged": true,
+  "checker_sources_unchanged": true,
+  "all_original_commands_joined_without_force": true,
+  "lease_joined_released": true,
+  "witnesses_sha256": {
+    ".local/gate-6/post-v197-validation-v4-candidate/sealed-config.json": "b393d9f8590d14a83e8a3849f4f8b1cdbe1aebd7b98e330b85d8ec3417b00778",
+    ".local/gate-6/post-v197-validation-v4-candidate/arm-receipt.json": "1499cded00909abbc35748808f3eb5183ac1c683a0bf74a9261bc05fb177fba6",
+    ".local/gate-6/post-v197-validation-v4-candidate/runtime-host-receipt.json": "61fee360f06a21a209cf46179cf31d85b1a35a47fe84b7eeb216787eac96e664",
+    ".local/gate-6/post-v197-validation-v4-candidate/controller-join.json": "7aeae5499da20f99b272422abe8654206632e7f6625ee4ffd9cefa60361f6c31"
+  },
+  "findings": [
+    "All12actual signed native controls passed, including private Opus/video, original operation recovery, three-source authority, expired/cancelled/revoked roots and genuine delayed readiness.",
+    "Seven of eight actual RTC controls passed, including both signing algorithms and5.1second delayed fresh audio/video markers. Physical cancellation fixture only closed its local peer while keeping WSS/server physical owner alive; actual server teardown was never observed before its unchanged5s cutoff.",
+    "All19distinct Store controls passed, covering both full-scene held custody and original SQL observer-slot reservation.",
+    "Four actual RTC writer/clock controls passed, including post-write uncertainty and same-physical-writer binding succession; seven existing adapter controls passed.",
+    "Two native clock fixture failures interpret valid RTCP reports as RTP. Corrected fixture preserves exact RTP/NTP/payload assertions and separates packet kinds.",
+    "Four other adapter controls were present in original binary inventory under canonical_audio_order_tests/source_clock_audio_tests; wrong planned outbound::tests namespaces left them unexecuted.",
+    "Core24controls could not compile due two new regression assertions reading private VideoRepair.queued. Interface-only regression correction preserves all original behavior assertions and adds no test API.",
+    "Default shipping lib/bins check and required instrumented-target feature metadata passed."
+  ],
+  "latest_full_matrix": {
+    "run": "v197",
+    "passed": 336,
+    "failed": 88,
+    "blocked": 8,
+    "qualified_cells": 0,
+    "total_cells": 32
+  }
+}

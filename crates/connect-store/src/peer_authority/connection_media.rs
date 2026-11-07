@@ -707,6 +707,32 @@ impl Store {
         }
         Ok(read)
     }
+    /// Exact active source packet custody only. This returns the same file
+    /// interval, not source facts or target permission; callers must freshly
+    /// derive and seal every requested fact under complete current coverage.
+    pub(crate) fn native_media_packet_custody(
+        &self,
+        source: &NativeMediaOrigin,
+        held: &NativeMediaRead,
+    ) -> Result<Arc<AuthorityGuardSet>> {
+        current_owner(self, source)?;
+        if !held.current()
+            || !self.authority.owns(held.interval())
+            || !Arc::ptr_eq(&self.require_runtime_owner()?, &held.owner)
+            || held.target.runtime_connection_id != source.runtime_connection_id()
+            || held.target.connection.connection_id != source.connection_id()
+            || held.target.connection.session_id != source.session_id()
+            || held.target.connection.conversation_id != source.conversation_id()
+            || held.target.connection.participant_id != source.participant_id()
+            || held.target.connection.membership_epoch != source.membership_epoch()
+            || held.target.connection.generation != source.generation()
+            || held.target.connection.endpoint_id != source.endpoint_id
+            || held.target.device_id != source.binding.device.id
+        {
+            return Err(Error::forbidden());
+        }
+        Ok(held.interval().clone())
+    }
     /// Recheck the original publisher for another concurrent copy of the same
     /// bounded packet. Only its exact live source read can supply file custody;
     /// the full current scope set and SQL version seals are revalidated.

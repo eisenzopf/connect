@@ -117,7 +117,14 @@ impl Policy {
             })? {
             match target.current_continuation()? {
                 Some(current) if !matches!(scope.purpose, MediaPurpose::Control) => Some(current),
-                _ => return target.current(scope),
+                _ => {
+                    return match (held.as_deref(), &scope.purpose) {
+                        (Some(held), MediaPurpose::Receive { .. }) => {
+                            target.current_packet_read(scope, held)
+                        }
+                        _ => target.current(scope),
+                    }
+                }
             }
         } else {
             None

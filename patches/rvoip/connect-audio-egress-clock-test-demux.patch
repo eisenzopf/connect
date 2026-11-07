@@ -1,0 +1,40 @@
+--- a/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs
+@@ -205,12 +205,23 @@
+     let rows = wire.packets.lock().unwrap();
+     let media = rows
+         .iter()
+-        .filter_map(|p| crate::substrate::unpack_rtp_datagram(p).ok())
+-        .last()
+-        .unwrap();
++        .filter(|p| !rtcp::is_rtcp(p))
++        .map(|p| crate::substrate::unpack_rtp_datagram(p).unwrap())
++        .collect::<Vec<_>>();
++    assert_eq!(media.len(), 2, "clock metadata is not an audio packet");
++    let media = media.last().unwrap();
+     assert_eq!(media.rtp.timestamp, 320);
+     assert_eq!(media.rtp.payload, payload);
+-    let report = rows.iter().filter_map(|p| rtcp::parse(p)).last().unwrap().1;
++    let reports = rows
++        .iter()
++        .filter_map(|p| rtcp::parse(p))
++        .collect::<Vec<_>>();
++    assert_eq!(
++        reports.len(),
++        1,
++        "the actual audio publishes its matching report"
++    );
++    let report = &reports[0].1;
+     assert_eq!(report.rtp, rtcp::rtp_at(report.ntp, anchor, 160).unwrap());
+ }
+ 
+@@ -279,7 +290,8 @@
+     );
+     assert_eq!(
+         rows.iter()
+-            .filter_map(|b| crate::substrate::unpack_rtp_datagram(b).ok())
++            .filter(|b| !rtcp::is_rtcp(b))
++            .map(|b| crate::substrate::unpack_rtp_datagram(b).unwrap())
+             .map(|d| d.rtp.timestamp)
+             .collect::<Vec<_>>(),
+         vec![160, 320, 480]

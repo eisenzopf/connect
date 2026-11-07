@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, MutexGuard, TryLockError};
 pub(crate) const OBSERVERS: usize = 4;
 static NEXT_POOL: AtomicU64 = AtomicU64::new(1);
+static NEXT_SLOT_CLAIM: AtomicU64 = AtomicU64::new(1);
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct ObserverId {
     pool: u64,
@@ -54,6 +55,9 @@ struct Ownership {
     id: u64,
     state: Mutex<State>,
     failed: AtomicBool,
+    // Resource-free claims only. A transaction may release SQL while retaining
+    // its original slot; no claim owns a Connection, permission or IO grant.
+    claims: [AtomicU64; OBSERVERS],
 }
 struct Pool {
     ownership: Arc<Ownership>,
@@ -95,10 +99,37 @@ impl Drop for Observation {
         self.ownership.release(self.generation, false);
     }
 }
+struct SlotClaim {
+    ownership: Arc<Ownership>,
+    slot: usize,
+    token: u64,
+}
+impl Drop for SlotClaim {
+    fn drop(&mut self) {
+        if self.ownership.claims[self.slot]
+            .compare_exchange(self.token, 0, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            self.ownership.failed.store(true, Ordering::Release);
+        }
+    }
+}
+/// Only the original compound capture/admit/reseal owns this resource-free
+/// claim. The borrowed Observation pins its generation, not a media lifetime.
+/// Never return this reservation inside current reads or metadata tokens.
+pub(crate) struct Reservation<'a> {
+    claim: SlotClaim,
+    id: ObserverId,
+    _observation: &'a Observation,
+}
 pub(crate) struct Guard<'a> {
     slot: MutexGuard<'a, Slot>,
     id: ObserverId,
     _observation: &'a Observation,
+    _reservation: Option<&'a Reservation<'a>>,
+    // SQL slot is declared first: unlock it before a plain read releases its
+    // short claim, so an unclaimed slot cannot still own an ordinary SQL guard.
+    _claim: Option<SlotClaim>,
 }
 impl Guard<'_> {
     pub(crate) fn id(&self) -> ObserverId {
@@ -150,6 +181,7 @@ impl Observers {
                     phase: Phase::Idle,
                 }),
                 failed: AtomicBool::new(false),
+                claims: std::array::from_fn(|_| AtomicU64::new(0)),
             }),
             path: path.into(),
             slots: std::array::from_fn(|_| Mutex::new(Slot(None))),
@@ -284,10 +316,14 @@ impl Observers {
         }) {
             return Err(busy("Original packet observer generation changed"));
         }
+        let token = Self::next_claim()?;
         for (index, slot) in self.0.slots.iter().enumerate() {
             if original.is_some_and(|id| id.slot != index) {
                 continue;
             }
+            let Some(claim) = self.claim(index, token) else {
+                continue;
+            };
             let g = match slot.try_lock() {
                 Ok(g) => g,
                 Err(TryLockError::WouldBlock) => continue,
@@ -304,6 +340,8 @@ impl Observers {
                     slot: index,
                 },
                 _observation: observation,
+                _reservation: None,
+                _claim: Some(claim),
             });
         }
         Err(busy(if original.is_some() {
@@ -311,6 +349,94 @@ impl Observers {
         } else {
             "All current packet observers are busy"
         }))
+    }
+    fn next_claim() -> Result<u64> {
+        NEXT_SLOT_CLAIM
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+                value.checked_add(1)
+            })
+            .map_err(|_| Error::storage())
+    }
+    fn claim(&self, slot: usize, token: u64) -> Option<SlotClaim> {
+        self.0.ownership.claims[slot]
+            .compare_exchange(0, token, Ordering::AcqRel, Ordering::Acquire)
+            .ok()
+            .map(|_| SlotClaim {
+                ownership: self.0.ownership.clone(),
+                slot,
+                token,
+            })
+    }
+    /// Reserve one successful SQL slot for this exact compound transaction.
+    /// SQL is unlocked before return; unrelated readers use the other original
+    /// slots. All slots claimed/busy still refuses immediately, without waiting.
+    pub(crate) fn reserve<'a>(&'a self, observation: &'a Observation) -> Result<Reservation<'a>> {
+        if !Arc::ptr_eq(&self.0.ownership, &observation.ownership)
+            || self.0.ownership.failed.load(Ordering::Acquire)
+        {
+            return Err(Error::storage());
+        }
+        let token = Self::next_claim()?;
+        for (index, slot) in self.0.slots.iter().enumerate() {
+            let Some(claim) = self.claim(index, token) else {
+                continue;
+            };
+            let sql = match slot.try_lock() {
+                Ok(sql) => sql,
+                Err(TryLockError::WouldBlock) => continue,
+                Err(TryLockError::Poisoned(_)) => return Err(Error::storage()),
+            };
+            if sql.0.is_none() {
+                return Err(Error::storage());
+            }
+            drop(sql);
+            return Ok(Reservation {
+                claim,
+                id: ObserverId {
+                    pool: self.0.ownership.id,
+                    generation: observation.generation,
+                    slot: index,
+                },
+                _observation: observation,
+            });
+        }
+        Err(busy("All current packet observers are busy"))
+    }
+    pub(crate) fn connection_reserved<'a>(
+        &'a self,
+        observation: &'a Observation,
+        reservation: &'a Reservation<'a>,
+    ) -> Result<Guard<'a>> {
+        if !Arc::ptr_eq(&self.0.ownership, &observation.ownership)
+            || !std::ptr::eq(observation, reservation._observation)
+            || !Arc::ptr_eq(&self.0.ownership, &reservation.claim.ownership)
+            || !observation.current(reservation.id)
+            || reservation.id.slot >= OBSERVERS
+            || reservation.claim.slot != reservation.id.slot
+            || self.0.ownership.claims[reservation.id.slot].load(Ordering::Acquire)
+                != reservation.claim.token
+            || self.0.ownership.failed.load(Ordering::Acquire)
+        {
+            return Err(Error::storage());
+        }
+        let sql = self.0.slots[reservation.id.slot]
+            .try_lock()
+            .map_err(|error| match error {
+                TryLockError::WouldBlock => {
+                    busy("Original packet observer is busy during snapshot reseal")
+                }
+                TryLockError::Poisoned(_) => Error::storage(),
+            })?;
+        if sql.0.is_none() {
+            return Err(Error::storage());
+        }
+        Ok(Guard {
+            slot: sql,
+            id: reservation.id,
+            _observation: observation,
+            _reservation: Some(reservation),
+            _claim: None,
+        })
     }
     /// Only an existing owned blocking custodian or trusted physical admission
     /// may call this. Scope/query Drop only marks retirement, never closes SQLite.

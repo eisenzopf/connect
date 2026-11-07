@@ -496,3 +496,5 @@ fn packet_capture_retained_receiver_permission_changes_are_fresh_without_replayi
         assert_eq!(counts(&m), before);
     }
 }
+
+mod custody;

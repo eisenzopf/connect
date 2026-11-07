@@ -7,7 +7,7 @@ use std::future::Future;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
-enum Attempt<T> {
+pub(super) enum Attempt<T> {
     MetadataBusy(tokio::time::Instant),
     Prepared(T),
     #[cfg(feature = "test-support")]
@@ -20,7 +20,7 @@ enum Attempt<T> {
 /// The projection is effect-free. Installation runs once per fresh capture;
 /// only its exact unpublished outcome can ask for another capture. No role,
 /// SQL/file reader or current grant survives the wait between attempts.
-async fn prepare<C, P, F, Fut, I>(
+pub(super) async fn prepare<C, P, F, Fut, I>(
     roles: &Mutex<()>,
     stop: &CancellationToken,
     cancel: &CancellationToken,

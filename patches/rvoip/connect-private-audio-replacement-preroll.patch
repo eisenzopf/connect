@@ -1,0 +1,1454 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -975,6 +975,71 @@
+             .ok_or(ParticipantControlError::Unsupported)?;
+         Ok(new.with_video_plan_exclusion_for_test(&old, call)?)
+     }
++    /// Receiver-only copy of the original exact audio selection. No publication.
++    pub fn prepare_staged_device_replacement_audio_with_held(
++        self: &Arc<Self>,
++        p: &Arc<DeviceReplacementPreparation>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<crate::staged_streams::audio_subscriptions::AudioReplacementPreparationAttempt>
++    {
++        self.owns_replacement(p)?;
++        p.check()?;
++        let _flight = p
++            .flight
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| ParticipantTransitionError::Conflict)?;
++        let request = scope(p, ReplacementPhase::Preroll, None);
++        let control = p
++            .runtime
++            .policy
++            .current_replacement_control(&request, held)?;
++        check_authority(&request, &control.current(&request)?)?;
++        if p.state
++            .try_lock()
++            .map_err(|_| ParticipantTransitionError::Conflict)?
++            .context
++            .is_none()
++        {
++            return Err(ParticipantTransitionError::NotReady.into());
++        }
++        let old = self
++            .adapter_for(&p.intent.source)?
++            .staged_controller(&p.intent.source)
++            .ok_or(ParticipantControlError::Unsupported)?;
++        let new = self
++            .adapter_for(&p.intent.replacement)?
++            .staged_controller(&p.intent.replacement)
++            .ok_or(ParticipantControlError::Unsupported)?;
++        let scene = p
++            .runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        let lifetime = PrivateVideoBindingLifetime::from_preparation(p, &new);
++        use crate::staged_streams::audio_subscriptions::AudioReplacementPreparationAttempt;
++        let installation_deadline = p.deadline.min(control.deadline);
++        let prepared = match scene.prepare_replacement_audio(
++            &old,
++            &new,
++            &lifetime,
++            installation_deadline,
++            held,
++        ) {
++            Ok(prepared) => prepared,
++            // Scene only returns MetadataBusy before slot publication.
++            Err(StreamControlError::MetadataBusy) => {
++                return Ok(AudioReplacementPreparationAttempt::MetadataBusy {
++                    deadline: installation_deadline,
++                });
++            }
++            Err(error) => return Err(error.into()),
++        };
++        p.check()?;
++        check_authority(&request, &control.current(&request)?)?;
++        Ok(AudioReplacementPreparationAttempt::Prepared(prepared))
++    }
+     /// A private receive copy does not move ownership or unmute the target.
+     pub fn prepare_staged_device_replacement_video_with_held(
+         self: &Arc<Self>,
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -16,12 +16,12 @@
+     collections::{BTreeMap, BTreeSet},
+     future::Future,
+     sync::{
++        Arc, Mutex, Weak,
+         atomic::{AtomicU32, Ordering},
+-        Arc, Mutex, Weak,
+     },
+     time::{Duration, Instant},
+ };
+-use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
++use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc};
+ use tokio_util::sync::CancellationToken;
+ 
+ #[derive(Debug, thiserror::Error)]
+@@ -239,6 +239,10 @@
+ pub enum MediaControlIntent<'a> {
+     Initialize,
+     /// Receive-only copy of existing selections while a new device decodes.
++    PrepareReplacementAudio {
++        source: &'a ConnectionId,
++        expected: u64,
++    },
+     PrepareReplacementVideo {
+         source: &'a ConnectionId,
+         expected: u64,
+@@ -495,7 +499,9 @@
+ pub trait StagedMediaAdapter: Send + Sync {
+     /// Exact original adapter contract; native adapters must install one sole
+     /// cursor on every receiving media port before resource readiness.
+-    fn native_sequence_cursors(&self) -> bool { false }
++    fn native_sequence_cursors(&self) -> bool {
++        false
++    }
+     /// Register cleanup before allocating resources. Report readiness only
+     /// from the exact negotiated route. Dropping this future must release its
+     /// own provisional work; engine ports are fenced immediately on failure.
+@@ -530,7 +536,10 @@
+ }
+ mod diagnostics;
+ mod native_activation;
+-pub use native_activation::{NativeEgressIdentity, NativeEgressWriter, NativeFeedbackReservation, NativeSequenceCut, ReplacementActivationBoundary, ReplacementActivationScope};
++pub use native_activation::{
++    NativeEgressIdentity, NativeEgressWriter, NativeFeedbackReservation, NativeSequenceCut,
++    ReplacementActivationBoundary, ReplacementActivationScope,
++};
+ 
+ struct Port {
+     owner: Weak<StreamController>,
+@@ -1245,7 +1254,7 @@
+     tokens: Vec<CancellationToken>,
+     deadline: tokio::time::Instant,
+     _leases: Vec<Box<dyn MediaAuthorityLease>>,
+-    _subscriptions: Vec<rvoip_core_traits::peer_switch::PeerDeliveryGuard>,
++    _subscriptions: Vec<audio_subscriptions::SubscriptionDelivery>,
+     _admissions: Vec<audio_consumer::MediaAdmission>,
+ }
+ 
+@@ -3764,7 +3773,7 @@
+ pub use video_feedback::VideoFeedbackRoute;
+ 
+ mod video_repair;
+-pub use video_repair::{VideoRepair, MAX_VIDEO_REPAIRS};
++pub use video_repair::{MAX_VIDEO_REPAIRS, VideoRepair};
+ 
+ mod transport_update;
+ pub use transport_update::TransportUpdateSlot;
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -1523,6 +1523,19 @@
+                     )
+                 })
+                 .transpose()?;
++            // Capture exact private-route adoption before the infallible same
++            // replacement publication. Failed plans never enable ordinary mode.
++            let audio_adoption = if let Some(replacement) = &plan.replacement {
++                let old = &members[&replacement.request.source].controller;
++                let target = &members[&replacement.request.admitted];
++                target.audio_consumer.subscriptions.prepare_audio_adoption(
++                    old,
++                    &target.controller,
++                    &replacement.pending,
++                )?
++            } else {
++                None
++            };
+             // No fallible work after the first model or programme is published.
+             for ((((target, state), model), commit), direct_commit) in targets
+                 .iter()
+@@ -1540,6 +1553,9 @@
+                 if let Some(commit) = direct_commit.as_mut() {
+                     commit.commit(target.direct.as_ref().expect("staged direct replacement"));
+                 }
++            }
++            if let Some(adoption) = audio_adoption {
++                adoption.commit();
+             }
+             for (role, speaks) in roles {
+                 role.commit(speaks);
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -106,6 +106,7 @@
+         subscription: &super::audio_subscriptions::SubscriptionStamp,
+         admitted_at: Instant,
+     ) {
++        subscription.observed_remote_delivery();
+         let Some(owner) = port.owner.upgrade() else {
+             return;
+         };
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -2,7 +2,10 @@
+ use super::audience::{AudioAudienceRule, same_rules};
+ use super::media_scene::{GuardedMediaScene, SceneMember};
+ use super::*;
++mod preroll;
+ use crate::ids::ParticipantId;
++use preroll::AudioPrerollBinding;
++pub use preroll::{AudioReplacementPreparation, AudioReplacementPreparationAttempt};
+ use rvoip_core_traits::peer_switch::PeerDeliveryGuard;
+ 
+ #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+@@ -191,12 +194,14 @@
+     started: Instant,
+ }
+ pub(super) struct SubscriptionGate {
++    preparation: Mutex<Option<Arc<AudioPrerollBinding>>>,
+     state: Mutex<GateState>,
+     cancel: CancellationToken,
+ }
+ impl SubscriptionGate {
+     pub(super) fn new() -> Arc<Self> {
+         Arc::new(Self {
++            preparation: Mutex::new(None),
+             state: Mutex::new(GateState {
+                 ticket: PeerRouteTicket::initial(),
+                 program: Program::default(),
+@@ -268,7 +273,28 @@
+             ticket: state.ticket.clone(),
+             started: state.started,
+             cancel: self.cancel.clone(),
+-        }
++            preparation: None,
++        }
++    }
++    /// Only the mixer can obtain a receiver-only private selection stamp.
++    pub(super) fn mix_stamp(self: &Arc<Self>) -> SubscriptionStamp {
++        let mut stamp = self.stamp();
++        if let Some(binding) = self
++            .preparation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .cloned()
++        {
++            if binding.adopted() {
++                return stamp;
++            }
++            stamp.started = stamp.started.max(binding.started);
++            stamp.ticket = binding.ticket.clone();
++            stamp.cancel = binding.cancel.clone();
++            stamp.preparation = Some(binding);
++        }
++        stamp
+     }
+ }
+ impl Drop for SubscriptionGate {
+@@ -287,6 +313,13 @@
+     ticket: PeerRouteTicket,
+     pub(super) started: Instant,
+     pub(super) cancel: CancellationToken,
++    preparation: Option<Arc<AudioPrerollBinding>>,
++}
++/// Both original selection and target delivery fences survive actual IO.
++pub(super) struct SubscriptionDelivery {
++    _original: PeerDeliveryGuard,
++    _target: Option<PeerDeliveryGuard>,
++    _private: Option<PeerDeliveryGuard>,
+ }
+ impl SubscriptionStamp {
+     pub(super) fn require_target(&self, target: &StreamController) -> ControlResult<()> {
+@@ -304,13 +337,19 @@
+         Ok(())
+     }
+     pub(super) fn is_current(&self) -> bool {
+-        !self.cancel.is_cancelled() && self.ticket.is_current() && self.gate.strong_count() > 0
++        !self.cancel.is_cancelled()
++            && self.ticket.is_current()
++            && self.gate.strong_count() > 0
++            && self.preparation.as_ref().is_none_or(|p| p.is_current())
+     }
+     pub(super) fn begin_local(
+         &self,
+         target: &StreamController,
+     ) -> ControlResult<PeerDeliveryGuard> {
+         self.require_target(target)?;
++        if self.preparation.is_some() {
++            return Err(StreamControlError::Authority);
++        }
+         let gate = self.gate.upgrade().ok_or(StreamControlError::Cancelled)?;
+         let _state = gate.state.lock().unwrap_or_else(|p| p.into_inner());
+         if !self.is_current() {
+@@ -324,7 +363,22 @@
+         &self,
+         source: &StreamController,
+         logical: &StreamId,
+-    ) -> ControlResult<PeerDeliveryGuard> {
++    ) -> ControlResult<SubscriptionDelivery> {
++        if let Some(binding) = &self.preparation {
++            if !self.is_current() {
++                return Err(StreamControlError::NotReady);
++            }
++            let mut held = binding.begin(source, logical)?;
++            held._private = Some(
++                self.ticket
++                    .try_begin_delivery()
++                    .ok_or(StreamControlError::NotReady)?,
++            );
++            if !self.is_current() {
++                return Err(StreamControlError::NotReady);
++            }
++            return Ok(held);
++        }
+         let gate = self.gate.upgrade().ok_or(StreamControlError::Cancelled)?;
+         let state = gate.state.lock().unwrap_or_else(|p| p.into_inner());
+         if self.cancel.is_cancelled()
+@@ -336,6 +390,11 @@
+         }
+         self.ticket
+             .try_begin_delivery()
++            .map(|guard| SubscriptionDelivery {
++                _original: guard,
++                _target: None,
++                _private: None,
++            })
+             .ok_or(StreamControlError::NotReady)
+     }
+ }
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs
+@@ -0,0 +1,420 @@
++//! Receiver-only copy of an original audio programme; never a public programme.
++use super::*;
++use crate::orchestrator::participant_control::replacement::PrivateVideoBindingLifetime;
++use crate::staged_streams::media_scene::GuardedMediaScene;
++
++struct AudioSource {
++    descriptor: MediaSource,
++    owner: Weak<StreamController>,
++    port: Weak<Port>,
++    ticket: PeerRouteTicket,
++}
++impl AudioSource {
++    fn current(&self) -> bool {
++        self.ticket.is_current()
++            && self.owner.upgrade().is_some_and(|owner| {
++                !owner.shutdown.is_cancelled()
++                    && self.port.upgrade().is_some_and(|port| {
++                        port.owner
++                            .upgrade()
++                            .is_some_and(|actual| Arc::ptr_eq(&actual, &owner))
++                            && port.binding.connection_generation
++                                == self.descriptor.connection_generation
++                            && port.binding.generation == self.descriptor.stream_generation
++                            && port.binding.transport_id == self.descriptor.transport_id
++                            && port.binding.negotiated.requested.logical_id
++                                == self.descriptor.logical_id
++                    })
++            })
++    }
++}
++pub(super) struct AudioPrerollBinding {
++    original: SubscriptionStamp,
++    old: Weak<StreamController>,
++    adopted: std::sync::atomic::AtomicBool,
++    delivered: std::sync::atomic::AtomicBool,
++    target: Weak<StreamController>,
++    target_port: Weak<Port>,
++    target_ticket: PeerRouteTicket,
++    target_subscription: SubscriptionStamp,
++    sources: Vec<AudioSource>,
++    pub(super) started: Instant,
++    pub(super) ticket: PeerRouteTicket,
++    pub(super) cancel: CancellationToken,
++    deadline: tokio::time::Instant,
++}
++impl AudioPrerollBinding {
++    pub(super) fn adopted(&self) -> bool {
++        self.adopted.load(Ordering::Acquire)
++    }
++    pub(super) fn is_current(&self) -> bool {
++        !self.adopted.load(Ordering::Acquire)
++            && !self.cancel.is_cancelled()
++            && self.ticket.is_current()
++            && tokio::time::Instant::now() < self.deadline
++            && self.original.preparation.is_none()
++            && self.original.is_current()
++            && self.target_subscription.preparation.is_none()
++            && self.target_subscription.is_current()
++            && self.target_ticket.is_current()
++            && self.sources.iter().all(AudioSource::current)
++            && self.target.upgrade().is_some_and(|owner| {
++                !owner.shutdown.is_cancelled()
++                    && self.target_port.upgrade().is_some_and(|p| {
++                        p.owner
++                            .upgrade()
++                            .is_some_and(|actual| Arc::ptr_eq(&owner, &actual))
++                    })
++            })
++    }
++    pub(super) fn begin(
++        &self,
++        source: &StreamController,
++        logical: &StreamId,
++    ) -> ControlResult<SubscriptionDelivery> {
++        if !self.is_current()
++            || !self.sources.iter().any(|s| {
++                &s.descriptor.logical_id == logical
++                    && s.owner
++                        .upgrade()
++                        .is_some_and(|owner| std::ptr::eq(owner.as_ref(), source))
++            })
++        {
++            return Err(StreamControlError::Authority);
++        }
++        // Preserve BOTH the original full programme+audience decision and its
++        // delivery fence, and this exact target's ordinary generation fence.
++        // Only its closed audience exclusion is bypassed by the sealed branch.
++        let mut held = self.original.begin(source, logical)?;
++        held._target = Some(
++            self.target_subscription
++                .ticket
++                .try_begin_delivery()
++                .ok_or(StreamControlError::NotReady)?,
++        );
++        if !self.is_current() {
++            return Err(StreamControlError::NotReady);
++        }
++        Ok(held)
++    }
++    fn permits(&self, source: &MediaSource) -> bool {
++        self.is_current()
++            && self
++                .sources
++                .iter()
++                .any(|s| same_source(&s.descriptor, source))
++    }
++}
++fn same_source(a: &MediaSource, b: &MediaSource) -> bool {
++    a.conversation == b.conversation
++        && a.session == b.session
++        && a.connection == b.connection
++        && a.participant == b.participant
++        && a.membership_epoch == b.membership_epoch
++        && a.connection_generation == b.connection_generation
++        && a.logical_id == b.logical_id
++        && a.transport_id == b.transport_id
++        && a.stream_generation == b.stream_generation
++}
++/// Structural ownership only. Every actual packet still reacquires source and
++/// receiver grants; this original selection metadata is never a cached grant.
++pub enum AudioReplacementPreparationAttempt {
++    MetadataBusy { deadline: tokio::time::Instant },
++    Prepared(AudioReplacementPreparation),
++}
++pub struct AudioReplacementPreparation {
++    binding: Arc<AudioPrerollBinding>,
++    sources: Vec<MediaSource>,
++}
++impl AudioReplacementPreparation {
++    pub fn sources(&self) -> &[MediaSource] {
++        &self.sources
++    }
++    pub fn is_current(&self) -> bool {
++        self.binding.is_current()
++    }
++    /// Historical successful remote IO on this same structurally live route.
++    /// It only stops neutral probes, never grants permission or readiness.
++    pub fn has_delivered_remote_audio(&self) -> bool {
++        self.binding.is_current() && self.binding.delivered.load(Ordering::Acquire)
++    }
++    pub fn permits(&self, source: &MediaSource) -> bool {
++        self.binding.permits(source)
++    }
++    pub fn close(&self) {
++        self.binding.cancel.cancel();
++        self.binding.ticket.retire_if_current();
++        // Keep the sealed cancelled metadata in the gate until actual same-root
++        // adoption or physical target teardown. It owns no grants, ports, Core
++        // root or controller; dropping preparation cannot select ordinary mode.
++    }
++}
++impl Drop for AudioReplacementPreparation {
++    fn drop(&mut self) {
++        self.close();
++    }
++}
++impl GuardedMediaScene {
++    pub(crate) fn prepare_replacement_audio(
++        &self,
++        old: &Arc<StreamController>,
++        target: &Arc<StreamController>,
++        lifetime: &PrivateVideoBindingLifetime,
++        installation_deadline: tokio::time::Instant,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<AudioReplacementPreparation> {
++        if Arc::ptr_eq(old, target)
++            || old.conversation != target.conversation
++            || old.session != target.session
++            || old.origin_member.participant() != target.origin_member.participant()
++            || old.origin_member.identity() != target.origin_member.identity()
++            || old.origin_member.epoch() != target.origin_member.epoch()
++            || target.origin_binding.replaces() != Some(&old.connection)
++            || old.origin_binding.generation().checked_add(1)
++                != Some(target.origin_binding.generation())
++            || !Arc::ptr_eq(&old.policy, &target.policy)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let (deadline, cancel) = lifetime.metadata_for(target)?;
++        let expected = target.revision();
++        let credential = target.credential_snapshot();
++        let scope = target.scope(&credential.principal, MediaPurpose::Control);
++        let control = target.policy.current_control(
++            &scope,
++            &MediaControlIntent::PrepareReplacementAudio {
++                source: &old.connection,
++                expected,
++            },
++            held,
++        )?;
++        let install_until = deadline.min(installation_deadline).min(control.deadline);
++        control.valid()?;
++        let owner = control.authority()?;
++        StreamController::check(&scope, &owner)?;
++        if !owner.may_control || !owner.send_media.contains(&Medium::Audio) {
++            return Err(StreamControlError::Authority);
++        }
++        let members = self
++            .members
++            .try_lock()
++            .map_err(|_| StreamControlError::MetadataBusy)?;
++        let old_member = members
++            .get(&old.connection)
++            .filter(|m| Arc::ptr_eq(&m.controller, old))
++            .ok_or(StreamControlError::Authority)?;
++        let target_member = members
++            .get(&target.connection)
++            .filter(|m| Arc::ptr_eq(&m.controller, target))
++            .ok_or(StreamControlError::Authority)?;
++        let original = old_member.audio_consumer.subscriptions.stamp();
++        if original.preparation.is_some()
++            || old_member
++                .audio_consumer
++                .subscriptions
++                .preparation
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .as_ref()
++                .cloned()
++                .is_some_and(|p| !p.adopted())
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let target_gate = &target_member.audio_consumer.subscriptions;
++        let target_subscription = target_gate.stamp();
++        let target_port = {
++            let state = target
++                .state
++                .try_lock()
++                .map_err(|_| StreamControlError::MetadataBusy)?;
++            if state.closed || state.model.revision() != expected {
++                return Err(StreamControlError::NotReady);
++            }
++            state.model.authorize_binding(&owner.current())?;
++            let logical = target_member
++                .current_logical()
++                .ok_or(StreamControlError::NotReady)?;
++            let stream = state
++                .model
++                .streams()
++                .get(&logical)
++                .ok_or(StreamControlError::NotReady)?;
++            if !stream.source_muted
++                || stream.negotiated.requested.medium != Medium::Audio
++                || stream.negotiated.requested.direction == StreamDirection::Receive
++            {
++                return Err(StreamControlError::Authority);
++            }
++            state
++                .active
++                .get(&logical)
++                .cloned()
++                .ok_or(StreamControlError::NotReady)?
++        };
++        // Snapshot only actual currently selected originals, including the old
++        // programme's audience rules. No all-scene source widening or chaining.
++        let (program, rules) = {
++            let state = old_member
++                .audio_consumer
++                .subscriptions
++                .state
++                .try_lock()
++                .map_err(|_| StreamControlError::MetadataBusy)?;
++            if !original.is_current() {
++                return Err(StreamControlError::NotReady);
++            }
++            (state.program.clone(), state.rules.clone())
++        };
++        let mut sources = Vec::new();
++        for member in members.values() {
++            if member.controller.origin_member.participant() == target.origin_member.participant() {
++                continue;
++            }
++            let state = member
++                .controller
++                .state
++                .try_lock()
++                .map_err(|_| StreamControlError::MetadataBusy)?;
++            let Some(descriptor) = member.current_descriptor(&state, true)? else {
++                continue;
++            };
++            if !program.allows(&member.controller, &descriptor.logical_id)
++                || rules.iter().any(|r| !r.allows(&member.controller))
++            {
++                continue;
++            }
++            let source_port = state
++                .active
++                .get(&descriptor.logical_id)
++                .ok_or(StreamControlError::NotReady)?;
++            let _selected = original.begin(&member.controller, &descriptor.logical_id)?;
++            control.valid()?;
++            let receive = control.lease.control_receive(&descriptor)?;
++            StreamController::check(&scope, &receive)?;
++            if !receive.may_route_source || !receive.send_media.contains(&Medium::Audio) {
++                return Err(StreamControlError::Authority);
++            }
++            sources.push(AudioSource {
++                descriptor,
++                owner: Arc::downgrade(&member.controller),
++                port: Arc::downgrade(source_port),
++                ticket: source_port.ticket(),
++            });
++        }
++        let binding = Arc::new(AudioPrerollBinding {
++            original,
++            old: Arc::downgrade(old),
++            adopted: std::sync::atomic::AtomicBool::new(false),
++            delivered: std::sync::atomic::AtomicBool::new(false),
++            target: Arc::downgrade(target),
++            target_port: Arc::downgrade(&target_port),
++            target_ticket: target_port.ticket(),
++            target_subscription,
++            sources,
++            started: Instant::now(),
++            ticket: PeerRouteTicket::initial(),
++            cancel,
++            deadline,
++        });
++        let mut slot = target_gate
++            .preparation
++            .try_lock()
++            .map_err(|_| StreamControlError::MetadataBusy)?;
++        if slot.as_ref().cloned().is_some() {
++            return Err(StreamControlError::Authority);
++        }
++        // No public target programme may be installed before ownership moves.
++        if !target_gate
++            .state
++            .try_lock()
++            .map_err(|_| StreamControlError::MetadataBusy)?
++            .program
++            .selections
++            .is_empty()
++        {
++            return Err(StreamControlError::Authority);
++        }
++        control.valid()?;
++        target.check_credential_snapshot(&credential)?;
++        if !binding.is_current() || tokio::time::Instant::now() >= install_until {
++            return Err(StreamControlError::NotReady);
++        }
++        let sources = binding
++            .sources
++            .iter()
++            .map(|s| s.descriptor.clone())
++            .collect();
++        *slot = Some(binding.clone());
++        Ok(AudioReplacementPreparation { binding, sources })
++    }
++}
++
++/// Captured before any model/programme publication. This structural marker is
++/// not an authorization lease; actual publication already holds those grants.
++pub(in crate::staged_streams) struct AudioAdoption(Arc<AudioPrerollBinding>);
++impl AudioAdoption {
++    pub(in crate::staged_streams) fn commit(self) {
++        self.0.adopted.store(true, Ordering::Release);
++        self.0.cancel.cancel();
++        self.0.ticket.retire_if_current();
++    }
++}
++impl SubscriptionGate {
++    pub(in crate::staged_streams) fn prepare_audio_adoption(
++        &self,
++        old: &Arc<StreamController>,
++        target: &Arc<StreamController>,
++        pending: &crate::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<Option<AudioAdoption>> {
++        let slot = self
++            .preparation
++            .try_lock()
++            .map_err(|_| StreamControlError::MetadataBusy)?;
++        let Some(binding) = slot.as_ref().cloned() else {
++            return Ok(None);
++        };
++        if !binding.is_current()
++            || binding
++                .old
++                .upgrade()
++                .is_none_or(|actual| !Arc::ptr_eq(&actual, old))
++            || binding
++                .target
++                .upgrade()
++                .is_none_or(|actual| !Arc::ptr_eq(&actual, target))
++            || !old
++                .origin_binding
++                .same_incarnation(pending.source_binding())
++            || !target.is_bound_to_replacement(pending)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(Some(AudioAdoption(binding)))
++    }
++    #[cfg(test)]
++    pub(in crate::staged_streams) fn private_mode_for_test(&self) -> bool {
++        self.preparation
++            .lock()
++            .unwrap()
++            .as_ref()
++            .is_some_and(|p| !p.adopted())
++    }
++    #[cfg(test)]
++    pub(in crate::staged_streams) fn ordinary_program_is_empty_for_test(&self) -> bool {
++        let state = self.state.lock().unwrap();
++        state.program.selections.is_empty() && state.program.excluded.is_empty()
++    }
++}
++
++impl SubscriptionStamp {
++    /// Only the existing actual guarded AudioConsumer writer completion calls
++    /// this; local-probe ordinary stamps have no private binding to mark.
++    pub(in crate::staged_streams) fn observed_remote_delivery(&self) {
++        if self.is_current() {
++            if let Some(binding) = &self.preparation {
++                binding.delivered.store(true, Ordering::Release);
++            }
++        }
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -1,7 +1,7 @@
+ //! Original target PCM survives temporary admission contention, never authority.
++use super::super::audio_subscriptions::SubscriptionDelivery;
+ use super::super::audio_subscriptions::SubscriptionStamp;
+ use super::*;
+-use rvoip_core_traits::peer_switch::PeerDeliveryGuard;
+ 
+ const MAX_PENDING_QUANTA: usize = 10;
+ const MAX_RECOVERY_ATTEMPTS: usize = 2;
+@@ -31,7 +31,7 @@
+ struct CurrentTarget {
+     _leases: Vec<Box<dyn MediaAuthorityLease>>,
+     _admissions: Vec<audio_consumer::MediaAdmission>,
+-    _subscriptions: Vec<PeerDeliveryGuard>,
++    _subscriptions: Vec<SubscriptionDelivery>,
+ }
+ 
+ impl PendingAudioQuantum {
+@@ -40,7 +40,7 @@
+         inputs: &HashMap<ConnectionId, (ParticipantId, Vec<Segment>)>,
+         rate: u32,
+     ) -> Option<Self> {
+-        let subscription = member.subscriptions.stamp();
++        let subscription = member.subscriptions.mix_stamp();
+         let target_ticket = member.ticket.clone();
+         let target_consumer = Some(member.stamp.clone());
+         let target_scene = member.controller.current_scene_stamp().ok()?;
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -67,6 +67,11 @@
+     Prepare {
+         connection: ConnectionId,
+         operation: String,
++        expected: u64,
++    },
++    PrepareAudio {
++        source: ConnectionId,
++        connection: ConnectionId,
+         expected: u64,
+     },
+     PrepareVideo {
+@@ -348,6 +353,21 @@
+                     && desired == approved
+                     && replace.is_empty()
+                     && pending.binding().connection() == connection
++            }
++            (
++                Approval::PrepareAudio {
++                    source,
++                    connection,
++                    expected,
++                },
++                MediaControlIntent::PrepareReplacementAudio {
++                    source: actual_source,
++                    expected: actual_revision,
++                },
++            ) => {
++                connection == scope.connection
++                    && source == *actual_source
++                    && expected == actual_revision
+             }
+             (
+                 Approval::PrepareVideo {
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -12,6 +12,7 @@
+     pending: PreparedParticipantReplacement,
+     context: AudioAudienceHandle,
+     consultation: Option<crate::staged_streams::consultation::PrivateConsultationHandle>,
++    _audio_probe: Option<crate::staged_streams::endpoint_preparation::AudioEndpointPreparation>,
+ }
+ fn endpoint_for(source: &MediaOwner, name: &str) -> EndpointBinding {
+     let id = IdentityBinding::from_authenticated(
+@@ -103,7 +104,16 @@
+         media: Vec<DesiredStream>,
+         confirmation: EndpointConfirmationPolicy,
+     ) -> Self {
+-        Self::with_consultation_mode(closed, route_actor, logical, media, confirmation, false).await
++        Self::with_consultation_mode(
++            closed,
++            route_actor,
++            logical,
++            media,
++            confirmation,
++            false,
++            false,
++        )
++        .await
+     }
+     async fn private_primary() -> Self {
+         Self::with_consultation_mode(
+@@ -113,6 +123,19 @@
+             vec![desired(Medium::Audio)],
+             EndpointConfirmationPolicy::AnsweredDtmf { digits: "7".into() },
+             true,
++            false,
++        )
++        .await
++    }
++    async fn for_audio_preroll() -> Self {
++        Self::with_consultation_mode(
++            false,
++            "alice",
++            false,
++            vec![desired(Medium::Audio)],
++            EndpointConfirmationPolicy::AnsweredDtmf { digits: "7".into() },
++            false,
++            true,
+         )
+         .await
+     }
+@@ -123,6 +146,7 @@
+         media: Vec<DesiredStream>,
+         confirmation: EndpointConfirmationPolicy,
+         private_primary: bool,
++        muted_preroll: bool,
+     ) -> Self {
+         let mut room = Room::new().await;
+         let source = room.domain.base.0.read().await.owners["alice"].clone();
+@@ -315,23 +339,44 @@
+             media,
+         )
+         .await;
+-        let p = room
++        let mut p = room
+             .scene
+             .plan_audio_audience(AudioAudienceRequest {
+-                operation_id: "device-isolated".into(),
++                operation_id: if muted_preroll {
++                    pending.intent().operation_id.clone()
++                } else {
++                    "device-isolated".into()
++                },
+                 expected_revision: room.scene.audience_revision(),
+                 private_connections: BTreeSet::from([ConnectionId::from_string("device")]),
+                 receivers: BTreeMap::from([(ConnectionId::from_string("device"), vec![])]),
+                 activate_muted: Some(ConnectionId::from_string("device")),
+             })
+             .unwrap();
++        if muted_preroll {
++            p.keep_endpoint_muted(&ConnectionId::from_string("device"))
++                .unwrap();
++        }
+         let (_, context) = room.apply(p).await.unwrap();
++        let audio_probe = if muted_preroll {
++            Some(
++                room.scene
++                    .prepare_audio_endpoint(
++                        &ConnectionId::from_string("device"),
++                        context.operation_id(),
++                    )
++                    .unwrap(),
++            )
++        } else {
++            None
++        };
+         Self {
+             room,
+             model,
+             pending,
+             context,
+             consultation,
++            _audio_probe: audio_probe,
+         }
+     }
+     fn plan(&self) -> ControlResult<AudioDeviceReplacementPlan> {
+@@ -363,7 +408,7 @@
+         )
+     }
+     fn queue_prompt(&mut self, sample: i16) -> ControlResult<()> {
+-        use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++        use rvoip_media_core::{AudioFrame, codec::factory::CodecFactory};
+         let node = self.room.nodes.get_mut("device").unwrap();
+         node.sequence += 1;
+         let port = node.adapter.port(Medium::Audio);
+@@ -907,7 +952,7 @@
+ #[tokio::test]
+ async fn replacement_metadata_collision_retries_original_plan_and_preserves_refusals() {
+     use crate::orchestrator::participant_control::{
+-        replacement::metadata_retry, ParticipantControlError,
++        ParticipantControlError, replacement::metadata_retry,
+     };
+     for mode in ["recover", "cancel", "expire", "revoke", "role-change"] {
+         let mut f = Move::new(false).await;
+@@ -1025,3 +1070,6 @@
+ 
+ #[path = "replacement/private_successor.rs"]
+ mod private_successor;
++
++#[path = "replacement/audio_preroll.rs"]
++mod audio_preroll;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs
+@@ -0,0 +1,521 @@
++use super::*;
++use crate::orchestrator::participant_control::replacement::PrivateVideoBindingLifetime;
++use crate::staged_streams::audio_subscriptions::AudioReplacementPreparation;
++
++async fn prepare(
++    f: &Move,
++    until: tokio::time::Instant,
++    cancel: CancellationToken,
++) -> AudioReplacementPreparation {
++    let old = &f.room.nodes["alice"].controller;
++    let target = &f.room.nodes["device"].controller;
++    let grant = f
++        .room
++        .grant(Approval::PrepareAudio {
++            source: old.connection.clone(),
++            connection: target.connection.clone(),
++            expected: target.revision(),
++        })
++        .await;
++    f.room
++        .scene
++        .prepare_replacement_audio(
++            old,
++            target,
++            &PrivateVideoBindingLifetime::for_test(target, until, cancel),
++            deadline(),
++            &grant,
++        )
++        .unwrap()
++}
++fn drain_outputs(f: &mut Move) {
++    for node in f.room.nodes.values_mut() {
++        while node.out.try_recv().is_ok() {}
++    }
++}
++#[tokio::test]
++async fn private_audio_preroll_decodes_original_selected_speech_without_candidate_publication_or_old_retirement()
++ {
++    let mut f = Move::for_audio_preroll().await;
++    let target = &f.room.nodes["device"].controller;
++    assert!(
++        target
++            .audio_consumer
++            .lock()
++            .unwrap()
++            .as_ref()
++            .unwrap()
++            .upgrade()
++            .unwrap()
++            .subscriptions
++            .ordinary_program_is_empty_for_test()
++    );
++    let prepared = prepare(&f, deadline(), CancellationToken::new()).await;
++    assert_eq!(prepared.sources().len(), 1);
++    assert!(!prepared.has_delivered_remote_audio());
++    assert_eq!(
++        prepared.sources()[0].connection,
++        ConnectionId::from_string("bob")
++    );
++    f.room.publish("device", 12000).unwrap();
++    f.room.tick();
++    f.room
++        .silent(&["alice", "bob", "public", "other", "hold", "device"]);
++    f.queue_prompt(4000).unwrap();
++    f.room.heard("device", 4000).await;
++    assert!(
++        !prepared.has_delivered_remote_audio(),
++        "actual local probe output is not remote delivery"
++    );
++    f.room.publish("bob", 6000).unwrap();
++    f.room.tick();
++    assert!(
++        !prepared.has_delivered_remote_audio(),
++        "enqueue is not guarded delivery"
++    );
++    f.room.heard("device", 6000).await;
++    assert!(prepared.has_delivered_remote_audio());
++    f.room.heard("alice", 6000).await;
++    assert!(!f.room.nodes["alice"].controller.shutdown.is_cancelled());
++    let target = &f.room.nodes["device"].controller;
++    let current = target
++        .audio_consumer
++        .lock()
++        .unwrap()
++        .as_ref()
++        .unwrap()
++        .upgrade()
++        .unwrap();
++    assert!(current.subscriptions.ordinary_program_is_empty_for_test());
++    prepared.close();
++    assert!(
++        !prepared.has_delivered_remote_audio(),
++        "closed binding cannot reuse delivery marker"
++    );
++    drop(prepared);
++    assert!(
++        current.subscriptions.private_mode_for_test(),
++        "dropped private owner never selects ordinary"
++    );
++    drain_outputs(&mut f);
++    f.room.publish("bob", 6400).unwrap();
++    f.room.tick();
++    f.room.silent(&["device"]);
++    f.room.heard("alice", 6400).await;
++}
++#[tokio::test]
++async fn private_audio_preroll_excludes_unselected_foreign_sources_and_all_foreign_stream_generations()
++ {
++    let mut f = Move::for_audio_preroll().await;
++    let prepared = prepare(&f, deadline(), CancellationToken::new()).await;
++    let source = prepared.sources()[0].clone();
++    assert!(prepared.permits(&source));
++    for part in 0..5 {
++        let mut foreign = source.clone();
++        match part {
++            0 => foreign.connection = ConnectionId::from_string("public"),
++            1 => foreign.stream_generation += 1,
++            2 => foreign.connection_generation += 1,
++            3 => foreign.transport_id = StreamId::from_string("foreign"),
++            _ => foreign.membership_epoch += 1,
++        };
++        assert!(!prepared.permits(&foreign));
++    }
++    f.room.publish("public", 12000).unwrap();
++    f.room.tick();
++    f.room.silent(&["device"]);
++    f.room.publish("bob", 4000).unwrap();
++    f.room.tick();
++    f.room.heard("device", 4000).await;
++}
++#[tokio::test]
++async fn private_audio_preroll_queued_actual_output_requires_current_source_authority() {
++    let mut f = Move::for_audio_preroll().await;
++    let prepared = prepare(&f, deadline(), CancellationToken::new()).await;
++    f.room.publish("bob", 6000).unwrap();
++    f.room.tick();
++    let failed_io = f
++        .room
++        .nodes
++        .get_mut("device")
++        .unwrap()
++        .out
++        .try_recv()
++        .unwrap();
++    assert!(!prepared.has_delivered_remote_audio());
++    assert!(
++        failed_io
++            .deliver(|_| async { Err(StreamControlError::Cancelled) })
++            .await
++            .is_err()
++    );
++    assert!(
++        !prepared.has_delivered_remote_audio(),
++        "failed actual writer must not stop probes"
++    );
++    drain_outputs(&mut f);
++    f.room.publish("bob", 6000).unwrap();
++    f.room.tick();
++    let queued = f
++        .room
++        .nodes
++        .get_mut("device")
++        .unwrap()
++        .out
++        .try_recv()
++        .unwrap();
++    assert!(!prepared.has_delivered_remote_audio());
++    f.room
++        .domain
++        .base
++        .0
++        .write()
++        .await
++        .revoked
++        .insert("bob".into());
++    assert!(
++        queued
++            .deliver(|_| async {
++                panic!("revoked original source reached physical IO");
++                #[allow(unreachable_code)]
++                Ok(())
++            })
++            .await
++            .is_err()
++    );
++    assert!(
++        !prepared.has_delivered_remote_audio(),
++        "refused queued IO must not stop neutral probes"
++    );
++    assert!(
++        prepared.is_current(),
++        "structural metadata is never current authorization"
++    );
++    f.room.domain.base.0.write().await.revoked.remove("bob");
++    drain_outputs(&mut f);
++    f.room.publish("bob", 7000).unwrap();
++    f.room.tick();
++    f.room.heard("device", 7000).await;
++}
++#[tokio::test]
++async fn private_audio_preroll_original_selection_change_invalidates_same_queued_copy() {
++    let mut f = Move::for_audio_preroll().await;
++    let prepared = prepare(&f, deadline(), CancellationToken::new()).await;
++    f.room.publish("bob", 6000).unwrap();
++    f.room.tick();
++    let queued = f
++        .room
++        .nodes
++        .get_mut("device")
++        .unwrap()
++        .out
++        .try_recv()
++        .unwrap();
++    let old = &f.room.nodes["alice"].controller;
++    f.room
++        .scene
++        .change_subscriptions(
++            &old.connection,
++            old.revision(),
++            AudioSubscriptionChange::Clear,
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    assert!(!prepared.is_current());
++    assert!(
++        queued
++            .deliver(|_| async {
++                panic!("retired original selection reached private IO");
++                #[allow(unreachable_code)]
++                Ok(())
++            })
++            .await
++            .is_err()
++    );
++    drain_outputs(&mut f);
++    f.room.publish("device", 12000).unwrap();
++    f.room.tick();
++    f.room
++        .silent(&["alice", "bob", "public", "other", "hold", "device"]);
++}
++#[tokio::test]
++async fn private_audio_preroll_original_cancel_and_lifetime_expiry_refuse_actual_queued_output() {
++    for expires in [false, true] {
++        let mut f = Move::for_audio_preroll().await;
++        let cancel = CancellationToken::new();
++        let until = if expires {
++            tokio::time::Instant::now() + Duration::from_millis(80)
++        } else {
++            deadline()
++        };
++        let prepared = prepare(&f, until, cancel.clone()).await;
++        f.room.publish("bob", 6000).unwrap();
++        f.room.tick();
++        let queued = f
++            .room
++            .nodes
++            .get_mut("device")
++            .unwrap()
++            .out
++            .try_recv()
++            .unwrap();
++        if expires {
++            tokio::time::sleep_until(until).await;
++        } else {
++            cancel.cancel();
++        }
++        assert!(!prepared.is_current());
++        assert!(
++            queued
++                .deliver(|_| async {
++                    panic!("expired/cancelled original private route reached IO");
++                    #[allow(unreachable_code)]
++                    Ok(())
++                })
++                .await
++                .is_err()
++        );
++        assert!(!f.room.nodes["alice"].controller.shutdown.is_cancelled());
++    }
++}
++#[tokio::test]
++async fn private_audio_preroll_commit_retires_private_fences_and_preserves_new_ordinary_audio() {
++    let mut f = Move::for_audio_preroll().await;
++    f.io().await;
++    f.confirm().await;
++    let prepared = prepare(&f, deadline(), CancellationToken::new()).await;
++    f.room.publish("bob", 6000).unwrap();
++    f.room.tick();
++    f.room.heard("device", 6000).await;
++    drain_outputs(&mut f);
++    let plan = f.plan().unwrap();
++    f.commit(plan).await.unwrap();
++    assert!(
++        !prepared.is_current(),
++        "ordinary ownership cut retires private old-selection stamp"
++    );
++    f.room.publish("bob", 7000).unwrap();
++    f.room.tick();
++    f.room.heard("device", 7000).await;
++    assert!(f.room.publish("alice", 9000).is_err());
++}
++
++#[tokio::test]
++async fn private_audio_preroll_failed_commit_never_adopts_an_invalid_private_stamp() {
++    let mut f = Move::for_audio_preroll().await;
++    f.io().await;
++    f.confirm().await;
++    let prepared = prepare(&f, deadline(), CancellationToken::new()).await;
++    let plan = f.plan().unwrap();
++    f.room
++        .domain
++        .deny_replacement
++        .store(true, Ordering::Release);
++    assert!(f.commit(plan).await.is_err());
++    assert!(prepared.is_current());
++    // Retiring only the original selection after a failed commit must not
++    // turn the new receiver into an ordinary route.
++    let old = &f.room.nodes["alice"].controller;
++    f.room
++        .scene
++        .change_subscriptions(
++            &old.connection,
++            old.revision(),
++            AudioSubscriptionChange::Clear,
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    assert!(!prepared.is_current());
++    drain_outputs(&mut f);
++    f.room.publish("bob", 7000).unwrap();
++    f.room.tick();
++    f.room.silent(&["device"]);
++    let consumer = f.room.nodes["device"]
++        .controller
++        .audio_consumer
++        .lock()
++        .unwrap()
++        .as_ref()
++        .unwrap()
++        .upgrade()
++        .unwrap();
++    assert!(consumer.subscriptions.ordinary_program_is_empty_for_test());
++}
++
++#[tokio::test]
++async fn private_audio_preroll_empty_original_selection_grants_no_new_remote_source() {
++    let mut f = Move::for_audio_preroll().await;
++    let old = &f.room.nodes["alice"].controller;
++    f.room
++        .scene
++        .change_subscriptions(
++            &old.connection,
++            old.revision(),
++            AudioSubscriptionChange::Clear,
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    let prepared = prepare(&f, deadline(), CancellationToken::new()).await;
++    assert!(prepared.sources().is_empty());
++    assert!(prepared.is_current());
++    assert!(
++        !prepared.has_delivered_remote_audio(),
++        "empty selection must preserve neutral probes"
++    );
++    f.room.publish("bob", 6000).unwrap();
++    f.room.tick();
++    f.room.silent(&["device", "alice"]);
++}
++
++#[tokio::test]
++async fn private_audio_preroll_successor_generation_uses_adopted_ordinary_selection_after_original_expiry()
++ {
++    let mut f = Move::for_audio_preroll().await;
++    f.io().await;
++    f.confirm().await;
++    let first_until = tokio::time::Instant::now() + Duration::from_millis(80);
++    let first = prepare(&f, first_until, CancellationToken::new()).await;
++    f.room.publish("bob", 6000).unwrap();
++    f.room.tick();
++    f.room.heard("device", 6000).await;
++    drain_outputs(&mut f);
++    // Trusted fixture coordinates the same genuine scene+ParticipantSession
++    // transition; no caller-supplied ready binding or operation replay.
++    let first_owner = {
++        let read = f.room.domain.base.0.read().await;
++        f.room
++            .domain
++            .resource_owner(&read, read.owners["device"].clone())
++            .unwrap()
++    };
++    let staged = f
++        .model
++        .stage_replacement(
++            &first_owner.member,
++            &first_owner.member,
++            f.pending.intent().clone(),
++            &f.pending,
++            &first_owner.endpoint,
++        )
++        .unwrap();
++    let plan = f.plan().unwrap();
++    f.commit(plan).await.unwrap();
++    f.model.commit_replacement(staged);
++    f.model
++        .require_live_binding(&first_owner.member, &first_owner.connection)
++        .unwrap();
++    // Publish the actual model-admitted incarnation into this fixture's policy
++    // registry, as production projection does; never fabricate a ready binding.
++    f.room
++        .domain
++        .base
++        .0
++        .write()
++        .await
++        .owners
++        .insert("device".into(), first_owner);
++    tokio::time::sleep_until(first_until).await;
++    assert!(!first.is_current());
++    let source = {
++        let read = f.room.domain.base.0.read().await;
++        f.room
++            .domain
++            .resource_owner(&read, read.owners["device"].clone())
++            .unwrap()
++    };
++    let endpoint = endpoint_for(&source, "replacement-next");
++    let intent = ParticipantReplacementMutation {
++        operation_id: "device-replace-next".into(),
++        correlation_id: "corr-next".into(),
++        expected_revision: f.model.revision(),
++        participant: source.member.participant().clone(),
++        source: ConnectionId::from_string("device"),
++        replacement: ConnectionId::from_string("device-next"),
++        retained: ConnectionId::from_string("bob"),
++        endpoint: endpoint.endpoint().clone(),
++        device: endpoint.device().clone(),
++        confirmation: EndpointConfirmationPolicy::MediaOnly,
++    };
++    let pending = f
++        .model
++        .prepare_replacement(&source.member, &endpoint, intent)
++        .unwrap();
++    assert_eq!(pending.generation(), 3);
++    let mut owner = source.clone();
++    owner.endpoint = endpoint;
++    owner.connection = pending.binding().clone();
++    owner.presence = pending.appearance().clone();
++    f.room
++        .add_owned_with_media(
++            "device-next",
++            "alice",
++            owner,
++            true,
++            Some(pending),
++            vec![desired(Medium::Audio)],
++        )
++        .await;
++    let mut isolation = f
++        .room
++        .scene
++        .plan_audio_audience(AudioAudienceRequest {
++            operation_id: "device-next-isolated".into(),
++            expected_revision: f.room.scene.audience_revision(),
++            private_connections: BTreeSet::from([ConnectionId::from_string("device-next")]),
++            receivers: BTreeMap::from([(ConnectionId::from_string("device-next"), vec![])]),
++            activate_muted: Some(ConnectionId::from_string("device-next")),
++        })
++        .unwrap();
++    isolation
++        .keep_endpoint_muted(&ConnectionId::from_string("device-next"))
++        .unwrap();
++    f.room.apply(isolation).await.unwrap();
++    let old = &f.room.nodes["device"].controller;
++    let target = &f.room.nodes["device-next"].controller;
++    let grant = f
++        .room
++        .grant(Approval::PrepareAudio {
++            source: old.connection.clone(),
++            connection: target.connection.clone(),
++            expected: target.revision(),
++        })
++        .await;
++    let second = f
++        .room
++        .scene
++        .prepare_replacement_audio(
++            old,
++            target,
++            &PrivateVideoBindingLifetime::for_test(target, deadline(), CancellationToken::new()),
++            deadline(),
++            &grant,
++        )
++        .unwrap();
++    drop(grant);
++    assert_eq!(
++        second.sources()[0].connection,
++        ConnectionId::from_string("bob")
++    );
++    assert!(second.is_current());
++    assert!(
++        !second.has_delivered_remote_audio(),
++        "newgeneration cannot reuse previous originaldelivery"
++    );
++    drain_outputs(&mut f);
++    f.room.publish("bob", 7000).unwrap();
++    f.room.tick();
++    f.room.heard("device-next", 7000).await;
++    assert!(second.has_delivered_remote_audio());
++    f.room.heard("device", 7000).await;
++    assert!(!f.room.nodes["device"].controller.shutdown.is_cancelled());
++    assert!(f.room.publish("device-next", 12000).is_err());
++}

@@ -1385,8 +1385,7 @@ async fn exercise(mode: u8) {
     assert_eq!(bytes, fresh);
     decode(f.temp.path(), &bytes, 6).await;
     if mode == 7 {
-        tokio::time::sleep_until(original_cutoff + Duration::from_millis(20)).await;
-        assert!(chrono::Utc::now().timestamp() >= original_preparation.expires_at);
+        readiness::wait_for_original_expiry(&original_preparation).await;
         let (record,reservation,expiry,candidate,runtime,reserved_generation,generation,observed_runtime):
             (String,String,i64,String,String,u64,u64,String)=rusqlite::Connection::open(&f.config.database).unwrap()
             .query_row("SELECT n.operation_record_id,n.reservation_id,n.expires_at,n.candidate_connection_id,n.candidate_runtime_id,n.generation,c.generation,m.runtime_connection_id FROM native_replacements n JOIN connections c ON c.id=n.candidate_connection_id JOIN connection_offers m ON m.connection_id=c.id WHERE n.operation_record_id=?1",

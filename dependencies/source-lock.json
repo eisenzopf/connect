@@ -1834,6 +1834,36 @@
       "path": "patches/rvoip/connect-core-original-mixer-task-join.patch",
       "sha256": "b0876e0ca4a5e9c3415aa03e04135970a08156bb2dd7add83e390c7da570875b",
       "source": "Join the exact original managed Session conference mixer across cancellation and concurrent teardown; retain terminal replay facts and propagate genuine finalizer failure"
+    },
+    {
+      "path": "patches/rvoip/connect-private-audio-replacement-preroll.patch",
+      "sha256": "51d1374aecb077e56a6b565022939e9f55ef1bdcfde2a63699c3ee7ec7c7f528",
+      "source": "Receiver-only exact old audio programme/audience preroll with fresh current authorization, definitive ordinary adoption and actual guarded delivery probe suppression"
+    },
+    {
+      "path": "patches/rvoip/connect-private-audio-egress-clock-handover.patch",
+      "sha256": "54f60cfe7166d11a03cdb532e2fdc81c7afca2dcd88f3f8282e9d8ec0f4a428e",
+      "source": "Explicit same-port audio egress clock/producer handover with actual native/RTC IO witnesses, conservative coordinate burn and trusted physical-writer binding succession"
+    },
+    {
+      "path": "patches/rvoip/connect-video-repair-audio-timing-none.patch",
+      "sha256": "fc169d21354917c407f725a13e831a46f5d45630f1366e60cdbc34819ee57365",
+      "source": "Keep genuine video/screen repair copies outside the audio producer clock and verify original bytes, expiry, authority and bounded repairs remain unchanged"
+    },
+    {
+      "path": "patches/rvoip/connect-video-repair-behavior-test-privacy.patch",
+      "sha256": "4562e5e720c5d2fe0cff53a3a78dca6587e409479540dd613dd47796e1493f3a",
+      "source": "Exercise the existing video/screen repair behavior and audio stamp interface without inspecting private queue layout"
+    },
+    {
+      "path": "patches/rvoip/connect-audio-egress-clock-test-demux.patch",
+      "sha256": "0026efc3bfde04b85a33404edbabb646a846a10138213a3968ed76805606d67e",
+      "source": "Classify actual RTCP sender reports separately from RTP in clock regression fixtures, preserving exact original RTP/NTP/payload assertions"
+    },
+    {
+      "path": "patches/rvoip/connect-private-audio-fixture-phase-identity.patch",
+      "sha256": "5f3d7bda4cd400a1c993898a3cff7e8635643056c19b4b432e57e8d3829ab0ea",
+      "source": "Use distinct stable audio preparation and final operation identities in Core test fixtures, preserving exact authorization, original expiry and failed-commit refusal."
     }
   ]
 }

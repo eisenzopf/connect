@@ -369,3 +369,5 @@ fn actual_wal_handles_close_only_after_original_query_lease_and_custodian() {
         "the original primary connection remains live"
     );
 }
+
+mod slot_reservation;

@@ -582,10 +582,28 @@ impl TargetPolicy {
 }
 
 impl TargetPolicy {
+    pub(crate) fn current_packet_read(
+        &self,
+        scope: &MediaScope<'_>,
+        held: &connect_store::NativeMediaRead,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        let MediaPurpose::Receive { source } = scope.purpose else {
+            return Err(StreamControlError::Authority);
+        };
+        self.private_receive_under(scope, source, Some(held))
+    }
     fn private_receive(
         &self,
         scope: &MediaScope<'_>,
         source: &MediaSource,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        self.private_receive_under(scope, source, None)
+    }
+    fn private_receive_under(
+        &self,
+        scope: &MediaScope<'_>,
+        source: &MediaSource,
+        held: Option<&connect_store::NativeMediaRead>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         let mut leaf = 0;
         let mut medium = None;
@@ -618,12 +636,31 @@ impl TargetPolicy {
             leaf = 4;
             let origin = self.origin.get().ok_or(StreamControlError::NotReady)?;
             leaf = 5;
-            let read = super::diagnostics::private_scene_result(
-                self.base
+            let supplied_source = if let Some(held) = held {
+                leaf = 8;
+                let entry = entries
+                    .get(&source.connection)
+                    .ok_or(StreamControlError::Authority)?;
+                leaf = 10;
+                crate::canonical_media::source_matches(source, entry, held.target())?;
+                Some((entry, held))
+            } else {
+                None
+            };
+            leaf = 5;
+            let result = match supplied_source {
+                Some((entry, held)) => self.base.store.try_native_replacement_scene_read_under(
+                    origin,
+                    &origins,
+                    &entry.origin,
+                    held,
+                ),
+                None => self
+                    .base
                     .store
                     .try_native_replacement_scene_read(origin, &origins),
-                &mut store_busy,
-            )?;
+            };
+            let read = super::diagnostics::private_scene_result(result, &mut store_busy)?;
             leaf = 6;
             if !read.current() {
                 return Err(StreamControlError::Authority);
