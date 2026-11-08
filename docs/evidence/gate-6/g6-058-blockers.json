@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-08",
-  "run_status": "The expanded source3501 qualifier completed all301 selected Rust attempts with290passes,5failed verdicts and6bounded timeouts. MacChrome2andACL1pass. All331Node and198Python controls pass onARM, and the normal shipping check passes. The eleven affected controls map to three fixture defects. Their corrections are now applied as one batch and require normalRELEASE replay before the full32-cell run. Original outcomes remain immutable. Latest fullmatrixv203 stays0qualified,24failed,8blocked, with197passed,62failed,173blocked checks. Resource budgets remain owner-approved, G6-098 sustained growth is separate and G6-054 remains deferred.",
+  "run_status": "The affected11-control RELEASE replay on localARM now has9passes,2failed verdicts and0timeouts, with unchanged source25ca and all original owners joined. The three signed WebRTC retirement controls and actualC allocator control pass. All seven continuation scenes reach decoded readiness; five pass, while pausedVideo/Duplex expose private audio tail classification. Applied exact typed-cut classification with Private packets receiving zero Public credit and >10genuine160-sample Public frames still required. Seven continuation replays precede the next full32-cell run. ARM331Node/198Python and MacChrome2/ACL1 pass in the preserved expanded cohort. Latest fullmatrixv203 remains0qualified/24failed/8blocked. G6-054 remains deferred and G6-098 sustained growth separate.",
   "blockers": [
     {
       "id": "B01",
@@ -881,26 +881,26 @@
     {
       "id": "B106",
       "title": "WebRTC retirement fixture expects the pre-retirement generation",
-      "status": "FIX APPLIED. Three normalRELEASE replays pending.",
+      "status": "VERIFIED. All three original signed WebRTC controls pass in the normalARM RELEASE replay.",
       "change": "Require the exact retired generation3 after the witnessed ready generation2. Keep the original5s cutoff, exact route absence, remaining routecount1, immutable completed operation and live signaling checks.",
-      "evidence": "All three actual signed WebRTC controls pass decoded readiness, commit, replay, nonce/refusal and later duplex playback before failing at the same post-end wait. Store cleanup advances generation on retirement, and the existing normalARM Store control asserts retired3 from admitted2. The original logs omit the final SQLtuple, so this correction still needs runtime proof. Inert reviewed manifest e930be28274984356d9c9fd2bf04dc9e795587b9edd6b190b1c0c90b03376083.",
-      "next": "Replay the three original exact controls on the same localARM release entry point and preserve their original failed logs."
+      "evidence": "All three actual signed WebRTC controls pass decoded readiness, commit, replay, nonce/refusal and later duplex playback before failing at the same post-end wait. Store cleanup advances generation on retirement, and the existing normalARM Store control asserts retired3 from admitted2. The original logs omit the final SQLtuple, so this correction still needs runtime proof. Inert reviewed manifest e930be28274984356d9c9fd2bf04dc9e795587b9edd6b190b1c0c90b03376083. At source25ca, all three original controls now pass with the exact retired3/route absence/root immutability predicates and natural joins. Actual replay receipt01aed519f78c6d32b7f99df0e4365459e7487c32af1b683e409f19adc1496ad1.",
+      "next": "Keep the three exact controls in the recorded verified scope and run all32 matrix cells after the remaining continuation checks pass."
     },
     {
       "id": "B107",
       "title": "Release optimization removes the allocator test allocation",
-      "status": "TEST FIX RECORDED IN PATCH370. Normal preparation and RELEASE replay pending.",
+      "status": "VERIFIED. Normal generation370 preparation and the original RELEASE allocator control pass.",
       "change": "Keep the existing1MiB C block opaque and observably live across the held snapshot with volatile accesses. Retain RAII free before assertions, the same accounting floor and the existing diagnostic scope.",
-      "evidence": "Actual optimizedARM binary d32d0328e4dbf9d900c261decaadffedb68eb87998fb260315322db757cf5724 contains all three snapshot calls and no malloc/free call in this exact test. Read-only witness bd70d1ce84d3e5fe35441c899e8dcba0ccfbed65c8e898762a0c6281ba113d58. New append-only patch a0e0a90ae5950604712f0a351c365d83128139615d56689c7031ecc473e0bb4a changes only the existing test body. Production allocator snapshot code is byte-identical.",
-      "next": "Materialize normal generation370 onHOST andARM with old369 preserved, then replay the original allocator control and inspect its actual release binary."
+      "evidence": "Actual optimizedARM binary d32d0328e4dbf9d900c261decaadffedb68eb87998fb260315322db757cf5724 contains all three snapshot calls and no malloc/free call in this exact test. Read-only witness bd70d1ce84d3e5fe35441c899e8dcba0ccfbed65c8e898762a0c6281ba113d58. New append-only patch a0e0a90ae5950604712f0a351c365d83128139615d56689c7031ecc473e0bb4a changes only the existing test body. Production allocator snapshot code is byte-identical. Both roles prepared the same552-file generation370, rvoip graphaaa217ceddf5ed448d360293ccf0d2fafb4fea36465daf9175743fafe2534839. HOST proofd6c0b9a06a49fd45d625be413ccc8b65929011876eec7f1ca7dbdc46ab943bbb andARM proof5124e932d03dc0983a0f153a89c0106e6f5cbb1d936243ac71ca72ab7ecffe98 preserve369 and all unchanged mtimes. The same1MiB accounting assertion now passes under actualopt3 with natural joins.",
+      "next": "Preserve allocator scope and source proofs while completing the continuation and full matrix runs."
     },
     {
       "id": "B108",
       "title": "Continuation fixtures stop their retained audio source before fresh readiness",
-      "status": "FIX APPLIED. Seven normalRELEASE continuation replays pending.",
+      "status": "READINESS RESTORED IN ALL SEVEN SCENES. Five complete controls pass and two further assertions are tracked underB110.",
       "change": "Continue the same signed retained source, handle, sequence, clock, SSRC and marked PCMU payload while the existing readiness future drains and decodes fresh media and submits its original Ready. Use an inline20ms publisher with the original cutoff and no spawned task.",
-      "evidence": "Six controls time out at180s and the expiry control fails naturally when the original grant expires. Earlier finite public probes produce remote audio, then the fixture drains that queue and publishes only candidate-owned silence. The candidate excludes its own source and production correctly suppresses fallback silence after real remote audio. The fix retains all original probes, decoder assertions, authorization and deadlines. Five guarded fixture afterimages were applied with receipt3daeb2e5fd8e9ba6f8eb212fe0a2d7f576e3f9b4fbd5abb598c27c4abbdf8c3c. Two independent static reviews pass. No runtime pass is claimed.",
-      "next": "Replay all seven original continuation controls, including genuine expiry and retirement cases, in the same11-control batch. Related generic private, telephone and cadence callers retain their existing scope."
+      "evidence": "Six controls time out at180s and the expiry control fails naturally when the original grant expires. Earlier finite public probes produce remote audio, then the fixture drains that queue and publishes only candidate-owned silence. The candidate excludes its own source and production correctly suppresses fallback silence after real remote audio. The fix retains all original probes, decoder assertions, authorization and deadlines. Five guarded fixture afterimages were applied with receipt3daeb2e5fd8e9ba6f8eb212fe0a2d7f576e3f9b4fbd5abb598c27c4abbdf8c3c. Two independent static reviews pass. No runtime pass is claimed. The actual11-case replay has9passes/2failures/0timeouts. All seven continuation scenes reach real private decoded readiness and Core movement. Unpaused, writer recovery, revocation, actual retirement and genuine grant expiry controls pass. PausedVideo/Duplex proceed farther and fail only at exact-cut audio classification. Replay receipt01aed519f78c6d32b7f99df0e4365459e7487c32af1b683e409f19adc1496ad1.",
+      "next": "Run all seven continuation controls again after the narrowly scopedB110 fixture correction."
     },
     {
       "id": "B109",
@@ -909,6 +909,14 @@
       "change": "Compare the unlink index with its parsed original-unlink receipt and independently check the documented emitted serialization against the raw transport hash. Bind saved old lock objects to both protected generation markers and their complete-tree proofs, while retaining every raw proof hash and prior source-file identity.",
       "evidence": "All eight original archive receipt chains verify with their original global-join flags preserved. ExactHOST andARM source/mode observations cover765paths. The full359-through369 preparation chain passes after correcting the comparisons. The expanded run retains frozen config f5b2a193d8fb61088c9b02a40e91fd82ddfe07c746d96b660ecbecc81d9a8fb6 and original source3501 throughout. Historical failed results remain unchanged.",
       "next": "Use actual terminal owner joins and generation370 preparation evidence for the affected-control replay. Preserve the completed failed qualifier as its own cohort."
+    },
+    {
+      "id": "B110",
+      "title": "Paused projection probe counts queued private audio as public playback",
+      "status": "FIX APPLIED. Actual exact-cut Public frame counts remain pending replay.",
+      "change": "Classify every saved decoded candidate audio sequence against the same SDK-validated completed activation cut. Verify its exact handle and160samples. Track Private frames separately with zero Public credit and require more than10actual Public decoded frames.",
+      "evidence": "Both paused controls now complete original private decoding and Core movement, then fail because their raw packet probe includes a Private sequence while asserting that every capture is Public. The video path already demultiplexes this boundary. Logs show99/101 aggregate marked frames but omit exact sequences, so aggregate counts supply no Public credit. Existing activation_from_completed checks preserve original operation, target, physical incarnation, handle and stream generation. Initial one-file apply receipt66dfffe6807bd55745b0d5088839360030a46c3d0d3f27587c657fd9a5f0c9d8 is retained before normal formatting.",
+      "next": "Replay all seven continuation scenes on the normalARM release target. Require all7 natural passes and inspect printed cut floors and actual Private/Public decoded counts before starting the full32 cells."
     }
   ],
   "workplan_tasks": [
@@ -2680,5 +2688,20 @@
       ".local/gate-6/post-v203-expanded-validation-candidate/mac-runtime/receipt.json": "37ece21cf45473776c926036f7efac93ca51ded21d5b5b4c30b3f1d1c3852b49",
       ".local/gate-6/post-v203-expanded-validation-candidate/root-controller-exit.json": "c39140e6502829710cc898a57799db1da3d7f7f6200b00ee1c73f33946bdeec1"
     }
+  },
+  "affected_eleven_actual": {
+    "source_revision": "25ca772e8741a3199321e3ade2d35764f612521c",
+    "source_lock_sha256": "c0ea4a8ae7a105d4bf4fd39b5cecac7439604ab5e3dfe6eae9f99b3a5d0db1e0",
+    "selected": 11,
+    "executed": 11,
+    "passed": 9,
+    "failed": 2,
+    "timed_out": 0,
+    "source_unchanged": true,
+    "all_original_groups_naturally_joined": true,
+    "arm_guardian_released_joined": true,
+    "receipt_path": ".local/gate-6/v203-arm-eleven-control-replay-candidate/actual-arm-replay-receipt.json",
+    "receipt_sha256": "01aed519f78c6d32b7f99df0e4365459e7487c32af1b683e409f19adc1496ad1",
+    "matrix_qualified": false
   }
 }

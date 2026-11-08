@@ -390,14 +390,47 @@ pub(in super::super) async fn paused(
             .iter()
             .find(|v| v.stream_id == original_preparation.audio().stream_id)
             .unwrap();
+        // The retained speaker also supplies genuine private preparation PCM.
+        // Classify buffered output using the exact completed sequence cut.
+        // Only public packets earn credit for post-cut playback.
+        let (mut private, mut public) = (0usize, 0usize);
+        let (mut private_bounds, mut public_bounds) = (None::<(u32, u32)>, None::<(u32, u32)>);
         for packet in public_before_projection
             .iter()
             .filter(|v| v.receiver == 2 && v.non_silent)
         {
             assert_eq!(packet.handle, cut.stream_local_id);
-            assert_eq!(cut.membership(packet.sequence).unwrap(),connect_protocol::replacement_activation::SequenceMembership::Public,
-                "actual decoded public PCM before durable completed reply must fall at or after original Core cut");
+            assert_eq!(packet.decoded_samples, 160);
+            let (count, bounds) = match cut.membership(packet.sequence).unwrap() {
+                connect_protocol::replacement_activation::SequenceMembership::Private => {
+                    (&mut private, &mut private_bounds)
+                }
+                connect_protocol::replacement_activation::SequenceMembership::Public => {
+                    (&mut public, &mut public_bounds)
+                }
+            };
+            *count += 1;
+            *bounds = Some(match *bounds {
+                Some((low, high)) => (low.min(packet.sequence), high.max(packet.sequence)),
+                None => (packet.sequence, packet.sequence),
+            });
         }
+        eprintln!(
+            "original negotiated audio demultiplexed: {}",
+            json!({
+                "stream_local_id": cut.stream_local_id,
+                "public_sequence_floor": cut.public_sequence_floor,
+                "private_decoded_frames": private,
+                "public_decoded_frames": public,
+                "private_sequence_bounds": private_bounds,
+                "public_sequence_bounds": public_bounds,
+                "decoded_samples_per_frame": 160,
+                "private_public_credit": 0,
+            })
+        );
+        assert!(public > 10,
+            "too few actual decoded Public PCM frames at the original cut: public={public}, private={private}, floor={}",
+            cut.public_sequence_floor);
         let replay = status(f, credential, &command.operation_id).await;
         assert_eq!(
             replay.result, completed.result,
