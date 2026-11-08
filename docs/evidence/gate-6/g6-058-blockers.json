@@ -780,10 +780,10 @@
     {
       "id": "B94",
       "title": "Prior focused tests do not reproduce six-source concurrent handoffs",
-      "status": "110 distinct focused Rust controls have recorded passes, including76 current Store controls; genuine six-source release verification of the memo remains pending.",
+      "status": "113 distinct focused Rust controls have recorded passes. The memo release integration completed two outbound moves; genuine four-move verification after fixture corrections is pending.",
       "change": "The initial endpoint-install policy releases scene, registry and controller guards, then revalidates exact ownership, activation and lease expiry. Immediate visual forwarding borrows only its live source lease while independently authorizing the target; queued media retains no source reader. Three new Core controls and all ten related audio/Probe controls pass in dev mode. Both isolated old-production positive controls fail at their intended assertions. Native replacement unary, receiver-epoch and complete ordered scene metadata now use bounded immutable facts keyed to original Weak owners and exact observer/SQL/clock versions. Every hit obtains fresh current authorization or validates exact original custody, rebuilds readers with the earliest outer and nested expiry, and retains the after-finish version seal. No reader or execution owner is cached.",
-      "evidence": "Three new Core controls and ten related audio/Probe controls passed13/13 (receiptff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa). The same new positive controls fail against isolated old362 production at the intended assertions; raw0/2 failure flags are preserved (comparative proof64246ae9143ab589a82219617f3792e84d68c12be8031025cfbe265a80cce792). Genuine RELEASE integration now failed0/1 in13.99s with actual Core/Service/Store and harness opt-level3/debug-assertionsfalse, unchanged source and all original command/controller joins (receipt6a0d01415a36d1cd899ab4b510ab1027d94a05f3d76d28f948dbf5e6e3cf6a28). Both first candidates received some video packets but decoded no keyframe; their final consecutive usable audio run was960 samples, below2880. All six original receivers stalled during preparation. Route counters showed46/96 enqueues but5/19 native video writer inputs, all locally accepted; these are different stages/observation windows, not packet-loss ratios. Direct scene stages reached332/339ms. This establishes a release-profile delivery/admission performance failure, while its precise CPU/SQL/file source remains under investigation.34 distinct component passes are not a fresh250-case cohort or matrix qualification. One bounded same-case release profile also failed0/1 with unchanged source and all joins (receiptbb953c8dc61b58260c2b7969de31aa4d20381fe7de658c1e2299d5dd6de0750a). Fixed Store snapshots show all4slots in capture at readiness failure and0after cleanup; completed capture claim mean14.33ms, actual SQL-held capture mean7.15ms and reseal mean5.66ms, versus file-admit mean0.552ms. These are concurrent completed-interval observations, not CPU time. The sampler exited0naturally and retained a complete30.9MB report, but its collector16MiB post-limit is failed and preserved. Stack observations identify both SQLite planning/execution and authority open/access paths; no new source fix or profiling pass is claimed. The integrated Store memo passed normal --tests typechecking, all six new actual-hit controls and70 retained authorization, receiver, source-set, custody, compound-reseal and slot controls (76 actual passes,0ignored; audit8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23). The raw recorder retains three same-line identity false negatives caused by nocapture output, including one exact known child test; a strict separate identity/count/exit audit verifies all76 natural passes without rerunning them. Disabling only the compound memo-hit branch makes all six new controls fail at their actual-hit assertions; raw failure verdicts remain preserved (comparisonb8ed287657fb6c07f72737bbfadc7271a9633d65be236c5341835ee3cac95b11). Restoring exact source makes all six pass again (receiptdc1d6e977a547489a1daa7a77446623175199ef12d8f7ac6e9fcd954696f5207). A subsequently removed unused getter changed no call path; normal --tests typechecking passed after that deletion (receipt2a1aa075e7a451e16659f3ad2b15abe4f097afb02cc3a1a36e4882ec5dc298f3). All original command groups joined unforced and each attempt kept its sealed source unchanged. These are logical DEV checks, not production throughput evidence.",
-      "next": "Commit the source-verified Store memo and rerun the same genuine six-source RELEASE case with unchanged8s/200ms/media bars and actual profile evidence. Heap/Chrome/cell/matrix runs stay held until native readiness and all four moves pass. Separate G6-098 soak remains pending."
+      "evidence": "Three new Core controls and ten related audio/Probe controls passed13/13 (receiptff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa). The same new positive controls fail against isolated old362 production at the intended assertions; raw0/2 failure flags are preserved (comparative proof64246ae9143ab589a82219617f3792e84d68c12be8031025cfbe265a80cce792). Genuine RELEASE integration now failed0/1 in13.99s with actual Core/Service/Store and harness opt-level3/debug-assertionsfalse, unchanged source and all original command/controller joins (receipt6a0d01415a36d1cd899ab4b510ab1027d94a05f3d76d28f948dbf5e6e3cf6a28). Both first candidates received some video packets but decoded no keyframe; their final consecutive usable audio run was960 samples, below2880. All six original receivers stalled during preparation. Route counters showed46/96 enqueues but5/19 native video writer inputs, all locally accepted; these are different stages/observation windows, not packet-loss ratios. Direct scene stages reached332/339ms. This establishes a release-profile delivery/admission performance failure, while its precise CPU/SQL/file source remains under investigation.34 distinct component passes are not a fresh250-case cohort or matrix qualification. One bounded same-case release profile also failed0/1 with unchanged source and all joins (receiptbb953c8dc61b58260c2b7969de31aa4d20381fe7de658c1e2299d5dd6de0750a). Fixed Store snapshots show all4slots in capture at readiness failure and0after cleanup; completed capture claim mean14.33ms, actual SQL-held capture mean7.15ms and reseal mean5.66ms, versus file-admit mean0.552ms. These are concurrent completed-interval observations, not CPU time. The sampler exited0naturally and retained a complete30.9MB report, but its collector16MiB post-limit is failed and preserved. Stack observations identify both SQLite planning/execution and authority open/access paths; no new source fix or profiling pass is claimed. The integrated Store memo passed normal --tests typechecking, all six new actual-hit controls and70 retained authorization, receiver, source-set, custody, compound-reseal and slot controls (76 actual passes,0ignored; audit8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23). The raw recorder retains three same-line identity false negatives caused by nocapture output, including one exact known child test; a strict separate identity/count/exit audit verifies all76 natural passes without rerunning them. Disabling only the compound memo-hit branch makes all six new controls fail at their actual-hit assertions; raw failure verdicts remain preserved (comparisonb8ed287657fb6c07f72737bbfadc7271a9633d65be236c5341835ee3cac95b11). Restoring exact source makes all six pass again (receiptdc1d6e977a547489a1daa7a77446623175199ef12d8f7ac6e9fcd954696f5207). A subsequently removed unused getter changed no call path; normal --tests typechecking passed after that deletion (receipt2a1aa075e7a451e16659f3ad2b15abe4f097afb02cc3a1a36e4882ec5dc298f3). All original command groups joined unforced and each attempt kept its sealed source unchanged. These are logical DEV checks, not production throughput evidence. The same genuine RELEASE test after the memo failed0/1 in11.69s, all original groups/controller joined naturally and source unchanged (receipt7de4c0e64ccfb93e8dba0520d674d0520f0ba338b9ccf4099adef367846edaf2). Both outbound generation-two moves completed in4.214s with actual private2880-sample/keyframe readiness, complete-second old24fps and retained fresh uplink assertions passed. Both generation-three return candidates reached fresh private A/V; before their Ready submissions, the old active view failed its2880-consecutive-audio assertion at an unreported index. Its earlier last-audio assertion passed, so this does not establish absent audio. All ten original C decoders exited0 and ten encoders joined naturally. New capture-SQL and reseal-SQL observed completed-interval means were342us/87us versus prior7.15ms/5.66ms, over different windows; these are not CPU or throughput comparisons. Four target counters recorded1902 accepted video writer inputs and0local errors, including postcommit public writes on generation-two targets. Exact comparisonc6529aec00b2bae936fb9f1a39e9dbb2ee2a0c8c472d210a36d844cf5dc1e33f preserves scope and uncertainty. Source review found a round-one-only fixture hotspot: after arming a later replacement, every current-candidate packet/timer iteration synchronously reopened SQLite and ran a full exact-retirement join. The fixture now polls an observed historical commit latch in memory; exact SQL remains at confirmed original completion and terminal-error boundaries. Read-only deadlines are accepted only with that exact witness. Its two new helper controls and another genuine run remain pending; no sole-cause claim is made. A separate source-backed fixture freshness gap is also corrected: duplicate/late RTP ignored without PCM no longer refreshes last-decoded-audio time. A new real-Opus control and the two retirement controls await actual release execution; no historical duplicate cause is inferred. All three exact fixture controls now pass in RELEASE with0ignored (receiptc5a54536843307cda582dc9957175f07a6b96138a6db7e0d44359025f55ccbf7): armed memory-only retirement polling/historical latch; unconfirmed or mismatched retirement and wrong-certainty refusal; real-Opus ignored-duplicate freshness plus actual-output and loss reset. Cargo and all three original command groups/controller joined0unforced with sealed source unchanged. Core, Store, Service and harness profiles are opt3/debug-assertionsfalse. This verifies the fixture helpers, not the four-move integration or its unresolved old-active audio observation.",
+      "next": "Commit the three fixture corrections and rerun the same genuine four-move RELEASE case with unchanged8s/200ms/2880/24fps bars and failed-index/audio-run diagnostics. Heap/Chrome/cell/matrix remain held. Prospective final scope262Rust (ARM260 plus2installed-browser),304Node,197Python,MacACL1 includes three old audio contract cases still pending onARM. Separate G6-098 soak remains pending."
     },
     {
       "id": "B95",
@@ -1051,8 +1051,8 @@
     }
   ],
   "focused_distinct_rust_component_passes": {
-    "count": 110,
-    "scope": "110 distinct cases across separate source-bound focused attempts; latest Store cohort76, not a fresh256-case combined cohort or matrix qualification",
+    "count": 113,
+    "scope": "113 distinct cases across separate source-bound focused attempts; latest three fixture helpers passed in release. Not a fresh262-case combined cohort or matrix qualification.",
     "cases": [
       {
         "name": "staged_streams::tests::packet_admission::local_audio_enqueue_and_actual_send_policy_release_state_and_keep_neutral_origin",
@@ -1679,6 +1679,21 @@
         "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
         "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
         "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "sdk_handles::replacement_video_recovery::readiness::representative::candidate_retirement_poll_uses_only_observed_exact_commit_and_preserves_history",
+        "receipt_sha256": "c5a54536843307cda582dc9957175f07a6b96138a6db7e0d44359025f55ccbf7",
+        "source_workspace_sha256": "85e1b1c47667e222a99ff30dbbd19f0866393e9690aa3b8d4cda896056c74b96"
+      },
+      {
+        "name": "sdk_handles::replacement_video_recovery::readiness::representative::original_readonly_deadline_requires_exact_confirmed_retirement",
+        "receipt_sha256": "c5a54536843307cda582dc9957175f07a6b96138a6db7e0d44359025f55ccbf7",
+        "source_workspace_sha256": "85e1b1c47667e222a99ff30dbbd19f0866393e9690aa3b8d4cda896056c74b96"
+      },
+      {
+        "name": "sdk_handles::replacement_video_recovery::readiness::representative::ignored_audio_packets_cannot_refresh_actual_decoded_playout",
+        "receipt_sha256": "c5a54536843307cda582dc9957175f07a6b96138a6db7e0d44359025f55ccbf7",
+        "source_workspace_sha256": "85e1b1c47667e222a99ff30dbbd19f0866393e9690aa3b8d4cda896056c74b96"
       }
     ]
   },
@@ -1732,5 +1747,56 @@
       "python": 197,
       "mac_acl": 1
     }
+  },
+  "b94_release_memo_result": {
+    "raw_actual": [
+      0,
+      1,
+      0
+    ],
+    "runtime_seconds": 11.69,
+    "head": "0f981132309fd4c72dec0f268fa1810d47f6f049",
+    "source_workspace_sha256": "90fd2073f4d0a65d92a5d660461cceddc7f9c2c9a002f0b72f2cbd330eeacad3",
+    "receipt_sha256": "7de4c0e64ccfb93e8dba0520d674d0520f0ba338b9ccf4099adef367846edaf2",
+    "comparison_sha256": "c6529aec00b2bae936fb9f1a39e9dbb2ee2a0c8c472d210a36d844cf5dc1e33f",
+    "all_original_joins_unforced": true,
+    "outbound_completed": 2,
+    "outbound_elapsed_ms": 4214,
+    "return_candidates_reached_private_fresh_gate": 2,
+    "return_commits": 0,
+    "failure": "old active audio consecutive-run assertion",
+    "failure_index": null,
+    "performance_window_comparison_is_cpu": false,
+    "original_failed_verdict_preserved": true,
+    "fixture_followthrough_manifest_sha256": "e28a8ac188482bb3c48c9017191d95875ab1d133b9ce4064e893898bc4d2a4a9",
+    "fixture_release_controls_pending": 0,
+    "prospective_scope": {
+      "rust": 262,
+      "arm_rust": 260,
+      "mac_installed_browser_rust": 2,
+      "node": 304,
+      "python": 197,
+      "mac_acl": 1
+    },
+    "freshness_observation_fix": "Private decoder returns actual-output boolean; only true advances observation.",
+    "future_arm_existing_audio_contract_cases_pending": 3,
+    "fixture_release_controls_passed": 3
+  },
+  "b94_retirement_and_decoded_audio_controls": {
+    "actual_passed": 3,
+    "actual_failed": 0,
+    "actual_ignored": 0,
+    "receipt_sha256": "c5a54536843307cda582dc9957175f07a6b96138a6db7e0d44359025f55ccbf7",
+    "controller_sha256": "91a655242922942b590911fbbb179e0a9fc4eaaf20aad9a9e262aa18ce01af2e",
+    "source_workspace_sha256": "85e1b1c47667e222a99ff30dbbd19f0866393e9690aa3b8d4cda896056c74b96",
+    "source_seal_unchanged": true,
+    "all_original_groups_joined_unforced": true,
+    "release_profile_proved": true,
+    "cases": [
+      "sdk_handles::replacement_video_recovery::readiness::representative::candidate_retirement_poll_uses_only_observed_exact_commit_and_preserves_history",
+      "sdk_handles::replacement_video_recovery::readiness::representative::original_readonly_deadline_requires_exact_confirmed_retirement",
+      "sdk_handles::replacement_video_recovery::readiness::representative::ignored_audio_packets_cannot_refresh_actual_decoded_playout"
+    ],
+    "genuine_four_move_result_pending": true
   }
 }

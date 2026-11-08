@@ -38,9 +38,9 @@ fn actual_g711_companding_vectors_and_received_samples_are_decoded() {
 fn original_audio_duplicates_loss_and_source_change_cannot_reuse_readiness() {
     let mut decoder = audio::Decoder::selected(&selected("pcmu", 8000, 0)).unwrap();
     let bytes = [0x80; 160];
-    decoder.decode(7, 10, 1600, &bytes).unwrap();
-    decoder.decode(7, 10, 1600, &bytes).unwrap();
-    decoder.decode(7, 9, 1440, &bytes).unwrap();
+    assert!(decoder.decode(7, 10, 1600, &bytes).unwrap());
+    assert!(!decoder.decode(7, 10, 1600, &bytes).unwrap());
+    assert!(!decoder.decode(7, 9, 1440, &bytes).unwrap());
     assert_eq!(decoder.samples(), 160);
     decoder.decode(7, 12, 1920, &bytes).unwrap();
     assert_eq!(

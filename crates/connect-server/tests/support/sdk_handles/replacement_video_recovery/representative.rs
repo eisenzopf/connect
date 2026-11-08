@@ -60,6 +60,10 @@ struct Progress {
     keys: u64,
     fragmented_keys: u64,
     audio_samples: u64,
+    audio_peak_samples: u64,
+    // Nonincreasing consecutive samples among actual new PCM decodes.
+    audio_run_nonincreases: u64,
+    audio_last_nonincrease: Option<Instant>,
     last_video: Option<Instant>,
     last_audio: Option<Instant>,
     last_key: Option<Instant>,
@@ -385,6 +389,7 @@ struct RetiredMove {
     candidate: String,
     runtime: String,
     generation: u64,
+    observed_commit: Arc<AtomicBool>,
 }
 struct RetirementWitness {
     database: std::path::PathBuf,
@@ -392,23 +397,41 @@ struct RetirementWitness {
     original: Mutex<Option<RetiredMove>>,
 }
 impl RetirementWitness {
+    // Packet/timer loops consult only the already-observed historical fact.
+    // They perform no database IO and cannot forecast a later commit.
+    fn observed(&self) -> bool {
+        self.original
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|original| original.observed_commit.load(Ordering::Acquire))
+    }
     fn committed(&self) -> bool {
         let Some(original) = self.original.lock().unwrap().clone() else {
             return false;
         };
+        if original.observed_commit.load(Ordering::Acquire) {
+            return true;
+        }
         let db = rusqlite::Connection::open_with_flags(
             &self.database,
             rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
         )
         .unwrap();
-        db.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements n
+        let committed = db.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements n
             JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='commit' AND s.started=1
             JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=n.operation_record_id AND e.provider='native-replacement-commit' AND e.state='confirmed'
             JOIN connections old ON old.id=?1 AND old.state='retired' AND old.generation=?6
             JOIN connections target ON target.id=n.candidate_connection_id AND target.replaces=old.id AND target.state='ready' AND target.generation=?6
             JOIN connection_offers media ON media.connection_id=target.id AND media.runtime_connection_id=?5
             WHERE n.operation_record_id=?2 AND n.reservation_id=?3 AND n.candidate_connection_id=?4 AND n.candidate_runtime_id=?5 AND n.generation=?6)",
-            rusqlite::params![self.source,original.record,original.reservation,original.candidate,original.runtime,original.generation],|row|row.get(0)).unwrap()
+            rusqlite::params![self.source,original.record,original.reservation,original.candidate,original.runtime,original.generation],|row|row.get(0)).unwrap();
+        if committed {
+            // This exact confirmed commit remains historical fact when its
+            // target subsequently moves again. It grants no media authority.
+            original.observed_commit.store(true, Ordering::Release);
+        }
+        committed
     }
 }
 fn capture_retirement(
@@ -446,6 +469,113 @@ fn capture_retirement(
         candidate,
         runtime,
         generation,
+        observed_commit: Arc::new(AtomicBool::new(false)),
+    }
+}
+
+fn retirement_control() -> (tempfile::TempDir, RetirementWitness, rusqlite::Connection) {
+    let directory = tempfile::tempdir().unwrap();
+    let database = directory.path().join("retirement.sqlite3");
+    let connection = rusqlite::Connection::open(&database).unwrap();
+    connection.execute_batch("
+        CREATE TABLE native_replacements(operation_record_id TEXT, reservation_id TEXT,
+            candidate_connection_id TEXT, candidate_runtime_id TEXT, generation INTEGER);
+        CREATE TABLE native_replacement_steps(operation_record_id TEXT, phase TEXT,
+            started INTEGER, effect_id TEXT);
+        CREATE TABLE operation_effects(id TEXT, operation_record_id TEXT, provider TEXT, state TEXT);
+        CREATE TABLE connections(id TEXT, state TEXT, generation INTEGER, replaces TEXT);
+        CREATE TABLE connection_offers(connection_id TEXT, runtime_connection_id TEXT);
+        INSERT INTO native_replacements VALUES('record','reservation','target','runtime',2);
+        INSERT INTO native_replacement_steps VALUES('record','commit',1,'effect');
+        INSERT INTO operation_effects VALUES('effect','record','native-replacement-commit','confirmed');
+        INSERT INTO connections VALUES('source','retired',2,NULL),('target','ready',2,'source');
+        INSERT INTO connection_offers VALUES('target','runtime');
+    ").unwrap();
+    let witness = RetirementWitness {
+        database,
+        source: "source".into(),
+        original: Mutex::new(Some(RetiredMove {
+            record: "record".into(),
+            reservation: "reservation".into(),
+            candidate: "target".into(),
+            runtime: "runtime".into(),
+            generation: 2,
+            observed_commit: Arc::new(AtomicBool::new(false)),
+        })),
+    };
+    (directory, witness, connection)
+}
+
+#[test]
+fn candidate_retirement_poll_uses_only_observed_exact_commit_and_preserves_history() {
+    let (_directory, witness, connection) = retirement_control();
+    // Polling must not touch SQLite even when the return has been armed.
+    let parked = witness.database.with_extension("parked");
+    std::fs::rename(&witness.database, &parked).unwrap();
+    assert!(!witness.observed());
+    assert!(!witness.database.exists());
+    std::fs::rename(&parked, &witness.database).unwrap();
+    assert!(witness.committed());
+    assert!(witness.observed());
+    // A subsequent genuine return retires this target at generation three.
+    // It cannot erase the original commit already observed for this source.
+    connection
+        .execute(
+            "UPDATE connections SET state='retired',generation=3 WHERE id='target'",
+            [],
+        )
+        .unwrap();
+    std::fs::rename(&witness.database, &parked).unwrap();
+    assert!(witness.observed());
+    assert!(witness.committed());
+    assert!(!witness.database.exists());
+}
+
+#[test]
+fn original_readonly_deadline_requires_exact_confirmed_retirement() {
+    let readonly_deadline = || {
+        Err(sdk::Error {
+            kind: sdk::ErrorKind::Deadline,
+            certainty: sdk::Certainty::ReadOnly,
+            operation: None,
+            problem: None,
+            observation: None,
+        })
+    };
+    for invalid in [
+        "UPDATE operation_effects SET state='unknown'",
+        "UPDATE native_replacement_steps SET started=0",
+        "UPDATE native_replacements SET reservation_id='other'",
+        "UPDATE native_replacements SET candidate_runtime_id='other'",
+        "UPDATE connections SET state='ready' WHERE id='source'",
+        "UPDATE connections SET generation=1 WHERE id='source'",
+        "UPDATE connection_offers SET runtime_connection_id='other'",
+    ] {
+        let (_directory, witness, connection) = retirement_control();
+        connection.execute(invalid, []).unwrap();
+        assert!(std::panic::catch_unwind(|| original_packet(
+            readonly_deadline(),
+            &witness,
+            "video"
+        ))
+        .is_err());
+        assert!(!witness.observed());
+    }
+    let (_directory, witness, _connection) = retirement_control();
+    assert!(original_packet(readonly_deadline(), &witness, "video").is_none());
+    // Mutating/uncertain timeouts and unrelated receive failures still fail.
+    for (kind, certainty) in [
+        (sdk::ErrorKind::Deadline, sdk::Certainty::Uncertain),
+        (sdk::ErrorKind::Protocol, sdk::Certainty::ReadOnly),
+    ] {
+        let result = Err(sdk::Error {
+            kind,
+            certainty,
+            operation: None,
+            problem: None,
+            observation: None,
+        });
+        assert!(std::panic::catch_unwind(|| original_packet(result, &witness, "video")).is_err());
     }
 }
 
@@ -456,7 +586,12 @@ fn original_packet(
 ) -> Option<sdk::MediaPacket> {
     match result {
         Ok(packet) => Some(packet),
-        Err(error) if error.kind == sdk::ErrorKind::Unsupported && retirement.committed() => {
+        Err(error)
+            if (error.kind == sdk::ErrorKind::Unsupported
+                || (error.kind == sdk::ErrorKind::Deadline
+                    && error.certainty == sdk::Certainty::ReadOnly))
+                && retirement.committed() =>
+        {
             eprintln!("representative original receiver observed exact recorded source retirement source={}",retirement.source);
             None
         }
@@ -506,11 +641,60 @@ fn observe_video(
         *count = count.saturating_add(1);
     }
 }
-fn observe_audio(progress: &SharedProgress, decoder: &readiness_audio::Decoder) {
+fn observe_audio(progress: &SharedProgress, decoder: &readiness_audio::Decoder, decoded: bool) {
+    if !decoded {
+        return;
+    }
     let mut state = progress.lock().unwrap();
-    state.audio_samples = decoder.samples();
-    state.last_audio = Some(Instant::now());
+    let samples = decoder.samples();
+    let now = Instant::now();
+    if state.audio_samples > 0 && samples <= state.audio_samples {
+        state.audio_run_nonincreases += 1;
+        state.audio_last_nonincrease = Some(now);
+    }
+    state.audio_samples = samples;
+    state.audio_peak_samples = state.audio_peak_samples.max(samples);
+    state.last_audio = Some(now);
 }
+
+#[test]
+fn ignored_audio_packets_cannot_refresh_actual_decoded_playout() {
+    let progress = Arc::new(Mutex::new(Progress::default()));
+    let mut decoder = selected_opus();
+    let bytes = decoder.encoded_silence().unwrap();
+    for sequence in 0..3u16 {
+        let decoded = decoder
+            .decode(7, sequence, u32::from(sequence) * 960, &bytes)
+            .unwrap();
+        assert!(decoded);
+        observe_audio(&progress, &decoder, decoded);
+    }
+    let expired = Instant::now() - AGE;
+    progress.lock().unwrap().last_audio = Some(expired);
+    for sequence in [2u16, 1] {
+        let decoded = decoder
+            .decode(7, sequence, u32::from(sequence) * 960, &bytes)
+            .unwrap();
+        assert!(!decoded);
+        observe_audio(&progress, &decoder, decoded);
+        let observed = progress.lock().unwrap();
+        assert_eq!(observed.audio_samples, 2880);
+        assert_eq!(observed.last_audio, Some(expired));
+        assert_eq!(observed.audio_run_nonincreases, 0);
+    }
+    let decoded = decoder.decode(7, 3, 2880, &bytes).unwrap();
+    assert!(decoded);
+    observe_audio(&progress, &decoder, decoded);
+    assert!(progress.lock().unwrap().last_audio.unwrap() > expired);
+    let decoded = decoder.decode(7, 5, 4800, &bytes).unwrap();
+    assert!(decoded);
+    observe_audio(&progress, &decoder, decoded);
+    let observed = progress.lock().unwrap();
+    assert_eq!(observed.audio_samples, 960);
+    assert_eq!(observed.audio_peak_samples, 3840);
+    assert_eq!(observed.audio_run_nonincreases, 1);
+}
+
 fn selected_opus() -> readiness_audio::Decoder {
     readiness_audio::Decoder::selected(&json!({"name":"opus","params":{
         "sample_rate":48000,"channels":1,"payload_type":111}}))
@@ -759,8 +943,8 @@ fn spawn_original_receiver(
                         let sdk::MediaPacket::Rtp(packet)=packet else {continue};
                         progress.lock().unwrap().audio_packets+=1;
                         let header=packet.header();assert_eq!(header.payload_type,111);
-                        audio.decode(header.ssrc,header.sequence_number,header.timestamp,packet.payload()).unwrap();
-                        observe_audio(&progress,&audio);
+                        let decoded=audio.decode(header.ssrc,header.sequence_number,header.timestamp,packet.payload()).unwrap();
+                        observe_audio(&progress,&audio,decoded);
                     }
                 }
             }
@@ -864,7 +1048,7 @@ fn spawn_candidate(
                 // This original physical may stop only after its own exact
                 // later replacement really committed. No pre-Ready forecast
                 // or renewed deadline can retire a generation-two candidate.
-                if retirement.committed() {break;}
+                if retirement.observed() {break;}
                 tokio::select! {
                     _=stop.cancelled()=>break,
                     _=audio_tick.tick()=>{
@@ -920,8 +1104,8 @@ fn spawn_candidate(
                             if packet.stream_local_id!=voice {progress.lock().unwrap().other_datagrams+=1;continue;}
                             {let mut measured=progress.lock().unwrap();measured.audio_read_events+=1;measured.audio_packets+=1;}
                             let packet=packet.rtp.into_packet();assert_eq!(packet.header.payload_type,111);
-                            audio.decode(packet.header.ssrc,packet.header.sequence_number,packet.header.timestamp,&packet.payload).unwrap();
-                            observe_audio(&progress,&audio);
+                            let decoded=audio.decode(packet.header.ssrc,packet.header.sequence_number,packet.header.timestamp,&packet.payload).unwrap();
+                            observe_audio(&progress,&audio,decoded);
                         }
                     }
                 }
@@ -1394,7 +1578,8 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
                 assert_ne!(during[index].timestamp,before[index].timestamp);
                 assert!(during[index].last_video.unwrap()>=move_started);
                 assert!(during[index].last_audio.unwrap()>=move_started);
-                assert!(during[index].audio_samples>=2880);
+                assert!(during[index].audio_samples>=2880,
+                    "old active receiver {index} round={round} lost consecutive decoded audio progress={:?}",during[index]);
             }
             // Keep the same24fps bar for every complete PREPARING second in
             // both rounds, including the generation-two candidate receivers.
@@ -1432,7 +1617,13 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
                             rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap().query_row(
                             "SELECT state,generation FROM connections WHERE id=?1",[&active_sources[index]],
                             |row|Ok((row.get(0)?,row.get(1)?))).unwrap();
-                        if (state.as_str(),actual_generation)==("retired",generation) {break;}
+                        if (state.as_str(),actual_generation)==("retired",generation) {
+                            let witness=if let Some(previous)=previous_targets[sid] {
+                                targets[previous].retirement.as_ref().unwrap()
+                            } else {&retirements[index]};
+                            assert!(witness.committed(),"exact original commit must explain physical retirement");
+                            break;
+                        }
                         tokio::time::sleep(Duration::from_millis(10)).await;
                     }
                 }).await.expect("exact original source must retire within same original move deadline");

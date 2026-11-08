@@ -65,23 +65,24 @@ impl Decoder {
             }
         })
     }
+    // True reports actual new PCM output. Duplicate/late packets produce none.
     pub(super) fn decode(
         &mut self,
         ssrc: u32,
         seq: u16,
         timestamp: u32,
         packet: &[u8],
-    ) -> Result<(), String> {
+    ) -> Result<bool, String> {
         if packet.is_empty() {
             return Err("empty audio cannot invoke PLC or count as a decode".into());
         }
         let frame_samples = self.rate / 50;
         if let Some((old_source, old_seq, old_timestamp)) = self.previous {
             if old_source == ssrc && seq.wrapping_sub(old_seq) >= 32768 {
-                return Ok(());
+                return Ok(false);
             }
             if old_source == ssrc && seq == old_seq {
-                return Ok(());
+                return Ok(false);
             }
             if old_source != ssrc
                 || seq != old_seq.wrapping_add(1)
@@ -128,7 +129,7 @@ impl Decoder {
         };
         self.previous = Some((ssrc, seq, timestamp));
         self.samples += count as u64;
-        Ok(())
+        Ok(true)
     }
 }
 pub(super) fn mu(byte: u8) -> i16 {
