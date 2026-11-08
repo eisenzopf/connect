@@ -149,6 +149,68 @@ class OriginalLeaseOrdering(unittest.TestCase):
         self.assertFalse(cell['execution']['attempted']);self.assertEqual(cell['status'],'blocked')
 
 
+    def test_worker_main_calls_storage_preflight_after_wiring_preflight(self):
+        loader = importlib.util.spec_from_file_location(
+            'storage_worker_main', ROOT / 'scripts/run-gate6-transport-matrix.py')
+        driver = importlib.util.module_from_spec(loader)
+        loader.loader.exec_module(driver)
+        revision = 'a' * 40
+        cells = [dict(id='cell-' + str(index), status='passed',
+                      server='macos-arm64' if index < 16 else 'ubuntu24-arm64',
+                      execution=dict(runnable=False)) for index in range(32)]
+        matrix = dict(cells=cells, source_revision=revision, matrix_qualified=False,
+                      execution_environment=dict(server='ubuntu24-arm64'))
+        events = []
+        wiring = dict(required_cells=32, tests_executed=False)
+        admitted = dict(admitted=True, source='original-storage-preflight')
+
+        def git(command, **_):
+            if command == ['git', 'rev-parse', 'HEAD']:
+                return revision + '\n'
+            if command[:3] == ['git', 'status', '--porcelain']:
+                return ''
+            self.fail('Unexpected external command: ' + repr(command))
+
+        def wiring_preflight(value):
+            self.assertIs(value, matrix)
+            events.append('wiring')
+            return wiring
+
+        def storage_preflight(directory):
+            self.assertEqual(directory, output.resolve())
+            events.append('storage')
+            return admitted
+
+        def selected(value, ids, directory, execute, *, storage_admit, **_):
+            self.assertIs(value, matrix)
+            self.assertEqual(ids, [cell['id'] for cell in cells])
+            self.assertEqual(directory, output.resolve())
+            self.assertEqual(storage_admit(cells[16]), admitted)
+
+        with tempfile.TemporaryDirectory(dir=ROOT / '.local') as temp:
+            output = Path(temp) / 'worker'
+            argv = ['matrix', '--phase', 'worker', '--stage', 'full',
+                    '--expected-revision', revision, '--output', str(output)]
+            with patch.object(driver.sys, 'argv', argv), \
+                    patch.dict(driver.os.environ, {'CI': '', 'GITHUB_ACTIONS': ''}), \
+                    patch.object(driver.os, 'chdir'), patch.object(driver, 'save'), \
+                    patch.object(driver, 'MetadataReserve'), \
+                    patch.object(driver.subprocess, 'check_output', side_effect=git), \
+                    patch.object(driver.subprocess, 'run') as external_build, \
+                    patch.object(driver, 'inventory', return_value=matrix), \
+                    patch.object(driver, 'probe', return_value={}), \
+                    patch.object(driver, 'configure_execution'), \
+                    patch.object(driver, 'full_run_preflight', side_effect=wiring_preflight), \
+                    patch.object(driver, 'preflight', side_effect=storage_preflight) as actual_storage, \
+                    patch.object(driver, 'execute_selected', side_effect=selected), \
+                    patch.object(driver, 'select_cells', return_value=cells), \
+                    patch.object(driver, 'summarize', return_value={}), patch('builtins.print'):
+                self.assertEqual(driver.main(), 0)
+            actual_storage.assert_called_once_with(output.resolve())
+            external_build.assert_not_called()
+        self.assertEqual(events, ['wiring', 'storage'])
+
+
 class OriginalCoordinator(unittest.TestCase):
     def fake(self,root):
         from types import SimpleNamespace

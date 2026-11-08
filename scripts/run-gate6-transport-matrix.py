@@ -303,8 +303,8 @@ def main():
         print(json.dumps(dict(required_cells=32, runnable_workloads=sum(c["execution"]["runnable"] for c in matrix["cells"]),
                               qualified_cells=0, tests_executed=False)))
         return 0
-    preflight = full_run_preflight(matrix)
-    save(output / "full-run-preflight.json", preflight)
+    wiring_preflight = full_run_preflight(matrix)
+    save(output / "full-run-preflight.json", wiring_preflight)
     selected = select_cells(matrix, selected_ids)
     if subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=normal"], text=True).strip():
         raise ValueError("Commit the candidate before execution")

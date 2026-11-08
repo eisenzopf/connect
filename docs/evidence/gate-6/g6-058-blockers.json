@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-08",
-  "run_status": "All current focused media/library controls are green. The native six-source/two-Session four-handoff programme passes, the final3-cycle heap control passes, and both real installed-Chrome controls pass across3fresh pairs (6/6) with unchanged source-identity/readiness/deadline checks. Warmed audio graph transfer passes57affected units, including old-cancellation recovery. Full Node selection now includes both whole SDK test files and331cases; Mac discovery is324pass/7Linux platform refusals and remains unqualified. Next is local ARM expanded301Rust/331Node/197Python/MacACL1 and the full32-cell matrix. Closed DEBUG cache compression is running to fund storage. Latest matrixv203 stays0qualified/24failed/8blocked cells,197passed/62failed/173blocked checks. G6-054 remains deferred and G6-098 sustained growth separate.",
+  "run_status": "The native six-source/two-Session four-handoff programme passes, the final three-cycle heap control passes, and both installed-Chrome controls pass across three fresh pairs, six of six. The warmed audio graph transfer passes 57 affected units. A final launch audit reproduced and fixed an ARM worker storage-function shadowing bug, with 28 storage controls passing. Lossless cache compression and verified legacy-cache relocation completed, with about 38.8 GiB free on D2 and 29.1 GiB internally. Next is the combined local qualifier of 301 Rust, 331 Node and 198 Python controls plus the Mac ACL check, then all 32 matrix cells. The latest full matrix remains v203 with zero qualified, 24 failed and eight blocked cells, and 197 passed, 62 failed and 173 blocked checks. G6-054 remains deferred. The approved resource budgets and separate G6-098 sustained-growth soak remain in effect.",
   "blockers": [
     {
       "id": "B01",
@@ -865,10 +865,18 @@
     {
       "id": "B104",
       "title": "Local full-matrix working space and durable archive headroom",
-      "status": "FUNDING IN PROGRESS. Lossless closed-cache compression is running; measured admission remains required.",
-      "change": "Apply transparent APFS compression to3558closed project DEBUG cache files using exact metadata, full-byte SHA, mmap, mode/mtime and executable-signature checks before same-volume atomic replacement. Preserve current code and test artifacts through the reviewed scope. Recheck actual free space and archive accumulation before the matrix.",
-      "evidence": "The unchanged full-run preflight requires25.454GiB on each backing/spool volume. Earlier free space was about21GiBinternal and18GiBD2. Copied library/executable pilots preserve full bytes and normal executable listing. Original3559-row proposal contained one empty metadata file, excluded before execution. Current actual per-file receipts record measured free space; sample-based savings and13GiBfuture archives remain engineering estimates.",
-      "next": "Finish the owned compression operation, measure both volumes, fund any remaining internal backing margin with reviewed reversible custody, then admit the expanded local build and full matrix."
+      "status": "CACHE CUSTODY VERIFIED. Actual full-run storage admission remains required.",
+      "change": "Transparently compressed 3558 closed DEBUG cache files with full-byte, metadata, mmap and executable-signature checks. Relocated four closed gzip-only legacy cache directories to D2 with durable verified copies and directory aliases at their original paths. All 215 file contents remain available.",
+      "evidence": "Compression completed naturally with all 3558 selected logical contents and both protected current executables preserved. Receipt b6d05085ed45f363cfec47c18349749d410b65e0d49bf8505a6657143e72ecd4. The reversible relocation completed naturally, retained all child leaves as regular files and recovered 3.597 GiB internally. Receipt a6eeaa95b9d600cbb7fe294cbc6d7587e0dff8f9064cc04846e011f69fdda691. Actual final free space was 38.79 GiB on D2 and 29.09 GiB internally. Historical physical identity records remain unchanged.",
+      "next": "Reobserve actual guest, backing and spool headroom before the combined build and each full-matrix component. The 13 GiB future-archive allowance remains an estimate. Preserve durable archive backpressure."
+    },
+    {
+      "id": "B105",
+      "title": "ARM full-worker wiring report shadows the storage admission function",
+      "status": "REGRESSION VERIFIED. Original worker entry regression passes and all 28 storage controls pass.",
+      "change": "Rename the local full-run wiring report to wiring_preflight, preserving the imported storage preflight function used after ARM lease acquisition.",
+      "evidence": "The new worker-main regression fails against the original source with TypeError because a dict is called, then passes with the two-line binding fix. All 28 storage controls pass with zero skips and all original command groups naturally joined. Receipt 44f773fb9bdb4c77152e63c01d1ec162617ea697e0a452c2636cc42519a644b6. The initial regression-fixture summary mock error and its correction remain recorded. No full matrix result is inferred.",
+      "next": "Include the new control in the full 198-case Python selection, then execute all 32 matrix cells using the normal coordinator."
     }
   ],
   "workplan_tasks": [
@@ -2608,5 +2616,13 @@
     },
     "qualified": false,
     "scope": "Mac inventory run; seven Linux-only fixture platform assertions refuse this host"
+  },
+  "b105_worker_storage_preflight_receipt": {
+    "path": ".local/gate-6/v203-worker-storage-preflight-shadow-fix/receipt.json",
+    "sha256": "44f773fb9bdb4c77152e63c01d1ec162617ea697e0a452c2636cc42519a644b6",
+    "full_storage_passes": 28,
+    "before_failed": true,
+    "after_passed": true,
+    "matrix_qualified": false
   }
 }
