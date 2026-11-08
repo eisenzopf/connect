@@ -1211,7 +1211,8 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
     .unwrap();
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
-            if connection_state(&f, &candidate) == ("retired".into(), 2)
+            // Store retirement fences the admitted generation 2 connection to generation 3.
+            if connection_state(&f, &candidate) == ("retired".into(), 3)
                 && !host.adapter().is_connection_live(&admitted_runtime)
                 && host.adapter().route_count() == 1
             {

@@ -1,0 +1,44 @@
+--- a/crates/foundation/infra-common/src/platform_c_allocator.rs
++++ b/crates/foundation/infra-common/src/platform_c_allocator.rs
+@@ -89,12 +89,29 @@
+         }
+         let original = snapshot();
+         assert_eq!(original["supported"], true);
+-        let allocation = Allocation(unsafe { malloc(1024 * 1024) });
++        const ALLOCATION_BYTES: usize = 1024 * 1024;
++        let allocation = Allocation(unsafe { malloc(ALLOCATION_BYTES) });
+         assert!(!allocation.0.is_null(), "actual C allocation failed");
++        // The release optimizer may elide an unused malloc/free pair, including
++        // its null check. Keep this actual C block opaque and observably live
++        // across the held snapshot; touching bytes does not measure residency.
++        let pointer = std::hint::black_box(allocation.0.cast::<u8>());
++        unsafe {
++            pointer.write_volatile(0x5a);
++            pointer.add(ALLOCATION_BYTES - 1).write_volatile(0xa5);
++        }
+         let held = snapshot();
++        let observed = unsafe {
++            (
++                pointer.read_volatile(),
++                pointer.add(ALLOCATION_BYTES - 1).read_volatile(),
++            )
++        };
++        std::hint::black_box(allocation.0);
+         // Take scalar evidence while the original allocation is live. Drop it
+         // before assertions so failed attribution never strands an owner.
+         drop(allocation);
++        assert_eq!(observed, (0x5a, 0xa5), "the original C block remains live");
+         assert_eq!(held["supported"], true);
+         assert!(held["resident_bytes"].is_null());
+         assert!(held["application_live_bytes"].is_null());
+@@ -115,8 +132,8 @@
+         let original_bytes = c_managed_in_use(&original);
+         let held_bytes = c_managed_in_use(&held);
+         assert!(
+-            held_bytes >= original_bytes.checked_add(1024 * 1024).unwrap(),
+-            "actual C block must add its held bytes to the original accounting"
++            held_bytes >= original_bytes.checked_add(ALLOCATION_BYTES as u64).unwrap(),
++            "actual C block must add its held bytes to the original accounting: original={original_bytes}, held={held_bytes}, requested={ALLOCATION_BYTES}"
+         );
+         let after = snapshot();
+         assert_eq!(after["supported"], true);

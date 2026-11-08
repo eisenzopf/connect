@@ -1959,6 +1959,11 @@
       "path": "patches/rvoip/connect-owned-queued-visual-policy-retry.patch",
       "sha256": "7b6a69874c25087c4bae84a759a5bc5d935bb8f98bb571ed5a36ccb3ad36fbf4",
       "source": "Retry only actual owned single-source queued Video/Screen after a definite internal post-policy model revision race. Private owner tagging excludes ordinary scene forwarding, generic callers, Audio and Data; preserve raw original367 behavior. Refuse the stale callback and run all unchanged current authority/credential/exact model-port-ticket/direct/consumer/scene/earliest-expiry checks before returning NotReady to the existing same-copy bounded queued owner. Drop all source/target leases before its existing1ms retry; no IO on stale grants, no queue/deadline increase, no policy/permanent conflict normalization. Existing error-only source/target egress traces add frame kind and original age numeric context."
+    },
+    {
+      "path": "patches/rvoip/connect-c-allocator-observation-release-control.patch",
+      "sha256": "a0e0a90ae5950604712f0a351c365d83128139615d56689c7031ecc473e0bb4a",
+      "source": "Test-only release control for existing feature-gated platform C allocator accounting. Force the original1MiB malloc block to remain observable across its existing held snapshot using an opaque pointer and volatile boundary-byte writes/reads, retaining RAII free before assertions. Preserve the production snapshot, exact requested-byte accounting threshold, supported ABI selection and null RSS/owner-liveness claims. Add numeric original/held/requested diagnostics; do not change allocator behavior, trim/reset/tune, or cache results."
     }
   ]
 }

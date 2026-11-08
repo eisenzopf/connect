@@ -113,6 +113,52 @@ pub(super) async fn answer(
     }
 }
 
+/// Keep the real retained speaker alive while this original decoder drains,
+/// observes and submits Ready. No task is spawned. Cancellation drops this
+/// publisher with the same future, and the source sequence/clock are continued.
+/// The setup validates the signed codec-voice PCMU8k binding and actual handle.
+pub(super) async fn while_retained_audio<T>(
+    source: &CanonicalClient,
+    handle: u16,
+    sequence: &mut u32,
+    clock: Instant,
+    cutoff: Instant,
+    ready: impl std::future::Future<Output = T>,
+) -> T {
+    let mut tick = tokio::time::interval(Duration::from_millis(20));
+    tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    tokio::pin!(ready);
+    timeout_at(cutoff, async {
+        loop {
+            tokio::select! {
+                result = &mut ready => return result,
+                _ = tick.tick() => {
+                    *sequence = sequence.wrapping_add(1);
+                    // Same original source and marked 20ms PCMU payload as the
+                    // finite public probes; input alone never counts as Ready.
+                    let packet = pack_rtp_datagram(&RtpDatagram {
+                        flags: 0,
+                        stream_local_id: handle,
+                        seq: *sequence,
+                        rtp: RtpMediaPayload {
+                            payload: (0..160).map(|i| if i % 16 < 8 { 0x80 } else { 0x00 })
+                                .collect::<Vec<_>>().into(),
+                            payload_type: 0,
+                            sequence_number: *sequence as u16,
+                            timestamp: (clock.elapsed().as_micros() * 8 / 1000) as u32,
+                            ssrc: 0x4736_8000,
+                        },
+                    }).unwrap();
+                    source.send_native_media_datagram(&packet)
+                        .expect("original retained source publication failed during private readiness");
+                }
+            }
+        }
+    })
+    .await
+    .expect("original replacement expired while its retained speaker remained live")
+}
+
 /// Retain this same physical client and frozen ready object across uncertainty.
 /// Only the original controller reads the original source-scoped operation.
 pub(super) async fn confirm(

@@ -62,6 +62,7 @@ pub(in super::super) async fn setup() -> codecs::Running {
     drop(database);
     let t = negotiate_media(&mut target, &cid, "codec-target-offer", "codec-target", json!([{"id":"codec-monitor","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]), capabilities()).await;
     let s = negotiate_media(&mut source, &cid, "codec-source-offer", "codec-source", json!([{"id":"codec-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]), capabilities()).await;
+    codecs::assert_pcmu_source(&s, av::stream_handle(&s, "codec-voice"));
     wait_native_operation(&f, &f.client.credential, &cid, "codec-target-offer").await;
     wait_native_operation(&f, &config.credential, &cid, "codec-source-offer").await;
     stream_control(

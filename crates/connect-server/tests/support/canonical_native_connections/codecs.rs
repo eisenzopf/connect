@@ -10,6 +10,23 @@ pub(super) struct Running {
     pub(super) sh: u16,
     pub(super) th: u16,
 }
+/// The continuing retained publisher uses this exact signed PCMU source,
+/// independently of the candidate's selected decoder (which may be Opus).
+pub(super) fn assert_pcmu_source(answer: &Envelope, handle: u16) {
+    let streams = answer.original()["payload"]["substrate_setup"]["streams"]
+        .as_array()
+        .unwrap();
+    let selected = streams
+        .iter()
+        .find(|stream| stream["strm_id"] == "codec-voice")
+        .unwrap();
+    assert_eq!(selected["kind"], "audio");
+    assert_eq!(selected["stream_local_id"], handle);
+    assert_eq!(selected["codec"]["name"], "pcmu");
+    assert_eq!(selected["codec"]["params"]["payload_type"], 0);
+    assert_eq!(selected["codec"]["params"]["sample_rate"], 8000);
+    assert_eq!(selected["codec"]["params"]["channels"], 1);
+}
 pub(super) async fn setup() -> Running {
     setup_operations("codec-target-offer", "codec-source-offer").await
 }
@@ -214,6 +231,15 @@ async fn setup_started_session_profile<T>(
     let cid = session_with_media(&f, &mut target, "voice", session_capabilities).await;
     let t=negotiate_media(&mut target,&cid,target_operation,"codec-target",json!([{"id":"codec-monitor","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]),target_capabilities).await;
     let s=negotiate_media(&mut source,&cid,source_operation,"codec-source",json!([{"id":"codec-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]),capabilities()).await;
+    assert_pcmu_source(
+        &s,
+        u16::try_from(
+            s.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
+                .as_u64()
+                .unwrap(),
+        )
+        .unwrap(),
+    );
     if opus_preparation {
         for answer in [&t, &s] {
             let streams = answer.original()["payload"]["streams_answered"]

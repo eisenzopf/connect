@@ -49,6 +49,7 @@ pub(super) async fn setup() -> (codecs::Running, u16) {
         {"id":"codec-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]},
         {"id":"codec-camera-source","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}
     ])).await;
+    codecs::assert_pcmu_source(&s, stream_handle(&s, "codec-voice"));
     wait_native_operation(&f, &f.client.credential, &cid, "codec-target-offer").await;
     wait_native_operation(&f, &config.credential, &cid, "codec-source-offer").await;
     stream_control(
