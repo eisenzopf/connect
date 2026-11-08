@@ -33,7 +33,9 @@ fn short() -> RequestOptions {
 #[derive(Clone, Default, Debug)]
 struct Progress {
     encoded_frames: u64,
+    encoded_bins: [u16; 26],
     published_frames: u64,
+    published_bins: [u16; 26],
     published_video_packets: u64,
     published_audio_packets: u64,
     video_read_events: u64,
@@ -613,6 +615,35 @@ async fn send_original(
     }
 }
 
+fn record_frame_bin(bins: &mut [u16; 26], at: Instant, began: Instant) {
+    let bin = at.saturating_duration_since(began).as_secs() as usize;
+    if let Some(count) = bins.get_mut(bin) {
+        *count = count.saturating_add(1);
+    }
+}
+
+#[test]
+fn frame_input_bins_keep_original_second_boundaries_and_programme_limit() {
+    let began = Instant::now();
+    let mut bins = [0; 26];
+    for elapsed in [
+        Duration::ZERO,
+        Duration::from_millis(999),
+        Duration::from_secs(1),
+        Duration::from_secs(25),
+        Duration::from_secs(26),
+    ] {
+        record_frame_bin(&mut bins, began + elapsed, began);
+    }
+    assert_eq!(bins[0], 2);
+    assert_eq!(bins[1], 1);
+    assert_eq!(bins[25], 1);
+    assert_eq!(bins.iter().sum::<u16>(), 4);
+    bins[2] = u16::MAX;
+    record_frame_bin(&mut bins, began + Duration::from_secs(2), began);
+    assert_eq!(bins[2], u16::MAX);
+}
+
 fn observe_video(
     progress: &SharedProgress,
     frame: &NativeVideoFrame,
@@ -636,10 +667,7 @@ fn observe_video(
     state.last_video = Some(arrived);
     state.timestamp = Some(frame.timestamp_rtp);
     state.epoch = Some(epoch);
-    let bin = arrived.saturating_duration_since(began).as_secs() as usize;
-    if let Some(count) = state.bins.get_mut(bin) {
-        *count = count.saturating_add(1);
-    }
+    record_frame_bin(&mut state.bins, arrived, began);
 }
 fn observe_audio(progress: &SharedProgress, decoder: &readiness_audio::Decoder, decoded: bool) {
     if !decoded {
@@ -771,7 +799,11 @@ fn spawn_publisher(
                 let bytes = timeout_at(cutoff, encoder.frame(index, force))
                     .await
                     .unwrap();
-                video_progress.lock().unwrap().encoded_frames += 1;
+                {
+                    let mut measured = video_progress.lock().unwrap();
+                    measured.encoded_frames += 1;
+                    record_frame_bin(&mut measured.encoded_bins, Instant::now(), began);
+                }
                 if force {
                     assert!(
                         bytes.len() > 2000,
@@ -808,7 +840,11 @@ fn spawn_publisher(
                 if ended {
                     break;
                 }
-                video_progress.lock().unwrap().published_frames += 1;
+                {
+                    let mut measured = video_progress.lock().unwrap();
+                    measured.published_frames += 1;
+                    record_frame_bin(&mut measured.published_bins, Instant::now(), began);
+                }
             }
         })
         .catch_unwind()
@@ -1064,7 +1100,11 @@ fn spawn_candidate(
                         let force=video_index%30==0 || force_key.swap(false,Ordering::AcqRel)
                             || io.take_keyframe_request(camera,0x74000000+source as u32).unwrap();
                         let frame=timeout_at(cutoff,encoder.frame(video_index,force)).await.unwrap();
-                        progress.lock().unwrap().encoded_frames+=1;
+                        {
+                            let mut measured=progress.lock().unwrap();
+                            measured.encoded_frames+=1;
+                            record_frame_bin(&mut measured.encoded_bins,Instant::now(),began);
+                        }
                         if force {assert!(frame.len()>2000,"candidate publisher also uses genuinely fragmented keyframes");}
                         for (part,bytes) in frame.chunks(1000).enumerate() {
                             let mut body=vec![if part==0 {0x10} else {0}];body.extend_from_slice(bytes);
@@ -1074,7 +1114,11 @@ fn spawn_candidate(
                             progress.lock().unwrap().published_video_packets+=1;
                             sequence=sequence.wrapping_add(1);
                         }
-                        progress.lock().unwrap().published_frames+=1;
+                        {
+                            let mut measured=progress.lock().unwrap();
+                            measured.published_frames+=1;
+                            record_frame_bin(&mut measured.published_bins,Instant::now(),began);
+                        }
                         video_index+=1;assert!(video_index<FRAMES);
                     },
                     packet=io.receive()=>{
@@ -1587,7 +1631,9 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
             let last_bin=Instant::now().saturating_duration_since(began).as_secs() as usize;
             assert!(first_bin<last_bin,"actual preparation must cover a complete measured second");
             for (index,view) in during.iter().enumerate() {for bin in first_bin..last_bin {
-                assert!(view.bins[bin]>=24,"old current receiver {index} preparation second {bin} decoded {} frames",view.bins[bin]);
+                assert!(view.bins[bin]>=24,
+                    "old current receiver {index} preparation second {bin} decoded {} frames receiver={view:?} expected_publisher={} publisher={:?}",
+                    view.bins[bin],SOURCE_FOR_RECEIVER[index],during[SOURCE_FOR_RECEIVER[index]]);
             }}
             for sid in 0..2 {
                 let status=timeout_at(move_cutoff,controllers[sid].operation_get(&commands[sid].operation_id,scope(&commands[sid])))
@@ -1685,6 +1731,17 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
             Ok(Ok(())) => {}
             value => task_failures.push(format!("{value:?}")),
         }
+    }
+    // Scalar final snapshots run only after every original codec/media task
+    // joins. They neither retain media nor add work to a measured frame path.
+    for (index, measured) in clone_progress(&progress).iter().enumerate() {
+        eprintln!(
+            "representative original final route={index} expected_source={} progress={measured:?}",
+            SOURCE_FOR_RECEIVER[index]
+        );
+    }
+    for (index, measured) in clone_progress(&target_progress).iter().enumerate() {
+        eprintln!("representative candidate final index={index} progress={measured:?}");
     }
     // End both real Session owners using their current public topology. These
     // commands also exercise the shared original client after both handoffs.
