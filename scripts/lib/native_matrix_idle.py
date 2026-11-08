@@ -16,7 +16,7 @@ import time
 import urllib.request
 
 from .matrix_idle import POLICY, owned_usage
-from .matrix_plateau import POLICY as PLATEAU_POLICY, CYCLE_POLICY, cycle_restoration, cycle_idle_verdict, evaluate
+from .matrix_plateau import POLICY as PLATEAU_POLICY, CYCLE_POLICY, cycle_restoration, cycle_idle_verdict, evaluate, runtime_capacity_configuration
 from .matrix_macos_resources import MacProcessResources
 from .matrix_owner_diagnostics import idle_owner_diagnostics
 from .operational_process_resources import ProcessResources
@@ -202,7 +202,10 @@ class NativeMatrixIdle:
                 self.respond("terminal", True)
                 self.next_sample = 0
             elif now >= self.next_process:
-                self.sampler.sample()  # Numeric process counters only during AV.
+                process = self.sampler.sample()  # Same numeric call, no Health read during AV.
+                if self.prefix:
+                    self.samples.append(dict(stage="workload", monotonic_seconds=now,
+                        groups=copy.deepcopy(process["groups"])))
                 self.next_process = now + POLICY["sample_seconds"]
                 return
         if self.terminal is None:
@@ -348,6 +351,7 @@ class NativeMatrixPlateau:
     def finish(self):
         report = dict(format="connect/matrix-plateau-observation/1", policy=PLATEAU_POLICY,
             baseline=self.baseline, persistent_owners=self.original_owners, cycles=self.cycles,
+            server_runtime_capacity=runtime_capacity_configuration((self.original_owners or {}).get("server")),
             failure=self.failure, passed=False, cell_qualified=False)
         report["evaluation"] = evaluate(report)
         report["passed"] = report["evaluation"]["passed"] and self.failure is None

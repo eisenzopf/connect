@@ -12,6 +12,7 @@ import sys
 import time
 import uuid
 
+from .matrix_storage import CoordinatorStorage, MetadataReserve, atomic_json, atomic_bytes
 from .transport_matrix import inventory
 from .transport_matrix_execution import merge_hosts, configure_execution
 from .transport_matrix_verdict import blocked, summarize
@@ -21,13 +22,12 @@ VM_ENV = dict(PATH="/opt/cargo/bin:/opt/node/bin:/usr/local/sbin:/usr/local/bin:
     RUSTUP_HOME="/opt/rustup", CARGO_HOME="/opt/cargo", CARGO_BUILD_JOBS="6",
     CARGO_TARGET_DIR="/workspace/.local/target-arm64", CARGO_PROFILE_RELEASE_DEBUG="0",
     CARGO_NET_OFFLINE="true", CONNECT_GATE6_OWNED_LINUX_VM="connect-gate6")
+_METADATA_RESERVE = None
 IMAGE = "sha256:2856c7b7ae4eea13ba0fb4a5605b4f182557f0b1842f45efebd2c03ea66e9e6c"
 
 
 def write(path, value):
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2) + "\n")
-    temporary.replace(path)
+    atomic_json(path, value, reserve=_METADATA_RESERVE)
 
 
 def render(matrix, path):
@@ -46,9 +46,7 @@ def render(matrix, path):
     page += '<p>' + esc(json.dumps(summary["cells"])) + '</p><p>Requirements: ' + esc(json.dumps(summary["checks"])) + '</p>'
     page += '<p>Blocked means a prerequisite or observation is unavailable. It is not a pass or an executed behavior test. Every run schedules all 32 cells and evaluates all 432 requirement verdicts.</p>'
     page += '<table><thead><tr><th>Server / network / transport / signing</th><th>Cell</th><th>Requirements</th></tr></thead><tbody>' + ''.join(rows) + '</tbody></table>'
-    temporary = path.with_suffix(".tmp")
-    temporary.write_text(page)
-    temporary.replace(path)
+    atomic_bytes(path, page.encode(), reserve=_METADATA_RESERVE)
 
 
 
@@ -103,6 +101,7 @@ def refresh_reports(root, revision, workers, reports, read_report):
 
 
 def run(root, args):
+    global _METADATA_RESERVE
     if (platform.system(), platform.machine()) != ("Darwin", "arm64"):
         raise ValueError("Start the complete two-host run on the owner's Mac Studio")
     output = args.output.resolve()
@@ -118,6 +117,9 @@ def run(root, args):
     state = dict(format="connect/g6-058-full-run/1", run_id=run_id, stage="running",
         source_revision=revision, controller_pid=os.getpid(), selected_cells=[c["id"] for c in base["cells"]],
         source_guard_active=True, started_at=datetime.datetime.now(datetime.timezone.utc).isoformat())
+    storage = CoordinatorStorage(root, output, remote_output, revision)
+    _METADATA_RESERVE = storage.reserve
+    state["storage_control_verified"] = True
     write(output / "state.json", state)
     workers, logs, reports = {}, [], {}
     worker = ["--phase", "worker", "--stage", "full", "--expected-revision", revision]
@@ -126,13 +128,13 @@ def run(root, args):
         if getattr(args, name):
             mac_command += ["--" + name, str(getattr(args, name))]
     linux_command = ["colima", "--profile", "connect-gate6", "ssh", "--", "env",
-        *(key + "=" + value for key, value in VM_ENV.items()), "python3", "/workspace/scripts/run-gate6-transport-matrix.py",
+        *(key + "=" + value for key, value in dict(VM_ENV, **storage.remote_environment).items()), "python3", "/workspace/scripts/run-gate6-transport-matrix.py",
         *worker, "--output", str(remote_output), "--browser-image", args.browser_image or IMAGE]
     try:
         for host, command in (("macos-arm64", mac_command), ("ubuntu24-arm64", linux_command)):
             log = (output / (host + ".log")).open("xb")
             logs.append(log)
-            worker_env = dict(os.environ)
+            worker_env = dict(os.environ, **storage.environment)
             if host == "macos-arm64":
                 worker_env["CARGO_BUILD_JOBS"] = "8"
             workers[host] = subprocess.Popen(command, cwd=root, env=worker_env, stdout=log, stderr=subprocess.STDOUT,
@@ -140,15 +142,17 @@ def run(root, args):
         def read_report(host):
             if host == "macos-arm64":
                 return json.loads((output / host / "matrix.json").read_text())
-            receipt = subprocess.run(["colima", "--profile", "connect-gate6", "ssh", "--", "cat", str(remote_output / "matrix.json")],
-                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10, check=True)
-            return json.loads(receipt.stdout)
+            return storage.remote_snapshot()
 
         last = None
         while True:
+            storage.service()
             workers_done = refresh_reports(root, revision, workers, reports, read_report)
             merged = merge_hosts(base, list(reports.values()))
-            merged.update(run_id=run_id, execution_phase="run")
+            merged.update(run_id=run_id, execution_phase="run", storage=storage.receipt())
+            if storage.failures:
+                merged["matrix_qualified"] = False
+                merged["task_complete"] = False
             write(output / "matrix.json", merged)
             render(merged, output / "status.html")
             current = json.dumps(merged["summary"], sort_keys=True)
@@ -158,7 +162,13 @@ def run(root, args):
             if workers_done:
                 break
             time.sleep(2)
-        state.update(stage="complete", source_guard_active=False,
+        storage.service()
+        merged["storage"] = storage.receipt()
+        if storage.failures:
+            merged["matrix_qualified"] = False
+            merged["task_complete"] = False
+        write(output / "matrix.json", merged)
+        state.update(stage="complete", source_guard_active=False, storage=storage.receipt(),
             worker_exit_codes={host: process.wait() for host, process in workers.items()},
             linux_evidence_directory=str(remote_output), summary=merged["summary"],
             matrix_qualified=merged["matrix_qualified"])

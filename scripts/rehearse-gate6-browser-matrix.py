@@ -30,7 +30,8 @@ from lib.transport_matrix import digest
 from lib.transport_matrix_execution import browser_cycle_session_owners_verified
 from lib.matrix_browser_capture import BrowserCapture
 from lib.matrix_idle import MatrixIdle
-from lib.matrix_plateau import POLICY as PLATEAU_POLICY, evaluate as evaluate_plateau
+from lib.matrix_storage import MetadataReserve, GUARD_RESERVE_BYTES, write_component, atomic_json
+from lib.matrix_plateau import POLICY as PLATEAU_POLICY, evaluate as evaluate_plateau, runtime_capacity_configuration
 from lib.matrix_authority import MatrixAuthority
 from lib.mac_linux_fixture import MacLinuxFixture, MacLinuxIdle, remote_browser_owner_joined
 
@@ -108,6 +109,7 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     private = output / "private"
     private.mkdir()
+    component_reserve = MetadataReserve(output / "component-metadata.reserve", GUARD_RESERVE_BYTES)
     env = fixture_environment()
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
     if not linux:
@@ -130,7 +132,7 @@ def main():
     state = dict(stage="preparing", controller_pid=os.getpid(), source_revision=revision,
                  cell_id=cell_id, source_guard_active=False)
     def save():
-        (output / "state.json").write_text(json.dumps(state, indent=2) + "\n")
+        atomic_json(output / "state.json", state, reserve=component_reserve)
     save()
     before = sdk_before = executable = server = browser_owner = None
     log_handles = []
@@ -542,7 +544,8 @@ def main():
             original = idle_results[0] if idle_results else {}
             plateau = dict(format="connect/matrix-plateau-observation/1", policy=PLATEAU_POLICY,
                 baseline=original.get("baseline"), persistent_owners=original.get("persistent_owners"), cycles=cycles,
-                original_cycle_ids=cycle_workloads)
+                original_cycle_ids=cycle_workloads,
+                server_runtime_capacity=runtime_capacity_configuration((original.get("persistent_owners") or {}).get("server")))
             plateau["verdict"] = evaluate_plateau(plateau)
             plateau["passed"] = plateau["verdict"]["passed"]
             report["idle_resources"] = plateau
@@ -584,7 +587,7 @@ def main():
         except Exception:
             report["executable_unchanged"] = False
         report["passed"] &= report["source_inputs_unchanged"] and report["sdk_dist_inputs_unchanged"] and report["executable_unchanged"]
-        (output / "component.json").write_text(json.dumps(report, indent=2) + "\n")
+        write_component(output / "component.json", report, reserve=component_reserve)
         state.update(stage="complete", source_guard_active=False, component_passed=report["passed"])
         save()
     print(json.dumps(dict(browser_admission_passed=report["passed"], cell_qualified=False, task_complete=False)))

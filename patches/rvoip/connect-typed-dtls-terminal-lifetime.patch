@@ -1,0 +1,861 @@
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/demuxer.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/demuxer.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/demuxer.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/demuxer.rs
+@@ -33,13 +33,13 @@
+ ///              +----------------+
+ /// match_dtls is a MatchFunc that accepts packets with the first byte in [20..63]
+ /// as defied in RFC7983
+-fn match_dtls(b: &[u8]) -> bool {
++pub(super) fn match_dtls(b: &[u8]) -> bool {
+     match_range(20, 63, b)
+ }
+ 
+ /// match_srtp is a MatchFunc that accepts packets with the first byte in [128..191]
+ /// as defied in RFC7983
+-fn match_srtp(b: &[u8]) -> bool {
++pub(super) fn match_srtp(b: &[u8]) -> bool {
+     match_range(128, 191, b)
+ }
+ 
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/dtls.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/dtls.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/dtls.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/dtls.rs
+@@ -56,6 +56,20 @@
+         "DtlsHandler"
+     }
+ 
++    /// The upstream typed error merges fatal and close-notify. Both end this
++    /// exact secure transport, but their individual cause is unavailable here.
++    /// DTLS Closed + live ICE otherwise aggregates to Connected, so use Failed
++    /// for this terminal alert rather than leaving a usable media transport.
++    pub(crate) fn terminal_alert(&mut self) -> bool {
++        if matches!(self.ctx.dtls_transport.state,
++            RTCDtlsTransportState::Closed | RTCDtlsTransportState::Failed) {
++            return false;
++        }
++        self.ctx.dtls_transport.state_change(RTCDtlsTransportState::Failed);
++        self.stats.transport.on_dtls_state_changed(RTCDtlsTransportState::Failed);
++        true
++    }
++
+     /// Update stats when DTLS handshake completes
+     fn update_dtls_stats_from_profile(
+         &mut self,
+@@ -154,6 +168,11 @@
+ 
+     fn handle_read(&mut self, msg: TaggedRTCMessageInternal) -> Result<()> {
+         if let RTCMessageInternal::Dtls(DTLSMessage::Raw(dtls_message)) = msg.message {
++            if self.ctx.dtls_transport.state == RTCDtlsTransportState::Failed {
++                // A known terminal alert cannot restart its original endpoint
++                // or reinstall secure media contexts through a later packet.
++                return Err(Error::ErrDtlsTransportNotStarted);
++            }
+             debug!("recv dtls RAW {:?}", msg.transport.peer_addr);
+ 
+             let mut messages = vec![];
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs
+@@ -38,6 +38,45 @@
+ 
+ pub(crate) const DEFAULT_TIMEOUT_DURATION: Duration = Duration::from_secs(86400); // 1 day duration
+ 
++// Only the DTLS parser can report this merged, known-terminal alert. Other
++// protocol/transport read errors keep their existing nonterminal behavior.
++fn known_terminal_dtls_read(handler: &str, error: &Error) -> bool {
++    handler == "DtlsHandler" && matches!(error, Error::ErrAlertFatalOrClose)
++}
++
++// This queue belongs to one RTC peer/secure transport. Preserve unrelated
++// protocols and each control record's original bytes, including when DTLS
++// records are coalesced. Unknown/malformed suffixes retain their prior behavior.
++fn terminal_write(message: bytes::BytesMut) -> Option<bytes::BytesMut> {
++    use ::dtls::content::ContentType;
++    use ::dtls::record_layer::record_layer_header::{RECORD_LAYER_HEADER_SIZE, RecordLayerHeader};
++    if demuxer::match_srtp(&message) {
++        return None;
++    }
++    if !demuxer::match_dtls(&message) {
++        return Some(message);
++    }
++    let mut control = bytes::BytesMut::new();
++    let mut remaining = message.as_ref();
++    while !remaining.is_empty() {
++        let mut reader = remaining;
++        let Ok(header) = RecordLayerHeader::unmarshal(&mut reader) else {
++            control.extend_from_slice(remaining);
++            break;
++        };
++        let record_len = RECORD_LAYER_HEADER_SIZE + usize::from(header.content_len);
++        if record_len > remaining.len() {
++            control.extend_from_slice(remaining);
++            break;
++        }
++        if header.content_type != ContentType::ApplicationData {
++            control.extend_from_slice(&remaining[..record_len]);
++        }
++        remaining = &remaining[record_len..];
++    }
++    (!control.is_empty()).then_some(control)
++}
++
+ /// Forward handler list - invokes callback with handler list
+ macro_rules! forward_handlers {
+     ($callback:ident!($($args:tt)*)) => {
+@@ -203,6 +242,7 @@
+     type Time = Instant;
+ 
+     fn handle_read(&mut self, msg: TaggedBytesMut) -> Result<(), Self::Error> {
++        let mut known_dtls_terminal_alert = false;
+         let mut intermediate_routs = VecDeque::new();
+         intermediate_routs.push_back(TaggedRTCMessageInternal {
+             now: msg.now,
+@@ -213,6 +253,10 @@
+         for_each_handler!(forward: process_handler!(self, handler, {
+             while let Some(msg) = intermediate_routs.pop_front() {
+                 if let Err(err) = handler.handle_read(msg) {
++                    // The DTLS engine merges fatal and close-notify into one
++                    // typed terminal outcome. Do not guess which cause, and do
++                    // not turn an unrelated/malformed read error into closure.
++                    known_dtls_terminal_alert |= known_terminal_dtls_read(handler.name(), &err);
+                     warn!("{}.handle_read got error: {}", handler.name(), err);
+                 }
+             }
+@@ -220,6 +264,24 @@
+                 intermediate_routs.push_back(msg);
+             }
+         }));
++
++        // Handler borrows have ended. Publish one state transition for this
++        // exact peer; the existing owner will perform its normal joined close.
++        let transitioned = known_dtls_terminal_alert && self.get_dtls_handler().terminal_alert();
++        if transitioned {
++            // The same secure transport cannot authenticate or emit more media
++            // while its original owner observes the terminal event and joins.
++            let secure = &mut self.pipeline_context.srtp_handler_context;
++            secure.local_srtp_context = None;
++            secure.remote_srtp_context = None;
++            secure.read_outs.clear();
++            secure.write_outs.clear();
++            secure.event_outs.clear();
++            self.pipeline_context.dtls_handler_context.event_outs.clear();
++            self.pipeline_context.read_outs.clear();
++            intermediate_routs.clear();
++            self.update_connection_state(false);
++        }
+ 
+         // Finally, put intermediate_routs into RTCPeerConnection's routs
+         while let Some(msg) = intermediate_routs.pop_front() {
+@@ -313,7 +375,22 @@
+             }
+         }
+ 
+-        self.pipeline_context.write_outs.pop_front()
++        while let Some(mut write) = self.pipeline_context.write_outs.pop_front() {
++            if self
++                .pipeline_context
++                .dtls_handler_context
++                .dtls_transport
++                .state
++                == crate::peer_connection::transport::dtls::state::RTCDtlsTransportState::Failed
++            {
++                let Some(message) = terminal_write(write.message) else {
++                    continue;
++                };
++                write.message = message;
++            }
++            return Some(write);
++        }
++        None
+     }
+ 
+     fn handle_event(&mut self, evt: RTCEvent) -> Result<(), Self::Error> {
+@@ -448,3 +525,6 @@
+ 
+ #[cfg(test)]
+ mod payload_audio_feedback_tests;
++
++#[cfg(test)]
++mod terminal_alert_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/terminal_alert_tests.rs
+@@ -0,0 +1,471 @@
++//! Real SDP/ICE/DTLS handshake and original encrypted terminal packets.
++//! No test writes a peer failed flag or invents encrypted payload bytes.
++use super::*;
++use crate::peer_connection::RTCPeerConnectionBuilder;
++use crate::peer_connection::configuration::setting_engine::SettingEngine;
++use crate::peer_connection::transport::dtls::state::RTCDtlsTransportState;
++use crate::peer_connection::transport::{
++    CandidateConfig, CandidateHostConfig, RTCDtlsRole, RTCIceCandidate, RTCIceCandidateInit,
++};
++use ::interceptor::Packet;
++use sansio::Protocol;
++use shared::{TransportContext, TransportProtocol};
++use std::net::SocketAddr;
++
++struct Pair {
++    a: RTCPeerConnection,
++    b: RTCPeerConnection,
++    addresses: [SocketAddr; 2],
++    original_stun: bytes::BytesMut,
++}
++fn peer(address: SocketAddr, role: RTCDtlsRole) -> RTCPeerConnection {
++    let mut settings = SettingEngine::default();
++    settings.set_answering_dtls_role(role).unwrap();
++    let mut peer = RTCPeerConnectionBuilder::new()
++        .with_setting_engine(settings)
++        .build()
++        .unwrap();
++    let candidate = CandidateHostConfig {
++        base_config: CandidateConfig {
++            network: "udp".into(),
++            address: address.ip().to_string(),
++            port: address.port(),
++            component: 1,
++            ..Default::default()
++        },
++        ..Default::default()
++    }
++    .new_candidate_host()
++    .unwrap();
++    peer.add_local_candidate(RTCIceCandidate::from(&candidate).to_json().unwrap())
++        .unwrap();
++    peer
++}
++fn incoming(
++    peer: &mut RTCPeerConnection,
++    local: SocketAddr,
++    remote: SocketAddr,
++    message: bytes::BytesMut,
++) {
++    peer.handle_read(TaggedBytesMut {
++        now: Instant::now(),
++        transport: TransportContext {
++            local_addr: local,
++            peer_addr: remote,
++            ecn: None,
++            transport_protocol: TransportProtocol::UDP,
++        },
++        message,
++    })
++    .unwrap();
++}
++fn pump(
++    source: &mut RTCPeerConnection,
++    target: &mut RTCPeerConnection,
++    local: SocketAddr,
++    remote: SocketAddr,
++) -> Option<bytes::BytesMut> {
++    let mut original_stun = None;
++    let mut packets = 0;
++    while let Some(write) = source.poll_write() {
++        packets += 1;
++        assert!(packets <= 512, "original handshake packet bound");
++        if write.message.first().is_some_and(|byte| *byte <= 3) && original_stun.is_none() {
++            original_stun = Some(write.message.clone());
++        }
++        incoming(target, local, remote, write.message);
++    }
++    original_stun
++}
++fn drain_events(peer: &mut RTCPeerConnection) -> Vec<RTCPeerConnectionState> {
++    let mut states = Vec::new();
++    while let Some(event) = peer.poll_event() {
++        if let RTCPeerConnectionEvent::OnConnectionStateChangeEvent(state) = event {
++            states.push(state);
++        }
++    }
++    states
++}
++impl Pair {
++    fn handshake(base_port: u16) -> Self {
++        let addresses = [
++            SocketAddr::from(([127, 0, 0, 1], base_port)),
++            SocketAddr::from(([127, 0, 0, 1], base_port + 1)),
++        ];
++        let mut a = peer(addresses[0], RTCDtlsRole::Server);
++        let mut b = peer(addresses[1], RTCDtlsRole::Client);
++        a.create_data_channel("original-terminal-fixture", None)
++            .unwrap();
++        let offer = a.create_offer(None).unwrap();
++        a.set_local_description(offer.clone()).unwrap();
++        b.set_remote_description(offer).unwrap();
++        let answer = b.create_answer(None).unwrap();
++        b.set_local_description(answer.clone()).unwrap();
++        a.set_remote_description(answer).unwrap();
++        for (owner, remote) in [(&mut a, addresses[1]), (&mut b, addresses[0])] {
++            owner
++                .add_remote_candidate(RTCIceCandidateInit {
++                    candidate: format!(
++                        "candidate:1 1 udp 2130706431 {} {} typ host",
++                        remote.ip(),
++                        remote.port()
++                    ),
++                    ..Default::default()
++                })
++                .unwrap();
++        }
++        let cutoff = Instant::now() + Duration::from_secs(3);
++        let mut original_stun = None;
++        loop {
++            assert!(
++                Instant::now() < cutoff,
++                "original local SDP/ICE/DTLS handshake cutoff"
++            );
++            let now = Instant::now();
++            a.handle_timeout(now).unwrap();
++            b.handle_timeout(now).unwrap();
++            let a_stun = pump(&mut a, &mut b, addresses[1], addresses[0]);
++            let b_stun = pump(&mut b, &mut a, addresses[0], addresses[1]);
++            if original_stun.is_none() {
++                original_stun = b_stun.or(a_stun);
++            }
++            drain_events(&mut a);
++            drain_events(&mut b);
++            if a.peer_connection_state == RTCPeerConnectionState::Connected
++                && b.peer_connection_state == RTCPeerConnectionState::Connected
++            {
++                break;
++            }
++            std::thread::sleep(Duration::from_millis(1));
++        }
++        assert_eq!(a.dtls_transport().state, RTCDtlsTransportState::Connected);
++        assert_eq!(b.dtls_transport().state, RTCDtlsTransportState::Connected);
++        Self {
++            a,
++            b,
++            addresses,
++            original_stun: original_stun.expect("original ICE binding datagram"),
++        }
++    }
++    fn encrypted_close_notify(&mut self) -> Vec<bytes::BytesMut> {
++        let endpoint = self.a.dtls_transport_mut().dtls_endpoint.as_mut().unwrap();
++        // Existing original endpoint API emits real protected DTLS records.
++        // RTCDtlsTransport::stop currently omits this call; that separate local
++        // close behavior is intentionally not changed by this candidate.
++        endpoint.close().unwrap();
++        let mut packets = Vec::new();
++        while let Some(transmit) = endpoint.poll_transmit() {
++            assert_eq!(transmit.message[0], 21, "DTLS alert content type");
++            assert!(
++                u16::from_be_bytes([transmit.message[3], transmit.message[4]]) > 0,
++                "encrypted established epoch"
++            );
++            packets.push(transmit.message);
++        }
++        assert!(!packets.is_empty() && packets.len() <= 4);
++        packets
++    }
++}
++impl Drop for Pair {
++    fn drop(&mut self) {
++        let _ = self.a.close();
++        let _ = self.b.close();
++    }
++}
++#[test]
++fn encrypted_close_notify_after_real_handshake_ends_only_the_original_rtc_transport() {
++    let mut original = Pair::handshake(19000);
++    let mut unrelated = Pair::handshake(19100);
++    use shared::marshal::Marshal;
++    let original_rtp = |sequence_number| rtp::Packet {
++        header: rtp::Header {
++            version: 2,
++            payload_type: 111,
++            sequence_number,
++            timestamp: u32::from(sequence_number) * 960,
++            ssrc: 0x10203040,
++            ..Default::default()
++        },
++        payload: bytes::Bytes::from_static(&[0xf8, 0xff, 0xfe]),
++    };
++    let secure = original
++        .a
++        .pipeline_context
++        .srtp_handler_context
++        .local_srtp_context
++        .as_mut()
++        .unwrap();
++    let preceding = secure
++        .encrypt_rtp(&original_rtp(701).marshal().unwrap())
++        .unwrap();
++    // This original, authenticated, previously unseen packet is held in flight
++    // until after CloseNotify. It is neither re-encrypted nor replayed.
++    let post_close = secure
++        .encrypt_rtp(&original_rtp(702).marshal().unwrap())
++        .unwrap();
++    {
++        let mut receiver = original.b.get_srtp_handler();
++        receiver
++            .handle_read(TaggedRTCMessageInternal {
++                now: Instant::now(),
++                transport: TransportContext::default(),
++                message: RTCMessageInternal::Rtp(RTPMessage::Raw(preceding)),
++            })
++            .unwrap();
++        assert!(matches!(receiver.poll_read().map(|message|message.message),
++            Some(RTCMessageInternal::Rtp(RTPMessage::Packet(Packet::Rtp(packet)))) if packet.header.sequence_number == 701));
++    }
++    // Queue genuine already-encrypted outbound media before the terminal read.
++    // A final queue guard must suppress it even though encryption already ran.
++    let queued_rtp = original
++        .b
++        .pipeline_context
++        .srtp_handler_context
++        .local_srtp_context
++        .as_mut()
++        .unwrap()
++        .encrypt_rtp(&original_rtp(703).marshal().unwrap())
++        .unwrap();
++    let queued_rtcp = original
++        .b
++        .pipeline_context
++        .srtp_handler_context
++        .local_srtp_context
++        .as_mut()
++        .unwrap()
++        .encrypt_rtcp(
++            &rtcp::packet::marshal(&[Box::new(rtcp::sender_report::SenderReport {
++                ssrc: 0x10203040,
++                ..Default::default()
++            })])
++            .unwrap(),
++        )
++        .unwrap();
++    let endpoint = original
++        .b
++        .dtls_transport_mut()
++        .dtls_endpoint
++        .as_mut()
++        .unwrap();
++    let remote = *endpoint.get_connections_keys().next().unwrap();
++    endpoint
++        .write(remote, b"original pending application data")
++        .unwrap();
++    let mut queued_dtls = Vec::new();
++    while let Some(transmit) = endpoint.poll_transmit() {
++        assert_eq!(
++            transmit.message[0], 23,
++            "original encrypted application record"
++        );
++        queued_dtls.push(transmit.message);
++    }
++    assert!(!queued_dtls.is_empty());
++    let original_stun = original.original_stun.clone();
++    let packets = original.encrypted_close_notify();
++    // A coalesced datagram must preserve the actual alert byte-for-byte while
++    // removing every original encrypted application record beside it.
++    let mut coalesced = packets[0].clone();
++    for application in &queued_dtls {
++        coalesced.extend_from_slice(application);
++    }
++    let expected_alert = packets[0].clone();
++    for message in [
++        queued_rtp,
++        queued_rtcp,
++        queued_dtls.remove(0),
++        coalesced,
++        original_stun.clone(),
++    ] {
++        original
++            .b
++            .pipeline_context
++            .write_outs
++            .push_back(TaggedBytesMut {
++                now: Instant::now(),
++                transport: TransportContext::default(),
++                message,
++            });
++    }
++    for packet in &packets {
++        // Different secure transport cannot authenticate the original alert.
++        incoming(
++            &mut unrelated.b,
++            unrelated.addresses[1],
++            unrelated.addresses[0],
++            packet.clone(),
++        );
++        incoming(
++            &mut original.b,
++            original.addresses[1],
++            original.addresses[0],
++            packet.clone(),
++        );
++    }
++    assert_eq!(
++        original.b.dtls_transport().state,
++        RTCDtlsTransportState::Failed
++    );
++    assert_eq!(
++        original.b.pipeline_context.stats.transport.dtls_state,
++        RTCDtlsTransportState::Failed
++    );
++    assert!(
++        original
++            .b
++            .pipeline_context
++            .srtp_handler_context
++            .local_srtp_context
++            .is_none()
++    );
++    assert!(
++        original
++            .b
++            .pipeline_context
++            .srtp_handler_context
++            .remote_srtp_context
++            .is_none()
++    );
++    incoming(
++        &mut original.b,
++        original.addresses[1],
++        original.addresses[0],
++        post_close.clone(),
++    );
++    assert!(
++        original.b.poll_read().is_none(),
++        "post-terminal original ciphertext reached application media"
++    );
++    {
++        let mut receiver = original.b.get_srtp_handler();
++        assert!(
++            receiver
++                .handle_read(TaggedRTCMessageInternal {
++                    now: Instant::now(),
++                    transport: TransportContext::default(),
++                    message: RTCMessageInternal::Rtp(RTPMessage::Raw(post_close)),
++                })
++                .is_err(),
++            "terminal secure context authenticated previously unseen RTP"
++        );
++        assert!(receiver.poll_read().is_none());
++    }
++    let mut outbound = Vec::new();
++    while let Some(write) = original.b.poll_write() {
++        assert!(outbound.len() < 512, "original bounded outbound queue");
++        assert!(
++            !demuxer::match_srtp(&write.message),
++            "queued secure RTP emitted after terminal"
++        );
++        if demuxer::match_dtls(&write.message) {
++            use ::dtls::content::ContentType;
++            use ::dtls::record_layer::record_layer_header::RecordLayerHeader;
++            let mut records = write.message.as_ref();
++            while !records.is_empty() {
++                let header = RecordLayerHeader::unmarshal(&mut records).unwrap();
++                assert_ne!(
++                    header.content_type,
++                    ContentType::ApplicationData,
++                    "queued DTLS application record emitted after terminal"
++                );
++                // unmarshal consumed exactly the original header.
++                let content_len = usize::from(header.content_len);
++                assert!(content_len <= records.len());
++                records = &records[content_len..];
++            }
++        }
++        outbound.push(write.message);
++    }
++    assert!(
++        outbound.contains(&original_stun),
++        "original STUN datagram was discarded"
++    );
++    assert!(
++        outbound.contains(&expected_alert),
++        "coalesced alert bytes were changed/discarded"
++    );
++    let first = drain_events(&mut original.b);
++    assert_eq!(
++        first
++            .iter()
++            .filter(|&&state| state == RTCPeerConnectionState::Failed)
++            .count(),
++        1
++    );
++    for packet in packets {
++        incoming(
++            &mut original.b,
++            original.addresses[1],
++            original.addresses[0],
++            packet,
++        );
++    }
++    assert!(
++        !drain_events(&mut original.b).contains(&RTCPeerConnectionState::Failed),
++        "same terminal alert emitted twice"
++    );
++    assert_eq!(
++        unrelated.b.dtls_transport().state,
++        RTCDtlsTransportState::Connected
++    );
++    assert_eq!(
++        unrelated.b.peer_connection_state,
++        RTCPeerConnectionState::Connected
++    );
++    assert!(!drain_events(&mut unrelated.b).contains(&RTCPeerConnectionState::Failed));
++    let unrelated_media = unrelated
++        .a
++        .pipeline_context
++        .srtp_handler_context
++        .local_srtp_context
++        .as_mut()
++        .unwrap()
++        .encrypt_rtp(&original_rtp(704).marshal().unwrap())
++        .unwrap();
++    let mut healthy = unrelated.b.get_srtp_handler();
++    healthy
++        .handle_read(TaggedRTCMessageInternal {
++            now: Instant::now(),
++            transport: TransportContext::default(),
++            message: RTCMessageInternal::Rtp(RTPMessage::Raw(unrelated_media)),
++        })
++        .unwrap();
++    assert!(matches!(healthy.poll_read().map(|message|message.message),
++        Some(RTCMessageInternal::Rtp(RTPMessage::Packet(Packet::Rtp(packet)))) if packet.header.sequence_number == 704));
++}
++#[test]
++fn typed_fatal_or_close_is_terminal_but_other_read_errors_and_handlers_are_not() {
++    assert!(known_terminal_dtls_read(
++        "DtlsHandler",
++        &Error::ErrAlertFatalOrClose
++    ));
++    assert!(!known_terminal_dtls_read(
++        "SrtpHandler",
++        &Error::ErrAlertFatalOrClose
++    ));
++    for error in [
++        Error::ErrTimeout,
++        Error::ErrDtlsTransportNotStarted,
++        Error::ErrBufferClosed,
++    ] {
++        assert!(!known_terminal_dtls_read("DtlsHandler", &error));
++    }
++}
++#[test]
++fn malformed_dtls_record_preserves_a_real_healthy_transport() {
++    let mut original = Pair::handshake(19200);
++    incoming(
++        &mut original.b,
++        original.addresses[1],
++        original.addresses[0],
++        bytes::BytesMut::from(&[22, 254, 253, 0][..]),
++    );
++    assert_eq!(
++        original.b.dtls_transport().state,
++        RTCDtlsTransportState::Connected
++    );
++    assert_eq!(
++        original.b.peer_connection_state,
++        RTCPeerConnectionState::Connected
++    );
++    assert!(!drain_events(&mut original.b).contains(&RTCPeerConnectionState::Failed));
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/handler.rs b/crates/webrtc/rvoip-webrtc/src/peer/handler.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/handler.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/handler.rs
+@@ -231,19 +231,26 @@
+     async fn on_connection_state_change(&self, state: RTCPeerConnectionState) {
+         match state {
+             RTCPeerConnectionState::Connected => {
++                if self.channels.failed_flag.load(Ordering::Acquire) {
++                    return;
++                }
+                 self.channels.connected_flag.store(true, Ordering::Release);
++                // Also fence a concurrent terminal callback; the same original
++                // owner cannot become transport-current after it has ended.
++                if self.channels.failed_flag.load(Ordering::Acquire) {
++                    self.channels.connected_flag.store(false, Ordering::Release);
++                    return;
++                }
+                 let _ = self.channels.connected.try_send(());
+             }
+-            RTCPeerConnectionState::Failed => {
++            RTCPeerConnectionState::Failed | RTCPeerConnectionState::Closed => {
++                let original_terminal = !self.channels.failed_flag.swap(true, Ordering::AcqRel);
++                self.channels.connected_flag.store(false, Ordering::Release);
+                 self.channels.source_clock.retire();
+-                self.channels.failed_flag.store(true, Ordering::Release);
+-                if self.channels.failed.try_send(()).is_err() {
+-                    // Flag-based detection still works for waiters via wait_failed().
++                if original_terminal && self.channels.failed.try_send(()).is_err() {
++                    // Flag-based detection still works for all lifetime waiters.
+                     self.channels.drops.state.fetch_add(1, Ordering::Relaxed);
+                 }
+-            }
+-            RTCPeerConnectionState::Closed => {
+-                self.channels.source_clock.retire();
+             }
+             _ => {}
+         }
+@@ -407,4 +414,68 @@
+             Some(LocalIceEvent::Candidate(_))
+         ));
+     }
+-}
++
++    #[tokio::test]
++    async fn closed_original_peer_notifies_terminal_once_and_cannot_become_connected_again() {
++        let (channels, mut receivers, connected, terminal, ..) = HandlerChannels::pair(1);
++        let handler = ConnectionHandler::new(channels);
++        handler
++            .on_connection_state_change(RTCPeerConnectionState::Connected)
++            .await;
++        assert!(connected.load(Ordering::Acquire));
++        assert!(receivers.connected.try_recv().is_ok());
++        handler
++            .on_connection_state_change(RTCPeerConnectionState::Closed)
++            .await;
++        assert!(!connected.load(Ordering::Acquire));
++        assert!(terminal.load(Ordering::Acquire));
++        assert!(receivers.failed.try_recv().is_ok());
++        for state in [
++            RTCPeerConnectionState::Closed,
++            RTCPeerConnectionState::Failed,
++            RTCPeerConnectionState::Connected,
++        ] {
++            handler.on_connection_state_change(state).await;
++        }
++        assert!(!connected.load(Ordering::Acquire));
++        assert!(
++            receivers.failed.try_recv().is_err(),
++            "original terminal signal emitted twice"
++        );
++        assert!(
++            receivers.connected.try_recv().is_err(),
++            "late callback revived original owner"
++        );
++    }
++    #[tokio::test]
++    async fn failed_and_closed_peers_do_not_confuse_transient_disconnect_or_an_unrelated_owner() {
++        for end in [
++            RTCPeerConnectionState::Failed,
++            RTCPeerConnectionState::Closed,
++        ] {
++            let (channels, mut receivers, connected, terminal, ..) = HandlerChannels::pair(1);
++            let handler = ConnectionHandler::new(channels);
++            let (other_channels, mut other_receivers, other_connected, other_terminal, ..) =
++                HandlerChannels::pair(1);
++            let other = ConnectionHandler::new(other_channels);
++            handler
++                .on_connection_state_change(RTCPeerConnectionState::Connected)
++                .await;
++            other
++                .on_connection_state_change(RTCPeerConnectionState::Connected)
++                .await;
++            handler
++                .on_connection_state_change(RTCPeerConnectionState::Disconnected)
++                .await;
++            assert!(connected.load(Ordering::Acquire) && !terminal.load(Ordering::Acquire));
++            assert!(receivers.failed.try_recv().is_err());
++            handler.on_connection_state_change(end).await;
++            assert!(!connected.load(Ordering::Acquire) && terminal.load(Ordering::Acquire));
++            assert!(receivers.failed.try_recv().is_ok());
++            assert!(
++                other_connected.load(Ordering::Acquire) && !other_terminal.load(Ordering::Acquire)
++            );
++            assert!(other_receivers.failed.try_recv().is_err());
++        }
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -1334,12 +1334,13 @@
+         Ok(())
+     }
+ 
+-    /// Returns true once ICE/DTLS has reached `Connected`.
++    /// Returns true while this original ICE/DTLS owner is connected and has
++    /// not reported a terminal Failed or Closed event.
+     pub(crate) fn core_transport_current(&self) -> bool {
+         self.connected_flag.load(Ordering::Acquire) && !self.failed_flag.load(Ordering::Acquire)
+     }
+     pub fn is_connected(&self) -> bool {
+-        self.connected_flag.load(Ordering::Acquire)
++        self.core_transport_current()
+     }
+ 
+     /// Wait until `RTCPeerConnectionState::Connected` or timeout.
+@@ -1560,7 +1561,9 @@
+         )
+     }
+ 
+-    /// Block until the peer connection reports `Failed` (polls; does not hold locks across await).
++    /// Block until the original peer reports terminal `Failed` or `Closed`.
++    /// The existing failed flag/channel represent both terminal lifetime paths;
++    /// polling retains no locks across await and never reconnects the owner.
+     pub async fn wait_failed(&self) {
+         loop {
+             if self.failed_flag.load(Ordering::Acquire) {
+@@ -1762,3 +1765,70 @@
+ 
+ #[cfg(test)]
+ mod initial_source_report_tests;
++
++#[cfg(test)]
++mod terminal_lifetime_tests {
++    use super::*;
++    #[tokio::test]
++    async fn real_connected_local_close_joins_original_waiter_without_retiring_an_unrelated_pair() {
++        let config = WebRtcConfig::loopback();
++        let mut owners = Vec::new();
++        for role in [
++            PeerRole::Offerer,
++            PeerRole::Answerer,
++            PeerRole::Offerer,
++            PeerRole::Answerer,
++        ] {
++            match RvoipPeerConnection::new(&config, role).await {
++                Ok(peer) => owners.push(peer),
++                Err(error) => {
++                    for peer in &owners {
++                        let _ = peer.close().await;
++                    }
++                    panic!("original peer setup: {error}");
++                }
++            }
++        }
++        let observed: Result<(bool, bool, bool)> = async {
++            for i in [0, 2] {
++                owners[i].add_local_audio_track().await?;
++                let offer = owners[i].create_offer_and_gather().await?;
++                let answer = owners[i + 1].accept_offer_and_gather(&offer).await?;
++                owners[i].set_remote_answer(&answer).await?;
++                tokio::try_join!(
++                    owners[i].wait_connected(Duration::from_secs(3)),
++                    owners[i + 1].wait_connected(Duration::from_secs(3))
++                )?;
++            }
++            owners[0].close().await?;
++            let joined = tokio::time::timeout(Duration::from_secs(1), owners[0].wait_failed())
++                .await
++                .is_ok();
++            let not_current = !owners[0].is_connected() && !owners[0].core_transport_current();
++            let unrelated_current = owners[2].is_connected()
++                && owners[2].core_transport_current()
++                && owners[3].is_connected()
++                && owners[3].core_transport_current();
++            owners[0].close().await?;
++            Ok((joined, not_current, unrelated_current))
++        }
++        .await;
++        let mut closes = Vec::new();
++        for peer in &owners {
++            closes.push(peer.close().await);
++        }
++        let (joined, not_current, unrelated_current) = observed.unwrap();
++        for closed in closes {
++            closed.unwrap();
++        }
++        assert!(
++            joined,
++            "actual Closed event did not release original lifetime waiter"
++        );
++        assert!(not_current, "closed transport remained current");
++        assert!(
++            unrelated_current,
++            "local close retired a different original peer pair"
++        );
++    }
++}

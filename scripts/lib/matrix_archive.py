@@ -7,6 +7,8 @@ import shutil
 import stat
 import tarfile
 
+from .matrix_storage import archive_budget, atomic_json, preflight, sync_file, sync_directory, sync_ancestors
+
 
 def inventory(directory):
     result = {}
@@ -52,17 +54,19 @@ def verify(archive, expected):
 
 
 def archive_joined(directory, report):
-    if not report.get("servers") or any(s.get("original_joined") is not True for s in report["servers"]):
-        return None
-    if report.get("format") == "connect/browser-matrix-component/1":
-        if report.get("browser_owner_joined") is not True:
-            return None
-    elif report.get("conversation_control", {}).get("all_observed_helpers_joined") is not True:
+    from .matrix_archive_drain import original_owners_joined
+    # Successful shutdown and physical custody are separate. Preserve a
+    # nonzero original exit in the report while requiring its exact joined
+    # process group and all other original owners before archival.
+    if not original_owners_joined(report):
         return None
     directory = Path(directory)
     if directory.is_symlink() or not directory.is_dir():
         raise ValueError("Original cell directory required")
     original = inventory(directory)
+    # A new archive overlaps the still-preserved expanded original. Charge its
+    # actual independent tar members, not a historical compression ratio.
+    preflight(directory, required=archive_budget(original))
     archive = directory.with_suffix(".tar.gz")
     if archive.exists():
         raise ValueError("Original cell archive already exists")
@@ -77,9 +81,14 @@ def archive_joined(directory, report):
         raise ValueError("Original cell changed during archival")
     with archive.open("rb") as source:
         sha = hashlib.file_digest(source, "sha256").hexdigest()
+    with archive.open("rb") as source:
+        sync_file(source.fileno())
+    cell_roots = [p.parent for p in directory.parents if p.name == "cells"]
+    sync_ancestors(archive.parent,cell_roots[0].parent if cell_roots else directory.parent)
     receipt = dict(format="connect/g6-058-original-cell-archive/1", archive_sha256=sha,
         archive_bytes=archive.stat().st_size, entries=original, verified_before_removal=True)
-    directory.with_suffix(".archive.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    atomic_json(directory.with_suffix(".archive.json"), receipt, limit=32 * 1024**2)
     shutil.rmtree(directory)
+    sync_directory(directory.parent)
     return dict(path=str(archive), sha256=sha, bytes=archive.stat().st_size,
                 original_entries=len(original), verified_before_removal=True)

@@ -5,17 +5,33 @@ window remains required, and missing evidence is a failure. No producer pass
 flag, allocator operation, process replacement or cold-RSS waiver is inferred.
 """
 import math
+import hashlib
+from pathlib import Path
 import re
 
 CYCLE_POLICY = dict(profile="connect/matrix-idle-ownership/1", idle_seconds=10,
     sample_seconds=1, session_physical_owners=0, session_owned_tasks=0,
     scope="Original Session owners/tasks return to zero and resource pools to their pre-workload usage within ten seconds; warm process residency is evaluated across three original cycles.")
-POLICY = dict(profile="connect/matrix-resource-plateau/1", cycles=3,
-    idle_seconds=10, sample_seconds=1, rss_variance_floor_bytes=8*1024*1024,
-    rss_variance_fraction=.05, rss_monotonic_step_floor_bytes=1024*1024,
-    rss_persistent_step_ratio_min=.75,
-    later_extra_processes=0, later_extra_threads=0, later_extra_descriptors=0,
-    scope="Three real cycles on the same persistent original owners. Cycle one includes cold initialization; later idle RSS is bounded by max(8MiB,5% of cycle-one idle RSS), and two consecutive rises of at least1MiB fail when the second is at least75% of the first. Later process/thread/descriptor counts cannot exceed cycle-one idle counts. No forced GC, allocator or pool tuning.")
+# These are NEW engineering operating budgets, not measured allocator limits or
+# OS-enforced quotas. Count capacity is frozen from the first original workload.
+GIB = 1024 * 1024 * 1024
+SERVER_SOURCE_INPUTS = {
+    "crates/connect-server/src/main.rs": "acd9b8a3eb7e80342e38d08055e2dd3cb6018b6cc9ed2b6223cae5d3e6dd0a58",
+    "Cargo.lock": "e9e8e6143b6fa2d40efa95532ecabeb41b1712ad54f98a3d930f7e093a5a3c0f"}
+SERVER_RUNTIME_CONFIGURATION = dict(
+    format="connect/matrix-server-runtime-capacity/1",
+    runtime="tokio", version="1.53.2", builder="tokio::main-default-multi-thread",
+    max_blocking_threads=512,
+    connect_main_sha256="acd9b8a3eb7e80342e38d08055e2dd3cb6018b6cc9ed2b6223cae5d3e6dd0a58",
+    tokio_package_checksum="e95f91fcc7a621e8b030f6aa23c71fe9838ae2fb4d8118b75602a328f5144044",
+    tokio_builder_sha256="352db30f01ecd4c5b80ad03780124c6d7241fa1538e3f83497f024f253d957d5")
+POLICY = dict(profile="connect/matrix-resource-capacity/4", cycles=3,
+    idle_seconds=10, sample_seconds=1,
+    role_rss_budget_bytes=dict(server=GIB, browser=4*GIB, helper=GIB),
+    aggregate_rss_budget_bytes=6*GIB,
+    count_capacity="First original workload samples, frozen before later cycles. Server threads use original baseline total plus the exact source-bound default blocking-pool capacity.",
+    rss_trend="Diagnostic only. Last-three-sample idle intervals. A later rise must be unseparated at observed resolution or the second positive increment must be strictly smaller than the first across the complete observed intervals.",
+    scope="Owner-approved capacity and strict ownership profile. Three-cycle RSS trends are diagnostic, not a qualification gate. Sustained growth assessment remains pending under G6-098. No proof of object liveness or absence of a slowly decaying leak. Original Session ownership, task and pool restoration, all actual joins, fixed identities, complete workloads and ten-second cleanup remain required. No forced GC, allocator or pool tuning.")
 COUNTS = ("live_processes", "sampled_threads", "sampled_open_descriptors")
 MEASURES = (*COUNTS, "sampled_rss_bytes")
 HEX = re.compile(r"[0-9a-f]{64}")
@@ -106,9 +122,89 @@ def _valid_owner(owner):
     return isinstance(owner, dict) and type(owner.get('pid')) is int and (owner['pid'] > 0) and any((k in owner and birth(owner[k]) for k in ('start_ticks', 'start', 'birth', 'start_identity')))
 
 
-def evaluate(report):
+def _workload_samples(idle, roles):
+    baseline = idle['baseline']['monotonic_seconds']
+    terminal = idle['terminal_monotonic_seconds']
+    original = [s for s in idle['samples'] if s['stage'] == 'workload']
+    valid, skipped = [], {}
+    for sample in original:
+        if not baseline <= sample['monotonic_seconds'] < terminal:
+            # The original terminal may arrive after the numeric sample was
+            # labelled. Never admit that late sample to workload capacity.
+            reason = 'outside-original-workload-time'
+            skipped[reason] = skipped.get(reason, 0) + 1
+            continue
+        if (sample.get('error') or not _valid_groups(sample.get('groups')) or
+                set(sample['groups']) != roles):
+            reason = 'unavailable-or-incomplete-original-quantitative-sample'
+            skipped[reason] = skipped.get(reason, 0) + 1
+        else:
+            valid.append(sample)
+    if not valid:
+        raise ValueError('workload-capacity-valid-samples-missing')
+    return dict(valid=valid, original=original, skipped=skipped)
+
+
+def _known_rss(sample, role):
+    groups = sample.get('groups') if isinstance(sample, dict) else None
+    group = groups.get(role) if isinstance(groups, dict) else None
+    value = group.get('sampled_rss_bytes') if isinstance(group, dict) else None
+    return value if type(value) is int and value > 0 else None
+
+
+def _rss_intervals(windows, role):
+    intervals = [dict(low=min(s['groups'][role]['sampled_rss_bytes'] for s in w),
+                      high=max(s['groups'][role]['sampled_rss_bytes'] for s in w)) for w in windows]
+    first, second, third = intervals
+    increments = [dict(low=b['low']-a['high'], high=b['high']-a['low'])
+                  for a,b in zip(intervals,intervals[1:])]
+    # Overlap is only a statement about the observed resolution, not a
+    # statistical confidence interval. Strict contraction has no fitted ratio.
+    later_rise_unseparated = third['low'] <= second['high']
+    demonstrated_contraction = (increments[0]['low'] > 0 and
+        0 < increments[1]['high'] < increments[0]['low'])
+    return dict(intervals=intervals, increments=increments,
+        later_rise_unseparated=later_rise_unseparated,
+        demonstrated_contraction=demonstrated_contraction,
+        passed=later_rise_unseparated or demonstrated_contraction)
+
+
+def runtime_capacity_configuration(owner, source_inputs=None):
+    """Source-bound capacity, never a claim about actual blocking-worker idleness.
+
+    Producers use their current source files. Independent verifiers may pass
+    their already-recomputed source_inputs for the exact archived candidate.
+    A missing/different source binding remains unavailable, not a default guess.
+    """
+    try:
+        if source_inputs is None:
+            root = Path(__file__).resolve().parents[2]
+            source_inputs = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
+                             for name in SERVER_SOURCE_INPUTS}
+        observed = {name: source_inputs[name] for name in SERVER_SOURCE_INPUTS}
+        if observed != SERVER_SOURCE_INPUTS:
+            raise ValueError('source-configuration-changed')
+        return dict(SERVER_RUNTIME_CONFIGURATION, original_owner=owner, source_inputs=observed)
+    except (OSError, KeyError, TypeError, ValueError) as error:
+        return dict(format=SERVER_RUNTIME_CONFIGURATION['format'], available=False,
+                    error=type(error).__name__)
+
+
+def _server_thread_ceiling(report, owners, source_inputs):
+    # The source binding is required, rather than silently assuming a 512 cap.
+    # This bounds capacity ONLY. Zero owned tasks/actual joins independently
+    # prove Session cleanup. This does not claim all work on every OS thread is idle.
+    configuration = report['server_runtime_capacity']
+    expected = runtime_capacity_configuration(owners['server'], source_inputs)
+    if expected.get('available') is False or configuration != expected:
+        raise ValueError('server-runtime-capacity-configuration')
+    return (report['baseline']['groups']['server']['sampled_threads'] +
+            configuration['max_blocking_threads'])
+
+
+def evaluate(report, source_inputs=None):
     """Recompute independent resource qualification; never clears media failures."""
-    result = dict(format='connect/matrix-resource-plateau-verdict/1', passed=False, failures=[], comparisons=[], policy=POLICY)
+    result = dict(format='connect/matrix-resource-plateau-verdict/1', passed=False, failures=[], diagnostics=[], comparisons=[], policy=POLICY, separate_soak=dict(task='G6-098', status='pending', qualified=False))
     errors = result['failures']
     try:
         if report['format'] != 'connect/matrix-plateau-observation/1':
@@ -156,29 +252,68 @@ def evaluate(report):
             window = _idle_window(idle, baseline)
             windows.append(window)
             previous_final = window[-1]['monotonic_seconds']
-        # Fix the warm reference after the first real workload. Later growth
-        # never resets it. Each window includes all three final idle samples.
+        roles = set(owners)
+        if roles not in ({'server', 'browser'}, {'server', 'helper'}):
+            raise ValueError('unsupported-operating-role-inventory')
+        observations = [_workload_samples(c['idle_resources'], roles) for c in cycles]
+        workload = [o['valid'] for o in observations]
+        result['workload_capacity_samples'] = [dict(index=i, valid=len(o['valid']),
+            skipped=sum(o['skipped'].values()), skipped_reasons=o['skipped'])
+            for i,o in enumerate(observations,1)]
+        first_workload = workload[0]
+        server_thread_ceiling = _server_thread_ceiling(report, owners, source_inputs)
+        # RSS capacity applies to every original numeric observation, including
+        # cold/cycle baselines and earlier idle samples. These observations do
+        # not raise the frozen workload count capacity or change trend windows.
+        rss_samples = [baseline, *report.get('baseline_samples', [])]
+        for cycle in cycles:
+            idle = cycle['idle_resources']
+            rss_samples.extend([idle['baseline'], *idle.get('baseline_samples', []),
+                                *idle['samples']])
+        # Do not read process_summary: its peak can include later cycles.
         for role in sorted(owners):
-            envelope = [{field: max((s['groups'][role][field] for s in w)) for field in MEASURES} for w in windows]
+            envelope = [{field: max(s['groups'][role][field] for s in w)
+                         for field in MEASURES} for w in windows]
             for field in COUNTS:
                 values = [e[field] for e in envelope]
-                result['comparisons'].append(dict(role=role, metric=field, values=values, max_later_increase=0))
-                if any((v > values[0] for v in values[1:])):
-                    errors.append(role + ':' + field + ':later-idle-growth')
-            values = [e['sampled_rss_bytes'] for e in envelope]
-            allowance = max(POLICY['rss_variance_floor_bytes'], math.ceil(values[0] * POLICY['rss_variance_fraction']))
-            steps = [b - a for a, b in zip(values, values[1:])]
-            monotonic = all((step >= POLICY['rss_monotonic_step_floor_bytes'] for step in steps)) and steps[1] >= steps[0] * POLICY['rss_persistent_step_ratio_min']
-            result['comparisons'].append(dict(role=role, metric='sampled_rss_bytes', values=values, cycle_one_reference_bytes=values[0], variance_allowance_bytes=allowance, idle_to_idle_steps_bytes=steps, monotonic_step_floor_bytes=POLICY['rss_monotonic_step_floor_bytes'], persistent_step_ratio_min=POLICY['rss_persistent_step_ratio_min'], persistent_positive_trend=monotonic))
-            if any((v > values[0] + allowance for v in values[1:])):
-                errors.append(role + ':sampled_rss_bytes:variance-bound')
-            if monotonic:
-                errors.append(role + ':sampled_rss_bytes:persistent-positive-trend')
+                capacity = max(s['groups'][role][field] for s in first_workload)
+                capacity_source = 'original-cycle-one-workload'
+                if role == 'server' and field == 'sampled_threads':
+                    capacity = server_thread_ceiling
+                    capacity_source = 'original-baseline-total-plus-source-bound-blocking-capacity'
+                result['comparisons'].append(dict(role=role, metric=field, values=values,
+                    capacity=capacity, capacity_source=capacity_source,
+                    later_idle_steps=[b-a for a,b in zip(values, values[1:])]))
+                if any(v > capacity for v in values):
+                    errors.append(role + ':' + field + ':operating-capacity-exceeded')
+            rss = _rss_intervals(windows, role)
+            budget = POLICY['role_rss_budget_bytes'][role]
+            # A partial process observation cannot establish count capacity.
+            # Its known RSS is still a lower bound: never discard a breach.
+            known_rss = [_known_rss(s, role) for s in rss_samples]
+            maximum = max(n for n in known_rss if type(n) is int and n > 0)
+            result['comparisons'].append(dict(role=role, metric='sampled_rss_bytes',
+                declared_operating_budget_bytes=budget, observed_maximum_bytes=maximum, diagnostic_only=True, **rss))
+            if maximum > budget:
+                errors.append(role + ':sampled_rss_bytes:operating-budget-exceeded')
+            if not rss['passed']:
+                result['diagnostics'].append(role + ':sampled_rss_bytes:later-rise-not-demonstrably-contracting')
+        # Aggregated RSS can double count shared pages. This is a conservative
+        # observed process-tree budget, not a claim about unique physical RAM.
+        aggregate_samples = rss_samples
+        aggregate = max(sum(n for role in owners
+                            if (n := _known_rss(s, role)) is not None)
+                        for s in aggregate_samples)
+        result['comparisons'].append(dict(metric='aggregate_sampled_rss_bytes',
+            observed_maximum_bytes=aggregate,
+            declared_operating_budget_bytes=POLICY['aggregate_rss_budget_bytes']))
+        if aggregate > POLICY['aggregate_rss_budget_bytes']:
+            errors.append('aggregate:sampled_rss_bytes:operating-budget-exceeded')
         result['passed'] = not errors
     except (KeyError, TypeError, ValueError, IndexError, OverflowError) as error:
         errors.append(str(error) if isinstance(error, ValueError) else 'incomplete-or-invalid-plateau-evidence:' + type(error).__name__)
     return result
 
 
-def plateau_verdict(report):
-    return evaluate(report)['passed']
+def plateau_verdict(report, source_inputs=None):
+    return evaluate(report, source_inputs)['passed']

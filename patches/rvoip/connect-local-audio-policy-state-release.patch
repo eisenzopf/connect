@@ -1,0 +1,562 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -237,6 +237,9 @@
+     Current,
+     OrdinaryForward,
+     FrozenForward(Option<&'a ConsumerStamp>),
++    // Independently authorized local output retains activation without the
++    // ordinary-forward prohibition against injecting into managed audio.
++    FrozenLocal(Option<&'a ConsumerStamp>),
+     Retained(Option<&'a ConsumerStamp>),
+ }
+ pub(super) struct MediaAdmission {
+@@ -458,7 +461,9 @@
+         let Some(consumer) = consumer else {
+             if matches!(
+                 expected,
+-                ConsumerCheck::Retained(Some(_)) | ConsumerCheck::FrozenForward(Some(_))
++                ConsumerCheck::Retained(Some(_))
++                    | ConsumerCheck::FrozenForward(Some(_))
++                    | ConsumerCheck::FrozenLocal(Some(_))
+             ) {
+                 return Err(StreamControlError::NotReady);
+             }
+@@ -471,15 +476,18 @@
+                 _consumer: None,
+             });
+         };
+-        let frozen_forward = matches!(&expected, ConsumerCheck::FrozenForward(_));
++        let frozen_forward = matches!(
++            &expected,
++            ConsumerCheck::FrozenForward(_) | ConsumerCheck::FrozenLocal(_)
++        );
+         let stamp = match expected {
+             ConsumerCheck::Current | ConsumerCheck::OrdinaryForward => consumer.stamp(),
+-            ConsumerCheck::Retained(Some(stamp)) | ConsumerCheck::FrozenForward(Some(stamp)) => {
+-                stamp.clone()
+-            }
+-            ConsumerCheck::Retained(None) | ConsumerCheck::FrozenForward(None) => {
+-                return Err(StreamControlError::NotReady)
+-            }
++            ConsumerCheck::Retained(Some(stamp))
++            | ConsumerCheck::FrozenForward(Some(stamp))
++            | ConsumerCheck::FrozenLocal(Some(stamp)) => stamp.clone(),
++            ConsumerCheck::Retained(None)
++            | ConsumerCheck::FrozenForward(None)
++            | ConsumerCheck::FrozenLocal(None) => return Err(StreamControlError::NotReady),
+         };
+         let guard = consumer.begin_frozen(&stamp, sending, frozen_forward)?;
+         Ok(MediaAdmission {
+--- a/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
+@@ -33,45 +33,91 @@
+         purpose: &LocalAudioPurpose,
+         consumer: audio_consumer::ConsumerCheck<'_>,
+         scene: scene_consumer::SceneCheck<'_>,
++        admitted_at: Instant,
+     ) -> ControlResult<(
+         Box<dyn MediaAuthorityLease>,
+         audio_consumer::MediaAdmission,
+         tokio::time::Instant,
+         Option<CancellationToken>,
+     )> {
++        let original_deadline =
++            tokio::time::Instant::from_std(admitted_at) + Duration::from_millis(200);
++        if tokio::time::Instant::now() >= original_deadline {
++            return Err(StreamControlError::Deadline);
++        }
++        let validate = |state: &State| -> ControlResult<()> {
++            let logical = &port.binding.negotiated.requested.logical_id;
++            if self.shutdown.is_cancelled()
++                || state.closed
++                || !state
++                    .active
++                    .get(logical)
++                    .is_some_and(|p| Arc::ptr_eq(p, port))
++                || port.binding.negotiated.requested.medium != Medium::Audio
++                || state
++                    .model
++                    .streams()
++                    .get(logical)
++                    .is_none_or(|s| !s.permits(true))
++            {
++                return Err(StreamControlError::NotReady);
++            }
++            Ok(())
++        };
+         let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+-        let logical = &port.binding.negotiated.requested.logical_id;
+-        if self.shutdown.is_cancelled()
+-            || state.closed
+-            || !state
+-                .active
+-                .get(logical)
+-                .is_some_and(|p| Arc::ptr_eq(p, port))
+-            || port.binding.negotiated.requested.medium != Medium::Audio
+-            || state
+-                .model
+-                .streams()
+-                .get(logical)
+-                .is_none_or(|s| !s.permits(true))
+-        {
+-            return Err(StreamControlError::NotReady);
+-        }
+-        let preparation = match self
++        validate(&state)?;
++        let revision = state.model.revision();
++        let preparation_owner = self
+             .audio_preparation
+             .try_lock()
+             .map_err(|_| MediaTransitionError::Conflict)?
+             .as_ref()
+-        {
+-            None => None,
+-            Some(p) => Some(
+-                p.upgrade()
+-                    .ok_or(StreamControlError::NotReady)?
+-                    .output_scope(purpose)?,
+-            ),
+-        };
++            .map(|p| p.upgrade().ok_or(StreamControlError::NotReady))
++            .transpose()?;
++        let preparation = preparation_owner
++            .as_ref()
++            .map(|p| p.output_scope(purpose))
++            .transpose()?;
++        let frozen_consumer = match consumer {
++            audio_consumer::ConsumerCheck::Current => self.current_consumer_stamp(port)?,
++            audio_consumer::ConsumerCheck::Retained(stamp) => stamp.cloned(),
++            _ => return Err(StreamControlError::Authority),
++        };
++        let current_scene = self.current_scene_stamp()?;
++        let scene = scene.frozen_publish(current_scene.as_ref(), admitted_at);
+         let credential = self.credential_snapshot();
+         let scope = self.scope(&credential.principal, MediaPurpose::Control);
++        // This callback can derive current Store/file authority. Never exclude
++        // the same target's video writer while that external read is in flight.
++        drop(state);
+         let lease = self.policy.current_local_audio(&scope, purpose)?;
++        Self::check(&scope, lease.authority())?;
++        let deadline =
++            Self::media_deadline(&credential.principal, lease.as_ref(), original_deadline)?;
++        let state = match self.state.try_lock() {
++            Ok(state) => state,
++            Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
++            Err(std::sync::TryLockError::WouldBlock) => return Err(StreamControlError::NotReady),
++        };
++        if state.model.revision() != revision {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        self.check_credential_snapshot(&credential)?;
++        validate(&state)?;
++        let current_preparation = self
++            .audio_preparation
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?
++            .as_ref()
++            .map(|p| p.upgrade().ok_or(StreamControlError::NotReady))
++            .transpose()?;
++        match (&preparation_owner, &current_preparation) {
++            (None, None) => {}
++            (Some(original), Some(current)) if Arc::ptr_eq(original, current) => {
++                current.output_scope(purpose)?;
++            }
++            _ => return Err(StreamControlError::NotReady),
++        }
+         let owner = lease.authority();
+         Self::check(&scope, owner)?;
+         state.model.authorize_binding(&owner.current())?;
+@@ -85,14 +131,17 @@
+             .try_begin_delivery()
+             .ok_or(StreamControlError::NotReady)?;
+         let (scene_stamp, scene_guard) = self.scene_admission(scene)?;
+-        let mut admission = self.consumer_admission(port, true, consumer, guard)?;
++        let mut admission = self.consumer_admission(
++            port,
++            true,
++            audio_consumer::ConsumerCheck::FrozenLocal(frozen_consumer.as_ref()),
++            guard,
++        )?;
+         admission.scene = scene_stamp;
+         admission._scene = scene_guard;
+-        let deadline = Self::media_deadline(
+-            &credential.principal,
+-            lease.as_ref(),
+-            tokio::time::Instant::now() + Duration::from_millis(200),
+-        )?;
++        if tokio::time::Instant::now() >= deadline {
++            return Err(StreamControlError::Deadline);
++        }
+         Ok((lease, admission, deadline, preparation))
+     }
+     /// Generate neutral silence using this exact negotiated codec. Enqueue is
+@@ -172,12 +221,14 @@
+         port.validate(&frame)?;
+         let ticket = port.ticket();
+         let credential = self.credential_snapshot();
++        let admitted_at = Instant::now();
+         let (_lease, admission, deadline, preparation) = self.admit_local_audio(
+             &port,
+             &ticket,
+             &purpose,
+             audio_consumer::ConsumerCheck::Current,
+             scene_consumer::SceneCheck::publish(),
++            admitted_at,
+         )?;
+         self.check_credential_snapshot(&credential)?;
+         if tokio::time::Instant::now() >= deadline {
+@@ -209,7 +260,7 @@
+             target_scene: admission.scene.clone(),
+             subscription: Some(subscription),
+             direct: None,
+-            admitted_at: Instant::now(),
++            admitted_at,
+         })
+         .map_err(|e| match e {
+             mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
+@@ -254,6 +305,7 @@
+             &local.purpose,
+             audio_consumer::ConsumerCheck::Retained(self.target_consumer.as_ref()),
+             scene_consumer::SceneCheck::retained_publish(self.target_scene.as_ref()),
++            self.admitted_at,
+         )?;
+         let mut tokens = vec![target.shutdown.clone(), subscription.cancel.clone()];
+         if let Some(preparation) = &local.preparation {
+--- a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+@@ -125,6 +125,23 @@
+     frozen_activation: bool,
+ }
+ impl<'a> SceneCheck<'a> {
++    /// Local generated audio freezes its exact activation before external policy.
++    /// Retained queued audio keeps its original scene rather than recapturing it.
++    pub(super) fn frozen_publish<'b>(
++        &self,
++        current: Option<&'b SceneStamp>,
++        admitted: Instant,
++    ) -> SceneCheck<'b>
++    where
++        'a: 'b,
++    {
++        SceneCheck {
++            retained: Some(self.retained.unwrap_or(current)),
++            source: self.source,
++            admitted: Some(admitted),
++            frozen_activation: true,
++        }
++    }
+     pub(super) fn is_current_publish(&self) -> bool {
+         self.retained.is_none() && self.source.is_none() && self.admitted.is_none()
+     }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+@@ -953,3 +953,309 @@
+     assert!(output.try_recv().is_err());
+     assert!(f.policy.0.try_write().is_ok());
+ }
++
++// Separate from ordinary Publish/Receive callbacks: the real local-audio entry
++// must release State for its own independently authorized preparation callback.
++struct LocalCallbackPolicy {
++    inner: Arc<Policy>,
++    target: Arc<Mutex<Weak<StreamController>>>,
++    actions: Actions,
++}
++impl MediaPolicy for LocalCallbackPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.inner.current(scope)
++    }
++    fn current_local_audio(
++        &self,
++        scope: &MediaScope<'_>,
++        purpose: &local_audio::LocalAudioPurpose,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if scope.connection.as_str() != "bob"
++            || *purpose
++                != (local_audio::LocalAudioPurpose::EndpointPreparation {
++                    operation_id: "local-state-read".into(),
++                })
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        let action = self.actions.lock().unwrap().take();
++        if let Some(action) = action {
++            action(&self.target.lock().unwrap().upgrade().unwrap());
++        }
++        self.inner.current(scope)
++    }
++}
++async fn local_fixture(kinds: &[Medium]) -> (Fixture, Actions, Arc<audio_consumer::AudioConsumer>) {
++    let actions = Arc::new(Mutex::new(None));
++    let target = Arc::new(Mutex::new(Weak::new()));
++    let fixture = Fixture::with_policy(
++        8,
++        Some(Box::new({
++            let actions = actions.clone();
++            let target = target.clone();
++            move |inner| {
++                Arc::new(LocalCallbackPolicy {
++                    inner,
++                    target,
++                    actions,
++                })
++            }
++        })),
++    );
++    *target.lock().unwrap() = Arc::downgrade(&fixture.b);
++    fixture.start(kinds).await;
++    let consumer =
++        audio_consumer::AudioConsumer::optional(Some(desired(Medium::Audio).logical_id), 8000);
++    consumer.activate(true);
++    *fixture.b.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&consumer));
++    (fixture, actions, consumer)
++}
++fn local_silence(controller: &StreamController) -> ControlResult<()> {
++    controller.try_queue_local_silence(
++        &desired(Medium::Audio).logical_id,
++        local_audio::LocalAudioPurpose::EndpointPreparation {
++            operation_id: "local-state-read".into(),
++        },
++        960,
++    )
++}
++#[tokio::test]
++async fn local_audio_enqueue_and_actual_send_policy_release_state_and_keep_neutral_origin() {
++    let (f, actions, _consumer) = local_fixture(&[Medium::Audio]).await;
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    *actions.lock().unwrap() = Some(Box::new(|controller| {
++        assert!(
++            controller.state.try_lock().is_ok(),
++            "local enqueue policy holds State"
++        );
++    }));
++    local_silence(&f.b).unwrap();
++    assert!(
++        actions.lock().unwrap().is_none(),
++        "local enqueue callback was not entered"
++    );
++    let queued = outgoing(&mut output).await;
++    let admitted = queued.admitted_at;
++    *actions.lock().unwrap() = Some(Box::new(|controller| {
++        assert!(
++            controller.state.try_lock().is_ok(),
++            "local send policy holds State"
++        );
++    }));
++    queued
++        .deliver_with_origin(|frame, origin| async move {
++            assert!(
++                origin.is_none(),
++                "local silence borrowed a remote media origin"
++            );
++            assert_eq!(frame.timestamp_rtp, 960);
++            let mut decoder = rvoip_media_core::codec::factory::CodecFactory::create_codec(
++                0,
++                Some(8000),
++                Some(1),
++            )
++            .unwrap();
++            assert!(
++                decoder
++                    .decode(&frame.payload)
++                    .unwrap()
++                    .samples
++                    .iter()
++                    .all(|v| v.unsigned_abs() < 20)
++            );
++            assert!(admitted.elapsed() < Duration::from_millis(200));
++            Ok(())
++        })
++        .await
++        .unwrap();
++    assert!(
++        actions.lock().unwrap().is_none(),
++        "local send callback was not entered"
++    );
++    assert!(
++        f.policy.0.try_write().is_ok(),
++        "local output retained authority after send"
++    );
++}
++#[tokio::test]
++async fn blocked_local_audio_policy_allows_the_same_targets_original_queued_video_writer() {
++    let (f, actions, _consumer) = local_fixture(&[Medium::Audio, Medium::Video]).await;
++    let source = f.aa.port(Medium::Video);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++    source.try_publish(&frame(&source, 930)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
++        .unwrap();
++    let queued = outgoing(&mut output).await;
++    let (entered_tx, entered_rx) = std::sync::mpsc::sync_channel(1);
++    let (release_tx, release_rx) = std::sync::mpsc::sync_channel(1);
++    *actions.lock().unwrap() = Some(Box::new(move |controller| {
++        assert!(
++            controller.state.try_lock().is_ok(),
++            "local callback still excludes video"
++        );
++        entered_tx.send(()).unwrap();
++        release_rx
++            .recv_timeout(Duration::from_secs(2))
++            .expect("original owner releases local callback");
++    }));
++    let controller = f.b.clone();
++    let worker = std::thread::spawn(move || local_silence(&controller));
++    let entered = entered_rx.recv_timeout(Duration::from_secs(1));
++    let delivered = if entered.is_ok() {
++        queued.deliver(|_| async { Ok(()) }).await
++    } else {
++        Err(StreamControlError::NotReady)
++    };
++    let released = release_tx.send(());
++    let joined = worker.join();
++    assert!(entered.is_ok(), "original local callback was not entered");
++    assert!(released.is_ok());
++    assert!(
++        joined.is_ok_and(|result| result.is_ok()),
++        "original local queue worker did not succeed"
++    );
++    assert!(
++        delivered.is_ok(),
++        "queued video could not drain while local policy was blocked"
++    );
++    assert!(actions.lock().unwrap().is_none());
++}
++#[tokio::test]
++async fn local_audio_policy_refuses_model_aba_credential_and_original_port_changes() {
++    for changed in 0..5 {
++        let (f, actions, _consumer) = local_fixture(&[Medium::Audio]).await;
++        let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++        let authority = f.policy.0.try_read().unwrap().owners["bob"].clone();
++        *actions.lock().unwrap() = Some(Box::new(move |controller| {
++            assert!(controller.state.try_lock().is_ok());
++            match changed {
++                0 => {
++                    let mut state = controller.state.lock().unwrap();
++                    for paused in [true, false] {
++                        let expected = state.model.revision();
++                        state
++                            .model
++                            .set_paused(
++                                &authority.current(),
++                                expected,
++                                &desired(Medium::Audio).logical_id,
++                                paused,
++                            )
++                            .unwrap();
++                    }
++                }
++                1 => controller.credential.lock().unwrap().revision += 1,
++                2 => controller.state.lock().unwrap().closed = true,
++                3 => controller.state.lock().unwrap().active[&desired(Medium::Audio).logical_id]
++                    .retire(),
++                4 => controller.shutdown.cancel(),
++                _ => unreachable!(),
++            }
++        }));
++        assert!(local_silence(&f.b).is_err(), "changed={changed}");
++        assert!(
++            actions.lock().unwrap().is_none(),
++            "original callback was not entered"
++        );
++        assert!(
++            output.try_recv().is_err(),
++            "changed={changed} reached egress"
++        );
++        assert!(f.policy.0.try_write().is_ok());
++    }
++}
++#[tokio::test]
++async fn local_audio_policy_freezes_consumer_and_scene_activation_before_enqueue_and_send() {
++    for queued_send in [false, true] {
++        for changed in 0..4 {
++            let (f, actions, consumer) = local_fixture(&[Medium::Audio]).await;
++            let scene = scene_consumer::SceneConsumer::new(930);
++            scene.activate();
++            *f.b.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&scene));
++            let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++            let queued = if queued_send {
++                local_silence(&f.b).unwrap();
++                Some(outgoing(&mut output).await)
++            } else {
++                None
++            };
++            *actions.lock().unwrap() = Some(Box::new({
++                let consumer = consumer.clone();
++                let scene = scene.clone();
++                move |controller| {
++                    assert!(controller.state.try_lock().is_ok());
++                    match changed {
++                        0 => consumer.activate(true),
++                        1 => *controller.audio_consumer.lock().unwrap() = None,
++                        2 => scene.activate(),
++                        3 => *controller.scene_consumer.lock().unwrap() = None,
++                        _ => unreachable!(),
++                    }
++                }
++            }));
++            let writes = Arc::new(AtomicUsize::new(0));
++            let result = if let Some(queued) = queued {
++                queued
++                    .deliver({
++                        let writes = writes.clone();
++                        move |_| async move {
++                            writes.fetch_add(1, Ordering::SeqCst);
++                            Ok(())
++                        }
++                    })
++                    .await
++            } else {
++                local_silence(&f.b)
++            };
++            assert!(result.is_err(), "queued={queued_send} changed={changed}");
++            assert!(
++                actions.lock().unwrap().is_none(),
++                "original callback was not entered"
++            );
++            assert_eq!(writes.load(Ordering::SeqCst), 0);
++            assert!(output.try_recv().is_err());
++            assert!(f.policy.0.try_write().is_ok());
++        }
++    }
++}
++#[tokio::test]
++async fn local_audio_queued_original_two_hundred_ms_cutoff_is_not_renewed_by_policy() {
++    let (f, actions, _consumer) = local_fixture(&[Medium::Audio]).await;
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    local_silence(&f.b).unwrap();
++    let mut queued = outgoing(&mut output).await;
++    queued.admitted_at = Instant::now() - Duration::from_millis(201);
++    let writes = Arc::new(AtomicUsize::new(0));
++    let result = queued
++        .deliver({
++            let writes = writes.clone();
++            move |_| async move {
++                writes.fetch_add(1, Ordering::SeqCst);
++                Ok(())
++            }
++        })
++        .await;
++    assert!(matches!(result, Err(StreamControlError::Deadline)));
++    assert_eq!(writes.load(Ordering::SeqCst), 0);
++    assert!(actions.lock().unwrap().is_none());
++    local_silence(&f.b).unwrap();
++    let queued = outgoing(&mut output).await;
++    *actions.lock().unwrap() = Some(Box::new(|controller| {
++        assert!(controller.state.try_lock().is_ok());
++        std::thread::sleep(Duration::from_millis(205));
++    }));
++    let result = queued
++        .deliver(|_| async { panic!("expired original local packet reached writer") })
++        .await;
++    assert!(matches!(result, Err(StreamControlError::Deadline)));
++    assert!(
++        actions.lock().unwrap().is_none(),
++        "original callback was not entered"
++    );
++    assert!(f.policy.0.try_write().is_ok());
++}

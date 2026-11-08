@@ -1303,3 +1303,9 @@ async fn canonical_firefox_transport_owner_faults_eddsa() {
 async fn canonical_firefox_transport_owner_faults_es256() {
     Box::pin(run_profile("ES256", "firefox", true, true, true, true)).await;
 }
+
+#[path = "canonical_webrtc_browser/replacement_terminal.rs"]
+mod replacement_terminal;
+
+#[path = "canonical_webrtc_browser/replacement_roundtrip.rs"]
+mod replacement_roundtrip;

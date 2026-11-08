@@ -348,3 +348,42 @@ impl Store {
 pub(crate) fn snapshot_capture_count() -> usize {
     snapshots::capture_count()
 }
+
+#[cfg(feature = "memory-diagnostics")]
+impl Runtime {
+    pub(crate) fn memory_counts(&self) -> serde_json::Value {
+        // No guard crosses another acquisition, JSON serialization, SQL or await.
+        let snapshots = self
+            .snapshots
+            .try_lock()
+            .ok()
+            .map(|cache| snapshots::memory_numbers(&cache));
+        let observations = self
+            .observations
+            .try_lock()
+            .ok()
+            .map(|buffer| buffer.memory_numbers());
+        let snapshots = snapshots.map(snapshots::memory_value);
+        let observations = observations.map(observations::Buffer::memory_value);
+        serde_json::json!({"snapshot_cache":snapshots,"observations":observations,
+            "unavailable_is_null":true,"concurrent_snapshot":true})
+    }
+}
+
+#[cfg(all(test, feature = "memory-diagnostics"))]
+mod memory_diagnostic_tests {
+    use super::*;
+    #[test]
+    fn contended_cache_diagnostic_is_unknown_and_releases_no_original_cache() {
+        let runtime = Runtime::default();
+        let snapshots = runtime.snapshots.lock().unwrap();
+        let observations = runtime.observations.lock().unwrap();
+        let value = runtime.memory_counts();
+        assert!(value["snapshot_cache"].is_null());
+        assert!(value["observations"].is_null());
+        drop((snapshots, observations));
+        let value = runtime.memory_counts();
+        assert_eq!(value["snapshot_cache"]["entries"], 0);
+        assert_eq!(value["observations"]["entries"], 0);
+    }
+}

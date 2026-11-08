@@ -8,9 +8,11 @@ repository.workspace = true
 publish = false
 
 [features]
+memory-diagnostics = ["test-support", "dep:rvoip-infra-common", "rvoip-infra-common/memory-diagnostics", "rvoip-core/memory-diagnostics", "rvoip-webrtc/memory-diagnostics", "rvoip-uctp/memory-diagnostics", "connect-store/memory-diagnostics"]
 test-support = ["connect-store/test-support", "rvoip-core/test-support"]
 
 [dependencies]
+rvoip-infra-common = { path = "../../.deps/rvoip/crates/foundation/infra-common", optional = true }
 connect-protocol.workspace = true
 connect-store.workspace = true
 rvoip-core.workspace = true
@@ -34,7 +36,7 @@ hex.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
-tracing-subscriber.workspace = true
+tracing-subscriber = { workspace = true, features = ["json"] }
 tempfile.workspace = true
 ring.workspace = true
 base64.workspace = true

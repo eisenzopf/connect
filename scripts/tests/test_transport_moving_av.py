@@ -16,6 +16,67 @@ from lib.package_environment import fixture_environment
 from lib.transport_av import opus_packets, ivf_frames, decode_completed, marker_profile
 from lib.transport_moving_av import audio_decode, video_decode, timeline, rows, summarize, marker_alignment, arrival_marker_edges, original_audio_quantum, native_cut_membership
 from lib.transport_movement_profile import MOVE_START_OFFSETS_MS, MOVES_PER_SESSION, TOTAL_MOVES, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256
+from lib.media_transition_coverage import transition_coverage, clean_bin_durations
+
+
+class TransitionCoverage(unittest.TestCase):
+    def coverage(self, times, cuts):
+        return transition_coverage(times, cuts, start_ms=0, end_ms=2000,
+            frame_ms=20, minimum_gap_ms=50)
+
+    def test_actual_contract_bounded_gap_requires_one_exact_public_cut(self):
+        for duration in (100, 400, 1000):
+            report=self.coverage([20,40,40+duration,1500],[dict(id='original',atMs=80)])
+            self.assertEqual(len(report['transitions']),1)
+            self.assertEqual(report['transitions'][0]['interruption_ms'],duration)
+            self.assertEqual(report['transition_missing_ms'],duration-20)
+        self.assertEqual(self.coverage([20,40,1041,1500],
+            [dict(id='original',atMs=80)])['transitions'],[])
+
+    def test_unbound_ambiguous_and_window_edge_gaps_remain_clean_failures(self):
+        for times,cuts in [([20,40,440,1500],[]),
+                ([20,40,440,1500],[dict(id='original',atMs=800)]),
+                ([20,40,440,1500],[dict(id='a',atMs=100),dict(id='b',atMs=200)]),
+                ([400,420,1500],[dict(id='original',atMs=200)])]:
+            report=self.coverage(times,cuts)
+            self.assertEqual(report['transitions'],[])
+            self.assertGreater(report['maximum_clean_gap_ms'],200)
+        report=self.coverage([20,40,440,1500],[dict(id='original',atMs=200)])
+        self.assertEqual(clean_bin_durations(report,0,2),[620,1000])
+
+    def test_unknown_duplicate_disordered_cuts_and_invalid_arrivals_refuse(self):
+        for cuts in [[dict(id='a',atMs=800),dict(id='a',atMs=900)],
+                [dict(id='a',atMs=900),dict(id='b',atMs=800)],
+                [dict(id='a',atMs=float('nan'))]]:
+            with self.subTest(cuts=cuts),self.assertRaises(ValueError):
+                self.coverage([20,40,440],cuts)
+        for times in [[40,20],[-1],[float('inf')],[True]]:
+            with self.subTest(times=times),self.assertRaises(ValueError):
+                self.coverage(times,[])
+
+    def test_native_summary_keeps_raw_missing_media_and_source_refusals(self):
+        route=dict(index=0,peer_index=3,excluded_rows={},received_clocks={'audio':1,'video':1},
+            audio_cuts=[dict(id='original',atMs=15100)],video_cuts=[dict(id='original',atMs=15100)])
+        audio=[dict(row=dict(elapsed_ms=2000+i*20,original_programme_audio_quantum=i),level=.05)
+            for i in range(3000) if not 15000<=2000+i*20<15400]
+        video=[dict(row=dict(elapsed_ms=2000+i*1000/30,timestamp=i*3000),level=0,hash=str(i),wrong_source=0)
+            for i in range(1800) if not 15000<=2000+i*1000/30<15400]
+        histories=[dict(measurements=audio,bad_identity_blocks=0,measured_samples=len(audio)*960)]
+        videos=[dict(measurements=video,undecodable_frames=0)]
+        # This control isolates coverage. Real codec/onset controls above and
+        # below this class independently verify the unchanged sync interpreter.
+        with patch('lib.transport_moving_av.marker_alignment',return_value={'status':'passed'}) as sync:
+            report=summarize(route,histories,videos)
+            self.assertTrue(report['passed'])
+            self.assertEqual(report['audio']['decoded_seconds'],59.6)
+            self.assertGreater(report['audio']['maximum_arrival_gap_ms'],200)
+            self.assertLess(min(report['video']['frames_by_observation_second']),24)
+            sync.assert_called_once_with(histories,videos)
+            route['audio_cuts']=[]
+            self.assertFalse(summarize(route,histories,videos)['passed'])
+            route['audio_cuts']=[dict(id='original',atMs=15100)]
+            video[0]['wrong_source']=1
+            self.assertFalse(summarize(route,histories,videos)['passed'])
 
 
 class NativeSourceIdentity(unittest.TestCase):

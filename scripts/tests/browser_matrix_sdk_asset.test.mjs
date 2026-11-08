@@ -38,3 +38,16 @@ test("matrix SDK aliases reject directories traversal encoding and non-JavaScrip
         "/sdk/errors.d.ts","/sdk/Errors.js","/sdk/\\errors.js","/other/errors.js"])
         assert.throws(()=>matrixSdkAssetName(value),TypeError);
 });
+
+test('browser fixture serves the actual transition coverage import at its resolved module URL',async()=>{
+    const observer=await readFile(new URL('../lib/browser_matrix_observation.mjs',import.meta.url),'utf8');
+    const entry=[...observer.matchAll(/\bfrom\s+["']([^"']+)["']/g)]
+        .map(match=>match[1]).find(name=>name.endsWith('/media_transition_coverage.mjs'));
+    assert.ok(entry);
+    const url=new URL(entry,'https://fixture.invalid/_matrix/observation.mjs');
+    const server=await readFile(new URL('../video/browser_matrix_admission.mjs',import.meta.url),'utf8');
+    assert.ok(server.includes("url.pathname==='"+url.pathname+"'"));
+    assert.ok(server.includes("path.join(root,'scripts/lib/media_transition_coverage.mjs')"));
+    const module=await import('../lib/media_transition_coverage.mjs');
+    assert.equal(module.TRANSITION_PROFILE,'connect/media-transition-coverage/1');
+});

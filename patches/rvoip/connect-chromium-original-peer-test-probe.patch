@@ -1,0 +1,26 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -557,6 +557,23 @@
+         Ok(original)
+     }
+ 
++    /// Test-only observation of the exact existing admitted allocation. The
++    /// original_peer path rechecks route identity and physical lifetime; this
++    /// never starts/replaces an allocation or exposes mutable route storage.
++    #[cfg(feature = "test-hooks")]
++    pub async fn original_peer_for_test(
++        &self,
++        id: &ConnectionId,
++        deadline: tokio::time::Instant,
++    ) -> Result<Arc<RvoipPeerConnection>> {
++        let admitted = self
++            .routes
++            .get(id)
++            .and_then(|route| route.peer.upgrade())
++            .ok_or_else(|| RvoipError::ConnectionNotFound(id.clone()))?;
++        self.original_peer(id, &admitted, deadline).await
++    }
++
+     /// Install one controller/backend on the exact already-reserved route.
+     /// Its actual RTC resources are prepared later, after signed SDP delivery.
+     pub fn configure_media(

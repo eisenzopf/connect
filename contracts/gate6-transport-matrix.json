@@ -29,6 +29,16 @@
     ]
   },
   "required_cell_count": 32,
+  "media_quality_profile": {
+    "profile": "connect/media-transition-coverage/1",
+    "maximum_handoff_interruption_ms": 1000,
+    "maximum_handoffs_per_session": 2,
+    "minimum_gap_for_transition_accounting_ms": 50,
+    "measurement": "Original public decoded samples on the unchanged programme clock. One measured interruption straddling a validated public ownership observation per move can use the handoff allowance. Audio cuts cover the affected Session because its scene is shared. Video cuts cover the moved receiver and receivers selecting its source. Whole-window loss, frame counts and skew remain reported. Preparation remains inside the measured window.",
+    "clean_quality": "Outside measured handoff holes retain the original audio gap/identity limits and 24 changing decoded video frames per second, prorated only by the actual missing handoff duration in that second. Retain at least 1440 changing frames over the complete 60-second window and the original independent AV skew and marker-count limits. Audio permits only the measured handoff missing duration in addition to the existing 100ms whole-window allowance.",
+    "onsets": "Restart onset proof across each admitted handoff hole. Preserve the original whole-window observer diagnostics and require new post-gap evidence before pairing a marker. Private output, duplicated source coverage, wrong source, stale media and failed ownership remain failures everywhere.",
+    "engineering_review": "Prospective reconciliation with the one-second handoff allowance in contracts/connect-media-v2.md. Historical matrix verdicts retain their original profile. The measurement identifies local RTC rendering cuts and conservatively observed native completion boundaries explicitly. Its scope covers receive callbacks and local rendering."
+  },
   "signing_profile": "Each cohort uses its named algorithm for client and server signing. Record every actual peer/key algorithm; do not infer one from a TLS certificate.",
   "expected_browsers_by_client_platform": {
     "macos-arm64": {
@@ -48,7 +58,10 @@
       "profile": "gate6-realistic-device-roundtrip-v1",
       "total_moves": 4,
       "moves_per_session": 2,
-      "start_offsets_ms": [15000, 40000],
+      "start_offsets_ms": [
+        15000,
+        40000
+      ],
       "programme_ms": 62000,
       "owner_amendment": "2026-11-02: owner requested fewer, realistic moves. One switch and one return per Session, spread over the existing programme. Earlier twenty-move runs remain historical stress evidence."
     }
@@ -92,5 +105,47 @@
   "deferred_server_platforms": [
     "ubuntu24-x86_64"
   ],
-  "owner_scope_update": "2026-11-02: owner directs ARM Linux focus; x86 deferred until later. Preserve all32 active Mac/ARM cells and all behavior/quality checks."
+  "owner_scope_update": "2026-11-02: owner directs ARM Linux focus; x86 deferred until later. Preserve all32 active Mac/ARM cells and all behavior/quality checks.",
+  "resource_profile": {
+    "profile": "connect/matrix-resource-capacity/4",
+    "status": "prospective until integrated and verified, no historical verdict changes",
+    "owner_direction": "2026-11-07 owner selected \u201cUse budgets and a separate soak (Recommended)\u201d. Keep strict Session ownership, actual joins, original identities, all three full workloads and declared capacity budgets. Three-cycle RSS trend remains diagnostic.",
+    "cycles": 3,
+    "cleanup_seconds": 10,
+    "sample_seconds": 1,
+    "ownership": "Zero original Session physical owners and owned tasks, original resource-pool restoration, all natural Session/helper joins, exact persistent PID/birth identities. Missing evidence or incomplete workloads fail.",
+    "count_capacity": "Freeze original cycle-one workload numeric maxima for process/descriptor counts and browser/helper threads. Global summaries and later workloads cannot increase capacity. Server thread exception requires exact source-bound pinned default Tokio configuration.",
+    "server_thread_capacity": {
+      "formula": "original baseline total server threads + configured maximum blocking threads",
+      "configured_maximum_blocking_threads": 512,
+      "tokio_version": "1.53.2",
+      "kind": "finite process capacity, not a claim that all jobs on every thread are idle",
+      "source_binding": "Producer hashes exact main.rs and Cargo.lock inputs. Independent verifier recomputes them from its source_inputs. Reviewed pinned Tokio builder/checksum fixes the default."
+    },
+    "rss_operating_budget_bytes": {
+      "server": 1073741824,
+      "browser": 4294967296,
+      "helper": 1073741824,
+      "aggregate": 6442450944
+    },
+    "rss_budget_scope": "Declared engineering capacities for the local 12GiB guest, not measured allocator limits or OS-enforced quotas. Browser/helper are alternative roles. Summed RSS may double count shared pages.",
+    "rss_warmup": "Diagnostic only. Preserve all three final idle samples, interval bounds, increment bounds and contraction/unseparated-rise outcomes. A noncontracting three-cycle RSS pattern does not alone fail the capacity profile.",
+    "measurement_limits": "Capacity qualification does not prove allocator liveness or absence of a slow leak. Preserve all raw RSS/count trends. No GC, allocator reset, trim or pool tuning. Historical profiles/verdicts remain unchanged.",
+    "separate_soak": {
+      "task": "G6-098",
+      "status": "pending",
+      "qualified": false,
+      "plan": "docs/decisions/015-gate-6-operating-profile.md",
+      "implementation_anchor": "docs/connect-gate-6-implementation.html#G6-098",
+      "dependencies": [
+        "G6-057",
+        "G6-079",
+        "G6-092",
+        "G6-093",
+        "G6-095",
+        "G6-096"
+      ],
+      "scope": "Sustained resource-growth assessment is separate. A three-cycle capacity pass neither completes nor waives this task or its dependency graph."
+    }
+  }
 }

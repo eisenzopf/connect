@@ -272,7 +272,12 @@ fn thread_snapshots<const N: usize>(registry: &Registry<N>) -> Vec<ThreadSnapsho
 /// Existing authenticated administrator health boundary only. Called after its
 /// original Store closure has returned and after resource observer locks release.
 /// The diagnostic result is not part of readiness or idle acceptance.
-pub(crate) fn observe(runtime: Option<&crate::canonical_runtime::Runtime>) {
+pub(crate) fn observe(
+    runtime: Option<&crate::canonical_runtime::Runtime>,
+    store: &connect_store::Store,
+) {
+    #[cfg(not(feature = "memory-diagnostics"))]
+    let _ = store;
     if !enabled() {
         return;
     }
@@ -296,6 +301,23 @@ pub(crate) fn observe(runtime: Option<&crate::canonical_runtime::Runtime>) {
             "Map entries and Weak owners are labeled separately; no heap or RSS ownership is inferred",
             "Thread exit is original TLS destruction, not a fabricated job join"]
     });
+    #[cfg(feature = "memory-diagnostics")]
+    let sample = {
+        let mut sample = sample;
+        if let Some(mut heap) = crate::heap_diagnostics::sample() {
+            // The real Runtime's existing registry observation already includes
+            // its Store, once. Standalone Service tests have no Runtime owner.
+            if runtime.is_none() {
+                heap["standalone_store"] =
+                    store.packet_observer_claim_diagnostics()["memory_footprint"].clone();
+            } else {
+                heap["store_location"] =
+                    serde_json::json!("registries.packet_observer_claims.memory_footprint");
+            }
+            sample["heap_boundary"] = heap;
+        }
+        sample
+    };
     tracing::debug!(target: "connect_service::runtime_retention", snapshot = %sample,
         "Original server retention attribution");
 }

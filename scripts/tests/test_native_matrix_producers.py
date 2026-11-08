@@ -90,6 +90,7 @@ class NativeMatrixPlateauProducer(unittest.TestCase):
                     (path/f"resources-cycle-{index}-{phase}.json").write_text(json.dumps(dict(phase=phase,monotonic_seconds=at,programme_owner=owner,**extra)))
                     monitor.poll()
                 boundary("baseline",start);clock[0]=start+1;monitor.poll()
+                clock[0]=start+2;monitor.poll()  # Existing numeric AV poll, before terminal.
                 boundary("terminal",start+9)
                 closed=retirement(start+9);closed["programme_worker"]["owner"]=owner
                 closed["programme_worker"]["report_sha256"]=str(index)*64
@@ -106,6 +107,15 @@ class NativeMatrixPlateauProducer(unittest.TestCase):
         observed=self.exercise()
         self.assertTrue(observed["passed"],observed["evaluation"])
         self.assertEqual(len(observed["cycles"]),3)
+        from lib.matrix_plateau import runtime_capacity_configuration
+        self.assertEqual(observed["server_runtime_capacity"],
+            runtime_capacity_configuration(observed["persistent_owners"]["server"]))
+        for cycle in observed["cycles"]:
+            idle=cycle["idle_resources"]
+            workload=[s for s in idle["samples"] if s["stage"]=="workload"]
+            self.assertEqual(len(workload),1)
+            self.assertLess(workload[0]["monotonic_seconds"],idle["terminal_monotonic_seconds"])
+            self.assertNotIn("usage",workload[0],"Original media poll must not query Health")
         self.assertEqual(len({v["workload_evidence_sha256"] for v in observed["cycles"]}),3)
         self.assertTrue(all(v["joins"]["session_owners_joined"] for v in observed["cycles"]))
         self.assertGreater(observed["cycles"][1]["idle_resources"]["baseline"]["monotonic_seconds"],

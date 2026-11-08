@@ -1,0 +1,181 @@
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -1366,11 +1366,12 @@
+ 
+         tokio::time::timeout(timeout, async move {
+             loop {
+-                if connected_flag.load(Ordering::Acquire) {
++                if failed_flag.load(Ordering::Acquire) {
++                    connected_flag.store(false, Ordering::Release);
++                    return Err(WebRtcError::Webrtc("peer connection failed".into()));
++                }
++                if connected_flag.load(Ordering::Acquire) && !failed_flag.load(Ordering::Acquire) {
+                     return Ok(());
+-                }
+-                if failed_flag.load(Ordering::Acquire) {
+-                    return Err(WebRtcError::Webrtc("peer connection failed".into()));
+                 }
+ 
+                 tokio::select! {
+@@ -1378,7 +1379,18 @@
+                         connected_rx.lock().await.recv().await
+                     } => {
+                         if msg.is_some() {
++                            // The channel can still contain the original
++                            // pre-close Connected notification. It cannot
++                            // resurrect a terminal owner or satisfy a waiter.
++                            if failed_flag.load(Ordering::Acquire) {
++                                connected_flag.store(false, Ordering::Release);
++                                return Err(WebRtcError::Webrtc("peer connection failed".into()));
++                            }
+                             connected_flag.store(true, Ordering::Release);
++                            if failed_flag.load(Ordering::Acquire) {
++                                connected_flag.store(false, Ordering::Release);
++                                return Err(WebRtcError::Webrtc("peer connection failed".into()));
++                            }
+                             return Ok(());
+                         }
+                     }
+@@ -1400,6 +1412,11 @@
+ 
+     pub async fn close(&self) -> Result<()> {
+         self.source_clock.retire();
++        // Local close is terminal intent even when its original asynchronous
++        // driver stops before delivering the queued Closed callback. Publish
++        // this fence before awaiting so cancellation cannot restore currency.
++        self.failed_flag.store(true, Ordering::Release);
++        self.connected_flag.store(false, Ordering::Release);
+         self.pc.close().await?;
+         Ok(())
+     }
+@@ -1773,7 +1790,9 @@
+ #[cfg(test)]
+ mod terminal_lifetime_tests {
+     use super::*;
+-    #[tokio::test]
++    use std::{future::Future, task::Poll};
++
++    #[tokio::test(flavor = "current_thread")]
+     async fn real_connected_local_close_joins_original_waiter_without_retiring_an_unrelated_pair() {
+         let config = WebRtcConfig::loopback();
+         let mut owners = Vec::new();
+@@ -1793,7 +1812,16 @@
+                 }
+             }
+         }
+-        let observed: Result<(bool, bool, bool)> = async {
++        let observed: Result<(bool, bool, bool, bool, bool, bool, bool, bool)> = async {
++            // Poll the original waiter before any negotiation. It owns the
++            // original channel receive while real handlers later queue the
++            // genuine Connected notification; no fake flags/events are used.
++            let mut connected_waiter = Box::pin(owners[0].wait_connected(Duration::from_secs(3)));
++            let connecting_pending = matches!(
++                std::future::poll_fn(|cx| { Poll::Ready(connected_waiter.as_mut().poll(cx)) })
++                    .await,
++                Poll::Pending
++            );
+             for i in [0, 2] {
+                 owners[i].add_local_audio_track().await?;
+                 let offer = owners[i].create_offer_and_gather().await?;
+@@ -1804,30 +1832,96 @@
+                     owners[i + 1].wait_connected(Duration::from_secs(3))
+                 )?;
+             }
++            let mut failure_waiter = Box::pin(owners[0].wait_failed());
++            let failure_pending = matches!(
++                std::future::poll_fn(|cx| { Poll::Ready(failure_waiter.as_mut().poll(cx)) }).await,
++                Poll::Pending
++            );
++            let mut original_close = Box::pin(owners[0].close());
++            let first_close =
++                std::future::poll_fn(|cx| Poll::Ready(original_close.as_mut().poll(cx))).await;
++            let close_pending = matches!(&first_close, Poll::Pending);
++            if let Poll::Ready(Err(error)) = first_close {
++                drop(original_close);
++                return Err(error);
++            }
++            // The current-thread original driver cannot finish its aborted
++            // task until the runtime schedules it. Drop this one pending close
++            // observation, then retry the same owned driver below.
++            drop(original_close);
++            let fenced_before_retry = owners[0].failed_flag.load(Ordering::Acquire)
++                && !owners[0].connected_flag.load(Ordering::Acquire)
++                && !owners[0].core_transport_current();
++            let stale_connected_refused = matches!(
++                tokio::time::timeout(Duration::from_secs(1), connected_waiter.as_mut()).await,
++                Ok(Err(WebRtcError::Webrtc(message))) if message == "peer connection failed"
++            );
++            drop(connected_waiter); // Release both original receiver guards.
+             owners[0].close().await?;
+-            let joined = tokio::time::timeout(Duration::from_secs(1), owners[0].wait_failed())
++            let joined = tokio::time::timeout(Duration::from_secs(1), failure_waiter.as_mut())
+                 .await
+                 .is_ok();
+-            let not_current = !owners[0].is_connected() && !owners[0].core_transport_current();
++            drop(failure_waiter);
++            let not_current = !owners[0].is_connected()
++                && !owners[0].core_transport_current()
++                && !owners[0].connected_flag.load(Ordering::Acquire);
+             let unrelated_current = owners[2].is_connected()
+                 && owners[2].core_transport_current()
+                 && owners[3].is_connected()
+                 && owners[3].core_transport_current();
+             owners[0].close().await?;
+-            Ok((joined, not_current, unrelated_current))
++            Ok((
++                connecting_pending,
++                failure_pending,
++                close_pending,
++                fenced_before_retry,
++                stale_connected_refused,
++                joined,
++                not_current,
++                unrelated_current,
++            ))
+         }
+         .await;
+         let mut closes = Vec::new();
+         for peer in &owners {
+             closes.push(peer.close().await);
+         }
+-        let (joined, not_current, unrelated_current) = observed.unwrap();
+         for closed in closes {
+             closed.unwrap();
+         }
++        let (
++            connecting_pending,
++            failure_pending,
++            close_pending,
++            fenced,
++            stale_refused,
++            joined,
++            not_current,
++            unrelated_current,
++        ) = observed.unwrap();
++        assert!(
++            connecting_pending,
++            "original connected waiter was not parked before negotiation"
++        );
++        assert!(
++            failure_pending,
++            "original terminal waiter was not pending before close"
++        );
++        assert!(
++            close_pending,
++            "normal original driver close did not exercise cancellation before retry"
++        );
++        assert!(
++            fenced,
++            "cancelled close observation left original transport current"
++        );
++        assert!(
++            stale_refused,
++            "buffered original Connected notification satisfied a terminal waiter"
++        );
+         assert!(
+             joined,
+-            "actual Closed event did not release original lifetime waiter"
++            "actual local close intent did not release original lifetime waiter"
+         );
+         assert!(not_current, "closed transport remained current");
+         assert!(

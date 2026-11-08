@@ -337,3 +337,112 @@ PCM. No silent deduplication, clipping, filler or clock repair is permitted.
 This is a prospective producer/profile change. Historical v192 rows are not
 requalified by it. Implementation, focused runtime proof and all32 qualification
 are separate states; the private draft has no execution result.
+
+## Prospective resource capacity amendment for the next Gate 6 run
+
+The owner approved retaining strict Session ownership and cleanup while allowing
+bounded process warm-up across three real workloads on the same original OS
+owners. The later discussion rejected treating every increase in process RSS or
+idle worker counts as a leak. This amendment implements that direction as the
+prospective `connect/matrix-resource-capacity/3` profile. It does not revise any
+earlier verdict. The November 4 zero-retention profile above and the later /1
+and /2 plateau profiles remain historical evidence with their original results.
+
+Each of the three original workloads must still complete its actual programme.
+Every original ten-second cleanup window must restore zero Session physical
+owners and owned tasks, restore original resource-pool usage, and prove natural
+Session and helper joins. Keep exact original PID and birth identities throughout
+the cycles. A missing required idle sample, absent valid workload capacity evidence, forced
+cleanup, changed owner or incomplete workload cannot qualify. Incomplete
+workload process observations do not establish capacity. Preserve their skipped
+counts and reasons, and reject any known RSS budget breach even in those partial
+observations. Each cycle still requires complete quantitative workload samples. Functional media, movement and
+authority failures remain separate failures.
+
+Freeze each role's process and descriptor capacity, and browser or helper thread
+capacity, from numeric samples taken during the FIRST original workload before
+its terminal. Later workloads and global process-summary peaks cannot raise this
+reference. All final idle samples must remain inside that demonstrated capacity.
+This permits an idle worker or descriptor count already demonstrated during the
+original workload. It is not proof that every OS resource belongs to a cache.
+
+The server thread ceiling is its original baseline total thread count plus the
+512 blocking threads configured by the pinned Tokio 1.53.2 default runtime. Bind
+that exception to the exact server main source and Cargo.lock inputs, the pinned
+Tokio registry checksum and reviewed builder source. The server uses its sole
+`#[tokio::main]` default multi-thread runtime. A changed or missing binding fails
+closed until reviewed. This is a conservative finite process capacity ceiling.
+It does not claim each idle thread has returned every possible job. Actual
+Session task, pool and join checks supply the independent cleanup requirement.
+Report each later idle count and its change without treating bounded pool
+residency alone as failed Session cleanup. No runtime pool settings are changed.
+
+The declared RSS operating budgets are **1 GiB for the server**, **4 GiB for the
+browser process tree**, and **1 GiB for the native helper tree**. The aggregate
+observed process-tree RSS ceiling is **6 GiB**. These are engineering capacity
+budgets chosen for this local 12 GiB guest profile, not measured allocator limits
+or OS-enforced quotas. Browser and helper roles are alternative client profiles.
+All observed workload samples and final idle samples must fit their role budget.
+Summed RSS can count shared pages more than once and is intentionally
+conservative. These budgets leave room for the guest OS, capture and fixture
+services. They do not waive resource-ownership checks or tune process allocation.
+
+For each role, retain the RSS interval from all three final idle samples in each
+cycle. There is no distinguishable later rise at observed resolution if the third
+interval overlaps or lies below the second. Otherwise require the entire possible second positive increment to
+be strictly smaller than the entire first increment. Equal, increasing, or
+indistinguishable positive increments fail this warm-up test. There is no fitted
+byte allowance, growth floor or contraction ratio. The intervals describe actual
+observed variation, not statistical confidence. Three cycles cannot prove the
+absence of a slowly decaying leak. Passing establishes bounded capacity and this
+short warm-up criterion alongside actual ownership cleanup. A longer soak is a
+separate claim. Keep raw observations and later growth diagnostics.
+
+## November 7 owner resource disposition and separate soak
+
+The owner selected **“Use budgets and a separate soak (Recommended)”**. The
+prospective `connect/matrix-resource-capacity/4` profile therefore keeps the
+declared server1GiB, browser tree4GiB, native helper tree1GiB and aggregate6GiB
+operating budgets, the frozen first-workload count capacities and the exact
+source-bound server thread capacity. It also keeps all three complete original
+workloads, exact persistent owners, zero Session owners/tasks, original pool
+restoration, actual natural joins and every ten-second cleanup window. These
+remain hard requirements. No capacity value is raised by this disposition.
+
+The three-cycle RSS interval and increment observations remain in every report.
+A linear, accelerating or unresolved RSS rise is now a **diagnostic**, rather
+than a failure of this capacity profile. It is carried into a separate sustained
+growth assessment. The earlier /3 hard trend proposal and all older actual
+verdicts retain their original scope. No historical result is relabeled. No
+forced collection, allocator reset, cache trim or process restart supplies a pass.
+
+The separate soak belongs to [G6-098](../connect-gate-6-implementation.html#G6-098),
+“Measure transition quality, recovery and resource bounds”. It remains **pending**.
+Its existing dependencies G6-057, G6-079, G6-092, G6-093, G6-095 and G6-096 remain
+unchanged. A capacity-profile pass cannot mark G6-098 complete.
+
+The proposed soak work is to retain the same original server and client process
+owners for30 complete62-second programmes with the same four moves, six sources
+and two Sessions. Keep the original per-move, cleanup and idle deadlines. Record
+the full workload and final idle resource samples on every cycle, along with
+exact process identities, Session owner/task restoration and natural joins.
+Use the same declared capacity budgets throughout. This is a separate bounded
+soak plan, not permission to expand the current three-cycle controller or start
+new cells now. Its implementation and execution follow the existing G6-098
+dependency graph.
+
+Prioritize the three original noncontracting observations from v203
+
+- macOS local Firefox ES256 browser residency
+- ARM Linux local Chrome WSS/WebRTC ES256 browser residency
+- ARM Linux local Firefox ES256 server residency
+
+For those cases preserve role-specific RSS trajectories and the new allocator,
+object-owner and cache-charge evidence. Assess repeated growth over the longer
+sequence and attribute it before claiming a leak or bounded retained cache.
+The browser RSS observations include browser-managed/native allocations that
+server object counters cannot explain. Source, runtime and original verdict
+evidence must remain bound. Any capacity breach or Session cleanup failure
+remains a failure regardless of the RSS trend. The soak must publish its actual
+completed-cycle scope and unresolved attribution, and it remains unexecuted
+until its own required work is performed.

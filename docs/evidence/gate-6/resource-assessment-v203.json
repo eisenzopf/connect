@@ -1,0 +1,207 @@
+{
+  "format": "connect/g6-058-resource-assessment-public/1",
+  "task": "G6-058",
+  "source_revision": "e48b101ce7769567d5680ecfd17ef46d8c3a7f9c",
+  "matrix_run": "v203",
+  "matrix_qualified": false,
+  "task_complete": false,
+  "full_matrix_result": {
+    "cells": {
+      "passed": 0,
+      "failed": 24,
+      "blocked": 8,
+      "not-run": 0,
+      "running": 0,
+      "incomplete": 0
+    },
+    "checks": {
+      "passed": 197,
+      "failed": 62,
+      "blocked": 173,
+      "not-run": 0,
+      "running": 0
+    },
+    "required_cells": 32,
+    "required_checks": 432,
+    "limitation": "Storage ENOSPC interrupted the run; blocked requirements are unverified, not failed media assertions and not passes."
+  },
+  "scope": "Bounded resource evidence from original completed three-cycle workloads. Separate handoff/media failures remain unresolved.",
+  "provenance": {
+    "matrix_report_sha256": "bcf6968fc1fab85240b7832ca98604af97dc945ccb2ad5f60581bc3222a1adb3",
+    "mac_webrtc_report_sha256": "288a0d6a1fda300507a07307cac5b0aef48d8f709b3980ec006eea7e9aa75aed",
+    "mac_webrtc_server_log_sha256": "a59952cd84901caa159f2bc02fda0a8806a4fce06ffbf8fb7d8ca078c35765d3",
+    "arm_native_report_sha256": "c8f8a1d81859575c8c2123f62ce9af5008c388934877e4d81fd09e762172b9d7",
+    "source_lock_sha256": "34c60addf4bba2c01c10d161870564cd02d95f82dc34114ae7600b430c5cb928",
+    "current_source_and_all_failed_verdicts_preserved": true
+  },
+  "original_mac_webrtc_completed_cycles": {
+    "cycles": 3,
+    "full_workload_complete": [
+      true,
+      true,
+      true
+    ],
+    "session_owner_joins": [
+      true,
+      true,
+      true
+    ],
+    "helper_work_joins": [
+      true,
+      true,
+      true
+    ],
+    "functional_connection_retirement": [
+      true,
+      true,
+      true
+    ],
+    "idle_restoration_passed": [
+      true,
+      true,
+      true
+    ],
+    "server_rss_bytes": [
+      133464064,
+      152272896,
+      165871616
+    ],
+    "server_threads": [
+      23,
+      25,
+      25
+    ],
+    "server_open_descriptors": [
+      25,
+      25,
+      25
+    ],
+    "server_processes": [
+      1,
+      1,
+      1
+    ],
+    "browser_threads": [
+      277,
+      279,
+      277
+    ],
+    "rss_steps_bytes": [
+      18808832,
+      13598720
+    ],
+    "numeric_verdict_failures": [
+      "browser:sampled_threads:later-idle-growth",
+      "server:sampled_threads:later-idle-growth",
+      "server:sampled_rss_bytes:variance-bound"
+    ],
+    "vmmap_classification_available": false,
+    "vmmap_timeout_empty_artifact_samples": 3
+  },
+  "terminal_core_owner_fix": {
+    "status": "verified-production-lifetime-fix",
+    "test_controls": 8,
+    "scene_drop_pairs_per_cycle": [
+      2,
+      2,
+      2
+    ],
+    "original_scene_lifetime_microseconds": [
+      84166528,
+      83970592,
+      84842694,
+      84624316,
+      85233256,
+      84971692
+    ],
+    "all_scenes_dropped_before_persistent_server_shutdown": true,
+    "previous_cycle_scenes_dropped_before_next_cycle_creation": true,
+    "exact_idle_wall_timestamp_alignment_available": false,
+    "explanation": "Ended managed runtimes are removed after their exact original mixer join. Original scene destruction now occurs per cycle, not only when the server shuts down. This proves that retention defect is fixed; it does not explain all remaining resident heap growth.",
+    "portable_source_references": [
+      "patches/rvoip/connect-terminal-managed-runtime-release.patch",
+      "dependencies/source-lock.json"
+    ]
+  },
+  "process_infrastructure": {
+    "server_added_threads": 2,
+    "exact_original_thread_handles_matched_existing_blocking_registration": true,
+    "first_registered_during_original_rtc_retirement": true,
+    "all_attributed_jobs_returned_at_observed_idle": true,
+    "recorded_job_classes": [
+      "RTC retirement Store work",
+      "health",
+      "reconnect scan/reconcile",
+      "session lifecycle scan",
+      "session codec scan"
+    ],
+    "server_counts_plateaued_after_cycle_two": true,
+    "browser_count_returned_by_cycle_three": true,
+    "browser_individual_thread_identity_attribution_available": false,
+    "claim": "The matched server additions are global blocking-pool workers, not demonstrated retained Session jobs. Browser aggregate transience is observed without attributing unnamed threads."
+  },
+  "arm_anonymous_memory": {
+    "cycles": 3,
+    "rss_bytes": [
+      142389248,
+      164544512,
+      176914432
+    ],
+    "anonymous_bytes": [
+      87576576,
+      109731840,
+      122101760
+    ],
+    "private_clean_bytes": [
+      53063680,
+      53063680,
+      53051392
+    ],
+    "limitation": "Anonymous growth is measured. Current samples cannot distinguish still-owned objects from allocator-retained freed pages; no additional heap owner leak is proven."
+  },
+  "rule_origin": {
+    "owner_approved_concept": "Per-Session ownership restoration plus bounded repeated-workload plateau; zero process growth is not the intended bar.",
+    "engineering_selected_expression": {
+      "cycles": 3,
+      "rss_variance_floor_bytes": 8388608,
+      "rss_variance_fraction": 0.05,
+      "rss_trend_step_floor_bytes": 1048576,
+      "persistent_step_ratio_min": 0.75,
+      "later_extra_processes": 0,
+      "later_extra_threads": 0,
+      "later_extra_descriptors": 0
+    },
+    "current_frozen_run_criteria_unchanged": true,
+    "explicit_review_required_before_future_rule_changes": true,
+    "observation": "A zero-additional-thread requirement at every later idle rejects a stable 23/25/25 pool and a transient 277/279/277 count. This differs from a warm-cycle convergence check. RSS still exceeds the existing envelope and is not waived."
+  },
+  "confidence": {
+    "core_terminal_runtime_retention_fix": "high: focused controls plus actual per-cycle scene destruction",
+    "two_global_blocking_workers": "high: exact original thread-handle registration and returned jobs",
+    "browser_thread_cause": "unattributed: aggregate only",
+    "remaining_resident_heap_owner": "unresolved: measured anonymous growth without allocated-in-use census"
+  },
+  "next_batch": {
+    "reuse_existing_allocator_diagnostics": true,
+    "diagnostic_source": "Upstream infra-common memory_diagnostics::{allocator_snapshot,snapshot}, reconstructed through source-lock.",
+    "required_observations": [
+      "allocated-in-use versus committed/resident/free allocator memory where supported",
+      "Core runtime/scene/codec/queue live owners and capacities",
+      "Store bounded snapshot/observation cache occupancy and charged bytes",
+      "exact process identity and original natural joins at existing measurement boundaries"
+    ],
+    "diagnostic_and_normal_shipping_builds_separately_verified": true,
+    "no_forced_collection_or_reset": true,
+    "no_worker_pool_or_allocator_tuning": true,
+    "no_current_acceptance_waiver": true,
+    "decision": "Fix an exact remaining retaining owner if live allocations rise. If live owners and in-use allocations return while only free resident pages persist, review an explicit operational memory bound with measured cache/pool evidence. Do not infer that outcome from RSS alone."
+  },
+  "storage": {
+    "enospc_is_infrastructure_failure": true,
+    "root_guest_capacity_before_gib": 64,
+    "root_backing_on_internal_host_volume": true,
+    "guest_virtual_capacity_not_physical_host_reserve": true,
+    "repair_requires_original_owner_absence_and_verified_copy_custody": true,
+    "no_next_cell_or_matrix_run_before_all_fixes_batched": true
+  }
+}

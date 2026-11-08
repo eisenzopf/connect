@@ -8,9 +8,10 @@ repository.workspace = true
 publish = false
 
 [features]
+memory-diagnostics = ["test-support", "connect-service/memory-diagnostics"]
 default = ["cli"]
 cli = []
-test-support = ["connect-store/test-support", "connect-service/test-support", "connect-client/test-support"]
+test-support = ["connect-store/test-support", "connect-service/test-support", "connect-client/test-support", "rvoip-webrtc/test-hooks"]
 
 [dependencies]
 reqwest.workspace = true
@@ -68,6 +69,8 @@ rustix = { version = "1.1.5", features = ["fs", "process"] }
 security-framework.workspace = true
 
 [dev-dependencies]
+rtc = { package = "rvoip-rtc", path = "../../.deps/rvoip/crates/webrtc/rvoip-rtc", default-features = false }
+tracing-subscriber = { workspace = true, features = ["json"] }
 opus = "0.3"
 web-transport-quinn = { version = "0.11.12", default-features = false, features = ["ring"] }
 rvoip-rtp-core = { path = "../../.deps/rvoip/crates/media/rtp-core", default-features = false }

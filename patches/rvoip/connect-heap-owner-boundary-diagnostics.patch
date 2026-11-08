@@ -1,0 +1,354 @@
+diff --git a/Cargo.lock b/Cargo.lock
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -7701,6 +7701,7 @@
+  "rustls-pemfile",
+  "rvoip-auth-core",
+  "rvoip-core",
++ "rvoip-infra-common",
+  "rvoip-media-core",
+  "rvoip-quic",
+  "rvoip-rtp-core",
+@@ -7876,6 +7877,7 @@
+  "rvoip-auth-core",
+  "rvoip-core",
+  "rvoip-harness",
++ "rvoip-infra-common",
+  "rvoip-quic",
+  "rvoip-rtc",
+  "rvoip-rtp-core",
+diff --git a/crates/foundation/rvoip-core/Cargo.toml b/crates/foundation/rvoip-core/Cargo.toml
+--- a/crates/foundation/rvoip-core/Cargo.toml
++++ b/crates/foundation/rvoip-core/Cargo.toml
+@@ -91,6 +91,7 @@
+ required-features = ["opus"]
+ 
+ [features]
++memory-diagnostics = ["test-support", "rvoip-infra-common/memory-diagnostics", "rvoip-media-core/memory-diagnostics", "rvoip-media-core/rtp-memory-diagnostics"]
+ # Explicit host conformance composition; absent from production builds.
+ test-support = []
+ # P11 — feature flags per INTERFACE_DESIGN.md §2.2. The "shape" flags
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -253,6 +253,8 @@
+     limits: ParticipantLimits,
+     state: Mutex<ManagedState>,
+     events: broadcast::Sender<ParticipantRuntimeEvent>,
++    #[cfg(feature = "memory-diagnostics")]
++    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ 
+ struct LifecycleDeliveryGuard(ConnectionLifecycleTicket);
+@@ -414,6 +416,8 @@
+                     ended: false,
+                 }),
+                 events,
++                #[cfg(feature = "memory-diagnostics")]
++                _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("core.managed_session_runtime", 0),
+             }),
+         );
+         Ok(())
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -557,6 +557,8 @@
+     output: Mutex<Option<mpsc::Receiver<QueuedMedia>>>,
+     slot: Mutex<Option<OwnedSemaphorePermit>>,
+     allocation: Mutex<Option<StreamHandleAllocation>>,
++    #[cfg(feature = "memory-diagnostics")]
++    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ impl Port {
+     fn retire(&self) {
+@@ -1837,6 +1839,8 @@
+     cleanup_lock: tokio::sync::Mutex<()>,
+     inflight: Arc<Semaphore>,
+     shutdown: CancellationToken,
++    #[cfg(feature = "memory-diagnostics")]
++    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ struct Candidate {
+     owner: Arc<StreamController>,
+@@ -2055,6 +2059,8 @@
+             cleanup_lock: tokio::sync::Mutex::new(()),
+             inflight: Arc::new(Semaphore::new(1)),
+             shutdown: lifetime,
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("core.stream_controller", 0),
+         }))
+     }
+     fn scope<'a>(
+@@ -3036,6 +3042,8 @@
+                 output: Mutex::new(Some(output)),
+                 slot: Mutex::new(Some(slot)),
+                 allocation: Mutex::new(Some(allocation)),
++                #[cfg(feature = "memory-diagnostics")]
++                _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("core.media_port", 0),
+             });
+             self.state
+                 .lock()
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -28,6 +28,8 @@
+     encoder_lifetime: Arc<()>,
+     to_mix: Option<Resampler>,
+     from_mix: Option<Resampler>,
++    #[cfg(feature = "memory-diagnostics")]
++    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ impl Codecs {
+     pub(super) fn new(
+@@ -107,6 +109,8 @@
+             encoder_lifetime: Arc::new(()),
+             to_mix: resample(*clock_rate_hz, mix_rate)?,
+             from_mix: resample(mix_rate, *clock_rate_hz)?,
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("core.audio_codec_pair", 0),
+         })
+     }
+     #[cfg(feature = "test-support")]
+@@ -1003,6 +1007,8 @@
+     test_tick_now: Mutex<Option<Instant>>,
+     rate: u32,
+     pub(super) members: Mutex<HashMap<ConnectionId, AudioMember>>,
++    #[cfg(feature = "memory-diagnostics")]
++    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ impl GuardedAudioMixer {
+     #[cfg(feature = "test-support")]
+@@ -1026,6 +1032,8 @@
+             #[cfg(test)]
+             test_tick_now: Mutex::new(None),
+             members: Mutex::new(HashMap::new()),
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("core.audio_mixer", 0),
+         })
+     }
+     pub(super) fn prepare_registered(
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -336,6 +336,8 @@
+     visual_capacity_dropped_packets: AtomicU64,
+     visual_capacity_dropped_recipients: AtomicU64,
+     pub(super) preparation_refusals: AtomicU32,
++    #[cfg(feature = "memory-diagnostics")]
++    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ impl GuardedMediaScene {
+     #[cfg(feature = "test-support")]
+@@ -372,6 +374,8 @@
+             visual_capacity_dropped_packets: AtomicU64::new(0),
+             visual_capacity_dropped_recipients: AtomicU64::new(0),
+             preparation_refusals: AtomicU32::new(0),
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("core.media_scene", 0),
+             audio: GuardedAudioMixer::new(rate),
+             conversation,
+             session,
+diff --git a/crates/uctp/rvoip-uctp/Cargo.toml b/crates/uctp/rvoip-uctp/Cargo.toml
+--- a/crates/uctp/rvoip-uctp/Cargo.toml
++++ b/crates/uctp/rvoip-uctp/Cargo.toml
+@@ -13,11 +13,13 @@
+ description = "UCTP (Universal Conversation Transport Protocol) — envelopes, state machine, capability negotiation, and substrate helpers shared by rvoip-quic and rvoip-webtransport"
+ 
+ [features]
++memory-diagnostics = ["rvoip-core/memory-diagnostics", "dep:rvoip-infra-common", "rvoip-infra-common/memory-diagnostics"]
+ # Disables certificate verification on the client side. For tests and demos
+ # only; never enable in production builds.
+ dev-dangerous = []
+ 
+ [dependencies]
++rvoip-infra-common = { workspace = true, optional = true }
+ # Workspace internal
+ rvoip-core.workspace = true
+ rvoip-auth-core.workspace = true
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -179,6 +179,8 @@
+ 
+ pub(crate) fn data_stream(port: AdapterMediaPort) -> Arc<dyn MediaStream> {
+     Arc::new(RoutedStream {
++        #[cfg(feature = "memory-diagnostics")]
++        _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.routed_stream", 0),
+         port,
+         codec: CodecInfo {
+             name: "reliable-ordered-data".into(),
+@@ -612,6 +614,8 @@
+ struct RoutedStream {
+     port: AdapterMediaPort,
+     codec: CodecInfo,
++    #[cfg(feature = "memory-diagnostics")]
++    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ #[async_trait]
+ impl MediaStream for RoutedStream {
+@@ -839,6 +843,8 @@
+     packets: u32,
+     octets: u32,
+     last_report: Option<std::time::Instant>,
++    #[cfg(feature = "memory-diagnostics")]
++    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ impl Packetizer {
+     fn reserve_outer(&mut self) -> ControlResult<u32> {
+@@ -1259,6 +1265,8 @@
+                 None
+             };
+             let stream: Arc<dyn MediaStream> = Arc::new(RoutedStream {
++                #[cfg(feature = "memory-diagnostics")]
++                _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.routed_stream", 0),
+                 port: port.clone(),
+                 codec: descriptor,
+             });
+@@ -1350,6 +1358,8 @@
+             let cname = self.clocks.cname.clone();
+             let task = tokio::spawn(async move {
+                 let mut packetizer = Some(Packetizer {
++                    #[cfg(feature = "memory-diagnostics")]
++                    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
+                     cursor,
+                     feedback_epoch: None,
+                     outer: 0,
+@@ -1590,6 +1600,8 @@
+             }),
+         };
+         let mut packetizer = Packetizer {
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
+             cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+@@ -1666,6 +1678,8 @@
+         };
+         let transport = Prefix(Mutex::new(Vec::new()));
+         let mut packetizer = Packetizer {
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
+             cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+@@ -1766,6 +1780,8 @@
+             sink_ready: true,
+         };
+         let mut packetizer = Packetizer {
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
+             cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+@@ -1963,6 +1979,8 @@
+             sink_ready: true,
+         };
+         let packetizer = Packetizer {
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
+             cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs b/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs
+@@ -43,6 +43,8 @@
+         sink_ready: true,
+     };
+     let packetizer = Packetizer {
++        #[cfg(feature = "memory-diagnostics")]
++        _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
+         cursor: None,
+         feedback_epoch: None,
+         outer: 0,
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs b/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
+@@ -39,6 +39,8 @@
+         sink_ready: true,
+     };
+     let mut p = Packetizer {
++        #[cfg(feature = "memory-diagnostics")]
++        _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
+         cursor: None,
+         feedback_epoch: None,
+         outer: 0,
+diff --git a/crates/webrtc/rvoip-webrtc/Cargo.toml b/crates/webrtc/rvoip-webrtc/Cargo.toml
+--- a/crates/webrtc/rvoip-webrtc/Cargo.toml
++++ b/crates/webrtc/rvoip-webrtc/Cargo.toml
+@@ -13,6 +13,7 @@
+ description = "rvoip-core WebRTC interop adapter built on webrtc-rs 0.20.0-alpha.1"
+ 
+ [features]
++memory-diagnostics = ["rvoip-core/memory-diagnostics", "dep:rvoip-infra-common", "rvoip-infra-common/memory-diagnostics"]
+ default = []
+ test-hooks = []
+ signaling-whip = ["dep:axum", "dep:hyper", "dep:tower", "dep:tower-http", "dep:serde_json", "dep:rvoip-auth-core", "dep:reqwest"]
+@@ -61,6 +62,7 @@
+ ]
+ 
+ [dependencies]
++rvoip-infra-common = { workspace = true, optional = true }
+ rvoip-core.workspace = true
+ rvoip-sip-core.workspace = true
+ webrtc = { workspace = true, features = ["runtime-tokio"] }
+diff --git a/crates/webrtc/rvoip-webrtc/src/adapter.rs b/crates/webrtc/rvoip-webrtc/src/adapter.rs
+--- a/crates/webrtc/rvoip-webrtc/src/adapter.rs
++++ b/crates/webrtc/rvoip-webrtc/src/adapter.rs
+@@ -365,6 +365,8 @@
+     /// the authenticated inbound event can be published.
+     inbound_admission_waiter: Option<Arc<InboundAdmissionWaiter>>,
+     task_supervisor: RouteTaskSupervisor,
++    #[cfg(feature = "memory-diagnostics")]
++    _memory_owner: Arc<rvoip_infra_common::memory_diagnostics::ObjectGuard>,
+ }
+ 
+ impl Route {
+@@ -2862,6 +2864,8 @@
+         let channels = Arc::new(DashMap::new());
+         channels.insert(channel_key, channel);
+         let route = Route {
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: Arc::new(rvoip_infra_common::memory_diagnostics::ObjectGuard::new("rtc.adapter_route", 0)),
+             peer,
+             streams: Arc::new(DashMap::new()),
+             local_sdp: Some(offer_sdp.clone()),
+@@ -3104,6 +3108,8 @@
+             .inbound_admission_confirmation_timeout
+             .map(|_| InboundAdmissionWaiter::new());
+         let route = Route {
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: Arc::new(rvoip_infra_common::memory_diagnostics::ObjectGuard::new("rtc.adapter_route", 0)),
+             peer: Arc::clone(&peer),
+             streams: Arc::new(DashMap::new()),
+             local_sdp: Some(answer_sdp.clone()),
+@@ -4942,6 +4948,8 @@
+             data_channels.insert(key, channel);
+         }
+         let route = Route {
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: Arc::new(rvoip_infra_common::memory_diagnostics::ObjectGuard::new("rtc.adapter_route", 0)),
+             peer,
+             streams: Arc::new(DashMap::new()),
+             local_sdp: Some(offer_sdp),
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -91,6 +91,8 @@
+     gather_timeout: Duration,
+     trickle_ice: bool,
+     drops: Arc<HandlerDropCounters>,
++    #[cfg(feature = "memory-diagnostics")]
++    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ 
+ impl RvoipPeerConnection {
+@@ -136,6 +138,8 @@
+         let gather_timeout = Duration::from_secs(config.gather_timeout_secs);
+ 
+         Ok(Arc::new(Self {
++            #[cfg(feature = "memory-diagnostics")]
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("rtc.peer_session", 0),
+             source_clock,
+             sender_clock,
+             pc,

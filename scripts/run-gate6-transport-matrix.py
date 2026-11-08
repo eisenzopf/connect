@@ -21,6 +21,10 @@ import traceback
 
 from lib.transport_matrix import digest, inventory, load_contract
 from lib.vm_workload_lease import GuardedVmWorkloadLease
+from lib.matrix_storage import (MetadataReserve, StorageAdmissionError, atomic_json,
+                                atomic_bytes, metadata_failure, preflight, request_host, ComponentStorageFailure)
+
+_METADATA_RESERVE = None
 from lib.transport_matrix_execution import configure_execution, full_run_preflight, merge_hosts, record_browser_result, record_native_result, select_cells
 from lib.transport_matrix_verdict import evaluate_cell, blocked, summarize
 
@@ -28,9 +32,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def save(path, value):
-    temp = path.with_suffix(path.suffix + ".tmp")
-    temp.write_text(json.dumps(value, indent=2) + "\n")
-    temp.replace(path)
+    try:
+        atomic_json(path, value, reserve=_METADATA_RESERVE)
+    except OSError:
+        metadata_failure(dict(path_name=path.name, value=value))
 
 
 def command_version(command):
@@ -75,8 +80,9 @@ def probe(chrome=None, firefox=None, browser_image=None):
     if int((versions["node"] or "v0").lstrip("v").split(".")[0]) < 22:
         blockers.append("node-22-or-newer-unavailable")
     free = shutil.disk_usage(ROOT).free
-    if free < 5 * 1024**3:
-        blockers.append("less-than-five-GiB-workload-scratch-space")
+    from lib.matrix_storage import source_budget
+    if free < sum(source_budget().values()):
+        blockers.append("finite-source-storage-unavailable-at-initial-probe")
     # Capture is independently required, but its absence must not prevent
     # authenticated control, movement and decoded-media observations.
     capture_blockers = [] if shutil.which("tcpdump") else ["missing-tool-tcpdump"]
@@ -130,8 +136,9 @@ def probe(chrome=None, firefox=None, browser_image=None):
                 capture_access="not-proven-by-tool-version; actual capture required by workload")
 
 
-def execute_selected(matrix, ids, output, execute):
+def execute_selected(matrix, ids, output, execute, *, storage_admit=None, drain_archive=None, drain_guest=None):
     """Persist before/after each original attempt; keep going after failures."""
+    storage_backpressure = None
     for cell in select_cells(matrix, ids):
         full = matrix.get("requested_stage") == "full"
         if not cell["execution"]["runnable"]:
@@ -141,14 +148,38 @@ def execute_selected(matrix, ids, output, execute):
                     ",".join(cell["execution"]["blockers"]), category="environment") for name in cell["required_checks"]}
                 save(output / "matrix.json", matrix)
             continue
+        if storage_backpressure is not None:
+            cell.update(status="blocked",reason="original-closed-evidence-storage-backpressure")
+            cell["execution"].update(attempted=False,component_owner_started=False,
+                                      storage_backpressure=storage_backpressure)
+            cell["check_results"] = {name: blocked("original-closed-evidence-storage-backpressure",category="environment")
+                                     for name in cell["required_checks"]}
+            save(output / "matrix.json",matrix)
+            continue
         cell["status"] = "running"
         cell["reason"] = "original-required-workload-running"
         save(output / "matrix.json", matrix)
         lease = GuardedVmWorkloadLease() if platform.system() == "Linux" else contextlib.nullcontext()
         entered = False
+        component_started = False
         try:
             lease.__enter__()
             entered = True
+            if storage_admit is not None:
+                try:
+                    cell["execution"]["storage_admission"] = storage_admit(cell)
+                except Exception as error:
+                    if hasattr(lease, "complete_unentered"):
+                        lease.complete_unentered()
+                    storage_backpressure = dict(cell_id=cell["id"],reason="permanent-storage-admission-refusal")
+                    cell.update(status="blocked", reason="storage-preflight-before-component-entry")
+                    cell["execution"].update(attempted=False, component_owner_started=False,
+                                              storage_admission=getattr(error, "observation", dict(
+                                                  admitted=False, reasons=["storage-observation-" + type(error).__name__])))
+                    cell["check_results"] = {name: blocked("storage-preflight", category="environment")
+                                             for name in cell["required_checks"]}
+                    continue
+            component_started = True
             report, report_sha256, code = execute(cell)
             if hasattr(lease, "complete"):
                 lease.complete(report)
@@ -161,25 +192,55 @@ def execute_selected(matrix, ids, output, execute):
                 directory = output / "cells" / cell["server"] / cell["network"] / cell["transport"] / cell["signing"]
                 if directory.is_dir():
                     try:
+                        if drain_guest is not None and cell["server"] == "macos-arm64" and cell["network"] == "remote-profile-fixture":
+                            save(output / "matrix.json",matrix)
+                            cell["execution"]["guest_payload_custody"] = drain_guest(cell,directory)
                         cell["execution"]["evidence_archive"] = archive_joined(directory, report)
+                        if not cell["execution"]["evidence_archive"]:
+                            storage_backpressure = dict(cell_id=cell["id"],reason="original-archive-custody-unconfirmed")
+                        # Publish the actual terminal cell before its coordinator
+                        # binds the stable dictionary and original archive.
+                        save(output / "matrix.json", matrix)
+                        if drain_archive is not None and cell["execution"]["evidence_archive"]:
+                            cell["execution"]["archive_custody"] = drain_archive(cell, report)
                     except Exception as error:
                         # Preserve the expanded original on any archival doubt;
                         # storage housekeeping cannot rewrite a behavior verdict.
                         cell["execution"]["archive_failure"] = type(error).__name__
+                        storage_backpressure = dict(cell_id=cell["id"],reason="original-archive-drain-" + type(error).__name__)
             else:
                 record = record_browser_result if cell["execution"].get("producer") in {"browser-admission", "browser-programme", "browser-quality"} else record_native_result
                 record(matrix, cell, report, report_sha256, code)
+        except ComponentStorageFailure as error:
+            fallback = error.fallback
+            if (fallback["source_revision"] != matrix["source_revision"] or fallback["cell_id"] != cell["id"]
+                    or fallback["full_report_saved"] is not False or fallback["full_media_verification_available"] is not False):
+                raise ValueError("Original unavailable component identity differs") from error
+            if hasattr(lease, "complete_storage_failure"):
+                lease.complete_storage_failure(fallback)
+            cell.update(status="failed",reason="original-component-report-storage-unavailable")
+            cell["execution"].update(attempted=True,component_owner_started=True,storage_failure=fallback)
+            storage_backpressure = dict(cell_id=cell["id"],reason="original-full-report-storage-unavailable")
+            cell["check_results"] = {name: blocked("original-component-report-storage-unavailable",category="harness")
+                                     for name in cell["required_checks"]}
         except Exception as error:
             cell.update(status="failed", reason="workload-execution-or-evidence-binding-failed")
-            cell["execution"].update(attempted=True, failure_class=type(error).__name__)
+            cell["execution"].update(attempted=component_started, component_owner_started=component_started,
+                                      failure_class=type(error).__name__)
             if full:
                 cell["check_results"] = {name: blocked("fixture-" + type(error).__name__, category="harness")
                                          for name in cell["required_checks"]}
             # Exception text may include credentials/paths; only private traceback retains it.
-            (output / (cell["transport"] + "-" + cell["signing"] + "-" + cell["network"] + "-failure.log")).write_text(traceback.format_exc())
+            failure_path = output / (cell["transport"] + "-" + cell["signing"] + "-" + cell["network"] + "-failure.log")
+            try:
+                atomic_bytes(failure_path, traceback.format_exc()[-65536:].encode(), reserve=_METADATA_RESERVE)
+            except OSError:
+                metadata_failure(dict(cell_id=cell["id"], failure_class=type(error).__name__,
+                                      full_component_evidence_available=False))
         except BaseException:
             cell.update(status="failed", reason="original-workload-interrupted")
-            cell["execution"]["attempted"] = True
+            cell["execution"]["attempted"] = component_started
+            cell["execution"]["component_owner_started"] = component_started
             raise
         finally:
             if entered:
@@ -193,6 +254,7 @@ def execute_selected(matrix, ids, output, execute):
 
 
 def main():
+    global _METADATA_RESERVE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=("probe", "run", "worker", "merge"), required=True)
     parser.add_argument("--output", type=Path, required=True, help="New private directory under .local")
@@ -220,6 +282,7 @@ def main():
         parser.error("Results must stay under ignored .local")
     os.umask(0o077)
     output.mkdir(parents=True, exist_ok=False)
+    _METADATA_RESERVE = MetadataReserve(output / "metadata.reserve")
     os.chdir(ROOT)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     if args.expected_revision and revision != args.expected_revision:
@@ -292,7 +355,24 @@ def main():
             path = directory / ("evidence/data/rehearsal.json" if args.stage == "non-av" else "evidence/media/rehearsal.json")
             return json.loads(path.read_text()), digest(path), code
 
-        execute_selected(matrix, selected_ids, output, execute)
+        def storage_admit(cell):
+            # Runs only after the original ARM lease; guest setup performs the
+            # equivalent observation after its own existing lease acquisition.
+            if cell["server"] == "ubuntu24-arm64":
+                return preflight(output)
+            from lib.matrix_storage import cell_budget, volume, await_admission
+            return await_admission(lambda:volume(output),sum(cell_budget().values()),
+                                   required_by_role={"backing":0})
+        def drain_archive(cell, report):
+            if cell["server"] != "ubuntu24-arm64":
+                return dict(local_host_archive=True, remote_original_unlink=False)
+            from lib.matrix_archive_drain import drain_original
+            return drain_original(output, matrix["source_revision"], cell, report)
+        def drain_guest(cell,directory):
+            return request_host("drain-guest",dict(cell=cell,component_directory=str(directory),
+                                                  source_revision=matrix["source_revision"]))
+        execute_selected(matrix, selected_ids, output, execute,
+                         storage_admit=storage_admit, drain_archive=drain_archive,drain_guest=drain_guest)
     finally:
         state.update(stage="complete", source_guard_active=False)
         save(output / "state.json", state)

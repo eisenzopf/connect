@@ -1194,6 +1194,50 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
         false,
     )
     .await;
+    // The original RTC media owner can end while its independently owned
+    // signaling client remains live. A completed logical move must stay
+    // completed; normal adapter teardown cannot cancel or recreate that root.
+    let admitted_runtime = runtime_id(&f, &candidate);
+    assert_eq!(connection_state(&f, &candidate), ("ready".into(), 2));
+    tokio::time::timeout(
+        Duration::from_secs(5),
+        host.adapter().end(
+            admitted_runtime.clone(),
+            rvoip_core::adapter::EndReason::Normal,
+        ),
+    )
+    .await
+    .expect("original admitted RTC media end cutoff")
+    .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if connection_state(&f, &candidate) == ("retired".into(), 2)
+                && !host.adapter().is_connection_live(&admitted_runtime)
+                && host.adapter().route_count() == 1
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("exact original admitted RTC lifetime settles without source/control closure");
+    let after_media_end = record(&f, &target_config, operation);
+    assert_eq!(after_media_end.record_id, done.record_id);
+    assert_eq!(after_media_end.state, OperationState::Completed);
+    assert_eq!(after_media_end.result, done.result);
+    let live_control_status =
+        super::super::replacement::signed_original_status(&mut target_peer, &cid, operation).await;
+    assert_eq!(live_control_status["record_id"], done.record_id);
+    assert_eq!(live_control_status["state"], "completed");
+    assert_eq!(live_control_status.get("result"), done.result.as_ref());
+    assert_eq!(host.adapter().total_allocations(), 3);
+    assert!(host.adapter().is_connection_live(&retained_runtime));
+    assert!(!host.adapter().is_connection_live(&old_runtime));
+    assert_eq!(
+        connection_state(&f, "rtc-connection-0"),
+        ("retired".into(), 2)
+    );
     for received in [a, b, c] {
         for stream in received.streams {
             stream.close().await.unwrap();

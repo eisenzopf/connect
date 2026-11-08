@@ -620,6 +620,22 @@ impl Observers {
             _sql_timing: reservation.claim.sql_timing(),
         })
     }
+    #[cfg(feature = "memory-diagnostics")]
+    pub(crate) fn memory_counts(&self) -> serde_json::Value {
+        let mut open = 0usize;
+        let mut unknown = 0usize;
+        for slot in &self.0.slots {
+            match slot.try_lock() {
+                Ok(slot) => open += usize::from(slot.0.is_some()),
+                Err(_) => unknown += 1,
+            }
+        }
+        let failed = self.0.failed_connections.try_lock().ok().map(|c| c.len());
+        serde_json::json!({"open_slot_sql_handles":(unknown==0).then_some(open),
+            "unknown_slots":unknown,"slot_capacity":OBSERVERS,"failed_sql_handles":failed,
+            "statement_cache_capacity_per_handle":OPERATION_SQL_CACHE_CAPACITY,
+            "actual_statement_cache_entries":null,"sqlite_page_cache_bytes":null})
+    }
     pub(crate) fn claim_diagnostics(&self) -> serde_json::Value {
         let d = &self.0.ownership.claim_diagnostics;
         let reserved = d.reserved_claim_attempts.load(Ordering::Relaxed);

@@ -739,3 +739,23 @@ impl Store {
         Ok(result)
     }
 }
+
+#[cfg(feature = "memory-diagnostics")]
+impl Buffer {
+    pub(super) fn memory_numbers(&self) -> [usize; 5] {
+        [
+            self.entries.len(),
+            self.entries.capacity(),
+            self.routes.len(),
+            self.source_floors.len(),
+            self.bytes,
+        ]
+    }
+    pub(super) fn memory_value(
+        [entries, capacity, routes, floors, bytes]: [usize; 5],
+    ) -> serde_json::Value {
+        serde_json::json!({"entries":entries,"entry_slot_capacity":capacity,"routes":routes,
+            "source_floor_entries":floors,"charged_serialized_bytes":bytes,"maximum_charged_bytes":MAX_BYTES,
+            "maximum_routes":MAX_ROUTES,"heap_capacity_bytes":null,"mutates_cache":false})
+    }
+}

@@ -10,6 +10,11 @@ import subprocess
 import sys
 import time
 
+try:
+    from .matrix_storage import MetadataReserve, GUARD_RESERVE_BYTES, atomic_json, metadata_failure
+except ImportError:  # Original standalone guardian entry point.
+    from matrix_storage import MetadataReserve, GUARD_RESERVE_BYTES, atomic_json, metadata_failure
+
 
 class VmWorkloadLease:
     def __init__(self, *, directory=None, timeout=1200):
@@ -106,6 +111,17 @@ class GuardedVmWorkloadLease:
     def complete(self, report):
         self.evidence = cleanup_evidence(report)
 
+    def complete_storage_failure(self, fallback):
+        if fallback.get("format") != "connect/original-component-storage-failure/1":
+            raise ValueError("Original component storage failure required")
+        self.evidence = dict(fallback["cleanup_evidence"], storage_failure=dict(
+            source_revision=fallback["source_revision"],cell_id=fallback["cell_id"],
+            original_full_report_sha256=fallback["original_full_report_sha256"],full_report_saved=False))
+
+    def complete_unentered(self):
+        self.evidence = dict(confirmed=True, component_owner_started=False,
+                             reason="storage-preflight-refused-before-original-component-entry")
+
     def __exit__(self, *_):
         self.owner.stdin.write((json.dumps(self.evidence) + "\n").encode())
         self.owner.stdin.close()
@@ -119,19 +135,43 @@ class GuardedVmWorkloadLease:
 
 def guard():
     with VmWorkloadLease() as lease:
+        reserve = MetadataReserve(lease.directory / ("guardian-" + str(os.getpid()) + ".reserve"),
+                                  GUARD_RESERVE_BYTES)
         print("acquired", flush=True)
         try:
             raw = sys.stdin.buffer.read(16385)
             if len(raw) > 16384:
                 raise ValueError("Bounded original cleanup evidence required")
             evidence = json.loads(raw)
+            if not isinstance(evidence, dict) or type(evidence.get("confirmed")) is not bool:
+                raise ValueError("Original typed cleanup evidence required")
         except (OSError, ValueError):
             evidence = dict(confirmed=False, reason="original-worker-loss")
         path = lease.directory / ("guardian-" + str(os.getpid()) + ".json")
-        path.write_text(json.dumps(dict(guardian_pid=os.getpid(), cleanup=evidence,
-            state="released" if evidence.get("confirmed") is True else "blocked")) + "\n")
-        if evidence.get("confirmed") is not True:
-            print("blocked", flush=True)
+        value = dict(guardian_pid=os.getpid(), cleanup=evidence,
+            state="released" if evidence.get("confirmed") is True else "blocked")
+        durable = False
+        try:
+            atomic_json(path, value, reserve=reserve, limit=32768)
+            durable = True
+        except Exception as error:
+            value["vm_metadata_failure"] = type(error).__name__
+            try:
+                acknowledgement = metadata_failure(value)
+                durable = acknowledgement.get("host_durable") is True
+            except Exception as fallback_error:
+                value["host_metadata_failure"] = type(fallback_error).__name__
+        try:
+            reserve.release()
+        except Exception as error:
+            value["reserve_cleanup_failure"] = type(error).__name__
+        if evidence.get("confirmed") is not True or not durable:
+            try:
+                print("blocked", flush=True)
+            except (OSError, ValueError):
+                # Lost original worker also closes this acknowledgement pipe.
+                # That cannot release custody of its unknown original owners.
+                pass
             # This named guardian intentionally retains custody. An external
             # controller must establish actual owner absence before retiring it.
             while True:

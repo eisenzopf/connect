@@ -20,7 +20,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib.matrix_browser_capture import BrowserCapture
 from lib.transport_matrix import digest
-from lib.matrix_plateau import POLICY as PLATEAU_POLICY, evaluate as evaluate_plateau
+from lib.matrix_plateau import POLICY as PLATEAU_POLICY, evaluate as evaluate_plateau, runtime_capacity_configuration
 
 RUNNER = Path(__file__).resolve().parents[1] / "rehearse-gate6-browser-matrix.py"
 
@@ -132,7 +132,8 @@ class CaptureCleanup(unittest.TestCase):
                 args=SimpleNamespace(stage="quality", transport=transport, resource_cycles=resource_cycles), report=report,
                 stop_server=lambda: events.append("server-joined"), server=None, log_handles=[],
                 subprocess=subprocess, signal=signal, uuid=uuid, json=json,
-                PLATEAU_POLICY=PLATEAU_POLICY, evaluate_plateau=evaluate_plateau)
+                PLATEAU_POLICY=PLATEAU_POLICY, evaluate_plateau=evaluate_plateau,
+                runtime_capacity_configuration=runtime_capacity_configuration)
             with patch("lib.matrix_browser_capture.os.killpg", side_effect=killpg), patch.object(subprocess, "run", side_effect=remove_network):
                 exec(cleanup_program(), scope)
             return report, events

@@ -15,6 +15,7 @@ import tomllib
 import traceback
 
 from lib.package_environment import fixture_environment
+from lib.matrix_storage import MetadataReserve, GUARD_RESERVE_BYTES, write_component
 from lib.sealed_executable import seal_executable
 from lib.transport_actors import CONTROLLERS, DEVICES, enroll_actors, exact
 from lib.transport_capture import NativeCapture
@@ -97,6 +98,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     assert os.environ.get("TRANSPORT_TARGET", server_platform) == server_platform
     PRIVATE.mkdir(parents=True)
     OUTPUT.mkdir(parents=True)
+    component_reserve = MetadataReserve(OUTPUT / "component-metadata.reserve", GUARD_RESERVE_BYTES)
     source = runpy.run_path(str(ROOT / "scripts/check-gate6-linux-hosting.py"))["sources"]
     bounded = runpy.run_path(str(ROOT / "scripts/check-linux-package-build.py"))["run_bounded"]
     env = fixture_environment()
@@ -908,7 +910,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             report["passed"] = bool(report["passed"] and report["sdk_dist_inputs_unchanged"])
         report["passed"] = bool(report["passed"] and report["source_inputs_unchanged"] and report["executables_unchanged"])
         report["cacheable_build"] = bool(report.get("compile_exit_code") == 0 and report["source_inputs_unchanged"] and report["executables_unchanged"])
-        (OUTPUT / "rehearsal.json").write_text(json.dumps(report, indent=2) + "\n")
+        write_component(OUTPUT / "rehearsal.json", report, reserve=component_reserve)
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
                 stream.write("cacheable_build=" + str(report["cacheable_build"]).lower() + "\n")

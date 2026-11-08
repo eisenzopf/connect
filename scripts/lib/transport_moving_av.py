@@ -18,6 +18,7 @@ from .transport_av import (FREQUENCIES, checksum, command, marker_edges, marker_
     ogg_page, ordinal_sync, rtp_timing, source_pixels)
 from .transport_movement_profile import (MOVE_START_OFFSETS_MS, MOVES_PER_SESSION,
     TOTAL_MOVES, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256)
+from .media_transition_coverage import transition_coverage, clean_bin_durations
 
 PEERS = [3, 0, 1, 2, 5, 4]
 
@@ -259,7 +260,13 @@ def timeline(directory, metadata):
                     if bounded and selected:
                         histories.append(dict(capture_id=capture_id, medium=medium, stream_id=stream, ssrc=ssrc,
                             owner_start_ms=start, owner_end_ms=end, rows=bounded, selected_indices=selected))
-        result.append(dict(index=receiver, peer_index=peer, histories=histories, excluded_rows=excluded,received_clocks=clocks))
+        moving_source = 4 if receiver >= 4 else 0
+        chain, cuts = chains[moving_source]
+        public_cuts = [dict(id=segment['operation_id'], atMs=cut,
+            basis='validated-native-public-cut-completion-observed') for segment, cut in zip(chain, cuts)]
+        result.append(dict(index=receiver, peer_index=peer, histories=histories, excluded_rows=excluded,
+            received_clocks=clocks, audio_cuts=public_cuts,
+            video_cuts=public_cuts if receiver == moving_source or peer == moving_source else []))
     return bundle, result
 
 
@@ -419,15 +426,24 @@ def summarize(route, audio, video):
     gaps=[b['row']['elapsed_ms']-a['row']['elapsed_ms'] for a,b in zip(a,a[1:])]
     sync=marker_alignment(audio,video);bad=sum(h['bad_identity_blocks'] for h in audio)
     samples=sum(h['measured_samples'] for h in audio)
-    passed=(bool(a) and samples>=59.9*48000 and samples==len(a)*960 and bad==0
-        and max(gaps,default=math.inf)<=200 and len(v)>=1440 and changing>=1440 and min(bins)>=24
+    audio_coverage=transition_coverage([m['row']['elapsed_ms'] for m in a],route.get('audio_cuts',[]),
+        start_ms=2000,end_ms=62000,frame_ms=20,minimum_gap_ms=50)
+    video_coverage=transition_coverage([m['row']['elapsed_ms'] for m in v],route.get('video_cuts',[]),
+        start_ms=2000,end_ms=62000,frame_ms=1000/30,minimum_gap_ms=50)
+    required_frames=[math.ceil(ms*24/1000-1e-9) for ms in clean_bin_durations(video_coverage,2000,60)]
+    passed=(bool(a) and samples>=(59.9-audio_coverage['transition_missing_ms']/1000)*48000
+        and samples==len(a)*960 and bad==0
+        and audio_coverage['maximum_clean_gap_ms']<=200 and len(v)>=1440 and changing>=1440
+        and all(count>=required for count,required in zip(bins,required_frames))
         and wrong==0 and sync['status']=='passed')
     passed = passed and route['received_clocks']['audio'] > 0 and route['received_clocks']['video'] > 0
     return dict(index=route['index'],peer_index=route['peer_index'],passed=passed,
         audio=dict(decoded_seconds=samples/48000,samples=samples,bad_identity_blocks=bad,
-            original_window_packets=len(a),source_quantum_identity_available=len(known),source_quantum_identity_unavailable=len(a)-len(known),maximum_arrival_gap_ms=max(gaps,default=None)),
+            original_window_packets=len(a),source_quantum_identity_available=len(known),source_quantum_identity_unavailable=len(a)-len(known),maximum_arrival_gap_ms=max(gaps,default=None),
+            transition_coverage=audio_coverage),
         video=dict(decoded_window_frames=len(v),changing_window_frames=changing,changing_fps=changing/60,
             frames_by_observation_second=bins,wrong_source_pixel_frames=wrong,
+            transition_coverage=video_coverage,required_frames_by_observation_second=required_frames,
             source_marker_classification=classification,
             undecodable_frames=sum(h['undecodable_frames'] for h in video)),
         excluded_rows=route['excluded_rows'],received_clocks=route['received_clocks'],independently_decoded_receive_marker_alignment=sync)

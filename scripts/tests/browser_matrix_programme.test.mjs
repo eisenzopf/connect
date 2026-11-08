@@ -5,11 +5,11 @@ import {browserMatrixObservation} from '../lib/browser_matrix_observation.mjs';
 import {nativeIdentity,bindNativeStreams,nativeBoundary} from '../../sdk/tests/native_activation_fixture.mjs';
 const deferred=()=>{let resolve;const promise=new Promise(value=>resolve=value);return {promise,resolve};};
 const flush=async()=>{for(let i=0;i<80;i++)await Promise.resolve();};
-async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=false,snapshotRefusal=false,earlyTerminalWake=false,cleanupTracking=false}={}){
+async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=false,snapshotRefusal=false,earlyTerminalWake=false,cleanupTracking=false,delayedActivation=false}={}){
  const originalClock=globalThis.performance,originalTimer=globalThis.setTimeout,originalDocument=globalThis.document;
  let now=0;const timers=[],timeOrigin=1_800_000_000_000;globalThis.performance={now:()=>now,timeOrigin};globalThis.setTimeout=(resolve,ms)=>{timers.push({at:now+ms,resolve});};
  globalThis.document={createElement:()=>({getContext:()=>({})})};
- const commit=deferred(),oldRead=deferred(),prepared=deferred(),journals=[],byOperation=new Map(),renderers=new Map(),actors={},cleanupCalls=[],sourceReads=new Set();
+ const commit=deferred(),oldRead=deferred(),prepared=deferred(),activationReady=deferred(),activationOptions=[],verificationReads=new Set(),journals=[],byOperation=new Map(),renderers=new Map(),actors={},cleanupCalls=[],sourceReads=new Set();
  const reachabilityError=Object.assign(Error('Original reachability failure'),{kind:'transport-uncertain',certainty:'read-only'});
  const snapshotError=Object.assign(Error('Original snapshot refusal'),{kind:'authentication',certainty:'read-only'});
  const plan={programmeMs:62000,sessions:[{id:'session-a'},{id:'session-b'}],routes:Array.from({length:6},(_,index)=>({index,session:index<4?0:1,
@@ -46,7 +46,7 @@ async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=f
   async refresh(){
    if(cleanupTracking&&!sourceReads.has(id)){sourceReads.add(id);return {id,conversationId:'conversation',sessionId:plan.sessions[plan.routes[index].session].id,
     generation:id.startsWith('initial-')?1:2,participantId:'participant-'+index,state:'ready'};}
-   if(id.startsWith('initial-')&&[0,4].includes(index)){await oldRead.promise;return {state:oldRefusal&&index===0?'active':'retired'};}return {state:'retired'};}});
+   if(id.startsWith('initial-')&&[0,4].includes(index)){verificationReads.add(id);await oldRead.promise;return {state:oldRefusal&&index===0?'active':'retired'};}return {state:'retired'};}});
  for(const role of [...plan.routes.map(route=>route.role),'target']){
   const session={refresh:async()=>{if(snapshotRefusal&&role==='member-1'&&now<40000)throw snapshotError;return {topologyRevision:1};},connections:{prepareReplacement:async({operation})=>{
    prepared.resolve();return byOperation.get(operation.operation);
@@ -57,6 +57,14 @@ async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=f
  for(const route of plan.routes)sources.sources[route.index].attachments.push({connectionId:route.connection,capture:{closed:false}});
  class Renderer{audio(){return true;}video(){return true;}}
  const observer=browserMatrixObservation(Renderer,plan),report={};
+ if(delayedActivation){
+  const activate=observer.activate;
+  observer.activate=(index,id,options)=>{
+   activationOptions.push(options);
+   const result=activate(index,id,options);
+   return activationReady.promise.then(()=>result);
+  };
+ }
  const cleanupMoves=cleanupTracking?{track(value){assert.equal(byOperation.has(value.intent.operation),false,'Capture before original submission returns');
     assert.equal(value.sourceSnapshot.state,'ready');cleanupCalls.push(['intent',value.intent.operation]);return value;},
   accepted(value,operation){assert.deepEqual(operation.referenceJson(),{operation:value.intent.operation});cleanupCalls.push(['accepted',value.intent.operation]);},
@@ -80,6 +88,12 @@ async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=f
   if(!snapshotRefusal)audio('target-move-0-0',0,0);
   assert.equal(observer.report().routes[0].audio.decoded_seconds,0,'Prepared private output stays excluded');
   commit.resolve();await flush();now=15020;
+  if(delayedActivation){
+   assert.equal(verificationReads.size,0,'Old-owner verification cannot run before public rendering activation joins');
+   assert.ok(activationOptions.length>0&&activationOptions.every(options=>options?.timeoutMs>0&&options.timeoutMs<=8000),
+    'Activation inherits the original remaining cutoff');
+   activationReady.resolve();await flush();
+  }
   if(!snapshotRefusal){
    audio('target-move-0-0',20000);
    const observed=observer.report().routes[0];
@@ -118,8 +132,9 @@ async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=f
    assert.equal(report.failed_move_attempts,1);
    assert.equal(report.failures[0].kind,snapshotError.kind,'Preserve a refusal before mutation submission');
   }
- }finally{commit.resolve();oldRead.resolve();await flush();await advance(40000);await advance(62000);await work.catch(()=>{});await observer.close();globalThis.performance=originalClock;globalThis.setTimeout=originalTimer;globalThis.document=originalDocument;}
+ }finally{activationReady.resolve();commit.resolve();oldRead.resolve();await flush();await advance(40000);await advance(62000);await work.catch(()=>{});await observer.close();globalThis.performance=originalClock;globalThis.setTimeout=originalTimer;globalThis.document=originalDocument;}
 }
+test('movement joins asynchronous public renderer activation within the original cutoff before old-owner verification',()=>fixture({delayedActivation:true}));
 test('validated target output is observed before a slow old-owner verification read',()=>fixture({cleanupTracking:true}));
 test('invalid ready receipt never activates prepared output',()=>fixture({invalidReceipt:true}));
 test('old-owner verification refusal still fails after actual postcommit output is observed',()=>fixture({oldRefusal:true}));

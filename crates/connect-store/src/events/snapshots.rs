@@ -492,3 +492,65 @@ thread_local! {
 pub(super) fn capture_count() -> usize {
     CAPTURES.with(std::cell::Cell::get)
 }
+
+// Diagnostic metadata only: copy numbers, then serialize after the caller's guard drops.
+#[cfg(feature = "memory-diagnostics")]
+pub(super) fn memory_numbers(
+    cache: &std::collections::BTreeMap<String, Cached>,
+) -> (usize, usize, usize) {
+    (
+        cache.len(),
+        cache
+            .values()
+            .fold(0usize, |n, e| n.saturating_add(e.bytes)),
+        cache
+            .values()
+            .filter(|e| e.expires_at <= crate::now())
+            .count(),
+    )
+}
+#[cfg(feature = "memory-diagnostics")]
+pub(super) fn memory_value((entries, bytes, expired): (usize, usize, usize)) -> serde_json::Value {
+    serde_json::json!({"entries":entries,"charged_serialized_bytes":bytes,"expired_entries_observed":expired,
+        "maximum_entries":MAX_SNAPSHOTS,"maximum_charged_bytes":MAX_CACHE_BYTES,
+        "maximum_one_snapshot_bytes":MAX_SNAPSHOT_BYTES,"heap_capacity_bytes":null,"mutates_cache":false})
+}
+
+#[cfg(all(test, feature = "memory-diagnostics"))]
+mod memory_diagnostic_tests {
+    use super::*;
+    #[test]
+    fn memory_diagnostic_preserves_expired_snapshot_bytes_and_original_counters() {
+        let mut cache = std::collections::BTreeMap::new();
+        cache.insert(
+            "original".into(),
+            Cached {
+                sequence: 17,
+                identity: "owner".into(),
+                credential: "credential".into(),
+                ceiling: "ceiling".into(),
+                conversation: "conversation".into(),
+                epoch: 1,
+                expires_at: crate::now() - 1,
+                revision: 2,
+                cursor: "cursor".into(),
+                items: vec![],
+                bytes: 123,
+            },
+        );
+        for _ in 0..3 {
+            let value = memory_value(memory_numbers(&cache));
+            assert_eq!(value["entries"], 1);
+            assert_eq!(value["charged_serialized_bytes"], 123);
+            assert_eq!(value["expired_entries_observed"], 1);
+            assert!(value["heap_capacity_bytes"].is_null());
+        }
+        assert_eq!(cache.len(), 1);
+        let original = &cache["original"];
+        assert_eq!(
+            (original.sequence, original.bytes, original.revision),
+            (17, 123, 2)
+        );
+        assert!(original.expires_at < crate::now());
+    }
+}

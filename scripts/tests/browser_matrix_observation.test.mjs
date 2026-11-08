@@ -2,23 +2,142 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {DecodedRoute,pcmIdentity,browserMatrixObservation} from '../lib/browser_matrix_observation.mjs';
 import {markerFrames} from '../video/marker_calibration.mjs';
+import {transitionCoverage,cleanBinDurations} from '../lib/media_transition_coverage.mjs';
+
+async function rtcRenderFixture(run){
+    const keys=['document','AudioContext','AudioWorkletNode','CanvasRenderingContext2D','HTMLVideoElement','connectPeerTag'];
+    const saved=Object.fromEntries(keys.map(key=>[key,globalThis[key]]));
+    const nodes=[],renders=[],closedOwners=[],tags=[];
+    let release;
+    const rendering=new Promise(resolve=>{release=resolve;});
+    class AudioContext {
+        state='running';destination={};audioWorklet={addModule:async()=>{}};
+        createMediaStreamSource(){return {connect(){},disconnect(){}};}
+        createGain(){return {gain:{value:1},connect(){},disconnect(){}};}
+    }
+    class AudioWorkletNode {
+        port={postMessage(){},close(){}};
+        constructor(){nodes.push(this);}
+        connect(){}disconnect(){}
+    }
+    class CanvasRenderingContext2D {
+        constructor(canvas){this.canvas=canvas;}
+        drawImage(){}
+    }
+    class HTMLVideoElement {requestVideoFrameCallback(){return 1;}}
+    class Rtc {
+        constructor(id,{wait=false,failure}={}){
+            this.input={connectionId:id};this.peer={id};this.wait=wait;this.failure=failure;
+        }
+        capture(){return 'original-capture';}
+        async render(input,options){
+            renders.push({id:this.input.connectionId,options});
+            if(this.failure)throw this.failure;
+            new AudioContext().createMediaStreamSource({});
+            if(this.wait)await rendering;
+            const id=this.input.connectionId;
+            let ended=false,finish,retire;
+            const finished=new Promise(resolve=>{finish=resolve;});
+            const retirement=new Promise(resolve=>{retire=resolve;});
+            return {finished,retirement,close(){
+                if(ended)return;ended=true;closedOwners.push(id);finish();
+                retire(Object.freeze({connectionId:id,scope:'renderer-local',audioGraph:'closed',outputsDetached:true}));
+            }};
+        }
+    }
+    class Renderer {audio(){}video(){}}
+    const canvases=[];
+    Object.assign(globalThis,{AudioContext,AudioWorkletNode,CanvasRenderingContext2D,HTMLVideoElement,
+        connectPeerTag:(peer,id)=>{tags.push({peer,id});return true;},
+        document:{createElement(){const canvas={getContext:()=>({drawImage(){},getImageData:()=>({data:new Uint8ClampedArray(128*72*4).fill(100)})})};canvases.push(canvas);return canvas;}}});
+    const {browserMatrixPlan}=await import('../lib/browser_matrix_admission.mjs');
+    const observer=browserMatrixObservation(Renderer,browserMatrixPlan(),undefined,Rtc);
+    const connection=(id,options)=>{
+        const rtc=new Rtc(id,options);
+        return {id,rtc,streams:{byId:id=>({id})},render:(input,request)=>rtc.render(input,request)};
+    };
+    const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
+    const audio=(node,timestamp)=>node.port.onmessage({data:{type:'pcm',samples:tone(1100),timestamp}});
+    try{await run({observer,connection,nodes,renders,closedOwners,tags,canvases,release,flush,audio,Renderer});}
+    finally{
+        release();await observer.close();
+        for(const key of keys)if(saved[key]===undefined)delete globalThis[key];else globalThis[key]=saved[key];
+    }
+}
+
+test('RTC public rendering waits for validated activation and observes its first output before startup resolves',()=>rtcRenderFixture(async f=>{
+    const old=f.connection('old'),target=f.connection('target');
+    await f.observer.attach(0,old,{audio:'old-audio',video:'old-video',active:true},{timeoutMs:500});
+    f.observer.start({originMs:performance.now()-2000});await f.flush();
+    f.audio(f.nodes[0],0);
+    await f.observer.attach(0,target,{audio:'target-audio',video:'target-video'},{timeoutMs:400});
+    assert.deepEqual(f.renders.map(row=>row.id),['old'],'Private candidate must not create public playback');
+    assert.equal(target.rtc.capture(),'original-capture');
+    assert.ok(f.tags.some(row=>row.id==='target'&&row.peer===target.rtc.peer),'Capture diagnostics retain exact private peer identity');
+    target.rtc.wait=true;
+    const options={timeoutMs:123},activation=f.observer.activate(0,'target',options);
+    await f.flush();
+    assert.equal(f.renders.at(-1).options,options,'Use the original remaining movement budget');
+    f.audio(f.nodes[1],20000);
+    f.audio(f.nodes[0],40000);
+    assert.equal(f.observer.report().routes[0].audio.decoded_seconds,.04,
+        'First actual public target output counts while startup resolves; retired old output is excluded');
+    assert.throws(()=>f.observer.activate(0,'target',options),'One renderer activation per original binding');
+    f.release();await activation;
+}));
+
+test('an unactivated RTC candidate releases surfaces without claiming a renderer or starting playback',()=>rtcRenderFixture(async f=>{
+    await f.observer.attach(0,f.connection('private-only'),{audio:'audio',video:'video'},{timeoutMs:500});
+    const result=await f.observer.close();
+    assert.deepEqual(f.renders,[]);assert.deepEqual(f.closedOwners,[]);
+    assert.equal(result.owners,0);assert.equal(result.retained_surfaces,0);assert.equal(result.joined,true);
+    assert.ok(f.canvases.every(canvas=>canvas.width===0&&canvas.height===0));
+    assert.throws(()=>f.observer.activate(0,'private-only',{}));
+}));
+
+test('RTC observer close joins an in-flight original render activation before releasing its borrower',()=>rtcRenderFixture(async f=>{
+    await f.observer.attach(0,f.connection('target',{wait:true}),{audio:'audio',video:'video'},{timeoutMs:500});
+    const activation=f.observer.activate(0,'target',{timeoutMs:100});
+    await f.flush();
+    const closing=f.observer.close();let joined=false;closing.then(()=>{joined=true;});
+    await f.flush();assert.equal(joined,false);assert.deepEqual(f.closedOwners,[]);
+    f.release();await activation;
+    const result=await closing;
+    assert.equal(result.joined,true);assert.deepEqual(f.closedOwners,['target']);
+    assert.equal(result.retained_surfaces,0);
+}));
+
+test('failed public RTC render activation remains a failure with unconfirmed borrower cleanup',()=>rtcRenderFixture(async f=>{
+    const failure=Object.assign(Error('Original render failure'),{kind:'media'});
+    await f.observer.attach(0,f.connection('target',{failure}),{audio:'audio',video:'video'},{timeoutMs:500});
+    await assert.rejects(f.observer.activate(0,'target',{timeoutMs:100}),error=>error===failure);
+    assert.ok(f.observer.report().routes[0].invalid.includes('Original public RTC render activation failed'));
+    const result=await f.observer.close();
+    assert.equal(result.joined,false,'A rejected render supplies no original retirement receipt');
+    assert.equal(result.retained_surfaces,2);
+    assert.equal(result.measurement_working_state.retired,false);
+    assert.equal(result.measurement_working_state.retained.invalid_entries,1);
+}));
 const tone=(hz,amplitude=.05,offset=0)=>Float32Array.from({length:960},(_,i)=>amplitude*Math.sin(2*Math.PI*hz*(i+offset)/48000));
 test('decoded identity refuses silence and another participant rather than trusting expected frequency',()=>{
     assert.equal(pcmIdentity(tone(660),1).identified,true);
     assert.equal(pcmIdentity(tone(440),1).identified,false);
     assert.equal(pcmIdentity(new Float32Array(960),1).identified,false);
 });
-function observed({gap=false,duplicate=false}={}){
+function observed({gap=false,duplicate=false,interruptionMs=0,cutMs=null,videoGap=false,wrongSource=false}={}){
     const route=new DecodedRoute(0,1);route.start(1000);const pulses=markerFrames().map(frame=>frame/30);
+    if(cutMs!==null){const cut={id:'original-validated-target',atMs:cutMs};route.audioCuts.push(cut);route.videoCuts.push(cut);}
+    const gapSeconds=(gap?500:interruptionMs)/1000;
     const high=at=>pulses.some(start=>at>=start&&at<start+.1);
     for(let i=0;i<3100;i++){
-        const at=i*.02;if(gap&&at>=15&&at<15.5)continue;
-        const pcm=tone(660,high(at)?.7:.05,i*960),time=1000+at*1000+10;
+        const at=i*.02;if(at>=15&&at<15+gapSeconds)continue;
+        const pcm=tone(wrongSource&&i===1000?440:660,high(at)?.7:.05,i*960),time=1000+at*1000+10;
         route.audioFrame(i<750?'original':'target',i*20000,time,pcm);
         if(duplicate&&i===1000)route.audioFrame('target',i*20000,time+.1,pcm);
     }
     for(let i=0;i<1860;i++){
         const at=i/30,pulse=high(at),gray=Array(64).fill(pulse?255:100);
+        if(videoGap&&at>=15&&at<15+gapSeconds)continue;
         if(!pulse){gray[0]=200;gray[1]=40;gray[8]=40;gray[9]=200;}
         route.videoFrame(i<450?'original':'target',Math.round(at*1e6),1000+at*1000+15,gray,new Uint8Array([i%256]),640,360);
     }
@@ -32,6 +151,51 @@ test('missing received audio and repeated decoded timestamp cannot be hidden by 
     const gap=observed({gap:true});assert.equal(gap.passed,false);assert.ok(gap.audio.maximum_gap_ms>=490);
     assert.ok(gap.audio.identified_seconds<59.9);
     const duplicate=observed({duplicate:true});assert.equal(duplicate.passed,false);assert.equal(duplicate.audio.duplicate_frames,1);
+});
+
+test('contract-bounded measured handoff gaps preserve raw loss and clean quality separately',()=>{
+    for(const interruptionMs of [100,400]){
+        const report=observed({interruptionMs,cutMs:15050,videoGap:true});
+        assert.equal(report.passed,true,JSON.stringify({audio:report.audio.passed,video:report.video.passed,sync:report.sync.status,envelope:report.sync.audio_envelope.status}));
+        assert.ok(report.audio.identified_seconds<60);
+        if(interruptionMs===400){
+            assert.equal(report.audio.transition_coverage.transitions.length,1);
+            assert.ok(report.audio.maximum_gap_ms>200);
+            assert.ok(report.video.minimum_fps<24);
+            assert.equal(report.sync.audio_envelope.onset_state_crossed_transition,false);
+        }
+    }
+});
+
+test('handoff accounting refuses over-one-second gaps and equal gaps away from original cuts',()=>{
+    for(const options of [{interruptionMs:1100,cutMs:15050},{interruptionMs:400},
+        {interruptionMs:400,cutMs:16000}]){
+        const report=observed({...options,videoGap:true});
+        assert.equal(report.passed,false);
+        assert.equal(report.audio.transition_coverage.transitions.length,0);
+    }
+});
+
+test('handoff coverage grants no exception for wrong source or duplicate original outputs',()=>{
+    for(const failure of [{wrongSource:true},{duplicate:true}]){
+        const report=observed({interruptionMs:400,cutMs:15050,videoGap:true,...failure});
+        assert.equal(report.passed,false);
+        assert.equal(report.audio.transition_coverage.transitions.length,1);
+    }
+});
+
+test('transition accounting requires bounded ordered actual cuts and excludes ambiguous or edge gaps',()=>{
+    const options={startMs:0,endMs:2000,frameMs:20,minimumGapMs:200};
+    for(const cuts of [[{id:'a',atMs:800},{id:'a',atMs:900}],
+        [{id:'a',atMs:900},{id:'b',atMs:800}],[{id:'a',atMs:NaN}]])
+        assert.throws(()=>transitionCoverage([20,40,440],cuts,options));
+    const ambiguous=transitionCoverage([20,40,440],[{id:'a',atMs:100},{id:'b',atMs:200}],options);
+    assert.equal(ambiguous.transitions.length,0);
+    const edge=transitionCoverage([400,420],[{id:'a',atMs:200}],options);
+    assert.equal(edge.transitions.length,0);
+    const known=transitionCoverage([20,40,440],[{id:'a',atMs:200}],options);
+    assert.equal(known.transition_missing_ms,380);
+    assert.deepEqual(cleanBinDurations(known,0,2),[620,1000]);
 });
 
 test('original public native outputs before completed-root stay observable while true private outputs never count',async()=>{
@@ -189,4 +353,43 @@ test('foreign, mutable and missing retirement receipts cannot prove the original
             assert.deepEqual(canvases.map(canvas=>[canvas.width,canvas.height]),[[128,72],[640,360]],variant);
         }finally{await observer.close();globalThis.document=previous;}
     }
+});
+
+test('joined observer retirement releases measurement working buffers without changing captured failure evidence',async()=>{
+    for(const extraCallbacks of [false,true])await rtcRenderFixture(async f=>{
+        await f.observer.attach(0,f.connection('old'),{audio:'audio',video:'video',active:true},{timeoutMs:500});
+        f.observer.start({originMs:performance.now()-2000});await f.flush();
+        f.audio(f.nodes[0],0);
+        f.nodes[0].port.onmessage({data:{type:'pcm',samples:new Float32Array(960),timestamp:20000}});
+        const renderer=new f.Renderer();
+        renderer.video({connectionId:'old',streamId:'video'},
+            {timestamp:30000,displayWidth:640,displayHeight:360});
+        renderer.audio({connectionId:'old',streamId:'audio'},
+            {sampleRate:44100,numberOfChannels:1,numberOfFrames:960,timestamp:40000});
+        const report=f.observer.report(),captured=structuredClone(report);
+        assert.equal(report.passed,false);assert.ok(report.routes[0].invalid.length);
+        assert.equal(report.routes[0].audio_boundary_diagnostics.events.length,1);
+        if(extraCallbacks){
+            f.audio(f.nodes[0],60000);
+            renderer.video({connectionId:'old',streamId:'video'},
+                {timestamp:70000,displayWidth:640,displayHeight:360});
+            renderer.audio({connectionId:'old',streamId:'audio'},
+                {sampleRate:44100,numberOfChannels:1,numberOfFrames:960,timestamp:80000});
+        }
+        // Deliberately do not call report() again before close. A cached live
+        // snapshot must not hide callbacks after that original intermediate proof.
+        const closed=await f.observer.close(),working=closed.measurement_working_state;
+        assert.equal(closed.joined,true);assert.ok(working,'Original joined observer must report actual working-state retirement');
+        assert.equal(working.retired,true);
+        assert.equal(working.before.audio_rows,extraCallbacks?3:2);assert.equal(working.before.video_rows,extraCallbacks?2:1);
+        assert.equal(working.before.duplicate_keys,extraCallbacks?5:3);assert.ok(working.before.last_pixel_bytes>0);
+        assert.ok(Object.values(working.retained).every(value=>value===0));
+        assert.deepEqual(report,captured,'Later callbacks and retirement preserve the intermediate failure evidence');
+        const final=f.observer.report();
+        assert.equal(final.routes[0].audio.decoded_seconds,extraCallbacks?.06:.04);
+        assert.equal(final.routes[0].video.decoded_frames,extraCallbacks?2:1);
+        assert.equal(final.routes[0].invalid.length,extraCallbacks?2:1);
+        if(!extraCallbacks)assert.deepEqual(final,captured,'Final captured quality proof is preserved when no extra outputs arrive');
+        assert.deepEqual(f.closedOwners,['old']);
+    });
 });

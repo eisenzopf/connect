@@ -1,0 +1,144 @@
+--- a/crates/foundation/infra-common/src/memory_diagnostics.rs
++++ b/crates/foundation/infra-common/src/memory_diagnostics.rs
+@@ -519,3 +519,11 @@
+         assert_eq!(kind["bytes_dropped"], 64);
+     }
+ }
++
++#[path = "platform_c_allocator.rs"]
++mod platform_c_allocator;
++
++/// Feature-only raw C allocator accounting for named process diagnostic boundaries.
++pub fn platform_c_allocator_snapshot() -> Value {
++    platform_c_allocator::snapshot()
++}
+--- /dev/null
++++ b/crates/foundation/infra-common/src/platform_c_allocator.rs
+@@ -0,0 +1,127 @@
++//! Feature-only process allocator accounting. Never RSS or live owner bytes.
++use serde_json::{json, Value};
++
++#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
++#[repr(C)]
++#[derive(Default)]
++struct ZoneStatistics {
++    blocks_in_use: std::ffi::c_uint,
++    size_in_use: usize,
++    max_size_in_use: usize,
++    size_allocated: usize,
++}
++#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
++unsafe extern "C" {
++    fn malloc_zone_statistics(zone: *mut std::ffi::c_void, stats: *mut ZoneStatistics);
++}
++#[cfg(all(target_arch = "aarch64", target_os = "linux", target_env = "gnu"))]
++#[repr(C)]
++struct MallInfo2 {
++    arena: usize,
++    ordblks: usize,
++    smblks: usize,
++    hblks: usize,
++    hblkhd: usize,
++    usmblks: usize,
++    fsmblks: usize,
++    uordblks: usize,
++    fordblks: usize,
++    keepcost: usize,
++}
++#[cfg(all(target_arch = "aarch64", target_os = "linux", target_env = "gnu"))]
++unsafe extern "C" {
++    fn mallinfo2() -> MallInfo2;
++}
++
++/// Only invoked by the caller's existing named diagnostic Health boundary.
++/// No pointer enumeration, allocator reset, collection, trim or retained state.
++pub(super) fn snapshot() -> Value {
++    #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
++    {
++        let mut stats = ZoneStatistics::default();
++        // Installed Darwin malloc.h declares exactly unsigned + three size_t.
++        // NULL requests all registered zones. The writable output lives here.
++        unsafe { malloc_zone_statistics(std::ptr::null_mut(), &mut stats) };
++        return json!({"supported":true,"api":"malloc_zone_statistics(NULL)",
++            "scope":"all registered Darwin malloc zones; includes allocator caches and fragmentation",
++            "fields":{"blocks_in_use":stats.blocks_in_use,"size_in_use":stats.size_in_use,
++                "max_size_in_use":stats.max_size_in_use,"size_allocated":stats.size_allocated},
++            "resident_bytes":null,"application_live_bytes":null,
++            "limitations":"allocator accounting, not RSS or owner liveness; independent zones may be sampled at different instants; custom direct mmap and non-overriding Rust MiMalloc are excluded"});
++    }
++    #[cfg(all(target_arch = "aarch64", target_os = "linux", target_env = "gnu"))]
++    {
++        // glibc >=2.33 declares ten size_t fields by value; approved Ubuntu24.04
++        // ARM uses glibc2.39, whose implementation visits all allocator arenas.
++        let stats = unsafe { mallinfo2() };
++        return json!({"supported":true,"api":"glibc mallinfo2",
++            "scope":"glibc allocator arenas and its own mmap allocations; includes allocator-retained caches and fragmentation",
++            "fields":{"arena":stats.arena,"ordblks":stats.ordblks,"smblks":stats.smblks,
++                "hblks":stats.hblks,"hblkhd":stats.hblkhd,"usmblks":stats.usmblks,
++                "fsmblks":stats.fsmblks,"uordblks":stats.uordblks,"fordblks":stats.fordblks,"keepcost":stats.keepcost},
++            "resident_bytes":null,"application_live_bytes":null,
++            "limitations":"allocator accounting, not RSS or owner liveness; per-arena locks do not make a process-atomic snapshot; uordblks includes tcache; custom direct mmap and non-overriding Rust MiMalloc are excluded"});
++    }
++    #[allow(unreachable_code)]
++    json!({"supported":false,"api":null,"fields":null,
++        "resident_bytes":null,"application_live_bytes":null,
++        "unsupported_reason":"platform allocator ABI is only selected for approved Darwin ARM and glibc Ubuntu ARM profiles"})
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[cfg(any(
++        all(target_arch = "aarch64", target_os = "macos"),
++        all(target_arch = "aarch64", target_os = "linux", target_env = "gnu")
++    ))]
++    #[test]
++    fn real_c_allocation_is_observed_without_claiming_residency_or_owner_liveness() {
++        unsafe extern "C" {
++            fn malloc(size: usize) -> *mut std::ffi::c_void;
++            fn free(pointer: *mut std::ffi::c_void);
++        }
++        struct Allocation(*mut std::ffi::c_void);
++        impl Drop for Allocation {
++            fn drop(&mut self) {
++                unsafe { free(self.0) };
++            }
++        }
++        let original = snapshot();
++        assert_eq!(original["supported"], true);
++        let allocation = Allocation(unsafe { malloc(1024 * 1024) });
++        assert!(!allocation.0.is_null(), "actual C allocation failed");
++        let held = snapshot();
++        // Take scalar evidence while the original allocation is live. Drop it
++        // before assertions so failed attribution never strands an owner.
++        drop(allocation);
++        assert_eq!(held["supported"], true);
++        assert!(held["resident_bytes"].is_null());
++        assert!(held["application_live_bytes"].is_null());
++        let c_managed_in_use = |value: &Value| -> u64 {
++            #[cfg(target_os = "macos")]
++            {
++                value["fields"]["size_in_use"].as_u64().unwrap()
++            }
++            #[cfg(target_os = "linux")]
++            {
++                value["fields"]["uordblks"]
++                    .as_u64()
++                    .unwrap()
++                    .checked_add(value["fields"]["hblkhd"].as_u64().unwrap())
++                    .unwrap()
++            }
++        };
++        let original_bytes = c_managed_in_use(&original);
++        let held_bytes = c_managed_in_use(&held);
++        assert!(
++            held_bytes >= original_bytes.checked_add(1024 * 1024).unwrap(),
++            "actual C block must add its held bytes to the original accounting"
++        );
++        let after = snapshot();
++        assert_eq!(after["supported"], true);
++        // Freed allocations may remain in allocator caches. Never require
++        // accounting to return to zero or pretend that it is resident memory.
++        assert!(after["resident_bytes"].is_null());
++    }
++}

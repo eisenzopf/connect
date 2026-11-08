@@ -1,0 +1,1655 @@
+//! Short production integration of the actual matrix media topology.
+//! Four physical/signing clients, two Sessions, six sources and four original
+//! replacements, including return to the same original Device. This is a real codec/Store regression, not a matrix result.
+use super::*;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
+use tokio_util::sync::CancellationToken;
+
+const SOURCE_FOR_RECEIVER: [usize; 6] = [3, 0, 1, 2, 5, 4];
+const OWNER: [usize; 6] = [0, 1, 2, 3, 0, 1];
+const SESSION: [usize; 6] = [0, 0, 0, 0, 1, 1];
+const FRAMES: u32 = 780;
+const AGE: Duration = Duration::from_millis(200);
+type Work = tokio::task::JoinHandle<std::result::Result<(), String>>;
+
+fn panic_text(value: Box<dyn std::any::Any + Send>) -> String {
+    value
+        .downcast_ref::<String>()
+        .cloned()
+        .or_else(|| value.downcast_ref::<&str>().map(|s| (*s).into()))
+        .unwrap_or_else(|| "original codec/media task panicked".into())
+}
+fn marker(source: usize) -> u32 {
+    40 + source as u32 * 25
+}
+fn short() -> RequestOptions {
+    RequestOptions::new(Duration::from_secs(1)).unwrap()
+}
+
+/// Bounded scalar observation. The full media stays with its original reader.
+#[derive(Clone, Default, Debug)]
+struct Progress {
+    encoded_frames: u64,
+    published_frames: u64,
+    published_video_packets: u64,
+    published_audio_packets: u64,
+    video_read_events: u64,
+    video_packets: u64,
+    assembled_frames: u64,
+    assembled_keys: u64,
+    decode_attempts: u64,
+    audio_read_events: u64,
+    audio_packets: u64,
+    received_datagrams: u64,
+    other_datagrams: u64,
+    video_losses: u64,
+    late_video_packets: u64,
+    skipped_delta_frames: u64,
+    recovered_keys: u64,
+    feedback_requests: u64,
+    publisher_feedback_received: u64,
+    publisher_feedback_used: u64,
+    video_waiting_key: bool,
+    previous_decode: Option<(u32, connect_client::VideoSequenceRange)>,
+    current_decode: Option<(u32, connect_client::VideoSequenceRange)>,
+    assembly: connect_client::VideoAssemblyDiagnostics,
+    frames: u64,
+    keys: u64,
+    fragmented_keys: u64,
+    audio_samples: u64,
+    last_video: Option<Instant>,
+    last_audio: Option<Instant>,
+    last_key: Option<Instant>,
+    timestamp: Option<u32>,
+    epoch: Option<sdk::VideoReceiveEpoch>,
+    // Twenty-six one-second bins, including setup, cover both bounded rounds of this short
+    // integration. No per-packet diagnostic history is retained.
+    bins: [u16; 26],
+}
+type SharedProgress = Arc<Mutex<Progress>>;
+
+// Application decoder history, matching the normal native media producer. The
+// bounded assembler orders fragments, not complete dependency-bearing frames.
+struct DecodeHistory {
+    assembler: VideoFrameAssembler,
+    ssrc: Option<u32>,
+    timestamp: Option<u32>,
+    last_sequence: Option<u16>,
+    waiting_key: bool,
+    need_key: bool,
+    last_request: Option<Instant>,
+}
+impl Default for DecodeHistory {
+    fn default() -> Self {
+        Self {
+            assembler: VideoFrameAssembler::default(),
+            ssrc: None,
+            timestamp: None,
+            last_sequence: None,
+            waiting_key: true,
+            need_key: false,
+            last_request: None,
+        }
+    }
+}
+impl DecodeHistory {
+    fn loss(&mut self, progress: &SharedProgress) {
+        self.waiting_key = true;
+        self.need_key = self.ssrc.is_some();
+        self.last_sequence = None;
+        let mut measured = progress.lock().unwrap();
+        measured.video_losses += 1;
+        measured.video_waiting_key = true;
+    }
+    fn gap(&mut self, progress: &SharedProgress) {
+        self.assembler = VideoFrameAssembler::default();
+        self.loss(progress);
+    }
+    fn take_request(&mut self, now: Instant) -> bool {
+        if !self.need_key
+            || self.last_request.is_some_and(|last| {
+                now.saturating_duration_since(last) < Duration::from_millis(100)
+            })
+        {
+            return false;
+        }
+        self.last_request = Some(now);
+        true
+    }
+    fn push(
+        &mut self,
+        packet: &NativeVideoPacket,
+        progress: &SharedProgress,
+    ) -> Option<NativeVideoFrame> {
+        if self.ssrc != Some(packet.ssrc) {
+            let request = self.last_request;
+            *self = Self::default();
+            self.last_request = request;
+            self.ssrc = Some(packet.ssrc);
+            progress.lock().unwrap().video_waiting_key = true;
+        }
+        if self.timestamp.is_some_and(|last| {
+            let distance = packet.timestamp_rtp.wrapping_sub(last);
+            distance == 0 || distance >= 0x80000000
+        }) {
+            progress.lock().unwrap().late_video_packets += 1;
+            return None;
+        }
+        let before = self.assembler.diagnostics();
+        let frame = self.assembler.push(packet).unwrap();
+        let after = self.assembler.diagnostics();
+        progress.lock().unwrap().assembly = after;
+        if after.discarded_frames > before.discarded_frames
+            || after.expired_frames > before.expired_frames
+        {
+            self.loss(progress);
+        }
+        let frame = frame?;
+        let range = self
+            .assembler
+            .completed_sequence_range()
+            .expect("actual completed RTP range");
+        {
+            let mut measured = progress.lock().unwrap();
+            measured.assembled_frames += 1;
+            measured.assembled_keys += u64::from(frame.keyframe);
+        }
+        if self
+            .last_sequence
+            .is_some_and(|last| last.wrapping_add(1) != range.first)
+        {
+            self.loss(progress);
+        }
+        self.last_sequence = Some(range.last);
+        self.timestamp = Some(frame.timestamp_rtp);
+        if frame.keyframe {
+            self.waiting_key = false;
+            self.need_key = false;
+        }
+        if self.waiting_key {
+            self.need_key = true;
+            progress.lock().unwrap().skipped_delta_frames += 1;
+            return None;
+        }
+        {
+            let mut measured = progress.lock().unwrap();
+            measured.decode_attempts += 1;
+            measured.previous_decode = measured.current_decode;
+            measured.current_decode = Some((frame.timestamp_rtp, range));
+        }
+        Some(frame)
+    }
+}
+
+struct LiveDecoder {
+    child: tokio::process::Child,
+    input: tokio::process::ChildStdin,
+    output: tokio::process::ChildStdout,
+    source: usize,
+    ordinal: u32,
+    started: bool,
+}
+impl LiveDecoder {
+    fn open(binary: &Path, source: usize) -> Self {
+        let mut child = tokio::process::Command::new(binary)
+            .arg("--decode-vp8")
+            .env_clear()
+            .env("LANG", "C")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .kill_on_drop(true)
+            .spawn()
+            .unwrap();
+        eprintln!(
+            "representative original decoder source={source} pid={}",
+            child.id().unwrap()
+        );
+        Self {
+            input: child.stdin.take().unwrap(),
+            output: child.stdout.take().unwrap(),
+            child,
+            source,
+            ordinal: 0,
+            started: false,
+        }
+    }
+    async fn decode(
+        &mut self,
+        frame: &NativeVideoFrame,
+        arrived: Instant,
+        cutoff: Instant,
+    ) -> bool {
+        if !self.started && !frame.keyframe {
+            return false;
+        }
+        let until = cutoff.min(arrived + AGE);
+        assert!(
+            Instant::now() < until,
+            "original assembled frame aged out before actual decode"
+        );
+        self.ordinal += 1;
+        let mut request = b"D8F1".to_vec();
+        request.extend(self.ordinal.to_le_bytes());
+        request.extend((frame.encoded.len() as u32).to_le_bytes());
+        request.extend(u32::from(frame.keyframe).to_le_bytes());
+        request.extend(&frame.encoded);
+        let mut response = [0u8; 32];
+        timeout_at(until, async {
+            self.input.write_all(&request).await.unwrap();
+            self.output.read_exact(&mut response).await.unwrap();
+        })
+        .await
+        .expect("original live VP8 output exceeded original frame age");
+        let word = |at| u32::from_le_bytes(response[at..at + 4].try_into().unwrap());
+        assert_eq!(&response[..4], b"V8D1");
+        assert_eq!(
+            (word(4), word(8), word(12)),
+            (self.ordinal, 1, u32::from(frame.keyframe))
+        );
+        assert_eq!((word(16), word(20), word(28)), (640, 360, 256));
+        assert!(
+            (i64::from(word(24)) - i64::from(marker(self.source)) * 256).abs() <= 3 * 256,
+            "decoded pixels belong to a different original source"
+        );
+        self.started = true;
+        true
+    }
+    async fn close(mut self) -> bool {
+        let pid = self.child.id();
+        let until = Instant::now() + Duration::from_secs(2);
+        let result = timeout_at(until, async {
+            let input = self.input.shutdown().await;
+            drop(self.input);
+            let mut trailing = [0u8; 1];
+            let output = self.output.read(&mut trailing).await;
+            let status = self.child.wait().await;
+            (input, output, status)
+        })
+        .await;
+        if let Ok((input, output, Ok(status))) = result {
+            let clean = input.is_ok() && matches!(output, Ok(0)) && status.success();
+            eprintln!("representative original decoder joined source={} pid={pid:?} outputs={} forced=false exit_code={:?} clean={clean}",self.source,self.ordinal,status.code());
+            return clean;
+        }
+        if let Ok(Some(status)) = self.child.try_wait() {
+            eprintln!("representative original decoder joined source={} pid={pid:?} outputs={} forced=false exit_code={:?} clean=false",self.source,self.ordinal,status.code());
+            return false;
+        }
+        let killed = self.child.start_kill();
+        let joined = self.child.wait().await;
+        eprintln!("representative original decoder joined source={} pid={pid:?} forced=true kill={killed:?} wait={joined:?}",self.source);
+        false
+    }
+}
+
+/// Reuse the production fixture executable, not canned RTP. Sparse immutable
+/// I420 files keep this twenty-six-second regression below 192MiB physical input.
+/// Each source has changing textured pixels and a distinct 16x16 decoder mark.
+async fn codec_inputs(directory: &Path) -> (std::path::PathBuf, Vec<std::path::PathBuf>) {
+    use std::io::{Seek, SeekFrom, Write};
+    let binary = directory.join("representative-live-vp8");
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let built = tokio::process::Command::new("python3")
+        .arg(root.join("scripts/video/build_live_vp8_encoder.py"))
+        .arg("--output")
+        .arg(&binary)
+        .output()
+        .await
+        .unwrap();
+    assert!(
+        built.status.success(),
+        "{}",
+        String::from_utf8_lossy(&built.stderr)
+    );
+    let mut paths = Vec::new();
+    for source in 0..6 {
+        let path = directory.join(format!("representative-source-{source}.i420"));
+        init::private_write(&path, &[]).unwrap();
+        let mut file = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+        file.set_len(u64::from(FRAMES) * 640 * 360 * 3 / 2).unwrap();
+        for index in 0..FRAMES {
+            let mut texture = vec![0u8; 640 * 64];
+            let mut seed = 0x51f15eadu32 ^ (source as u32 * 7919) ^ index.wrapping_mul(104729);
+            for pixel in &mut texture {
+                seed ^= seed << 13;
+                seed ^= seed >> 17;
+                seed ^= seed << 5;
+                *pixel = 32 + (seed % 192) as u8;
+            }
+            for y in 0..32 {
+                texture[y * 640..y * 640 + 32].fill(marker(source) as u8);
+            }
+            file.seek(SeekFrom::Start(u64::from(index) * 640 * 360 * 3 / 2))
+                .unwrap();
+            file.write_all(&texture).unwrap();
+        }
+        file.sync_all().unwrap();
+        paths.push(path);
+    }
+    (binary, paths)
+}
+fn encoder(binary: &Path, raw: &Path) -> Encoder {
+    let mut child = tokio::process::Command::new(binary)
+        .arg(raw)
+        .arg(FRAMES.to_string())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .kill_on_drop(true)
+        .spawn()
+        .unwrap();
+    Encoder {
+        executable: binary.into(),
+        executable_sha256: file_sha256(binary),
+        input: child.stdin.take().unwrap(),
+        output: child.stdout.take().unwrap(),
+        child,
+    }
+}
+
+async fn finish_encoder(encoder: Encoder) -> bool {
+    let Encoder {
+        mut child,
+        mut input,
+        output,
+        ..
+    } = encoder;
+    drop(output);
+    let pid = child.id();
+    let result = tokio::time::timeout(Duration::from_secs(2), async {
+        input.shutdown().await?;
+        drop(input);
+        Ok::<_, std::io::Error>(child.wait().await?.success())
+    })
+    .await;
+    if let Ok(Ok(true)) = result {
+        eprintln!("representative original encoder joined pid={pid:?} forced=false");
+        return true;
+    }
+    let killed = child.start_kill();
+    let joined = child.wait().await;
+    eprintln!("representative original encoder joined pid={pid:?} forced=true kill={killed:?} wait={joined:?}");
+    false
+}
+// One terminal refusal can be ordinary retirement only after the exact actual
+// original commit is recorded. This never grants packet admission, pauses an
+// old owner or accepts an Unsupported result merely because Ready was built.
+#[derive(Clone)]
+struct RetiredMove {
+    record: String,
+    reservation: String,
+    candidate: String,
+    runtime: String,
+    generation: u64,
+}
+struct RetirementWitness {
+    database: std::path::PathBuf,
+    source: String,
+    original: Mutex<Option<RetiredMove>>,
+}
+impl RetirementWitness {
+    fn committed(&self) -> bool {
+        let Some(original) = self.original.lock().unwrap().clone() else {
+            return false;
+        };
+        let db = rusqlite::Connection::open_with_flags(
+            &self.database,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        db.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements n
+            JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='commit' AND s.started=1
+            JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=n.operation_record_id AND e.provider='native-replacement-commit' AND e.state='confirmed'
+            JOIN connections old ON old.id=?1 AND old.state='retired' AND old.generation=?6
+            JOIN connections target ON target.id=n.candidate_connection_id AND target.replaces=old.id AND target.state='ready' AND target.generation=?6
+            JOIN connection_offers media ON media.connection_id=target.id AND media.runtime_connection_id=?5
+            WHERE n.operation_record_id=?2 AND n.reservation_id=?3 AND n.candidate_connection_id=?4 AND n.candidate_runtime_id=?5 AND n.generation=?6)",
+            rusqlite::params![self.source,original.record,original.reservation,original.candidate,original.runtime,original.generation],|row|row.get(0)).unwrap()
+    }
+}
+fn capture_retirement(
+    f: &Fixture,
+    command: &TransitionCommand,
+    root: &connect_client::canonical::payloads::OperationUpdated,
+    generation: u64,
+    cutoff: Instant,
+) -> RetiredMove {
+    let db = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let (record,reservation,candidate,runtime,actual_generation,expires_at,source):
+        (String,String,String,String,u64,i64,String)=db.query_row(
+        "SELECT n.operation_record_id,n.reservation_id,n.candidate_connection_id,n.candidate_runtime_id,n.generation,n.expires_at,o.connection_id FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND o.operation_id=?2",
+        rusqlite::params![root.record_id.as_ref().unwrap().as_str(),command.operation_id],
+        |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?))).unwrap();
+    assert_eq!(actual_generation, generation);
+    assert_eq!(Some(&source), command.connection_id.as_ref());
+    let wall = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap();
+    let remaining = Duration::from_secs(u64::try_from(expires_at).unwrap())
+        .checked_sub(wall)
+        .expect("original return preparation already expired");
+    assert!(
+        cutoff <= Instant::now() + remaining,
+        "movement cannot renew original reservation"
+    );
+    RetiredMove {
+        record,
+        reservation,
+        candidate,
+        runtime,
+        generation,
+    }
+}
+
+fn original_packet(
+    result: sdk::Result<sdk::MediaPacket>,
+    retirement: &RetirementWitness,
+    medium: &'static str,
+) -> Option<sdk::MediaPacket> {
+    match result {
+        Ok(packet) => Some(packet),
+        Err(error) if error.kind == sdk::ErrorKind::Unsupported && retirement.committed() => {
+            eprintln!("representative original receiver observed exact recorded source retirement source={}",retirement.source);
+            None
+        }
+        Err(error) => panic!("original live {medium} receiver failed: {error:?}"),
+    }
+}
+async fn send_original(
+    stream: &sdk::Stream,
+    packet: sdk::RtpPacket,
+    retirement: &RetirementWitness,
+) -> bool {
+    match stream.send_rtp(packet, short()).await {
+        Ok(_) => true,
+        Err(error) if error.kind == sdk::ErrorKind::Unsupported && retirement.committed() => {
+            eprintln!("representative original publisher observed exact recorded source retirement source={}",retirement.source);
+            false
+        }
+        Err(error) => panic!("original live publisher failed: {error:?}"),
+    }
+}
+
+fn observe_video(
+    progress: &SharedProgress,
+    frame: &NativeVideoFrame,
+    epoch: sdk::VideoReceiveEpoch,
+    arrived: Instant,
+    began: Instant,
+) {
+    let mut state = progress.lock().unwrap();
+    state.frames += 1;
+    if frame.keyframe && state.video_waiting_key {
+        state.recovered_keys += 1;
+    }
+    state.video_waiting_key = false;
+    if frame.keyframe {
+        state.keys += 1;
+        state.last_key = Some(arrived);
+        if frame.encoded.len() > 2000 {
+            state.fragmented_keys += 1;
+        }
+    }
+    state.last_video = Some(arrived);
+    state.timestamp = Some(frame.timestamp_rtp);
+    state.epoch = Some(epoch);
+    let bin = arrived.saturating_duration_since(began).as_secs() as usize;
+    if let Some(count) = state.bins.get_mut(bin) {
+        *count = count.saturating_add(1);
+    }
+}
+fn observe_audio(progress: &SharedProgress, decoder: &readiness_audio::Decoder) {
+    let mut state = progress.lock().unwrap();
+    state.audio_samples = decoder.samples();
+    state.last_audio = Some(Instant::now());
+}
+fn selected_opus() -> readiness_audio::Decoder {
+    readiness_audio::Decoder::selected(&json!({"name":"opus","params":{
+        "sample_rate":48000,"channels":1,"payload_type":111}}))
+    .unwrap()
+}
+fn spawn_publisher(
+    connection: &sdk::Connection,
+    source: usize,
+    binary: &Path,
+    raw: &Path,
+    progress: SharedProgress,
+    stop: CancellationToken,
+    retirement: Arc<RetirementWitness>,
+    began: Instant,
+    cutoff: Instant,
+) -> Vec<Work> {
+    let video = connection.stream_by_id(format!("representative-video-{source}").parse().unwrap());
+    let voice = connection.stream_by_id(format!("representative-audio-{source}").parse().unwrap());
+    let mut encoder = encoder(binary, raw);
+    let video_stop = stop.clone();
+    let video_retirement = retirement.clone();
+    let video_progress = progress.clone();
+    let video = tokio::spawn(async move {
+        let result = AssertUnwindSafe(async {
+            tokio::time::sleep_until(began).await;
+            let mut tick =
+                tokio::time::interval_at(began, Duration::from_nanos(1_000_000_000 / 30));
+            tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            let mut sequence = 0u16;
+            let mut feedback = None;
+            'frames: for index in 0..FRAMES {
+                loop {
+                    tokio::select! {
+                        _ = video_stop.cancelled() => break 'frames,
+                        _ = tick.tick() => break,
+                        request = video.receive_video_feedback(short()) => match request {
+                            Ok(request) => {
+                                video_progress.lock().unwrap().publisher_feedback_received += 1;
+                                feedback = Some(request);
+                            }
+                            Err(error) if error.kind == sdk::ErrorKind::Deadline
+                                && error.certainty == sdk::Certainty::ReadOnly => {}
+                            Err(error) if error.kind == sdk::ErrorKind::Unsupported
+                                && video_retirement.committed() => break 'frames,
+                            Err(error) => panic!("original publisher feedback failed: {error:?}"),
+                        }
+                    }
+                }
+                assert!(Instant::now() < cutoff, "original media programme cutoff");
+                let requested = if let Some(request) = feedback.take() {
+                    if request.ssrc() != 0x74000000 + source as u32 {
+                        false
+                    } else {
+                        match video.video_feedback_is_current(&request) {
+                            Ok(current) => current,
+                            Err(error)
+                                if error.kind == sdk::ErrorKind::Unsupported
+                                    && video_retirement.committed() =>
+                            {
+                                break 'frames
+                            }
+                            Err(error) => {
+                                panic!("original publisher feedback currency failed: {error:?}")
+                            }
+                        }
+                    }
+                } else {
+                    false
+                };
+                if requested {
+                    video_progress.lock().unwrap().publisher_feedback_used += 1;
+                }
+                let force = index % 30 == 0 || requested;
+                let bytes = timeout_at(cutoff, encoder.frame(index, force))
+                    .await
+                    .unwrap();
+                video_progress.lock().unwrap().encoded_frames += 1;
+                if force {
+                    assert!(
+                        bytes.len() > 2000,
+                        "real keyframe must need at least three RTP fragments"
+                    );
+                }
+                let parts = bytes.chunks(1000).collect::<Vec<_>>();
+                let mut ended = false;
+                for (part, payload) in parts.iter().enumerate() {
+                    let mut body = vec![if part == 0 { 0x10 } else { 0 }];
+                    body.extend_from_slice(payload);
+                    let packet = sdk::RtpPacket::new(
+                        u32::from(sequence),
+                        rtp(
+                            96,
+                            sequence,
+                            index * 3000,
+                            0x74000000 + source as u32,
+                            part + 1 == parts.len(),
+                            &body,
+                        ),
+                    )
+                    .unwrap();
+                    if !timeout_at(cutoff, send_original(&video, packet, &video_retirement))
+                        .await
+                        .unwrap()
+                    {
+                        ended = true;
+                        break;
+                    }
+                    video_progress.lock().unwrap().published_video_packets += 1;
+                    sequence = sequence.wrapping_add(1);
+                }
+                if ended {
+                    break;
+                }
+                video_progress.lock().unwrap().published_frames += 1;
+            }
+        })
+        .catch_unwind()
+        .await
+        .map_err(panic_text);
+        // Explicit original encoder shutdown/wait even if a source assertion fails.
+        let joined = finish_encoder(encoder).await;
+        result.and(if joined {
+            Ok(())
+        } else {
+            Err("original publisher encoder needed forced cleanup".into())
+        })
+    });
+    let audio = tokio::spawn(async move {
+        AssertUnwindSafe(async {
+            let mut encoder =
+                opus::Encoder::new(48000, opus::Channels::Mono, opus::Application::Voip).unwrap();
+            let mut tick = tokio::time::interval_at(began, Duration::from_millis(20));
+            tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            let mut index = 0u16;
+            loop {
+                tokio::select! {biased; _=stop.cancelled()=>break,_=tick.tick()=>{}}
+                assert!(Instant::now() < cutoff, "original audio programme cutoff");
+                let hz = 330.0 + source as f32 * 110.0;
+                let pcm = (0..960)
+                    .map(|n| {
+                        ((f32::from(index) * 960.0 + n as f32) * hz * std::f32::consts::TAU
+                            / 48000.0)
+                            .sin()
+                            * 10000.0
+                    })
+                    .map(|v| v as i16)
+                    .collect::<Vec<_>>();
+                let mut bytes = [0u8; 1276];
+                let size = encoder.encode(&pcm, &mut bytes).unwrap();
+                let packet = sdk::RtpPacket::new(
+                    u32::from(index),
+                    rtp(
+                        111,
+                        index,
+                        u32::from(index) * 960,
+                        0x61000000 + source as u32,
+                        false,
+                        &bytes[..size],
+                    ),
+                )
+                .unwrap();
+                if !timeout_at(cutoff, send_original(&voice, packet, &retirement))
+                    .await
+                    .unwrap()
+                {
+                    break;
+                }
+                progress.lock().unwrap().published_audio_packets += 1;
+                index = index.wrapping_add(1);
+            }
+        })
+        .catch_unwind()
+        .await
+        .map_err(panic_text)
+    });
+    vec![video, audio]
+}
+
+fn spawn_original_receiver(
+    connection: &sdk::Connection,
+    index: usize,
+    source: usize,
+    binary: &Path,
+    progress: SharedProgress,
+    stop: CancellationToken,
+    retirement: Arc<RetirementWitness>,
+    began: Instant,
+    cutoff: Instant,
+) -> Work {
+    let connection = connection.clone();
+    let mut decoder = LiveDecoder::open(binary, source);
+    tokio::spawn(async move {
+        let result=AssertUnwindSafe(async {
+            let video_id:sdk::StreamId=format!("representative-video-{source}").parse().unwrap();
+            let audio_id:sdk::StreamId=format!("representative-audio-{index}").parse().unwrap();
+            let selected=connection.native_negotiation().unwrap().expect("original adopted native parameters");
+            assert!(selected.streams.iter().any(|stream|stream.id==video_id&&stream.medium==Medium::Video
+                &&stream.direction==Direction::Recvonly&&stream.stream_local_id.is_some_and(|id|id>0)),
+                "selected remote video must already own its native receive binding");
+            assert_eq!(selected.video_feedback.get(&video_id).expect("selected original remote video feedback").connection_generation,1);
+            assert!(selected.streams.iter().any(|stream|stream.id==audio_id&&stream.medium==Medium::Audio
+                &&stream.direction==Direction::Sendrecv&&stream.stream_local_id.is_some_and(|id|id>0)),
+                "own duplex audio must keep its native receive binding");
+            let video=connection.stream_by_id(video_id);
+            let voice=connection.stream_by_id(audio_id);
+            let mut continuity=DecodeHistory::default();
+            let mut audio=selected_opus();let mut epoch=None;
+            loop {
+                tokio::select! {
+                    _=stop.cancelled()=>break,
+                    packet=video.receive_packet(short())=>{
+                        let Some(packet)=original_packet(packet,&retirement,"video") else {break};
+                        progress.lock().unwrap().video_read_events+=1;
+                        let arrived=Instant::now();
+                        let frame=match packet {
+                            sdk::MediaPacket::Rtp(packet)=>{
+                                progress.lock().unwrap().video_packets+=1;
+                                let history=packet.video_epoch().expect("original signed receiver epoch").clone();
+                                if epoch.as_ref()!=Some(&history) {
+                                    continuity=DecodeHistory::default();decoder.started=false;epoch=Some(history);
+                                    progress.lock().unwrap().video_waiting_key=true;
+                                }
+                                let parsed=NativeVideoPacket::parse(packet.bytes().to_vec()).unwrap();
+                                continuity.push(&parsed,&progress)
+                            }
+                            sdk::MediaPacket::Gap{..}=>{continuity.gap(&progress);None}
+                            _=>None,
+                        };
+                        if continuity.take_request(Instant::now()) {
+                            match video.request_keyframe(short()).await {
+                                Ok(_) => progress.lock().unwrap().feedback_requests += 1,
+                                Err(error) if error.kind == sdk::ErrorKind::Unsupported
+                                    && retirement.committed() => break,
+                                Err(error) => panic!("original current keyframe request failed: {error:?}"),
+                            }
+                        }
+                        if let Some(frame)=frame {
+                            if decoder.decode(&frame,arrived,cutoff).await {
+                                observe_video(&progress,&frame,epoch.as_ref().unwrap().clone(),arrived,began);
+                            }
+                        }
+                    },
+                    packet=voice.receive_packet(short())=>{
+                        let Some(packet)=original_packet(packet,&retirement,"audio") else {break};
+                        progress.lock().unwrap().audio_read_events+=1;
+                        let sdk::MediaPacket::Rtp(packet)=packet else {continue};
+                        progress.lock().unwrap().audio_packets+=1;
+                        let header=packet.header();assert_eq!(header.payload_type,111);
+                        audio.decode(header.ssrc,header.sequence_number,header.timestamp,packet.payload()).unwrap();
+                        observe_audio(&progress,&audio);
+                    }
+                }
+            }
+        }).catch_unwind().await.map_err(panic_text);
+        if result.is_err() {
+            eprintln!("representative original receiver failed route={index} expected_source={source} progress={:?}",progress.lock().unwrap());
+        }
+        let joined = decoder.close().await;
+        result.and(if joined {
+            Ok(())
+        } else {
+            Err("original receiver decoder did not finish successfully".into())
+        })
+    })
+}
+
+struct Candidate {
+    client: CanonicalClient,
+    io: Option<NativeVideoDatagrams>,
+    preparation: Option<NativeReplacementReadiness>,
+    voice: u16,
+    camera: u16,
+    incoming: u16,
+    force_key: Arc<AtomicBool>,
+    retirement: Option<Arc<RetirementWitness>>,
+}
+async fn attach_candidate(
+    target: &mut Candidate,
+    command: &TransitionCommand,
+    root: &connect_client::canonical::payloads::OperationUpdated,
+    index: usize,
+    phase: &str,
+    source_generation: u64,
+    database: &Path,
+    cutoff: Instant,
+) {
+    timeout_at(cutoff,async {
+        let client=&mut target.client;
+        let offer=json!({"substrate":"quic","capabilities":{
+            "audio_codecs":[{"name":"opus","params":{"sample_rate":48000,"channels":1}}],
+            "video_codecs":[{"name":"vp8","params":{"sample_rate":90000,"channels":0}}],
+            "max_streams_per_connection":8,"video_feedback":"rtcp-pli-epoch/1"},
+            "streams_offered":[
+                {"id":format!("representative-{phase}-audio-{index}"),"kind":"audio","direction":"sendrecv","codec_preferences":["opus"]},
+                {"id":format!("representative-{phase}-video-{index}"),"kind":"video","direction":"sendonly","codec_preferences":["vp8"]},
+                {"id":format!("representative-{phase}-incoming-{index}"),"kind":"video","direction":"recvonly","codec_preferences":["vp8"]}]});
+        client.allocate_native_replacement_target(command,root,serde_json::from_value(offer.clone()).unwrap()).await.unwrap();
+        let (_,scope)=client.begin_native_replacement_media(command,root,serde_json::from_value(offer).unwrap()).await.unwrap();
+        assert_eq!(client.receive().await.unwrap().kind(),"connection.answer");
+        let callback=client.receive().await.unwrap();assert_eq!(callback.kind(),"connection.offer");
+        let bindings=callback.original()["payload"]["substrate_setup"]["streams"].as_array().unwrap();
+        let handle=|name:&str|bindings.iter().find(|s|s["strm_id"]==name).unwrap()["stream_local_id"].as_u64().unwrap() as u16;
+        target.voice=handle(&format!("representative-{phase}-audio-{index}"));
+        target.camera=handle(&format!("representative-{phase}-video-{index}"));
+        target.incoming=handle(&format!("representative-{phase}-incoming-{index}"));
+        let answer=client.native_replacement_answer(&callback).unwrap();
+        client.answer_connection_offer(&callback,answer,&scope).await.unwrap();
+        let preparation=client.native_replacement_readiness().unwrap();
+        assert_eq!((preparation.record_id(),preparation.source_generation(),preparation.target_generation()),
+            (root.record_id.as_ref().unwrap().as_str(),source_generation,source_generation+1));
+        assert_eq!(preparation.audio().stream_local_id,target.voice);
+        assert_eq!(preparation.video().unwrap().stream_local_id,target.incoming);
+        let mut io=client.claim_native_video_datagrams().unwrap();
+        io.reset_video_receive_decoder(target.incoming).unwrap();
+        target.retirement=Some(Arc::new(RetirementWitness{database:database.into(),
+            source:preparation.connection_id().unwrap().into(),original:Mutex::new(None)}));
+        target.preparation=Some(preparation);target.io=Some(io);
+    }).await.expect("same original eight-second target negotiation deadline");
+}
+
+fn spawn_candidate(
+    candidate: &mut Candidate,
+    source: usize,
+    inbound: usize,
+    binary: &Path,
+    raw: &Path,
+    progress: SharedProgress,
+    stop: CancellationToken,
+    began: Instant,
+    cutoff: Instant,
+) -> Work {
+    use rvoip_uctp::substrate::{
+        observe_native_media_datagram, pack, MediaDatagram, ObservedNativeMediaDatagram,
+    };
+    let force_key = candidate.force_key.clone();
+    let retirement = candidate.retirement.as_ref().unwrap().clone();
+    let mut io = candidate.io.take().unwrap();
+    let (voice, camera, incoming) = (candidate.voice, candidate.camera, candidate.incoming);
+    let mut encoder = encoder(binary, raw);
+    let mut decoder = LiveDecoder::open(binary, inbound);
+    tokio::spawn(async move {
+        let result=AssertUnwindSafe(async {
+            let mut audio_encoder=opus::Encoder::new(48000,opus::Channels::Mono,opus::Application::Voip).unwrap();
+            let mut audio=selected_opus();let mut continuity=DecodeHistory::default();
+            let mut epoch=None;let mut audio_index=0u16;let mut video_index=0u32;let mut sequence=0u16;
+            let mut audio_tick=tokio::time::interval(Duration::from_millis(20));
+            let mut video_tick=tokio::time::interval(Duration::from_nanos(1_000_000_000/30));
+            audio_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            video_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            loop {
+                // This original physical may stop only after its own exact
+                // later replacement really committed. No pre-Ready forecast
+                // or renewed deadline can retire a generation-two candidate.
+                if retirement.committed() {break;}
+                tokio::select! {
+                    _=stop.cancelled()=>break,
+                    _=audio_tick.tick()=>{
+                        let pcm=(0..960).map(|n|((f32::from(audio_index)*960.0+n as f32)*(330.0+source as f32*110.0)*
+                            std::f32::consts::TAU/48000.0).sin()*10000.0).map(|v|v as i16).collect::<Vec<_>>();
+                        let mut bytes=[0u8;1276];let count=audio_encoder.encode(&pcm,&mut bytes).unwrap();
+                        io.send(&pack(&MediaDatagram{flags:0,stream_local_id:voice,seq:u32::from(audio_index),
+                            payload:rtp(111,audio_index,u32::from(audio_index)*960,0x71000000+source as u32,false,&bytes[..count]).into()})).unwrap();
+                        progress.lock().unwrap().published_audio_packets+=1;
+                        audio_index=audio_index.wrapping_add(1);
+                    },
+                    _=video_tick.tick()=>{
+                        let force=video_index%30==0 || force_key.swap(false,Ordering::AcqRel)
+                            || io.take_keyframe_request(camera,0x74000000+source as u32).unwrap();
+                        let frame=timeout_at(cutoff,encoder.frame(video_index,force)).await.unwrap();
+                        progress.lock().unwrap().encoded_frames+=1;
+                        if force {assert!(frame.len()>2000,"candidate publisher also uses genuinely fragmented keyframes");}
+                        for (part,bytes) in frame.chunks(1000).enumerate() {
+                            let mut body=vec![if part==0 {0x10} else {0}];body.extend_from_slice(bytes);
+                            io.send(&pack(&MediaDatagram{flags:0,stream_local_id:camera,seq:u32::from(sequence),
+                                payload:rtp(96,sequence,video_index*3000,0x74000000+source as u32,
+                                    (part+1)*1000>=frame.len(),&body).into()})).unwrap();
+                            progress.lock().unwrap().published_video_packets+=1;
+                            sequence=sequence.wrapping_add(1);
+                        }
+                        progress.lock().unwrap().published_frames+=1;
+                        video_index+=1;assert!(video_index<FRAMES);
+                    },
+                    packet=io.receive()=>{
+                        let packet=match packet {
+                            Ok(packet)=>packet,
+                            Err(connect_client::ClientError::MediaEnded|connect_client::ClientError::Transport)
+                                if retirement.committed()=>break,
+                            Err(error)=>panic!("original candidate media failed before exact retirement: {error:?}"),
+                        };
+                        progress.lock().unwrap().received_datagrams+=1;
+                        if let Some(history)=packet.video_epoch {
+                            {let mut measured=progress.lock().unwrap();measured.video_read_events+=1;measured.video_packets+=1;}
+                            assert!(io.is_current_video_receive_epoch(incoming,&history).unwrap());
+                            assert_eq!(u16::from_be_bytes(packet.bytes[2..4].try_into().unwrap()),incoming);
+                            if epoch.as_ref()!=Some(&history) {
+                                continuity=DecodeHistory::default();decoder.started=false;epoch=Some(history.clone());
+                                progress.lock().unwrap().video_waiting_key=true;
+                            }
+                            let parsed=NativeVideoPacket::parse(packet.bytes[24..].to_vec()).unwrap();
+                            if let Some(frame)=continuity.push(&parsed,&progress) {
+                                if decoder.decode(&frame,packet.received_at,cutoff).await {
+                                    observe_video(&progress,&frame,history,packet.received_at,began);
+                                }
+                            }
+                        } else {
+                            let ObservedNativeMediaDatagram::Rtp(packet)=observe_native_media_datagram(&packet.bytes).unwrap() else {progress.lock().unwrap().other_datagrams+=1;continue};
+                            if packet.stream_local_id!=voice {progress.lock().unwrap().other_datagrams+=1;continue;}
+                            {let mut measured=progress.lock().unwrap();measured.audio_read_events+=1;measured.audio_packets+=1;}
+                            let packet=packet.rtp.into_packet();assert_eq!(packet.header.payload_type,111);
+                            audio.decode(packet.header.ssrc,packet.header.sequence_number,packet.header.timestamp,&packet.payload).unwrap();
+                            observe_audio(&progress,&audio);
+                        }
+                    }
+                }
+                assert!(Instant::now()<cutoff,"original representative media programme deadline");
+            }
+        }).catch_unwind().await.map_err(panic_text);
+        if result.is_err() {
+            eprintln!(
+                "representative candidate failed source={source} inbound={inbound} progress={:?}",
+                progress.lock().unwrap()
+            );
+        }
+        let encoder_join = finish_encoder(encoder).await;
+        let decoder_join = decoder.close().await;
+        result
+            .and(if encoder_join {
+                Ok(())
+            } else {
+                Err("candidate publisher encoder needed forced cleanup".into())
+            })
+            .and(if decoder_join {
+                Ok(())
+            } else {
+                Err("candidate decoder did not finish successfully".into())
+            })
+    })
+}
+fn fresh(progress: &Progress) -> bool {
+    let now = Instant::now();
+    progress.fragmented_keys > 0
+        && !progress.video_waiting_key
+        && progress.audio_samples >= 2880
+        && [progress.last_video, progress.last_audio, progress.last_key]
+            .iter()
+            .all(|time| time.is_some_and(|at| now.saturating_duration_since(at) < AGE))
+}
+fn clone_progress(progress: &[SharedProgress]) -> Vec<Progress> {
+    progress.iter().map(|p| p.lock().unwrap().clone()).collect()
+}
+fn original_binding_diagnostics(stage: &'static str, connection: &sdk::Connection, index: usize) {
+    match connection.native_negotiation() {
+        Ok(Some(selected)) => {
+            let streams = selected
+                .streams
+                .iter()
+                .take(8)
+                .map(|stream| {
+                    (
+                        &stream.id,
+                        &stream.medium,
+                        &stream.direction,
+                        stream.stream_local_id,
+                    )
+                })
+                .collect::<Vec<_>>();
+            let feedback = selected.video_feedback.keys().take(8).collect::<Vec<_>>();
+            eprintln!("representative bindings stage={stage} route={index} expected_source={} connection={} revision={} source_clock={} streams={streams:?} omitted_streams={} feedback={feedback:?}",
+                SOURCE_FOR_RECEIVER[index],connection.id().as_str(),selected.stream_revision.get(),selected.source_clock,selected.streams.len().saturating_sub(8));
+        }
+        Ok(None) => eprintln!(
+            "representative bindings stage={stage} route={index} unavailable=not-installed"
+        ),
+        Err(error) => eprintln!(
+            "representative bindings stage={stage} route={index} unavailable={:?}",
+            error.kind
+        ),
+    }
+    match connection.native_reconciliation() {
+        Ok(Some(progress))=>eprintln!("representative reconciliation stage={stage} route={index} phase={:?} bindings_adopted={} expected_revision={} record={:?} subscription_record={:?} error={:?}",
+            progress.phase,progress.bindings_adopted,progress.expected_revision,progress.record_id,progress.subscription_record_id,progress.error),
+        Ok(None)=>eprintln!("representative reconciliation stage={stage} route={index} unavailable=not-installed"),
+        Err(error)=>eprintln!("representative reconciliation stage={stage} route={index} unavailable={:?}",error.kind),
+    }
+}
+
+async fn wait_original_playout(
+    progress: &[SharedProgress],
+    connections: &[sdk::Connection],
+    until: Instant,
+) {
+    let result = timeout_at(until, async {
+        while !progress.iter().all(|p| fresh(&p.lock().unwrap())) {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await;
+    if result.is_err() {
+        for (index, measured) in clone_progress(progress).iter().enumerate() {
+            eprintln!("representative startup deadline route={index} expected_source={} progress={measured:?}",SOURCE_FOR_RECEIVER[index]);
+            original_binding_diagnostics("startup-deadline", &connections[index], index);
+        }
+    }
+    result.expect("all six original real decoders must become usable before replacement");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates(
+) {
+    assert_eq!(std::env::consts::ARCH, "aarch64");
+    assert!(
+        matches!(std::env::consts::OS, "linux" | "macos"),
+        "approved local ARM hosts"
+    );
+    // Match existing native fixture diagnostics without provisioning another
+    // endpoint. This single selected integration opts in through RUST_LOG;
+    // quantitative packet/scene counters already exist in the actual library.
+    if std::env::var_os("RUST_LOG").is_some() {
+        static LOGS: std::sync::Once = std::sync::Once::new();
+        LOGS.call_once(|| {
+            let _ = tracing_subscriber::fmt()
+                .with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap())
+                .with_test_writer()
+                .try_init();
+        });
+    }
+    let f = Fixture::with_native_end_scope("EdDSA", 16).await;
+    let (binary, raw) = codec_inputs(f.temp.path()).await;
+    let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
+    let mut identities = vec![f.client.identity_id.clone(), f.peer.identity_id.clone()];
+    for n in 2..4 {
+        let ProvisioningOutcome::Identity { identity_id, .. } = f
+            .server
+            .store
+            .execute_provisioning(
+                &admin,
+                ProvisioningCommand::Identity {
+                    operation_id: format!("representative-identity-{n}"),
+                    alias: format!("representative-{n}"),
+                    kind: IdentityKind::Human,
+                    display_name: None,
+                },
+            )
+            .unwrap()
+        else {
+            panic!("original identity provision")
+        };
+        identities.push(identity_id);
+    }
+    let mut participant_scope = Scope::collaboration(vec!["*".into()]);
+    participant_scope.operations.extend([
+        "stream.subscribe".into(),
+        "stream.unsubscribe".into(),
+        "connection.end".into(),
+        "connection.update".into(),
+    ]);
+    let configs = identities
+        .iter()
+        .enumerate()
+        .map(|(n, id)| {
+            super::super::super::super::canonical_native_connections::party_with_scope(
+                &f,
+                id,
+                700 + n,
+                vec!["audio".into(), "video".into()],
+                participant_scope.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let replacement_config =
+        super::super::super::super::canonical_native_connections::party_with_scope(
+            &f,
+            &identities[0],
+            704,
+            vec!["audio".into(), "video".into()],
+            participant_scope.clone(),
+        );
+    let endpoints = [&configs[0].device_id, &replacement_config.device_id].map(|device| {
+        rusqlite::Connection::open_with_flags(
+            &f.config.database,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap()
+        .query_row(
+            "SELECT id FROM endpoints WHERE device_id=?1",
+            [device],
+            |r| r.get::<_, String>(0),
+        )
+        .unwrap()
+    });
+    let mut clients = Vec::new();
+    for config in &configs {
+        clients.push(
+            Client::connect_configured(configured(config.clone()))
+                .await
+                .unwrap(),
+        );
+    }
+    let room = clients[0]
+        .create_conversation(
+            identities[1..].iter().map(|s| s.parse().unwrap()).collect(),
+            ConversationPolicy::Persistent,
+            mutation("representative-room"),
+        )
+        .await
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap()
+        .value;
+    let view = room.refresh(options()).await.unwrap();
+    assert_eq!(view.participants.len(), 4);
+    let pids = identities
+        .iter()
+        .map(|identity| {
+            view.participants
+                .iter()
+                .find(|p| p.identity_id.as_str() == identity)
+                .unwrap()
+                .id
+                .clone()
+        })
+        .collect::<Vec<_>>();
+    let caps = json!({"audio":["opus"],"video":["vp8"]});
+    let mut sessions = Vec::new();
+    for (sid, roles) in [vec![0usize, 1, 2, 3], vec![0, 1]].into_iter().enumerate() {
+        let session = room
+            .invite(
+                format!("representative-session-{sid}").parse().unwrap(),
+                roles[1..].iter().map(|&i| pids[i].clone()).collect(),
+                sdk::SessionMedium::VoiceVideo,
+                "simultaneous real media integration".into(),
+                caps.clone(),
+                mutation(&format!("representative-invite-{sid}")),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        for &role in &roles[1..] {
+            let peer = clients[role]
+                .conversation_by_id(room.id().clone())
+                .session_by_id(session.id().clone());
+            let before = peer.refresh(options()).await.unwrap();
+            peer.accept(
+                caps.clone(),
+                before.topology_revision,
+                mutation(&format!("representative-accept-{sid}-{role}")),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        }
+        sessions.push(session);
+    }
+    assert_eq!(sessions[0].conversation_id(), sessions[1].conversation_id());
+    let mut connections = Vec::new();
+    for index in 0..6 {
+        let session = clients[OWNER[index]]
+            .conversation_by_id(room.id().clone())
+            .session_by_id(sessions[SESSION[index]].id().clone());
+        let streams = NonEmpty {
+            first: sdk::OfferedStream {
+                id: format!("representative-audio-{index}").parse().unwrap(),
+                kind: Medium::Audio,
+                direction: Direction::Sendrecv,
+                codecs: single("opus".into()),
+            },
+            rest: vec![
+                sdk::OfferedStream {
+                    id: format!("representative-video-{index}").parse().unwrap(),
+                    kind: Medium::Video,
+                    direction: Direction::Sendonly,
+                    codecs: single("vp8".into()),
+                },
+                sdk::OfferedStream {
+                    id: format!("representative-incoming-{index}").parse().unwrap(),
+                    kind: Medium::Video,
+                    direction: Direction::Recvonly,
+                    codecs: single("vp8".into()),
+                },
+            ],
+        };
+        connections.push(
+            session
+                .offer_connection(
+                    format!("representative-connection-{index}")
+                        .parse()
+                        .unwrap(),
+                    streams,
+                    mutation(&format!("representative-offer-{index}")),
+                )
+                .await
+                .unwrap()
+                .wait(options())
+                .await
+                .unwrap()
+                .value,
+        );
+        original_binding_diagnostics("after-offer", &connections[index], index);
+    }
+    for (index, connection) in connections.iter().enumerate() {
+        let source = SOURCE_FOR_RECEIVER[index];
+        let revision = connection
+            .refresh(options())
+            .await
+            .unwrap()
+            .stream_revision
+            .unwrap();
+        connection
+            .subscribe(
+                NonEmpty {
+                    first: StreamSelector::Stream(
+                        format!("representative-audio-{source}").parse().unwrap(),
+                    ),
+                    rest: vec![StreamSelector::Stream(
+                        format!("representative-video-{source}").parse().unwrap(),
+                    )],
+                },
+                revision,
+                mutation(&format!("representative-select-{index}")),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        original_binding_diagnostics("after-subscribe", connection, index);
+    }
+    let mut control_scope = Scope::collaboration(vec!["*".into()]);
+    control_scope.operations.push("connection.replace".into());
+    let credential = f
+        .server
+        .store
+        .issue(
+            &identities[0],
+            control_scope,
+            chrono::Utc::now().timestamp() + 600,
+        )
+        .unwrap();
+    let mut http = canonical_http_config(&f);
+    http.credential = credential.token;
+    let mut controllers = Vec::new();
+    for _ in 0..2 {
+        controllers.push(CanonicalHttpClient::open(http.clone()).await.unwrap());
+    }
+    let progress = (0..6)
+        .map(|_| Arc::new(Mutex::new(Progress::default())))
+        .collect::<Vec<_>>();
+    let stop = CancellationToken::new();
+    let retirements = (0..6)
+        .map(|index| {
+            Arc::new(RetirementWitness {
+                database: f.config.database.clone(),
+                source: connections[index].id().as_str().into(),
+                original: Mutex::new(None),
+            })
+        })
+        .collect::<Vec<_>>();
+    let began = Instant::now() + Duration::from_millis(100);
+    let programme_cutoff = began + Duration::from_secs(26);
+    let mut works = Vec::new();
+    for index in 0..6 {
+        works.extend(spawn_publisher(
+            &connections[index],
+            index,
+            &binary,
+            &raw[index],
+            progress[index].clone(),
+            stop.clone(),
+            retirements[index].clone(),
+            began,
+            programme_cutoff,
+        ));
+        works.push(spawn_original_receiver(
+            &connections[index],
+            index,
+            SOURCE_FOR_RECEIVER[index],
+            &binary,
+            progress[index].clone(),
+            stop.clone(),
+            retirements[index].clone(),
+            began,
+            programme_cutoff,
+        ));
+    }
+    let mut targets = Vec::<Candidate>::new();
+    let mut target_progress = Vec::<SharedProgress>::new();
+    let work=AssertUnwindSafe(async {
+        wait_original_playout(&progress,&connections,began+Duration::from_secs(8)).await;
+        // Warm up two genuine seconds before measuring the first preparation.
+        tokio::time::sleep_until(began+Duration::from_secs(2)).await;
+        let mut active_sources=connections.iter().map(|c|c.id().as_str().to_owned()).collect::<Vec<_>>();
+        let mut active_progress=progress.clone();
+        let mut previous_targets:[Option<usize>;2]=[None,None];
+        let mut completed_originals=Vec::new();
+        for round in 0..2usize {
+            let stream_phase=if round==0 {"target"} else {"return"};
+            let source_generation=round as u64+1;
+            let generation=source_generation+1;
+            let before=clone_progress(&active_progress);
+            let move_started=Instant::now();let move_cutoff=move_started+Duration::from_secs(8);
+            assert!(move_cutoff<=programme_cutoff,"both rounds retain original movement budgets");
+            let mut commands=Vec::new();
+            for (sid,&index) in [0usize,4].iter().enumerate() {
+                let revision=sessions[sid].refresh(short()).await.unwrap().topology_revision.get();
+                let previous_publication=if round==0 {format!("representative-video-{index}")}
+                    else {format!("representative-target-video-{index}")};
+                let previous_receiver=if round==0 {format!("representative-video-{}",SOURCE_FOR_RECEIVER[index])}
+                    else {format!("representative-target-incoming-{index}")};
+                commands.push(TransitionCommand{operation_id:if round==0 {format!("representative-move-{index}")}else{format!("representative-return-move-{index}")},
+                    conversation_id:room.id().as_str().into(),session_id:sessions[sid].id().as_str().into(),
+                    connection_id:Some(active_sources[index].clone()),expected_revision:revision,
+                    intent:TransitionIntent::Replace{endpoint_id:Some(endpoints[if round==0 {1}else{0}].clone()),candidate_connid:None,
+                        retained_connid:connections[index+1].id().as_str().into(),video:Some(ReplacementVideo{
+                            publications:vec![ReplacementVideoStream{previous:previous_publication,replacement:format!("representative-{stream_phase}-video-{index}")}],
+                            receivers:vec![ReplacementVideoStream{previous:previous_receiver,replacement:format!("representative-{stream_phase}-incoming-{index}")}],
+                        })},payload_extensions:Default::default()});
+            }
+            let [a,b]=controllers.as_mut_slice() else {unreachable!()};
+            let (root0,root1)=tokio::join!(timeout_at(move_cutoff,a.transition(commands[0].clone())),
+                timeout_at(move_cutoff,b.transition(commands[1].clone())));
+            let roots=[root0.unwrap().unwrap(),root1.unwrap().unwrap()];
+            let (prepared0,prepared1)=tokio::join!(timeout_at(move_cutoff,phase(&f,a,&commands[0],1)),
+                timeout_at(move_cutoff,phase(&f,b,&commands[1],1)));
+            prepared0.expect("original first prepare cutoff");prepared1.expect("original second prepare cutoff");
+            // Exact source retirement is armed with this new original record,
+            // but its predicate stays false until the genuine commit effect.
+            for (sid,&index) in [0usize,4].iter().enumerate() {
+                let witness=if let Some(previous)=previous_targets[sid] {
+                    targets[previous].retirement.as_ref().unwrap().clone()
+                } else {retirements[index].clone()};
+                assert_eq!(witness.source,active_sources[index]);
+                *witness.original.lock().unwrap()=Some(capture_retirement(&f,&commands[sid],&roots[sid],generation,move_cutoff));
+            }
+            let first=targets.len();
+            let target_config=if round==0 {replacement_config.clone()} else {configs[0].clone()};
+            assert_eq!(target_config.device_id,if round==0 {replacement_config.device_id.clone()}else{configs[0].device_id.clone()});
+            // Return really reuses the original Device, credential and signed
+            // identity. The four original public SDK controls remain alive.
+            for _ in 0..2 {
+                let client=timeout_at(move_cutoff,CanonicalClient::open(target_config.clone())).await.unwrap().unwrap();
+                targets.push(Candidate{client,io:None,preparation:None,voice:0,camera:0,incoming:0,
+                    force_key:Arc::new(AtomicBool::new(false)),retirement:None});
+                target_progress.push(Arc::new(Mutex::new(Progress::default())));
+            }
+            let (_,fresh_targets)=targets.split_at_mut(first);let (left,right)=fresh_targets.split_at_mut(1);
+            tokio::join!(attach_candidate(&mut left[0],&commands[0],&roots[0],0,stream_phase,source_generation,&f.config.database,move_cutoff),
+                attach_candidate(&mut right[0],&commands[1],&roots[1],4,stream_phase,source_generation,&f.config.database,move_cutoff));
+            for (sid,&index) in [0usize,4].iter().enumerate() {
+                works.push(spawn_candidate(&mut targets[first+sid],index,SOURCE_FOR_RECEIVER[index],&binary,&raw[index],
+                    target_progress[first+sid].clone(),stop.clone(),began,programme_cutoff));
+            }
+            let held_until=Instant::now()+Duration::from_secs(2);
+            assert!(held_until<move_cutoff);
+            let ready=timeout_at(move_cutoff,async {
+                loop {
+                    if Instant::now()>=held_until && (first..first+2).all(|i|fresh(&target_progress[i].lock().unwrap())) {break;}
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+            }).await;
+            if ready.is_err() {for sid in 0..2 {eprintln!("representative candidate readiness deadline round={round} route={} progress={:?}",[0,4][sid],target_progress[first+sid].lock().unwrap());}}
+            ready.expect("both same original candidates require fresh real audio and fragmented decoded keys");
+            let during=clone_progress(&active_progress);
+            for index in 0..6 {
+                assert!(during[index].frames>before[index].frames,"old current receiver did not decode newer frames during preparation");
+                assert_ne!(during[index].timestamp,before[index].timestamp);
+                assert!(during[index].last_video.unwrap()>=move_started);
+                assert!(during[index].last_audio.unwrap()>=move_started);
+                assert!(during[index].audio_samples>=2880);
+            }
+            // Keep the same24fps bar for every complete PREPARING second in
+            // both rounds, including the generation-two candidate receivers.
+            let first_bin=move_started.saturating_duration_since(began).as_secs() as usize+1;
+            let last_bin=Instant::now().saturating_duration_since(began).as_secs() as usize;
+            assert!(first_bin<last_bin,"actual preparation must cover a complete measured second");
+            for (index,view) in during.iter().enumerate() {for bin in first_bin..last_bin {
+                assert!(view.bins[bin]>=24,"old current receiver {index} preparation second {bin} decoded {} frames",view.bins[bin]);
+            }}
+            for sid in 0..2 {
+                let status=timeout_at(move_cutoff,controllers[sid].operation_get(&commands[sid].operation_id,scope(&commands[sid])))
+                    .await.unwrap().unwrap();
+                assert_eq!(status.record_id,roots[sid].record_id);
+                assert_eq!(serde_json::to_value(&status).unwrap()["state"],"preparing");
+                timeout_at(move_cutoff,async {
+                    while !fresh(&target_progress[first+sid].lock().unwrap()) {tokio::time::sleep(Duration::from_millis(5)).await;}
+                }).await.expect("original target observation still fresh immediately before Ready");
+                let observed=target_progress[first+sid].lock().unwrap().clone();
+                let ready=targets[first+sid].preparation.as_ref().unwrap().with_decoded(observed.audio_samples,
+                    Some(NativeDecodedVideoReadiness{decoded_frames:observed.frames,decoded_keyframes:observed.keys})).unwrap();
+                submit(&mut targets[first+sid].client,&ready,&mut controllers[sid],&commands[sid],&roots[sid],move_cutoff).await;
+            }
+            for (sid,&index) in [0usize,4].iter().enumerate() {
+                let done=timeout_at(move_cutoff,completed(&f,&mut controllers[sid],&commands[sid])).await.unwrap();
+                assert_eq!(done.record_id,roots[sid].record_id);assert_eq!(done.operation_id,roots[sid].operation_id);
+                let value=serde_json::to_value(done).unwrap();assert_eq!(value["state"],"completed");
+                assert_eq!(value["result"]["generation"],generation);
+                assert_eq!(value["result"]["replaces"],active_sources[index]);
+                assert_eq!(value["result"]["device_id"],target_config.device_id);
+                assert_eq!(value["result"]["endpoint_id"],endpoints[if round==0 {1}else{0}]);
+                targets[first+sid].preparation.as_ref().unwrap().activation_from_completed(&value).unwrap();
+                timeout_at(move_cutoff,async {
+                    loop {
+                        let (state,actual_generation):(String,u64)=rusqlite::Connection::open_with_flags(&f.config.database,
+                            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap().query_row(
+                            "SELECT state,generation FROM connections WHERE id=?1",[&active_sources[index]],
+                            |row|Ok((row.get(0)?,row.get(1)?))).unwrap();
+                        if (state.as_str(),actual_generation)==("retired",generation) {break;}
+                        tokio::time::sleep(Duration::from_millis(10)).await;
+                    }
+                }).await.expect("exact original source must retire within same original move deadline");
+                active_sources[index]=targets[first+sid].preparation.as_ref().unwrap().connection_id().unwrap().into();
+                completed_originals.push((sid,commands[sid].clone(),roots[sid].record_id.clone(),generation,value["result"].clone()));
+            }
+            let public_at_commit=clone_progress(&active_progress);
+            let at_commit=clone_progress(&target_progress[first..first+2]);
+            for target in &targets[first..first+2] {target.force_key.store(true,Ordering::Release);}
+            let after_commit_until=move_cutoff.min(Instant::now()+Duration::from_secs(1));
+            timeout_at(after_commit_until,async {
+                loop {
+                    let current=clone_progress(&active_progress);
+                    if [1usize,5].iter().all(|&i|current[i].frames>public_at_commit[i].frames) {break;}
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            }).await.expect("same retained receivers must decode fresh candidate uplink after each actual commit");
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            assert!(Instant::now()<move_cutoff,"postcommit continuity remains inside original operation budget");
+            for (sid,&index) in [0usize,4].iter().enumerate() {
+                let now=target_progress[first+sid].lock().unwrap().clone();
+                assert!(now.frames>at_commit[sid].frames,"same actual decoder must continue through its commit");
+                assert_eq!(now.epoch,at_commit[sid].epoch,"private decoder epoch changed at public activation");
+                active_progress[index]=target_progress[first+sid].clone();previous_targets[sid]=Some(first+sid);
+            }
+            // Both Session public views and every unrelated original control
+            // remain current after each round, including same-Device return.
+            for (sid,session) in sessions.iter().enumerate() {
+                let view=session.refresh(short()).await.unwrap();assert_eq!(view.state,"accepted");
+                for client in &clients {client.conversation_by_id(room.id().clone()).refresh(short()).await.unwrap();}
+                assert_eq!(session.id(),sessions[sid].id());
+            }
+            eprintln!("representative round={round} original_moves=2 generation={generation} old_preparation_fps_min=24 private_decoded_opus_min=2880 move_deadline_ms=8000 elapsed_ms={}",move_started.elapsed().as_millis());
+        }
+        assert_eq!(completed_originals.len(),4);
+        // Re-read every exact original root after both later operations. A
+        // return cannot rewrite or replay a historical completed movement.
+        for (sid,command,record,generation,original_result) in completed_originals {
+            let status=controllers[sid].operation_get(&command.operation_id,scope(&command)).await.unwrap();
+            assert_eq!(status.record_id,record);let value=serde_json::to_value(status).unwrap();
+            assert_eq!(value["state"],"completed");assert_eq!(value["result"]["generation"],generation);
+            assert_eq!(value["result"],original_result,"later return changed original completed result");
+            let db=rusqlite::Connection::open_with_flags(&f.config.database,rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+            let (effects,confirmed,repeated):(u64,u64,u64)=db.query_row(
+                "SELECT count(*),sum(state='confirmed'),sum(attempt>1 OR submission_generation>1) FROM operation_effects WHERE operation_record_id=?1",
+                [record.as_ref().unwrap().as_str()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+            assert_eq!((effects,confirmed,repeated),(7,7,0),"each original movement has exactly one confirmed effect per phase");
+        }
+        eprintln!("representative-six-source verified participants=4 sessions=2 sources=6 original_moves=4 generations=1,2,3 returned_original_device={} private_decoders=4 original_deadline_ms=8000 old_preparation_fps_min=24 genuine_opus_samples_min=2880 fragmented_vp8=true programme_bound_seconds=26",configs[0].device_id);
+    }).catch_unwind().await;
+    // Preserve original work failure, then join every exact original task and
+    // decoder before propagating it. No forced process can qualify this test.
+    stop.cancel();
+    let mut task_failures = Vec::new();
+    for task in works {
+        // All work has its unchanged programme cutoff, and each codec owns a
+        // bounded shutdown+wait. Never drop a live JoinHandle on a timeout.
+        match task.await {
+            Ok(Ok(())) => {}
+            value => task_failures.push(format!("{value:?}")),
+        }
+    }
+    // End both real Session owners using their current public topology. These
+    // commands also exercise the shared original client after both handoffs.
+    for (sid, session) in sessions.iter().enumerate() {
+        let end = async {
+            let before = session.refresh(options()).await?;
+            session
+                .end(
+                    0,
+                    "representative original cleanup".into(),
+                    before.topology_revision,
+                    mutation(&format!("representative-session-end-{sid}")),
+                )
+                .await?
+                .wait(options())
+                .await?;
+            Ok::<_, sdk::Error>(())
+        }
+        .await;
+        if let Err(error) = end {
+            task_failures.push(format!("original Session cleanup: {error:?}"));
+        }
+    }
+    let drained = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            let snapshot = f.server.service.canonical_runtime_snapshot().unwrap();
+            if snapshot.live_sessions == 0
+                && snapshot.connections == 0
+                && snapshot.replacement_preparations == 0
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await;
+    if drained.is_err() {
+        task_failures.push("original Session runtime owners did not drain".into());
+    }
+    for target in targets {
+        if let Err(error) = target.client.shutdown().await {
+            task_failures.push(format!("original target shutdown: {error}"));
+        }
+    }
+    for client in clients {
+        if let Err(error) = client.close(options()).await {
+            task_failures.push(format!("original SDK shutdown: {error}"));
+        }
+    }
+    let shutdown = f.server.shutdown().await;
+    if let Err(panic) = work {
+        std::panic::resume_unwind(panic);
+    }
+    assert!(
+        task_failures.is_empty(),
+        "original media/codec owners did not join cleanly: {task_failures:?}"
+    );
+    shutdown.unwrap();
+}
+
+// These controls exercise the same real SDK packet parser, bounded assembler
+// and decoder gate used above. The separate original C-codec loss controls
+// establish why an emitted delta across a missing reference is unsafe.
+fn continuity_packet(sequence: u16, timestamp: u32, ssrc: u32, key: bool) -> NativeVideoPacket {
+    let mut bytes = vec![0x80, 0x80 | 96];
+    bytes.extend(sequence.to_be_bytes());
+    bytes.extend(timestamp.to_be_bytes());
+    bytes.extend(ssrc.to_be_bytes());
+    bytes.extend([0x10, u8::from(!key), 0, 0]);
+    NativeVideoPacket::parse(bytes).unwrap()
+}
+
+#[test]
+fn representative_video_history_gates_missing_references_until_original_key() {
+    let progress = Arc::new(Mutex::new(Progress::default()));
+    let mut history = DecodeHistory::default();
+    assert!(
+        history
+            .push(&continuity_packet(10, 100, 7, true), &progress)
+            .unwrap()
+            .keyframe
+    );
+    assert!(
+        !history
+            .push(&continuity_packet(11, 200, 7, false), &progress)
+            .unwrap()
+            .keyframe
+    );
+    // Complete frame 12 was lost, not merely delayed fragment reordering.
+    assert!(history
+        .push(&continuity_packet(13, 400, 7, false), &progress)
+        .is_none());
+    assert!(history
+        .push(&continuity_packet(14, 500, 7, false), &progress)
+        .is_none());
+    let now = Instant::now();
+    assert!(history.take_request(now));
+    assert!(!history.take_request(now + Duration::from_millis(99)));
+    assert!(history.take_request(now + Duration::from_millis(100)));
+    // The same history/decoder owner resumes at the original sender's key.
+    assert!(
+        history
+            .push(&continuity_packet(15, 600, 7, true), &progress)
+            .unwrap()
+            .keyframe
+    );
+    assert!(!history.take_request(now + Duration::from_millis(200)));
+    assert!(history
+        .push(&continuity_packet(16, 700, 7, false), &progress)
+        .is_some());
+    history.gap(&progress);
+    assert!(history
+        .push(&continuity_packet(17, 800, 7, false), &progress)
+        .is_none());
+    assert!(history
+        .push(&continuity_packet(18, 900, 7, true), &progress)
+        .is_some());
+    let measured = progress.lock().unwrap();
+    assert_eq!(measured.decode_attempts, 5);
+    assert_eq!(measured.skipped_delta_frames, 3);
+    assert_eq!(measured.video_losses, 2);
+    assert_eq!(measured.current_decode.unwrap().1.first, 18);
+}
+
+#[test]
+fn representative_video_history_preserves_wrapping_order_and_epoch_key_boundaries() {
+    let progress = Arc::new(Mutex::new(Progress::default()));
+    let mut history = DecodeHistory::default();
+    assert!(history
+        .push(
+            &continuity_packet(u16::MAX, u32::MAX - 10, 7, true),
+            &progress
+        )
+        .is_some());
+    assert!(history
+        .push(&continuity_packet(0, 10, 7, false), &progress)
+        .is_some());
+    assert!(history
+        .push(
+            &continuity_packet(u16::MAX, u32::MAX - 10, 7, true),
+            &progress
+        )
+        .is_none());
+    assert!(history
+        .push(&continuity_packet(0, 10, 7, false), &progress)
+        .is_none());
+    // A new SSRC is never permission to feed a delta to the existing decoder.
+    assert!(history
+        .push(&continuity_packet(1, 20, 8, false), &progress)
+        .is_none());
+    assert!(history
+        .push(&continuity_packet(2, 30, 8, true), &progress)
+        .is_some());
+    // Caller performs this explicit reset only at an authenticated epoch cut.
+    history = DecodeHistory::default();
+    assert!(history
+        .push(&continuity_packet(3, 40, 8, false), &progress)
+        .is_none());
+    assert!(history
+        .push(&continuity_packet(4, 50, 8, true), &progress)
+        .is_some());
+    assert!(history
+        .push(&continuity_packet(5, 60, 8, false), &progress)
+        .is_some());
+    let measured = progress.lock().unwrap();
+    assert_eq!(measured.late_video_packets, 2);
+    assert_eq!(measured.skipped_delta_frames, 2);
+    assert_eq!(measured.decode_attempts, 5);
+}

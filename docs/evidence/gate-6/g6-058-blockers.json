@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-07",
-  "run_status": "Complete focused verification PASSED:212/212 Rust,288/288 Node,133/133 Python and1/1 Mac ACL, including all six explicitly selected ignored RTC cases. Default shipping, instrumented metadata and TypeScript checks pass; source and checkers remain unchanged and every original command group,controller and ARM lease joined without force. Source33c4d457 uses lock34c60 and544 verified declared prepared files. The media-lock fix, original-operation cleanup recovery, terminal Core ownership release, expiry observation margin and RTC continuous-playout fixture are unit verified. Full v202 remains333 passed,99 failed,0 blocked or unrun across all32 cells/432 requirements;0of32 cells qualify. All99 failures remain original evidence until fullv203 reruns all32 cells with three real cycles. G6-058 stays in progress;G6-054 stays deferred.",
+  "run_status": "Latest ended v203 remains0qualified,24failed,8blocked cells and197passed/62failed/173blocked checks. The full reviewed fix batch and owner-approved budget profile4 are integrated. Normal362 preparation and29 distinct focused dev Rust controls pass. Real native/browser handoffs, lifecycle accounting and full combined verification remain required before the next cell run. Sustained RSS growth is assigned to the separate G6-098 soak.",
   "blockers": [
     {
       "id": "B01",
@@ -683,24 +683,115 @@
       "title": "Stale old Connection handles after durably completed original moves",
       "status": "Unit verified correction/control; full32 qualification pending",
       "evidence": "Read-only original-operation recovery strictly checks exact record/key/target/source/retained/generation/endpoint/device and physical owner. Five Node and one Python controls pass; actual full-cycle cleanup remains pending.",
-      "next": "Run all32 fullv203 cells and retain any failed original metric or cleanup outcome.",
-      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
+      "next": "Verify the complete revised batch and representative runtime cases before another cell run. Preserve all original failures.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json",
+      "change": "Recover the actual target from the same original operation during cleanup after a lost completion response. Preserve the failed movement deadline."
     },
     {
       "id": "B83",
       "title": "Terminal managed Core runtime remains strongly rooted after original join",
       "status": "Unit verified correction/control; full32 qualification pending",
       "evidence": "Release exact same-Arc runtime after successful mixer join and publish resource-free terminal revision first. Eight new tests pass, including cancellation/finalizer/concurrency/legacy/projection guards.",
-      "next": "Run all32 fullv203 cells and retain any failed original metric or cleanup outcome.",
-      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
+      "next": "Verify the complete revised batch and representative runtime cases before another cell run. Preserve all original failures.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json",
+      "change": "Remove the exact terminal managed runtime after its original mixer joins. Preserve terminal revision and original concurrent/replay fences."
     },
     {
       "id": "B84",
       "title": "Measured browser process plateau still needs full-run proof",
       "status": "Unit verified correction/control; full32 qualification pending",
       "evidence": "Unit-tested terminal retention release addresses a concrete strong owner. Tokio blocking-worker and Chromium MemoryInfra residency are separately observed; no policy tuning or allocation-leak inference qualifies the13 original plateau failures.",
-      "next": "Run all32 fullv203 cells and retain any failed original metric or cleanup outcome.",
-      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json"
+      "next": "Verify the complete revised batch and representative runtime cases before another cell run. Preserve all original failures.",
+      "integration_evidence": "docs/evidence/gate-6/blocker-batch-post-v202-integrated.json",
+      "change": "Distinguish registered Session ownership from process-wide lazy pools and anonymous residency across three real cycles."
+    },
+    {
+      "id": "B85",
+      "title": "Audio admission holds controller State across external policy",
+      "status": "Integrated. Exact dev Rust regressions pass. Full handoff verification pending.",
+      "change": "Freeze binding and scene authorization, release State during fresh external policy, revalidate exact original identity and age. Five new regression controls.",
+      "evidence": "All16 W8/W9/L2 exact Core controls pass on the frozen combined source. Original processes joined naturally and source/binary hashes stayed unchanged. Normal-release and full matrix verification remain separate.",
+      "next": "Expanded Core controls and six-source real-media integration"
+    },
+    {
+      "id": "B86",
+      "title": "Private decoder preparation holds shared controller locks",
+      "status": "Integrated. Exact dev Rust regressions pass. Full handoff verification pending.",
+      "change": "Release Registry and State around external preparation policy and decoder work, revalidate exact owner, ports and scene. Five new controls.",
+      "evidence": "All16 W8/W9/L2 exact Core controls pass on the frozen combined source. Original processes joined naturally and source/binary hashes stayed unchanged. Normal-release and full matrix verification remain separate.",
+      "next": "Expanded preparation/authority controls and representative handoff"
+    },
+    {
+      "id": "B87",
+      "title": "One unready private recipient stalls healthy source recipients",
+      "status": "Integrated. Exact dev Rust regressions pass. Full handoff verification pending.",
+      "change": "Bound one aggregate retained queue per source, retry original retained work before fresh ingress, maintain per-recipient ordering, original packet age and reliable Data behavior. Six new controls.",
+      "evidence": "All16 W8/W9/L2 exact Core controls pass on the frozen combined source. Original processes joined naturally and source/binary hashes stayed unchanged. Normal-release and full matrix verification remain separate.",
+      "next": "Actual complete private keyframe and continuous old-recipient decoding"
+    },
+    {
+      "id": "B88",
+      "title": "Terminal DTLS alert is logged without ending the original peer",
+      "status": "Integrated. Exact typed-terminal and local-close controls pass.",
+      "change": "Propagate typed DTLS terminal events and publish original local-close terminal intent before await. Reject buffered pre-terminal Connected notifications. Preserve original cleanup/error custody, unrelated peers and retry behavior.",
+      "evidence": "Seven lower wire/peer/adapter controls pass. The genuine local-close waiter failure is reproduced on the prior source and passes after documented patch362. The strengthened case verifies pending waiters, cancelled close/retry/repeat, exact terminal refusal and an unrelated live pair.",
+      "next": "Real installed-Chromium close through the original signed operation and complete normal-release verification"
+    },
+    {
+      "id": "B89",
+      "title": "Public RTC rendering and observation switch at different boundaries",
+      "status": "Integrated, focused mock controls pass",
+      "change": "Create public RTC playback after both validated original receipts, observe first output at the known local render cut, join asynchronous startup under the original deadline.",
+      "evidence": "23 original selected candidate controls passed, 30 current H1/R1/asset controls passed",
+      "next": "Real browser handoff and complete combined-source verification"
+    },
+    {
+      "id": "B90",
+      "title": "Moving quality assertions reject the documented handoff allowance",
+      "status": "Integrated and independently reviewed, focused controls pass",
+      "change": "Apply the one-second contract limit only to actual measured gaps straddling validated public ownership observations. Retain raw loss, clean quality, source privacy and whole-window skew evidence.",
+      "evidence": "30 current browser observation/asset controls,23 moving-media Python controls and150 cross-language transition vectors pass. Runtime AV verification remains pending.",
+      "next": "Complete the combined native and installed-browser handoff regressions before another cell run"
+    },
+    {
+      "id": "B91",
+      "title": "Resource policy rejects bounded process-wide thread pools",
+      "status": "Owner-approved profile4 integrated; all23 active plateau controls pass, including full-observation RSS-budget checks.",
+      "change": "Apply unchanged hard RSS budgets to every original cold/cycle baseline, baseline sample, workload sample and idle sample, including known partial observations. Preserve frozen workload count capacities, original identities, strict Session cleanup and separate-soak classification.",
+      "evidence": "All23 active MatrixPlateauTests methods passed with0skip/0fail/0error and unchanged source during the test command; receipt28739cfca7677c0e1020642e4a2206729ffb07d459148b65e7d1de66b40f9ada. Two new controls reject baseline and early/partial idle budget breaches; the prior evaluator fails both copied counterfactuals. The1GiB server/4GiB browser/1GiB helper/6GiB aggregate thresholds are unchanged. Three-cycle RSS trends remain diagnostic only following owner approval; historical matrix verdicts are unchanged.",
+      "next": "Run all197 Python controls and source-bound producer checks on the final batch, then verify strict owners, complete workloads and existing capacities in the next full matrix. G6-098 sustained-growth soak remains pending."
+    },
+    {
+      "id": "B92",
+      "title": "Remaining anonymous memory growth has no allocation attribution",
+      "status": "Diagnostics integrated. C allocator and Service/Store controls pass. Lifecycle accounting pending.",
+      "change": "Feature-only owner guards, allocator reservation/commitment scalars, platform C allocator accounting and nonmutating Store cache charges at named Health boundaries. Three genuine lifecycle cycles keep an unrelated Session live.",
+      "evidence": "Actual held C allocation control1/1 and Service/Store controls4/4 pass with original owners joined and unchanged source. Runtime heap lifecycle accounting has four bounded scalar boundaries prepared. Original residual RSS allocation causes remain unproved.",
+      "next": "Execute and retain three real Session lifecycle cycles, inspect allocator/object/cache scalar evidence and carry sustained-growth attribution to G6-098"
+    },
+    {
+      "id": "B93",
+      "title": "VM root exhaustion interrupts full-run custody and later cells",
+      "status": "VM capacity validated. Runner fix reviewed. Real isolated SSH control passes.",
+      "change": "Three closed Cargo/evidence trees durably relocated with original paths preserved. Owned ARM Linux root expanded from64GiB to128GiB. Runner adds physical backing-volume admission, bounded ENOSPC metadata recovery and acknowledged closed-payload drainage.",
+      "evidence": "Composed99 copied Python controls pass. Actual8KiB SSH control naturally joins its controller,11 control commands and3 archive transports. Durable HOST acknowledgement precedes exact VM unlink. Lost reply recovers the same answer with one copy/unlink effect. This synthetic control qualifies no Gate6 cell.",
+      "next": "Integrate the reviewed14-path closure and verify combined runner regressions, admission and real matrix retention"
+    },
+    {
+      "id": "B94",
+      "title": "Prior focused tests do not reproduce six-source concurrent handoffs",
+      "status": "31 distinct focused Rust controls have recorded passes; six-source private delivery and preparation continuity still fail.",
+      "change": "The two actual history-gating controls pass. The native fixture now waits for a genuine original keyframe after lost decoder history and honors current feedback without restarting its decoder. This removes the observed C process-death reaction; it does not fix the remaining private-delivery cause.",
+      "evidence": "Latest exact native case still failed0/1 after15.25s (receiptfa21592564713335e4d727677a479d2240591d6b4d9cf63ea70aa777608e222c). All six originals decoded51-69 frames, then stalled during preparation and hit original read deadlines. All C decoders exited0 cleanly. Candidate0/4 received31/30 audio packets, but each had0video reads/assembly/decodes at the original readiness deadline. Two parser/assembler history controls passed (receipt44758689b9e5f33950c12f65dd091cbd3e63f45b0dd615fe032ea23a30359d38). The31 distinct Rust passes span separately source-bound attempts; they are not one fresh247-case cohort or matrix qualification. Offline4680-frame codec success and controlled delta-loss/key recovery remain supporting evidence, not transport causation.",
+      "next": "Capture existing bounded Service/Core phase and refusal summaries with the same native case, identify the first post-install admission or delivery failure, and fix that demonstrated cause before another qualification attempt. Heap/Chrome and full matrix remain held. Separate G6-098 soak remains pending."
+    },
+    {
+      "id": "B95",
+      "title": "Observer retains decoded measurement histories during resource idle",
+      "status": "Integrated. Copied17-case Node controls pass.",
+      "change": "After genuine renderer/statistics joins, retire bounded numeric working histories and preserve immutable final reports. Recompute the final proof at close so earlier status reports cannot hide later observations.",
+      "evidence": "One new control covers working-buffer release, unchanged captured failures and later callbacks without another report call. Two counterfactuals reproduce stale final proofs and live report aliases. Original RSS causation remains unproved.",
+      "next": "Complete the299-case Node regression and real installed-browser handoff/cleanup verification"
     }
   ],
   "workplan_tasks": [
@@ -893,5 +984,210 @@
     "explicit_ignored_rtc_executed": 6
   },
   "verified_focused_source_workspace_sha256": "33c4d457bf1acc5959af495ab8829bc17116b223df5a0839295a585b4c945e64",
-  "verified_focused_root_review_sha256": "fe626c6e07ac71ea1e536d224c8bf5e2d460a5f9295c3a2af0b95335ed43870b"
+  "verified_focused_root_review_sha256": "fe626c6e07ac71ea1e536d224c8bf5e2d460a5f9295c3a2af0b95335ed43870b",
+  "b94_focused_native_attempts": [
+    {
+      "receipt_sha256": "51eb0d7d77a1b875c5c6dc9c91ab0d7395682650116b9033d0b8c03f0af2f37e",
+      "executed": 1,
+      "passed": 0,
+      "failed": 1,
+      "phase": "prestartup Unsupported"
+    },
+    {
+      "receipt_sha256": "5b302bcf3f3c68f85d73df142a8c9b87d42396ef6ebbb7b5987b1782356f5f0f",
+      "executed": 1,
+      "passed": 0,
+      "failed": 1,
+      "phase": "empty local-video placeholder startup"
+    },
+    {
+      "receipt_sha256": "990470e17663721ca6d609e215cdd5ff9ed0cccb688e74aa0c7c7955350c098e",
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "phase": "diagnostic-only compile error; not a runtime pass"
+    },
+    {
+      "receipt_sha256": "755e677cd3847316960b8f8db2dbe3f5b6c402b44fe602c8d509231adc2dee95",
+      "executed": 1,
+      "passed": 0,
+      "failed": 1,
+      "phase": "diagnostic confirms adopted remote-video binding and empty local queue"
+    },
+    {
+      "receipt_sha256": "97e09729144845e64e7a925e09b417dfd22f663da116412beae23090413d51d1",
+      "executed": 1,
+      "passed": 0,
+      "failed": 1,
+      "phase": "original startup passed; decoded continuity/private readiness failed"
+    },
+    {
+      "receipt_sha256": "fa21592564713335e4d727677a479d2240591d6b4d9cf63ea70aa777608e222c",
+      "executed": 1,
+      "passed": 0,
+      "failed": 1,
+      "phase": "history recovery avoids C exits; public preparation stall and zero private video remain"
+    }
+  ],
+  "focused_distinct_rust_component_passes": {
+    "count": 31,
+    "scope": "Separate source-bound focused attempts, not a combined current cohort or matrix qualification",
+    "cases": [
+      {
+        "name": "staged_streams::tests::packet_admission::local_audio_enqueue_and_actual_send_policy_release_state_and_keep_neutral_origin",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::packet_admission::blocked_local_audio_policy_allows_the_same_targets_original_queued_video_writer",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::packet_admission::local_audio_policy_refuses_model_aba_credential_and_original_port_changes",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::packet_admission::local_audio_policy_freezes_consumer_and_scene_activation_before_enqueue_and_send",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::packet_admission::local_audio_queued_original_two_hundred_ms_cutoff_is_not_renewed_by_policy",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::private_consult::endpoint_preparation::endpoint_probe_codec_collision_records_nothing_and_releases_original_guards",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::private_consult::endpoint_preparation::endpoint_probe_policy_freezes_original_consumer_and_scene_activation",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::private_consult::endpoint_preparation::endpoint_probe_policy_refuses_consumed_registry_and_replaced_probe_owners",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::private_consult::endpoint_preparation::endpoint_probe_policy_refuses_model_aba_credential_original_port_and_shutdown_changes",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::private_consult::replacement::video::preroll::endpoint_probe_blocked_policy_keeps_original_private_video_writer_and_registry_available",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::media_scene::transient::scene_visual_old_recipient_progresses_before_private_retry_expiry_without_duplicate_or_reordering",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::media_scene::transient::scene_visual_recipient_isolation_preserves_original_age_and_earliest_authority_expiry",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::media_scene::transient::scene_visual_recipient_isolation_refuses_revocation_and_receiver_scene_port_or_selection_epochs",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::media_scene::transient::scene_visual_retained_capacity_is_shared_by_all_recipients_and_evicts_only_remaining_work",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::media_scene::transient::scene_recipient_isolation_keeps_reliable_data_ordering_and_independent_visual_progress",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "staged_streams::tests::media_scene::transient::scene_visual_full_retained_queue_attempts_originals_before_fresh_ingress_can_evict",
+        "receipt_sha256": "a34f8ab0b7f6d4bd92af8440d42dc910090d57c8c1b5c04397796a9341200f6c",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "peer_connection::handler::terminal_alert_tests::encrypted_close_notify_after_real_handshake_ends_only_the_original_rtc_transport",
+        "receipt_sha256": "661464d8083fded0f278f34acfbd0edd2a86c9003ed7cf1a655b6d0e5e895e26",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "peer_connection::handler::terminal_alert_tests::typed_fatal_or_close_is_terminal_but_other_read_errors_and_handlers_are_not",
+        "receipt_sha256": "661464d8083fded0f278f34acfbd0edd2a86c9003ed7cf1a655b6d0e5e895e26",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "peer_connection::handler::terminal_alert_tests::malformed_dtls_record_preserves_a_real_healthy_transport",
+        "receipt_sha256": "661464d8083fded0f278f34acfbd0edd2a86c9003ed7cf1a655b6d0e5e895e26",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "peer::handler::tests::closed_original_peer_notifies_terminal_once_and_cannot_become_connected_again",
+        "receipt_sha256": "661464d8083fded0f278f34acfbd0edd2a86c9003ed7cf1a655b6d0e5e895e26",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "peer::handler::tests::failed_and_closed_peers_do_not_confuse_transient_disconnect_or_an_unrelated_owner",
+        "receipt_sha256": "661464d8083fded0f278f34acfbd0edd2a86c9003ed7cf1a655b6d0e5e895e26",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "adapter::inbound_hardening_tests::admission_waiter_is_generation_aware_idempotent_and_fail_closed",
+        "receipt_sha256": "6a08f58f6dbcbb76bc7ce7aed266bd56bc4768630cbf750f8c3e929d76be9fee",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "adapter::inbound_hardening_tests::saturated_and_closed_terminal_queues_fallback_exactly_once",
+        "receipt_sha256": "6a08f58f6dbcbb76bc7ce7aed266bd56bc4768630cbf750f8c3e929d76be9fee",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "memory_diagnostics::platform_c_allocator::tests::real_c_allocation_is_observed_without_claiming_residency_or_owner_liveness",
+        "receipt_sha256": "bcc08453744368c7e7a5562c7c1e6543fe5a46890a1da8073a76b1382fbed306",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "events::memory_diagnostic_tests::contended_cache_diagnostic_is_unknown_and_releases_no_original_cache",
+        "receipt_sha256": "65ed636a071f5b2565825f8b692981e2b4dadf3549d209eaca573eb4344bc26a",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "events::snapshots::memory_diagnostic_tests::memory_diagnostic_preserves_expired_snapshot_bytes_and_original_counters",
+        "receipt_sha256": "65ed636a071f5b2565825f8b692981e2b4dadf3549d209eaca573eb4344bc26a",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "heap_diagnostics::tests::real_health_named_span_survives_original_blocking_branch_and_ordinary_polls_emit_no_heap_snapshot",
+        "receipt_sha256": "65ed636a071f5b2565825f8b692981e2b4dadf3549d209eaca573eb4344bc26a",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "heap_diagnostics::tests::missing_allocator_fields_and_unmeasured_owner_bytes_stay_unknown",
+        "receipt_sha256": "65ed636a071f5b2565825f8b692981e2b4dadf3549d209eaca573eb4344bc26a",
+        "source_workspace_sha256": "d0881a7b1f9782a95d748b24d4def9d3addb748498ac3658fc84a61f16445a75"
+      },
+      {
+        "name": "peer::session::terminal_lifetime_tests::real_connected_local_close_joins_original_waiter_without_retiring_an_unrelated_pair",
+        "receipt_sha256": "19ee9244105bcfe244a9d531bf80df6f9146dcf62df0c6274a059e0c2a30e218",
+        "source_workspace_sha256": "ee899a7f48f910d00e10d3da975e34b874af8aed90e0350380052f55f655723f"
+      },
+      {
+        "name": "sdk_handles::replacement_video_recovery::readiness::representative::representative_video_history_gates_missing_references_until_original_key",
+        "receipt_sha256": "44758689b9e5f33950c12f65dd091cbd3e63f45b0dd615fe032ea23a30359d38",
+        "source_workspace_sha256": "06b7791650015e7ec7c78ad47c73799ac574801017f3c1374480f64af1780939"
+      },
+      {
+        "name": "sdk_handles::replacement_video_recovery::readiness::representative::representative_video_history_preserves_wrapping_order_and_epoch_key_boundaries",
+        "receipt_sha256": "44758689b9e5f33950c12f65dd091cbd3e63f45b0dd615fe032ea23a30359d38",
+        "source_workspace_sha256": "06b7791650015e7ec7c78ad47c73799ac574801017f3c1374480f64af1780939"
+      }
+    ]
+  }
 }

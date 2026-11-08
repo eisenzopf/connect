@@ -384,7 +384,23 @@ impl Store {
     /// Fixed resource-free counters only. Called by the existing process debug
     /// observer outside SQL/authority custody, never a health acceptance rule.
     pub fn packet_observer_claim_diagnostics(&self) -> serde_json::Value {
-        self.packet_connections.claim_diagnostics()
+        let value = self.packet_connections.claim_diagnostics();
+        #[cfg(feature = "memory-diagnostics")]
+        {
+            let mut value = value;
+            if tracing::Span::current().metadata().is_some_and(|m| {
+                matches!(
+                    m.name(),
+                    "connect-memory-baseline" | "connect-memory-idle-final"
+                )
+            }) {
+                value["memory_footprint"] = serde_json::json!({"events":self.events.memory_counts(),
+                    "observer_connections":self.packet_connections.memory_counts()});
+            }
+            return value;
+        }
+        #[cfg(not(feature = "memory-diagnostics"))]
+        value
     }
     /// Drive the exact queued idle batch from an existing owned blocking
     /// custodian, with no caller SQL/file-authority/registry guard retained.

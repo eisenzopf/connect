@@ -1584,3 +1584,7 @@ async fn exercise(mode: u8) {
         "production replacement: signed generation2, transferred both original video selections, real receiver feedback and fresh libvpx keys independently decoded at original RTP12000 and18000; one-use raw publisher hint; owned peers and encoder joined; no full transport cell qualified"
     );
 }
+
+#[cfg(feature = "memory-diagnostics")]
+#[path = "replacement_video_recovery/heap_lifecycle.rs"]
+mod heap_lifecycle;

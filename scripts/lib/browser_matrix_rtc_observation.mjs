@@ -34,7 +34,7 @@ registerProcessor('matrix-rtc-decoded-pcm',MatrixRtcDecodedPcm);
  * internal preparation/readiness sink is excluded: it is not inside render().
  * The caller still owns render handles and closes/joins their AudioContexts. */
 export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
-    const render=Rtc.prototype.render,createSource=AudioContext.prototype.createMediaStreamSource;
+    const render=Rtc.prototype.render,capture=Rtc.prototype.capture,createSource=AudioContext.prototype.createMediaStreamSource;
     const draw=CanvasRenderingContext2D.prototype.drawImage,frame=HTMLVideoElement.prototype.requestVideoFrameCallback;
     const canvases=new Map(),metadata=new WeakMap(),pending=new Set(),taps=new Set(),modules=new WeakMap();
     let rendering=null,closed=false;
@@ -75,6 +75,12 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
         globalThis.connectPeerTag?.(this.peer,this.input.connectionId);
         try{return render.call(this,input,...args);}finally{rendering=previous;}
     };
+    if(capture)Rtc.prototype.capture=function(...args){
+        // Private preparation still owns real capture and decoder readiness.
+        // Its diagnostic identity does not require starting public playback.
+        globalThis.connectPeerTag?.(this.peer,this.input.connectionId);
+        return capture.apply(this,args);
+    };
     HTMLVideoElement.prototype.requestVideoFrameCallback=function(callback){
         return frame.call(this,(now,detail)=>{
             metadata.set(this,{now,detail});
@@ -98,6 +104,7 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
         async close(){
             if(closed)return;closed=true;
             Rtc.prototype.render=render;AudioContext.prototype.createMediaStreamSource=createSource;
+            if(capture)Rtc.prototype.capture=capture;
             CanvasRenderingContext2D.prototype.drawImage=draw;HTMLVideoElement.prototype.requestVideoFrameCallback=frame;
             await Promise.all([...pending]);
             for(const tap of taps){

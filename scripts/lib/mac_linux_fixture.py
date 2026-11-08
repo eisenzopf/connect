@@ -22,6 +22,8 @@ import uuid
 
 from .matrix_macos_resources import MacProcessResources
 from .matrix_idle import MatrixIdle
+from .matrix_storage import (atomic_json, source_budget, StorageAdmissionError,
+                             guest_budget, await_admission)
 from .transport_matrix_coordinator import VM_ENV, IMAGE
 from .transport_fixture import toml_bytes
 
@@ -165,7 +167,11 @@ class MacLinuxFixture:
 
     def ssh(self, command):
         return ["colima", "--profile", "connect-gate6", "ssh", "--", "env",
-                *(name + "=" + value for name, value in VM_ENV.items()), *map(str, command)]
+                *(name + "=" + value for name, value in VM_ENV.items()),
+                *(name + "=" + value for name, value in {
+                    "CONNECT_MATRIX_STORAGE_CONTROL": os.environ.get("CONNECT_MATRIX_STORAGE_REMOTE_CONTROL"),
+                    "CONNECT_MATRIX_STORAGE_TOKEN": os.environ.get("CONNECT_MATRIX_STORAGE_TOKEN")}.items() if value),
+                *map(str, command)]
 
     def call(self, command, *, data=None, timeout=30):
         result = self.run_command(self.ssh(command), input=data, capture_output=True, timeout=timeout,
@@ -198,6 +204,19 @@ print(json.dumps(dict(system=platform.system(),architecture=platform.machine(),r
             raise ValueError("Distinct actual guest route required")
         self.uid, self.gid, self.revision = observed["uid"], observed["gid"], revision
         self.acquire_lease()
+        # This observation is after queueing for the original shared VM lease,
+        # before source staging, compilation, namespace or client ownership.
+        def observe_guest():
+            return json.loads(self.call(["python3", "-c",
+                "import json,os,shutil;v=os.statvfs('/workspace');u=shutil.disk_usage('/workspace');print(json.dumps(dict(free_bytes=u.free,available_inodes=v.f_favail,total_bytes=u.total)))"]))
+        budget=guest_budget(borrowed_lease=getattr(self,"lease_parent",None) is not None)
+        try:
+            storage=await_admission(observe_guest,sum(budget.values()))
+        except StorageAdmissionError as error:
+            self.storage_refused_before_entry=True
+            atomic_json(self.directory/"storage-admission.json",dict(error.observation,budget=budget))
+            raise
+        atomic_json(self.directory/"storage-admission.json",dict(storage,budget=budget))
         self.topology = dict(kind="macos-linux-guest", server_platform="macos-arm64", client_platform="ubuntu24-arm64",
             client_emulated=False, mac_interface=name, actual_server_ip=self.server_ip, actual_client_ip=self.client_ip,
             guest=observed, run_id=self.run_id)
@@ -217,6 +236,8 @@ print(json.dumps(dict(system=platform.system(),architecture=platform.machine(),r
                 raise ValueError("Original parent VM workload lease unavailable")
             code = """import json,sys;from pathlib import Path
 root,child=map(Path,sys.argv[1:]);child.mkdir(parents=True,exist_ok=True,mode=0o700)
+sys.path.insert(0,'/workspace/scripts');from lib.matrix_storage import initialize_guest_reserve
+initialize_guest_reserve(child)
 p=root/'lease-children.json';values=json.loads(p.read_text()) if p.exists() else []
 assert str(child) not in values;values.append(str(child));t=p.with_suffix('.tmp');t.write_text(json.dumps(values));t.replace(p)"""
             self.call(["python3", "-c", code, self.lease_parent.remote_root, self.remote_root])
@@ -228,6 +249,8 @@ sys.path.insert(0,'/workspace/scripts/lib')
 from mac_linux_guest import lease_owners_joined,atomic
 root=Path(sys.argv[1]);root.mkdir(parents=True,exist_ok=True,mode=0o700)
 with VmWorkloadLease(timeout=int(sys.argv[2])):
+ from lib.matrix_storage import initialize_guest_reserve
+ initialize_guest_reserve(root)
  print('original-vm-lease-acquired',flush=True)
  sys.stdin.buffer.read()
  while not lease_owners_joined(root):
@@ -378,11 +401,11 @@ print(json.dumps(result))"""
     def prepare_sources(self, directory):
         self.source_directory = Path(directory)
         target = self.mapped(directory)
-        required = 6 * 62 * 30 * 640 * 360 * 3 // 2 + 512 * 1024**2
+        required = sum(source_budget().values())
         storage = json.loads(self.call(["python3", "-c", "import json,shutil;print(json.dumps(shutil.disk_usage('/workspace')._asdict()))"]))
-        storage.update(required_bytes=required, raw_programme_bytes=required - 512 * 1024**2,
+        storage.update(required_bytes=required, budget=source_budget(),
                        owner_run_id=self.run_id, workload_lease_held=True)
-        (self.directory / "source-storage.json").write_text(json.dumps(storage, indent=2) + "\n")
+        atomic_json(self.directory / "source-storage.json", storage)
         if storage["free"] < required:
             raise ValueError("Finite ARM guest media source storage unavailable")
         # Raw I420 plus its executable must be produced on the actual client OS.
@@ -577,6 +600,18 @@ print(json.dumps(prepare(target)))"""
             if self.lease.poll() is not None:
                 self.lease.stdout.close();self.lease.stderr.close()
             self.closed = True
+            return self.receipt
+        if (getattr(self, "storage_refused_before_entry", False)
+                and self.owner is None and not self.inputs):
+            script = "import sys,json;from pathlib import Path;sys.path.insert(0,'/workspace/scripts/lib');from mac_linux_guest import lease_owners_joined;print(json.dumps(lease_owners_joined(Path(sys.argv[1]))))"
+            absent = json.loads(self.call(["python3", "-c", script, self.remote_root], timeout=10)) is True
+            self.receipt = dict(format="connect/mac-linux-owner/1",run_id=self.run_id,passed=False,
+                preflight_only=True,guest_job_started=False,original_joined=False,forced=False,
+                unentered_custody_confirmed=absent,all_guest_owners_joined=absent,
+                client_inputs_unchanged=True,cleanup_failures=[] if absent else ["unentered-guest-custody-unconfirmed"])
+            self.closed = True
+            if release_lease:
+                self.release_lease()
             return self.receipt
         failures = []
         forced = self.owner is not None and self.owner.poll() is None

@@ -101,6 +101,7 @@ try{
             else if(url.pathname==='/_matrix/browser_matrix_pcm.mjs')file=path.join(root,'scripts/lib/browser_matrix_pcm.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_audio_input.mjs')file=path.join(root,'scripts/lib/browser_matrix_audio_input.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_rtc_observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_rtc_observation.mjs');
+            else if(url.pathname==='/_matrix/media_transition_coverage.mjs')file=path.join(root,'scripts/lib/media_transition_coverage.mjs');
             else if(url.pathname==='/_matrix/observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_observation.mjs');
             else if(url.pathname==='/video/audio_envelope.mjs')file=path.join(root,'scripts/video/audio_envelope.mjs');
             else if(url.pathname==='/_matrix/retired-references.mjs')file=path.join(root,'scripts/lib/browser_matrix_retired_references.mjs');

@@ -14,6 +14,7 @@ import struct
 import subprocess
 
 from .package_environment import fixture_environment
+from .matrix_storage import source_budget
 from video.marker_calibration import PROGRAM, marker_frames, ordinal_sync
 from video.build_live_vp8_encoder import build as build_live_encoder
 
@@ -128,7 +129,7 @@ def prepare(directory):
     # Keep the independent encoded reference and the exact raw live programme.
     # Raw files are finite, private and streamed; never allocate six programmes.
     raw_size = SECONDS * 30 * 640 * 360 * 3 // 2
-    if shutil.disk_usage(directory).free < len(COLORS) * raw_size + 512 * 1024 * 1024:
+    if shutil.disk_usage(directory).free < sum(source_budget().values()):
         raise ValueError('Insufficient space for the finite live video programmes')
     encoder = build_live_encoder(directory / 'live-vp8-encoder')
     encoder.pop('output')

@@ -1884,6 +1884,46 @@
       "path": "patches/rvoip/connect-terminal-managed-runtime-release.patch",
       "sha256": "dc85020edc96474f42656a5310edef23327e9c54739f6da6c38df81055c84dee",
       "source": "Release the exact ended Core managed participant runtime only after its original mixer join succeeds. Retain only terminal revision on the existing Session history, preserve managed legacy fences and end replay/cancellation/concurrency, and regress original runtime/scene Weak-owner retirement without changing resource thresholds."
+    },
+    {
+      "path": "patches/rvoip/connect-local-audio-policy-state-release.patch",
+      "sha256": "e922746247575ff5a9c264c96bcce4c67798646d9ff2ca84da6c2e5354f28edf",
+      "source": "Release exact local-audio model State across external preparation authority reads. Freeze and revalidate original model revision, credential, active port, preparation owner and exact consumer/scene activation before enqueue or send. Preserve neutral origin and original queued 200ms/policy expiry deadlines with no authority reader held during metadata refusal."
+    },
+    {
+      "path": "patches/rvoip/connect-endpoint-preparation-policy-state-release.patch",
+      "sha256": "7bac9bbcd674582c4a22c2491eeb08ca76bddef7f00b3885918cfaddc42dba85",
+      "source": "Release endpoint-preparation registry and controller model metadata across fresh policy and discard-only decode. Freeze and revalidate exact preparation, model, credential, audio/auxiliary ports and tickets, consumer and scene activation before original readiness publication; preserve the original post-policy age/deadline and codec checks."
+    },
+    {
+      "path": "patches/rvoip/connect-visual-recipient-progress-isolation.patch",
+      "sha256": "1e40dae3a074bcf2355b8cf9cee33ec0a69f038020378eb35266092fe4202cdd",
+      "source": "Isolate visual recipient progress in the actual guarded scene with one aggregate64-packet retained boundary, exact receiver FIFO, original200ms/earliest-authority deadlines, current source/receiver route generations, and no repeated healthy write. Retry old retained work before fresh ingress and preserve reliable Data ordering. Record only remaining-capacity drops as bounded lifecycle counters."
+    },
+    {
+      "path": "patches/rvoip/connect-typed-dtls-terminal-lifetime.patch",
+      "sha256": "3f9c9c2742094f769e65aaf1eefbfcb2458739592d24dd203f926841ece4c72d",
+      "source": "Propagate only the typed authenticated DTLS fatal-or-close outcome through the exact RTC peer terminal lifetime; retire secure contexts and pending secure output while preserving STUN/DTLS control records. Treat clean Closed as terminal in the existing peer owner without changing transient/unknown read errors or Service root semantics. Regress real encrypted CloseNotify, unreplayed post-close SRTP, queued SRTP/SRTCP/application ciphertext, unrelated owners, and completed-root teardown."
+    },
+    {
+      "path": "patches/rvoip/connect-heap-owner-boundary-diagnostics.patch",
+      "sha256": "ac02d11d83d7cabf0e3081329788f1f425c7ea43e5666a453071490758df3ed4",
+      "source": "Opt-in test-support memory diagnostics: fixed constructor/Drop owner census for actual Core session runtime/scene/mixer/controller/port/codecs and native/RTC owners. Forward existing infra/media/rtp allocation/pool diagnostics without collecting/resetting/tuning or changing normal shipping behavior. Applied after the reviewed metadata-lock and typed-DTLS lifetime fixes."
+    },
+    {
+      "path": "patches/rvoip/connect-platform-c-allocator-observation.patch",
+      "sha256": "46eb56e654c604e5d51652061f6ac533747b6cdd984c29d0669f967b96d29c7c",
+      "source": "Feature-only bounded platform C allocator accounting at the existing named authenticated Health diagnostic boundary. Darwin ARM malloc_zone_statistics(NULL) and approved glibc Ubuntu ARM mallinfo2 report allocator-managed counters only, including retained caches. No RSS, object liveness, collection, reset, trim, allocator override or shipping API changes. Keep unobserved raw block dumps null and preserve all original heap owner and MiMalloc counters."
+    },
+    {
+      "path": "patches/rvoip/connect-chromium-original-peer-test-probe.patch",
+      "sha256": "e5262df4ae48862d8112b84f15cf2aa44221bfccc1228226a428f0990af360b2",
+      "source": "Test-hooks-only immutable access to the exact already allocated canonical RTC peer, delegated through existing original_peer route/admission/lifetime validation. Used by the installed Chromium wire terminal integration to retain typed original backend statistics after natural close. No mutable route map, new allocation, shipping feature or network API."
+    },
+    {
+      "path": "patches/rvoip/connect-peer-local-close-lifetime.patch",
+      "sha256": "5825d04d5ef86ef4959920ee9fc1f97b5856ae7596c9469ecbce0df75bf346fb",
+      "source": "Publish exact local RTC peer terminal intent before awaiting original driver close, whose normal abort/join may prevent its queued Closed callback. Existing terminal flags fence transport currency and original wait_failed observations across cancellation/retry. Pending wait_connected observations must reject buffered pre-terminal Connected notifications and cannot restore the raw connected flag after terminal intent. Preserve source-clock retirement, original driver cleanup/errors, unrelated peer ownership, generation/authorization/media/deadline behavior. Strengthen the same real connected local-close control with parked waiters, cancelled original close/retry/repeat and an unrelated live pair."
     }
   ]
 }

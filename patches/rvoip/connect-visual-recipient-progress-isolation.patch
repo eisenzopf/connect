@@ -1,0 +1,928 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -4,15 +4,18 @@
+ use super::scene_consumer::SceneConsumer;
+ use super::*;
+ use rvoip_core_traits::peer_switch::PeerQuiescenceGuard;
+-use std::collections::HashMap;
++use std::collections::{HashMap, VecDeque};
++use std::sync::atomic::AtomicU64;
+ mod tick_summary;
+ use tick_summary::TickSummary;
+ 
++#[derive(Clone)]
+ struct Destination {
+     owner: Weak<StreamController>,
+     logical: StreamId,
+     realtime: Option<RealtimeDestination>,
+ }
++#[derive(Clone)]
+ struct RealtimeDestination {
+     port: Weak<Port>,
+     ticket: PeerRouteTicket,
+@@ -25,8 +28,166 @@
+ struct Input {
+     port: Arc<Port>,
+     receiver: mpsc::Receiver<MediaPacket>,
+-    pending: Option<Pending>,
+-}
++    pending: VecDeque<Pending>,
++}
++
++const VISUAL_RETAINED_PACKETS: usize = 64;
++impl Destination {
++    fn same_realtime_receiver(&self, other: &Self) -> bool {
++        Weak::ptr_eq(&self.owner, &other.owner)
++            && self.logical == other.logical
++            && match (&self.realtime, &other.realtime) {
++                (Some(left), Some(right)) => {
++                    Weak::ptr_eq(&left.port, &right.port)
++                        && left.ticket.same_generation(&right.ticket)
++                }
++                _ => false,
++            }
++    }
++}
++impl Pending {
++    fn capture(
++        packet: MediaPacket,
++        controllers: &[Arc<StreamController>],
++        source: &Arc<StreamController>,
++        logical: &StreamId,
++    ) -> Self {
++        let remaining = controllers
++            .iter()
++            .flat_map(|target| {
++                target
++                    .direct_subscriptions
++                    .receivers(source, logical, packet.admitted_at)
++                    .into_iter()
++                    .filter_map(|logical| {
++                        let realtime = if packet.frame.kind == StreamKind::Data {
++                            None
++                        } else {
++                            let state = target.state.lock().unwrap_or_else(|p| p.into_inner());
++                            let port = state.active.get(&logical)?;
++                            Some(RealtimeDestination {
++                                port: Arc::downgrade(port),
++                                ticket: port.ticket(),
++                                deadline: tokio::time::Instant::from_std(packet.admitted_at)
++                                    + Duration::from_millis(200),
++                            })
++                        };
++                        Some(Destination {
++                            owner: Arc::downgrade(target),
++                            logical,
++                            realtime,
++                        })
++                    })
++            })
++            .collect();
++        Self { packet, remaining }
++    }
++    fn source_current(&self, controller: &StreamController, consumer: &Arc<SceneConsumer>) -> bool {
++        self.packet
++            .scene
++            .as_ref()
++            .is_some_and(|s| consumer.accepts(s))
++            && self.packet.ticket.is_current()
++            && self
++                .packet
++                .scene
++                .as_ref()
++                .is_none_or(|s| !s.cancel.is_cancelled())
++            && !controller.shutdown.is_cancelled()
++    }
++    fn forward(
++        &mut self,
++        source: &Arc<StreamController>,
++        logical: &StreamId,
++        blocked: &mut Vec<Destination>,
++    ) {
++        let data = self.packet.frame.kind == StreamKind::Data;
++        self.remaining.retain_mut(|destination| {
++            let Some(target) = destination.owner.upgrade() else {
++                return false;
++            };
++            let admitted_to_scene = target
++                .scene_consumer
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .as_ref()
++                .and_then(Weak::upgrade)
++                .is_some_and(|c| {
++                    c.receives_at(self.packet.scene.as_ref(), self.packet.admitted_at)
++                });
++            if !admitted_to_scene
++                || target.shutdown.is_cancelled()
++                || !target.direct_subscriptions.selected_at(
++                    source,
++                    logical,
++                    &destination.logical,
++                    self.packet.admitted_at,
++                )
++            {
++                return false;
++            }
++            if StreamController::principal_expiry(&source.credential_snapshot().principal)
++                .is_some_and(|e| e <= chrono::Utc::now())
++                || StreamController::principal_expiry(&target.credential_snapshot().principal)
++                    .is_some_and(|e| e <= chrono::Utc::now())
++            {
++                return false;
++            }
++            if !data {
++                let Some(original) = destination.realtime.as_ref() else {
++                    return false;
++                };
++                if !original.ticket.is_current()
++                    || tokio::time::Instant::now() >= original.deadline
++                    || self.packet.admitted_at.elapsed() >= Duration::from_millis(200)
++                {
++                    return false;
++                }
++                // FIFO belongs to this exact receiver incarnation. A blocked
++                // candidate never suppresses a different healthy recipient.
++                if blocked
++                    .iter()
++                    .any(|old| old.same_realtime_receiver(destination))
++                {
++                    return true;
++                }
++            }
++            let result = if data {
++                self.packet.try_forward_to(&target, &destination.logical)
++            } else {
++                let Some(original) = destination.realtime.as_mut() else {
++                    return false;
++                };
++                let Some(port) = original.port.upgrade() else {
++                    return false;
++                };
++                self.packet.try_forward_to_pending(
++                    &target,
++                    &destination.logical,
++                    &port,
++                    &original.ticket,
++                    &mut original.deadline,
++                )
++            };
++            match result {
++                Ok(()) | Err(StreamControlError::NotRecipient) => false,
++                Err(StreamControlError::NotReady) if !data => {
++                    let retained = destination.realtime.as_ref().is_some_and(|original| {
++                        original.ticket.is_current()
++                            && tokio::time::Instant::now() < original.deadline
++                            && self.packet.admitted_at.elapsed() < Duration::from_millis(200)
++                    });
++                    if retained {
++                        blocked.push(destination.clone());
++                    }
++                    retained
++                }
++                Err(_) => data,
++            }
++        });
++    }
++}
++
+ pub(crate) struct SceneMember {
+     pub(super) controller: Arc<StreamController>,
+     consumer: Arc<SceneConsumer>,
+@@ -172,6 +333,8 @@
+     pub(super) disclosure_changed_at: Mutex<std::time::Instant>,
+     audio: Arc<GuardedAudioMixer>,
+     tick_summary: Mutex<TickSummary>,
++    visual_capacity_dropped_packets: AtomicU64,
++    visual_capacity_dropped_recipients: AtomicU64,
+     pub(super) preparation_refusals: AtomicU32,
+ }
+ impl GuardedMediaScene {
+@@ -206,6 +369,8 @@
+         Arc::new(Self {
+             id: uuid::Uuid::new_v4().as_u128(),
+             tick_summary: Mutex::new(TickSummary::default()),
++            visual_capacity_dropped_packets: AtomicU64::new(0),
++            visual_capacity_dropped_recipients: AtomicU64::new(0),
+             preparation_refusals: AtomicU32::new(0),
+             audio: GuardedAudioMixer::new(rate),
+             conversation,
+@@ -367,7 +532,7 @@
+                 Input {
+                     port: p.clone(),
+                     receiver,
+-                    pending: None,
++                    pending: VecDeque::new(),
+                 },
+             );
+         }
+@@ -561,6 +726,22 @@
+             .await
+     }
+     #[cfg(test)]
++    pub(super) fn retained_visual_for_test(
++        &self,
++        source: &ConnectionId,
++        logical: &StreamId,
++    ) -> (usize, usize, u64, u64) {
++        let members = self.members.lock().unwrap();
++        let pending = &members[source].inputs[logical].pending;
++        (
++            pending.len(),
++            pending.iter().map(|p| p.remaining.len()).sum(),
++            self.visual_capacity_dropped_packets.load(Ordering::Relaxed),
++            self.visual_capacity_dropped_recipients
++                .load(Ordering::Relaxed),
++        )
++    }
++    #[cfg(test)]
+     pub(super) fn observe_audio_tick_for_test(&self, now: Instant, next: Instant) {
+         self.audio.observe_tick_for_test(now, next);
+     }
+@@ -607,7 +788,7 @@
+                             Input {
+                                 port: port.clone(),
+                                 receiver,
+-                                pending: None,
++                                pending: VecDeque::new(),
+                             },
+                         );
+                     }
+@@ -646,148 +827,92 @@
+             .values()
+             .map(|m| m.controller.clone())
+             .collect::<Vec<_>>();
++        let mut capacity_drops = (0u64, 0u64);
+         for member in members.values_mut() {
+             for (logical, input) in &mut member.inputs {
++                let data = input.port.kind() == StreamKind::Data;
++                if data {
++                    // Reliable Data retains exactly its original one-packet,
++                    // ordered pending behavior, including refusal/backpressure.
++                    for _ in 0..32 {
++                        if input.pending.is_empty() {
++                            let Ok(packet) = input.receiver.try_recv() else {
++                                break;
++                            };
++                            input.pending.push_back(Pending::capture(
++                                packet,
++                                &controllers,
++                                &member.controller,
++                                logical,
++                            ));
++                        }
++                        let pending = input.pending.front_mut().unwrap();
++                        if !pending.source_current(&member.controller, &member.consumer) {
++                            input.pending.pop_front();
++                            continue;
++                        }
++                        pending.forward(&member.controller, logical, &mut Vec::new());
++                        if pending.remaining.is_empty() {
++                            input.pending.pop_front();
++                        } else {
++                            break;
++                        }
++                    }
++                    continue;
++                }
++                // Give every original retained packet its normal attempt
++                // BEFORE new ingress can compete for the shared capacity.
++                let mut blocked = Vec::new();
++                input.pending.retain_mut(|pending| {
++                    if !pending.source_current(&member.controller, &member.consumer)
++                        || pending.packet.admitted_at.elapsed() >= Duration::from_millis(200)
++                    {
++                        return false;
++                    }
++                    pending.forward(&member.controller, logical, &mut blocked);
++                    !pending.remaining.is_empty()
++                });
++                // Shared across ALL recipients: one payload per source packet,
++                // never one 64-packet queue per candidate. Existing ingress and
++                // each egress remain separate, independently bounded queues.
+                 for _ in 0..32 {
+-                    if input.pending.is_none() {
+-                        let Ok(packet) = input.receiver.try_recv() else {
+-                            break;
+-                        };
+-                        let remaining = controllers
+-                            .iter()
+-                            .flat_map(|target| {
+-                                target
+-                                    .direct_subscriptions
+-                                    .receivers(&member.controller, logical, packet.admitted_at)
+-                                    .into_iter()
+-                                    .filter_map(|logical| {
+-                                        let realtime = if packet.frame.kind == StreamKind::Data {
+-                                            None
+-                                        } else {
+-                                            let state = target
+-                                                .state
+-                                                .lock()
+-                                                .unwrap_or_else(|p| p.into_inner());
+-                                            let port = state.active.get(&logical)?;
+-                                            Some(RealtimeDestination {
+-                                                port: Arc::downgrade(port),
+-                                                ticket: port.ticket(),
+-                                                deadline: tokio::time::Instant::from_std(
+-                                                    packet.admitted_at,
+-                                                ) + Duration::from_millis(200),
+-                                            })
+-                                        };
+-                                        Some(Destination {
+-                                            owner: Arc::downgrade(target),
+-                                            logical,
+-                                            realtime,
+-                                        })
+-                                    })
+-                            })
+-                            .collect();
+-                        input.pending = Some(Pending { packet, remaining });
+-                    }
+-                    let pending = input.pending.as_mut().unwrap();
+-                    let data = pending.packet.frame.kind == StreamKind::Data;
+-                    if pending
+-                        .packet
+-                        .scene
+-                        .as_ref()
+-                        .is_none_or(|s| !member.consumer.accepts(s))
+-                        || !pending.packet.ticket.is_current()
+-                        || pending
+-                            .packet
+-                            .scene
+-                            .as_ref()
+-                            .is_some_and(|s| s.cancel.is_cancelled())
+-                        || member.controller.shutdown.is_cancelled()
++                    let Ok(packet) = input.receiver.try_recv() else {
++                        break;
++                    };
++                    let mut pending =
++                        Pending::capture(packet, &controllers, &member.controller, logical);
++                    if !pending.source_current(&member.controller, &member.consumer)
++                        || pending.packet.admitted_at.elapsed() >= Duration::from_millis(200)
+                     {
+-                        input.pending = None;
+                         continue;
+                     }
+-                    pending.remaining.retain_mut(|destination| {
+-                        let Some(target) = destination.owner.upgrade() else {
+-                            return false;
+-                        };
+-                        let admitted_to_scene = target
+-                            .scene_consumer
+-                            .lock()
+-                            .unwrap_or_else(|p| p.into_inner())
+-                            .as_ref()
+-                            .and_then(Weak::upgrade)
+-                            .is_some_and(|c| {
+-                                c.receives_at(
+-                                    pending.packet.scene.as_ref(),
+-                                    pending.packet.admitted_at,
+-                                )
+-                            });
+-                        if !admitted_to_scene
+-                            || target.shutdown.is_cancelled()
+-                            || !target.direct_subscriptions.selected_at(
+-                                &member.controller,
+-                                logical,
+-                                &destination.logical,
+-                                pending.packet.admitted_at,
+-                            )
+-                        {
+-                            return false;
+-                        }
+-                        if StreamController::principal_expiry(
+-                            &member.controller.credential_snapshot().principal,
+-                        )
+-                        .is_some_and(|e| e <= chrono::Utc::now())
+-                            || StreamController::principal_expiry(
+-                                &target.credential_snapshot().principal,
+-                            )
+-                            .is_some_and(|e| e <= chrono::Utc::now())
+-                        {
+-                            return false;
+-                        }
+-                        let result = if data {
+-                            pending.packet.try_forward_to(&target, &destination.logical)
+-                        } else {
+-                            let Some(original) = destination.realtime.as_mut() else {
+-                                return false;
+-                            };
+-                            let Some(port) = original.port.upgrade() else {
+-                                return false;
+-                            };
+-                            pending.packet.try_forward_to_pending(
+-                                &target,
+-                                &destination.logical,
+-                                &port,
+-                                &original.ticket,
+-                                &mut original.deadline,
+-                            )
+-                        };
+-                        match result {
+-                            Ok(()) | Err(StreamControlError::NotRecipient) => false,
+-                            // Retry only temporary metadata refusal at a later normal
+-                            // scene tick. No grant or payload is duplicated: the same
+-                            // packet, source stamps, receiver port/ticket and earliest
+-                            // observed authority deadline remain fixed. Queue pressure
+-                            // and permanent refusal keep their existing drop behavior.
+-                            Err(StreamControlError::NotReady) if !data => {
+-                                destination.realtime.as_ref().is_some_and(|original| {
+-                                    original.ticket.is_current()
+-                                        && tokio::time::Instant::now() < original.deadline
+-                                        && pending.packet.admitted_at.elapsed()
+-                                            < Duration::from_millis(200)
+-                                })
+-                            }
+-                            Err(_) => data,
+-                        }
+-                    });
++                    // Reuse the same per-tick blocked receiver set, preserving
++                    // its FIFO without excluding any other current recipient.
++                    pending.forward(&member.controller, logical, &mut blocked);
+                     if pending.remaining.is_empty() {
+-                        input.pending = None;
+-                    } else {
+-                        break;
++                        continue;
+                     }
++                    if input.pending.len() == VISUAL_RETAINED_PACKETS {
++                        let dropped = input.pending.pop_front().unwrap();
++                        capacity_drops.0 = capacity_drops.0.saturating_add(1);
++                        capacity_drops.1 = capacity_drops
++                            .1
++                            .saturating_add(dropped.remaining.len() as u64);
++                    }
++                    input.pending.push_back(pending);
+                 }
+             }
+         }
+         drop(members);
+         let ended = Instant::now();
++        for (counter, amount) in [
++            (&self.visual_capacity_dropped_packets, capacity_drops.0),
++            (&self.visual_capacity_dropped_recipients, capacity_drops.1),
++        ] {
++            let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
++                Some(old.saturating_add(amount))
++            });
++        }
+         self.tick_summary
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+@@ -808,6 +933,15 @@
+             .get_mut()
+             .unwrap_or_else(|p| p.into_inner())
+             .emit(self.id, &self.session);
++        let dropped_packets = self.visual_capacity_dropped_packets.load(Ordering::Relaxed);
++        if dropped_packets != 0 {
++            let dropped_recipients = self
++                .visual_capacity_dropped_recipients
++                .load(Ordering::Relaxed);
++            tracing::debug!(target: "rvoip_core::audio_summary", scene=%self.id, session=%self.session,
++                retained_packet_limit=VISUAL_RETAINED_PACKETS, dropped_packets, dropped_recipients,
++                "Guarded visual retained capacity drops");
++        }
+     }
+ }
+ 
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
+@@ -242,3 +242,437 @@
+         Err(StreamControlError::Deadline)
+     ));
+ }
++
++// Actual scene fanout, with a separately current old recipient and transient
++// candidate reads. These are engine/scheduler controls, not codec qualification.
++struct RecipientPolicy {
++    inner: Arc<Policy>,
++    blocked: Arc<std::sync::atomic::AtomicBool>,
++    source_expiry: Arc<Mutex<Option<chrono::DateTime<chrono::Utc>>>>,
++}
++impl MediaPolicy for RecipientPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if scope.connection.as_str().starts_with("candidate-")
++            && matches!(scope.purpose, MediaPurpose::Receive { .. })
++            && self.blocked.load(Ordering::Acquire)
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let lease = self.inner.current(scope)?;
++        if matches!(scope.purpose, MediaPurpose::Publish) {
++            if let Some(until) = *self.source_expiry.lock().unwrap() {
++                return Ok(Box::new(ExpiringLease {
++                    inner: lease,
++                    until,
++                }));
++            }
++        }
++        Ok(lease)
++    }
++}
++struct RecipientScene {
++    f: Fixture,
++    scene: Arc<GuardedMediaScene>,
++    candidates: Vec<(Arc<StreamController>, Arc<Adapter>)>,
++    blocked: Arc<std::sync::atomic::AtomicBool>,
++    source_expiry: Arc<Mutex<Option<chrono::DateTime<chrono::Utc>>>>,
++}
++impl RecipientScene {
++    async fn new(kinds: &[Medium], count: usize) -> Self {
++        assert!((1..=2).contains(&count));
++        let blocked = Arc::new(std::sync::atomic::AtomicBool::new(false));
++        let source_expiry = Arc::new(Mutex::new(None));
++        let f = Fixture::with_policy(
++            16,
++            Some(Box::new({
++                let blocked = blocked.clone();
++                let source_expiry = source_expiry.clone();
++                move |inner| {
++                    Arc::new(RecipientPolicy {
++                        inner,
++                        blocked,
++                        source_expiry,
++                    })
++                }
++            })),
++        );
++        f.start_unsubscribed(kinds).await;
++        let mut candidates = Vec::new();
++        for index in 0..count {
++            let name = format!("candidate-{index}");
++            f.policy
++                .0
++                .write()
++                .await
++                .owners
++                .insert(name.clone(), owner(&name));
++            let adapter = Adapter::new();
++            let controller = StreamController::new(
++                ConversationId::from_string("conversation"),
++                SessionId::from_string("session"),
++                ConnectionId::from_string(name.clone()),
++                principal(&name),
++                f.a.policy.clone(),
++                adapter.clone(),
++                f.a.handles.clone(),
++                16,
++            )
++            .unwrap();
++            controller
++                .change(
++                    controller.revision(),
++                    &kinds.iter().map(|k| desired(*k)).collect::<Vec<_>>(),
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++            candidates.push((controller, adapter));
++        }
++        let scene = GuardedMediaScene::new(
++            ConversationId::from_string("conversation"),
++            SessionId::from_string("session"),
++            f.a.policy.clone(),
++            8000,
++        );
++        for controller in [&f.a, &f.b]
++            .into_iter()
++            .chain(candidates.iter().map(|(c, _)| c))
++        {
++            let mut member = scene.prepare(controller.clone()).unwrap();
++            member
++                .quiesce(deadline(), CancellationToken::new())
++                .await
++                .unwrap();
++            assert!(member.ready());
++            scene.insert(controller.connection.clone(), member, true);
++        }
++        for controller in std::iter::once(&f.b).chain(candidates.iter().map(|(c, _)| c)) {
++            scene
++                .change_direct_subscriptions(
++                    &controller.connection,
++                    controller.revision(),
++                    DirectSubscriptionChange::Subscribe(
++                        kinds
++                            .iter()
++                            .map(|medium| {
++                                DirectSubscription::new(
++                                    &f.a,
++                                    desired(*medium).logical_id.clone(),
++                                    desired(*medium).logical_id,
++                                )
++                            })
++                            .collect(),
++                    ),
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
++        }
++        Self {
++            f,
++            scene,
++            candidates,
++            blocked,
++            source_expiry,
++        }
++    }
++    fn publish(&self, medium: Medium, sequence: u32) {
++        let source = self.f.aa.port(medium);
++        source.try_publish(&frame(&source, sequence)).unwrap();
++    }
++    fn retained(&self) -> (usize, usize, u64, u64) {
++        self.scene
++            .retained_visual_for_test(&self.f.a.connection, &desired(Medium::Video).logical_id)
++    }
++}
++async fn expect_timestamp(output: &mut mpsc::Receiver<QueuedMedia>, expected: u32) {
++    output
++        .try_recv()
++        .expect("actual current recipient output")
++        .deliver(|frame| async move {
++            assert_eq!(frame.timestamp_rtp, expected);
++            Ok(())
++        })
++        .await
++        .unwrap();
++}
++#[tokio::test]
++async fn scene_visual_old_recipient_progresses_before_private_retry_expiry_without_duplicate_or_reordering()
++ {
++    let f = RecipientScene::new(&[Medium::Video], 2).await;
++    let mut old = f.f.ba.port(Medium::Video).take_egress().unwrap();
++    let mut candidates = f
++        .candidates
++        .iter()
++        .map(|(_, a)| a.port(Medium::Video).take_egress().unwrap())
++        .collect::<Vec<_>>();
++    f.blocked.store(true, Ordering::Release);
++    let began = Instant::now();
++    for sequence in 0..3 {
++        f.publish(Medium::Video, sequence);
++        f.scene.tick();
++        expect_timestamp(&mut old, sequence).await;
++        for output in &mut candidates {
++            assert!(output.try_recv().is_err());
++        }
++    }
++    assert!(
++        began.elapsed() < Duration::from_millis(200),
++        "healthy progress waited for private expiry"
++    );
++    assert_eq!(f.retained().0, 3);
++    assert_eq!(f.retained().1, 6);
++    assert!(
++        f.f.policy.0.try_write().is_ok(),
++        "retained work pinned authority"
++    );
++    f.blocked.store(false, Ordering::Release);
++    f.scene.tick();
++    for output in &mut candidates {
++        for sequence in 0..3 {
++            expect_timestamp(output, sequence).await;
++        }
++        assert!(output.try_recv().is_err());
++    }
++    f.scene.tick();
++    assert!(old.try_recv().is_err());
++    assert_eq!(f.retained().0, 0);
++}
++#[tokio::test]
++async fn scene_visual_recipient_isolation_preserves_original_age_and_earliest_authority_expiry() {
++    for expiry_limited in [false, true] {
++        let f = RecipientScene::new(&[Medium::Video], 1).await;
++        let mut old = f.f.ba.port(Medium::Video).take_egress().unwrap();
++        let mut candidate = f.candidates[0].1.port(Medium::Video).take_egress().unwrap();
++        f.publish(Medium::Video, 10);
++        if expiry_limited {
++            *f.source_expiry.lock().unwrap() =
++                Some(chrono::Utc::now() + chrono::Duration::milliseconds(40));
++        }
++        f.blocked.store(true, Ordering::Release);
++        f.scene.tick();
++        expect_timestamp(&mut old, 10).await;
++        *f.source_expiry.lock().unwrap() = None;
++        tokio::time::sleep(Duration::from_millis(if expiry_limited { 60 } else { 210 })).await;
++        f.blocked.store(false, Ordering::Release);
++        f.scene.tick();
++        assert!(
++            candidate.try_recv().is_err(),
++            "old private work renewed its bound"
++        );
++        f.publish(Medium::Video, 20);
++        f.scene.tick();
++        expect_timestamp(&mut old, 20).await;
++        expect_timestamp(&mut candidate, 20).await;
++    }
++}
++#[tokio::test]
++async fn scene_visual_recipient_isolation_refuses_revocation_and_receiver_scene_port_or_selection_epochs()
++ {
++    for changed in 0..5 {
++        let f = RecipientScene::new(&[Medium::Video], 1).await;
++        let controller = &f.candidates[0].0;
++        let adapter = &f.candidates[0].1;
++        let mut old = f.f.ba.port(Medium::Video).take_egress().unwrap();
++        let mut candidate = adapter.port(Medium::Video).take_egress().unwrap();
++        f.blocked.store(true, Ordering::Release);
++        f.publish(Medium::Video, 30);
++        f.scene.tick();
++        expect_timestamp(&mut old, 30).await;
++        f.blocked.store(false, Ordering::Release);
++        match changed {
++            0 => {
++                f.f.policy
++                    .0
++                    .write()
++                    .await
++                    .revoked
++                    .insert(controller.connection.to_string());
++            }
++            1 => {
++                f.scene
++                    .change_direct_subscriptions(
++                        &controller.connection,
++                        controller.revision(),
++                        DirectSubscriptionChange::Clear,
++                        deadline(),
++                        CancellationToken::new(),
++                        None,
++                    )
++                    .await
++                    .unwrap();
++                f.scene
++                    .change_direct_subscriptions(
++                        &controller.connection,
++                        controller.revision(),
++                        DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                            &f.f.a,
++                            desired(Medium::Video).logical_id.clone(),
++                            desired(Medium::Video).logical_id,
++                        )]),
++                        deadline(),
++                        CancellationToken::new(),
++                        None,
++                    )
++                    .await
++                    .unwrap();
++            }
++            2 => {
++                controller
++                    .change(
++                        controller.revision(),
++                        &[desired(Medium::Video)],
++                        &[desired(Medium::Video).logical_id].into_iter().collect(),
++                        deadline(),
++                        CancellationToken::new(),
++                    )
++                    .await
++                    .unwrap();
++            }
++            3 => controller
++                .scene_consumer
++                .lock()
++                .unwrap()
++                .as_ref()
++                .unwrap()
++                .upgrade()
++                .unwrap()
++                .activate(),
++            4 => {
++                f.f.policy.0.write().await.revoked.insert("alice".into());
++            }
++            _ => unreachable!(),
++        }
++        let mut replacement = if changed == 2 {
++            Some(adapter.port(Medium::Video).take_egress().unwrap())
++        } else {
++            None
++        };
++        f.scene.tick();
++        assert!(candidate.try_recv().is_err());
++        if let Some(output) = &mut replacement {
++            assert!(output.try_recv().is_err());
++        }
++        if changed == 4 {
++            let source = f.f.aa.port(Medium::Video);
++            assert!(source.try_publish(&frame(&source, 40)).is_err());
++            continue;
++        }
++        f.publish(Medium::Video, 40);
++        f.scene.tick();
++        expect_timestamp(&mut old, 40).await;
++        if changed != 0 {
++            expect_timestamp(replacement.as_mut().unwrap_or(&mut candidate), 40).await;
++        }
++        assert!(f.f.policy.0.try_write().is_ok());
++    }
++}
++#[tokio::test]
++async fn scene_visual_retained_capacity_is_shared_by_all_recipients_and_evicts_only_remaining_work()
++{
++    let f = RecipientScene::new(&[Medium::Video], 2).await;
++    let mut old = f.f.ba.port(Medium::Video).take_egress().unwrap();
++    let mut candidates = f
++        .candidates
++        .iter()
++        .map(|(_, a)| a.port(Medium::Video).take_egress().unwrap())
++        .collect::<Vec<_>>();
++    f.blocked.store(true, Ordering::Release);
++    for batch in 0..3 {
++        for offset in 0..32 {
++            f.publish(Medium::Video, batch * 32 + offset);
++        }
++        f.scene.tick();
++        for offset in 0..32 {
++            expect_timestamp(&mut old, batch * 32 + offset).await;
++        }
++        let retained = f.retained();
++        assert!(retained.0 <= 64);
++        assert_eq!(retained.1, retained.0 * 2);
++        for output in &mut candidates {
++            assert!(output.try_recv().is_err());
++        }
++    }
++    assert_eq!(f.retained(), (64, 128, 32, 64));
++    f.blocked.store(false, Ordering::Release);
++    f.scene.tick();
++    for output in &mut candidates {
++        for sequence in 32..96 {
++            expect_timestamp(output, sequence).await;
++        }
++        assert!(output.try_recv().is_err());
++    }
++    assert!(
++        old.try_recv().is_err(),
++        "capacity recovery duplicated an old healthy write"
++    );
++    assert_eq!(f.retained().0, 0);
++}
++#[tokio::test]
++async fn scene_recipient_isolation_keeps_reliable_data_ordering_and_independent_visual_progress() {
++    let f = RecipientScene::new(&[Medium::Data, Medium::Video], 1).await;
++    let mut old_data = f.f.ba.port(Medium::Data).take_egress().unwrap();
++    let mut candidate_data = f.candidates[0].1.port(Medium::Data).take_egress().unwrap();
++    let mut old_video = f.f.ba.port(Medium::Video).take_egress().unwrap();
++    f.blocked.store(true, Ordering::Release);
++    for sequence in 0..3 {
++        f.publish(Medium::Data, sequence);
++        f.publish(Medium::Video, 100 + sequence);
++        f.scene.tick();
++        expect_timestamp(&mut old_video, 100 + sequence).await;
++        if sequence == 0 {
++            expect_timestamp(&mut old_data, 0).await;
++        } else {
++            assert!(old_data.try_recv().is_err());
++        }
++        assert!(candidate_data.try_recv().is_err());
++    }
++    f.blocked.store(false, Ordering::Release);
++    f.scene.tick();
++    for sequence in 0..3 {
++        expect_timestamp(&mut candidate_data, sequence).await;
++    }
++    for sequence in 1..3 {
++        expect_timestamp(&mut old_data, sequence).await;
++    }
++    assert!(old_data.try_recv().is_err());
++    assert!(candidate_data.try_recv().is_err());
++}
++
++#[tokio::test]
++async fn scene_visual_full_retained_queue_attempts_originals_before_fresh_ingress_can_evict() {
++    let f = RecipientScene::new(&[Medium::Video], 1).await;
++    let mut old = f.f.ba.port(Medium::Video).take_egress().unwrap();
++    let mut candidate = f.candidates[0].1.port(Medium::Video).take_egress().unwrap();
++    f.blocked.store(true, Ordering::Release);
++    for batch in 0..2 {
++        for offset in 0..32 {
++            f.publish(Medium::Video, batch * 32 + offset);
++        }
++        f.scene.tick();
++        for offset in 0..32 {
++            expect_timestamp(&mut old, batch * 32 + offset).await;
++        }
++    }
++    assert_eq!(f.retained(), (64, 64, 0, 0));
++    assert!(candidate.try_recv().is_err());
++    f.publish(Medium::Video, 64);
++    // The private receiver becomes current before this original normal tick.
++    // New ingress must not evict its older eligible first fragment at capacity.
++    f.blocked.store(false, Ordering::Release);
++    f.scene.tick();
++    for sequence in 0..64 {
++        expect_timestamp(&mut candidate, sequence).await;
++    }
++    expect_timestamp(&mut old, 64).await;
++    assert_eq!(
++        f.retained().2,
++        0,
++        "fresh ingress evicted an eligible original before its attempt"
++    );
++    assert!(old.try_recv().is_err(), "recovery repeated a healthy write");
++}

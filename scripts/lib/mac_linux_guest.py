@@ -16,16 +16,32 @@ import tarfile
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from operational_process_resources import ProcessResources, stat_fields
+try:
+    from .operational_process_resources import ProcessResources, stat_fields
+except ImportError:  # Original standalone guest entry point.
+    from operational_process_resources import ProcessResources, stat_fields
 
 LIMIT = 512 * 1024 * 1024
 
 
 def atomic(path, value):
+    # The original lease initializes this synthetic reserve before work starts.
+    # Every child writer binds its exact inode from the original private root.
+    from lib.matrix_storage import atomic_json, guest_reserve, metadata_failure
     path = Path(path)
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value) + "\n")
-    temporary.replace(path)
+    roots = [parent for parent in path.parents
+             if (parent / '.metadata-reserve.json').is_file()]
+    if len(roots) > 1:
+        raise ValueError('Ambiguous original guest metadata reserve')
+    reserve = guest_reserve(roots[0]) if roots else None
+    try:
+        atomic_json(path, value, reserve=reserve)
+    except OSError:
+        # A saved HOST fallback remains explicitly separate from a missing VM
+        # owner receipt. lease_owners_joined still refuses unknown local custody.
+        metadata_failure(dict(original_guest_path=str(path), original=value,
+                              vm_receipt_saved=False))
+        raise
 
 
 def group_alive(group, started=None):

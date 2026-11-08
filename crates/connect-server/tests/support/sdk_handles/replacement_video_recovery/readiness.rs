@@ -992,3 +992,7 @@ async fn original_target_retired_under(
     .await
     .expect("original target terminal record and exact Core retirement did not join");
 }
+
+// Real six-source, four-participant, two-Session production regression.
+#[path = "representative.rs"]
+mod representative;

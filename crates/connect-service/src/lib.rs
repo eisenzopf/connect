@@ -17,6 +17,8 @@ use std::sync::Arc;
 mod authenticated_operations;
 mod authentication;
 mod credential_binding;
+#[cfg(feature = "memory-diagnostics")]
+mod heap_diagnostics;
 mod record_context;
 mod runtime_retention;
 pub use credential_binding::{StoreCredentialBinding, StoreInvocationAuthority};
@@ -684,7 +686,10 @@ impl Service {
                     .get()
                     .and_then(|runtime| runtime.operational_resources());
                 snapshot.resource_pools = self.readiness.resource_pool_snapshot();
-                crate::runtime_retention::observe(self.canonical_runtime.get().map(Arc::as_ref));
+                crate::runtime_retention::observe(
+                    self.canonical_runtime.get().map(Arc::as_ref),
+                    &self.store,
+                );
             }
         }
         if let (

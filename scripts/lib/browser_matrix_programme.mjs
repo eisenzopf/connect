@@ -253,7 +253,7 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             // source retirement. Observe its subsequent genuine decoder output
             // now; an additional verification read must not manufacture a gap.
             // Prepared outputs remain excluded and are never replayed.
-            observer?.activate(route.index,targetOwner.connection.id);
+            await observer?.activate(route.index,targetOwner.connection.id,options());
             const old=await before.connection.refresh(options());check(old.state==='retired','Original source must be durably retired');
             sources.retireConnection(before.connection.id);
             current[route.index]={connection:targetOwner.connection,role:intent.targetRole,video:intent.video,receiveVideo:intent.receiveVideo};
