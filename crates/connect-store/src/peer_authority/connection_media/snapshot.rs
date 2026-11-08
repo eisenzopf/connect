@@ -80,11 +80,34 @@ pub(super) struct Metadata {
     pub(super) unary: Memo<MediaFacts>,
     pub(super) paired: Memo<MediaFacts>,
 }
-pub(super) struct Memo<T>(Mutex<Vec<Entry<T>>>);
+pub(super) struct Memo<T>(Mutex<Vec<Entry<T>>>, #[cfg(test)] MemoCounts);
+#[cfg(test)]
+#[derive(Default)]
+struct MemoCounts {
+    derive: std::sync::atomic::AtomicU64,
+    hit: std::sync::atomic::AtomicU64,
+    publish: std::sync::atomic::AtomicU64,
+}
+enum ProjectionCapture<T> {
+    Owned(T),
+    Shared(Arc<(T, i64)>),
+}
+impl<T> ProjectionCapture<T> {
+    fn facts(&self) -> &T {
+        match self {
+            Self::Owned(facts) => facts,
+            Self::Shared(facts) => &facts.0,
+        }
+    }
+}
 const SOURCES_PER_OBSERVER: usize = 4;
 impl<T> Default for Memo<T> {
     fn default() -> Self {
-        Self(Mutex::new(Vec::new()))
+        Self(
+            Mutex::new(Vec::new()),
+            #[cfg(test)]
+            MemoCounts::default(),
+        )
     }
 }
 #[derive(Clone)]
@@ -312,7 +335,7 @@ impl Store {
         derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>, i64)>,
         finish: impl FnMut(&Connection, &T, Arc<AuthorityGuardSet>, i64) -> Result<U>,
     ) -> Result<U> {
-        self.current_packet_projection_with_custody(derive, finish, None)
+        self.current_packet_projection_with_custody(derive, finish, None, None)
     }
     /// Derive the same complete current facts and reseal the same SQL observer.
     /// Only an exact still-owned packet interval can replace file admission;
@@ -324,28 +347,100 @@ impl Store {
         held: &Arc<AuthorityGuardSet>,
         original_expiry: i64,
     ) -> Result<U> {
-        self.current_packet_projection_with_custody(derive, finish, Some((held, original_expiry)))
+        self.current_packet_projection_with_custody(
+            derive,
+            finish,
+            Some((held, original_expiry)),
+            None,
+        )
+    }
+    // Same compound boundary as uncached projection: the memo contains only
+    // immutable SQL facts. Every invocation still admits current authority and
+    // performs the original AFTER-finish database/clock seal.
+    pub(crate) fn try_memoized_current_packet_projection<T: Send + Sync + 'static, U>(
+        &self,
+        metadata: &(dyn std::any::Any + Send + Sync),
+        derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>, i64)>,
+        finish: impl FnMut(&Connection, &T, Arc<AuthorityGuardSet>, i64) -> Result<U>,
+        custody: Option<(&Arc<AuthorityGuardSet>, i64)>,
+    ) -> Result<U> {
+        let memo = metadata
+            .downcast_ref::<Memo<(T, i64)>>()
+            .ok_or_else(Error::storage)?;
+        self.current_packet_projection_with_custody(derive, finish, custody, Some(memo))
+    }
+    #[cfg(test)]
+    pub(crate) fn packet_projection_memo_counts_for_test<T: Send + Sync + 'static>(
+        metadata: &(dyn std::any::Any + Send + Sync),
+    ) -> [u64; 3] {
+        use std::sync::atomic::Ordering::Relaxed;
+        let memo = metadata.downcast_ref::<Memo<(T, i64)>>().unwrap();
+        [
+            memo.1.derive.load(Relaxed),
+            memo.1.hit.load(Relaxed),
+            memo.1.publish.load(Relaxed),
+        ]
     }
     fn current_packet_projection_with_custody<T, U>(
         &self,
         derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>, i64)>,
         mut finish: impl FnMut(&Connection, &T, Arc<AuthorityGuardSet>, i64) -> Result<U>,
         custody: Option<(&Arc<AuthorityGuardSet>, i64)>,
+        memo: Option<&Memo<(T, i64)>>,
     ) -> Result<U> {
         let derive = std::cell::RefCell::new(derive);
+        let captured = std::cell::RefCell::new(None::<Entry<(T, i64)>>);
+        let sealed_metadata = std::cell::RefCell::new(None::<Arc<(T, i64)>>);
         let expires = std::cell::Cell::new(custody.map_or(i64::MAX, |(_, expiry)| expiry));
         let capture = |c: &Connection, stamp| {
+            if let Some(memo) = memo {
+                let hit = memo.0.try_lock().ok().and_then(|entries| {
+                    entries
+                        .iter()
+                        .find(|entry| entry.matches(stamp, None))
+                        .map(|entry| (entry.facts.clone(), entry.scopes.clone()))
+                });
+                if let Some((facts, scopes)) = hit {
+                    expires.set(expires.get().min(facts.1));
+                    if crate::now() >= expires.get() {
+                        return Err(Error::forbidden());
+                    }
+                    #[cfg(test)]
+                    memo.1
+                        .hit
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    return Ok(((ProjectionCapture::Shared(facts), stamp), scopes));
+                }
+                #[cfg(test)]
+                memo.1
+                    .derive
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            }
             let (facts, scopes, until) = derive.borrow_mut()(c)?;
             expires.set(expires.get().min(until));
             if crate::now() >= expires.get() {
                 return Err(Error::forbidden());
             }
+            let facts = if memo.is_some() {
+                let facts = Arc::new((facts, until));
+                captured.replace(Some(Entry {
+                    version: stamp,
+                    source: None,
+                    facts: facts.clone(),
+                    scopes: scopes.clone(),
+                }));
+                ProjectionCapture::Shared(facts)
+            } else {
+                ProjectionCapture::Owned(facts)
+            };
             Ok(((facts, stamp), scopes))
         };
         let interval = std::cell::RefCell::new(None::<Arc<AuthorityGuardSet>>);
         let mut projection = None;
-        acquire_with_facts(
+        let observation = self.packet_connections.observe()?;
+        acquire_with_facts_at(
             self,
+            &observation,
             capture,
             |c, (facts, stamp)| {
                 let held = interval.borrow().clone().ok_or_else(Error::storage)?;
@@ -377,13 +472,16 @@ impl Store {
                     }
                     let value = finish(
                         c,
-                        fresh.as_ref().unwrap_or(facts),
+                        fresh.as_ref().unwrap_or(facts).facts(),
                         held.clone(),
                         expires.get(),
                     );
                     let after = version(c, stamp.connection)?;
                     if after == stamp {
                         projection = Some(value?);
+                        if let ProjectionCapture::Shared(facts) = fresh.as_ref().unwrap_or(facts) {
+                            sealed_metadata.replace(Some(facts.clone()));
+                        }
                         return Ok(());
                     }
                     // Even a completed compound read is discarded before any
@@ -416,6 +514,28 @@ impl Store {
                 Ok(held)
             },
         )?;
+        if let (Some(memo), Some(entry), Some(sealed)) = (
+            memo,
+            captured.borrow_mut().take(),
+            sealed_metadata.borrow_mut().take(),
+        ) {
+            if Arc::ptr_eq(&entry.facts, &sealed) {
+                if let Ok(mut entries) = memo.0.try_lock() {
+                    entries.retain(|old| {
+                        observation.current(old.version.connection)
+                            && old.version.connection != entry.version.connection
+                    });
+                    if entries.len() >= crate::packet_observation::OBSERVERS {
+                        entries.remove(0);
+                    }
+                    entries.push(entry);
+                    #[cfg(test)]
+                    memo.1
+                        .publish
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                }
+            }
+        }
         projection.ok_or_else(Error::storage)
     }
 

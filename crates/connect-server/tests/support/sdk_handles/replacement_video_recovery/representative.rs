@@ -1307,6 +1307,10 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
         wait_original_playout(&progress,&connections,began+Duration::from_secs(8)).await;
         // Warm up two genuine seconds before measuring the first preparation.
         tokio::time::sleep_until(began+Duration::from_secs(2)).await;
+        eprintln!(
+            "representative Store claim snapshot boundary=pre-preparation {}",
+            f.server.store.packet_observer_claim_diagnostics()
+        );
         let mut active_sources=connections.iter().map(|c|c.id().as_str().to_owned()).collect::<Vec<_>>();
         let mut active_progress=progress.clone();
         let mut previous_targets:[Option<usize>;2]=[None,None];
@@ -1376,7 +1380,13 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
                     tokio::time::sleep(Duration::from_millis(10)).await;
                 }
             }).await;
-            if ready.is_err() {for sid in 0..2 {eprintln!("representative candidate readiness deadline round={round} route={} progress={:?}",[0,4][sid],target_progress[first+sid].lock().unwrap());}}
+            if ready.is_err() {
+                eprintln!(
+                    "representative Store claim snapshot boundary=readiness-failure round={round} {}",
+                    f.server.store.packet_observer_claim_diagnostics()
+                );
+                for sid in 0..2 {eprintln!("representative candidate readiness deadline round={round} route={} progress={:?}",[0,4][sid],target_progress[first+sid].lock().unwrap());}
+            }
             ready.expect("both same original candidates require fresh real audio and fragmented decoded keys");
             let during=clone_progress(&active_progress);
             for index in 0..6 {
@@ -1533,6 +1543,10 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
             task_failures.push(format!("original SDK shutdown: {error}"));
         }
     }
+    eprintln!(
+        "representative Store claim snapshot boundary=terminal {}",
+        f.server.store.packet_observer_claim_diagnostics()
+    );
     let shutdown = f.server.shutdown().await;
     if let Err(panic) = work {
         std::panic::resume_unwind(panic);

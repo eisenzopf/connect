@@ -27,6 +27,7 @@ pub use consultation_sip::{SipAudienceOrigin, SipAudienceRead};
 mod handoff;
 mod handoff_lifetime;
 mod replacement;
+pub(crate) use replacement::NativeReplacementPacketFacts;
 mod replacement_activation;
 mod replacement_continuation;
 pub(crate) use replacement_activation::ReplacementActivationInput;

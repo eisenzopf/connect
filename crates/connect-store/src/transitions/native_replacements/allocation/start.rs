@@ -2,6 +2,7 @@
 //! A resource fact is not duplex readiness, endpoint confirmation or movement.
 use super::*;
 mod audience;
+mod metadata;
 pub use audience::NativeReplacementAudienceCapture;
 mod commit;
 mod phase;
@@ -56,6 +57,7 @@ pub struct NativeReplacementStarted {
 /// Immutable captured provenance only. Each resource use needs a fresh reader.
 pub struct NativeReplacementMediaOrigin {
     started: Arc<NativeReplacementStarted>,
+    metadata: metadata::Metadata,
 }
 pub struct NativeReplacementMediaRead {
     source: NativeReplacementPreparationRead,
@@ -140,9 +142,25 @@ fn projection(
     saved: &serde_json::Value,
     descriptor: &serde_json::Value,
 ) -> Result<PeerConnectionProjection> {
-    let ctx = read.context();
     let original = read.source();
-    let mut session = original.session().clone();
+    projection_from_facts(
+        read.context(),
+        original.session(),
+        original.accepted_capabilities(),
+        member,
+        saved,
+        descriptor,
+    )
+}
+fn projection_from_facts(
+    ctx: &crate::NativeReplacementContext,
+    original_session: &crate::PeerSessionProjection,
+    accepted: &serde_json::Value,
+    member: connect_protocol::membership::MemberView,
+    saved: &serde_json::Value,
+    descriptor: &serde_json::Value,
+) -> Result<PeerConnectionProjection> {
+    let mut session = original_session.clone();
     session.actor = member;
     Ok(PeerConnectionProjection {
         session,
@@ -173,7 +191,7 @@ fn projection(
             .filter(|v| matches!(v.as_str(), "audio" | "video" | "data"))
             .cloned()
             .collect(),
-        accepted_capabilities: original.accepted_capabilities().clone(),
+        accepted_capabilities: accepted.clone(),
         presence_role: ctx.role.clone(),
         offer: descriptor["intent"]["offer"].clone(),
         private_consultation: None,
@@ -392,7 +410,8 @@ impl Store {
         &self,
         started: Arc<NativeReplacementStarted>,
     ) -> Result<Arc<NativeReplacementMediaOrigin>> {
-        let origin = Arc::new(NativeReplacementMediaOrigin { started });
+        let metadata = metadata::Metadata::new(&started);
+        let origin = Arc::new(NativeReplacementMediaOrigin { started, metadata });
         let c = self.try_connection()?;
         media_facts(self, &c, &origin)?;
         drop(c);
@@ -421,6 +440,19 @@ impl Store {
         origin: &NativeReplacementMediaOrigin,
         receiver_epoch: bool,
     ) -> Result<NativeReplacementMediaRead> {
+        if matches!(
+            origin
+                .started
+                .attempt
+                .allocated
+                .attempt
+                .prepared
+                .selection
+                .source(),
+            crate::NativeReplacementSourceOrigin::Native(_)
+        ) {
+            return metadata::media(self, origin, receiver_epoch);
+        }
         // Decoder input/output must not race command/status SQL custody. Use
         // the same independently observed, version-sealed current admission as
         // ordinary packets, then build every source/retained/target fact under
@@ -467,8 +499,8 @@ pub(super) fn media_facts(
     media_facts_with_packet_capture(store, c, origin, None)
 }
 
-// Private to this module. Some is supplied only inside the exact-version scene
-// capture callback below; generic media/start/control callers retain their
+// Private to this module. Some is supplied only inside an exact-version native
+// packet capture callback; generic start/control callers retain their
 // existing independent context and scope resolution with None.
 fn media_facts_with_packet_capture(
     store: &Store,
@@ -739,7 +771,7 @@ impl Store {
         let read = self.native_replacement_scene_read_with_custody(
             origin,
             sources,
-            Some((&interval, held_source.expires_at())),
+            Some((&interval, held_source.expires_at(), packet_source)),
         )?;
         // Recheck the original owner after complete construction, including a
         // real policy-clock edge. No fresh capture may renew its earlier bound.
@@ -753,8 +785,21 @@ impl Store {
         &self,
         origin: &NativeReplacementMediaOrigin,
         sources: &[Arc<crate::NativeMediaOrigin>],
-        custody: Option<(&Arc<AuthorityGuardSet>, i64)>,
+        custody: Option<(&Arc<AuthorityGuardSet>, i64, &crate::NativeMediaOrigin)>,
     ) -> Result<NativeReplacementSceneRead> {
+        if matches!(
+            origin
+                .started
+                .attempt
+                .allocated
+                .attempt
+                .prepared
+                .selection
+                .source(),
+            crate::NativeReplacementSourceOrigin::Native(_)
+        ) {
+            return metadata::scene(self, origin, sources, custody);
+        }
         let prepared = &origin.started.attempt.allocated.attempt.prepared;
         // Continue on independent current SQL observers, even while command
         // status/watch owns its connection. Derive every scene scope before one
@@ -896,7 +941,7 @@ impl Store {
             })
         };
         match custody {
-            Some((held, expiry)) => {
+            Some((held, expiry, _)) => {
                 self.try_current_packet_projection_under(derive, finish, held, expiry)
             }
             None => self.try_current_packet_projection(derive, finish),

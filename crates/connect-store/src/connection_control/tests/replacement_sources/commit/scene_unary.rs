@@ -619,3 +619,371 @@ fn packet_scene_actor_reuse_cannot_outlive_original_credential_expiry_at_clock_r
     );
     assert_eq!(counts(&m), before);
 }
+
+fn memo_observer_except(
+    m: &Movement,
+    selected: usize,
+) -> Vec<std::sync::MutexGuard<'_, crate::packet_observation::Slot>> {
+    m.f.store
+        .packet_connections
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| *index != selected)
+        .map(|(_, slot)| slot.lock().unwrap())
+        .collect()
+}
+
+fn actual_scene_memo_hit(m: &Movement, sources: &[Arc<NativeMediaOrigin>]) {
+    // A policy-second boundary legitimately invalidates metadata. Bound this
+    // actual-hit control without changing clocks or accepting all-cold reads.
+    for _ in 0..4 {
+        let before = m.origin.packet_memo_counts_for_test();
+        drop(
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, sources)
+                .unwrap(),
+        );
+        let after = m.origin.packet_memo_counts_for_test();
+        if after[1] > before[1] {
+            return;
+        }
+    }
+    panic!("no actual exact-observer compound metadata hit");
+}
+
+#[test]
+fn current_replacement_memo_hits_each_original_observer_with_fresh_authority_and_equal_facts() {
+    let m = scene();
+    let before = counts(&m);
+    let snapshot = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    for selected in 0..crate::packet_observation::OBSERVERS {
+        let occupied = memo_observer_except(&m, selected);
+        let cold =
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .unwrap();
+        let target = fingerprint(cold.media().target());
+        let pairs = m
+            .sources
+            .iter()
+            .map(|source| {
+                let read = cold.existing(source.runtime_connection_id(), None).unwrap();
+                (
+                    source.runtime_connection_id().to_owned(),
+                    fingerprint(read.target()),
+                    read.permits_subscriptions(),
+                )
+            })
+            .collect::<Vec<_>>();
+        drop(cold);
+        actual_scene_memo_hit(&m, &m.sources);
+        let admitted = m.f.store.authority.test_admission_attempts();
+        let warm =
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .unwrap();
+        assert_eq!(
+            m.f.store.authority.test_admission_attempts() - admitted,
+            1,
+            "metadata must never lend an old reader"
+        );
+        assert_eq!(fingerprint(warm.media().target()), target);
+        for (id, expected, may) in pairs {
+            let actual = warm.existing(&id, None).unwrap();
+            assert_eq!(fingerprint(actual.target()), expected);
+            assert_eq!(actual.permits_subscriptions(), may);
+        }
+        assert!(warm.current());
+        drop(warm);
+        drop(occupied);
+    }
+    assert_eq!(counts(&m), before);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), snapshot);
+}
+
+#[test]
+fn current_replacement_memo_hit_rechecks_independent_commit_revocation_expiry_and_writer() {
+    for change in ["revoke", "expire", "generation", "writer"] {
+        let m = scene();
+        let occupied = memo_observer_except(&m, 0);
+        actual_scene_memo_hit(&m, &m.sources);
+        let before = counts(&m);
+        let writer = if change == "writer" {
+            Some(
+                m.f.store
+                    .try_acquire_authority(&[crate::AuthorityScope::conversation(
+                        &m.f.cid,
+                        crate::AuthorityMode::Write,
+                    )
+                    .unwrap()])
+                    .unwrap(),
+            )
+        } else {
+            None
+        };
+        if writer.is_none() {
+            // Independent SQL handle advances this original observer's
+            // data_version. Current positive facts may never survive it.
+            let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
+            match change {
+                "revoke" => {
+                    external
+                        .execute(
+                            "UPDATE credentials SET revoked=1 WHERE id=?1",
+                            [&m.f.keys[2]],
+                        )
+                        .unwrap();
+                }
+                "expire" => {
+                    external
+                        .execute(
+                            "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+                            params![m.f.keys[2], crate::now() - 1],
+                        )
+                        .unwrap();
+                }
+                "generation" => {
+                    external
+                        .execute(
+                            "UPDATE connections SET generation=generation+1 WHERE id=?1",
+                            [m.sources[2].connection_id()],
+                        )
+                        .unwrap();
+                }
+                _ => unreachable!(),
+            }
+        }
+        assert!(
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .is_err(),
+            "{change}"
+        );
+        assert_eq!(counts(&m), before);
+        drop(writer);
+        drop(occupied);
+    }
+}
+
+#[test]
+fn current_replacement_memos_separate_purpose_order_source_subset_and_actual_held_packet() {
+    let m = scene();
+    let occupied = memo_observer_except(&m, 0);
+    let before = counts(&m);
+    drop(
+        m.f.store
+            .try_native_replacement_media_read(&m.origin)
+            .unwrap(),
+    );
+    let unary = m.origin.packet_memo_counts_for_test();
+    drop(
+        m.f.store
+            .try_native_replacement_receiver_epoch_read(&m.origin)
+            .unwrap(),
+    );
+    let epoch = m.origin.packet_memo_counts_for_test();
+    assert!(epoch[0] > unary[0], "receiver purpose borrowed unary facts");
+    let mut actual_receiver_hit = false;
+    for _ in 0..4 {
+        let old = m.origin.packet_memo_counts_for_test();
+        drop(
+            m.f.store
+                .try_native_replacement_receiver_epoch_read(&m.origin)
+                .unwrap(),
+        );
+        if m.origin.packet_memo_counts_for_test()[1] > old[1] {
+            actual_receiver_hit = true;
+            break;
+        }
+    }
+    assert!(
+        actual_receiver_hit,
+        "receiver purpose did not reach its own memo hit"
+    );
+    let full =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let candidate = full.media().target().runtime_connection_id.clone();
+    assert!(full.permits_receive(&candidate, m.sources[2].runtime_connection_id()));
+    drop(full);
+    assert_eq!(m.origin.packet_scene_memo_keys_for_test(), 1);
+    let held =
+        m.f.store
+            .try_native_media_read(&m.sources[2], None)
+            .unwrap();
+    let packet =
+        m.f.store
+            .try_native_replacement_scene_read_under(&m.origin, &m.sources, &m.sources[2], &held)
+            .unwrap();
+    assert!(packet.current());
+    assert!(Arc::ptr_eq(
+        packet
+            .media()
+            .source()
+            .source()
+            .native()
+            .unwrap()
+            .interval(),
+        held.interval()
+    ));
+    drop(packet);
+    assert_eq!(
+        m.origin.packet_scene_memo_keys_for_test(),
+        2,
+        "fresh source sets and actual packet custody need distinct keys"
+    );
+    let held_first =
+        m.f.store
+            .try_native_media_read(&m.sources[0], None)
+            .unwrap();
+    drop(
+        m.f.store
+            .try_native_replacement_scene_read_under(
+                &m.origin,
+                &m.sources,
+                &m.sources[0],
+                &held_first,
+            )
+            .unwrap(),
+    );
+    assert_eq!(
+        m.origin.packet_scene_memo_keys_for_test(),
+        3,
+        "a different actual held packet index must not alias the prior packet key"
+    );
+    drop(held_first);
+    let subset = &m.sources[..2];
+    let reduced =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, subset)
+            .unwrap();
+    assert!(reduced
+        .existing(m.sources[2].runtime_connection_id(), None)
+        .is_none());
+    assert!(!reduced.permits_receive(&candidate, m.sources[2].runtime_connection_id()));
+    drop(reduced);
+    assert_eq!(m.origin.packet_scene_memo_keys_for_test(), 4);
+    let mut reordered = m.sources.clone();
+    reordered.swap(0, 1);
+    actual_scene_memo_hit(&m, &reordered);
+    assert_eq!(m.origin.packet_scene_memo_keys_for_test(), 4);
+    let foreign = scene();
+    let foreign_held = foreign
+        .f
+        .store
+        .try_native_media_read(&foreign.sources[2], None)
+        .unwrap();
+    assert!(m
+        .f
+        .store
+        .try_native_replacement_scene_read_under(
+            &m.origin,
+            &m.sources,
+            &m.sources[2],
+            &foreign_held
+        )
+        .is_err());
+    assert!(m
+        .f
+        .store
+        .try_native_replacement_scene_read_under(&m.origin, &m.sources, &m.sources[1], &held)
+        .is_err());
+    assert_eq!(counts(&m), before);
+
+    // A third, independently supplied scene source can end before either
+    // replacement source. Even nested grants must retain this earlier bound.
+    let earlier = scene();
+    let _earlier_occupied = memo_observer_except(&earlier, 0);
+    let original = earlier
+        .f
+        .store
+        .try_native_replacement_media_read(&earlier.origin)
+        .unwrap();
+    let short_expiry = original
+        .source()
+        .source()
+        .expires_at()
+        .min(original.source().retained().expires_at())
+        - 1;
+    assert!(
+        short_expiry > crate::now(),
+        "original packet interval already ended"
+    );
+    assert!(original.source().source().expires_at() > short_expiry);
+    assert!(original.source().retained().expires_at() > short_expiry);
+    drop(original);
+    let external = rusqlite::Connection::open(earlier.f.store.path()).unwrap();
+    external
+        .execute(
+            "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+            params![earlier.f.keys[2], short_expiry],
+        )
+        .unwrap();
+    actual_scene_memo_hit(&earlier, &earlier.sources);
+    let read = earlier
+        .f
+        .store
+        .try_native_replacement_scene_read(&earlier.origin, &earlier.sources)
+        .unwrap();
+    assert!(read.current());
+    let preparation = read.media().source();
+    assert!(preparation.expires_at() <= short_expiry);
+    assert!(preparation.source().expires_at() <= preparation.expires_at());
+    assert!(preparation.retained().expires_at() <= preparation.expires_at());
+}
+
+#[test]
+fn current_replacement_scene_memo_keys_are_bounded_and_do_not_retain_original_source_arcs() {
+    let m = scene();
+    let occupied = memo_observer_except(&m, 0);
+    let before = counts(&m);
+    let counts_before = m.sources.iter().map(Arc::strong_count).collect::<Vec<_>>();
+    actual_scene_memo_hit(&m, &m.sources);
+    assert_eq!(
+        m.sources.iter().map(Arc::strong_count).collect::<Vec<_>>(),
+        counts_before
+    );
+    for index in 0..12 {
+        let mut originals = m.sources.clone();
+        // A distinct exact origin Arc with the same current SQL attribution is
+        // not the previous key. Its memo can retain only a Weak key.
+        originals[2] = Arc::new((*m.sources[2]).clone());
+        let last = Arc::downgrade(&originals[2]);
+        let before_clone = m.origin.packet_memo_counts_for_test();
+        drop(
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &originals)
+                .unwrap(),
+        );
+        if index == 0 {
+            assert_eq!(
+                m.origin.packet_scene_memo_keys_for_test(),
+                2,
+                "same-ID distinct exact source Arc must not alias the original key"
+            );
+            assert!(
+                m.origin.packet_memo_counts_for_test()[0] > before_clone[0],
+                "a distinct exact-source key borrowed the original raw facts"
+            );
+        }
+        assert!(m.origin.packet_scene_memo_keys_for_test() <= 4);
+        drop(originals);
+        assert!(
+            last.upgrade().is_none(),
+            "metadata retained the original source owner"
+        );
+    }
+    actual_scene_memo_hit(&m, &m.sources);
+    assert_eq!(
+        m.origin.packet_scene_memo_keys_for_test(),
+        1,
+        "dead exact source keys must be retired at the next ordinary lookup"
+    );
+    assert_eq!(
+        m.sources.iter().map(Arc::strong_count).collect::<Vec<_>>(),
+        counts_before
+    );
+    assert_eq!(counts(&m), before);
+    drop(occupied);
+}

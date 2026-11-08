@@ -969,3 +969,175 @@ fn packet_sql_observers_are_read_only_and_release_after_saturation() {
 mod full_custody;
 
 mod slot_reservation;
+
+#[test]
+fn memoized_compound_hit_reseals_after_finish_and_never_publishes_a_cross_commit() {
+    for refused in [false, true] {
+        let f = Fixture::new();
+        let _occupied = f
+            .store
+            .packet_connections
+            .iter()
+            .skip(1)
+            .map(|slot| slot.lock().unwrap())
+            .collect::<Vec<_>>();
+        let memo = Store::new_packet_projection_metadata::<(i64, i64)>();
+        let external = Connection::open(f.store.path()).unwrap();
+        let derive = |c: &Connection| f.derive(c).map(|(v, s)| (v, s, crate::now() + 5));
+        f.store
+            .try_memoized_current_packet_projection(&*memo, derive, |_, _, _, _| Ok(()), None)
+            .unwrap();
+        let mut witnessed = false;
+        for _ in 0..4 {
+            let before = Store::packet_projection_memo_counts_for_test::<i64>(&*memo);
+            let result = f.store.try_memoized_current_packet_projection(
+                &*memo,
+                derive,
+                |_, facts, held, _| {
+                    if Store::packet_projection_memo_counts_for_test::<i64>(&*memo)[1] > before[1] {
+                        witnessed = true;
+                        assert_eq!(*facts, 1);
+                        assert!(f.store.authority_covers(&held, &[f.read.clone()]));
+                        external
+                            .execute("UPDATE packet_snapshot_test SET value=2", [])
+                            .unwrap();
+                        if refused {
+                            return Err(Error::forbidden());
+                        }
+                    }
+                    Ok(())
+                },
+                None,
+            );
+            if witnessed {
+                assert_eq!(result.unwrap_err().code, "authority-busy");
+                let after = Store::packet_projection_memo_counts_for_test::<i64>(&*memo);
+                assert_eq!(after[2], before[2], "unsealed capture was published");
+                break;
+            }
+            result.unwrap();
+        }
+        assert!(
+            witnessed,
+            "the commit control never reached a real memo hit"
+        );
+        drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());
+        let value = f
+            .store
+            .try_memoized_current_packet_projection(
+                &*memo,
+                derive,
+                |_, facts, _, _| Ok(*facts),
+                None,
+            )
+            .unwrap();
+        assert_eq!(value, 2, "external commit reused stale positive metadata");
+    }
+}
+
+#[test]
+fn memoized_compound_hit_clock_reconstruction_keeps_original_interval_expiry_and_writer_fence() {
+    let f = Fixture::new();
+    let _occupied = f
+        .store
+        .packet_connections
+        .iter()
+        .skip(1)
+        .map(|slot| slot.lock().unwrap())
+        .collect::<Vec<_>>();
+    let memo = Store::new_packet_projection_metadata::<(i64, i64)>();
+    let expiries = std::cell::RefCell::new(Vec::new());
+    let derive = |c: &Connection| {
+        let (facts, scopes) = f.derive(c)?;
+        let expiry = crate::now() + 5;
+        expiries.borrow_mut().push(expiry);
+        Ok((facts, scopes, expiry))
+    };
+    f.store
+        .try_memoized_current_packet_projection(&*memo, derive, |_, _, _, _| Ok(()), None)
+        .unwrap();
+    // Declared before all retained interval/result references: unwind releases
+    // those references first, then joins the original bounded writer.
+    struct OriginalWriter(Option<std::thread::JoinHandle<Result<Arc<AuthorityGuardSet>>>>);
+    impl Drop for OriginalWriter {
+        fn drop(&mut self) {
+            if let Some(writer) = self.0.take() {
+                drop(writer.join());
+            }
+        }
+    }
+    let mut writer = OriginalWriter(None);
+    let mut original_interval = None;
+    let mut original_expiry = None;
+    let calls = std::cell::Cell::new(0);
+    let mut final_result = None;
+    for _ in 0..4 {
+        let before = Store::packet_projection_memo_counts_for_test::<i64>(&*memo);
+        let result = f.store.try_memoized_current_packet_projection(
+            &*memo,
+            derive,
+            |_, facts, held, expiry| {
+                if original_interval.is_none()
+                    && Store::packet_projection_memo_counts_for_test::<i64>(&*memo)[1] > before[1]
+                {
+                    original_interval = Some(held.clone());
+                    original_expiry = Some(expiry);
+                    let store = f.store.clone();
+                    let scope = f.write.clone();
+                    writer.0 = Some(std::thread::spawn(move || {
+                        store.acquire_authority(
+                            &[scope],
+                            &crate::AuthorityWait::new(Duration::from_secs(2)),
+                        )
+                    }));
+                    let until = Instant::now() + Duration::from_millis(500);
+                    while f.store.try_acquire_authority(&[f.read.clone()]).is_ok() {
+                        assert!(Instant::now() < until, "writer never queued");
+                        std::thread::yield_now();
+                    }
+                    let second = crate::now();
+                    let clock_cutoff = Instant::now() + Duration::from_millis(1200);
+                    while crate::now() == second {
+                        assert!(
+                            Instant::now() < clock_cutoff,
+                            "policy clock did not advance"
+                        );
+                        std::thread::sleep(Duration::from_millis(2));
+                    }
+                }
+                if let Some(original) = &original_interval {
+                    calls.set(calls.get() + 1);
+                    assert!(Arc::ptr_eq(original, &held));
+                    assert_eq!(
+                        Some(expiry),
+                        original_expiry,
+                        "clock reconstruction renewed expiry"
+                    );
+                }
+                Ok((*facts, held, expiry))
+            },
+            None,
+        );
+        if original_interval.is_some() {
+            final_result = Some(result);
+            break;
+        }
+        drop(result.unwrap());
+    }
+    drop(original_interval);
+    let result = final_result.expect("no actual memo-hit clock boundary");
+    let writer = writer
+        .0
+        .take()
+        .expect("clock control did not queue its original writer");
+    let was_blocked = !writer.is_finished();
+    let value = result.as_ref().map(|v| v.0).ok();
+    let expiry = result.as_ref().map(|v| v.2).ok();
+    drop(result);
+    let joined = writer.join().unwrap().unwrap();
+    drop(joined);
+    assert!(was_blocked, "writer escaped original live interval");
+    assert_eq!(value, Some(1));
+    assert!(calls.get() >= 2 && calls.get() <= 3);
+    assert!(expiries.borrow().iter().any(|later| Some(*later) > expiry));
+}

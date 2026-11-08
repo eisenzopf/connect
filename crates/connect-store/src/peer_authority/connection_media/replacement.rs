@@ -209,6 +209,64 @@ impl NativeReplacementSelection {
         read.limit(expires)?;
         Ok(read)
     }
+    pub(crate) fn require_native_packet_runtime(&self, store: &Store) -> Result<()> {
+        let owner = store.require_runtime_owner()?;
+        if self.origin.runtime != store.runtime_epoch()
+            || !self
+                .origin
+                .owner
+                .upgrade()
+                .is_some_and(|old| Arc::ptr_eq(&old, &owner))
+        {
+            return Err(Error::forbidden());
+        }
+        let NativeReplacementSourceOrigin::Native(source) = &self.source else {
+            return Err(Error::forbidden());
+        };
+        source.require_runtime(store)?;
+        self.retained.require_runtime(store)
+    }
+    // Private immutable SQL data for exact-version packet construction. This
+    // type owns no origin, owner, observer, reader, execution or IO lifetime.
+    pub(crate) fn native_packet_facts(
+        &self,
+        store: &Store,
+        c: &Connection,
+    ) -> Result<NativeReplacementPacketFacts> {
+        if !matches!(&self.source, NativeReplacementSourceOrigin::Native(_)) {
+            return Err(Error::forbidden());
+        }
+        Ok(NativeReplacementPacketFacts(resolve(
+            store,
+            c,
+            &self.origin,
+            &self.source,
+            &self.retained,
+        )?))
+    }
+    pub(crate) fn read_native_packet_facts(
+        &self,
+        store: &Store,
+        facts: &NativeReplacementPacketFacts,
+        held: Arc<AuthorityGuardSet>,
+        expires: i64,
+    ) -> Result<NativeReplacementPreparationRead> {
+        let NativeReplacementSourceOrigin::Native(source) = &self.source else {
+            return Err(Error::forbidden());
+        };
+        source.require_runtime(store)?;
+        self.retained.require_runtime(store)?;
+        if !store.authority_covers(&held, &facts.0.scopes) {
+            return Err(Error::forbidden());
+        }
+        let mut resolved = facts.0.clone();
+        // The compound scene/caller interval may expire before either source.
+        // Every nested read must carry that same original upper bound.
+        resolved.expires_at = resolved.expires_at.min(expires);
+        let mut read = make_native_read(store, self.clone(), resolved, held)?;
+        read.limit(expires)?;
+        Ok(read)
+    }
     pub(crate) fn snapshot(&self) -> serde_json::Value {
         serde_json::json!({"source":self.source.snapshot(),"retained":returns::describe(&self.retained)})
     }
@@ -255,6 +313,23 @@ impl NativeReplacementSelection {
         Ok(resolve(store, c, &self.origin, &self.source, &self.retained)?.context)
     }
 }
+#[derive(Clone)]
+pub(crate) struct NativeReplacementPacketFacts(Resolved);
+impl NativeReplacementPacketFacts {
+    pub(crate) fn context(&self) -> &NativeReplacementContext {
+        &self.0.context
+    }
+    pub(crate) fn scopes(&self) -> &[AuthorityScope] {
+        &self.0.scopes
+    }
+    pub(crate) fn expires_at(&self) -> i64 {
+        self.0.expires_at
+    }
+    pub(crate) fn source(&self) -> &PeerConnectionProjection {
+        self.0.source.as_ref().expect("native-only captured source")
+    }
+}
+#[derive(Clone)]
 struct Resolved {
     context: NativeReplacementContext,
     caller: PeerSessionProjection,
@@ -405,6 +480,9 @@ fn make_read(
     resolved: Resolved,
     held: Arc<AuthorityGuardSet>,
 ) -> Result<NativeReplacementPreparationRead> {
+    if matches!(&selection.source, NativeReplacementSourceOrigin::Native(_)) {
+        return make_native_read(store, selection, resolved, held);
+    }
     let owner = store.require_runtime_owner()?;
     let make = |target, may_subscribe| NativeMediaRead {
         target,
@@ -449,5 +527,34 @@ fn make_read(
         source,
         retained: make(resolved.retained, resolved.subscriptions[1]),
         expires_at,
+    })
+}
+
+fn make_native_read(
+    store: &Store,
+    selection: NativeReplacementSelection,
+    resolved: Resolved,
+    held: Arc<AuthorityGuardSet>,
+) -> Result<NativeReplacementPreparationRead> {
+    let owner = store.require_runtime_owner()?;
+    let make = |target, may_subscribe| NativeMediaRead {
+        target,
+        source: None,
+        _scopes: held.clone(),
+        owner: owner.clone(),
+        expires_at: resolved.expires_at,
+        may_subscribe,
+    };
+    let source = NativeReplacementSourceRead::Native(make(
+        resolved.source.ok_or_else(Error::forbidden)?,
+        resolved.subscriptions[0],
+    ));
+    Ok(NativeReplacementPreparationRead {
+        selection,
+        context: resolved.context,
+        caller: resolved.caller,
+        source,
+        retained: make(resolved.retained, resolved.subscriptions[1]),
+        expires_at: resolved.expires_at,
     })
 }

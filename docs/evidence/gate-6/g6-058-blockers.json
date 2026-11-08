@@ -780,10 +780,10 @@
     {
       "id": "B94",
       "title": "Prior focused tests do not reproduce six-source concurrent handoffs",
-      "status": "34 distinct focused Rust controls have recorded passes; genuine six-source release verification remains pending.",
-      "change": "The initial endpoint-install policy releases scene, registry and controller guards, then revalidates exact ownership, activation and lease expiry. Immediate visual forwarding borrows only its live source lease while independently authorizing the target; queued media retains no source reader. Three new Core controls and all ten related audio/Probe controls pass in dev mode. Both isolated old-production positive controls fail at their intended assertions.",
-      "evidence": "Actual13/13 after-controls passed with unchanged source and all original command/controller joins (receiptff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa). Isolated old362 production plus the same new tests produced exactly0passed/2failed/0ignored, natural101 exits, with source unchanged and all joins; original raw failure flags remain intact (receipta1ccf7667755d38a136f0003f38bad928a48d1c7ec34e0d2206e6a0d42c9cccc). The independent before/after comparison64246ae9143ab589a82219617f3792e84d68c12be8031025cfbe265a80cce792 verifies the three blocked guards and missing immediate source-context callback. Latest native phase diagnostic remained0/1 (receiptcaba4fe267d431291c6aeeef3e0c4504d717b1bfabc73c3a0c67442bb7486c5d): both target installations succeeded but private video never reached the writer. These media artifacts were opt-level0/debug assertions, whereas the matrix requires release opt-level3; dev timing cannot establish release throughput failure. The34 distinct component passes are separate source-bound attempts, not a fresh250-case cohort or matrix qualification.",
-      "next": "Run the same genuine six-source/four-move case in release mode with verified Core/Service/Store and test-harness profiles, unchanged8s movement and200ms packet limits, bounded runtime, and physical disk reserve. Heap/Chrome remain held until native passes; no new cell or matrix. Separate G6-098 soak remains pending."
+      "status": "110 distinct focused Rust controls have recorded passes, including76 current Store controls; genuine six-source release verification of the memo remains pending.",
+      "change": "The initial endpoint-install policy releases scene, registry and controller guards, then revalidates exact ownership, activation and lease expiry. Immediate visual forwarding borrows only its live source lease while independently authorizing the target; queued media retains no source reader. Three new Core controls and all ten related audio/Probe controls pass in dev mode. Both isolated old-production positive controls fail at their intended assertions. Native replacement unary, receiver-epoch and complete ordered scene metadata now use bounded immutable facts keyed to original Weak owners and exact observer/SQL/clock versions. Every hit obtains fresh current authorization or validates exact original custody, rebuilds readers with the earliest outer and nested expiry, and retains the after-finish version seal. No reader or execution owner is cached.",
+      "evidence": "Three new Core controls and ten related audio/Probe controls passed13/13 (receiptff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa). The same new positive controls fail against isolated old362 production at the intended assertions; raw0/2 failure flags are preserved (comparative proof64246ae9143ab589a82219617f3792e84d68c12be8031025cfbe265a80cce792). Genuine RELEASE integration now failed0/1 in13.99s with actual Core/Service/Store and harness opt-level3/debug-assertionsfalse, unchanged source and all original command/controller joins (receipt6a0d01415a36d1cd899ab4b510ab1027d94a05f3d76d28f948dbf5e6e3cf6a28). Both first candidates received some video packets but decoded no keyframe; their final consecutive usable audio run was960 samples, below2880. All six original receivers stalled during preparation. Route counters showed46/96 enqueues but5/19 native video writer inputs, all locally accepted; these are different stages/observation windows, not packet-loss ratios. Direct scene stages reached332/339ms. This establishes a release-profile delivery/admission performance failure, while its precise CPU/SQL/file source remains under investigation.34 distinct component passes are not a fresh250-case cohort or matrix qualification. One bounded same-case release profile also failed0/1 with unchanged source and all joins (receiptbb953c8dc61b58260c2b7969de31aa4d20381fe7de658c1e2299d5dd6de0750a). Fixed Store snapshots show all4slots in capture at readiness failure and0after cleanup; completed capture claim mean14.33ms, actual SQL-held capture mean7.15ms and reseal mean5.66ms, versus file-admit mean0.552ms. These are concurrent completed-interval observations, not CPU time. The sampler exited0naturally and retained a complete30.9MB report, but its collector16MiB post-limit is failed and preserved. Stack observations identify both SQLite planning/execution and authority open/access paths; no new source fix or profiling pass is claimed. The integrated Store memo passed normal --tests typechecking, all six new actual-hit controls and70 retained authorization, receiver, source-set, custody, compound-reseal and slot controls (76 actual passes,0ignored; audit8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23). The raw recorder retains three same-line identity false negatives caused by nocapture output, including one exact known child test; a strict separate identity/count/exit audit verifies all76 natural passes without rerunning them. Disabling only the compound memo-hit branch makes all six new controls fail at their actual-hit assertions; raw failure verdicts remain preserved (comparisonb8ed287657fb6c07f72737bbfadc7271a9633d65be236c5341835ee3cac95b11). Restoring exact source makes all six pass again (receiptdc1d6e977a547489a1daa7a77446623175199ef12d8f7ac6e9fcd954696f5207). A subsequently removed unused getter changed no call path; normal --tests typechecking passed after that deletion (receipt2a1aa075e7a451e16659f3ad2b15abe4f097afb02cc3a1a36e4882ec5dc298f3). All original command groups joined unforced and each attempt kept its sealed source unchanged. These are logical DEV checks, not production throughput evidence.",
+      "next": "Commit the source-verified Store memo and rerun the same genuine six-source RELEASE case with unchanged8s/200ms/media bars and actual profile evidence. Heap/Chrome/cell/matrix runs stay held until native readiness and all four moves pass. Separate G6-098 soak remains pending."
     },
     {
       "id": "B95",
@@ -1034,11 +1034,25 @@
       "passed": 0,
       "failed": 1,
       "phase": "Both initial target installs succeed; post-install private video has no writer input. DEV profile only; release media timing remains unverified."
+    },
+    {
+      "receipt_sha256": "6a0d01415a36d1cd899ab4b510ab1027d94a05f3d76d28f948dbf5e6e3cf6a28",
+      "executed": 1,
+      "passed": 0,
+      "failed": 1,
+      "phase": "Actual release profiles proven; first private candidates lack complete keys and consecutive audio while all original receivers stall. No movement completed."
+    },
+    {
+      "receipt_sha256": "bb953c8dc61b58260c2b7969de31aa4d20381fe7de658c1e2299d5dd6de0750a",
+      "executed": 1,
+      "passed": 0,
+      "failed": 1,
+      "phase": "One bounded release profile confirms original failure; sample complete/natural0 but collector over-limit failed flag preserved; SQL-held/capture and authority-file hotspots remain."
     }
   ],
   "focused_distinct_rust_component_passes": {
-    "count": 34,
-    "scope": "Separate source-bound focused attempts, not a combined current cohort or matrix qualification",
+    "count": 110,
+    "scope": "110 distinct cases across separate source-bound focused attempts; latest Store cohort76, not a fresh256-case combined cohort or matrix qualification",
     "cases": [
       {
         "name": "staged_streams::tests::packet_admission::local_audio_enqueue_and_actual_send_policy_release_state_and_keep_neutral_origin",
@@ -1209,6 +1223,462 @@
         "name": "staged_streams::tests::packet_admission::immediate_video_forward_borrows_only_live_original_source_context_and_rechecks_recipient",
         "receipt_sha256": "ff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa",
         "source_workspace_sha256": "a5a5ba1c8df3d36a09efc8cee07d6fe8fa413680d822e6357d76f385f9adad97"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::memoized_compound_hit_reseals_after_finish_and_never_publishes_a_cross_commit",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::memoized_compound_hit_clock_reconstruction_keeps_original_interval_expiry_and_writer_fence",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::current_replacement_memo_hits_each_original_observer_with_fresh_authority_and_equal_facts",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::current_replacement_memo_hit_rechecks_independent_commit_revocation_expiry_and_writer",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::current_replacement_memos_separate_purpose_order_source_subset_and_actual_held_packet",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::current_replacement_scene_memo_keys_are_bounded_and_do_not_retain_original_source_arcs",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::actual_child_death_releases_kernel_reader_without_persistent_phantom_authority",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::actual_child_process_revocation_waits_for_parent_delivery_guard_and_admin_open_preserves_runtime",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::actual_key_and_device_retirement_wait_for_current_identity_delivery",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admission_trace::immediate_kernel_admission_and_resource_contention_emit_distinct_causes_after_release",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admissions::bounded_identity_metadata_eviction_cannot_unlock_an_independent_owner",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admissions::cold_identity_publication_rechecks_a_concurrent_replacement",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admissions::final_owner_release_closes_actual_descriptors_with_store_alive",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admissions::fresh_admission_and_resource_recheck_privacy_inode_links_and_access",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admissions::fresh_admission_preserves_queued_writer_and_releases_partial_read_scopes",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admissions::identity_metadata_contention_refuses_immediately_without_bypassing_validation",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admissions::independent_admission_descriptions_never_share_kernel_lock_ownership",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admissions::resource_description_remains_locked_until_the_final_owned_reader",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admissions::validation_rejects_path_replacement_after_the_original_descriptor_opened",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::admissions::warm_identity_open_refreshes_recency_without_growing_the_registry",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::brief_metadata_wait_bounds_local_registry_and_preserves_original_owner",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::cancellation_deadline_and_partial_acquisition_release_every_scope",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::identity_wait::elapsed_original_deadline_cannot_be_renewed_at_either_metadata_stage",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::identity_wait::immediate_lookup_and_publication_refuse_without_waiting_or_partial_locks",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::identity_wait::waited_lookup_and_publication_cancel_without_retaining_partial_turnstiles",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::identity_wait::waited_lookup_and_publication_keep_the_original_deadline",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::identity_wait::waited_lookup_and_publication_resume_under_the_original_admission",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::identity_wait::warmed_file_identity_allows_a_second_real_reader_during_shared_confirmation",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::immediate_admission_refuses_queued_writer_and_releases_partial_scopes",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::immediate_admission_refuses_reader_map_contention_without_waiting",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::immediate_large_scene_admission_preserves_every_scope",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::immediate_sql_refuses_mutex_and_database_contention_and_restores_timeout",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::membership_removal_and_other_member_revocation_wait_for_snapshot_delivery",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::names::cached_names_still_check_fresh_file_privacy_and_reject_symlinks",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::names::name_metadata_is_bounded_namespace_specific_and_never_waits_on_its_map",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::namespace_privacy_symlink_alias_hardlink_refusal_and_foreign_guard_are_enforced",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::resource_preparation::an_existing_owned_resource_keeps_one_shared_lock_without_reentering_preparation",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::resource_preparation::blocked_shared_reader_keeps_original_deadline_and_releases_partial_scopes",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::resource_preparation::busy_registry_after_resource_preparation_refuses_and_releases_its_original_file_lock",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::resource_preparation::concurrent_cold_readers_coalesce_only_the_current_owned_resource",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::resource_preparation::preparing_one_resource_keeps_unrelated_scope_admission_live_and_own_writer_excluded",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::resource_preparation::same_scope_read_admission_coexists_and_keeps_reserved_writer_exclusive",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::writer_intent_stops_new_readers_held_proof_reuses_without_reentry_and_other_identity_proceeds",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::custody::full_four_plus_two_scene_reuses_exact_live_packet_interval_behind_actual_writer_without_effects",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::custody::full_scene_under_preserves_actual_original_source_expiry_and_refuses_renewed_source_after_it",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::custody::full_scene_under_rechecks_selected_unrelated_operator_and_target_permission_without_cached_facts",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::custody::full_scene_under_refuses_foreign_wrong_source_and_new_uncovered_scope_without_fresh_fallback",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::three_source_scene_reads_preserve_exact_bindings_pairs_on_repeated_same_root_capture",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::last_original_observation_fences_new_physical_generation_until_reseal",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::last_resource_free_lease_cannot_retain_or_close_store_connections",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::original_observation_survives_last_scope_drop_and_only_exact_reseal",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::slot_reservation::concurrent_original_transactions_reserve_distinct_slots_and_join_without_sql_retention",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::slot_reservation::four_compound_reservations_keep_original_bound_release_sql_and_drop_exact_slot",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::slot_reservation::reserved_connection_refuses_other_observation_pool_or_generation_and_unwind_releases",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::two_original_scopes_reuse_four_slots_and_last_drop_only_queues_close",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::compound_packet_projection_clock_edge_revalidates_under_original_interval_and_expiry",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::full_custody::compound_projection_under_rejects_foreign_partial_expired_and_final_schema_change",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::full_custody::compound_projection_under_revalidates_actual_clock_edge_and_keeps_exact_original_expiry",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::packet_snapshot_releases_sql_during_actual_admission_and_refuses_reacquire_contention",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::packet_snapshot_releases_sql_for_current_mutation_and_rejects_mixed_capture",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::slot_reservation::compound_projection_reserves_original_slot_while_actual_competing_reader_owns_another",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::slot_reservation::compound_slot_claim_releases_on_derive_admission_finish_and_runtime_cancellation_errors",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::resource_preparation::cold_publication_prunes_expired_weak_metadata_without_unlocking_a_foreign_owner",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "authority_fences::tests::resource_preparation::warm_readers_share_registry_and_original_resource_without_bypassing_writer",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::custody::packet_subset::one_private_packet_ignores_only_unrelated_origin_and_rechecks_selected_operator_and_root",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::custody::packet_subset::one_private_packet_keeps_original_owners_and_actual_third_source_under_queued_writer",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::packet_plan_context_matches_independent_resolution_and_refuses_another_original",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::slot_reservation::claim_phase_aggregate_saturation_and_overtaking_samples_do_not_underflow",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::slot_reservation::claim_phase_metadata_distinguishes_exclusion_from_actual_sql_and_returns_once",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::slot_reservation::claim_phase_unwind_releases_exact_original_slot_without_inventing_failed_result",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "packet_observation::tests::slot_reservation::disabled_claim_timing_discloses_unobserved_intervals_and_preserves_four_slot_limit",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::slot_reservation::actual_compound_projection_preserves_each_original_failure_and_reports_its_last_claim_phase",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::slot_reservation::actual_compound_projection_reports_capture_file_admission_and_reseal_without_extending_custody",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::packet_scene_actor_reuse_cannot_publish_facts_across_external_recipient_change",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "connection_control::tests::replacement_sources::commit::scene_unary::packet_scene_actor_reuse_cannot_outlive_original_credential_expiry_at_clock_reseal",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
+      },
+      {
+        "name": "peer_authority::connection_media::snapshot::tests::compound_packet_projection_releases_every_reader_when_final_construction_crosses_a_commit",
+        "receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+        "exact_libtest_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+        "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a"
       }
     ]
   },
@@ -1220,5 +1690,47 @@
     "after_passed": 13,
     "expected_before_assertions_verified": true,
     "raw_before_failed_status_preserved": true
+  },
+  "b94_release_profile_diagnostic": {
+    "receipt_sha256": "bb953c8dc61b58260c2b7969de31aa4d20381fe7de658c1e2299d5dd6de0750a",
+    "claim_boundaries_sha256": "f86f8dc28ad043918369f88ba831a87595bb5187438b65b6433b7ae14578cc16",
+    "sample_raw_sha256": "fc71a1a4fb8aaaa1e7640620395926d4efc8cf1d4db0ae0469a6b61048c0e8ea",
+    "sample_classification_sha256": "d94ffbfc9265a3d8e8143813f9d120bbfe5c194758f305e7d98d1e667d92f916",
+    "sampler_capture_passed": false,
+    "sampler_natural_exit": 0,
+    "sampler_over_limit": true,
+    "raw_sample_truncated": false,
+    "source_and_original_joins_unchanged": true
+  },
+  "b94_native_metadata_memo_logical_validation": {
+    "base_manifest_sha256": "cd4faace960cb8184ef1e1d1f18b84aabdb8f6415cafca57c212322c8092b40f",
+    "nested_expiry_followthrough_manifest_sha256": "d7ca80899051ab3e79d9ca729bf6f402e8f7ec78ee7b78704795413a9cf4cc1e",
+    "normal_store_tests_typecheck_passed": true,
+    "new_actual_cases_passed": 6,
+    "old_actual_cases_passed": 70,
+    "actual_ignored": 0,
+    "source_workspace_sha256": "c4b4fee74af29ae8054699d4b9b20bdb805f3728dc086ebb04e9dfc8e4b30c3a",
+    "raw76_receipt_sha256": "06b6f9c87b3aaa0ed4669797d2ec9f79edee8ef50026acd0c330871e3840ef79",
+    "exact76_identity_audit_sha256": "8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23",
+    "raw_same_line_parser_false_rows_preserved": 3,
+    "hit_disabled_actual_failures": 6,
+    "hit_disabled_raw_receipt_sha256": "edbe03162920a56c96c9d4f97c91326d01b6e344c7ebbd1d56df867849dc9062",
+    "hit_disable_comparison_sha256": "b8ed287657fb6c07f72737bbfadc7271a9633d65be236c5341835ee3cac95b11",
+    "restored_actual_cases_passed": 6,
+    "restored_receipt_sha256": "dc1d6e977a547489a1daa7a77446623175199ef12d8f7ac6e9fcd954696f5207",
+    "unused_getter_deletion_typecheck_passed": true,
+    "unused_getter_typecheck_sha256": "2a1aa075e7a451e16659f3ad2b15abe4f097afb02cc3a1a36e4882ec5dc298f3",
+    "final_code_source_workspace_sha256": "7a8da309a8145188384282c03e9ce58981c4a13b9fe3b11a3eda215d4175e4c8",
+    "all_original_command_groups_joined_unforced": true,
+    "performance_verified": false,
+    "fresh_combined_full_scope_verified": false,
+    "prospective_scope": {
+      "rust": 256,
+      "arm_rust": 254,
+      "mac_installed_browser_rust": 2,
+      "node": 304,
+      "python": 197,
+      "mac_acl": 1
+    }
   }
 }
