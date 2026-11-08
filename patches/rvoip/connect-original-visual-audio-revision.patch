@@ -1,0 +1,416 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -4,6 +4,8 @@
+ 
+ pub(super) struct OriginalStamp {
+     revision: Option<u64>,
++    #[cfg(test)]
++    captured_revision: Option<u64>,
+     received_at: Instant,
+     credential: CredentialSnapshot,
+     consumer: Option<audio_consumer::ConsumerStamp>,
+@@ -149,13 +151,24 @@
+                 return Err(StreamControlError::NotReady);
+             }
+         }
+-        // If available, retain the stricter whole-model revision too. If busy,
+-        // no revision is inferred or recaptured: the frozen active port ticket
+-        // fences gate/codec/retirement ABA, and the frozen consumer/scene stamps
+-        // fence audience/readiness. Admission still validates the current model
+-        // before and after fresh policy, including its revision across that call.
++        // Audio keeps the stricter opportunistic whole-model fence.
++        // Video and screen instead always retain its exact port/ticket, consumer/scene
++        // activation and credential: unrelated audio-only routing revisions
++        // cannot discard an original merely because State was free at arrival.
++        // Every attempt still validates the CURRENT model and its same revision
++        // before/after fresh policy. No old authorization survives this capture.
+         let stamp = OriginalStamp {
+-            revision: state.as_ref().map(|s| s.model.revision()),
++            revision: state
++                .as_ref()
++                .filter(|_| {
++                    !matches!(
++                        self.0.binding.negotiated.requested.medium,
++                        Medium::Video | Medium::Screen
++                    )
++                })
++                .map(|s| s.model.revision()),
++            #[cfg(test)]
++            captured_revision: state.as_ref().map(|s| s.model.revision()),
+             received_at,
+             credential: owner.credential_snapshot(),
+             consumer,
+@@ -173,6 +186,10 @@
+     }
+ }
+ impl OriginalIngress {
++    #[cfg(test)]
++    pub(super) fn captured_model_revision_for_test(&self) -> Option<u64> {
++        self.stamp.captured_revision
++    }
+     /// One nonblocking admission attempt. MetadataBusy and a full ingress queue
+     /// leave this same object retryable: neither published a packet. Each retry
+     /// rechecks current authority under the original generations and deadline.
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -3790,3 +3790,5 @@
+         );
+     }
+ }
++
++mod original_video_ingress;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs
+@@ -0,0 +1,352 @@
++//! Real PREPARING muted audience activation across original visual ingress.
++use super::*;
++use crate::staged_streams::direct_subscriptions::{DirectSubscription, DirectSubscriptionChange};
++use crate::staged_streams::original_ingress::OriginalIngress;
++
++struct PendingVisual {
++    room: Room,
++    source: Arc<StreamController>,
++    port: AdapterMediaPort,
++    original: OriginalIngress,
++    audio_original: OriginalIngress,
++    output: mpsc::Receiver<QueuedMedia>,
++    revision: u64,
++}
++impl PendingVisual {
++    async fn new(medium: Medium) -> Self {
++        let mut room = Room::new().await;
++        for name in ["alice", "bob"] {
++            let source = &room.nodes[name].controller;
++            source
++                .change(
++                    source.revision(),
++                    &[desired(Medium::Audio), desired(medium)],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++        }
++        let source = room.nodes["alice"].controller.clone();
++        let target = &room.nodes["bob"].controller;
++        let logical = desired(medium).logical_id;
++        target
++            .change_direct_subscriptions(
++                target.revision(),
++                DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                    &source,
++                    logical.clone(),
++                    logical,
++                )]),
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++            .unwrap();
++        let output = room.nodes["bob"]
++            .adapter
++            .port(medium)
++            .take_egress()
++            .unwrap();
++        // This is the same closed private member installed by actual Attach.
++        // The later plan replaces prepare-fresh with activate-fresh while old
++        // public camera/screen edges and all their tickets remain unchanged.
++        room.add("fresh", Some("public"), true).await;
++        let port = room.nodes["alice"].adapter.port(medium);
++        assert_eq!(port.ingress_capacity().0, 64);
++        for sequence in 0..64 {
++            port.try_publish(&frame(&port, sequence)).unwrap();
++        }
++        let revision = source.state.try_lock().unwrap().model.revision();
++        let mut original = port
++            .retain_original_ingress(frame(&port, 90000), Instant::now())
++            .unwrap()
++            .unwrap();
++        assert_eq!(
++            original.captured_model_revision_for_test(),
++            Some(revision),
++            "the original actual capture must observe free model State"
++        );
++        assert!(matches!(
++            original.try_publish_clocked(|_| None),
++            Err(StreamControlError::Backpressure)
++        ));
++        let audio = room.nodes["alice"].adapter.port(Medium::Audio);
++        let audio_original = audio
++            .retain_original_ingress(frame(&audio, 80000), Instant::now())
++            .unwrap()
++            .unwrap();
++        assert_eq!(
++            audio_original.captured_model_revision_for_test(),
++            Some(revision)
++        );
++        Self {
++            room,
++            source,
++            port,
++            original,
++            audio_original,
++            output,
++            revision,
++        }
++    }
++    async fn activate_muted(&self) {
++        let id = ConnectionId::from_string("fresh");
++        let mut plan = self
++            .room
++            .scene
++            .plan_audio_audience(AudioAudienceRequest {
++                operation_id: "activate-fresh".into(),
++                expected_revision: self.room.scene.audience_revision(),
++                private_connections: BTreeSet::from([id.clone()]),
++                receivers: BTreeMap::from([(id.clone(), vec![])]),
++                activate_muted: Some(id.clone()),
++            })
++            .unwrap();
++        plan.keep_endpoint_muted(&id).unwrap();
++        let (_, context) = self.room.apply(plan).await.unwrap();
++        assert!(!context.endpoint_preparation);
++        assert!(
++            self.source.revision() > self.revision,
++            "actual preparing activation must advance the unrelated audio routing model"
++        );
++        assert!(
++            self.room.nodes["fresh"]
++                .controller
++                .state
++                .lock()
++                .unwrap()
++                .model
++                .streams()[&desired(Medium::Audio).logical_id]
++                .source_muted
++        );
++    }
++    fn drain_old_input(&mut self) {
++        // The ordinary scene owns the actual64 queued originals. Two existing
++        // bounded32-input ticks drain them; discard their untouched output.
++        self.room.tick();
++        self.room.tick();
++        while self.output.try_recv().is_ok() {}
++        assert_eq!(self.port.ingress_capacity().1, 64);
++    }
++}
++
++async fn preparing_muted_audio_activation_preserves_original_visual(medium: Medium) {
++    let mut pending = PendingVisual::new(medium).await;
++    let binding = pending.port.binding().clone();
++    let ticket = pending.port.0.ticket();
++    let scene = pending.source.current_scene_stamp().unwrap().unwrap();
++    let credential = pending.source.credential_snapshot();
++    pending.activate_muted().await;
++    let current = pending.port.binding();
++    assert!(
++        current.negotiated == binding.negotiated
++            && current.transport_id == binding.transport_id
++            && current.stream_local_id == binding.stream_local_id
++            && current.generation == binding.generation
++            && current.connection_generation == binding.connection_generation
++            && current.source_ready == binding.source_ready
++            && current.sink_ready == binding.sink_ready,
++        "unrelated audio activation changed the original visual binding"
++    );
++    assert!(ticket.same_generation(&pending.port.0.ticket()) && ticket.is_current());
++    assert!(scene.same_generation(&pending.source.current_scene_stamp().unwrap().unwrap()));
++    pending
++        .source
++        .check_credential_snapshot(&credential)
++        .unwrap();
++    assert!(
++        matches!(
++            pending.audio_original.try_publish_clocked(|_| None),
++            Err(StreamControlError::Model(MediaTransitionError::Conflict))
++        ),
++        "audio must keep its original whole-model fence"
++    );
++    pending.drain_old_input();
++    let before = pending.room.domain.fresh.load(Ordering::Acquire);
++    let result = pending.original.try_publish_clocked(|_| None);
++    assert!(
++        result.is_ok(),
++        "unchanged {medium:?} original refused across audio-only activation: {result:?}"
++    );
++    assert!(
++        pending.room.domain.fresh.load(Ordering::Acquire) > before,
++        "visual recovery must reauthorize current policy"
++    );
++    pending.room.tick();
++    let queued = pending
++        .output
++        .try_recv()
++        .expect("same original visual output");
++    let writes = Arc::new(AtomicUsize::new(0));
++    let observed = writes.clone();
++    queued
++        .deliver(move |frame| {
++            assert_eq!(frame.timestamp_rtp, 90000);
++            observed.fetch_add(1, Ordering::SeqCst);
++            std::future::ready(Ok(()))
++        })
++        .await
++        .unwrap();
++    assert_eq!(writes.load(Ordering::SeqCst), 1);
++    assert!(pending.output.try_recv().is_err());
++    assert!(matches!(
++        pending.original.try_publish_clocked(|_| None),
++        Err(StreamControlError::Cancelled)
++    ));
++    pending.room.tick();
++    assert!(pending.output.try_recv().is_err());
++}
++
++#[tokio::test]
++async fn preparing_muted_audio_activation_preserves_original_video_ingress_without_renewing_audio()
++{
++    preparing_muted_audio_activation_preserves_original_visual(Medium::Video).await;
++}
++
++#[tokio::test]
++async fn preparing_muted_audio_activation_preserves_original_screen_ingress_without_renewing_audio()
++{
++    preparing_muted_audio_activation_preserves_original_visual(Medium::Screen).await;
++}
++
++fn change_visual_codec(profile: &mut EndpointMediaCapabilities, medium: Medium) {
++    for modes in [&mut profile.send, &mut profile.receive] {
++        modes
++            .iter_mut()
++            .find(|cap| cap.medium == medium)
++            .unwrap()
++            .formats = vec![MediaFormat::Encoded {
++            name: "vp8".into(),
++            clock_rate_hz: 90000,
++            channels: 0,
++            fmtp: Some("max-fr=24".into()),
++        }];
++    }
++}
++#[tokio::test]
++async fn original_visual_recovery_keeps_current_gate_codec_retirement_credential_and_scene_fences()
++{
++    for medium in [Medium::Video, Medium::Screen] {
++        for action in [
++            "gate",
++            "pause-resume",
++            "codec",
++            "retirement",
++            "credential",
++            "denial",
++            "scene",
++            "expiry",
++        ] {
++            let mut pending = PendingVisual::new(medium).await;
++            pending.activate_muted().await;
++            pending.drain_old_input();
++            let logical = desired(medium).logical_id;
++            let ids = [logical.clone()].into_iter().collect();
++            match action {
++                "gate" => {
++                    pending
++                        .source
++                        .set_media_gate(
++                            pending.source.revision(),
++                            &ids,
++                            StreamGateAction::Mute,
++                            deadline(),
++                        )
++                        .await
++                        .unwrap();
++                }
++                "pause-resume" => {
++                    for gate in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                        pending
++                            .source
++                            .set_media_gate(pending.source.revision(), &ids, gate, deadline())
++                            .await
++                            .unwrap();
++                    }
++                }
++                "codec" => {
++                    let old = pending.port.binding().negotiated.format.clone();
++                    {
++                        let mut grants = pending.room.domain.base.0.write().await;
++                        let owner = grants.owners.get_mut("alice").unwrap();
++                        change_visual_codec(&mut owner.local, medium);
++                        change_visual_codec(&mut owner.remote, medium);
++                    }
++                    pending
++                        .source
++                        .change(
++                            pending.source.revision(),
++                            &[desired(Medium::Audio), desired(medium)],
++                            &ids,
++                            deadline(),
++                            CancellationToken::new(),
++                        )
++                        .await
++                        .unwrap();
++                    assert_ne!(
++                        pending.room.nodes["alice"]
++                            .adapter
++                            .port(medium)
++                            .binding()
++                            .negotiated
++                            .format,
++                        old
++                    );
++                }
++                "retirement" => {
++                    assert_eq!(pending.source.shutdown(deadline()).await, 0);
++                }
++                "credential" => {
++                    pending.source.credential.lock().unwrap().revision += 1;
++                }
++                "denial" => {
++                    pending
++                        .room
++                        .domain
++                        .base
++                        .0
++                        .write()
++                        .await
++                        .revoked
++                        .insert("alice".into());
++                }
++                "scene" => {
++                    pending
++                        .room
++                        .scene
++                        .remove(&ConnectionId::from_string("alice"));
++                }
++                "expiry" => {
++                    tokio::time::sleep(Duration::from_millis(205)).await;
++                }
++                _ => unreachable!(),
++            }
++            let result = pending.original.try_publish_clocked(|_| None);
++            assert!(result.is_err(), "old {medium:?} original adopted {action}");
++            if action == "expiry" {
++                assert!(matches!(result, Err(StreamControlError::Deadline)));
++            } else {
++                assert!(
++                    !matches!(result, Err(StreamControlError::Deadline)),
++                    "{medium:?} {action} was not exercised before original expiry"
++                );
++                if action == "credential" {
++                    assert!(matches!(
++                        result,
++                        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++                    ));
++                } else if action == "denial" {
++                    assert!(matches!(result, Err(StreamControlError::Authority)));
++                }
++            }
++            pending.room.tick();
++            assert!(
++                pending.output.try_recv().is_err(),
++                "{medium:?} {action} reached IO"
++            );
++        }
++    }
++}

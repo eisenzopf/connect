@@ -1939,6 +1939,11 @@
       "path": "patches/rvoip/connect-original-native-ingress-backpressure.patch",
       "sha256": "e3d9bb911c34f339030b48f5f1418d124d1ffe387d97663fbab8d6b7770548bf",
       "source": "Honor Core original native ingress Backpressure as a definite unpublished bounded retry alongside MetadataBusy. Retain the same original packet, current-authorization recheck, route/consumer/scene/credential generations and original 200ms deadline under the existing native reader queue and 1ms retry; semantic readiness, authority, unsupported, cancellation, retirement and expiry remain terminal. Fixed scalar counters distinguish deferred attempts, recovered originals, expiry, refusal and abandoned queue ownership. Regress real canonical encrypted QUIC ingress64 plus one original recovery and refusal/expiry/retirement without resend, duplicate IO or queue-capacity changes."
+    },
+    {
+      "path": "patches/rvoip/connect-original-visual-audio-revision.patch",
+      "sha256": "fc3ddeeb862c4f14c392feebf0916db7db5e61ce62bf4e8434c9fc656429bb75",
+      "source": "Keep original Video and Screen ingress under exact original port/ticket, consumer/scene activation, credential and 200ms custody across unrelated muted audio-audience model revisions. Do not retain the opportunistic whole-controller revision for visual originals; every invocation still checks current model revision before/after fresh policy and all current gates/format/ownership. Audio keeps its previous revision semantics. Regress actual preparing muted AudioAudience activation and same-original single delivery for both visual media, paired unchanged Audio conflict and current gate/codec/retirement/credential/authorization/scene/expiry refusal."
     }
   ]
 }
