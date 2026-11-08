@@ -22,8 +22,8 @@ async function scenario(run,{mode='complete',timeout=250}={}) {
   async getStats(){return new Map([['audio',{type:'inbound-rtp',kind:'audio',trackIdentifier:'rtc-audio',totalSamplesReceived:1920,concealedSamples:0}]]);}
   close(){this.connectionState='closed';this.dispatchEvent(new Event('connectionstatechange'));}
  }
- class Node{gain={value:1};connect(){}disconnect(){}}
- class Context{sampleRate=48000;destination={};audioWorklet={async addModule(){}};closed=false;state='suspended';constructor(){contexts.push(this);}createMediaStreamSource(){return new Node();}createGain(){return new Node();}async resume(){this.state='running';}async suspend(){this.state='suspended';}async close(){this.closed=true;this.state='closed';}}
+ class Node{gain={value:1};connections=[];disconnects=0;connect(node){this.connections.push(node);}disconnect(node){this.disconnects++;this.connections=node?this.connections.filter(value=>value!==node):[];}}
+ class Context{sources=[];gains=[];closes=0;sampleRate=48000;destination={};audioWorklet={async addModule(){}};closed=false;state='suspended';constructor(){contexts.push(this);}createMediaStreamSource(){const node=new Node();node.context=this;this.sources.push(node);return node;}createGain(){const node=new Node();this.gains.push(node);return node;}async resume(){this.state='running';}async suspend(){this.state='suspended';}async close(){this.closes++;this.closed=true;this.state='closed';}}
  class Worklet extends Node{port={onmessage:null,closed:false,postMessage(){},close(){this.closed=true;}};constructor(){super();worklets.push(this);}}
  const document=Object.assign(new EventTarget(),{visibilityState:'visible',createElement(){const element={muted:false,srcObject:null,pauses:0,play(){return playback(this);},pause(){this.pauses++;}};elements.push(element);return element;}});
  const values={RTCPeerConnection:Peer,RTCRtpSender:{getCapabilities:()=>({codecs:[{mimeType:'audio/opus',clockRate:48000,channels:2}]})},MediaStream:Stream,AudioContext:Context,AudioWorkletNode:Worklet,document};
@@ -107,7 +107,7 @@ test("replacement muted decoder owner survives until the same public renderer ha
     const original = f.elements[0];
     assert.equal(original.muted, true);
     assert.notEqual(original.srcObject, null);
-    assert.equal(f.contexts[0].closed, true);
+    assert.equal(f.contexts[0].closed, false);
     assert.equal(f.worklets[0].port.closed, true);
     await f.source.owner.shutdown();
     assert.notEqual(
@@ -130,11 +130,14 @@ test("replacement muted decoder owner survives until the same public renderer ha
         null,
         "old muted sink remains while new public playback is pending",
       );
+      assert.equal(f.contexts[0].gains[1].gain.value, 0);
       late.resolve();
       render = await work;
-      assert.equal(original.srcObject, null);
-      assert.equal(original.pauses, 1);
-      assert.notEqual(f.elements[1].srcObject, null);
+      assert.notEqual(original.srcObject, null);
+      assert.equal(original.pauses, 0);
+      assert.equal(f.contexts.length, 1);
+      assert.equal(f.contexts[0].sources.length, 1);
+      assert.equal(f.contexts[0].sources[0].connections[0], f.contexts[0].gains[1]);
       assert.equal(f.target.owner.diagnostics.peerConnectionState, "connected");
       render.close();
       await render.retirement;
@@ -260,3 +263,98 @@ test("uncertain replacement keeps only its muted decoder owner and shutdown join
     },
     { mode: "unresolved-ready", timeout: 90 },
   ));
+
+test("adopted RTC graph ignores late preparation cancellation and remains owned by the original public renderer", () =>
+  scenario(async (f) => {
+    await f.target.prepared;
+    await f.decoded();
+    await f.target.completed;
+    const context = f.contexts[0],
+      source = context.sources[0],
+      sink = f.elements[0];
+    assert.equal(context.closed, false);
+    assert.equal(context.gains[0].gain.value, 0);
+    const render = await f.target.owner.render(
+      { audio: true, volume: 0.4 },
+      { timeoutMs: 300 },
+    );
+    try {
+      assert.equal(f.contexts.length, 1);
+      assert.equal(context.sources.length, 1);
+      assert.deepEqual(source.connections, [context.gains[1]]);
+      assert.equal(context.gains[1].gain.value, 0.4);
+      assert.equal(context.gains[0].disconnects, 1);
+      f.cancelTarget();
+      await tick();
+      assert.equal(context.closed, false);
+      assert.notEqual(sink.srcObject, null);
+      assert.equal(sink.pauses, 0);
+      let release;
+      const cleanup = new Promise((done) => (release = done));
+      context.close = () => {
+        context.closes++;
+        context.closed = true;
+        return cleanup;
+      };
+      let joined = false;
+      try {
+        render.close();
+        render.close();
+        const shutdown = f.target.owner.shutdown();
+        void shutdown.then(() => (joined = true));
+        await tick();
+        assert.equal(joined, false);
+        assert.equal(sink.srcObject, null);
+        assert.equal(sink.pauses, 1);
+        assert.equal(context.closes, 1);
+        release();
+        await render.retirement;
+        await render.finished;
+        await shutdown;
+        assert.equal(joined, true);
+      } finally {
+        release();
+      }
+    } finally {
+      render.close();
+    }
+  }));
+
+
+test("committed RTC target renders its current track after original preparation cancellation releases the unused graph", () =>
+  scenario(async (f) => {
+    await f.target.prepared;
+    await f.decoded();
+    await f.target.completed;
+    f.cancelTarget();
+    await tick();
+    const privateContext = f.contexts[0],
+      privateSink = f.elements[0];
+    assert.equal(privateContext.closed, true);
+    assert.equal(privateSink.srcObject, null);
+    assert.equal(f.target.owner.diagnostics.closed, false);
+    assert.equal(f.target.owner.diagnostics.peerConnectionState, "connected");
+    const render = await f.target.owner.render(
+      { audio: true },
+      { timeoutMs: 300 },
+    );
+    try {
+      assert.equal(f.contexts.length, 2);
+      assert.equal(f.contexts[1].closed, false);
+      assert.equal(f.contexts[1].sources.length, 1);
+      assert.notEqual(f.contexts[1].sources[0], privateContext.sources[0]);
+      assert.notEqual(f.elements[1].srcObject, null);
+      assert.equal(f.elements[1].muted, true);
+      assert.equal(f.client.closed, false);
+      assert.equal(f.target.owner.diagnostics.renderActive, true);
+      render.close();
+      await render.retirement;
+      await render.finished;
+      await f.target.owner.shutdown();
+      assert.equal(f.contexts[1].closed, true);
+      assert.equal(privateContext.closes, 1);
+      assert.equal(f.contexts[1].closes, 1);
+    } finally {
+      render.close();
+    }
+  }));

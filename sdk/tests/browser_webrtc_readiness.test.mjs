@@ -4,9 +4,9 @@ import {observeWebRtcDecodedReadiness} from '../typescript/dist/browser_webrtc_r
 import {BrowserDeadline} from '../typescript/dist/browser_deadline.js';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 async function fixture(run,{video=false}={}) {
- const saved=new Map(),nodes=[],elements=[],contexts=[];let callback,next=0;
- class Node{gain={value:1};disconnects=0;connect(){}disconnect(){this.disconnects++;}}
- class Context{sampleRate=48000;destination={};audioWorklet={async addModule(){}};closes=0;constructor(){contexts.push(this);}createMediaStreamSource(){return new Node();}createGain(){return new Node();}async resume(){}async close(){this.closes++;}}
+ const saved=new Map(),nodes=[],elements=[],contexts=[],sources=[],gains=[];let callback,next=0;
+ class Node{gain={value:1};disconnects=0;connections=[];connect(node){this.connections.push(node);}disconnect(node){this.disconnects++;this.connections=node?this.connections.filter(value=>value!==node):[];}}
+ class Context{sampleRate=48000;destination={};audioWorklet={async addModule(){}};closes=0;constructor(){contexts.push(this);}createMediaStreamSource(){const node=new Node();node.context=this;sources.push(node);return node;}createGain(){const node=new Node();gains.push(node);return node;}async resume(){}async close(){this.closes++;}}
  class Worklet extends Node{port={onmessage:null,sent:[],closed:false,postMessage(value){this.sent.push(value);},close(){this.closed=true;}};constructor(){super();nodes.push(this);}}
  class Stream{constructor(tracks){this.tracks=tracks;}}
  const values={AudioContext:Context,AudioWorkletNode:Worklet,MediaStream:Stream,document:{createElement(kind){const element={kind,muted:false,srcObject:null,pauses:0,async play(){},pause(){this.pauses++;},requestVideoFrameCallback(fn){callback=fn;return++next;},cancelVideoFrameCallback(){callback=undefined;}};elements.push(element);return element;}}};
@@ -16,8 +16,9 @@ async function fixture(run,{video=false}={}) {
  const peer={connectionState:'connected',async getStats(){return new Map(Object.entries(structuredClone(stats)));}},abort=new AbortController(),tasks=new Set();
  const track=(promise)=>{tasks.add(promise);void promise.finally(()=>tasks.delete(promise)).catch(()=>{});return promise;};
  let work;
- try{await run({audio,picture,stats,peer,abort,nodes,elements,contexts,
-  begin(retainMutedDecoderSinks){work=observeWebRtcDecodedReadiness(peer,audio,picture,new BrowserDeadline(500),abort.signal,track,retainMutedDecoderSinks);void work.catch(()=>{});return work;},
+ try{await run({audio,picture,stats,peer,abort,nodes,elements,contexts,sources,gains,
+  begin(retainMutedDecoderSinks){work=observeWebRtcDecodedReadiness(peer,audio,picture,new BrowserDeadline(500),abort.signal,track,retainMutedDecoderSinks?value=>retainMutedDecoderSinks(typeof value==='function'?value:()=>value.release()):undefined);void work.catch(()=>{});return work;},
+  beginDecoder(retain){work=observeWebRtcDecodedReadiness(peer,audio,picture,new BrowserDeadline(500),abort.signal,track,retain);void work.catch(()=>{});return work;},
   async started(){while(!nodes.length||(video&&elements.length<2))await tick();},
   pcm(values=new Float32Array(960)){nodes[0].port.onmessage({data:{epoch:0,timestampUs:1000,samples:values}});},
   frame(){const fn=callback;assert.equal(typeof fn,'function');fn(10,{width:640,height:360,mediaTime:1,presentedFrames:1});},
@@ -72,7 +73,7 @@ test("RTC decoded readiness releases observation graph but retains only muted de
       const evidence = await work;
       assert.equal(evidence.audio.decoded_samples, 960);
       assert.equal(typeof release, "function");
-      assert.equal(f.contexts[0].closes, 1);
+      assert.equal(f.contexts[0].closes, 0);
       assert.equal(f.nodes[0].port.closed, true);
       assert.ok(
         f.elements.every(
@@ -82,6 +83,7 @@ test("RTC decoded readiness releases observation graph but retains only muted de
       );
       await release();
       await release();
+      assert.equal(f.contexts[0].closes, 1);
       assert.ok(
         f.elements.every(
           (element) => element.srcObject === null && element.pauses === 1,
@@ -148,3 +150,67 @@ test("refused RTC decoder handoff and pre-evidence cancellation release all orig
       assert.equal(f.peer.connectionState, "connected");
     });
 });
+
+test("decoded RTC graph transfers once to the exact original track and releases only unadopted outputs", () =>
+  fixture(async (f) => {
+    let decoder, adopted;
+    try {
+      const work = f.beginDecoder((value) => (decoder = value));
+      await f.started();
+      f.stats.audio.totalSamplesReceived = 1920;
+      f.pcm();
+      await work;
+      assert.equal(typeof decoder.takeAudio, "function");
+      assert.equal(f.contexts[0].closes, 0);
+      assert.equal(f.nodes[0].port.closed, true);
+      assert.equal(f.gains[0].gain.value, 0);
+      assert.deepEqual(f.sources[0].connections, [f.gains[0]]);
+      assert.equal(decoder.takeAudio({ ...f.audio.track }), undefined);
+      adopted = decoder.takeAudio(f.audio.track);
+      assert.equal(adopted.context, f.contexts[0]);
+      assert.equal(adopted.source, f.sources[0]);
+      assert.equal(adopted.mutedGain, f.gains[0]);
+      assert.equal(adopted.playout, f.elements[0]);
+      assert.equal(adopted.playout.muted, true);
+      assert.equal(decoder.takeAudio(f.audio.track), undefined);
+      f.abort.abort();
+      await decoder.release();
+      await decoder.release();
+      assert.equal(adopted.context.closes, 0);
+      assert.notEqual(adopted.playout.srcObject, null);
+    } finally {
+      if (adopted) {
+        adopted.playout.pause();
+        adopted.playout.srcObject = null;
+        adopted.source.disconnect();
+        adopted.mutedGain.disconnect();
+        await adopted.context.close();
+      }
+    }
+  }));
+
+test("original cancellation before RTC graph adoption refuses transfer and joins its late close", () =>
+  fixture(async (f) => {
+    let decoder;
+    const work = f.beginDecoder((value) => (decoder = value));
+    await f.started();
+    f.stats.audio.totalSamplesReceived = 1920;
+    f.pcm();
+    await work;
+    assert.equal(typeof decoder.takeAudio, "function");
+    let resolve;
+    const cleanup = new Promise((done) => (resolve = done));
+    f.contexts[0].close = () => {
+      f.contexts[0].closes++;
+      return cleanup;
+    };
+    try {
+      f.abort.abort();
+      assert.equal(f.elements[0].srcObject, null);
+      assert.equal(decoder.takeAudio(f.audio.track), undefined);
+      await decoder.release();
+      assert.equal(f.contexts[0].closes, 1);
+    } finally {
+      resolve();
+    }
+  }));

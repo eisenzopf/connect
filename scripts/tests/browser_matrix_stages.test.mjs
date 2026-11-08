@@ -84,14 +84,15 @@ test('one failed peer cannot erase other original counters and opaque report ide
 });
 
 test('an original pending RTC statistics read cannot be reported as joined by observer retirement',async()=>{
- const names=['AudioContext','CanvasRenderingContext2D','HTMLVideoElement','connectPeerMediaDiagnostics'];
+ const names=['AudioContext','MediaStreamAudioSourceNode','CanvasRenderingContext2D','HTMLVideoElement','connectPeerMediaDiagnostics'];
  const saved=names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]);let resolve,reads=0;
+ class MediaStreamAudioSourceNode{connect(){}}
  class AudioContext{createMediaStreamSource(){throw Error('No renderer capture is started in this fixture');}}
  class CanvasRenderingContext2D{drawImage(){}}
  class HTMLVideoElement{requestVideoFrameCallback(){}}
  class Rtc{render(){}}
  class Renderer{audio(){}video(){}}
- Object.assign(globalThis,{AudioContext,CanvasRenderingContext2D,HTMLVideoElement,
+ Object.assign(globalThis,{AudioContext,MediaStreamAudioSourceNode,CanvasRenderingContext2D,HTMLVideoElement,
   connectPeerMediaDiagnostics:()=>{reads++;return new Promise(done=>{resolve=done;});}});
  const observer=browserMatrixObservation(Renderer,{routes:[]},null,Rtc);
  try{

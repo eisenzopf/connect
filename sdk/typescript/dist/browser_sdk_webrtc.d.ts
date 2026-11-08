@@ -23,7 +23,7 @@ export declare class BrowserRtcConnection {
     private stopEvents?;
     private captureOwner?;
     private renderOwner?;
-    private releaseMutedDecoderSinks?;
+    private preparedDecoder?;
     private readonly peer;
     private constructor();
     static begin(client: BrowserClient, input: BrowserConnectionOptions, participantId: string, configuration: BrowserRtcConfiguration, options: RequestOptions): {

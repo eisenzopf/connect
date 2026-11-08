@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-08",
-  "run_status": "The batched Rust fixes pass128Store/Core controls,3RELEASE controls and the genuine native four-handoff programme. The final optimized heap lifecycle case now passes with4required snapshots, all8owner kinds restored over3Session cycles and original owners naturally joined. Real Chrome terminal-close passes. SDK muted-decoder retention passes21active unit controls and is implemented, but the actual4handoff Chrome roundtrip still fails one first public-audio window with832leading zeros. Reusing the warmed public audio graph is the next causal candidate. Latest matrix v203 remains0qualified/24failed/8blocked cells,197passed/62failed/173blocked checks. Final expanded scope is301Rust plus prospective311Node,197Python andMacACL1. Resource profile4 uses strict cleanup and budgets; G6-098 remains separate.",
+  "run_status": "All current focused media/library controls are green. The native six-source/two-Session four-handoff programme passes, the final3-cycle heap control passes, and both real installed-Chrome controls pass across3fresh pairs (6/6) with unchanged source-identity/readiness/deadline checks. Warmed audio graph transfer passes57affected units, including old-cancellation recovery. Full Node selection now includes both whole SDK test files and331cases; Mac discovery is324pass/7Linux platform refusals and remains unqualified. Next is local ARM expanded301Rust/331Node/197Python/MacACL1 and the full32-cell matrix. Closed DEBUG cache compression is running to fund storage. Latest matrixv203 stays0qualified/24failed/8blocked cells,197passed/62failed/173blocked checks. G6-054 remains deferred and G6-098 sustained growth separate.",
   "blockers": [
     {
       "id": "B01",
@@ -849,10 +849,26 @@
     {
       "id": "B102",
       "title": "New public WebRTC renderer starts with ambiguous zero-filled audio windows",
-      "status": "LIBRARY LIFETIME FIX UNIT VERIFIED; PUBLIC STARTUP STILL FAILED.21active readiness/replacement controls pass. Actual Chrome roundtrip still fails one first public20mswindow.",
-      "change": "Retain the exact muted decoder elements under their native target owner through public playback startup, with original cancellation, failure, retirement and uncertain-Ready cleanup. Private observation worklet and context still retire promptly. This first implementation preserves every measured source-identity check.",
-      "evidence": "Copied old-source controls pass14existing/fail7new lifetime tests; candidate passes21/21. Normal active npm build and21active tests pass with exact reviewed source/dist hashes. Actual same-binary real Chrome still passes terminal-close and completes all4roundtrip moves, then rejects a first public window containing832zeros and128tone samples. Muted sink retention alone therefore does not clear cold public-graph startup. No source-identity threshold or observer-window waiver was applied.",
-      "next": "Implement and causally verify one-time transfer of the already-warmed AudioContext and source into its public renderer. Update the passive tap to follow real public source connections, preserve original owner/deadline/cleanup semantics, run all affected units and both real Chrome controls before final ARM and32-cell qualification."
+      "status": "REAL CHROME VERIFIED. Both exact controls pass across3fresh pairs,6/6, and all57affected unit controls pass. Full matrix remains pending.",
+      "change": "Transfer the exact prewarmed AudioContext, MediaStreamAudioSourceNode and muted playback owner once into its native public renderer. The renderer takes cleanup ownership before awaiting startup. Released preparation graphs use the existing fresh-render path. The passive observer follows actual public source connections and restores prototype descriptors exactly.",
+      "evidence": "Muted elements alone passed21units but still failed a first832zero/128tone public window. Prewarmed graph transfer then passes all57affected active controls and3fresh real Chrome pairs at source200cb7357b141e3a3360b8afebddb5ae6b61fe65c01364411d827d4e1436b9ab. Each roundtrip completes4moves with2generation3returns, real decoded readiness,4public AV decoders, original shared controls and natural shutdown. All source-identity and original8s assertions remain enabled. A completed-target/old-cancel regression was reproduced on the first adoption draft and fixed before real Chrome verification.",
+      "next": "Execute the expanded local ARM and Mac qualifier at the final clean checkpoint, then run all32cells and record their actual results."
+    },
+    {
+      "id": "B103",
+      "title": "Expanded Node selection omitted two complete WebRTC SDK test files",
+      "status": "WIRED TO331 PROSPECTIVE CONTROLS. ARM execution remains pending.",
+      "change": "Append both whole existing SDK readiness and replacement test files to the original304-control selection. Include14older previously unselected controls and13new controls, with no test-name filters or skips.",
+      "evidence": "Actual whole-command Mac discovery observes331distinct cases with324passes and7explicit Linux-only platform refusals. Its source stays unchanged and its original process group joins. The failed Mac discovery is inventory evidence and does not qualify the ARM lane. Scoped57affected controls pass and all6real Chrome controls pass.",
+      "next": "Seal and execute the full331Node selection on the local ARM Linux VM alongside301Rust and197Python controls."
+    },
+    {
+      "id": "B104",
+      "title": "Local full-matrix working space and durable archive headroom",
+      "status": "FUNDING IN PROGRESS. Lossless closed-cache compression is running; measured admission remains required.",
+      "change": "Apply transparent APFS compression to3558closed project DEBUG cache files using exact metadata, full-byte SHA, mmap, mode/mtime and executable-signature checks before same-volume atomic replacement. Preserve current code and test artifacts through the reviewed scope. Recheck actual free space and archive accumulation before the matrix.",
+      "evidence": "The unchanged full-run preflight requires25.454GiB on each backing/spool volume. Earlier free space was about21GiBinternal and18GiBD2. Copied library/executable pilots preserve full bytes and normal executable listing. Original3559-row proposal contained one empty metadata file, excluded before execution. Current actual per-file receipts record measured free space; sample-based savings and13GiBfuture archives remain engineering estimates.",
+      "next": "Finish the owned compression operation, measure both volumes, fund any remaining internal backing margin with reviewed reversible custody, then admit the expanded local build and full matrix."
     }
   ],
   "workplan_tasks": [
@@ -2522,6 +2538,21 @@
       "path": ".local/gate-6/v203-installed-chrome-retained-muted-sink-retry/receipt.json",
       "sha256": "ce6811a88b8a0b9060276452700382cb0d1b54ccf416a489a2ed493026f0967f",
       "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-installed-chrome-prewarmed-graph-retry/receipt.json",
+      "sha256": "cddfaa8467fe472b17bcee7bbd1d9ec57eb5a8c5fd408da5186f9d3d5acb6f8e",
+      "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-installed-chrome-prewarmed-graph-repeat-2/receipt.json",
+      "sha256": "eb32b021e35bbc891a7281cdf1aeab91d9193ca531ec5c2668b6f9f195fe1cc0",
+      "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-installed-chrome-prewarmed-graph-repeat-3/receipt.json",
+      "sha256": "38bdd5045eb075c8b7dbb163d5812ced22308f887afedf031de4ac2453a70162",
+      "matrix_qualified": false
     }
   ],
   "b101_heap_actual_attempts": [
@@ -2555,5 +2586,27 @@
       "sha256": "a66263d5e0e6f106afc42e42986f5722a2814a04a2a82d1476f3ddfc2593f2d5",
       "matrix_qualified": false
     }
-  ]
+  ],
+  "b102_sdk_graph_source_candidates": [
+    {
+      "path": ".local/gate-6/v203-webrtc-prewarmed-render-adoption-candidate/manifest.json",
+      "sha256": "1916129c59132a5520c0119c91554b905e8fab3d723001b678ab3c0a9de4564d"
+    },
+    {
+      "path": ".local/gate-6/v203-webrtc-prepared-graph-fallback-followthrough/manifest.json",
+      "sha256": "260e2122ec9e8c51e24a1d2639131754fe0c24234332741970278eb50a72e1f2"
+    }
+  ],
+  "b103_actual_host_inventory": {
+    "path": ".local/gate-6/v203-complete-node-current-source-controls/receipt.json",
+    "sha256": "14ee41d7a454deafc2749b00c280b106fc1818309ab0f8da9e9c7bfd64b29089",
+    "counts": {
+      "tests": 331,
+      "pass": 324,
+      "fail": 7,
+      "skipped": 0
+    },
+    "qualified": false,
+    "scope": "Mac inventory run; seven Linux-only fixture platform assertions refuse this host"
+  }
 }

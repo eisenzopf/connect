@@ -2,6 +2,18 @@ import { BrowserDeadline } from "./browser_deadline.js";
 import { ConnectError } from "./errors.js";
 import type { WebRtcDecodedReadiness } from "./browser_webrtc_replacement.js";
 
+/** Internal, one-shot transfer between this peer's readiness and renderer. */
+export interface WebRtcPreparedAudio {
+    readonly context: AudioContext;
+    readonly source: MediaStreamAudioSourceNode;
+    readonly mutedGain: GainNode;
+    readonly playout: HTMLAudioElement;
+}
+export interface WebRtcPreparedDecoder {
+    takeAudio(track: MediaStreamTrack): WebRtcPreparedAudio | undefined;
+    release(): Promise<void>;
+}
+
 /** Readiness comes from this new RTC receiver's decoded PCM and video output.
  * ICE, DTLS, RTP counters, and an SDP answer cannot satisfy it on their own.
  * The private outputs remain muted; an application owns audible rendering. */
@@ -12,7 +24,7 @@ export async function observeWebRtcDecodedReadiness(
     budget: BrowserDeadline,
     signal: AbortSignal,
     trackTask: <T>(work: Promise<T>, cleanup?: boolean) => Promise<T>,
-    retainMutedDecoderSinks?: (release: () => Promise<void>) => void,
+    retainMutedDecoderSinks?: (decoder: WebRtcPreparedDecoder) => void,
 ): Promise<WebRtcDecodedReadiness> {
     const unsupported = () =>
         new ConnectError(
@@ -36,6 +48,7 @@ export async function observeWebRtcDecodedReadiness(
         stopped = false,
         decoderSinksStopped = false,
         decoderSinksRetained = false,
+        audioAdopted = false,
         sampleCount = 0,
         frameCount = 0,
         presented = 0,
@@ -56,8 +69,8 @@ export async function observeWebRtcDecodedReadiness(
                 "Replacement decoder owner retired",
             );
     };
-    // This lease can only detach these exact muted elements. It never lends
-    // a track, an audible output, readiness evidence, or a different peer.
+    // This lease transfers only this exact peer's muted decoded graph once.
+    // The renderer owns adopted outputs; release owns only outputs left here.
     const releaseDecoderSinks = async () => {
         if (decoderSinksStopped) return;
         decoderSinksStopped = true;
@@ -88,6 +101,19 @@ export async function observeWebRtcDecodedReadiness(
                 failure ??= { error };
             }
         }
+        source?.disconnect();
+        gain?.disconnect();
+        source = undefined;
+        gain = undefined;
+        const originalContext = context;
+        context = undefined;
+        if (originalContext) {
+            try {
+                await trackTask(originalContext.close(), true);
+            } catch (error) {
+                failure ??= { error };
+            }
+        }
         if (failure) throw failure.error;
     };
     const cancelDecoderSinks = () => {
@@ -105,15 +131,42 @@ export async function observeWebRtcDecodedReadiness(
             worklet.port.close();
             worklet.disconnect();
         }
-        source?.disconnect();
-        gain?.disconnect();
+        if (worklet) source?.disconnect(worklet);
         worklet = undefined;
-        source = undefined;
-        gain = undefined;
-        const originalContext = context;
-        context = undefined;
-        if (originalContext) await trackTask(originalContext.close(), true);
     };
+    const decoder: WebRtcPreparedDecoder = Object.freeze({
+        takeAudio(track: MediaStreamTrack): WebRtcPreparedAudio | undefined {
+            if (
+                audioAdopted ||
+                decoderSinksStopped ||
+                signal.aborted ||
+                track !== audio.track ||
+                track.readyState !== "live" ||
+                ["closed", "failed"].includes(peer.connectionState) ||
+                !context ||
+                !source ||
+                !gain ||
+                !playout
+            )
+                return undefined;
+            // No await can interleave cancellation between transfer and the
+            // renderer's local assignment. The old signal no longer owns it.
+            signal.removeEventListener("abort", cancelDecoderSinks);
+            const output = Object.freeze({
+                context,
+                source,
+                mutedGain: gain,
+                playout,
+            });
+            audioAdopted = true;
+            context = undefined;
+            source = undefined;
+            gain = undefined;
+            playout = undefined;
+            return output;
+        },
+        release: releaseDecoderSinks,
+    });
     try {
         check();
         context = new AudioContext({
@@ -168,6 +221,9 @@ export async function observeWebRtcDecodedReadiness(
         gain = context.createGain();
         gain.gain.value = 0;
         source.connect(worklet);
+        // Keep this exact source graph advancing while observation is removed
+        // and before the renderer transfers it to its own public output gain.
+        source.connect(gain);
         worklet.connect(gain);
         gain.connect(context.destination);
         playout = document.createElement("audio");
@@ -251,7 +307,7 @@ export async function observeWebRtcDecodedReadiness(
                     signal.addEventListener("abort", cancelDecoderSinks, {
                         once: true,
                     });
-                    retainMutedDecoderSinks(releaseDecoderSinks);
+                    retainMutedDecoderSinks(decoder);
                     check();
                     decoderSinksRetained = true;
                 }
@@ -280,8 +336,8 @@ export async function observeWebRtcDecodedReadiness(
             );
         }
     } finally {
-        // Observation detaches immediately. The native owner retains muted
-        // decoder sinks through public startup and joins late cleanup without
+        // Observation detaches immediately. The native owner retains the muted
+        // decoded graph through public startup and joins late cleanup without
         // extending the caller's original deadline.
         void trackTask(cleanObservation(), true).catch(() => {});
         if (!decoderSinksRetained) cancelDecoderSinks();

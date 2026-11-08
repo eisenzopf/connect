@@ -4,7 +4,10 @@ import {
     captureVideoCanvas,
     type CanvasVideoCapture,
 } from "./browser_video_capture.js";
-import { observeWebRtcDecodedReadiness } from "./browser_webrtc_readiness.js";
+import {
+    observeWebRtcDecodedReadiness,
+    type WebRtcPreparedDecoder,
+} from "./browser_webrtc_readiness.js";
 import {
     replacementRoot,
     type BrowserReplacementRoot,
@@ -67,7 +70,7 @@ export class BrowserRtcConnection {
     private stopEvents?: () => void;
     private captureOwner?: BrowserCaptureHandle;
     private renderOwner?: BrowserRenderHandle;
-    private releaseMutedDecoderSinks?: () => Promise<void>;
+    private preparedDecoder?: WebRtcPreparedDecoder;
     private readonly peer: RTCPeerConnection;
     private constructor(
         private readonly client: BrowserClient,
@@ -443,16 +446,17 @@ export class BrowserRtcConnection {
     get replacementMayHaveCommitted(): boolean {
         return this.signaling?.replacementMayHaveCommitted ?? false;
     }
-    private retainMutedDecoderSinks(release: () => Promise<void>): void {
+    private retainMutedDecoderSinks(decoder: WebRtcPreparedDecoder): void {
         this.check();
-        if (this.releaseMutedDecoderSinks)
+        if (this.preparedDecoder)
             throw new ConnectError("conflict", "Decoder sinks already owned");
-        this.releaseMutedDecoderSinks = release;
+        this.preparedDecoder = decoder;
     }
     private retireMutedDecoderSinks(): void {
-        const release = this.releaseMutedDecoderSinks;
-        this.releaseMutedDecoderSinks = undefined;
-        if (release) void this.tasks.track(release(), true).catch(() => {});
+        const decoder = this.preparedDecoder;
+        this.preparedDecoder = undefined;
+        if (decoder)
+            void this.tasks.track(decoder.release(), true).catch(() => {});
     }
     private check() {
         if (this.stopped || this.client.closed) throw closed();
@@ -1017,24 +1021,39 @@ export class BrowserRtcConnection {
             if (audio) {
                 const track = this.remote.get(this.input.audio!);
                 if (!track || track.readyState !== "live") throw unsupported();
-                context = new AudioContext({
-                    sampleRate: 48000,
-                    latencyHint: "interactive",
-                });
-                source = context.createMediaStreamSource(
-                    new MediaStream([track]),
-                );
+                const prepared = this.preparedDecoder;
+                const adopted = prepared?.takeAudio(track);
+                if (prepared && !adopted) this.retireMutedDecoderSinks();
+                if (adopted) {
+                    // Transfer synchronously before an await: after take(),
+                    // only this existing render owner may close the graph.
+                    context = adopted.context;
+                    source = adopted.source;
+                    playout = adopted.playout;
+                } else {
+                    context = new AudioContext({
+                        sampleRate: 48000,
+                        latencyHint: "interactive",
+                    });
+                    source = context.createMediaStreamSource(
+                        new MediaStream([track]),
+                    );
+                    // Chrome starts the RTC decoder through this owned muted sink.
+                    playout = document.createElement("audio");
+                    playout.muted = true;
+                    playout.srcObject = new MediaStream([track]);
+                }
                 gain = context.createGain();
-                gain.gain.value = volume;
+                gain.gain.value = adopted ? 0 : volume;
                 source.connect(gain);
                 gain.connect(context.destination);
-                // Chrome starts the RTC decoder through this owned muted sink.
-                // The Web Audio graph controls audible playback and volume.
-                playout = document.createElement("audio");
-                playout.muted = true;
-                playout.srcObject = new MediaStream([track]);
+                if (adopted) {
+                    source.disconnect(adopted.mutedGain);
+                    adopted.mutedGain.disconnect();
+                }
                 await budget.run(() => context!.resume(), signal);
                 await playAudio(budget);
+                gain.gain.value = volume;
             }
             for (const [id, canvas] of Object.entries(video)) {
                 if (

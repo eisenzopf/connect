@@ -9,7 +9,7 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
         audio.track.kind !== "audio" ||
         (video && video.track.kind !== "video"))
         throw unsupported();
-    let context, source, worklet, gain, playout, picture, frameCallback, stopped = false, decoderSinksStopped = false, decoderSinksRetained = false, sampleCount = 0, frameCount = 0, presented = 0, failed;
+    let context, source, worklet, gain, playout, picture, frameCallback, stopped = false, decoderSinksStopped = false, decoderSinksRetained = false, audioAdopted = false, sampleCount = 0, frameCount = 0, presented = 0, failed;
     const run = (work) => budget.run(() => trackTask(work()), signal);
     const check = () => {
         if (failed)
@@ -21,8 +21,8 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
             ["closed", "failed"].includes(peer.connectionState))
             throw new ConnectError("closed", "Replacement decoder owner retired");
     };
-    // This lease can only detach these exact muted elements. It never lends
-    // a track, an audible output, readiness evidence, or a different peer.
+    // This lease transfers only this exact peer's muted decoded graph once.
+    // The renderer owns adopted outputs; release owns only outputs left here.
     const releaseDecoderSinks = async () => {
         if (decoderSinksStopped)
             return;
@@ -58,6 +58,20 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
                 failure ??= { error };
             }
         }
+        source?.disconnect();
+        gain?.disconnect();
+        source = undefined;
+        gain = undefined;
+        const originalContext = context;
+        context = undefined;
+        if (originalContext) {
+            try {
+                await trackTask(originalContext.close(), true);
+            }
+            catch (error) {
+                failure ??= { error };
+            }
+        }
         if (failure)
             throw failure.error;
     };
@@ -77,16 +91,41 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
             worklet.port.close();
             worklet.disconnect();
         }
-        source?.disconnect();
-        gain?.disconnect();
+        if (worklet)
+            source?.disconnect(worklet);
         worklet = undefined;
-        source = undefined;
-        gain = undefined;
-        const originalContext = context;
-        context = undefined;
-        if (originalContext)
-            await trackTask(originalContext.close(), true);
     };
+    const decoder = Object.freeze({
+        takeAudio(track) {
+            if (audioAdopted ||
+                decoderSinksStopped ||
+                signal.aborted ||
+                track !== audio.track ||
+                track.readyState !== "live" ||
+                ["closed", "failed"].includes(peer.connectionState) ||
+                !context ||
+                !source ||
+                !gain ||
+                !playout)
+                return undefined;
+            // No await can interleave cancellation between transfer and the
+            // renderer's local assignment. The old signal no longer owns it.
+            signal.removeEventListener("abort", cancelDecoderSinks);
+            const output = Object.freeze({
+                context,
+                source,
+                mutedGain: gain,
+                playout,
+            });
+            audioAdopted = true;
+            context = undefined;
+            source = undefined;
+            gain = undefined;
+            playout = undefined;
+            return output;
+        },
+        release: releaseDecoderSinks,
+    });
     try {
         check();
         context = new AudioContext({
@@ -132,6 +171,9 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
         gain = context.createGain();
         gain.gain.value = 0;
         source.connect(worklet);
+        // Keep this exact source graph advancing while observation is removed
+        // and before the renderer transfers it to its own public output gain.
+        source.connect(gain);
         worklet.connect(gain);
         gain.connect(context.destination);
         playout = document.createElement("audio");
@@ -203,7 +245,7 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
                     signal.addEventListener("abort", cancelDecoderSinks, {
                         once: true,
                     });
-                    retainMutedDecoderSinks(releaseDecoderSinks);
+                    retainMutedDecoderSinks(decoder);
                     check();
                     decoderSinksRetained = true;
                 }
@@ -226,8 +268,8 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
         }
     }
     finally {
-        // Observation detaches immediately. The native owner retains muted
-        // decoder sinks through public startup and joins late cleanup without
+        // Observation detaches immediately. The native owner retains the muted
+        // decoded graph through public startup and joins late cleanup without
         // extending the caller's original deadline.
         void trackTask(cleanObservation(), true).catch(() => { });
         if (!decoderSinksRetained)

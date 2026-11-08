@@ -5,14 +5,19 @@ import {markerFrames} from '../video/marker_calibration.mjs';
 import {transitionCoverage,cleanBinDurations} from '../lib/media_transition_coverage.mjs';
 
 async function rtcRenderFixture(run){
-    const keys=['document','AudioContext','AudioWorkletNode','CanvasRenderingContext2D','HTMLVideoElement','connectPeerTag'];
+    const keys=['document','AudioContext','MediaStreamAudioSourceNode','AudioWorkletNode','CanvasRenderingContext2D','HTMLVideoElement','connectPeerTag'];
     const saved=Object.fromEntries(keys.map(key=>[key,globalThis[key]]));
     const nodes=[],renders=[],closedOwners=[],tags=[];
     let release;
     const rendering=new Promise(resolve=>{release=resolve;});
+    class MediaStreamAudioSourceNode {
+        constructor(context){this.context=context;}
+        connect(){}
+        disconnect(){}
+    }
     class AudioContext {
         state='running';destination={};audioWorklet={addModule:async()=>{}};
-        createMediaStreamSource(){return {connect(){},disconnect(){}};}
+        createMediaStreamSource(){return new MediaStreamAudioSourceNode(this);}
         createGain(){return {gain:{value:1},connect(){},disconnect(){}};}
     }
     class AudioWorkletNode {
@@ -33,7 +38,7 @@ async function rtcRenderFixture(run){
         async render(input,options){
             renders.push({id:this.input.connectionId,options});
             if(this.failure)throw this.failure;
-            new AudioContext().createMediaStreamSource({});
+            const context=new AudioContext();context.createMediaStreamSource({}).connect(context.destination);
             if(this.wait)await rendering;
             const id=this.input.connectionId;
             let ended=false,finish,retire;
@@ -47,7 +52,7 @@ async function rtcRenderFixture(run){
     }
     class Renderer {audio(){}video(){}}
     const canvases=[];
-    Object.assign(globalThis,{AudioContext,AudioWorkletNode,CanvasRenderingContext2D,HTMLVideoElement,
+    Object.assign(globalThis,{AudioContext,MediaStreamAudioSourceNode,AudioWorkletNode,CanvasRenderingContext2D,HTMLVideoElement,
         connectPeerTag:(peer,id)=>{tags.push({peer,id});return true;},
         document:{createElement(){const canvas={getContext:()=>({drawImage(){},getImageData:()=>({data:new Uint8ClampedArray(128*72*4).fill(100)})})};canvases.push(canvas);return canvas;}}});
     const {browserMatrixPlan}=await import('../lib/browser_matrix_admission.mjs');

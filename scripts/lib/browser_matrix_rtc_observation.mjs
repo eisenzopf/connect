@@ -34,9 +34,12 @@ registerProcessor('matrix-rtc-decoded-pcm',MatrixRtcDecodedPcm);
  * internal preparation/readiness sink is excluded: it is not inside render().
  * The caller still owns render handles and closes/joins their AudioContexts. */
 export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
-    const render=Rtc.prototype.render,capture=Rtc.prototype.capture,createSource=AudioContext.prototype.createMediaStreamSource;
+    const render=Rtc.prototype.render,capture=Rtc.prototype.capture;
+    const sourcePrototype=MediaStreamAudioSourceNode.prototype;
+    const sourceConnect=sourcePrototype.connect;
+    const sourceConnectDescriptor=Object.getOwnPropertyDescriptor(sourcePrototype,'connect');
     const draw=CanvasRenderingContext2D.prototype.drawImage,frame=HTMLVideoElement.prototype.requestVideoFrameCallback;
-    const canvases=new Map(),metadata=new WeakMap(),pending=new Set(),taps=new Set(),modules=new WeakMap();
+    const canvases=new Map(),metadata=new WeakMap(),pending=new Set(),taps=new Set(),modules=new WeakMap(),observed=new WeakSet();
     let rendering=null,closed=false;
     const worklet=URL.createObjectURL(new Blob([rtcDecodedAudioWorklet],{type:'text/javascript'}));
     function tap(context,source,connectionId) {
@@ -64,10 +67,13 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
         }).catch(error=>{if(!closed&&context.state!=='closed')invalid(connectionId,String(error.message));});
         pending.add(ready);void ready.finally(()=>pending.delete(ready));
     }
-    AudioContext.prototype.createMediaStreamSource=function(...args){
-        const source=createSource.apply(this,args);
-        if(rendering&&!closed)tap(this,source,rendering);
-        return source;
+    MediaStreamAudioSourceNode.prototype.connect=function(...args){
+        const result=sourceConnect.apply(this,args);
+        if(rendering&&!closed&&!observed.has(this)){
+            observed.add(this);
+            tap(this.context,this,rendering);
+        }
+        return result;
     };
     Rtc.prototype.render=function(input,...args){
         const previous=rendering;rendering=this.input.connectionId;
@@ -103,7 +109,9 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
         },
         async close(){
             if(closed)return;closed=true;
-            Rtc.prototype.render=render;AudioContext.prototype.createMediaStreamSource=createSource;
+            Rtc.prototype.render=render;
+            if(sourceConnectDescriptor)Object.defineProperty(sourcePrototype,'connect',sourceConnectDescriptor);
+            else delete sourcePrototype.connect;
             if(capture)Rtc.prototype.capture=capture;
             CanvasRenderingContext2D.prototype.drawImage=draw;HTMLVideoElement.prototype.requestVideoFrameCallback=frame;
             await Promise.all([...pending]);
