@@ -780,10 +780,10 @@
     {
       "id": "B94",
       "title": "Prior focused tests do not reproduce six-source concurrent handoffs",
-      "status": "31 distinct focused Rust controls have recorded passes; six-source private delivery and preparation continuity still fail.",
-      "change": "The two actual history-gating controls pass. The native fixture now waits for a genuine original keyframe after lost decoder history and honors current feedback without restarting its decoder. This removes the observed C process-death reaction; it does not fix the remaining private-delivery cause.",
-      "evidence": "Latest exact native case still failed0/1 after15.25s (receiptfa21592564713335e4d727677a479d2240591d6b4d9cf63ea70aa777608e222c). All six originals decoded51-69 frames, then stalled during preparation and hit original read deadlines. All C decoders exited0 cleanly. Candidate0/4 received31/30 audio packets, but each had0video reads/assembly/decodes at the original readiness deadline. Two parser/assembler history controls passed (receipt44758689b9e5f33950c12f65dd091cbd3e63f45b0dd615fe032ea23a30359d38). The31 distinct Rust passes span separately source-bound attempts; they are not one fresh247-case cohort or matrix qualification. Offline4680-frame codec success and controlled delta-loss/key recovery remain supporting evidence, not transport causation.",
-      "next": "Capture existing bounded Service/Core phase and refusal summaries with the same native case, identify the first post-install admission or delivery failure, and fix that demonstrated cause before another qualification attempt. Heap/Chrome and full matrix remain held. Separate G6-098 soak remains pending."
+      "status": "34 distinct focused Rust controls have recorded passes; genuine six-source release verification remains pending.",
+      "change": "The initial endpoint-install policy releases scene, registry and controller guards, then revalidates exact ownership, activation and lease expiry. Immediate visual forwarding borrows only its live source lease while independently authorizing the target; queued media retains no source reader. Three new Core controls and all ten related audio/Probe controls pass in dev mode. Both isolated old-production positive controls fail at their intended assertions.",
+      "evidence": "Actual13/13 after-controls passed with unchanged source and all original command/controller joins (receiptff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa). Isolated old362 production plus the same new tests produced exactly0passed/2failed/0ignored, natural101 exits, with source unchanged and all joins; original raw failure flags remain intact (receipta1ccf7667755d38a136f0003f38bad928a48d1c7ec34e0d2206e6a0d42c9cccc). The independent before/after comparison64246ae9143ab589a82219617f3792e84d68c12be8031025cfbe265a80cce792 verifies the three blocked guards and missing immediate source-context callback. Latest native phase diagnostic remained0/1 (receiptcaba4fe267d431291c6aeeef3e0c4504d717b1bfabc73c3a0c67442bb7486c5d): both target installations succeeded but private video never reached the writer. These media artifacts were opt-level0/debug assertions, whereas the matrix requires release opt-level3; dev timing cannot establish release throughput failure. The34 distinct component passes are separate source-bound attempts, not a fresh250-case cohort or matrix qualification.",
+      "next": "Run the same genuine six-source/four-move case in release mode with verified Core/Service/Store and test-harness profiles, unchanged8s movement and200ms packet limits, bounded runtime, and physical disk reserve. Heap/Chrome remain held until native passes; no new cell or matrix. Separate G6-098 soak remains pending."
     },
     {
       "id": "B95",
@@ -1027,10 +1027,17 @@
       "passed": 0,
       "failed": 1,
       "phase": "history recovery avoids C exits; public preparation stall and zero private video remain"
+    },
+    {
+      "receipt_sha256": "caba4fe267d431291c6aeeef3e0c4504d717b1bfabc73c3a0c67442bb7486c5d",
+      "executed": 1,
+      "passed": 0,
+      "failed": 1,
+      "phase": "Both initial target installs succeed; post-install private video has no writer input. DEV profile only; release media timing remains unverified."
     }
   ],
   "focused_distinct_rust_component_passes": {
-    "count": 31,
+    "count": 34,
     "scope": "Separate source-bound focused attempts, not a combined current cohort or matrix qualification",
     "cases": [
       {
@@ -1187,7 +1194,31 @@
         "name": "sdk_handles::replacement_video_recovery::readiness::representative::representative_video_history_preserves_wrapping_order_and_epoch_key_boundaries",
         "receipt_sha256": "44758689b9e5f33950c12f65dd091cbd3e63f45b0dd615fe032ea23a30359d38",
         "source_workspace_sha256": "06b7791650015e7ec7c78ad47c73799ac574801017f3c1374480f64af1780939"
+      },
+      {
+        "name": "staged_streams::tests::private_consult::endpoint_preparation::endpoint_install_current_policy_releases_scene_registry_and_state_for_original_playout",
+        "receipt_sha256": "ff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa",
+        "source_workspace_sha256": "a5a5ba1c8df3d36a09efc8cee07d6fe8fa413680d822e6357d76f385f9adad97"
+      },
+      {
+        "name": "staged_streams::tests::private_consult::endpoint_preparation::endpoint_install_revalidates_original_owners_generations_activation_and_probe_slot",
+        "receipt_sha256": "ff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa",
+        "source_workspace_sha256": "a5a5ba1c8df3d36a09efc8cee07d6fe8fa413680d822e6357d76f385f9adad97"
+      },
+      {
+        "name": "staged_streams::tests::packet_admission::immediate_video_forward_borrows_only_live_original_source_context_and_rechecks_recipient",
+        "receipt_sha256": "ff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa",
+        "source_workspace_sha256": "a5a5ba1c8df3d36a09efc8cee07d6fe8fa413680d822e6357d76f385f9adad97"
       }
     ]
+  },
+  "b94_before_after_causal_comparison": {
+    "path": ".local/gate-6/v203-c363-c364-before-controls/causal-comparison.json",
+    "sha256": "64246ae9143ab589a82219617f3792e84d68c12be8031025cfbe265a80cce792",
+    "before_passed": 0,
+    "before_failed": 2,
+    "after_passed": 13,
+    "expected_before_assertions_verified": true,
+    "raw_before_failed_status_preserved": true
   }
 }

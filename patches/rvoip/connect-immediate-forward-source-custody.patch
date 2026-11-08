@@ -1,0 +1,155 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1196,7 +1196,12 @@
+                 scene_consumer::SceneCheck::receive(self.scene.as_ref(), self.admitted_at),
+                 self.data.as_ref(),
+                 None,
+-                None,
++                // Borrow only this call's actual current source lease. The
++                // recipient still derives its own current permission; queues
++                // retain no reader and no context is reused across packets.
++                (self.source.kind() == StreamKind::Video && self.data.is_none())
++                    .then(|| _source_lease.packet_context())
++                    .flatten(),
+                 pending.as_mut().map(|(_, _, deadline)| &mut **deadline),
+             );
+             if let Some(counters) = &delivery {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+@@ -1259,3 +1259,134 @@
+     );
+     assert!(f.policy.0.try_write().is_ok());
+ }
++
++
++struct ForwardPacketContext {
++    source: ConnectionId,
++    live: Arc<AtomicBool>,
++    current: bool,
++}
++struct ForwardSourceLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    context: ForwardPacketContext,
++}
++impl Drop for ForwardSourceLease {
++    fn drop(&mut self) {
++        self.context.live.store(false, Ordering::SeqCst);
++    }
++}
++impl MediaAuthorityLease for ForwardSourceLease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        self.inner.expires_at()
++    }
++    fn packet_context(&self) -> Option<&(dyn std::any::Any + Send + Sync)> {
++        Some(&self.context)
++    }
++}
++struct ForwardContextPolicy {
++    inner: Arc<Policy>,
++    calls: Arc<AtomicUsize>,
++    invalid: usize,
++}
++impl MediaPolicy for ForwardContextPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let inner = self.inner.current(scope)?;
++        if matches!(scope.purpose, MediaPurpose::Publish) {
++            Ok(Box::new(ForwardSourceLease {
++                inner,
++                context: ForwardPacketContext {
++                    source: if self.invalid == 2 {
++                        ConnectionId::from_string("foreign")
++                    } else {
++                        scope.connection.clone()
++                    },
++                    live: Arc::new(AtomicBool::new(true)),
++                    current: self.invalid != 3,
++                },
++            }))
++        } else {
++            Ok(inner)
++        }
++    }
++    fn current_packet(
++        &self,
++        scope: &MediaScope<'_>,
++        context: &(dyn std::any::Any + Send + Sync),
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        let context = context
++            .downcast_ref::<ForwardPacketContext>()
++            .ok_or(StreamControlError::Authority)?;
++        let MediaPurpose::Receive { source } = scope.purpose else {
++            return Err(StreamControlError::Authority);
++        };
++        if context.source != source.connection
++            || !context.live.load(Ordering::SeqCst)
++            || !context.current
++        {
++            return Err(StreamControlError::Authority);
++        }
++        // Exact source custody supplies no recipient permission.
++        self.inner.current(scope)
++    }
++}
++#[tokio::test]
++async fn immediate_video_forward_borrows_only_live_original_source_context_and_rechecks_recipient()
++{
++    for invalid in 0..4 {
++        let calls = Arc::new(AtomicUsize::new(0));
++        let f = Fixture::with_policy(
++            8,
++            Some(Box::new({
++                let calls = calls.clone();
++                move |inner| {
++                    Arc::new(ForwardContextPolicy {
++                        inner,
++                        calls,
++                        invalid,
++                    })
++                }
++            })),
++        );
++        f.start(&[Medium::Video]).await;
++        let source = f.aa.port(Medium::Video);
++        let mut input =
++            f.a.take_ingress(&desired(Medium::Video).logical_id)
++                .unwrap();
++        let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++        source.try_publish(&frame(&source, 100)).unwrap();
++        let packet = receive(&mut input).await;
++        if invalid == 1 {
++            f.policy.0.write().await.revoked.insert("bob".into());
++        }
++        let result = packet.try_forward_to(&f.b, &desired(Medium::Video).logical_id);
++        assert_eq!(
++            calls.load(Ordering::SeqCst),
++            1,
++            "immediate original source context callback must execute"
++        );
++        assert!(
++            f.policy.0.try_write().is_ok(),
++            "queue retained original authority reader"
++        );
++        if invalid == 0 {
++            result.unwrap();
++            assert_video_packet(outgoing(&mut output).await).await;
++            assert_eq!(
++                calls.load(Ordering::SeqCst),
++                2,
++                "actual writer must independently reauthorize current recipient"
++            );
++            assert!(f.policy.0.try_write().is_ok());
++        } else {
++            assert!(
++                matches!(result, Err(StreamControlError::Authority)),
++                "invalid={invalid}"
++            );
++            assert!(output.try_recv().is_err());
++        }
++    }
++}

@@ -1924,6 +1924,16 @@
       "path": "patches/rvoip/connect-peer-local-close-lifetime.patch",
       "sha256": "5825d04d5ef86ef4959920ee9fc1f97b5856ae7596c9469ecbce0df75bf346fb",
       "source": "Publish exact local RTC peer terminal intent before awaiting original driver close, whose normal abort/join may prevent its queued Closed callback. Existing terminal flags fence transport currency and original wait_failed observations across cancellation/retry. Pending wait_connected observations must reject buffered pre-terminal Connected notifications and cannot restore the raw connected flag after terminal intent. Preserve source-clock retirement, original driver cleanup/errors, unrelated peer ownership, generation/authorization/media/deadline behavior. Strengthen the same real connected local-close control with parked waiters, cancelled original close/retry/repeat and an unrelated live pair."
+    },
+    {
+      "path": "patches/rvoip/connect-endpoint-install-policy-release.patch",
+      "sha256": "0a9f142766766d5ec503d4c2e007e29be08dea93f8c1c30a38f85409aca72d6a",
+      "source": "Release original scene member, closed audience registry and controller metadata guards before current decoder-install authority. Freeze and revalidate original member, audience, credential/model/port/ticket and consumer/scene activation plus original preparation slot before installing one decoder Probe. Recheck current original lease expiry at final installation. Keep all per-packet policy, readiness, routing and expiry checks. Regress blocked normal installation with original playout and changed original-resource refusal without weakening existing Probe controls."
+    },
+    {
+      "path": "patches/rvoip/connect-immediate-forward-source-custody.patch",
+      "sha256": "57bf6c93ac9ff3c062f23c133f3cd54ad13ffafac22dc3a450616c455ad149ad",
+      "source": "Borrow only the actual current source lease packet context during immediate visual forwarding, matching actual queued-writer current-target authorization. The context is invocation-local custody only, not recipient permission or cross-packet caching. Keep independent current target authorization, exact source/domain binding, original packet expiry and all controller/scene/port guards. Other media/Data paths are unchanged. Regress exact live original source ownership, current recipient revocation and stale/foreign context refusal without fallback."
     }
   ]
 }
