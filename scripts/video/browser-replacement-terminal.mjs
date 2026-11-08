@@ -26,12 +26,14 @@ for(const actor of spec.actors){
 const chromium=(await import(process.env.CONNECT_PLAYWRIGHT_MODULE?pathToFileURL(process.env.CONNECT_PLAYWRIGHT_MODULE).href:'playwright')).chromium;
 const sdkRoot=await fs.realpath(path.join(root,'sdk/typescript/dist'));
 const tapFile=path.join(root,'scripts/lib/browser_matrix_rtc_observation.mjs');
+const pcmFile=path.join(root,'scripts/lib/browser_matrix_pcm.mjs');
 const assets=http.createServer(async(request,response)=>{
  try{
   assert.equal(request.method,'GET');const url=new URL(request.url,'http://127.0.0.1');
   if(url.pathname==='/'){response.writeHead(200,{'Content-Type':'text/html'});response.end('<!doctype html><meta charset=utf-8><title>Owned terminal integration</title>');return;}
   let file;
   if(url.pathname==='/rtc-observer.mjs')file=tapFile;
+  else if(url.pathname==='/pcm-identity.mjs')file=pcmFile;
   else {assert.ok(url.pathname.startsWith('/sdk/'));file=await fs.realpath(path.resolve(sdkRoot,'.'+url.pathname.slice(4)));assert.ok(file.startsWith(sdkRoot+path.sep)&&file.endsWith('.js'));}
   response.writeHead(200,{'Content-Type':'text/javascript'});response.end(await fs.readFile(file));
  }catch{response.writeHead(404);response.end('unavailable');}
@@ -62,6 +64,7 @@ try{
   const {BrowserSdkClient}=await import('/sdk/browser_sdk.js');
   const {BrowserRtcConnection}=await import('/sdk/browser_sdk_webrtc.js');
   const {browserMatrixRtcObservation}=await import('/rtc-observer.mjs');
+  const {pcmIdentity}=await import('/pcm-identity.mjs');
   const check=(value,message)=>{if(!value)throw Error(message);};
   const opts=()=>({timeoutMs:8000}),mutation=operationId=>({...opts(),operationId});
   const done=async promise=>(await (await promise).wait(opts())).value;
@@ -116,32 +119,36 @@ try{
      signing:{algorithm:actor.signing.algorithm,keyId:actor.signing.keyId,key},
      server:{algorithm:actor.server.algorithm,keyId:actor.server.keyId,key:trust,
       notBefore:actor.server.notBefore,expiresAt:actor.server.expiresAt}};
-    clients.push(await BrowserSdkClient.open({tenantId:'tnt_default',identityId:actor.identityId,deviceId:actor.device.id,
+    clients.push(await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:actor.identityId,deviceId:actor.device.id,
      endpoints:{'wss-webrtc':actor.url},preferredTransport:'wss-webrtc',allowFallback:false,
      resolveEnrollment:async()=>enrollment,timeoutMs:8000,attemptTimeoutMs:3000}));
    }
-   const connections=[];
+   const connections=[],offerings=[];
    for(let i=0;i<4;i++){
     const session=clients[i%2].conversations.byId(spec.conversationId).sessions.byId(spec.sessions[Math.floor(i/2)]);
-    connections.push(await done(session.connections.offer({connectionId:`browser-wire-connection-${i}`,
+    const connectionId=`browser-wire-connection-${i}`,cutoff=performance.now()+8000;
+    const options=()=>{
+     const timeoutMs=Math.floor(cutoff-performance.now());
+     check(timeoutMs>0,'original8s initial offer deadline');
+     return {timeoutMs};
+    };
+    const operation=await session.connections.offer({connectionId,
      streams:{first:{id:`browser-wire-audio-${i}`,kind:'audio',direction:'sendrecv',codecs:{first:'opus',rest:[]}},
-      rest:[{id:`browser-wire-video-${i}`,kind:'video',direction:'sendrecv',codecs:{first:'vp8',rest:[]}}]}},mutation(`browser-wire-offer-${i}`))));
-   }
-   for(let i=0;i<4;i++){
-    const view=await connections[i].refresh(opts()),peer=expected[i];
-    await done(connections[i].streams.subscribe({selectors:{first:{stream:`browser-wire-audio-${peer}`},rest:[{stream:`browser-wire-video-${peer}`}]},
-     expectedStreamRevision:view.streamRevision},mutation(`browser-wire-select-${i}`)));
+      rest:[{id:`browser-wire-video-${i}`,kind:'video',direction:'sendrecv',codecs:{first:'vp8',rest:[]}}]}},{...options(),operationId:`browser-wire-offer-${i}`});
+    connections.push(session.connections.byId(connectionId));
+    offerings.push({operation,options});
    }
    const bindingById=new Map(connections.map((connection,i)=>[connection.id,i]));
    observer=browserMatrixRtcObservation(BrowserRtcConnection,{
-    invalid(message){invalid(String(message).slice(0,128));},
+    invalid(...args){invalid(String(args.at(-1)).slice(0,128));},
     audio(id,timestamp,at,samples){
      const i=bindingById.get(id);if(i===undefined)return;
      if(samples.length!==960){invalid('actual20ms decoded PCM');return;}
-     let energy=0,real=0,imaginary=0;const hz=sourceHz[expected[i]];
-     for(let n=0;n<samples.length;n++){energy+=samples[n]*samples[n];real+=samples[n]*Math.cos(2*Math.PI*hz*n/48000);imaginary+=samples[n]*Math.sin(2*Math.PI*hz*n/48000);}
-     if(!(energy>0&&Math.sqrt(energy/960)>.03)){invalid('old receiver actual audible decoded PCM');return;}
-     if(!(2*(real*real+imaginary*imaginary)/(samples.length*energy)>.55)){invalid('old receiver actual source tone');return;}
+     const identity=pcmIdentity(samples,expected[i]);
+     if(!(identity.rms>.03)){invalid('old receiver actual audible decoded PCM');return;}
+     if(!identity.identified){
+      invalid(`actual selected source tone id=${id.slice(0,32)} hz=${sourceHz[expected[i]]} rms=${identity.rms.toFixed(3)} powers=${identity.powers.map(power=>power.toExponential(3)).join('/')}`);return;
+     }
      progress[i].audio++;progress[i].lastAudio=at;
     },
     video(id,timestamp,at,frame,width,height){
@@ -162,8 +169,21 @@ try{
     let ordinal=0;const draw=()=>{const ctx=canvas.getContext('2d'),mark=60+i*40;ctx.fillStyle=`rgb(${mark},${mark},${mark})`;ctx.fillRect(0,0,640,360);
      ctx.fillStyle='white';ctx.fillRect((ordinal++*13)%600,180,20,100);};draw();timers.push(setInterval(draw,1000/30));
     const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.frequency.value=sourceHz[i];gain.gain.value=.15;oscillator.connect(gain);oscillator.start();oscillators.push(oscillator);
-    captures.push(await connections[i].capture({audio:true,audioNode:gain,video:'camera',videoCanvas:canvas},opts()));
-    observer.attach(connections[i].id,output);
+    captures.push(await connections[i].capture({audio:true,audioNode:gain,video:'camera',videoCanvas:canvas},offerings[i].options()));
+   }
+   // Accepted SDP/ICE alone is not flow-ready: send real media before waiting
+   // the same original offer. Observer prototypes already see every output.
+   for(let i=0;i<4;i++){
+    const completed=await offerings[i].operation.wait(offerings[i].options());
+    check(completed.value.id===connections[i].id,'same original offered connection completes');
+   }
+   for(let i=0;i<4;i++){
+    const view=await connections[i].refresh(opts()),peer=expected[i];
+    await done(connections[i].streams.subscribe({selectors:{first:{stream:`browser-wire-audio-${peer}`},rest:[{stream:`browser-wire-video-${peer}`}]},
+     expectedStreamRevision:view.streamRevision},mutation(`browser-wire-select-${i}`)));
+   }
+   for(let i=0;i<4;i++){
+    const output=canvases[i].output;observer.attach(connections[i].id,output);
     const rendered=await connections[i].render({audio:true,video:[{stream:connections[i].streams.byId(`browser-wire-video-${i}`),canvas:output}]},opts());
     renders.push({owner:rendered,connectionId:connections[i].id,retirement:rendered.retirement,finished:rendered.finished});
    }
@@ -196,7 +216,7 @@ try{
    for(let i=0;i<4;i++){const now=performance.now(),p=progress[i];
     check(p.audio>=post[i].audio+3&&p.video>=post[i].video+3&&p.changing>post[i].changing,'old actual AV has new output after server terminal');
     check(p.lastAudio>=closedAt&&p.lastVideo>=closedAt&&now-p.lastAudio<200&&now-p.lastVideo<200,'old actual AV remains fresh after candidate close');}
-   check(observationFailures.length===0,'original decoded privacy/format/continuity observation failed');
+   check(observationFailures.length===0,'original decoded privacy/format/continuity observation failed: '+JSON.stringify(observationFailures));
    for(let i=0;i<clients.length;i++){
     check(clients[i].transport.physicalEpoch===originalEpochs[i],'original WSS epoch unchanged');
     const view=await clients[i].conversations.byId(spec.conversationId).refresh(opts());check(view.id===spec.conversationId,'original control remains usable');

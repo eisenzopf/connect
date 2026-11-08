@@ -26,12 +26,16 @@ for(const actor of spec.actors){
 const chromium=(await import(process.env.CONNECT_PLAYWRIGHT_MODULE?pathToFileURL(process.env.CONNECT_PLAYWRIGHT_MODULE).href:'playwright')).chromium;
 const sdkRoot=await fs.realpath(path.join(root,'sdk/typescript/dist'));
 const tapFile=path.join(root,'scripts/lib/browser_matrix_rtc_observation.mjs');
+const pcmFile=path.join(root,'scripts/lib/browser_matrix_pcm.mjs');
+const boundaryFile=path.join(root,'scripts/lib/browser_matrix_stages.mjs');
 const assets=http.createServer(async(request,response)=>{
  try{
   assert.equal(request.method,'GET');const url=new URL(request.url,'http://127.0.0.1');
   if(url.pathname==='/'){response.writeHead(200,{'Content-Type':'text/html'});response.end('<!doctype html><meta charset=utf-8><title>Owned terminal integration</title>');return;}
   let file;
   if(url.pathname==='/rtc-observer.mjs')file=tapFile;
+  else if(url.pathname==='/pcm-identity.mjs')file=pcmFile;
+  else if(url.pathname==='/pcm-boundary.mjs')file=boundaryFile;
   else {assert.ok(url.pathname.startsWith('/sdk/'));file=await fs.realpath(path.resolve(sdkRoot,'.'+url.pathname.slice(4)));assert.ok(file.startsWith(sdkRoot+path.sep)&&file.endsWith('.js'));}
   response.writeHead(200,{'Content-Type':'text/javascript'});response.end(await fs.readFile(file));
  }catch{response.writeHead(404);response.end('unavailable');}
@@ -63,6 +67,8 @@ try{
   const {BrowserRtcConnection}=await import('/sdk/browser_sdk_webrtc.js');
   const {CanonicalWebRtcSignaling}=await import('/sdk/browser_webrtc_signaling.js');
   const {browserMatrixRtcObservation}=await import('/rtc-observer.mjs');
+  const {pcmIdentity}=await import('/pcm-identity.mjs');
+  const {pcmBoundary}=await import('/pcm-boundary.mjs');
   const check=(value,message)=>{if(!value)throw Error(message);};
   const opts=()=>({timeoutMs:8000}),mutation=operationId=>({...opts(),operationId});
   const done=async promise=>(await (await promise).wait(opts())).value;
@@ -70,6 +76,7 @@ try{
   const clients=[],captures=[],renders=[],timers=[],oscillators=[],surfaces=[];
   const current=[],byConnection=new Map(),active=new Map(),progress=new Map(),ready=new Map(),moves=[];
   const sourceHz=[440,660,880,1100],expected=[1,0,3,2],observationFailures=[];
+  const renderTimes=new Map(),audioFailures=[];
   const audio=new AudioContext({sampleRate:48000});await audio.resume();
   let observer,functionalFailure,cleanupFailures=[],measuring=false;
   const complete=CanonicalWebRtcSignaling.prototype.completeReplacement;
@@ -89,21 +96,25 @@ try{
      signing:{algorithm:actor.signing.algorithm,keyId:actor.signing.keyId,key},
      server:{algorithm:actor.server.algorithm,keyId:actor.server.keyId,key:trust,
       notBefore:actor.server.notBefore,expiresAt:actor.server.expiresAt}};
-    clients.push(await BrowserSdkClient.open({tenantId:'tnt_default',identityId:actor.identityId,deviceId:actor.device.id,
+    clients.push(await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:actor.identityId,deviceId:actor.device.id,
      endpoints:{'wss-webrtc':actor.url},preferredTransport:'wss-webrtc',allowFallback:false,
      resolveEnrollment:async()=>enrollment,timeoutMs:8000,attemptTimeoutMs:3000}));
    }
+   const offerings=[];
    for(let i=0;i<4;i++){
     const session=clients[i%2].conversations.byId(spec.conversationId).sessions.byId(spec.sessions[Math.floor(i/2)]);
-    const connection=await done(session.connections.offer({connectionId:`browser-wire-connection-${i}`,
+    const connectionId=`browser-wire-connection-${i}`,cutoff=performance.now()+8000;
+    const options=()=>{
+     const timeoutMs=Math.floor(cutoff-performance.now());
+     check(timeoutMs>0,'original8s initial offer deadline');
+     return {timeoutMs};
+    };
+    const operation=await session.connections.offer({connectionId,
      streams:{first:{id:`browser-wire-audio-${i}`,kind:'audio',direction:'sendrecv',codecs:{first:'opus',rest:[]}},
-      rest:[{id:`browser-wire-video-${i}`,kind:'video',direction:'sendrecv',codecs:{first:'vp8',rest:[]}}]}},mutation(`browser-wire-offer-${i}`)));
+      rest:[{id:`browser-wire-video-${i}`,kind:'video',direction:'sendrecv',codecs:{first:'vp8',rest:[]}}]}},{...options(),operationId:`browser-wire-offer-${i}`});
+    const connection=session.connections.byId(connectionId);
+    offerings.push({operation,options});
     current.push({connection,actor:i%2,audio:`browser-wire-audio-${i}`,send:`browser-wire-video-${i}`,receive:`browser-wire-video-${i}`});
-   }
-   for(let i=0;i<4;i++){
-    const connection=current[i].connection,view=await connection.refresh(opts()),peer=expected[i];
-    await done(connection.streams.subscribe({selectors:{first:{stream:`browser-wire-audio-${peer}`},rest:[{stream:`browser-wire-video-${peer}`}]},
-     expectedStreamRevision:view.streamRevision},mutation(`browser-wire-select-${i}`)));
    }
    const oldViews=current.map(value=>value.connection);
    observer=browserMatrixRtcObservation(BrowserRtcConnection,{
@@ -111,12 +122,13 @@ try{
     audio(id,timestamp,at,samples){
      const i=byConnection.get(id);if(i===undefined||active.get(i)!==id)return;
      if(samples.length!==960){invalid('actual20ms decoded PCM');return;}
-     let energy=0,real=0,imaginary=0;const hz=sourceHz[expected[i]];
-     for(let n=0;n<samples.length;n++){energy+=samples[n]*samples[n];real+=samples[n]*Math.cos(2*Math.PI*hz*n/48000);imaginary+=samples[n]*Math.sin(2*Math.PI*hz*n/48000);}
-     // Startup silence never counts as actual decoded success. The same
-     // original cut requires fresh audible source samples before its deadline.
-     if(!(energy>0&&Math.sqrt(energy/960)>.03))return;
-     if(!(2*(real*real+imaginary*imaginary)/(samples.length*energy)>.55)){invalid('actual selected source tone');return;}
+     const identity=pcmIdentity(samples,expected[i]);
+     if(!(identity.rms>.03))return;
+     if(!identity.identified){
+      if(audioFailures.length<8)audioFailures.push({id,at,render:renderTimes.get(id),
+       receivedAudio:progress.get(id)?.audio,identity,boundary:pcmBoundary(samples)});
+      invalid(`actual selected source tone id=${id.slice(0,32)} hz=${sourceHz[expected[i]]} rms=${identity.rms.toFixed(3)} powers=${identity.powers.map(power=>power.toExponential(3)).join('/')}`);return;
+     }
      const p=progress.get(id);p.audio++;p.lastAudio=at;
     },
     video(id,timestamp,at,frame,width,height){
@@ -145,6 +157,7 @@ try{
     captures.push({id:connection.id,owner});return owner;
    };
    const startRender=async(i,binding,options)=>{
+    const timeline={started:performance.now(),returned:null};renderTimes.set(binding.connection.id,timeline);
     const output=document.createElement('canvas');output.width=640;output.height=360;surfaces[i].outputs.push(output);
     check(renders.length<8,'bounded public render owners');byConnection.set(binding.connection.id,i);
     progress.set(binding.connection.id,{audio:0,video:0,changing:0,lastAudio:null,lastVideo:null,lastPixels:null});
@@ -153,9 +166,22 @@ try{
     // completion receipts; private decoder outputs have never been rendered.
     active.set(i,binding.connection.id);
     const owner=await binding.connection.render({audio:true,video:[{stream:binding.connection.streams.byId(binding.receive),canvas:output}]},options);
+    timeline.returned=performance.now();
     renders.push({owner,connectionId:binding.connection.id,retirement:owner.retirement,finished:owner.finished});
    };
-   for(let i=0;i<4;i++){await startCapture(i,current[i].connection,opts());await startRender(i,current[i],opts());}
+   for(let i=0;i<4;i++)await startCapture(i,current[i].connection,offerings[i].options());
+   // Retain the accepted original operations; only actual source flow can
+   // complete their waits. Do not resubmit a mutation to escape this ordering.
+   for(let i=0;i<4;i++){
+    const completed=await offerings[i].operation.wait(offerings[i].options());
+    check(completed.value.id===current[i].connection.id,'same original offered connection completes');
+   }
+   for(let i=0;i<4;i++){
+    const connection=current[i].connection,view=await connection.refresh(opts()),peer=expected[i];
+    await done(connection.streams.subscribe({selectors:{first:{stream:`browser-wire-audio-${peer}`},rest:[{stream:`browser-wire-video-${peer}`}]},
+     expectedStreamRevision:view.streamRevision},mutation(`browser-wire-select-${i}`)));
+   }
+   for(let i=0;i<4;i++)await startRender(i,current[i],opts());
    const fresh=(id,after)=>{const p=progress.get(id),now=performance.now();return p&&p.audio>=3&&p.video>=3&&p.changing>0&&p.lastAudio>=after&&p.lastVideo>=after&&now-p.lastAudio<200&&now-p.lastVideo<200;};
    const startup=performance.now()+8000;
    await wait(()=>current.every(value=>fresh(value.connection.id,0)),startup,'four original decoded AV receivers');measuring=true;
@@ -212,7 +238,7 @@ try{
     }
    }
    check(moves.length===4&&moves.filter(value=>value.generation===3).length===2,'two genuine original-Device returns');
-   check(observationFailures.length===0,'no wrong source or malformed actual decoded output');
+   check(observationFailures.length===0,`no wrong source or malformed actual decoded output: ${observationFailures.join(', ')} details=${JSON.stringify(audioFailures)}`);
    const report={operation_id:spec.operationId,moves,original_connections:oldViews.map(value=>value.id),current:current.map(value=>value.connection.id),
     wss_epochs:epochs,original_device_id:spec.actors[0].device.id,target_device_id:spec.actors[2].device.id,
     active_receivers:current.map(value=>({id:value.connection.id,...progress.get(value.connection.id),lastPixels:undefined}))};

@@ -3,6 +3,7 @@ import {test} from 'node:test';
 import {BrowserSdkClient,BrowserMediaPeer} from '../typescript/dist/browser.js';
 import {fixture} from './fixtures/browser_control_peer.mjs';
 import {BrowserRtcConnection} from '../typescript/dist/browser_sdk_webrtc.js';
+import {nativeIdentity,nativeBoundary} from './native_activation_fixture.mjs';
 const reference={operationId:'original',command:'connection.replace',scope:{conversationId:'room',sessionId:'session',connectionId:'source'},
     continuation:{kind:'replacement',retained_connection_id:'remote',target:{kind:'endpoint',id:'endpoint'}}};
 // Signed current-root recovery plus an intercepted physical-preparation boundary.
@@ -36,10 +37,19 @@ async function scenario(run,{path='webtransport',mode}={}) {
         const readiness={stream_revision:6,streams:['audio','out','in'],participant_revision:2};
         const value={operation_id:'original',record_id:'record',command_type:'connection.replace',expected_revision:7,
             revision:reads,state:complete?'completed':'preparing',native_replacement_prepared:mode==='bad-flag'?'true':reads>=2};
-        if(complete)value.result={activation_state:'ready',connection_id:'replacement_record',replaces:'source',generation:2,
-            participant_id:'participant',membership_epoch:1,endpoint_id:'endpoint',device_id:'wss_device',
-            retained_connection_ids:['remote'],admitted_connection_ids:['replacement_record'],retired_connection_ids:['source'],
-            session_revision:8,conversation_revision:null,readiness,physical_readiness:readiness};
+        if(complete){
+            // Parser/model metadata only: this fixture intercepts preparation;
+            // these synthetic cuts never stand in for live decoder evidence.
+            const native_activation=nativeBoundary(captured.root,path==='webtransport'?[
+                {strm_id:'audio',stream_local_id:1,native_egress:nativeIdentity(1,2)},
+                {strm_id:'in',stream_local_id:2,native_egress:nativeIdentity(2,2)},
+            ]:[],2,readiness.stream_revision);
+            if(path==='wss-webrtc')native_activation.audience={scope:'unsupported',reason:'non-native-adapter'};
+            value.result={activation_state:'ready',connection_id:'replacement_record',replaces:'source',generation:2,
+                participant_id:'participant',membership_epoch:1,endpoint_id:'endpoint',device_id:'wss_device',
+                retained_connection_ids:['remote'],admitted_connection_ids:['replacement_record'],retired_connection_ids:['source'],
+                session_revision:8,conversation_revision:null,readiness,physical_readiness:readiness,native_activation};
+        }
         await peer.emit('operation.updated',value,frame.id,{...frame,connid:mode==='foreign-scope'?'foreign':frame.connid});
         await peer.emit('ack',{},frame.id,frame);return true;
     }});}finally{BrowserMediaPeer.prototype.beginReplacementConnection=previous;BrowserRtcConnection.beginReplacement=previousRtc;}
@@ -52,11 +62,17 @@ for(const path of ['webtransport','wss-webrtc'])test(`typed ${path} target polls
     assert.equal(f.captured().root.operationId,'original');assert.equal(f.captured().root.deviceId,'wss_device');
     assert.equal(f.captured().root.endpointId,'endpoint');assert.equal(f.captured().input.audio,'audio');assert.equal(f.captured().input.video,'out');
     assert.equal(f.captured().input.receiveVideo,'in');assert.equal(f.captured().root.recordId,'record');
-    let completed=false;void target.completion.then(()=>{completed=true;});await Promise.resolve();assert.equal(completed,false);
-    f.finish();const receipt=await target.completion;assert.equal(receipt.value.connection.id,target.connection.id);
-    assert.equal(receipt.value.binding.generation,2);assert.equal(receipt.snapshot.key.operationId,'original');
-    assert.equal(f.f.sent.filter(frame=>frame.type==='connection.replace'||frame.type==='connection.offer').length,0);
-    assert.ok(f.f.sent.filter(frame=>frame.type==='operation.get').every(frame=>frame.connid==='source'));
+    let settled=false;
+    const completionSettled=target.completion.then(()=>{settled=true;},()=>{settled=true;});
+    try{
+        await Promise.resolve();assert.equal(settled,false);
+        f.finish();const receipt=await target.completion;assert.equal(receipt.value.connection.id,target.connection.id);
+        assert.equal(receipt.value.binding.generation,2);assert.equal(receipt.snapshot.key.operationId,'original');
+        assert.equal(f.f.sent.filter(frame=>frame.type==='connection.replace'||frame.type==='connection.offer').length,0);
+        assert.ok(f.f.sent.filter(frame=>frame.type==='operation.get').every(frame=>frame.connid==='source'));
+    }finally{
+        f.finish();await completionSettled;
+    }
 },{path}));
 for(const mode of ['bad-flag','foreign-scope'])test(`typed replacement ${mode} cannot allocate target media`,()=>scenario(async f=>{
     await assert.rejects(()=>f.session.connections.prepareReplacement({operation:reference,audio:'audio'}, {timeoutMs:200}),{kind:'protocol'});

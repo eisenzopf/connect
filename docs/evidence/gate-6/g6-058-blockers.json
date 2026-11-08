@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-08",
-  "run_status": "The batched fixes pass all128Store/Core controls, all3RELEASE controls and the genuine six-source/two-Session four-handoff programme. All4moves and both original-Device returns finish within the original8-second bounds, with no video-quality violations or task failures. Commitcaf8506f is pushed. The latest ended full matrix remains v203 at0qualified/24failed/8blocked cells, with197passed/62failed/173blocked checks. Next are installed-Chromium2, heap lifecycle1, expanded301Rust/304Node/197Python/MacACL1 and a fresh32-cell run. G6-098 sustained-growth soak remains separate.",
+  "run_status": "The four production fixes pass128Store/Core controls,3RELEASE controls and the genuine native four-handoff programme. Browser setup is corrected and real Chrome terminal-close passes. Chrome roundtrip completes all4moves but fails shared8x audio identity on partial startup windows; exact diagnostics find832leading zero samples followed by128tone samples in first new-renderer windows. SDK private-to-public decoder-sink lifetime is under investigation. The corrected heap setup now reaches all3Session cycles and passes original Weak-owner cleanup checks, but its heap-boundary capture has0of4required samples, so the case remains failed. Expanded ARM and the fresh32-cell matrix await these fixes. Latest matrix v203 remains0qualified/24failed/8blocked cells,197passed/62failed/173blocked checks. Resource profile4 retains strict cleanup and declared budgets; G6-098 is separate.",
   "blockers": [
     {
       "id": "B01",
@@ -811,7 +811,7 @@
       "title": "Private receiver epoch lookup treats a busy registry as lost authority",
       "status": "SIGNED RELEASE VERIFIED. Both receiver-epoch controls pass2/2; the actual propagated contention recovers one original signed history and exact key bytes on the same registration.",
       "change": "The existing original-owner lookup converts a real entries.try_lock WouldBlock into permanent Authority. Private receiver epoch preparation can then permanently retire its original registration. Proposed fix reuses exact preparation metadata capture under the fresh Store read and preserves only actual authority-busy, retaining permanent refusal for all other capture errors.",
-      "evidence": "After correcting a fixture status-scope compile error, both exact tests fail at the intended13-vs7 classification assertion. The propagated case receives0verified receiver notices and times out on actual original key bytes, then all four client/server shutdowns returnOk. Receipt4a3cdf60f3f449600f34f0dcbd0af8ad23502624637c1bc685112ec8fe5b5994 proves unchanged source and natural joins. Historical sporadic matrix causation remains unproved.",
+      "evidence": "Both original corrected controls fail on old production at13-vs7 classification. After the library fix both actual RELEASE controls pass2/2, including propagated registry contention, one exact original signed receiver notice and fresh decoded key bytes. After receipt6a5a4b64f4cffae78742bb351a53c127bd02e96e52559a5689d1220f3362560e preserves all original natural joins. Batched genuine native handoffs pass with one notice per candidate.",
       "next": "Complete the installed-browser/heap/ARM checks and full32-cell matrix."
     },
     {
@@ -819,7 +819,7 @@
       "title": "Private scene construction repeats runtime-owner filesystem checks",
       "status": "UNIT VERIFIED. Physical owner validations reduce29\u21926on the actual stable memo-hit path, with all ownership/identity/expiry controls passing. Batched genuine RELEASE handoffs pass1/1.",
       "change": "Use one invocation-local checked runtime owner during native read construction. Preserve full physical checks at entry and final return, all original Weak/runtime/expiry checks, current authorization and actual IO checks.",
-      "evidence": "A stable three-source memo-hit scene currently requires29physical validations over the whole call, with11inside final construction. Four new normal Store tests are staged to prove reduction to6and retain foreign/dead-owner, physical-file, retirement, credential and expiry refusal. These counts await execution. The profile shows this work is secondary to repeated SQL preparation.",
+      "evidence": "All four new actual Store controls pass in the128-control after batch, including measured29-to6physical validations for one stable three-source memo-hit scene and unchanged foreign/dead-owner, physical-file, retirement, credential and expiry refusal. Receipt27fbdbdd392143e397e5acece24f9c2dabf55a82b794d8a3758aebcbbf932a91. The genuine native programme then passes all4handoffs without quality or task failures; individual performance attribution remains unproved.",
       "next": "Complete installed-browser, heap and expanded local ARM validation, then verify the full32-cell matrix. Individual performance attribution remains outside this batched result."
     },
     {
@@ -827,8 +827,32 @@
       "title": "Recursive private-ancestry query is recompiled during ordinary media reconstruction",
       "status": "UNIT VERIFIED. All3statement-reuse/fresh-authorization/cyclic-ancestry controls pass. Batched genuine RELEASE handoffs pass1/1.",
       "change": "Use the existing bounded per-connection prepared-statement cache for the byte-identical recursive ancestry query. Execute it with current bindings and current rows on every call.",
-      "evidence": "has_private_ancestor currently callsConnection.query_row while adjacent floor queries already useprepare_cached. The retained profile contains333weighted observations with both this ancestry function and SQL preparation/parser on the same sampled path. This does not establish a CPU-time percentage or total frame-rate cure.",
+      "evidence": "All3actual normal Store controls pass in the128-control after batch, proving exact statement reuse with fresh current authorization and bounded cyclic-ancestry refusal. The original query text and32-entry per-connection cache limit remain unchanged. Receipt27fbdbdd392143e397e5acece24f9c2dabf55a82b794d8a3758aebcbbf932a91. Batched genuine native programme passes all4handoffs; individual performance attribution remains unproved.",
       "next": "Complete installed-browser, heap and expanded local ARM validation, then verify the full32-cell matrix. Individual performance attribution remains outside this batched result."
+    },
+    {
+      "id": "B100",
+      "title": "Standalone installed-Chrome fixtures use obsolete client setup and wait before capture",
+      "status": "SETUP VERIFIED. Existing4Node target tests pass, copied ordering controls2/2pass and real Chrome terminal-close passes. Chrome roundtrip completes4moves; remaining audio issue is tracked underB102.",
+      "change": "Use current BrowserSdkClient.connect, retain each accepted offer and exact byId handle, install observation, start actual captures, then wait the same operations inside original8-second absolute cutoffs. Correct the existing Node target-completion mock to include current native_activation metadata and join its progress watcher.",
+      "evidence": "BrowserSdkClient.connect and capture-before-original-offer-wait are used by both actual scripts. Terminal-close repeatedly passes with all4original decoded AV receivers, original WSS epochs and unrelated Session live. Same-source historical failed tests remain unchanged. The unchanged shared matrix8x classifier now replaces the focused ad-hoc .55total-energy purity check; every measured unidentified audible window still fails.",
+      "next": "Retain fixture regression and real Chrome controls. Resolve B102, complete heap and expanded ARM validation, then run all32matrix cells."
+    },
+    {
+      "id": "B101",
+      "title": "Heap integration publishes beyond receive-queue age before its first read",
+      "status": "SETUP CORRECTED; FULL CASE STILL FAILED. Actual all3Session Weak-owner cycles finish, but required heap snapshots are absent.",
+      "change": "Overlap both original240ms publishers and both first-RTP readers under one unchanged10s deadline. Skip bounded sender-clock metadata, keep every local Gap fatal and require actual RTP on both sides. Join allfour original futures before assertions.",
+      "evidence": "Original first packet was non-RTP; subtype was not logged. SDK expiry is200ms while the old fixture published240ms before reading. Corrected live retry initializes all4actual pairs, reaches every original Session cleanup and unrelated-owner assertion, and naturally joins clients/server. It then fails0-versus4heap snapshots. Actual original case is still failed. Copied Clock/RTP/Gap/bound/deadline controls pass6/6.",
+      "next": "Diagnose missing named-span heap snapshots with the actual Service Health path. Preserve ownership checks, sample requirement, original feature profile and failed receipts. Rerun the exact real case."
+    },
+    {
+      "id": "B102",
+      "title": "New public WebRTC renderer starts with ambiguous zero-filled audio windows",
+      "status": "OBSERVED, ROOT CAUSE STILL UNDER INVESTIGATION. Shared8x source identity fails after all4real handoffs complete.",
+      "change": "Instrument only bounded actual public PCM boundaries and render timestamps. Investigate retaining the muted private decoder sink until its public successor is ready; no production lifetime change or source-identity waiver has been applied.",
+      "evidence": "Actual unchanged-classifier diagnostics find new-renderer first audible windows with832exact leading zeros and128tone samples,0previous accepted windows and callbacks28\u201337msafterrenderstart. One original receiver also has a480zero-sample gap112msafterstart. The expected source remains strongest but does not meet8x dominance. Existing SDK readiness closes its separate muted decoder sink before completeReplacement; the causal relationship to cold public startup remains unproved. Historical v203 browser report also shows severe concealment with no transport loss counters, on the older production code.",
+      "next": "Test a narrowly owned private-to-public decoder-sink lifetime counterfactual with unit cleanup coverage, then rerun actual Chrome controls and compare exact source-bound PCM/statistics evidence. Keep every failed identity and historical matrix verdict."
     }
   ],
   "workplan_tasks": [
@@ -2452,5 +2476,59 @@
     "normal_critical_production_fresh_builds": 4,
     "actual_local_library_rows_hashed": 42,
     "matrix_qualified": false
-  }
+  },
+  "b100_installed_chrome_actual_attempts": [
+    {
+      "path": ".local/gate-6/v203-remaining-heap-installed-chrome-candidate/receipt.json",
+      "sha256": "1ed40c242ef7ce5f39d1a1c6f5dda84264eee3c0705e9f75b79cafc44fb65ad2",
+      "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-installed-chrome-terminal-runner-log-diagnostic/receipt.json",
+      "sha256": "3619ab698158006cc236879d5d7bdfcf6a710c1fb0d770f096c4aa285803d9d6",
+      "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-installed-chrome-terminal-connect-api-retry/receipt.json",
+      "sha256": "3a409945d25fd776ec87eee50394961433732337a554c0b8b8a7da17e94be78b",
+      "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-installed-chrome-admission-order-retry/receipt.json",
+      "sha256": "db4757ee92906321e2e9a095ce4c74d2a7a46a2ae99eab227270de89b5cef9c9",
+      "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-installed-chrome-decoded-output-diagnostic/receipt.json",
+      "sha256": "e48796d158be60cbf4fd68bc392285eb50dce7182c67ff90046e2ea093c385f5",
+      "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-installed-chrome-tone-spectrum-diagnostic/receipt.json",
+      "sha256": "ad46005176df21c6fce08b4b1d9900b5e4e5f5d46e88adade18b5acc2d5ceddb",
+      "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-installed-chrome-shared-identity-retry/receipt.json",
+      "sha256": "c09d2d7ec45449fb46d5b57cdc8a128519d17940a62c6df3aa6d5924c081bbb7",
+      "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-installed-chrome-first-audible-boundary-diagnostic/receipt.json",
+      "sha256": "c9d120d0144ac5429556d98949585d9951c927fc65fdf4f8e2fa457bfa919632",
+      "matrix_qualified": false
+    }
+  ],
+  "b101_heap_actual_attempts": [
+    {
+      "path": ".local/gate-6/v203-heap-lifecycle-focused-runtime-candidate/receipt.json",
+      "sha256": "b5bdd2b3b4c161199898cfe008254a3b14f71dc94bba02541874aeb32a958573",
+      "matrix_qualified": false
+    },
+    {
+      "path": ".local/gate-6/v203-heap-concurrent-audio-fixture-retry/receipt.json",
+      "sha256": "7a31c52b097391aa85546e8c07d083a83c110b0217c05e09e6fe218aba47dec6",
+      "matrix_qualified": false
+    }
+  ]
 }

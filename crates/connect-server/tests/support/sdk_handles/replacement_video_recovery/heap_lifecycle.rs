@@ -27,6 +27,43 @@ fn offer(id: &str) -> NonEmpty<sdk::OfferedStream> {
         codecs: one("opus".into()),
     })
 }
+// Clock metadata may precede media; it cannot satisfy this RTP witness.
+// Every attempt shares one original receive cutoff, never a renewed wait.
+async fn first_audio_rtp(
+    stream: &sdk::Stream,
+    cutoff: tokio::time::Instant,
+) -> Result<usize, String> {
+    let mut clock_reports = 0usize;
+    loop {
+        let remaining = cutoff.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            return Err("original audio RTP observation deadline expired".into());
+        }
+        let read_options = RequestOptions::new(remaining)
+            .map_err(|error| format!("original audio receive options: {error:?}"))?;
+        let packet = tokio::time::timeout_at(cutoff, stream.receive_packet(read_options))
+            .await
+            .map_err(|_| "original audio RTP observation deadline expired".to_owned())?
+            .map_err(|error| format!("original audio packet receive: {error:?}"))?;
+        if tokio::time::Instant::now() >= cutoff {
+            return Err("original audio RTP observation deadline expired".into());
+        }
+        match packet {
+            sdk::MediaPacket::Rtp(_) => return Ok(clock_reports),
+            sdk::MediaPacket::Clock { .. } => {
+                clock_reports += 1;
+                if clock_reports > 256 {
+                    return Err("original audio clock-report bound exceeded before RTP".into());
+                }
+            }
+            sdk::MediaPacket::Gap { dropped_packets } => {
+                return Err(format!(
+                    "original audio local queue gap before RTP: dropped_packets={dropped_packets}"
+                ));
+            }
+        }
+    }
+}
 async fn pair(
     room: &sdk::Conversation,
     other: &Client,
@@ -115,15 +152,30 @@ async fn pair(
     // initialization evidence only, not the matrix's tone/quality acceptance.
     let a_audio = a.stream_by_id(format!("{prefix}-a-voice").parse().unwrap());
     let b_audio = b.stream_by_id(format!("{prefix}-b-voice").parse().unwrap());
-    tokio::join!(super::sound(&a_audio, true), super::sound(&b_audio, true));
     let a_receive = a.stream_by_id(a_stream.parse().unwrap());
     let b_receive = b.stream_by_id(b_stream.parse().unwrap());
-    let (a_observed, b_observed) = tokio::join!(
-        a_receive.receive_packet(options()),
-        b_receive.receive_packet(options())
+    let cutoff = tokio::time::Instant::now() + options().timeout;
+    // Twelve20ms publications exceed the SDK's200ms receive age bound when
+    // followed by a first read. Drain concurrently with the original sources.
+    // Catch source panics here so both publishers and readers settle before
+    // any original failure propagates to the fixture's cleanup owner.
+    let (a_published, b_published, a_observed, b_observed) = tokio::join!(
+        AssertUnwindSafe(super::sound(&a_audio, true)).catch_unwind(),
+        AssertUnwindSafe(super::sound(&b_audio, true)).catch_unwind(),
+        first_audio_rtp(&a_receive, cutoff),
+        first_audio_rtp(&b_receive, cutoff),
     );
-    assert!(matches!(a_observed.unwrap(), sdk::MediaPacket::Rtp(_)));
-    assert!(matches!(b_observed.unwrap(), sdk::MediaPacket::Rtp(_)));
+    assert!(
+        a_published.is_ok(),
+        "original first audio publication panicked"
+    );
+    assert!(
+        b_published.is_ok(),
+        "original second audio publication panicked"
+    );
+    let a_clocks = a_observed.expect("original first audio RTP required");
+    let b_clocks = b_observed.expect("original second audio RTP required");
+    eprintln!("heap-audio-pair initialized={prefix} skipped_clock_reports={a_clocks},{b_clocks} actual_rtp=2");
     (session, a, b)
 }
 async fn end(session: &sdk::Session, a: &sdk::Connection, b: &sdk::Connection, prefix: &str) {
