@@ -34,6 +34,7 @@ export class BrowserRtcConnection {
     stopEvents;
     captureOwner;
     renderOwner;
+    releaseMutedDecoderSinks;
     peer;
     constructor(client, input, participantId, configuration, replacement) {
         this.client = client;
@@ -277,7 +278,7 @@ export class BrowserRtcConnection {
                 throw unsupported();
             const evidence = await observeWebRtcDecodedReadiness(owner.peer, { id: input.audio, track: audio }, video
                 ? { id: input.receiveVideo, track: video }
-                : undefined, budget, signal, (work, cleanup) => owner.tasks.track(work, cleanup));
+                : undefined, budget, signal, (work, cleanup) => owner.tasks.track(work, cleanup), (release) => owner.retainMutedDecoderSinks(release));
             owner.check();
             return owner.signaling.completeReplacement(evidence, {
                 timeoutMs: budget.remaining(),
@@ -314,6 +315,18 @@ export class BrowserRtcConnection {
     }
     get replacementMayHaveCommitted() {
         return this.signaling?.replacementMayHaveCommitted ?? false;
+    }
+    retainMutedDecoderSinks(release) {
+        this.check();
+        if (this.releaseMutedDecoderSinks)
+            throw new ConnectError("conflict", "Decoder sinks already owned");
+        this.releaseMutedDecoderSinks = release;
+    }
+    retireMutedDecoderSinks() {
+        const release = this.releaseMutedDecoderSinks;
+        this.releaseMutedDecoderSinks = undefined;
+        if (release)
+            void this.tasks.track(release(), true).catch(() => { });
     }
     check() {
         if (this.stopped || this.client.closed)
@@ -657,6 +670,7 @@ export class BrowserRtcConnection {
             if (stopped)
                 return;
             stopped = true;
+            this.retireMutedDecoderSinks();
             detach();
             stop.abort();
             document.removeEventListener("visibilitychange", visibility);
@@ -826,7 +840,10 @@ export class BrowserRtcConnection {
                     output.callback = element.requestVideoFrameCallback(paint);
                 };
                 output.callback = element.requestVideoFrameCallback(paint);
-                void element.play().catch(() => {
+                void element.play().then(() => {
+                    if (!stopped)
+                        this.retireMutedDecoderSinks();
+                }, () => {
                     if (!stopped)
                         close(new ConnectError("media", "Video playback failed"));
                 });
@@ -836,6 +853,8 @@ export class BrowserRtcConnection {
                 throw closed();
             document.addEventListener("visibilitychange", visibility);
             visibility();
+            if (!outputs.length)
+                this.retireMutedDecoderSinks();
             return handle;
         }
         catch (error) {
@@ -843,6 +862,7 @@ export class BrowserRtcConnection {
                 ? error
                 : new ConnectError("media", "Playback startup failed");
             close(failure);
+            this.retireMutedDecoderSinks();
             throw failure;
         }
     }
@@ -850,6 +870,7 @@ export class BrowserRtcConnection {
         if (this.stopped)
             return;
         this.stopped = true;
+        this.retireMutedDecoderSinks();
         this.stopControl?.();
         this.stopEvents?.();
         for (const fn of [...this.retired])

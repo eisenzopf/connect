@@ -2,7 +2,8 @@
 use super::*;
 use futures_util::FutureExt;
 use std::{panic::AssertUnwindSafe, sync::Weak};
-use tracing::{instrument::WithSubscriber, Instrument};
+use tracing::Instrument;
+use tracing_subscriber::util::SubscriberInitExt;
 #[path = "../../../../../connect-service/tests/support/heap_log.rs"]
 mod heap_log;
 fn config(control: CanonicalClientConfig) -> sdk::ClientConfig {
@@ -240,14 +241,20 @@ fn weak(
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn three_real_session_ends_on_one_host_restore_live_owner_census_and_keep_unrelated_session_live(
 ) {
-    let f = Fixture::with_native_end_scope("EdDSA", 12).await;
-    let log = f.temp.path().join("heap-boundaries.jsonl");
+    // This exact test runs alone in a fresh process. Background first-use of
+    // shared diagnostic callsites must see the same bounded dispatcher.
+    let log_directory = tempfile::tempdir().unwrap();
+    let log = log_directory.path().join("heap-boundaries.jsonl");
     let capture = heap_log::Capture::new(&log);
     let subscriber = tracing_subscriber::fmt()
         .json()
         .with_env_filter("connect_service::runtime_retention=debug")
         .with_writer(capture.clone())
         .finish();
+    subscriber
+        .try_init()
+        .expect("heap lifecycle requires its own original global subscriber");
+    let f = Fixture::with_native_end_scope("EdDSA", 12).await;
     let mut clients = Vec::new();
     let observed=AssertUnwindSafe(async {
         super::super::super::canonical_native_connections::ready_endpoint_with_capabilities(&f,vec!["audio".into()]).await;
@@ -285,7 +292,7 @@ async fn three_real_session_ends_on_one_host_restore_live_owner_census_and_keep_
         }
         end(&live,&live_a,&live_b,"heap-unrelated").await;
         assert!(original_live.iter().all(|(_,owner)|owner.strong_count()==0));
-    }.with_subscriber(subscriber)).catch_unwind().await;
+    }).catch_unwind().await;
     // Original clients and host always close naturally before failure/assertion
     // propagation. Do not parse/retain heap JSON during the measured cycles.
     let mut closed = Vec::new();

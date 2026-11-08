@@ -23,6 +23,7 @@ export declare class BrowserRtcConnection {
     private stopEvents?;
     private captureOwner?;
     private renderOwner?;
+    private releaseMutedDecoderSinks?;
     private readonly peer;
     private constructor();
     static begin(client: BrowserClient, input: BrowserConnectionOptions, participantId: string, configuration: BrowserRtcConfiguration, options: RequestOptions): {
@@ -48,6 +49,8 @@ export declare class BrowserRtcConnection {
         renderActive: boolean;
     }>;
     get replacementMayHaveCommitted(): boolean;
+    private retainMutedDecoderSinks;
+    private retireMutedDecoderSinks;
     private check;
     private connected;
     onClose(fn: (error?: Error) => void): () => void;

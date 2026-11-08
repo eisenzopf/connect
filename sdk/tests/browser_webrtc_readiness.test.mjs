@@ -17,7 +17,7 @@ async function fixture(run,{video=false}={}) {
  const track=(promise)=>{tasks.add(promise);void promise.finally(()=>tasks.delete(promise)).catch(()=>{});return promise;};
  let work;
  try{await run({audio,picture,stats,peer,abort,nodes,elements,contexts,
-  begin(){work=observeWebRtcDecodedReadiness(peer,audio,picture,new BrowserDeadline(500),abort.signal,track);void work.catch(()=>{});return work;},
+  begin(retainMutedDecoderSinks){work=observeWebRtcDecodedReadiness(peer,audio,picture,new BrowserDeadline(500),abort.signal,track,retainMutedDecoderSinks);void work.catch(()=>{});return work;},
   async started(){while(!nodes.length||(video&&elements.length<2))await tick();},
   pcm(values=new Float32Array(960)){nodes[0].port.onmessage({data:{epoch:0,timestampUs:1000,samples:values}});},
   frame(){const fn=callback;assert.equal(typeof fn,'function');fn(10,{width:640,height:360,mediaTime:1,presentedFrames:1});},
@@ -54,3 +54,97 @@ test('RTC readiness waits rather than reports contradictory decoder counters',()
  const work=f.begin();let done=false;void work.then(()=>done=true);await f.started();f.stats.audio.totalSamplesReceived=960;f.pcm();f.stats.video.framesDecoded=1;f.stats.video.keyFramesDecoded=2;f.frame();await new Promise(resolve=>setTimeout(resolve,30));assert.equal(done,false);
  f.stats.video.framesDecoded=3;const evidence=await work;assert.equal(evidence.video.decoded_frames,3);assert.equal(evidence.video.decoded_keyframes,2);
 },{video:true}));
+
+
+test("RTC decoded readiness releases observation graph but retains only muted decoder sinks for its owner", () =>
+  fixture(
+    async (f) => {
+      let release;
+      const work = f.begin((value) => {
+        assert.equal(release, undefined);
+        release = value;
+      });
+      await f.started();
+      f.stats.audio.totalSamplesReceived = 1920;
+      f.pcm();
+      f.stats.video.framesDecoded = f.stats.video.keyFramesDecoded = 1;
+      f.frame();
+      const evidence = await work;
+      assert.equal(evidence.audio.decoded_samples, 960);
+      assert.equal(typeof release, "function");
+      assert.equal(f.contexts[0].closes, 1);
+      assert.equal(f.nodes[0].port.closed, true);
+      assert.ok(
+        f.elements.every(
+          (element) =>
+            element.muted && element.srcObject !== null && element.pauses === 0,
+        ),
+      );
+      await release();
+      await release();
+      assert.ok(
+        f.elements.every(
+          (element) => element.srcObject === null && element.pauses === 1,
+        ),
+      );
+      assert.equal(f.audio.track.readyState, "live");
+      assert.equal(f.picture.track.readyState, "live");
+      assert.equal(f.peer.connectionState, "connected");
+    },
+    { video: true },
+  ));
+
+test("retained RTC muted decoder sinks follow the original cancellation after decoded success", () =>
+  fixture(async (f) => {
+    let release;
+    const work = f.begin((value) => {
+      release = value;
+    });
+    await f.started();
+    f.stats.audio.totalSamplesReceived = 1920;
+    f.pcm();
+    await work;
+    assert.equal(typeof release, "function");
+    assert.equal(f.elements[0].srcObject !== null, true);
+    f.abort.abort();
+    assert.equal(f.elements[0].srcObject, null);
+    assert.equal(f.elements[0].pauses, 1);
+    await release();
+    assert.equal(f.elements[0].pauses, 1);
+    assert.equal(f.contexts[0].closes, 1);
+    assert.equal(f.audio.track.readyState, "live");
+    assert.equal(f.peer.connectionState, "connected");
+  }));
+
+test("refused RTC decoder handoff and pre-evidence cancellation release all original private outputs", async () => {
+  for (const phase of ["cancel", "register"])
+    await fixture(async (f) => {
+      const original = Error("original handoff refused");
+      let transfers = 0;
+      const work = f.begin(() => {
+        transfers++;
+        throw original;
+      });
+      await f.started();
+      if (phase === "cancel") f.abort.abort();
+      else {
+        f.stats.audio.totalSamplesReceived = 1920;
+        f.pcm();
+      }
+      await assert.rejects(work, (error) =>
+        phase === "register"
+          ? error === original
+          : error.code === "closed" || error.code === "cancelled",
+      );
+      assert.equal(transfers, phase === "register" ? 1 : 0);
+      assert.equal(f.contexts[0].closes, 1);
+      assert.equal(f.nodes[0].port.closed, true);
+      assert.ok(
+        f.elements.every(
+          (element) => element.srcObject === null && element.pauses === 1,
+        ),
+      );
+      assert.equal(f.audio.track.readyState, "live");
+      assert.equal(f.peer.connectionState, "connected");
+    });
+});

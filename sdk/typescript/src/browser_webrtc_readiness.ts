@@ -12,6 +12,7 @@ export async function observeWebRtcDecodedReadiness(
     budget: BrowserDeadline,
     signal: AbortSignal,
     trackTask: <T>(work: Promise<T>, cleanup?: boolean) => Promise<T>,
+    retainMutedDecoderSinks?: (release: () => Promise<void>) => void,
 ): Promise<WebRtcDecodedReadiness> {
     const unsupported = () =>
         new ConnectError(
@@ -33,11 +34,13 @@ export async function observeWebRtcDecodedReadiness(
         picture: HTMLVideoElement | undefined,
         frameCallback: number | undefined,
         stopped = false,
+        decoderSinksStopped = false,
+        decoderSinksRetained = false,
         sampleCount = 0,
         frameCount = 0,
         presented = 0,
         failed: Error | undefined;
-    const run = <T>(work: () => Promise<T>) =>
+    const run = <T,>(work: () => Promise<T>) =>
         budget.run(() => trackTask(work()), signal);
     const check = () => {
         if (failed) throw failed;
@@ -53,19 +56,49 @@ export async function observeWebRtcDecodedReadiness(
                 "Replacement decoder owner retired",
             );
     };
-    const clean = async () => {
+    // This lease can only detach these exact muted elements. It never lends
+    // a track, an audible output, readiness evidence, or a different peer.
+    const releaseDecoderSinks = async () => {
+        if (decoderSinksStopped) return;
+        decoderSinksStopped = true;
+        signal.removeEventListener("abort", cancelDecoderSinks);
+        const originalPicture = picture;
+        const elements = [picture, playout];
+        picture = undefined;
+        playout = undefined;
+        let failure: { error: unknown } | undefined;
+        if (originalPicture && frameCallback !== undefined) {
+            try {
+                originalPicture.cancelVideoFrameCallback(frameCallback);
+            } catch (error) {
+                failure ??= { error };
+            }
+        }
+        frameCallback = undefined;
+        for (const element of elements) {
+            if (!element) continue;
+            try {
+                element.pause();
+            } catch (error) {
+                failure ??= { error };
+            }
+            try {
+                element.srcObject = null;
+            } catch (error) {
+                failure ??= { error };
+            }
+        }
+        if (failure) throw failure.error;
+    };
+    const cancelDecoderSinks = () => {
+        void trackTask(releaseDecoderSinks(), true).catch(() => {});
+    };
+    const cleanObservation = async () => {
         if (stopped) return;
         stopped = true;
         if (picture && frameCallback !== undefined)
             picture.cancelVideoFrameCallback(frameCallback);
-        if (picture) {
-            picture.pause();
-            picture.srcObject = null;
-        }
-        if (playout) {
-            playout.pause();
-            playout.srcObject = null;
-        }
+        frameCallback = undefined;
         if (worklet) {
             worklet.port.onmessage = null;
             worklet.port.postMessage({ type: "stop" });
@@ -74,7 +107,12 @@ export async function observeWebRtcDecodedReadiness(
         }
         source?.disconnect();
         gain?.disconnect();
-        if (context) await trackTask(context.close(), true);
+        worklet = undefined;
+        source = undefined;
+        gain = undefined;
+        const originalContext = context;
+        context = undefined;
+        if (originalContext) await trackTask(originalContext.close(), true);
     };
     try {
         check();
@@ -208,6 +246,15 @@ export async function observeWebRtcDecodedReadiness(
                                         ? decodedVideo
                                         : frameCount)))))
             ) {
+                if (retainMutedDecoderSinks) {
+                    check();
+                    signal.addEventListener("abort", cancelDecoderSinks, {
+                        once: true,
+                    });
+                    retainMutedDecoderSinks(releaseDecoderSinks);
+                    check();
+                    decoderSinksRetained = true;
+                }
                 return Object.freeze({
                     audio: Object.freeze({
                         stream_id: audio.id,
@@ -233,8 +280,10 @@ export async function observeWebRtcDecodedReadiness(
             );
         }
     } finally {
-        // Synchronous detachment stops playback now. The owner joins any late
-        // browser cleanup without extending the caller's original deadline.
-        void trackTask(clean(), true).catch(() => {});
+        // Observation detaches immediately. The native owner retains muted
+        // decoder sinks through public startup and joins late cleanup without
+        // extending the caller's original deadline.
+        void trackTask(cleanObservation(), true).catch(() => {});
+        if (!decoderSinksRetained) cancelDecoderSinks();
     }
 }

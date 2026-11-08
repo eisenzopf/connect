@@ -7,7 +7,8 @@ const sdp='v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=Original replacement\r\nt=0 0\r\
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 class Track{kind='audio';readyState='live';id='rtc-audio';stop(){this.readyState='ended';}}
 async function scenario(run,{mode='complete',timeout=250}={}) {
- const saved=new Map(),peers=[],worklets=[],contexts=[];
+ const saved=new Map(),peers=[],worklets=[],contexts=[],elements=[];
+ let playback=()=>Promise.resolve();const targetAbort=new AbortController();
  class Stream{constructor(tracks){this.tracks=tracks;}getTracks(){return this.tracks;}getAudioTracks(){return this.tracks;}getVideoTracks(){return[];}}
  class Peer extends EventTarget {
   connectionState='new';iceConnectionState='new';iceGatheringState='complete';transceivers=[];
@@ -22,9 +23,9 @@ async function scenario(run,{mode='complete',timeout=250}={}) {
   close(){this.connectionState='closed';this.dispatchEvent(new Event('connectionstatechange'));}
  }
  class Node{gain={value:1};connect(){}disconnect(){}}
- class Context{sampleRate=48000;destination={};audioWorklet={async addModule(){}};closed=false;constructor(){contexts.push(this);}createMediaStreamSource(){return new Node();}createGain(){return new Node();}async resume(){}async close(){this.closed=true;}}
+ class Context{sampleRate=48000;destination={};audioWorklet={async addModule(){}};closed=false;state='suspended';constructor(){contexts.push(this);}createMediaStreamSource(){return new Node();}createGain(){return new Node();}async resume(){this.state='running';}async suspend(){this.state='suspended';}async close(){this.closed=true;this.state='closed';}}
  class Worklet extends Node{port={onmessage:null,closed:false,postMessage(){},close(){this.closed=true;}};constructor(){super();worklets.push(this);}}
- const document=Object.assign(new EventTarget(),{visibilityState:'visible',createElement(){return{muted:false,srcObject:null,async play(){},pause(){}};}});
+ const document=Object.assign(new EventTarget(),{visibilityState:'visible',createElement(){const element={muted:false,srcObject:null,pauses:0,play(){return playback(this);},pause(){this.pauses++;}};elements.push(element);return element;}});
  const values={RTCPeerConnection:Peer,RTCRtpSender:{getCapabilities:()=>({codecs:[{mimeType:'audio/opus',clockRate:48000,channels:2}]})},MediaStream:Stream,AudioContext:Context,AudioWorkletNode:Worklet,document};
  for(const[name,value]of Object.entries(values)){saved.set(name,Object.getOwnPropertyDescriptor(globalThis,name));Object.defineProperty(globalThis,name,{configurable:true,writable:true,value});}
  let committed=false,revision=0,readyAttempts=0,lateReply;
@@ -34,12 +35,12 @@ async function scenario(run,{mode='complete',timeout=250}={}) {
   try{
    source=BrowserRtcConnection.begin(client,{conversationId:'room',sessionId:'session',connectionId:'source',operationId:'source-offer',audio:'source-audio'},'recipient',{}, {timeoutMs:250});await source.ready;
    const root={recordId:'record',operationId:'move',conversationId:'room',sessionId:'session',sourceConnectionId:'source',retainedConnectionId:'retained',targetConnectionId:'target',endpointId:'endpoint',deviceId:'wss_device'};
-   target=BrowserRtcConnection.beginReplacement(client,{conversationId:'room',sessionId:'session',connectionId:'target',operationId:'move',audio:'audio'},'recipient',{},root,{timeoutMs:timeout});
-   await run({client,source,target,f,peers,contexts,worklets,lateReply:()=>lateReply?.(),async decoded(){while(!worklets.length)await tick();worklets[0].port.onmessage({data:{epoch:0,timestampUs:1000,samples:new Float32Array(960)}});}});
+   target=BrowserRtcConnection.beginReplacement(client,{conversationId:'room',sessionId:'session',connectionId:'target',operationId:'move',audio:'audio'},'recipient',{},root,{timeoutMs:timeout,signal:targetAbort.signal});
+   await run({client,source,target,f,peers,contexts,worklets,elements,cancelTarget:()=>targetAbort.abort(),setPlayback:fn=>playback=fn,lateReply:()=>lateReply?.(),async decoded(){while(!worklets.length)await tick();worklets[0].port.onmessage({data:{epoch:0,timestampUs:1000,samples:new Float32Array(960)}});}});
   }finally{await target?.owner.shutdown();await source?.owner.shutdown();client.close();}
  },{handler:async({peer,frame})=>{
   const reply=async(type,payload)=>{await peer.emit(type,payload,frame.id,frame);await peer.emit('ack',{},frame.id,frame);return true;};
-  if(frame.type==='operation.get')return reply('operation.updated',record(committed?'completed':'preparing'));
+  if(frame.type==='operation.get'){if(mode==='unresolved-ready'&&committed)return true;return reply('operation.updated',record(committed?'completed':'preparing'));}
   if(frame.type!=='connection.offer')return false;
   const profile=frame.payload.replacement_preparation?.profile;
   if(profile==='connect-replacement-preparation-v1')return mode==='lost-allocation'?true:reply('operation.updated',record('preparing'));
@@ -48,6 +49,7 @@ async function scenario(run,{mode='complete',timeout=250}={}) {
    readyAttempts++;
    if(mode==='transient-ready'&&readyAttempts===1)return reply('error',{code:503,category:'storage',reason:'storage_unavailable'});
    committed=true;await peer.emit('connection.end',{},undefined,{cid:'room',sid:'session',connid:'source'});
+   if(mode==='unresolved-ready')return true;
    if(mode==='lost-ready'){lateReply=()=>peer.emit('connection.end',{},frame.id,{cid:'room',sid:'session',connid:'target'});return true;}
    const acknowledgement=record('completed');delete acknowledgement.result;return reply('operation.updated',acknowledgement);
   }
@@ -89,3 +91,172 @@ test('signed temporary readiness refusal recovers with identical proof under the
  for(const offer of offers){assert.equal(offer.connid,'target');assert.equal(offer.operation_id,'move');assert.equal(offer.expected_revision,0);}
  const index=f.f.sent.indexOf(offers[1]);assert.equal(f.f.sent[index-1].type,'operation.get');assert.equal(f.f.sent[index-1].connid,'source');assert.equal(f.peers.length,2);assert.equal(f.source.owner.diagnostics.closed,true);assert.equal(f.target.owner.diagnostics.peerConnectionState,'connected');assert.equal(f.client.closed,false);
 },{mode:'transient-ready',timeout:500}));
+
+
+function warmDeferred() {
+  let resolve;
+  const promise = new Promise((yes) => (resolve = yes));
+  return { promise, resolve };
+}
+
+test("replacement muted decoder owner survives until the same public renderer has started", () =>
+  scenario(async (f) => {
+    await f.target.prepared;
+    await f.decoded();
+    await f.target.completed;
+    const original = f.elements[0];
+    assert.equal(original.muted, true);
+    assert.notEqual(original.srcObject, null);
+    assert.equal(f.contexts[0].closed, true);
+    assert.equal(f.worklets[0].port.closed, true);
+    await f.source.owner.shutdown();
+    assert.notEqual(
+      original.srcObject,
+      null,
+      "old peer retirement must not release this target lease",
+    );
+    const entered = warmDeferred(),
+      late = warmDeferred();
+    let render;
+    f.setPlayback(() => {
+      entered.resolve();
+      return late.promise;
+    });
+    try {
+      const work = f.target.owner.render({ audio: true }, { timeoutMs: 300 });
+      await entered.promise;
+      assert.notEqual(
+        original.srcObject,
+        null,
+        "old muted sink remains while new public playback is pending",
+      );
+      late.resolve();
+      render = await work;
+      assert.equal(original.srcObject, null);
+      assert.equal(original.pauses, 1);
+      assert.notEqual(f.elements[1].srcObject, null);
+      assert.equal(f.target.owner.diagnostics.peerConnectionState, "connected");
+      render.close();
+      await render.retirement;
+      await render.finished;
+    } finally {
+      late.resolve();
+      render?.close();
+    }
+  }));
+
+test("replacement muted decoder owner releases once on its original cancellation or native retirement", async () => {
+  for (const phase of ["cancel", "retire"])
+    await scenario(async (f) => {
+      await f.target.prepared;
+      await f.decoded();
+      await f.target.completed;
+      const original = f.elements[0];
+      assert.notEqual(original.srcObject, null);
+      assert.equal(original.muted, true);
+      if (phase === "cancel") f.cancelTarget();
+      else f.target.owner.close();
+      assert.equal(original.srcObject, null);
+      assert.equal(original.pauses, 1);
+      await f.target.owner.shutdown();
+      assert.equal(original.pauses, 1);
+      assert.equal(
+        f.f.sent.filter(
+          (value) =>
+            value.payload.replacement_preparation?.profile ===
+            "connect-replacement-ready-v1",
+        ).length,
+        1,
+      );
+    });
+});
+
+test("cancelled or failed public renderer startup releases the same retained muted decoder owner", async () => {
+  for (const phase of ["abort", "failure"])
+    await scenario(async (f) => {
+      await f.target.prepared;
+      await f.decoded();
+      await f.target.completed;
+      const original = f.elements[0];
+      assert.notEqual(original.srcObject, null);
+      const entered = warmDeferred(),
+        late = warmDeferred(),
+        abort = new AbortController();
+      f.setPlayback(() => {
+        entered.resolve();
+        return phase === "failure"
+          ? Promise.reject(Error("original playback refused"))
+          : late.promise;
+      });
+      const work = f.target.owner.render(
+        { audio: true },
+        { timeoutMs: 300, signal: abort.signal },
+      );
+      void work.catch(() => {});
+      try {
+        await entered.promise;
+        if (phase === "abort") abort.abort();
+        await assert.rejects(work, {
+          code: phase === "abort" ? "cancelled" : "media",
+        });
+        assert.equal(original.srcObject, null);
+        assert.equal(original.pauses, 1);
+        assert.equal(
+          f.target.owner.diagnostics.peerConnectionState,
+          "connected",
+        );
+        assert.equal(f.client.closed, false);
+      } finally {
+        late.resolve();
+      }
+    });
+});
+
+test("uncertain replacement keeps only its muted decoder owner and shutdown joins late observation cleanup", () =>
+  scenario(
+    async (f) => {
+      const cleanup = warmDeferred();
+      try {
+        await f.target.prepared;
+        while (!f.contexts.length) await tick();
+        f.contexts[0].close = () => {
+          f.contexts[0].closed = true;
+          return cleanup.promise;
+        };
+        await f.decoded();
+        await assert.rejects(f.target.completed, { code: "timeout" });
+        const original = f.elements[0];
+        assert.equal(original.muted, true);
+        assert.notEqual(original.srcObject, null);
+        assert.equal(f.worklets[0].port.closed, true);
+        assert.equal(f.target.owner.replacementMayHaveCommitted, true);
+        assert.equal(
+          f.target.owner.diagnostics.peerConnectionState,
+          "connected",
+        );
+        assert.equal(f.client.closed, false);
+        assert.equal(
+          f.f.sent.filter(
+            (value) =>
+              value.payload.replacement_preparation?.profile ===
+              "connect-replacement-ready-v1",
+          ).length,
+          1,
+        );
+        let joined = false;
+        const shutdown = f.target.owner.shutdown();
+        void shutdown.then(() => (joined = true));
+        await tick();
+        assert.equal(joined, false);
+        assert.equal(original.srcObject, null);
+        assert.equal(original.pauses, 1);
+        cleanup.resolve();
+        await shutdown;
+        assert.equal(joined, true);
+        assert.equal(original.pauses, 1);
+      } finally {
+        cleanup.resolve();
+      }
+    },
+    { mode: "unresolved-ready", timeout: 90 },
+  ));

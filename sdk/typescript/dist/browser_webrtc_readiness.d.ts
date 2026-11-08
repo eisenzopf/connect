@@ -9,4 +9,4 @@ export declare function observeWebRtcDecodedReadiness(peer: RTCPeerConnection, a
 }, video: {
     id: string;
     track: MediaStreamTrack;
-} | undefined, budget: BrowserDeadline, signal: AbortSignal, trackTask: <T>(work: Promise<T>, cleanup?: boolean) => Promise<T>): Promise<WebRtcDecodedReadiness>;
+} | undefined, budget: BrowserDeadline, signal: AbortSignal, trackTask: <T>(work: Promise<T>, cleanup?: boolean) => Promise<T>, retainMutedDecoderSinks?: (release: () => Promise<void>) => void): Promise<WebRtcDecodedReadiness>;

@@ -2,14 +2,14 @@ import { ConnectError } from "./errors.js";
 /** Readiness comes from this new RTC receiver's decoded PCM and video output.
  * ICE, DTLS, RTP counters, and an SDP answer cannot satisfy it on their own.
  * The private outputs remain muted; an application owns audible rendering. */
-export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, signal, trackTask) {
+export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, signal, trackTask, retainMutedDecoderSinks) {
     const unsupported = () => new ConnectError("unsupported-media-profile", "WebRTC decoded replacement observation is unavailable");
     if (typeof AudioContext !== "function" ||
         typeof AudioWorkletNode !== "function" ||
         audio.track.kind !== "audio" ||
         (video && video.track.kind !== "video"))
         throw unsupported();
-    let context, source, worklet, gain, playout, picture, frameCallback, stopped = false, sampleCount = 0, frameCount = 0, presented = 0, failed;
+    let context, source, worklet, gain, playout, picture, frameCallback, stopped = false, decoderSinksStopped = false, decoderSinksRetained = false, sampleCount = 0, frameCount = 0, presented = 0, failed;
     const run = (work) => budget.run(() => trackTask(work()), signal);
     const check = () => {
         if (failed)
@@ -21,20 +21,56 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
             ["closed", "failed"].includes(peer.connectionState))
             throw new ConnectError("closed", "Replacement decoder owner retired");
     };
-    const clean = async () => {
+    // This lease can only detach these exact muted elements. It never lends
+    // a track, an audible output, readiness evidence, or a different peer.
+    const releaseDecoderSinks = async () => {
+        if (decoderSinksStopped)
+            return;
+        decoderSinksStopped = true;
+        signal.removeEventListener("abort", cancelDecoderSinks);
+        const originalPicture = picture;
+        const elements = [picture, playout];
+        picture = undefined;
+        playout = undefined;
+        let failure;
+        if (originalPicture && frameCallback !== undefined) {
+            try {
+                originalPicture.cancelVideoFrameCallback(frameCallback);
+            }
+            catch (error) {
+                failure ??= { error };
+            }
+        }
+        frameCallback = undefined;
+        for (const element of elements) {
+            if (!element)
+                continue;
+            try {
+                element.pause();
+            }
+            catch (error) {
+                failure ??= { error };
+            }
+            try {
+                element.srcObject = null;
+            }
+            catch (error) {
+                failure ??= { error };
+            }
+        }
+        if (failure)
+            throw failure.error;
+    };
+    const cancelDecoderSinks = () => {
+        void trackTask(releaseDecoderSinks(), true).catch(() => { });
+    };
+    const cleanObservation = async () => {
         if (stopped)
             return;
         stopped = true;
         if (picture && frameCallback !== undefined)
             picture.cancelVideoFrameCallback(frameCallback);
-        if (picture) {
-            picture.pause();
-            picture.srcObject = null;
-        }
-        if (playout) {
-            playout.pause();
-            playout.srcObject = null;
-        }
+        frameCallback = undefined;
         if (worklet) {
             worklet.port.onmessage = null;
             worklet.port.postMessage({ type: "stop" });
@@ -43,8 +79,13 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
         }
         source?.disconnect();
         gain?.disconnect();
-        if (context)
-            await trackTask(context.close(), true);
+        worklet = undefined;
+        source = undefined;
+        gain = undefined;
+        const originalContext = context;
+        context = undefined;
+        if (originalContext)
+            await trackTask(originalContext.close(), true);
     };
     try {
         check();
@@ -157,6 +198,15 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
                                     (decodedVideo > 0
                                         ? decodedVideo
                                         : frameCount)))))) {
+                if (retainMutedDecoderSinks) {
+                    check();
+                    signal.addEventListener("abort", cancelDecoderSinks, {
+                        once: true,
+                    });
+                    retainMutedDecoderSinks(releaseDecoderSinks);
+                    check();
+                    decoderSinksRetained = true;
+                }
                 return Object.freeze({
                     audio: Object.freeze({
                         stream_id: audio.id,
@@ -176,8 +226,11 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
         }
     }
     finally {
-        // Synchronous detachment stops playback now. The owner joins any late
-        // browser cleanup without extending the caller's original deadline.
-        void trackTask(clean(), true).catch(() => { });
+        // Observation detaches immediately. The native owner retains muted
+        // decoder sinks through public startup and joins late cleanup without
+        // extending the caller's original deadline.
+        void trackTask(cleanObservation(), true).catch(() => { });
+        if (!decoderSinksRetained)
+            cancelDecoderSinks();
     }
 }
