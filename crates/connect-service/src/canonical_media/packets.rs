@@ -53,6 +53,28 @@ fn packet_lookup<T>(
         }
     })
 }
+// A continuation lookup can straddle ordinary publication after its registry
+// Arc was captured. Retained media owners already retry NotReady using the same
+// packet and earliest deadline. Keep original-ingress MetadataBusy distinct:
+// semantic NotReady there is a permanent refusal, not permission to recapture.
+fn packet_error(
+    original: bool,
+    purpose: &MediaPurpose<'_>,
+    error: StreamControlError,
+) -> StreamControlError {
+    if !original
+        && matches!(
+            purpose,
+            MediaPurpose::Publish | MediaPurpose::Receive { .. }
+        )
+        && matches!(error, StreamControlError::MetadataBusy)
+    {
+        StreamControlError::NotReady
+    } else {
+        error
+    }
+}
+
 impl Policy {
     pub(super) fn packet_current(
         &self,
@@ -71,6 +93,7 @@ impl Policy {
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         let result = self
             .packet_current_observed(scope, held, queued, original)
+            .map_err(|error| packet_error(original, &scope.purpose, error))
             .inspect_err(|error| {
                 tracing::debug!(target: "connect_service::packet_refusal",
                     connection = %scope.connection,
@@ -387,5 +410,72 @@ mod tests {
             "authority-busy"
         );
         assert_eq!(calls, 1);
+    }
+
+    fn packet_source_descriptor() -> MediaSource {
+        MediaSource {
+            conversation: rvoip_core::ids::ConversationId::from_string("conversation"),
+            session: SessionId::from_string("session"),
+            connection: ConnectionId::from_string("source"),
+            participant: rvoip_core::ids::ParticipantId::from_string("participant"),
+            membership_epoch: 1,
+            connection_generation: 1,
+            logical_id: rvoip_core::ids::StreamId::from_string("logical"),
+            transport_id: rvoip_core::ids::StreamId::from_string("transport"),
+            stream_generation: 1,
+        }
+    }
+
+    #[test]
+    fn publication_metadata_busy_uses_only_nonoriginal_media_retry_contract() {
+        let source = packet_source_descriptor();
+        for purpose in [
+            MediaPurpose::Control,
+            MediaPurpose::Publish,
+            MediaPurpose::Receive { source: &source },
+        ] {
+            for original in [false, true] {
+                let mapped = packet_error(original, &purpose, StreamControlError::MetadataBusy);
+                if !original && !matches!(purpose, MediaPurpose::Control) {
+                    assert!(matches!(mapped, StreamControlError::NotReady));
+                } else {
+                    assert!(matches!(mapped, StreamControlError::MetadataBusy));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn publication_retry_mapping_preserves_every_other_refusal_and_payload() {
+        let source = packet_source_descriptor();
+        let errors: [fn() -> StreamControlError; 9] = [
+            || {
+                StreamControlError::Model(
+                    rvoip_core::stream_lifecycle::MediaTransitionError::Conflict,
+                )
+            },
+            || StreamControlError::Unsupported,
+            || StreamControlError::Authority,
+            || StreamControlError::NotRecipient,
+            || StreamControlError::Cancelled,
+            || StreamControlError::Deadline,
+            || StreamControlError::NotReady,
+            || StreamControlError::Backpressure,
+            || StreamControlError::CleanupUnconfirmed,
+        ];
+        for purpose in [
+            MediaPurpose::Control,
+            MediaPurpose::Publish,
+            MediaPurpose::Receive { source: &source },
+        ] {
+            for original in [false, true] {
+                for make in errors {
+                    let error = make();
+                    let before = format!("{error:?}");
+                    let mapped = packet_error(original, &purpose, error);
+                    assert_eq!(format!("{mapped:?}"), before);
+                }
+            }
+        }
     }
 }

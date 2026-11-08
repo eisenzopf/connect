@@ -1934,6 +1934,11 @@
       "path": "patches/rvoip/connect-immediate-forward-source-custody.patch",
       "sha256": "57bf6c93ac9ff3c062f23c133f3cd54ad13ffafac22dc3a450616c455ad149ad",
       "source": "Borrow only the actual current source lease packet context during immediate visual forwarding, matching actual queued-writer current-target authorization. The context is invocation-local custody only, not recipient permission or cross-packet caching. Keep independent current target authorization, exact source/domain binding, original packet expiry and all controller/scene/port guards. Other media/Data paths are unchanged. Regress exact live original source ownership, current recipient revocation and stale/foreign context refusal without fallback."
+    },
+    {
+      "path": "patches/rvoip/connect-original-native-ingress-backpressure.patch",
+      "sha256": "e3d9bb911c34f339030b48f5f1418d124d1ffe387d97663fbab8d6b7770548bf",
+      "source": "Honor Core original native ingress Backpressure as a definite unpublished bounded retry alongside MetadataBusy. Retain the same original packet, current-authorization recheck, route/consumer/scene/credential generations and original 200ms deadline under the existing native reader queue and 1ms retry; semantic readiness, authority, unsupported, cancellation, retirement and expiry remain terminal. Fixed scalar counters distinguish deferred attempts, recovered originals, expiry, refusal and abandoned queue ownership. Regress real canonical encrypted QUIC ingress64 plus one original recovery and refusal/expiry/retirement without resend, duplicate IO or queue-capacity changes."
     }
   ]
 }

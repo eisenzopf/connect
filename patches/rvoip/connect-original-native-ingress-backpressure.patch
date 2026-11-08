@@ -1,0 +1,419 @@
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -228,6 +228,12 @@
+     rejected: AtomicU64,
+     local_sends: AtomicU64,
+     send_errors: AtomicU64,
++    original_metadata_deferred: AtomicU64,
++    original_backpressure_deferred: AtomicU64,
++    original_recovered: AtomicU64,
++    original_expired: AtomicU64,
++    original_refused: AtomicU64,
++    original_abandoned: AtomicU64,
+     io: [RtpIoCounters; 3],
+ }
+ #[derive(Clone, Copy, Debug)]
+@@ -236,6 +242,14 @@
+     pub ingress_rejected: u64,
+     pub local_sends: u64,
+     pub send_errors: u64,
++    /// Deferred polls are attempts; recovered/refused/expired count originals.
++    pub original_metadata_deferred: u64,
++    pub original_backpressure_deferred: u64,
++    pub original_recovered: u64,
++    pub original_expired: u64,
++    pub original_refused: u64,
++    /// Pending originals dropped by physical shutdown or queue refusal.
++    pub original_abandoned: u64,
+ }
+ impl StagedRtpCounters {
+     pub fn snapshot(&self) -> StagedRtpSnapshot {
+@@ -244,6 +258,14 @@
+             ingress_rejected: self.rejected.load(Ordering::Acquire),
+             local_sends: self.local_sends.load(Ordering::Acquire),
+             send_errors: self.send_errors.load(Ordering::Acquire),
++            original_metadata_deferred: self.original_metadata_deferred.load(Ordering::Acquire),
++            original_backpressure_deferred: self
++                .original_backpressure_deferred
++                .load(Ordering::Acquire),
++            original_recovered: self.original_recovered.load(Ordering::Acquire),
++            original_expired: self.original_expired.load(Ordering::Acquire),
++            original_refused: self.original_refused.load(Ordering::Acquire),
++            original_abandoned: self.original_abandoned.load(Ordering::Acquire),
+         }
+     }
+ }
+@@ -440,6 +462,7 @@
+     sequence: u32,
+     timestamp: u32,
+     finished: bool,
++    deferred: bool,
+ }
+ impl crate::substrate::peer_media_router::PendingNativeIngress for OriginalNativeIngress {
+     fn try_publish(&mut self) -> Option<bool> {
+@@ -448,12 +471,32 @@
+             clock = self.ingress.clock.snapshot(self.ssrc, current);
+             clock.clone()
+         });
+-        if matches!(result, Err(StreamControlError::MetadataBusy)) {
++        // Both outcomes prove no publication occurred. Keep the same Core
++        // original, generations and earliest deadline for the existing reader's
++        // bounded retry; do not reconstruct or resubmit a new ingress frame.
++        let deferred = match &result {
++            Err(StreamControlError::MetadataBusy) => {
++                Some(&self.ingress.counters.original_metadata_deferred)
++            }
++            Err(StreamControlError::Backpressure) => {
++                Some(&self.ingress.counters.original_backpressure_deferred)
++            }
++            _ => None,
++        };
++        if let Some(counter) = deferred {
++            counter.fetch_add(1, Ordering::AcqRel);
++            self.deferred = true;
+             return None;
+         }
+         self.finished = true;
+         match result {
+             Ok(()) => {
++                if self.deferred {
++                    self.ingress
++                        .counters
++                        .original_recovered
++                        .fetch_add(1, Ordering::AcqRel);
++                }
+                 self.ingress
+                     .counters
+                     .accepted
+@@ -468,7 +511,13 @@
+                 }
+                 Some(true)
+             }
+-            Err(_) => {
++            Err(error) => {
++                let counter = if matches!(error, StreamControlError::Deadline) {
++                    &self.ingress.counters.original_expired
++                } else {
++                    &self.ingress.counters.original_refused
++                };
++                counter.fetch_add(1, Ordering::AcqRel);
+                 self.ingress
+                     .counters
+                     .rejected
+@@ -481,6 +530,10 @@
+ impl Drop for OriginalNativeIngress {
+     fn drop(&mut self) {
+         if !self.finished {
++            self.ingress
++                .counters
++                .original_abandoned
++                .fetch_add(1, Ordering::AcqRel);
+             self.ingress
+                 .counters
+                 .rejected
+@@ -513,6 +566,7 @@
+                 sequence,
+                 timestamp,
+                 finished: false,
++                deferred: false,
+             }))),
+             Ok(None) => {
+                 self.counters.accepted.fetch_add(1, Ordering::AcqRel);
+@@ -1493,6 +1547,11 @@
+                 if let Some(port) = weak.upgrade() {
+                     let _ = port.report_terminal();
+                 }
++                // One bounded concurrent scalar row per original port owner.
++                // Counters retain no packet, policy lease, route or task.
++                tracing::debug!(target: "rvoip_uctp::native_egress",
++                    connection=connection.as_str(), stream=binding.transport_id.as_str(),
++                    original_ingress=?counters.snapshot(), "Native original ingress retry summary");
+                 if incomplete {
+                     Err(())
+                 } else {
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
+@@ -309,3 +309,271 @@
+     assert_eq!(after.ingress_accepted, 11);
+     assert_eq!(after.ingress_rejected, 10);
+ }
++
++// Same real canonical reader and Core queue as metadata retry, but this
++// original is already authorized and is refused only by the full ingress64.
++struct OriginalQueuePolicy {
++    policy: Arc<MediaGrants>,
++    calls: AtomicUsize,
++    refusal: std::sync::atomic::AtomicU8,
++}
++impl MediaPolicy for OriginalQueuePolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.policy.current(scope)
++    }
++    fn current_original_ingress(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        match self.refusal.load(Ordering::SeqCst) {
++            1 => Err(StreamControlError::Authority),
++            2 => Err(StreamControlError::Unsupported),
++            3 => Err(StreamControlError::Cancelled),
++            4 => Err(StreamControlError::NotReady),
++            _ => self.policy.current(scope),
++        }
++    }
++}
++fn ordered_queue_video(stream: u16, sequence: u16) -> Bytes {
++    let mut packet = vec![0x80, 0x80 | 96];
++    packet.extend_from_slice(&sequence.to_be_bytes());
++    packet.extend_from_slice(&(u32::from(sequence) * 3000).to_be_bytes());
++    packet.extend_from_slice(&7u32.to_be_bytes());
++    packet.extend_from_slice(&[0x10, 1, 2, 3]);
++    pack_observed_rtp_datagram(&ObservedRtpDatagram {
++        flags: 0,
++        stream_local_id: stream,
++        seq: u32::from(sequence),
++        rtp: observe_rtp(packet.into()).unwrap(),
++    })
++    .unwrap()
++}
++async fn full_video_ingress() -> (
++    Network,
++    Leg,
++    Leg,
++    Arc<OriginalQueuePolicy>,
++    mpsc::Receiver<MediaPacket>,
++) {
++    use rvoip_core::staged_streams::direct_subscriptions::{
++        DirectSubscription, DirectSubscriptionChange,
++    };
++    let mut network = Network::new("quic").await;
++    let policy = Arc::new(OriginalQueuePolicy {
++        policy: network.grants.clone(),
++        calls: AtomicUsize::new(0),
++        refusal: std::sync::atomic::AtomicU8::new(0),
++    });
++    let source = network.configure_policy(0, policy.clone()).await;
++    let target = network.configure_policy(1, policy.clone()).await;
++    network.start(&source, &[Medium::Video]).await;
++    network.start(&target, &[Medium::Video]).await;
++    // Real video receive eligibility must precede every original arrival.
++    // A later subscription cannot retroactively authorize a retained packet.
++    let logical = StreamId::from_string("video");
++    let subscription =
++        DirectSubscription::new(&source.controller, logical.clone(), logical.clone());
++    target
++        .controller
++        .change_direct_subscriptions(
++            target.controller.revision(),
++            DirectSubscriptionChange::Subscribe(vec![subscription]),
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    let input = source
++        .controller
++        .take_ingress(&StreamId::from_string("video"))
++        .unwrap();
++    let stream = binding(&source, Medium::Video).stream_local_id;
++    for sequence in 1..=64 {
++        send(&network.wire, ordered_queue_video(stream, sequence));
++    }
++    let full = tokio::time::timeout(Duration::from_secs(1), async {
++        while source.media.snapshot().ingress_accepted < 64 {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .is_ok();
++    if !full {
++        network.stop().await;
++        panic!("the real original Core video ingress did not fill64");
++    }
++    (network, source, target, policy, input)
++}
++
++#[tokio::test]
++async fn original_native_backpressure_preserves_same_video_until_fresh_authorized_single_delivery()
++{
++    let (network, source, target, policy, mut input) = full_video_ingress().await;
++    let counters = network.adapter().media_counters(&source.id).unwrap();
++    let target_counters = network.adapter().media_counters(&target.id).unwrap();
++    let stream = binding(&source, Medium::Video).stream_local_id;
++    send(&network.wire, ordered_queue_video(stream, 65));
++    let deferred = tokio::time::timeout(Duration::from_millis(100), async {
++        while counters.snapshot().original_backpressure_deferred == 0 {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .is_ok();
++    let before = counters.snapshot();
++    let calls = policy.calls.load(Ordering::SeqCst);
++    let mut drained = 0;
++    for _ in 0..64 {
++        if input.try_recv().is_ok() {
++            drained += 1;
++        }
++    }
++    let original = tokio::time::timeout(Duration::from_millis(100), input.recv())
++        .await
++        .ok()
++        .flatten();
++    let recovered = original.is_some();
++    let forward_result = original
++        .as_ref()
++        .map(|packet| packet.try_forward_to(&target.controller, &StreamId::from_string("video")));
++    let forwarded = forward_result.as_ref().is_some_and(|result| result.is_ok());
++    let timestamp = if forwarded {
++        tokio::time::timeout(Duration::from_millis(100), received(&network.wire))
++            .await
++            .ok()
++            .map(|packet| packet.rtp.packet().header.timestamp)
++    } else {
++        None
++    };
++    let after = counters.snapshot();
++    let fresh_authorization = policy.calls.load(Ordering::SeqCst) > calls;
++    let no_extra = input.try_recv().is_err();
++    network.stop().await;
++    let joined = !source.media.snapshot().reader_running && source.media.router().is_shutdown();
++    assert!(joined, "original canonical reader did not join");
++    assert!(deferred && before.ingress_accepted == 64 && before.ingress_rejected == 0);
++    assert_eq!(drained, 64);
++    assert!(recovered, "the SAME65th original was not recovered: deferred={deferred} before={before:?} after={after:?}");
++    assert!(
++        forwarded,
++        "selected receiver refused recovered original: result={forward_result:?}"
++    );
++    assert_eq!(
++        timestamp,
++        Some(65 * 3000),
++        "recovered original timestamp changed or target IO was absent"
++    );
++    assert!(
++        fresh_authorization,
++        "retry borrowed the former queue-full authority"
++    );
++    assert_eq!(after.original_recovered, 1);
++    assert_eq!(after.ingress_accepted, 65);
++    assert_eq!(after.ingress_rejected, 0);
++    assert!(
++        no_extra,
++        "the original was delivered more than once: after={after:?}"
++    );
++    assert_eq!(
++        target_counters.io_snapshot()[1].primary_accepted,
++        1,
++        "same original target primary IO count differs from one"
++    );
++}
++
++#[tokio::test]
++async fn original_native_backpressure_retains_expiry_retirement_and_terminal_policy_refusals() {
++    for action in [
++        "expiry",
++        "retirement",
++        "authority",
++        "unsupported",
++        "cancelled",
++        "not-ready",
++    ] {
++        let (network, source, _target, policy, mut input) = full_video_ingress().await;
++        let counters = network.adapter().media_counters(&source.id).unwrap();
++        send(
++            &network.wire,
++            ordered_queue_video(binding(&source, Medium::Video).stream_local_id, 65),
++        );
++        let deferred = tokio::time::timeout(Duration::from_millis(100), async {
++            while counters.snapshot().original_backpressure_deferred == 0 {
++                tokio::task::yield_now().await;
++            }
++        })
++        .await
++        .is_ok();
++        let mut shutdown_remaining = None;
++        match action {
++            "expiry" => tokio::time::sleep(Duration::from_millis(210)).await,
++            "retirement" => {
++                shutdown_remaining = Some(source.controller.shutdown(deadline()).await);
++            }
++            "authority" => policy.refusal.store(1, Ordering::SeqCst),
++            "unsupported" => policy.refusal.store(2, Ordering::SeqCst),
++            "cancelled" => policy.refusal.store(3, Ordering::SeqCst),
++            "not-ready" => policy.refusal.store(4, Ordering::SeqCst),
++            _ => unreachable!(),
++        }
++        let terminal = tokio::time::timeout(Duration::from_millis(100), async {
++            while source.media.snapshot().ingress_rejected == 0 {
++                tokio::task::yield_now().await;
++            }
++        })
++        .await
++        .is_ok();
++        // Exactly the originally accepted64 remain. The65th never receives a
++        // renewed200ms bound, new route, or fallback around the current denial.
++        let mut drained = 0;
++        while input.try_recv().is_ok() {
++            drained += 1;
++        }
++        let no_extra = input.try_recv().is_err();
++        network.stop().await;
++        let after = counters.snapshot();
++        assert!(
++            !source.media.snapshot().reader_running && source.media.router().is_shutdown(),
++            "{action}: reader unjoined"
++        );
++        assert!(
++            deferred && terminal,
++            "{action}: did not exercise retained then terminal original"
++        );
++        assert_eq!(drained, 64, "{action}: stale65th original escaped");
++        assert!(no_extra);
++        assert_eq!(
++            after.original_recovered, 0,
++            "{action}: refused original was recovered"
++        );
++        assert_eq!(after.ingress_accepted, 64);
++        assert_eq!(after.ingress_rejected, 1);
++        if action == "expiry" {
++            assert_eq!(after.original_expired, 1);
++        }
++        if action == "retirement" {
++            assert_eq!(
++                shutdown_remaining,
++                Some(0),
++                "original Core cleanup incomplete"
++            );
++            assert_eq!(
++                after.original_refused, 1,
++                "retired original ticket was not refused"
++            );
++            assert_eq!(
++                after.original_expired, 0,
++                "expiry substituted for retirement"
++            );
++            assert_eq!(
++                after.original_abandoned, 0,
++                "physical close substituted for ticket retirement"
++            );
++        }
++        if ["authority", "unsupported", "cancelled", "not-ready"].contains(&action) {
++            assert_eq!(after.original_refused, 1);
++        }
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
+@@ -22,7 +22,8 @@
+ 
+ /// An original receive prepared under exact engine generations. The physical
+ /// reader owns this object, its bounded queue and every retry. None means only
+-/// definite temporary metadata exclusion; Some is terminal. Drop cancels it.
++/// definite unpublished metadata exclusion or full queue capacity, under the
++/// same original deadline. Some is terminal. Drop cancels it.
+ pub trait PendingNativeIngress: Send {
+     fn try_publish(&mut self) -> Option<bool>;
+ }

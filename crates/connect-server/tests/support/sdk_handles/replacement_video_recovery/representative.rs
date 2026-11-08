@@ -754,6 +754,9 @@ fn spawn_publisher(
             let mut sequence = 0u16;
             let mut feedback = None;
             'frames: for index in 0..FRAMES {
+                if video_retirement.observed() {
+                    break;
+                }
                 loop {
                     tokio::select! {
                         _ = video_stop.cancelled() => break 'frames,
@@ -867,6 +870,9 @@ fn spawn_publisher(
             let mut index = 0u16;
             loop {
                 tokio::select! {biased; _=stop.cancelled()=>break,_=tick.tick()=>{}}
+                if retirement.observed() {
+                    break;
+                }
                 assert!(Instant::now() < cutoff, "original audio programme cutoff");
                 let hz = 330.0 + source as f32 * 110.0;
                 let pcm = (0..960)
@@ -939,6 +945,7 @@ fn spawn_original_receiver(
             let mut continuity=DecodeHistory::default();
             let mut audio=selected_opus();let mut epoch=None;
             loop {
+                if retirement.observed() {break;}
                 tokio::select! {
                     _=stop.cancelled()=>break,
                     packet=video.receive_packet(short())=>{
