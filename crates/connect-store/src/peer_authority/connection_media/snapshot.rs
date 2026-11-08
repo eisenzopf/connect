@@ -68,7 +68,7 @@ type MediaFacts = (
     i64,
     bool,
 );
-/// Three memos per live origin. Each SQL observer retains one unary capture or
+/// Four purpose-separated memos per live origin. Each SQL observer retains one unary capture or
 /// at most four original counterparties, covering the four-participant profile
 /// without replacing paired facts on every mixed packet. Eviction only causes
 /// fresh derivation; it does not limit eligible peers. SQL/clock/source stamps
@@ -79,6 +79,8 @@ pub(super) struct Metadata {
     pub(super) lifetime: Memo<i64>,
     pub(super) unary: Memo<MediaFacts>,
     pub(super) paired: Memo<MediaFacts>,
+    // Pending publication facts never share the ordinary unary/paired namespace.
+    pub(super) continuation: Memo<MediaFacts>,
 }
 pub(super) struct Memo<T>(Mutex<Vec<Entry<T>>>, #[cfg(test)] MemoCounts);
 #[cfg(test)]
@@ -128,6 +130,17 @@ impl<T> Entry<T> {
             _ => false,
         }
     }
+}
+
+#[cfg(test)]
+pub(super) fn continuation_memo_counts(metadata: &MetadataToken) -> [u64; 3] {
+    use std::sync::atomic::Ordering::Relaxed;
+    let memo = &metadata.downcast_ref::<Metadata>().unwrap().continuation;
+    [
+        memo.1.derive.load(Relaxed),
+        memo.1.hit.load(Relaxed),
+        memo.1.publish.load(Relaxed),
+    ]
 }
 
 /// Read already-validated metadata for an observation that makes no effect.
@@ -193,9 +206,17 @@ fn cached_with<T: Clone>(
     let mut capture = |c: &Connection, version: Version| {
         if let Ok(entry) = memo.0.try_lock() {
             if let Some(entry) = entry.iter().find(|entry| entry.matches(version, source)) {
+                #[cfg(test)]
+                memo.1
+                    .hit
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 return Ok((entry.facts.clone(), entry.scopes.clone()));
             }
         }
+        #[cfg(test)]
+        memo.1
+            .derive
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let (facts, scopes) = derive(c)?;
         let facts = Arc::new(facts);
         captured = Some(Entry {
@@ -271,6 +292,10 @@ fn cached_with<T: Clone>(
     // hit on another observer. Publish only the actual successfully sealed facts.
     if let Some(entry) = captured.filter(|entry| Arc::ptr_eq(&entry.facts, &result.0)) {
         if let Ok(mut slot) = memo.0.try_lock() {
+            #[cfg(test)]
+            memo.1
+                .publish
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             // Drop dead original sources and superseded versions for this
             // observer. Retained facts own no reader or grant.
             slot.retain(|previous| {

@@ -40,10 +40,19 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
     const sourceConnectDescriptor=Object.getOwnPropertyDescriptor(sourcePrototype,'connect');
     const draw=CanvasRenderingContext2D.prototype.drawImage,frame=HTMLVideoElement.prototype.requestVideoFrameCallback;
     const canvases=new Map(),metadata=new WeakMap(),pending=new Set(),taps=new Set(),modules=new WeakMap(),observed=new WeakSet();
+    const presentations = new WeakMap();
+    let nextPresentationElement = 0;
+    let nextAudioClock = 0;
     let rendering=null,closed=false;
     const worklet=URL.createObjectURL(new Blob([rtcDecodedAudioWorklet],{type:'text/javascript'}));
     function tap(context,source,connectionId) {
-        const owned={context,source,node:null,gain:null};taps.add(owned);
+        if (nextAudioClock >= 10) {
+            invalid(connectionId, 'Bounded original RTC decoded PCM clocks');
+            return;
+        }
+        const clock = Object.freeze({profile:'connect/rtc-decoded-pcm-clock/1',
+            owner:connectionId, epoch_id:++nextAudioClock});
+        const owned={context,source,node:null,gain:null,clock};taps.add(owned);
         let loaded=modules.get(context);
         if(!loaded){loaded=context.audioWorklet.addModule(worklet);modules.set(context,loaded);}
         const ready=loaded.then(()=>{
@@ -59,7 +68,7 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
                     if(!(value.samples instanceof Float32Array)||value.samples.length!==960||!Number.isFinite(value.timestamp)){
                         invalid(connectionId,'Invalid decoded RTC PCM observation');return;
                     }
-                    audio(connectionId,value.timestamp,performance.now(),value.samples);
+                    audio(connectionId,value.timestamp,performance.now(),value.samples,owned.clock);
                 }else if(value?.type==='error')invalid(connectionId,value.reason);
             };
             node.onprocessorerror=()=>{if(!closed)invalid(connectionId,'Decoded RTC PCM processor failed');};
@@ -96,9 +105,38 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
     CanvasRenderingContext2D.prototype.drawImage=function(source,...args){
         const result=draw.call(this,source,...args),connectionId=canvases.get(this.canvas),current=metadata.get(source);
         if(!closed&&connectionId&&current){
-            if(!Number.isFinite(current.detail.mediaTime))invalid(connectionId,'Decoded RTC video media time unavailable');
-            else video(connectionId,Math.round(current.detail.mediaTime*1000000),performance.now(),source,
-                source.videoWidth,source.videoHeight);
+            let identity = presentations.get(source);
+            if (!identity) {
+                if (nextPresentationElement >= 10) {
+                    invalid(connectionId, 'Bounded original RTC presentation elements');
+                    return result;
+                }
+                identity = {element_id:++nextPresentationElement, owner:connectionId, last:0};
+                presentations.set(source, identity);
+            }
+            const presentation = {profile:'connect/rtc-video-presentation/1',
+                element_id:identity.element_id, callbackTime:current.now};
+            for (const key of ['mediaTime', 'presentedFrames', 'rtpTimestamp', 'presentationTime',
+                'expectedDisplayTime', 'captureTime', 'receiveTime', 'processingDuration', 'width', 'height']) {
+                if (key in current.detail) presentation[key] = current.detail[key];
+            }
+            let refusal;
+            if (!Number.isFinite(current.detail.mediaTime)) {
+                refusal = 'Decoded RTC video media time unavailable';
+            } else if (identity.owner !== connectionId) {
+                refusal = 'Decoded RTC video presentation element owner changed';
+            } else if (!Number.isSafeInteger(presentation.presentedFrames) || presentation.presentedFrames <= 0) {
+                refusal = 'Decoded RTC video presentation counter unavailable';
+            } else if (presentation.presentedFrames <= identity.last) {
+                refusal = 'Decoded RTC video presentation counter repeated or moved backward';
+            }
+            if (refusal) {
+                invalid(connectionId, refusal, presentation);
+                return result;
+            }
+            identity.last = presentation.presentedFrames;
+            video(connectionId, Math.round(current.detail.mediaTime * 1000000), performance.now(), source,
+                source.videoWidth, source.videoHeight, presentation);
         }
         return result;
     };

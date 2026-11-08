@@ -36,8 +36,19 @@
     "minimum_gap_for_transition_accounting_ms": 50,
     "measurement": "Original public decoded samples on the unchanged programme clock. One measured interruption straddling a validated public ownership observation per move can use the handoff allowance. Audio cuts cover the affected Session because its scene is shared. Video cuts cover the moved receiver and receivers selecting its source. Whole-window loss, frame counts and skew remain reported. Preparation remains inside the measured window.",
     "clean_quality": "Outside measured handoff holes retain the original audio gap/identity limits and 24 changing decoded video frames per second, prorated only by the actual missing handoff duration in that second. Retain at least 1440 changing frames over the complete 60-second window and the original independent AV skew and marker-count limits. Audio permits only the measured handoff missing duration in addition to the existing 100ms whole-window allowance.",
-    "onsets": "Restart onset proof across each admitted handoff hole. Preserve the original whole-window observer diagnostics and require new post-gap evidence before pairing a marker. Private output, duplicated source coverage, wrong source, stale media and failed ownership remain failures everywhere.",
-    "engineering_review": "Prospective reconciliation with the one-second handoff allowance in contracts/connect-media-v2.md. Historical matrix verdicts retain their original profile. The measurement identifies local RTC rendering cuts and conservatively observed native completion boundaries explicitly. Its scope covers receive callbacks and local rendering."
+    "onsets": "Restart onset proof across each admitted handoff hole. Preserve the original whole-window observer diagnostics and require new post-gap evidence before pairing a marker. Private output, actual duplicated packets/frames, wrong source, stale media and failed ownership remain failures everywhere.",
+    "engineering_review": "Prospective reconciliation with the one-second handoff allowance in contracts/connect-media-v2.md. Historical matrix verdicts retain their original profile. The measurement identifies local RTC rendering cuts and conservatively observed native completion boundaries explicitly. Its scope covers receive callbacks and local rendering.",
+    "quality_profile": "connect/decoded-audio-quality/3",
+    "metric_scope": "measurable-decoded-quality-source-quanta-diagnostic",
+    "original_source_sample_coverage_proved": false,
+    "audio_source_quantum": {
+      "scope": "diagnostic-only-source-clock-attribution",
+      "unbound_or_ambiguous": "diagnostic-only",
+      "overlaps": "diagnostic-only",
+      "literal_original_source_sample_coverage_proved": false
+    },
+    "owner_amendment": "On November 8, 2026, the owner approved measurable decoded quality checks and retention of audio source-quantum diagnostics for future runs. Historical artifacts retain their recorded criteria and verdicts.",
+    "audio_identity_scope": "Decoded tone/source identity, actual packet/frame duplication, valid RTP histories, decoded coverage/gaps, FPS, AV skew, public handoff cuts and ownership/cleanup are mandatory. Estimated audio source quanta from normalized SR/RTP clocks provide diagnostic attribution. Exact original sample provenance requires a capture-to-receiver coordinate bridge. Video original source timestamp duplication remains a hard failure."
   },
   "signing_profile": "Each cohort uses its named algorithm for client and server signing. Record every actual peer/key algorithm; do not infer one from a TLS certificate.",
   "expected_browsers_by_client_platform": {

@@ -9,7 +9,7 @@ import tempfile
 import tomllib
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
 from lib.mac_linux_fixture import MacLinuxFixture, archive_files, programme_source_files, rewrite_paths, unpack_verified
@@ -390,6 +390,9 @@ console.log(JSON.stringify({handshakes: 9}));
         self.assertTrue(result["preflight_only"]);self.assertTrue(result["original_lease_ssh_joined"])
         for name in ["guest_job_started", "guest_sources_staged", "guest_namespace_started"]:self.assertFalse(result[name])
         self.assertEqual(result["lease_acquisition"]["original_ssh_exit_code"], 1)
+        self.assertEqual(result["lease_cleanup"]["original_ssh_exit_code"], 1)
+        self.assertFalse(result["lease_cleanup"]["forced"])
+        self.assertTrue(lease.stdin.closed and lease.stdout.closed)
         self.assertIn("TimeoutError", (fixture.directory / "lease-acquisition.stderr").read_text())
         self.assertEqual(fixture.inputs, {});self.assertIsNone(fixture.owner)
 
@@ -397,13 +400,184 @@ console.log(JSON.stringify({handshakes: 9}));
         from lib import mac_linux_fixture as module
         fixture = MacLinuxFixture(self.root, self.root / "queue-unjoined", {}, resource_cycles=3)
         fixture.lease_attempt = dict(acquired=False, started_unix=1, started_monotonic_seconds=1)
-        fixture.lease = SimpleNamespace(pid=123, poll=lambda: None,
-            stderr=SimpleNamespace(fileno=lambda: 42, read=lambda limit: b""))
-        with patch.object(module.os, "set_blocking"):
+        fixture.lease = SimpleNamespace(
+            pid=123, stdin=io.BytesIO(), stdout=io.BytesIO(), stderr=io.BytesIO(),
+            poll=lambda: None,
+            wait=Mock(side_effect=module.subprocess.TimeoutExpired("owned-queue", 5)),
+            send_signal=Mock(side_effect=PermissionError("synthetic owned-child refusal")),
+        )
+        with patch.object(module.os, "getpgid", return_value=123), \
+                patch.object(module.os, "killpg", side_effect=PermissionError("synthetic owned-group refusal")):
             result = fixture.close()
         self.assertFalse(result["passed"]);self.assertFalse(result["original_joined"])
         self.assertFalse(result["original_lease_ssh_joined"])
         self.assertEqual(result["cleanup_failures"], ["original-lease-ssh-join-unconfirmed"])
+        self.assertEqual(fixture.lease.wait.call_count, 3)
+        self.assertIsNone(result["lease_cleanup"]["original_ssh_exit_code"])
+        self.assertTrue(result["forced"])
+        self.assertTrue(result["lease_cleanup"]["stop_errors"])
+        self.assertTrue(fixture.lease.stdin.closed and fixture.lease.stdout.closed and fixture.lease.stderr.closed)
+
+    def test_interrupted_pre_acquire_closes_only_original_queue_and_preserves_history(self):
+        from lib import mac_linux_fixture as module
+        fixture = MacLinuxFixture(self.root, self.root / "interrupted-queue", {})
+        state = {"code": None}
+        lease = SimpleNamespace(
+            pid=123, stdin=io.BytesIO(), stdout=io.BytesIO(), stderr=io.BytesIO(),
+            poll=lambda: state["code"],
+            wait=Mock(side_effect=[module.subprocess.TimeoutExpired("owned-queue", 5), -15]),
+            send_signal=Mock(),
+        )
+        class Select:
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def register(self, *args):
+                pass
+            def select(self, timeout):
+                raise KeyboardInterrupt
+        def group_signal(pid, selected):
+            self.assertEqual(pid, 123)
+            if selected == 0:
+                if state["code"] is None:
+                    return
+                raise ProcessLookupError
+            self.assertEqual(selected, module.signal.SIGTERM)
+            state["code"] = -15
+        fixture.call = lambda *args, **kwargs: self.fail("No guest command exists before acquisition")
+        with patch.object(module.subprocess, "Popen", return_value=lease), \
+                patch.object(module.selectors, "DefaultSelector", Select), \
+                patch.object(module.os, "getpgid", return_value=123), \
+                patch.object(module.os, "killpg", side_effect=group_signal) as signalled:
+            with self.assertRaises(KeyboardInterrupt):
+                fixture.acquire_lease()
+            result = fixture.close()
+            self.assertTrue(lease.stdin.closed, "Interrupted acquisition left the original queue pipe open")
+            self.assertGreaterEqual(lease.wait.call_count, 2)
+            self.assertTrue(result["original_lease_ssh_joined"])
+            self.assertTrue(result["forced"])
+            history = (fixture.directory / "lease-acquisition.json").read_bytes()
+            current = (fixture.directory / "lease-cleanup.json").read_bytes()
+            self.assertIs(fixture.close(), result)
+            fixture.release_lease()
+            self.assertEqual((fixture.directory / "lease-acquisition.json").read_bytes(), history)
+            self.assertEqual((fixture.directory / "lease-cleanup.json").read_bytes(), current)
+            self.assertEqual([call.args for call in signalled.call_args_list if call.args[1]], [(123, module.signal.SIGTERM)])
+        self.assertTrue(lease.stdout.closed and lease.stderr.closed)
+        self.assertIsNone(result["lease_acquisition"]["original_ssh_exit_code"])
+        self.assertEqual(result["lease_cleanup"]["original_ssh_exit_code"], -15)
+        self.assertFalse(result["passed"])
+        self.assertFalse(result["original_joined"])
+        self.assertFalse(result["guest_job_started"])
+        self.assertNotIn("all_guest_owners_joined", result)
+        self.assertNotIn("original_vm_lease_joined", result)
+
+    def test_pre_acquire_eof_reaps_original_queue_without_signals_or_guest_success(self):
+        from lib import mac_linux_fixture as module
+        fixture = MacLinuxFixture(self.root, self.root / "queue-eof", {})
+        fixture.lease_attempt = dict(acquired=False, started_unix=1, started_monotonic_seconds=1)
+        state = {"code": None}
+        def wait(timeout):
+            state["code"] = 0
+            return 0
+        lease = SimpleNamespace(
+            pid=123, stdin=io.BytesIO(), stdout=io.BytesIO(), stderr=io.BytesIO(),
+            poll=lambda: state["code"], wait=Mock(side_effect=wait), send_signal=Mock(),
+        )
+        fixture.lease = lease
+        def group_signal(pid, selected):
+            self.assertEqual((pid, selected), (123, 0))
+            if state["code"] is not None:
+                raise ProcessLookupError
+        with patch.object(module.os, "killpg", side_effect=group_signal):
+            result = fixture.close()
+            self.assertTrue(lease.stdin.closed, "Failed acquisition never closed its original pipe")
+            self.assertTrue(result["original_lease_ssh_joined"])
+            self.assertFalse(result["forced"])
+            self.assertIs(fixture.close(), result)
+        lease.wait.assert_called_once_with(timeout=5)
+        lease.send_signal.assert_not_called()
+        self.assertTrue(lease.stdout.closed and lease.stderr.closed)
+        self.assertIsNone(result["lease_acquisition"]["original_ssh_exit_code"])
+        self.assertEqual(result["lease_cleanup"]["original_ssh_exit_code"], 0)
+        self.assertFalse(result["original_joined"])
+        self.assertFalse(result["passed"])
+
+    def test_pre_acquire_group_permission_error_still_reaps_original_child(self):
+        from lib import mac_linux_fixture as module
+        fixture = MacLinuxFixture(self.root, self.root / "queue-permission", {})
+        fixture.lease_attempt = dict(acquired=False, started_unix=1, started_monotonic_seconds=1)
+        state = {"code": None}
+        def direct_signal(selected):
+            self.assertEqual(selected, module.signal.SIGTERM)
+            state["code"] = -15
+        lease = SimpleNamespace(
+            pid=123, stdin=io.BytesIO(), stdout=io.BytesIO(), stderr=io.BytesIO(),
+            poll=lambda: state["code"],
+            wait=Mock(side_effect=[module.subprocess.TimeoutExpired("owned-queue", 5), -15]),
+            send_signal=Mock(side_effect=direct_signal),
+        )
+        fixture.lease = lease
+        def group_signal(pid, selected):
+            self.assertEqual(pid, 123)
+            if selected == 0 and state["code"] is not None:
+                raise ProcessLookupError
+            if selected:
+                raise PermissionError("synthetic exact-group permission refusal")
+        with patch.object(module.os, "getpgid", return_value=123), \
+                patch.object(module.os, "killpg", side_effect=group_signal):
+            result = fixture.close()
+        self.assertGreaterEqual(lease.wait.call_count, 2, "Group refusal skipped original Popen wait")
+        lease.send_signal.assert_called_once_with(module.signal.SIGTERM)
+        self.assertTrue(result["original_lease_ssh_joined"])
+        self.assertEqual(result["lease_cleanup"]["original_ssh_exit_code"], -15)
+        self.assertTrue(result["lease_cleanup"]["stop_errors"])
+        self.assertFalse(result["passed"])
+        self.assertTrue(lease.stdin.closed and lease.stdout.closed and lease.stderr.closed)
+        # Losing the history write must not skip original-child cleanup either.
+        fixture = MacLinuxFixture(self.root, self.root / "queue-history-error", {})
+        fixture.lease_attempt = dict(acquired=False, started_unix=1, started_monotonic_seconds=1)
+        fixture.lease = SimpleNamespace(
+            pid=124, stdin=io.BytesIO(), stdout=io.BytesIO(), stderr=io.BytesIO(),
+            poll=lambda: 1, wait=Mock(return_value=1), send_signal=Mock(),
+        )
+        with patch.object(fixture, "_record_failed_lease", side_effect=OSError("synthetic history failure")), \
+                patch.object(module.os, "killpg", side_effect=ProcessLookupError):
+            with self.assertRaisesRegex(OSError, "synthetic history failure"):
+                fixture.close()
+        fixture.lease.wait.assert_called_once_with(timeout=5)
+        fixture.lease.send_signal.assert_not_called()
+        self.assertTrue(fixture.lease.stdin.closed and fixture.lease.stdout.closed and fixture.lease.stderr.closed)
+
+    def test_pre_acquire_exited_leader_with_remaining_group_stays_unconfirmed(self):
+        from lib import mac_linux_fixture as module
+        fixture = MacLinuxFixture(self.root, self.root / "queue-exited-leader", {})
+        fixture.lease_attempt = dict(acquired=False, started_unix=1, started_monotonic_seconds=1)
+        fixture.lease = SimpleNamespace(
+            pid=123, stdin=io.BytesIO(), stdout=io.BytesIO(), stderr=io.BytesIO(),
+            poll=lambda: 1, wait=Mock(return_value=1), send_signal=Mock(),
+        )
+        # Model the Colima leader already reaped while its SSH group remains.
+        # Group presence alone supplies no retained kernel identity for a kill.
+        def group_signal(pid, selected):
+            self.assertEqual((pid, selected), (123, 0))
+        with patch.object(module.os, "killpg", side_effect=group_signal) as signalled, \
+                patch.object(module.os, "getpgid") as identified:
+            result = fixture.close()
+            self.assertIs(fixture.close(), result)
+        identified.assert_not_called()
+        self.assertEqual([call.args for call in signalled.call_args_list], [(123, 0), (123, 0)])
+        fixture.lease.wait.assert_called_once_with(timeout=5)
+        fixture.lease.send_signal.assert_not_called()
+        self.assertFalse(result["original_lease_ssh_joined"])
+        self.assertFalse(result["original_joined"])
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["cleanup_failures"], ["original-lease-ssh-join-unconfirmed"])
+        self.assertIn("original-leader-exited-group-still-present", result["lease_cleanup"]["stop_errors"])
+        self.assertEqual(result["lease_acquisition"]["original_ssh_exit_code"], 1)
+        self.assertFalse(result["lease_acquisition"]["original_ssh_group_joined"])
+        self.assertTrue(fixture.lease.stdin.closed and fixture.lease.stdout.closed and fixture.lease.stderr.closed)
 
     def transfer_fixture(self, cycles):
         host = self.root / ("host-" + str(cycles));host.mkdir()

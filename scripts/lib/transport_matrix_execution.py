@@ -6,7 +6,7 @@ work items, not skipped passes. No result crosses platform, network or key cohor
 import copy
 import re
 
-from .transport_matrix import DIMENSIONS
+from .transport_matrix import DIMENSIONS, media_quality_bound
 
 
 COMPLETION_GAPS = [
@@ -332,7 +332,7 @@ def record_browser_result(matrix, cell, report, report_sha256, exit_code):
     if passed and report["stage"] == "quality":
         decoded = observation.get("decoded_media", {})
         capture = report.get("packet_capture", {})
-        if (decoded.get("passed") is not True or decoded.get("window_ms") != 60000
+        if (decoded.get("passed") is not True or not media_quality_bound(decoded) or decoded.get("window_ms") != 60000
                 or len(decoded.get("routes", [])) != 6
                 or not all(route.get("passed") is True for route in decoded["routes"])
                 or capture.get("observed") is not True or capture.get("original_joined") is not True):

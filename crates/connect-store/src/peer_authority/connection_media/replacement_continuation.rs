@@ -176,8 +176,9 @@ fn current_facts(
 }
 impl Store {
     /// Exact pending target/source pair only. This returns domain readers, not
-    /// a Core route grant. No retry, old-route fallback or current-authority cache
-    /// is introduced. Every call resolves current facts under a version seal.
+    /// a Core route grant. Only immutable facts reuse the existing exact-version
+    /// memo. Every call owns fresh authority or validates the actual held source
+    /// interval; no retry, old-route fallback or retained grant is introduced.
     pub fn try_native_replacement_continuation_media_read(
         &self,
         target: &NativeMediaOrigin,
@@ -189,6 +190,20 @@ impl Store {
             return Err(Error::forbidden());
         }
         current_owner(self, target)?;
+        // These checks must precede memo lookup, including on a positive hit.
+        // Equal logical IDs never let another origin borrow an activation.
+        if target_activation.is_some_and(|a| !std::ptr::eq(target, a.origin().as_ref())) {
+            return Err(Error::forbidden());
+        }
+        if let Some((origin, activation)) = source {
+            current_owner(self, origin)?;
+            if origin.conversation_id() != target.conversation_id()
+                || origin.session_id() != target.session_id()
+                || activation.is_some_and(|a| !std::ptr::eq(origin, a.origin().as_ref()))
+            {
+                return Err(Error::forbidden());
+            }
+        }
         if let Some(held) = source_read {
             let original = source.as_ref().map(|(o, _)| *o).unwrap_or(target);
             if !held.current()
@@ -202,9 +217,14 @@ impl Store {
                 return Err(Error::forbidden());
             }
         }
-        // A per-call memo uses the established SQL/version/scoped-admission
-        // machinery, without retaining pending facts into ordinary lookup.
-        let memo = snapshot::Memo::default();
+        // A pending target has its own immutable phase token. A pending source
+        // also keys by that token, so neither phase can borrow ordinary facts.
+        // The existing memo bounds entries and retains only weak source tokens.
+        let metadata = target_activation.map_or(&target.metadata, |a| &a.metadata);
+        let memo = &metadata
+            .downcast_ref::<snapshot::Metadata>()
+            .ok_or_else(Error::storage)?
+            .continuation;
         let derive = |c: &Connection| {
             let (target_view, mut scopes, mut expiry) =
                 current_facts(self, c, target, target_activation)
@@ -235,28 +255,35 @@ impl Store {
                 AuthorityScope::merged(&scopes)?,
             ))
         };
-        let source_token = source.map(|(o, _)| &o.metadata);
-        let ((target, source, mut expires_at, may_subscribe), interval) = match source_read {
-            Some(held) => {
-                snapshot::cached_under(self, &memo, source_token, held.interval(), derive, |_| {
-                    Ok(())
-                })
-            }
-            None => snapshot::cached(self, &memo, source_token, derive, |_| Ok(())),
-        }?;
+        let source_token = source.map(|(o, a)| a.map_or(&o.metadata, |a| &a.metadata));
+        let ((target_view, source_view, mut expires_at, may_subscribe), interval) =
+            match source_read {
+                Some(held) => snapshot::cached_under(
+                    self,
+                    memo,
+                    source_token,
+                    held.interval(),
+                    derive,
+                    |_| Ok(()),
+                ),
+                None => snapshot::cached(self, memo, source_token, derive, |_| Ok(())),
+            }?;
         if let Some(held) = source_read {
+            if !held.current() {
+                return Err(Error::forbidden());
+            }
             expires_at = expires_at.min(held.expires_at);
         }
+        if let Some((origin, _)) = source {
+            current_owner(self, origin)?;
+        }
+        let owner = current_owner(self, target)?;
         if crate::now() >= expires_at {
             return Err(Error::forbidden());
         }
-        let owner = self.require_runtime_owner()?;
-        if !owner.current() {
-            return Err(Error::forbidden());
-        }
         Ok(NativeMediaRead {
-            target,
-            source,
+            target: target_view,
+            source: source_view,
             _scopes: interval,
             owner,
             expires_at,

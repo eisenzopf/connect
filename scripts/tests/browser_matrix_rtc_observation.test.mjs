@@ -81,7 +81,7 @@ test('only the actual RTC renderer is tapped and frame metadata stays bound to i
         observer.attach('original',canvas);
         const element=new HTMLVideoElement();
         element.requestVideoFrameCallback(()=>{context.drawImage(element,0,0);otherContext.drawImage(element,0,0);});
-        element.callback(100,{mediaTime:1.25});
+        element.callback(100,{mediaTime:1.25,presentedFrames:1});
         assert.equal(video.length,1);assert.equal(video[0][0],'original');assert.equal(video[0][1],1250000);
         assert.equal(video[0][4],640);assert.equal(video[0][5],360);
         context.drawImage(element,0,0);assert.equal(video.length,1,'painting outside actual video callback is not decoded-frame evidence');
@@ -263,4 +263,63 @@ test("RTC observer restores original inherited and own source connect descriptor
       },
       { own },
     );
+});
+
+
+test('RTC presentation identity uses each real element counter and refuses repeats without inventing skipped frames', async () => {
+    const keys = ['MediaStreamAudioSourceNode', 'CanvasRenderingContext2D', 'HTMLVideoElement'];
+    const saved = keys.map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]);
+    class MediaStreamAudioSourceNode { connect() {} }
+    class CanvasRenderingContext2D {
+        constructor(canvas) { this.canvas = canvas; }
+        drawImage() {}
+    }
+    class HTMLVideoElement {
+        videoWidth = 640;
+        videoHeight = 360;
+        requestVideoFrameCallback(callback) { this.callback = callback; return 1; }
+    }
+    class Rtc { render() {} }
+    Object.assign(globalThis, {MediaStreamAudioSourceNode, CanvasRenderingContext2D, HTMLVideoElement});
+    const received = [], refused = [];
+    const observer = browserMatrixRtcObservation(Rtc, {
+        audio() {},
+        video(...args) { received.push(args); },
+        invalid(...args) { refused.push(args); },
+    });
+    try {
+        const firstCanvas = {}, secondCanvas = {};
+        observer.attach('original', firstCanvas);
+        observer.attach('replacement', secondCanvas);
+        const first = new HTMLVideoElement(), second = new HTMLVideoElement();
+        const paint = (element, canvas, presentedFrames, extra = {}) => {
+            const context = new CanvasRenderingContext2D(canvas);
+            element.requestVideoFrameCallback(() => context.drawImage(element, 0, 0));
+            element.callback(100, {mediaTime:0, presentedFrames, rtpTimestamp:42,
+                presentationTime:90, expectedDisplayTime:100, ...extra});
+        };
+        paint(first, firstCanvas, 1);
+        paint(first, firstCanvas, 3);
+        paint(second, secondCanvas, 1);
+        assert.equal(received.length, 3, 'A skipped presented counter adds no synthetic callback');
+        assert.deepEqual(received.map(row => row[1]), [0, 0, 0], 'Original media time stays unchanged');
+        assert.deepEqual(received.map(row => row[6].presentedFrames), [1, 3, 1]);
+        assert.equal(received[0][6].element_id, received[1][6].element_id);
+        assert.notEqual(received[0][6].element_id, received[2][6].element_id);
+        assert.equal(received[0][6].rtpTimestamp, 42);
+        assert.equal(received[0][6].callbackTime, 100);
+        for (const value of [3, 2, 0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, undefined]) {
+            paint(first, firstCanvas, value);
+        }
+        paint(first, secondCanvas, 4);
+        assert.equal(received.length, 3, 'Repeated, backward, malformed and foreign-owner metadata gets no frame credit');
+        assert.equal(refused.length, 10);
+        assert.equal(refused[0][2].mediaTime, 0, 'Refusal diagnostics retain actual raw metadata');
+    } finally {
+        await observer.close();
+        for (const [key, descriptor] of saved) {
+            if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+            else delete globalThis[key];
+        }
+    }
 });

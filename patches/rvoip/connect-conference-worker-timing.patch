@@ -1,0 +1,242 @@
+--- a/crates/foundation/rvoip-core/src/conference.rs
++++ b/crates/foundation/rvoip-core/src/conference.rs
+@@ -24,6 +24,7 @@
+ 
+ use tokio::sync::{Mutex, mpsc};
+ mod task_owner;
++mod timing;
+ use task_owner::ConferenceTask;
+ 
+ use crate::error::{Result, RvoipError};
+@@ -294,19 +295,22 @@
+             original_started.notify_one();
+             let mut ticker = tokio::time::interval(MIX_INTERVAL);
+             ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
++            let mut timing = timing::WorkerTiming::new(MIX_INTERVAL, task_staged.as_ref().map(|scene| scene.timing_identity()));
+             loop {
+-                ticker.tick().await;
++                let scheduled = ticker.tick().await.into_std();
++                timing.begin(scheduled, std::time::Instant::now());
+                 if let Some(staged) = &task_staged {
+                     staged.tick();
++                    timing.finish(std::time::Instant::now());
+                     continue;
+                 }
+                 // A guarded scene owns its own members. Never gate it on the
+                 // unrelated unguarded conference registry.
+                 let mut members = task_members.lock().await;
+-                if members.is_empty() {
+-                    continue;
++                if !members.is_empty() {
++                    mix_once(&mut members, samples_per_tick);
+                 }
+-                mix_once(&mut members, samples_per_tick);
++                timing.finish(std::time::Instant::now());
+             }
+         });
+         Self {
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -340,6 +340,12 @@
+     _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ impl GuardedMediaScene {
++    /// Correlate worker timing with the existing terminal scene summary.
++    /// Diagnostic identity only; never an authority or routing decision.
++    pub(crate) fn timing_identity(&self) -> u128 {
++        self.id
++    }
++
+     #[cfg(feature = "test-support")]
+     pub(crate) fn weak_media_owners_for_test(
+         &self,
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/conference/timing.rs
+@@ -0,0 +1,187 @@
++//! Per-worker monotonic scheduling observations. Never a media timestamp source.
++//! No payload, authority, per-tick allocation, or shared reporting lock.
++use std::time::{Duration, Instant};
++
++#[derive(Default)]
++struct Durations {
++    count: u64,
++    total_us: u64,
++    maximum_us: u64,
++    nonzero_count: u64,
++}
++fn micros(value: Duration) -> u64 {
++    value.as_micros().min(u128::from(u64::MAX)) as u64
++}
++impl Durations {
++    fn record(&mut self, value: Duration) {
++        let value = micros(value);
++        self.count = self.count.saturating_add(1);
++        self.total_us = self.total_us.saturating_add(value);
++        self.maximum_us = self.maximum_us.max(value);
++        self.nonzero_count = self.nonzero_count.saturating_add(u64::from(value > 0));
++    }
++}
++pub(super) struct WorkerTiming {
++    period: Duration,
++    scene: Option<u128>,
++    wake: Durations,
++    work: Durations,
++    completion_lateness: Durations,
++    pending: Option<(Instant, Instant)>,
++}
++impl WorkerTiming {
++    pub(super) fn new(period: Duration, scene: Option<u128>) -> Self {
++        Self {
++            period,
++            scene,
++            wake: Durations::default(),
++            work: Durations::default(),
++            completion_lateness: Durations::default(),
++            pending: None,
++        }
++    }
++    pub(super) fn begin(&mut self, scheduled: Instant, woke: Instant) {
++        debug_assert!(self.pending.is_none());
++        self.wake.record(woke.saturating_duration_since(scheduled));
++        self.pending = Some((scheduled, woke));
++    }
++    pub(super) fn finish(&mut self, ended: Instant) {
++        let (scheduled, woke) = self.pending.take().expect("one original worker interval");
++        self.work.record(ended.saturating_duration_since(woke));
++        let deadline = scheduled.checked_add(self.period).unwrap_or(scheduled);
++        self.completion_lateness
++            .record(ended.saturating_duration_since(deadline));
++    }
++}
++impl Drop for WorkerTiming {
++    fn drop(&mut self) {
++        tracing::debug!(target: "rvoip_core::audio_summary",
++            summary_kind = "conference-worker-timing-v1", guarded = self.scene.is_some(),
++            scene = %self.scene.unwrap_or(0),
++            period_us = micros(self.period), started_ticks = self.wake.count,
++            completed_ticks = self.work.count, interrupted_ticks = u64::from(self.pending.is_some()),
++            wake_lateness_total_us = self.wake.total_us,
++            wake_lateness_max_us = self.wake.maximum_us,
++            work_total_us = self.work.total_us, work_max_us = self.work.maximum_us,
++            missed_completion_deadlines = self.completion_lateness.nonzero_count,
++            completion_lateness_total_us = self.completion_lateness.total_us,
++            completion_lateness_max_us = self.completion_lateness.maximum_us,
++            "Conference worker terminal scheduling summary");
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn late_wakeup_and_slow_work_are_distinct_with_equal_completion_lateness() {
++        let start = Instant::now();
++        let mut late = WorkerTiming::new(Duration::from_millis(20), Some(42));
++        late.begin(start, start + Duration::from_millis(30));
++        late.finish(start + Duration::from_millis(35));
++        let mut slow = WorkerTiming::new(Duration::from_millis(20), Some(42));
++        slow.begin(start, start + Duration::from_millis(1));
++        slow.finish(start + Duration::from_millis(35));
++        assert_eq!(late.wake.maximum_us, 30_000);
++        assert_eq!(late.work.maximum_us, 5_000);
++        assert_eq!(slow.wake.maximum_us, 1_000);
++        assert_eq!(slow.work.maximum_us, 34_000);
++        assert_eq!(late.completion_lateness.maximum_us, 15_000);
++        assert_eq!(slow.completion_lateness.maximum_us, 15_000);
++    }
++    #[test]
++    fn skipped_schedule_uses_the_actual_deadline_without_resetting_the_clock() {
++        let start = Instant::now();
++        let mut timing = WorkerTiming::new(Duration::from_millis(20), Some(42));
++        timing.begin(start, start);
++        timing.finish(start + Duration::from_millis(2));
++        timing.begin(
++            start + Duration::from_millis(20),
++            start + Duration::from_millis(65),
++        );
++        timing.finish(start + Duration::from_millis(68));
++        timing.begin(
++            start + Duration::from_millis(80),
++            start + Duration::from_millis(81),
++        );
++        timing.finish(start + Duration::from_millis(83));
++        assert_eq!(timing.wake.count, 3);
++        assert_eq!(timing.wake.maximum_us, 45_000);
++        assert_eq!(timing.wake.total_us, 46_000);
++        assert_eq!(timing.work.total_us, 7_000);
++        assert_eq!(timing.completion_lateness.maximum_us, 28_000);
++        assert_eq!(timing.completion_lateness.nonzero_count, 1);
++    }
++    #[test]
++    fn cancellation_does_not_fabricate_a_completed_tick() {
++        let start = Instant::now();
++        let mut timing = WorkerTiming::new(Duration::from_millis(20), Some(42));
++        timing.begin(start, start);
++        assert_eq!(timing.wake.count, 1);
++        assert_eq!(timing.work.count, 0);
++        assert!(timing.pending.is_some());
++    }
++    #[test]
++    fn original_worker_reports_an_interrupted_registry_wait_through_the_enabled_filter() {
++        use std::collections::BTreeMap;
++        use std::sync::{Arc, Mutex};
++        use tracing_subscriber::{
++            Layer,
++            layer::{Context, SubscriberExt},
++        };
++        struct Capture(Arc<Mutex<Vec<BTreeMap<String, u64>>>>);
++        #[derive(Default)]
++        struct Fields {
++            kind: bool,
++            values: BTreeMap<String, u64>,
++        }
++        impl tracing::field::Visit for Fields {
++            fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
++                self.values.insert(field.name().to_owned(), value);
++            }
++            fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
++                if field.name() == "summary_kind" {
++                    self.kind = value == "conference-worker-timing-v1";
++                }
++            }
++            fn record_debug(&mut self, _: &tracing::field::Field, _: &dyn std::fmt::Debug) {}
++        }
++        impl<S: tracing::Subscriber> Layer<S> for Capture {
++            fn on_event(&self, event: &tracing::Event<'_>, _: Context<'_, S>) {
++                let mut fields = Fields::default();
++                event.record(&mut fields);
++                if fields.kind {
++                    self.0.lock().unwrap().push(fields.values);
++                }
++            }
++        }
++        let rows = Arc::new(Mutex::new(Vec::new()));
++        let subscriber = tracing_subscriber::registry()
++            .with(tracing_subscriber::EnvFilter::new(
++                "warn,rvoip_core::audio_summary=debug",
++            ))
++            .with(Capture(rows.clone()));
++        tracing::subscriber::with_default(subscriber, || {
++            tokio::runtime::Builder::new_current_thread()
++                .enable_all()
++                .build()
++                .unwrap()
++                .block_on(async {
++                    let conference = crate::conference::Conference::start(8000);
++                    let held = conference.members.clone().lock_owned().await;
++                    conference.started_for_test.notified().await;
++                    tokio::time::sleep(Duration::from_millis(25)).await;
++                    conference.task.abort();
++                    drop(held);
++                    conference.task.join().await.unwrap();
++                });
++        });
++        let rows = rows.lock().unwrap();
++        assert_eq!(rows.len(), 1);
++        assert_eq!(rows[0]["period_us"], 20_000);
++        assert_eq!(rows[0]["started_ticks"], 1);
++        assert_eq!(rows[0]["completed_ticks"], 0);
++        assert_eq!(rows[0]["interrupted_ticks"], 1);
++        assert_eq!(rows[0]["work_total_us"], 0);
++    }
++}

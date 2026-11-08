@@ -74,3 +74,58 @@ test("a full64KiB Data receipt stays in the original file while joined control m
         await assert.rejects(inspectReplacementCapture(path, 1024 * 1024, 2));
     } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+test("decoded video history stays in the original capture while joined control metadata retains exact custody", async () => {
+    const parent = resolve(".local");
+    await mkdir(parent, { recursive: true });
+    const directory = await mkdtemp(join(parent, "capture-inspection-video-"));
+    try {
+        const path = join(directory, "original.json");
+        const epoch = { epoch: "epoch", incarnation: "incarnation", revision: 1,
+            first_sequence: 0, first_timestamp: 1716000, ssrc: 516642639 };
+        const receipts = Array.from({ length: 1000 }, (_, ordinal) => ({
+            decoded_programme_us: 19252618 + ordinal * 33333,
+            received_programme_us: 19251244 + ordinal * 33333,
+            encoded_sha256: "b7".repeat(32), keyframe: ordinal === 0, ordinal,
+            timestamp_rtp: 1731000 + ordinal * 3000, video_epoch: epoch,
+        }));
+        const readiness = { readiness_frozen: true, full_media_quality_verified: false,
+            frozen_private_observations: { audio: 1, video: 1 },
+            native_activation: { operation_id: "original-operation", target_generation: 2,
+                stream_revision: 3, audience: { scope: "public", streams: [] } },
+            decoder_process: { joined: true, forced: false, exit_code: 0 },
+            video_epoch: epoch, video_decode_receipts: receipts };
+        const observation = { passed: true, program_start_unix_us: 1793600000000000,
+            private_decoded_readiness: readiness,
+            received: [{ original_root_completed_observed: true, payload: [1, 2, 3] }] };
+        const bytes = Buffer.from(JSON.stringify(observation));
+        assert.ok(bytes.length > 300000);
+        await writeFile(path, bytes, { mode: 0o600 });
+        const result = await inspectReplacementCapture(path, 1024 * 1024, 2);
+        assert.equal(result.worker_joined, true);
+        assert.equal(result.byteLength, bytes.length);
+        assert.equal(result.sha256, createHash("sha256").update(bytes).digest("hex"));
+        const { video_decode_receipts, ...retainedReadiness } = readiness;
+        assert.deepEqual(result.observation.private_decoded_readiness, {
+            ...retainedReadiness, video_decode_receipts_count: receipts.length,
+            video_decode_receipts_sha256: createHash("sha256").update(JSON.stringify(receipts)).digest("hex"),
+        });
+        assert.ok(Buffer.byteLength(JSON.stringify(result.observation)) <= 65536);
+        assert.deepEqual(await readFile(path), bytes);
+        assert.equal(JSON.parse((await readFile(path)).toString()).private_decoded_readiness.video_decode_receipts.length, 1000);
+        for (const invalid of [false, {}, "receipts", Array(1861).fill(null)]) {
+            await writeFile(path, JSON.stringify({ ...observation,
+                private_decoded_readiness: { ...readiness, video_decode_receipts: invalid } }));
+            await assert.rejects(inspectReplacementCapture(path, 1024 * 1024, 2));
+        }
+        for (const key of ["video_decode_receipts_count", "video_decode_receipts_sha256"]) {
+            await writeFile(path, JSON.stringify({ ...observation,
+                private_decoded_readiness: { ...readiness, [key]: "forged" } }));
+            await assert.rejects(inspectReplacementCapture(path, 1024 * 1024, 2));
+        }
+        await writeFile(path, JSON.stringify({ ...observation, unrelated: "x".repeat(65536) }));
+        await assert.rejects(inspectReplacementCapture(path, 1024 * 1024, 2));
+    } finally {
+        await rm(directory, { recursive: true, force: true });
+    }
+});

@@ -75,6 +75,9 @@ test('RTC public rendering waits for validated activation and observes its first
     await f.observer.attach(0,old,{audio:'old-audio',video:'old-video',active:true},{timeoutMs:500});
     f.observer.start({originMs:performance.now()-2000});await f.flush();
     f.audio(f.nodes[0],0);
+    assert.equal(f.observer.report().quality_profile, 'connect/decoded-audio-quality/3');
+    assert.equal(f.observer.report().metric_scope, 'measurable-decoded-quality-source-quanta-diagnostic');
+    assert.equal(f.observer.report().original_source_sample_coverage_proved, false);
     await f.observer.attach(0,target,{audio:'target-audio',video:'target-video'},{timeoutMs:400});
     assert.deepEqual(f.renders.map(row=>row.id),['old'],'Private candidate must not create public playback');
     assert.equal(target.rtc.capture(),'original-capture');
@@ -129,7 +132,7 @@ test('decoded identity refuses silence and another participant rather than trust
     assert.equal(pcmIdentity(tone(440),1).identified,false);
     assert.equal(pcmIdentity(new Float32Array(960),1).identified,false);
 });
-function observed({gap=false,duplicate=false,interruptionMs=0,cutMs=null,videoGap=false,wrongSource=false}={}){
+function observed({gap=false,duplicate=false,interruptionMs=0,cutMs=null,videoGap=false,wrongSource=false,rtcPresentation=false,audioArrivalStepMs=0,audioDelayMs=0,quantumAttribution=null}={}){
     const route=new DecodedRoute(0,1);route.start(1000);const pulses=markerFrames().map(frame=>frame/30);
     if(cutMs!==null){const cut={id:'original-validated-target',atMs:cutMs};route.audioCuts.push(cut);route.videoCuts.push(cut);}
     const gapSeconds=(gap?500:interruptionMs)/1000;
@@ -137,14 +140,34 @@ function observed({gap=false,duplicate=false,interruptionMs=0,cutMs=null,videoGa
     for(let i=0;i<3100;i++){
         const at=i*.02;if(at>=15&&at<15+gapSeconds)continue;
         const pcm=tone(wrongSource&&i===1000?440:660,high(at)?.7:.05,i*960),time=1000+at*1000+10;
-        route.audioFrame(i<750?'original':'target',i*20000,time,pcm);
-        if(duplicate&&i===1000)route.audioFrame('target',i*20000,time+.1,pcm);
+        const arrival = audioArrivalStepMs ? 1000 + Math.floor((time - 1000) / audioArrivalStepMs) * audioArrivalStepMs : time;
+        let native = null;
+        if (quantumAttribution) {
+            const shifted = i - (quantumAttribution === 'overlap' && i >= 750 ? 1 : 0);
+            const reportSecond = Math.floor(shifted / 50);
+            const originUs = BigInt(Math.round((performance.timeOrigin + 1000) * 1000));
+            const originNtp = ((originUs / 1000000n + 2208988800n) << 32n)
+                + ((originUs % 1000000n) << 32n) / 1000000n;
+            native = {profile:'connect/native-decoded-sequence/1', ssrc:7, rtpTimestamp:shifted*960,
+                identity:{profile:'native-sequence-cursor/1', physical_incarnation:(i<750?'1':'2').padStart(32,'0'),
+                    connection_generation:i<750?1:2, stream_generation:1}};
+            if (quantumAttribution !== 'unbound') {
+                const phase = quantumAttribution === 'ambiguous' && reportSecond % 2 ? (1n << 32n)/50n : 0n;
+                native.sourceClock = {ntp:(originNtp + (BigInt(reportSecond) << 32n) + phase).toString(),
+                    rtpTimestamp:reportSecond*48000};
+            }
+        }
+        route.audioFrame(i<750?'original':'target',i*20000,arrival+audioDelayMs,pcm,null,native);
+        if(duplicate&&i===1000)route.audioFrame('target',i*20000,time+.1,pcm,null,native);
     }
     for(let i=0;i<1860;i++){
         const at=i/30,pulse=high(at),gray=Array(64).fill(pulse?255:100);
         if(videoGap&&at>=15&&at<15+gapSeconds)continue;
         if(!pulse){gray[0]=200;gray[1]=40;gray[8]=40;gray[9]=200;}
-        route.videoFrame(i<450?'original':'target',Math.round(at*1e6),1000+at*1000+15,gray,new Uint8Array([i%256]),640,360);
+        const presentation = rtcPresentation ? {profile:'connect/rtc-video-presentation/1',
+            element_id:i<450?1:2, presentedFrames:i<450?i+1:i-449, mediaTime:0, rtpTimestamp:i*3000} : null;
+        route.videoFrame(i<450?'original':'target',rtcPresentation?0:Math.round(at*1e6),
+            1000+at*1000+15,gray,new Uint8Array([i%256]),640,360,null,presentation);
     }
     return route.report();
 }
@@ -213,7 +236,7 @@ test('original public native outputs before completed-root stay observable while
         retirement:Promise.resolve(Object.freeze({connectionId:id,scope:'renderer-local',audioGraph:'not-created',outputsDetached:true}))})});
     const state={connections:plan.routes.map(route=>connection(route.connection))};
     const observer=browserMatrixObservation(Renderer,plan),renderer=new Renderer(),started=performance.now()-2000;
-    const frame={sampleRate:48000,numberOfChannels:1,numberOfFrames:960,timestamp:1,copyTo:output=>output.set(tone(1100))};
+    const frame={sampleRate:48000,numberOfChannels:1,numberOfFrames:960,timestamp:0,copyTo:output=>output.set(tone(1100))};
     const originalNtp=(BigInt(Math.round((performance.timeOrigin+started)*1000))*(1n<<32n))/1000000n+(2208988800n<<32n);
     const native=(seq,rtp,identity)=>({profile:'connect/native-decoded-sequence/1',identity,datagramSequences:[seq],ssrc:7,rtpTimestamp:rtp,sourceClock:{ntp:originalNtp.toString(),rtpTimestamp:0}});
     try{
@@ -221,16 +244,16 @@ test('original public native outputs before completed-root stay observable while
         const binding={connectionId:plan.routes[0].connection,streamId:plan.routes[0].audio};
         renderer.audio(binding,frame,native(0,96000,nativeIdentity(1)));
         await observer.attach(0,connection('target'),{audio:'target-audio',video:'target-video'},{timeoutMs:500});
-        renderer.audio({connectionId:'target',streamId:'target-audio'},{...frame,timestamp:2},native(3,0,nativeIdentity(2,2)));
+        renderer.audio({connectionId:'target',streamId:'target-audio'},{...frame,timestamp:0},native(3,0,nativeIdentity(2,2)));
         // Genuine public original datagram arrives while the durable root reply is delayed.
-        renderer.audio({connectionId:'target',streamId:'target-audio'},{...frame,timestamp:3},native(4,96960,nativeIdentity(2,2)));
+        renderer.audio({connectionId:'target',streamId:'target-audio'},{...frame,timestamp:20000},native(4,96960,nativeIdentity(2,2)));
         const streams=bindNativeStreams([{strm_id:'target-audio',kind:'audio',direction:'sendrecv',stream_local_id:2},{strm_id:'target-video',kind:'video',direction:'sendonly',stream_local_id:3}],2);
         renderer.nativeActivationBoundary=nativeBoundary({recordId:'record',operationId:'move',sourceConnectionId:binding.connectionId,targetConnectionId:'target'},streams,2,3,{'target-audio':4,'target-video':4});
         observer.activate(0,'target');
         const report=observer.report();assert.equal(report.format,'connect/browser-matrix-decoded-media/2');
         assert.equal(report.routes[0].audio.decoded_seconds,.04);assert.equal(report.routes[0].audio.original_source_quantum_overlaps,0);
         // Retained physical histories never earn extra coverage for the same original source quantum.
-        renderer.audio(binding,{...frame,timestamp:4},native(1,96960,nativeIdentity(1)));
+        renderer.audio(binding,{...frame,timestamp:20000},native(1,96960,nativeIdentity(1)));
         assert.equal(observer.report().routes[0].audio.original_source_quantum_overlaps,1);
     }finally{await observer.close();globalThis.document=old;}
 });
@@ -397,4 +420,193 @@ test('joined observer retirement releases measurement working buffers without ch
         if(!extraCallbacks)assert.deepEqual(final,captured,'Final captured quality proof is preserved when no extra outputs arrive');
         assert.deepEqual(f.closedOwners,['old']);
     });
+});
+
+
+test('RTC route credits actual presented frames despite constant media time and keeps strict identity bounds', () => {
+    const report = observed({rtcPresentation:true});
+    assert.equal(report.passed, true);
+    assert.equal(report.video.minimum_fps, 30);
+    assert.equal(report.video.duplicate_frames, 0);
+    assert.equal(report.video.original_source_timestamp_overlaps, 0, 'RTC presentation metadata is not native source-clock provenance');
+    assert.equal(report.video.presentation_identity_diagnostics.samples.length, 16);
+    assert.equal(report.video.presentation_identity_diagnostics.samples[0].mediaTime, 0);
+    const route = new DecodedRoute(0, 1);
+    route.start(0);
+    const gray = Array(64).fill(100);
+    const frame = (owner, element_id, presentedFrames) => route.videoFrame(owner, 0, 2000,
+        gray, new Uint8Array([presentedFrames || 0]), 640, 360, null,
+        {profile:'connect/rtc-video-presentation/1', element_id, presentedFrames, mediaTime:0});
+    frame('original', 1, 2);
+    for (const value of [2, 1, 0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, undefined]) {
+        assert.throws(() => frame('original', 1, value), /presentation/);
+    }
+    assert.throws(() => frame('another-owner', 1, 3), /presentation/);
+    frame('original', 2, 1);
+    frame('original', 2, 4);
+    assert.equal(route.video.length, 3, 'New element identity is distinct, counter gaps never manufacture rows');
+    assert.equal(route.video.every(row => row.native === null), true);
+    assert.equal(route.report().video.presentation_identity_diagnostics.refusals.length, 10);
+    const invalid = route.report();
+    route.retireWorkingState();
+    assert.equal(route.workingState().presentation_owners, 0);
+    assert.equal(invalid.video.presentation_identity_diagnostics.refusals.length, 10, 'Retirement leaves captured raw diagnostics unchanged');
+});
+
+
+test('decoded PCM chronology accepts tied callback deliveries while retaining their original onset arrival rows', () => {
+    const report = observed({audioArrivalStepMs:100});
+    const envelope = report.sync.audio_envelope;
+    assert.equal(envelope.status, 'observer-valid');
+    assert.equal(envelope.profile, 'connect/decoded-pcm-chronology-envelope/1');
+    assert.equal(envelope.original_unsegmented_callback_observer.status, 'observer-invalid');
+    assert.ok(envelope.equal_resolution_arrivals > 0);
+    assert.equal(envelope.maximum_sample_gap_seconds, .02);
+    assert.equal(report.audio.maximum_pcm_sample_gap_ms, 20);
+    assert.ok(envelope.accepted_onset_rows.length > 42);
+    assert.deepEqual(envelope.accepted_edge_seconds,
+        envelope.accepted_onset_rows.filter(row => row.callback_seconds >= 1).map(row => row.callback_seconds));
+    assert.equal(report.audio.passed, true, 'Original callback coverage/count gates remain satisfied');
+});
+
+test('decoded PCM chronology preserves real frame gaps and rejects malformed overlapping or backward timestamps', () => {
+    const route = new DecodedRoute(0, 1);
+    route.start(0);
+    for (let i = 0; i < 25; i++) {
+        route.audioFrame('original', i * 20000, 1000 + i * 20, tone(660, i >= 15 ? .7 : .05));
+    }
+    route.audioFrame('original', 1000000, 1500, tone(660, .7));
+    const report = route.report();
+    assert.equal(report.sync.audio_envelope.status, 'observer-invalid');
+    assert.ok(report.sync.audio_envelope.invalid.some(row => row.reason.includes('unobserved interval')));
+    assert.equal(report.audio.maximum_pcm_sample_gap_ms, 520);
+    assert.equal(report.audio.passed, false);
+    route.audioFrame('original', 1000000, 1520, tone(660));
+    assert.equal(route.report().audio.duplicate_frames, 1, 'Actual repeated PCM remains recorded and failed');
+    for (const timestamp of [999999, 1000001, NaN, Infinity, 1.5, Number.MAX_SAFE_INTEGER + 1, undefined]) {
+        assert.throws(() => route.audioFrame('original', timestamp, 1520, tone(660)), /PCM/);
+    }
+});
+
+test('decoded onset validity never replaces delayed callback A/V skew with a source clock offset', () => {
+    const report = observed({audioDelayMs:180});
+    const envelope = report.sync.audio_envelope;
+    assert.equal(envelope.status, 'observer-valid');
+    assert.ok(envelope.accepted_onset_rows.length > 42);
+    assert.equal(report.sync.status, 'failed');
+    assert.ok(report.sync.median_abs_skew_ms > 150);
+    assert.deepEqual(report.sync.audio_edge_seconds,
+        envelope.accepted_onset_rows.filter(row => row.callback_seconds >= 1 && row.callback_seconds < 61).map(row => row.callback_seconds));
+    assert.equal(report.passed, false);
+});
+
+test('decoded PCM epochs require actual declared identity and never rearm through stale epochs or a reset timestamp', async () => {
+    const route = new DecodedRoute(0, 1);
+    route.start(0);
+    const clock = epoch_id => ({profile:'connect/rtc-decoded-pcm-clock/1', owner:'original', epoch_id});
+    for (let i = 0; i < 20; i++) {
+        route.audioFrame('original', i * 20000, 1000 + i * 20, tone(660, i >= 15 ? .7 : .05), null, null, clock(1));
+    }
+    assert.throws(() => route.audioFrame('original', 0, 1400, tone(660), null, null, clock(1)), /PCM/);
+    route.audioFrame('original', 0, 1400, tone(660, .7), null, null, clock(2));
+    assert.throws(() => route.audioFrame('original', 400000, 1420, tone(660), null, null, clock(1)), /stale.*PCM/);
+    for (let i = 1; i < 25; i++) {
+        route.audioFrame('original', i * 20000, 1400 + i * 20, tone(660, i >= 18 ? .7 : .05), null, null, clock(2));
+    }
+    const envelope = route.report().sync.audio_envelope;
+    assert.equal(envelope.segments.length, 2);
+    assert.equal(envelope.onset_state_crossed_owner_epoch, false);
+    assert.equal(envelope.accepted_onset_rows.length, 2, 'New epoch high cannot borrow the prior low rearm');
+    assert.equal(envelope.accepted_onset_rows[1].timestamp_us, 360000);
+    assert.equal(envelope.accepted_onset_rows[1].callback_seconds, 1.76);
+    assert.equal(envelope.accepted_onset_rows[1].clock.epoch_id, 2);
+    const nativeRoute = new DecodedRoute(0, 1);
+    nativeRoute.start(0);
+    const native = stream_generation => ({ssrc:7, rtpTimestamp:0, identity:{profile:'native-sequence-cursor/1',
+        physical_incarnation:'00000000000000000000000000000001', connection_generation:1, stream_generation}});
+    nativeRoute.audioFrame('native', 0, 1000, tone(660), null, native(1));
+    nativeRoute.audioFrame('native', 0, 1020, tone(660), null, native(2));
+    assert.throws(() => nativeRoute.audioFrame('native', 20000, 1040, tone(660), null, native(1)), /stale.*PCM/);
+    assert.deepEqual(nativeRoute.report().sync.audio_envelope.segments.map(row => row.clock.stream_generation), [1, 2]);
+    const interleaved = new DecodedRoute(0, 1);
+    interleaved.start(0);
+    for (let i = 0; i < 31; i++) {
+        for (const [owner, offset] of [['old', 0], ['new', 1]]) {
+            interleaved.audioFrame(owner, i * 20000, 1000 + i * 20 + offset,
+                tone(660, i >= 15 && i < 20 ? .7 : .05));
+        }
+    }
+    const interleavedEnvelope = interleaved.report().sync.audio_envelope;
+    assert.equal(interleavedEnvelope.segments.length, 2, 'Interleaved retained owners do not invent decoder epochs');
+    assert.equal(interleavedEnvelope.status, 'observer-valid');
+    assert.equal(interleavedEnvelope.accepted_onset_rows.length, 2);
+    const {RtcpReceiveClock} = await import('../../sdk/typescript/dist/browser_rtcp.js');
+    const receiveClock = new RtcpReceiveClock(() => 1000000);
+    receiveClock.register(1, 48000);
+    assert.equal(receiveClock.report(1, {ssrc:7, ntp:100n << 32n, rtpTimestamp:0,
+        cname:'actual-clock', packets:1, octets:160}), true);
+    const firstTime = receiveClock.timestamp(1, 7, 0);
+    const secondTime = receiveClock.timestamp(1, 7, 960);
+    assert.equal(secondTime.timestampUs - firstTime.timestampUs, 19999, 'Actual double-floor conversion is not a PCM overlap');
+    const precise = new DecodedRoute(0, 1);
+    precise.start(0);
+    const rtp = value => ({...native(1), rtpTimestamp:value});
+    precise.audioFrame('native', firstTime.timestampUs, 1000, tone(660), null, rtp(0));
+    precise.audioFrame('native', secondTime.timestampUs, 1020, tone(660), null, rtp(960));
+    // A later report may change the mapped timestamp while RTP position stays exact.
+    precise.audioFrame('native', firstTime.timestampUs, 1040, tone(660), null, rtp(1920));
+    let preciseReport = precise.report();
+    assert.equal(preciseReport.audio.maximum_pcm_sample_gap_ms, 20);
+    assert.equal(preciseReport.audio.duplicate_frames, 0, 'Mapped NTP duplicates never replace actual RTP identity');
+    assert.equal(precise.audio[1].timestamp - precise.audio[0].timestamp, 19999);
+    assert.equal(precise.audio[2].timestamp, precise.audio[0].timestamp, 'Original AudioData timestamps remain untouched');
+    precise.audioFrame('native', 2000000, 1060, tone(660), null, rtp(1920));
+    assert.equal(precise.report().audio.duplicate_frames, 1, 'Actual duplicate RTP remains recorded and failed');
+    for (const value of [1919, 1921, 2879, -1, 1.5, NaN, 2 ** 32]) {
+        assert.throws(() => precise.audioFrame('native', 2020000, 1080, tone(660), null, rtp(value)), /PCM/);
+    }
+    const wrapped = new DecodedRoute(0, 1);
+    wrapped.start(0);
+    wrapped.audioFrame('native', 1000000, 1000, tone(660), null, rtp(0xfffffc40));
+    wrapped.audioFrame('native', 1019999, 1020, tone(660), null, rtp(0));
+    assert.equal(wrapped.report().audio.maximum_pcm_sample_gap_ms, 20, 'One unsigned32 wrap is actual960-tick progress');
+    wrapped.audioFrame('native', 1500000, 1040, tone(660), null, rtp(19200));
+    assert.equal(wrapped.report().audio.maximum_pcm_sample_gap_ms, 400, 'Real RTP gaps are never rounded away');
+    assert.equal(wrapped.report().audio.passed, false);
+});
+
+
+test('source quantum attribution is explicitly diagnostic while complete decoded media retains its quality checks', () => {
+    for (const mode of ['unbound', 'overlap', 'ambiguous']) {
+        const report = observed({quantumAttribution:mode});
+        assert.equal(report.passed, true, mode);
+        assert.equal(report.audio.passed, true, mode);
+        assert.equal(report.audio.quality_profile, 'connect/decoded-audio-quality/3');
+        assert.equal(report.audio.source_quantum_scope, 'diagnostic-only-source-clock-attribution');
+        assert.equal(report.audio.metric_scope, 'measurable-decoded-quality-source-quanta-diagnostic');
+        assert.equal(report.audio.original_source_sample_coverage_proved, false);
+        if (mode === 'overlap') {
+            assert.equal(report.audio.original_source_quantum_overlaps, 1);
+        } else {
+            assert.ok(report.audio.source_quantum_identity_unbound_or_ambiguous > 0);
+            const diagnostic = report.audio.source_quantum_diagnostics;
+            assert.equal(diagnostic.events.length, 16);
+            assert.ok(diagnostic.omitted > 0);
+            assert.equal(diagnostic.events[0].reason, mode);
+            assert.equal(typeof diagnostic.events[0].origin_ntp, 'string');
+            assert.equal(diagnostic.events[0].identity.profile, 'native-sequence-cursor/1');
+        }
+    }
+});
+
+test('diagnostic source quanta never hide actual duplicate decoded frames wrong PCM or missing media', () => {
+    for (const failure of [{duplicate:true}, {wrongSource:true}, {gap:true}]) {
+        const report = observed({quantumAttribution:'unbound', ...failure});
+        assert.equal(report.audio.passed, false);
+        assert.equal(report.passed, false);
+        assert.ok(report.audio.source_quantum_identity_unbound_or_ambiguous > 0);
+        if (failure.duplicate) assert.equal(report.audio.duplicate_frames, 1);
+        if (failure.wrongSource) assert.equal(report.audio.bad_identity_frames, 1);
+        if (failure.gap) assert.ok(report.audio.maximum_gap_ms > 220);
+    }
 });

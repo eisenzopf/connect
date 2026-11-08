@@ -2,6 +2,8 @@
 use super::*;
 #[path = "webrtc/admission.rs"]
 mod admission;
+#[path = "webrtc/cleanup.rs"]
+mod cleanup;
 #[path = "webrtc/subscriptions.rs"]
 mod subscriptions;
 use connect_protocol::{

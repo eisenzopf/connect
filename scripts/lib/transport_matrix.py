@@ -5,6 +5,27 @@ import json
 from pathlib import Path
 import re
 
+MEDIA_QUALITY_PROFILE = "connect/decoded-audio-quality/3"
+MEDIA_METRIC_SCOPE = "measurable-decoded-quality-source-quanta-diagnostic"
+AUDIO_QUANTUM_SCOPE = "diagnostic-only-source-clock-attribution"
+
+
+def media_quality_bound(decoded):
+    """Prospective scope binding; never reinterpret a historical decoded report."""
+    if not isinstance(decoded, dict) or (decoded.get("quality_profile") != MEDIA_QUALITY_PROFILE
+            or decoded.get("metric_scope") != MEDIA_METRIC_SCOPE
+            or decoded.get("original_source_sample_coverage_proved") is not False):
+        return False
+    routes = decoded.get("routes")
+    return (isinstance(routes, list) and len(routes) == 6 and all(
+        isinstance(route, dict) and isinstance(route.get("audio"), dict)
+        and route["audio"].get("quality_profile") == MEDIA_QUALITY_PROFILE
+        and route["audio"].get("metric_scope") == MEDIA_METRIC_SCOPE
+        and route["audio"].get("source_quantum_scope") == AUDIO_QUANTUM_SCOPE
+        and route["audio"].get("original_source_sample_coverage_proved") is False
+        for route in routes))
+
+
 DIMENSIONS = {
     "server": {"macos-arm64", "ubuntu24-arm64"},
     "network": {"local", "remote-profile-fixture"},
@@ -56,6 +77,16 @@ def load_contract(root):
     contract = json.loads(path.read_text())
     if contract.get("format") != "connect/gate6-transport-matrix/1" or contract.get("task") != "G6-058":
         raise ValueError("Unknown matrix contract")
+    quality = contract.get("media_quality_profile", {})
+    if (quality.get("quality_profile") != MEDIA_QUALITY_PROFILE
+            or quality.get("metric_scope") != MEDIA_METRIC_SCOPE
+            or quality.get("original_source_sample_coverage_proved") is not False
+            or quality.get("audio_source_quantum") != dict(scope=AUDIO_QUANTUM_SCOPE,
+                unbound_or_ambiguous="diagnostic-only", overlaps="diagnostic-only",
+                literal_original_source_sample_coverage_proved=False)
+            or not isinstance(quality.get("owner_amendment"), str)
+            or not quality["owner_amendment"].strip()):
+        raise ValueError("Owner-approved measurable media quality profile differs")
     if set(contract["dimensions"]) != set(DIMENSIONS):
         raise ValueError("Matrix dimensions differ")
     for key, required in DIMENSIONS.items():

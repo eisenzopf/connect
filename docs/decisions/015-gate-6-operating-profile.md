@@ -338,6 +338,30 @@ This is a prospective producer/profile change. Historical v192 rows are not
 requalified by it. Implementation, focused runtime proof and all32 qualification
 are separate states; the private draft has no execution result.
 
+## Prospective measurable audio quality amendment (November 8)
+
+The owner approved “Use measurable quality checks and retain source-quantum
+diagnostics”. Future runs use quality profile `connect/decoded-audio-quality/3`
+and metric scope `measurable-decoded-quality-source-quanta-diagnostic`. This
+supersedes the audio source-quantum qualification rule in the amendment above.
+Historical runs retain their recorded criteria and verdicts. The contract binds
+the prospective scope. [Matrix contract](../../contracts/gate6-transport-matrix.json)
+
+Reports retain missing, ambiguous and overlapping estimated audio quanta under
+`diagnostic-only-source-clock-attribution`. Exact original sample coverage needs
+capture-to-receiver coordinate provenance. The explicit report field
+`original_source_sample_coverage_proved: false` records this limit. Current
+qualification requires the versioned profile and metric scope.
+
+Actual duplicate packets/decoded frames, malformed RTP/clock evidence, decoded
+tone/source identity errors, audio sample coverage and gaps, repeated original
+video timestamps, changing-frame counts/FPS, AV skew and marker limits remain
+hard failures. Public/private handoff cuts, current authority, original deadlines,
+zero Session ownership and natural cleanup joins are mandatory. These checks use
+the frozen numeric limits and handoff accounting profile. Coverage retains the
+actual decoded PCM, timestamps, gaps and frame counts. Source-quantum diagnostics
+provide attribution alongside the measured quality results.
+
 ## Prospective resource capacity amendment for the next Gate 6 run
 
 The owner approved retaining strict Session ownership and cleanup while allowing

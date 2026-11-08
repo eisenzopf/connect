@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from lib.transport_matrix import inventory
+from lib.transport_matrix import inventory, load_contract
 from lib.transport_matrix_execution import configure_execution, merge_hosts
 from lib.transport_matrix_verdict import evaluate_cell, summarize
 
@@ -69,6 +69,36 @@ class FullMatrix(unittest.TestCase):
         self.assertEqual(merged["summary"]["checks"]["not-run"], 0)
         self.assertEqual(merged["summary"]["checks"]["passed"], 0)
         self.assertFalse(merged["matrix_qualified"])
+
+    def test_prospective_media_quality_requires_explicit_current_metric_scope(self):
+        matrix=self.configured("ubuntu24-arm64")
+        cell=next(c for c in matrix["cells"] if c["execution"]["runnable"] and c["transport"]=="chrome-webtransport")
+        audio=dict(quality_profile="connect/decoded-audio-quality/3",metric_scope="measurable-decoded-quality-source-quanta-diagnostic",
+            source_quantum_scope="diagnostic-only-source-clock-attribution",original_source_sample_coverage_proved=False)
+        decoded=dict(passed=True,quality_profile=audio['quality_profile'],metric_scope=audio['metric_scope'],
+            original_source_sample_coverage_proved=False,routes=[dict(passed=True,audio=dict(audio)) for _ in range(6)])
+        report=dict(source_revision="a"*40,server_platform=cell["server"],cell_id=cell["id"],signing_algorithm=cell["signing"],
+            source_inputs_unchanged=True,sdk_dist_inputs_unchanged=True,executable_unchanged=True,
+            browser_observation=dict(decoded_media=decoded))
+        name="independently-decoded-duplex-media-and-profile-budgets"
+        evaluate_cell(cell,report,"b"*64,environment=matrix["execution_environment"],revision="a"*40)
+        self.assertEqual(cell["check_results"][name]["status"],"passed")
+        for field,value in [('quality_profile','historical'),('metric_scope','original-samples-proved'),('original_source_sample_coverage_proved',True)]:
+            changed=copy.deepcopy(report);changed['browser_observation']['decoded_media'][field]=value
+            evaluate_cell(cell,changed,"b"*64,environment=matrix["execution_environment"],revision="a"*40)
+            with self.subTest(field=field):self.assertEqual(cell["check_results"][name]["status"],"failed")
+        changed=copy.deepcopy(report);del changed['browser_observation']['decoded_media']['routes'][0]['audio']['source_quantum_scope']
+        evaluate_cell(cell,changed,"b"*64,environment=matrix["execution_environment"],revision="a"*40)
+        self.assertEqual(cell["check_results"][name]["status"],"failed")
+        import json
+        original=Path.read_text
+        contract=json.loads((ROOT/'contracts/gate6-transport-matrix.json').read_text())
+        for field,value in [('quality_profile','historical'),('metric_scope','original-samples-proved'),('owner_amendment',None)]:
+            bad=copy.deepcopy(contract);bad['media_quality_profile'][field]=value
+            def read(path,*args,**kwargs):
+                return json.dumps(bad) if path==ROOT/'contracts/gate6-transport-matrix.json' else original(path,*args,**kwargs)
+            with self.subTest(contract_field=field),patch.object(Path,'read_text',read),self.assertRaises(ValueError):
+                load_contract(ROOT)
 
     def test_later_av_failure_preserves_current_control_passes(self):
         matrix = self.configured("ubuntu24-arm64")

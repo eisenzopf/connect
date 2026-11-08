@@ -164,6 +164,8 @@ class MacLinuxFixture:
         self.server_ip = self.client_ip = None
         self.closed = False
         self.lease = None
+        self.lease_failure_recorded = False
+        self.lease_cleanup = None
 
     def ssh(self, command):
         return ["colima", "--profile", "connect-gate6", "ssh", "--", "env",
@@ -264,20 +266,28 @@ with VmWorkloadLease(timeout=int(sys.argv[2])):
             started_unix=time.time(), started_monotonic_seconds=time.monotonic(), acquired=False)
         self.lease = subprocess.Popen(self.ssh(["python3", "-c", code, self.remote_root, str(queue_timeout)]), cwd=self.root, env=self.env,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
-        with selectors.DefaultSelector() as selector:
-            selector.register(self.lease.stdout, selectors.EVENT_READ)
-            if not selector.select(timeout=queue_timeout + 10) or self.lease.stdout.readline() != b"original-vm-lease-acquired\n":
-                self.lease.stdin.close()
-                try:
+        try:
+            with selectors.DefaultSelector() as selector:
+                selector.register(self.lease.stdout, selectors.EVENT_READ)
+                if not selector.select(timeout=queue_timeout + 10) or self.lease.stdout.readline() != b"original-vm-lease-acquired\n":
+                    self.lease.stdin.close()
                     self.lease.wait(timeout=5)
-                finally:
-                    self._record_failed_lease()
-                raise ValueError("Existing ARM VM workload lease unavailable")
+                    raise ValueError("Existing ARM VM workload lease unavailable")
+        except BaseException:
+            # Preserve the failed/interrupted acquisition before stopping its
+            # exact original queue session. No guest workload exists yet.
+            try:
+                self._record_failed_lease()
+            finally:
+                self._close_preacquisition_lease()
+            raise
         self.lease_attempt["acquired"] = True
         self.lease_attempt["acquired_unix"] = time.time()
         (self.directory / "lease-acquisition.json").write_text(json.dumps(self.lease_attempt) + "\n")
 
     def _record_failed_lease(self):
+        if self.lease_failure_recorded:
+            return
         code = self.lease.poll()
         group_joined = False
         if code is not None:
@@ -302,6 +312,65 @@ with VmWorkloadLease(timeout=int(sys.argv[2])):
             details["stderr_available"] = False
         self.lease_attempt = details
         (self.directory / "lease-acquisition.json").write_text(json.dumps(details) + "\n")
+        self.lease_failure_recorded = True
+
+    def _close_preacquisition_lease(self):
+        if self.lease_cleanup is not None:
+            return self.lease_cleanup
+        result = dict(original_ssh_pid=self.lease.pid, original_ssh_exit_code=None,
+            original_ssh_process_exited=False, original_ssh_group_joined=False,
+            forced=False, stop_errors=[])
+        try:
+            self.lease.stdin.close()
+        except (OSError, ValueError) as error:
+            result["stop_errors"].append("stdin-close-" + type(error).__name__)
+        try:
+            for selected in (None, signal.SIGTERM, signal.SIGKILL):
+                if selected is not None and self.lease.poll() is None:
+                    result["forced"] = True
+                    try:
+                        if os.getpgid(self.lease.pid) != self.lease.pid:
+                            raise RuntimeError("Original queue no longer leads its session")
+                        os.killpg(self.lease.pid, selected)
+                    except ProcessLookupError:
+                        pass
+                    except (OSError, RuntimeError) as error:
+                        result["stop_errors"].append("group-signal-" + type(error).__name__)
+                        # Signal only the original Popen if its group is denied.
+                        # A group error must never bypass waiting on that child.
+                        try:
+                            self.lease.send_signal(selected)
+                        except OSError as direct_error:
+                            result["stop_errors"].append("child-signal-" + type(direct_error).__name__)
+                try:
+                    result["original_ssh_exit_code"] = self.lease.wait(timeout=5)
+                    result["original_ssh_process_exited"] = True
+                    break
+                except (OSError, subprocess.TimeoutExpired) as error:
+                    result["stop_errors"].append("child-wait-" + type(error).__name__)
+        finally:
+            if result["original_ssh_process_exited"]:
+                try:
+                    os.killpg(self.lease.pid, 0)
+                except ProcessLookupError:
+                    result["original_ssh_group_joined"] = True
+                except PermissionError:
+                    result["stop_errors"].append("group-observation-PermissionError")
+                else:
+                    # The original Popen has already been reaped. Its numeric
+                    # PGID alone cannot safely authorize a later group signal.
+                    # Preserve this residual custody as unconfirmed.
+                    result["stop_errors"].append("original-leader-exited-group-still-present")
+            for stream in (self.lease.stdout, self.lease.stderr):
+                try:
+                    stream.close()
+                except (OSError, ValueError) as error:
+                    result["stop_errors"].append("pipe-close-" + type(error).__name__)
+        # This is current HOST queue custody only. It cannot establish a guest
+        # workload join or claim release of an unobserved guest lease.
+        self.lease_cleanup = result
+        atomic_json(self.directory / "lease-cleanup.json", result)
+        return result
 
     def owned_arguments(self, command, *, timeout, pass_stdin=False):
         identity = "command-" + uuid.uuid4().hex
@@ -589,16 +658,18 @@ print(json.dumps(prepare(target)))"""
             return self.receipt
         if (self.lease_attempt is not None and not self.lease_attempt["acquired"]
                 and self.owner is None and not self.inputs and self.lease is not None):
-            self._record_failed_lease()
+            try:
+                self._record_failed_lease()
+            finally:
+                cleanup = self._close_preacquisition_lease()
             self.receipt = dict(format="connect/mac-linux-owner/1", run_id=self.run_id, passed=False,
                 preflight_only=True, guest_job_started=False, guest_sources_staged=False,
-                guest_namespace_started=False, original_joined=False, forced=False,
-                original_lease_ssh_joined=self.lease_attempt["original_ssh_group_joined"],
+                guest_namespace_started=False, original_joined=False, forced=cleanup["forced"],
+                original_lease_ssh_joined=cleanup["original_ssh_group_joined"],
                 lease_acquisition=dict(self.lease_attempt),
+                lease_cleanup=cleanup,
                 cleanup_scope="Only the original pre-acquisition SSH process existed. No guest workload owner was created.",
-                cleanup_failures=[] if self.lease_attempt["original_ssh_group_joined"] else ["original-lease-ssh-join-unconfirmed"])
-            if self.lease.poll() is not None:
-                self.lease.stdout.close();self.lease.stderr.close()
+                cleanup_failures=[] if cleanup["original_ssh_group_joined"] else ["original-lease-ssh-join-unconfirmed"])
             self.closed = True
             return self.receipt
         if (getattr(self, "storage_refused_before_entry", False)
@@ -681,6 +752,8 @@ print(json.dumps(removed))"""
         return self.receipt
 
     def release_lease(self):
+        if self.lease_cleanup is not None:
+            return
         if self.lease is None or self.receipt.get("original_vm_lease_joined") is not None:
             if self.lease is None:
                 self.receipt["borrowed_original_vm_lease"] = getattr(self, "lease_parent", None) is not None

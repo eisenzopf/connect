@@ -6,7 +6,7 @@ successful control observations from the same original attempt.
 """
 import re
 
-from .transport_matrix import REQUIRED_CHECKS, SELECTION_CHECKS
+from .transport_matrix import REQUIRED_CHECKS, SELECTION_CHECKS, media_quality_bound
 
 
 def result(passed, evidence, *, reason=None, category=None):
@@ -139,8 +139,9 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
            "packet_capture", capture.get("failure"), "environment" if capture.get("environment_failure") else "behavior")
     decoded = observation.get("decoded_media", {}) if browser else report.get("native_av_decoded", {})
     record("independently-decoded-duplex-media-and-profile-budgets", bool(decoded),
-           (complete_cycles and all(c.get("decoded_media", {}).get("passed") is True for c in cycles))
-           if browser and plateau else decoded.get("passed") is True, "browser_observation.decoded_media" if browser else "native_av_decoded")
+           (complete_cycles and all(c.get("decoded_media", {}).get("passed") is True
+                and media_quality_bound(c.get("decoded_media")) for c in cycles))
+           if browser and plateau else decoded.get("passed") is True and media_quality_bound(decoded), "browser_observation.decoded_media" if browser else "native_av_decoded")
     authority = report.get("current_authority", observation.get("current_authority", {}))
     record("current-revocation-expiry-and-conflicting-operation-refusals",
            all(name in authority for name in ("revocation", "expiry", "conflict"))

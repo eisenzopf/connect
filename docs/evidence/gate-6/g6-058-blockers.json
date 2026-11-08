@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-08",
-  "run_status": "The affected11-control RELEASE replay on localARM now has9passes,2failed verdicts and0timeouts, with unchanged source25ca and all original owners joined. The three signed WebRTC retirement controls and actualC allocator control pass. All seven continuation scenes reach decoded readiness; five pass, while pausedVideo/Duplex expose private audio tail classification. Applied exact typed-cut classification with Private packets receiving zero Public credit and >10genuine160-sample Public frames still required. Seven continuation replays precede the next full32-cell run. ARM331Node/198Python and MacChrome2/ACL1 pass in the preserved expanded cohort. Latest fullmatrixv203 remains0qualified/24failed/8blocked. G6-054 remains deferred and G6-098 sustained growth separate.",
+  "run_status": "The owner stopped v204. All 16 local cells completed without qualification, two remote attempts were interrupted and 14 cells were unattempted. Recorded totals are 0 passed, 17 failed and 15 blocked cells, with 184 passed, 36 failed and 212 blocked checks. All original processes and VM leases are closed. Focused proofs pass 161 Core, 99 Store, 5 RTC, 31 observer and 31 plumbing controls. The collector has direct before/after proof on both failed captures. The owner approved diagnostic source quanta prospectively, with explicit scope required by independent verifiers. The complete local ARM replay passes 340 of 340 Node and 206 of 206 Python controls, with no skips. All original commands and leases joined naturally and source equality passed. The default shipping check and storage admission precede the next full 32-cell run. G6-054 is deferred and G6-098 sustained growth is separate.",
   "blockers": [
     {
       "id": "B01",
@@ -913,10 +913,74 @@
     {
       "id": "B110",
       "title": "Paused projection probe counts queued private audio as public playback",
-      "status": "FIX APPLIED. Actual exact-cut Public frame counts remain pending replay.",
+      "status": "UNIT AND COMPONENT VERIFIED. Full matrix continuation remains open.",
       "change": "Classify every saved decoded candidate audio sequence against the same SDK-validated completed activation cut. Verify its exact handle and160samples. Track Private frames separately with zero Public credit and require more than10actual Public decoded frames.",
-      "evidence": "Both paused controls now complete original private decoding and Core movement, then fail because their raw packet probe includes a Private sequence while asserting that every capture is Public. The video path already demultiplexes this boundary. Logs show99/101 aggregate marked frames but omit exact sequences, so aggregate counts supply no Public credit. Existing activation_from_completed checks preserve original operation, target, physical incarnation, handle and stream generation. Initial one-file apply receipt66dfffe6807bd55745b0d5088839360030a46c3d0d3f27587c657fd9a5f0c9d8 is retained before normal formatting.",
-      "next": "Replay all seven continuation scenes on the normalARM release target. Require all7 natural passes and inspect printed cut floors and actual Private/Public decoded counts before starting the full32 cells."
+      "evidence": "All7 normal ARM release continuation controls passed on e786. PausedVideo observed100Public frames after2Private frames with public floor180. PausedDuplex observed100Public frames after1Private frame with public floor260. Every frame had160decoded samples and Private output earned zero Public credit. Seven-control receipt0e83605bfb54c01c4f0b7e07a74563ce479bcf0e275b53416c77b093cf0281c9.",
+      "next": "Keep the exact cut classification and qualify it through complete native matrix workloads after the current blocker batch."
+    },
+    {
+      "id": "B111",
+      "title": "Decoded-video history exceeds bounded collector metadata",
+      "status": "INTEGRATED AND VERIFIED. Full ARM script cohort passes. Cell retest pending.",
+      "change": "Project only decoded receipt history into count and SHA256. Preserve the complete hash-bound capture for offline verification and keep the64KiB bound.",
+      "evidence": "Original bound fails on both actual744/773receipt captures. New projection passes at5754/5756metadata bytes. Synthetic focused tests change3pass/1fail to4pass. Static review confirms unchanged full receipt verification. Patch81fd2e28a2955803beca1f6f759e092d3c72891f74b7e5e6fa29c3ea4bcd6e10.",
+      "next": "Qualify the original full captures through a fresh 32-cell matrix."
+    },
+    {
+      "id": "B112",
+      "title": "Guarded Conference worker waits on an unrelated registry",
+      "status": "FIX INTEGRATED. Original-worker controls verified.",
+      "change": "Enter the guarded scene before acquiring the unused ordinary registry. Add original interval wake/work/completion diagnostics.",
+      "evidence": "Other agent reproduced0/2before and2/2after. Integrated replay passes161Core controls using its original binary after exact equality of3435source inputs. Receipt38f83ce6315060c716bfea7d268b14dc2bdb42b4c0e1ad462c4dee3259237289. Production control can hold that registry across an external policy read. Contribution to the actual freeze remains unmeasured.",
+      "next": "Preserve shared pump architecture and use bounded worker timing to distinguish wait, work and receiver failures."
+    },
+    {
+      "id": "B113",
+      "title": "Decoded audio envelope uses callback arrival as its sampling clock",
+      "status": "IMPLEMENTED AND FOCUSED VERIFIED. Fresh matrix pending.",
+      "change": "Separate decoded media continuity and callback delivery timing with an explicit clock mapping. Preserve every real gap, wrong PCM frame and AV skew measurement.",
+      "evidence": "Four chronology/skew/epoch controls fail on old production and pass in the29-control cohort. Followthrough uses actual48k native RTP positions, including960ticks whose NTP conversion gives19999us, while retaining original timestamps and callback edges. RTP wrap, duplicate, backward, overlap, malformed and400ms gaps are covered. Prospective scope cases bring the final observer cohort to31/31. Native precision manifestb8662713cbbc61ec713a0b543934ad1613db48af096ac2e82a82195669eb2635.",
+      "next": "Complete ARM replay passes all 340 Node and 206 Python controls. Qualify real three-cycle matrix workloads."
+    },
+    {
+      "id": "B114",
+      "title": "Firefox decoded-frame identity aliases presentations",
+      "status": "IMPLEMENTED AND FOCUSED VERIFIED. Full matrix pending.",
+      "change": "Use actual per-element presentation identity while retaining mediaTime, RTP timestamps, pixels, callback timing and source proof. Reject duplicate or backwards identity.",
+      "evidence": "Actual pinned Firefox158.0.1 loopback produced53remote callbacks,53advancing RTP/presentation identities and52pixel changes while every mediaTime was0. Browser/controller exited naturally. Two new presentation controls fail on old code and pass with the fix. Subsequent29-control observer cohort retains those regressions. Diagnostic summaryd5712e0f6cb7429b73249ec2e1c29013ce3b521992c490c0c1d09e8427a8a018.",
+      "next": "Retain observed presentedFrames identity and all source/pixel/FPS checks during later full matrix qualification."
+    },
+    {
+      "id": "B115",
+      "title": "WebRTC retirement metadata outlives cleanup window",
+      "status": "IMPLEMENTED. Actual signed RTC regressions5/5PASS.",
+      "change": "Use the existing bounded Store authority wait with the same original lease and Closed observation. Preserve stop deadline and join custody. Log bounded refusal classifications.",
+      "evidence": "Held-writer test retains one in-flight metadata attempt while three unrelated signed keepalives receive ACKs. Releasing the writer settles that attempt and retires the original generation1to2. Holding through the original3s stop produces shutdown-incomplete before later cleanup, and all original clients/server join. Three existing RTC controls pass. Receipt38a5590650686189ac46209f175f81b2ada68a4eb959a3874354877ac68db278. Capped diagnostics use the retention target enabled in full profiles. First build exceeded its20min controller and completed after27min17s. Fresh cached normal entry joined successfully, followed by a58.7s logging-target rebuild.",
+      "next": "Verify actual three-cycle WebRTC cleanup in the fresh matrix. Preserve the initial timed-out controller record."
+    },
+    {
+      "id": "B116",
+      "title": "Replacement continuation rebuilds unchanged authority facts",
+      "status": "IMPLEMENTED AND COMPONENT VERIFIED. Runtime quality effect pending.",
+      "change": "Extend existing bounded version-sealed pure-fact memo to continuation reads. Acquire fresh cross-process admission and retain expiry, ownership, generation and queue checks.",
+      "evidence": "The new continuation memo controls pass with the fix and both fail when the original per-call selection is restored. All99distinct focused Store controls pass with real terminal verdicts, including fresh admission on every read, all four observers, writer exclusion,15 warmed mutation lanes, external SQLite/admin writers and time-only expiry. Receipt2535258e7ecdbcff5322274824c5d248bead49540123d2c43e943583c1799240. One fixture attempted forbidden unrevocation and was corrected before the successful replay.",
+      "next": "Keep current authority and expiry checks while verifying the full mixed-media workload after the remaining batch."
+    },
+    {
+      "id": "B117",
+      "title": "Interrupted Mac pre-acquisition queue can leave original SSH alive",
+      "status": "IMPLEMENTED AND31PLUMBING CONTROLS PASS. Unanchored residual groups remain an explicit refusal.",
+      "change": "Close the owned queue input and stop or wait its exact original process before returning the pre-acquisition cleanup receipt.",
+      "evidence": "Three new queue controls failed on old code. Current31/31 MacLinuxPlumbing tests pass naturally with stable source. Live original queue cleanup closes pipes, waits and escalates only within verified original custody. A reaped leader with a residual group returns explicit unconfirmed custody and stays fail-closed. Followthroughc28bee100f5f87695c13a523d79cc645915eb7f3774c68d1489db5f813dfc0ba.",
+      "next": "Retain original acquisition history and separate cleanup receipts in the later remote matrix. Resolve an unanchored residual group externally before further workload admission."
+    },
+    {
+      "id": "B118",
+      "title": "Cross-device source-quantum identity is inferred from rebased clocks",
+      "status": "OWNER APPROVED AND IMPLEMENTED. Prospective scope focused verified.",
+      "change": "Use connect/decoded-audio-quality/3 and measurable-decoded-quality-source-quanta-diagnostic. Retain clock estimates and bounded examples diagnostically. Require original_source_sample_coverage_proved=false in producers and independent verifiers.",
+      "evidence": "Owner explicitly selected measurable quality and source-quantum diagnostics on November8. Browser31/31 and Python50/50 focused cohorts pass. New4Python and2browser controls fail on old production and pass after. Contract, producers and independent full/partial verifiers share exact bindings. Historical v204 is preserved. Native manifestc098653d80cdcb202fc46cfc1b84642e97b2240ab1fb919e15f87e209e7b826f and browser8e6355a872ab2263a0fed21d298497acaae56f0abc64dda47b1d0f848515a784.",
+      "next": "Complete ARM replay passes all 340 Node and 206 Python controls. Run the fresh 32-cell matrix under the approved prospective profile. Exact original-sample provenance remains outside this quality claim."
     }
   ],
   "workplan_tasks": [
@@ -960,7 +1024,7 @@
         "test_matrix_plateau.MatrixPlateauTests.test_three_short_or_missing_original_workload_windows_do_not_qualify",
         "test_native_matrix_producers.NativeMatrixPlateauProducer.test_short_original_native_programme_cannot_qualify_three_cycle_resources"
       ],
-      "status": "Selected resource controls pass; actual complete native workloads and process plateau verification remain pending in full32. No resource-policy relaxation or cell closure.",
+      "status": "Complete native three-cycle ownership and capacity qualification is pending in the fresh32-cell run. RSS trends are diagnostic under the approved profile.",
       "completion": "All8 native cells provide genuine complete workloads and pass the unchanged resource evaluator.",
       "completion_status": "full-matrix-pending"
     },
@@ -1023,7 +1087,7 @@
     },
     {
       "id": "S5",
-      "title": "Resolve measured thread/RSS plateau failures without changing the bar",
+      "title": "Verify approved resource capacity and strict Session cleanup",
       "owner": "Resource attribution / v198_resources",
       "dependencies": [
         "S3",
@@ -1033,7 +1097,7 @@
         "scripts/lib/matrix_plateau.py",
         "Runtime Core/Store owner paths identified by resource investigation"
       ],
-      "solution": "Separate actual retained Core owners from persistent Tokio blocking-worker residency and Chromium MemoryInfra thread initialization. Fix source-proven retained ownership first; investigate any residual genuine growth with original identities. Preserve approved thread/FD/process and max8MiB/5% RSS limits; no forced GC or policy relaxation.",
+      "solution": "Use approved connect/matrix-resource-capacity/4 with strict Session ownership, natural joins, count capacities and RSS budgets. Preserve three-cycle RSS trends diagnostically and track sustained growth underG6-098.",
       "test_names": [
         "test_matrix_plateau.MatrixPlateauTests.test_actual_cold_warmup_then_bounded_jitter_uses_fixed_cycle_one_reference",
         "test_matrix_plateau.MatrixPlateauTests.test_bounded_decaying_warmup_can_plateau_but_linear_or_accelerating_growth_fails",
@@ -1060,7 +1124,7 @@
         "test_operational_process_resources.ProcessBoundary.test_duplicate_roots_and_cross_role_children_refuse",
         "test_operational_process_resources.ProcessBoundary.test_native_two_roles_preserve_descriptor_unavailability_and_pid_identity"
       ],
-      "status": "Selected resource controls pass; actual complete native workloads and process plateau verification remain pending in full32. No resource-policy relaxation or cell closure.",
+      "status": "Approved profile integrated. Fresh full-matrix capacity proof and separate G6-098 soak remain pending.",
       "completion": "All13 completed browser workload cells pass original plateau comparisons, with any remaining failed metric explicitly retained.",
       "completion_status": "full-matrix-pending"
     },
@@ -1097,6 +1161,54 @@
       ],
       "status": "Implemented and UNIT VERIFIED in actual212/288/133/MacACL1 run; final full32 verification pending.",
       "completion": "Targeted helper regression and the exact original RTC case pass, followed by the complete focused scope and all32 matrix cells.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S8",
+      "title": "Revalidate continuation facts on state changes",
+      "owner": "Implementation / root",
+      "dependencies": [
+        "S1"
+      ],
+      "code_paths": [
+        "crates/connect-store/src/peer_authority/connection_media/replacement_continuation.rs"
+      ],
+      "solution": "Reuse bounded exact-version facts with fresh cross-process admission and current ownership/expiry.",
+      "status": "Implemented and99 Store controls pass. Both new reuse controls fail with restored old selection and pass after.",
+      "completion": "Fresh full-matrix behavior and resource checks pass.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S9",
+      "title": "Correct decoded observer identity and clock domains",
+      "owner": "Implementation / root",
+      "dependencies": [
+        "S1"
+      ],
+      "code_paths": [
+        "scripts/lib/browser_matrix_observation.mjs",
+        "scripts/lib/transport_moving_av.py",
+        "contracts/gate6-transport-matrix.json"
+      ],
+      "solution": "Use actual RTC presentation identities and PCM chronology with exact callback edges. Apply approved diagnostic source-quanta scope prospectively.",
+      "status": "Implemented.31 observer and50 Python controls pass. Complete ARM unit cohort is next.",
+      "completion": "Fresh full-matrix behavior and resource checks pass.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S10",
+      "title": "Settle original RTC metadata and close queued fixture processes",
+      "owner": "Implementation / root",
+      "dependencies": [
+        "S3"
+      ],
+      "code_paths": [
+        "crates/connect-service/src/canonical_webrtc.rs",
+        "scripts/lib/mac_linux_fixture.py"
+      ],
+      "solution": "Use bounded authority for metadata retirement and retain original custody through settlement. Close exact original queue sessions.",
+      "status": "Implemented.5 actual RTC and31 plumbing controls pass, including cutoff and unconfirmed-group refusals.",
+      "completion": "Fresh full-matrix behavior and resource checks pass.",
       "completion_status": "full-matrix-pending"
     }
   ],
@@ -2703,5 +2815,72 @@
     "receipt_path": ".local/gate-6/v203-arm-eleven-control-replay-candidate/actual-arm-replay-receipt.json",
     "receipt_sha256": "01aed519f78c6d32b7f99df0e4365459e7487c32af1b683e409f19adc1496ad1",
     "matrix_qualified": false
+  },
+  "stopped_v204_actual": {
+    "source_revision": "e786485d16e1d92627e273ac53a32f6735a539c1",
+    "matrix_sha256": "259defa10487e6961f6b67c80c6c7b7ee27816ee4145fc9bfd33f2bc0cad7e70",
+    "raw_cell_counts": {
+      "failed": 17,
+      "blocked": 15
+    },
+    "raw_check_counts": {
+      "passed": 184,
+      "failed": 36,
+      "blocked": 212
+    },
+    "natural_local_cells": 16,
+    "natural_local_check_counts": {
+      "passed": 181,
+      "failed": 35
+    },
+    "owner_interrupted_cells": [
+      "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA"
+    ],
+    "unattempted_cells": 14,
+    "owner_requested_stop": true,
+    "matrix_restarted": false,
+    "controller_exit_receipt_sha256": "bf1d21d577f7b46a5fcf4cd7fb46f3848d788bf59f10712a3edcfeff6ad0ef38",
+    "arm_final_stop_receipt_sha256": "1affd9f91c5f9ffb5a397c3bcee3d0edf78fa76414d7215d0e7b68a8cb15a713",
+    "scope": "Cancellation classification remains separate from natural behavior failures. Original forced client cancellation and blocked lease records are preserved with supplemental final physical closure."
+  },
+  "approved_measurable_audio_quality_amendment": {
+    "date": "2026-11-08",
+    "owner_answer": "Use measurable quality checks and retain source-quantum diagnostics (Recommended)",
+    "quality_profile": "connect/decoded-audio-quality/3",
+    "metric_scope": "measurable-decoded-quality-source-quanta-diagnostic",
+    "source_quantum_scope": "diagnostic-only-source-clock-attribution",
+    "original_source_sample_coverage_proved": false,
+    "prospective_only": true,
+    "historical_verdicts_reclassified": false
+  },
+  "integrated_recommendation_batch": {
+    "status": "focused-verified-full-matrix-pending",
+    "core_controls_passed": 161,
+    "store_distinct_controls_passed": 99,
+    "signed_rtc_controls_passed": 5,
+    "arm_node": {
+      "tests": 340,
+      "passed": 340,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "todo": 0,
+      "receipt_sha256": "4fbbf98879f6729c6e3edb58a3200dba8dc51a0d7824f09cc1543ffd695c5c7c"
+    },
+    "arm_python": {
+      "tests": 206,
+      "passed": 206,
+      "fail": 0,
+      "skipped": 0,
+      "receipt_sha256": "339cfe84acead67da1d6db7197c48d55ea66ee89486a0a341aad7a26f40ed355"
+    },
+    "script_replay_receipt": ".local/gate-6/v204-arm-node-python-unit-replay-candidate/completed.json",
+    "script_replay_receipt_sha256": "e79639b7ad207bae898870b5aa0617aff7b5020a20add88d80540ef86cad7902",
+    "all_original_script_commands_natural_joined": true,
+    "original_v204_requalified": false,
+    "next_run": "full-matrix-v205",
+    "shipping_default_check": "running",
+    "storage_admission": "pending"
   }
 }

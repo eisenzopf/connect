@@ -86,8 +86,7 @@ class NativeSourceIdentity(unittest.TestCase):
         reports=[dict(ssrc=7,ntp=str(ntp),rtp=2**32-160)]
         self.assertEqual(original_audio_quantum(row,reports,origin),1);self.assertEqual(row,before)
         self.assertIsNone(original_audio_quantum(row,[],origin));self.assertIsNone(original_audio_quantum(row,[dict(reports[0],ssrc=8)],origin))
-        with self.assertRaisesRegex(ValueError,'conflicting'):
-            original_audio_quantum(row,reports+[dict(reports[0],rtp=(reports[0]['rtp']-960)%2**32)],origin)
+        self.assertIsNone(original_audio_quantum(row,reports+[dict(reports[0],rtp=(reports[0]['rtp']-960)%2**32)],origin))
         with self.assertRaisesRegex(ValueError,'ambiguous'):
             original_audio_quantum(dict(row,timestamp=(reports[0]['rtp']+2**31)%2**32),reports,origin)
         self.assertIsNone(original_audio_quantum(row,reports,origin+62000000))
@@ -294,7 +293,11 @@ class MovingCustody(unittest.TestCase):
         for values,reason in [([None],'unambiguous'),([100,100],'counted twice')]:
             measurements=[dict(row=dict(elapsed_ms=2000+i*20,original_programme_audio_quantum=value),level=.05) for i,value in enumerate(values)]
             audio=[dict(measurements=measurements,bad_identity_blocks=0,identity_blocks=1,measured_samples=960*len(values))]
-            with self.subTest(values=values),self.assertRaisesRegex(ValueError,reason):summarize(base,audio,[])
+            with self.subTest(values=values):
+                result=summarize(base,audio,[])
+                self.assertFalse(result['passed'], 'diagnostics cannot create missing decoded/video credit')
+                self.assertEqual(result['audio']['samples'],960*len(values))
+                self.assertEqual(result['audio']['source_quantum_overlaps'],1 if values==[100,100] else 0)
 
 
 @unittest.skipUnless(shutil.which('ffmpeg'),'Independent FFmpeg prerequisite')
@@ -334,6 +337,64 @@ class IndependentMovingCodecs(unittest.TestCase):
         self.assertEqual(sum(m['wrong_source'] for m in warmed['measurements']),0)
         self.assertNotIn(video_rows[0],[m['row'] for m in warmed['measurements']], 'private startup output is never measured')
         self.assertFalse(marker_alignment([a],[v])['status']=='passed','one second cannot satisfy42 paired markers')
+
+
+
+
+class MeasurableAudioQualityAmendment(unittest.TestCase):
+    def measured(self):
+        route=dict(index=0,peer_index=3,excluded_rows={},received_clocks={'audio':1,'video':1})
+        audio=[dict(row=dict(elapsed_ms=2000+i*20,timestamp=i*960,ssrc=7,stream_id='audio',
+            original_programme_audio_quantum=None),level=.05) for i in range(3000)]
+        video=[dict(row=dict(elapsed_ms=2000+i*1000/30,timestamp=i*3000),level=0,hash=str(i),wrong_source=0)
+            for i in range(1800)]
+        return route,[dict(measurements=audio,bad_identity_blocks=0,measured_samples=len(audio)*960)],            [dict(measurements=video,undecodable_frames=0)]
+
+    def test_unbound_and_overlapping_audio_quanta_are_diagnostic_without_new_decoded_credit(self):
+        route,audio,video=self.measured()
+        for i,row in enumerate(audio[0]['measurements'][:100]):
+            row['row']['original_programme_audio_quantum']=i//2
+        with patch('lib.transport_moving_av.marker_alignment',return_value={'status':'passed'}):
+            report=summarize(route,audio,video)
+        self.assertTrue(report['passed'])
+        self.assertEqual(report['audio']['decoded_seconds'],60)
+        self.assertEqual(report['audio']['samples'],3000*960)
+        self.assertEqual(report['audio']['source_quantum_identity_unavailable'],2900)
+        self.assertEqual(report['audio']['source_quantum_overlaps'],50)
+        self.assertEqual(report['audio']['quality_profile'],'connect/decoded-audio-quality/3')
+        self.assertEqual(report['audio']['source_quantum_scope'],'diagnostic-only-source-clock-attribution')
+        self.assertFalse(report['audio']['original_source_sample_coverage_proved'])
+
+    def test_actual_packet_identity_gap_fps_and_video_duplicates_still_fail(self):
+        import copy
+        route,audio,video=self.measured()
+        # Actual RTP packet duplication remains a malformed physical history,
+        # independently of any inferred clock-domain quantum attribution.
+        packet=dict(elapsed_ms=2000,timestamp=960,ssrc=7,payload='AQ==',stream_id='audio')
+        with self.assertRaisesRegex(ValueError,'repeated'):
+            rows([packet,dict(packet,elapsed_ms=2020)],'audio',{'audio'})
+        with patch('lib.transport_moving_av.marker_alignment',return_value={'status':'passed'}):
+            for failure in ['identity','gap','fps','wrong-video']:
+                a=copy.deepcopy(audio);v=copy.deepcopy(video)
+                if failure=='identity':a[0]['bad_identity_blocks']=1
+                elif failure=='gap':
+                    a[0]['measurements']=[m for m in a[0]['measurements'] if not 15000<=m['row']['elapsed_ms']<15400]
+                    a[0]['measured_samples']=len(a[0]['measurements'])*960
+                elif failure=='fps':v[0]['measurements']=v[0]['measurements'][:1000]
+                else:v[0]['measurements'][0]['wrong_source']=1
+                with self.subTest(failure=failure):self.assertFalse(summarize(route,a,v)['passed'])
+            v=copy.deepcopy(video);v[0]['measurements'][1]['row']['timestamp']=v[0]['measurements'][0]['row']['timestamp']
+            with self.assertRaisesRegex(ValueError,'counted twice'):summarize(route,audio,v)
+        with patch('lib.transport_moving_av.marker_alignment',return_value={'status':'failed'}):
+            self.assertFalse(summarize(route,audio,video)['passed'])
+
+    def test_conflicting_quantum_estimates_are_diagnostic_but_malformed_clocks_refuse(self):
+        origin=1800000000000000;ntp=(origin*(1<<32))//1000000+(2208988800<<32)
+        row=dict(ssrc=7,timestamp=960,elapsed_ms=2000)
+        anchors=[dict(ssrc=7,ntp=str(ntp),rtp=0),dict(ssrc=7,ntp=str(ntp),rtp=960)]
+        self.assertIsNone(original_audio_quantum(row,anchors,origin))
+        for changed in [dict(anchors[0],ntp='01'),dict(anchors[0],rtp=-1),dict(anchors[0],ntp=str(2**64))]:
+            with self.subTest(changed=changed),self.assertRaises(ValueError):original_audio_quantum(row,[changed],origin)
 
 
 if __name__=='__main__':unittest.main()

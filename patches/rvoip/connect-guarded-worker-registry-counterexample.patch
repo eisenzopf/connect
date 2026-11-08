@@ -1,0 +1,73 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -1626,3 +1626,31 @@
+ mod lookahead;
+ 
+ mod late_source_catchup;
++
++// The actual production Conference worker must not depend on the unrelated
++// unguarded member registry when the guarded scene owns its own routes.
++#[tokio::test]
++async fn original_guarded_worker_delivers_audio_while_unguarded_registry_is_locked() {
++    let mut s = Scene::new(&four()[..2], 8000).await;
++    let conference = crate::conference::Conference::start_staged(
++        8000,
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        s.policy.clone(),
++    );
++    let held = conference.members.clone().lock_owned().await;
++    conference.started_for_test.notified().await;
++    s.mixer = conference.staged.as_ref().unwrap().clone();
++    s.bind(0, true).await;
++    s.bind(1, true).await;
++    let mut output = s.port(1).take_egress().unwrap();
++    s.publish_at(0, 1200, 160);
++    let result = tokio::time::timeout(Duration::from_millis(100), output.recv()).await;
++    // Always stop and join the original worker, including the negative run.
++    conference.task.abort();
++    drop(held);
++    conference.task.join().await.unwrap();
++    let packet = result.expect("guarded audio waited for the unguarded conference registry")
++        .expect("guarded audio output closed");
++    heard(packet, 1200).await;
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene.rs
+@@ -592,3 +592,36 @@
+ 
+ #[path = "media_scene/transient.rs"]
+ mod transient;
++
++#[tokio::test]
++async fn original_guarded_worker_delivers_video_while_unguarded_registry_is_locked() {
++    let f = Fixture::new(16);
++    f.start_unsubscribed(&[Medium::Video]).await;
++    let conference = crate::conference::Conference::start_staged(
++        8000,
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        f.policy.clone(),
++    );
++    let held = conference.members.clone().lock_owned().await;
++    conference.started_for_test.notified().await;
++    let s = Scene { f, scene: conference.staged.as_ref().unwrap().clone() };
++    for controller in [&s.f.a, &s.f.b] {
++        let mut member = s.scene.prepare(controller.clone()).unwrap();
++        member.quiesce(deadline(), CancellationToken::new()).await.unwrap();
++        s.scene.insert(controller.connection.clone(), member, true);
++    }
++    s.subscribe(Medium::Video).await;
++    let mut output = s.f.ba.port(Medium::Video).take_egress().unwrap();
++    s.publish(Medium::Video, 90_000);
++    let result = tokio::time::timeout(Duration::from_millis(100), output.recv()).await;
++    conference.task.abort();
++    drop(held);
++    conference.task.join().await.unwrap();
++    let packet = result.expect("guarded video waited for the unguarded conference registry")
++        .expect("guarded video output closed");
++    packet.deliver(|frame| async move {
++        assert_eq!(frame.timestamp_rtp, 90_000);
++        Ok(())
++    }).await.unwrap();
++}

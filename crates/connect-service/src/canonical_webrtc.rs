@@ -292,19 +292,75 @@ impl Runtime {
         }
         let owned = Arc::new(owned);
         let mut cleanup_cutoff = None;
+        let cleanup_started = Instant::now();
+        let mut cleanup_retries = 0_u64;
+        let mut previous_code: Option<String> = None;
+        let mut retry_diagnostics = 0_u8;
         loop {
-            self.check_custodian_stop_deadline(&mut cleanup_cutoff)?;
+            if let Err(error) = self.check_custodian_stop_deadline(&mut cleanup_cutoff) {
+                tracing::debug!(
+                    target: "connect_service::runtime_retention",
+                    stage = "durable-retirement-stop-cutoff",
+                    connection = ?owned.id,
+                    code = %error.code,
+                    retries = cleanup_retries,
+                    previous_code = previous_code.as_deref().unwrap_or("none"),
+                    elapsed_ms = cleanup_started.elapsed().as_millis(),
+                    "RTC offer cleanup stage"
+                );
+                return Err(error);
+            }
             let store = self.media.store.clone();
             let owner = owned.clone();
+            let budget = Duration::from_millis(500);
+            let remaining = cleanup_cutoff
+                .map(|cutoff| cutoff.saturating_duration_since(Instant::now()))
+                .unwrap_or(budget);
+            // The same bounded wait covers blocking-pool queueing, SQL and
+            // authority admission. It never renews the original stop cutoff.
+            let wait = connect_store::AuthorityWait::new(remaining.min(budget));
             let settled = crate::runtime_retention::spawn_blocking(
                 crate::runtime_retention::Kind::WebRtcRetirement,
-                move || store.try_settle_native_offer_cleanup(owner.lease()?, &Closed(&owner)),
+                move || {
+                    store.settle_native_offer_cleanup_with_wait(
+                        owner.lease()?,
+                        &Closed(&owner),
+                        &wait,
+                    )
+                },
             )
             .await;
-            if matches!(settled, Ok(Ok(()))) {
-                break;
+            let code = match settled {
+                Ok(Ok(())) => {
+                    tracing::debug!(
+                        target: "connect_service::runtime_retention",
+                        stage = "durable-retirement-recorded",
+                        connection = ?owned.id,
+                        retries = cleanup_retries,
+                        elapsed_ms = cleanup_started.elapsed().as_millis(),
+                        "RTC offer cleanup stage"
+                    );
+                    break;
+                }
+                Ok(Err(error)) => error.code,
+                Err(_) => "join-error".into(),
+            };
+            cleanup_retries = cleanup_retries.saturating_add(1);
+            // Diagnose the first refusal and code changes, at most eight rows
+            // per original owner. This cap bounds logging only, never custody.
+            if previous_code.as_ref() != Some(&code) && retry_diagnostics < 8 {
+                tracing::debug!(
+                    target: "connect_service::runtime_retention",
+                    stage = "durable-retirement-retry",
+                    connection = ?owned.id,
+                    code = %code,
+                    retries = cleanup_retries,
+                    "RTC offer cleanup stage"
+                );
+                retry_diagnostics += 1;
             }
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            previous_code = Some(code);
+            tokio::time::sleep(Duration::from_millis(200)).await;
         }
         Ok(())
     }

@@ -10,6 +10,8 @@ pub struct NativeReplacementActivation {
     origin: Arc<NativeMediaOrigin>,
     target: PeerConnectionProjection,
     pub(super) original: crate::NativeReplacementOrigin,
+    // Exact pending-phase namespace; no authority reader or runtime owner.
+    pub(super) metadata: snapshot::MetadataToken,
 }
 impl std::fmt::Debug for NativeReplacementActivation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -17,6 +19,11 @@ impl std::fmt::Debug for NativeReplacementActivation {
     }
 }
 impl NativeReplacementActivation {
+    #[cfg(test)]
+    pub(crate) fn continuation_memo_counts_for_test(&self) -> [u64; 3] {
+        snapshot::continuation_memo_counts(&self.metadata)
+    }
+
     /// Immutable attribution only; this is not a NativeMediaRead.
     pub fn origin(&self) -> &Arc<NativeMediaOrigin> {
         &self.origin
@@ -131,6 +138,7 @@ impl Store {
             origin,
             target,
             original,
+            metadata: snapshot::new_metadata(),
         }))
     }
 

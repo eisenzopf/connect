@@ -20,6 +20,8 @@ from .transport_movement_profile import (MOVE_START_OFFSETS_MS, MOVES_PER_SESSIO
     TOTAL_MOVES, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256)
 from .media_transition_coverage import transition_coverage, clean_bin_durations
 
+from .transport_matrix import MEDIA_QUALITY_PROFILE, MEDIA_METRIC_SCOPE, AUDIO_QUANTUM_SCOPE
+
 PEERS = [3, 0, 1, 2, 5, 4]
 
 
@@ -118,16 +120,16 @@ def native_cut_membership(capture, row):
     return membership[0]
 
 
-def original_audio_quantum(row, reports, origin_us):
-    """Identity only, never a replacement output timestamp or repaired PCM.
+def original_audio_quantum_candidates(row, reports, origin_us):
+    """Diagnostic clock attribution, never source sample identity or media credit.
 
-    The original SR maps this exact physical SSRC's RTP samples to the frozen
-    source programme. Integer arithmetic preserves NTP precision. The rounded
-    20ms source quantum is usable only within the original 62-second source.
+    Integer arithmetic preserves SR precision, but normalized sender clocks and
+    physical remaps do not prove a common original sample coordinate. Keep all
+    candidate quanta and strict raw clock validation without qualifying on them.
     """
     if type(origin_us) is not int or origin_us<=0 or type(row.get('timestamp')) is not int or not 0<=row['timestamp']<2**32:raise ValueError('original source programme identity')
     anchors=[v for v in reports if v.get('ssrc')==row['ssrc']]
-    if not anchors:return None
+    if not anchors:return []
     origin=(origin_us*(1<<32))//1000000+(2208988800<<32)
     identities=set()
     for sr in anchors:
@@ -140,8 +142,12 @@ def original_audio_quantum(row, reports, origin_us):
         numerator=(ntp-origin)*48000+delta*(1<<32);denominator=960*(1<<32)
         quantum=(numerator+denominator//2)//denominator
         if 0<=quantum<3100:identities.add(quantum)
-    if len(identities)>1:raise ValueError('original source audio quantum has conflicting SR lineage')
-    return next(iter(identities),None)
+    return sorted(identities)
+
+
+def original_audio_quantum(row, reports, origin_us):
+    candidates = original_audio_quantum_candidates(row, reports, origin_us)
+    return candidates[0] if len(candidates) == 1 else None
 
 def timeline(directory, metadata):
     bundle = original(directory / 'movement-segments.json', 96 * 1024 * 1024, metadata['sha256'])
@@ -254,7 +260,10 @@ def timeline(directory, metadata):
                     bounded = [dict(row) for row in group if row['elapsed_ms'] < end]
                     if medium=='audio':
                         for row in bounded:
-                            row['original_programme_audio_quantum']=original_audio_quantum(row,captured.get('clock_reports',{}).get('audio',[]),origin)
+                            candidates = original_audio_quantum_candidates(row,captured.get('clock_reports',{}).get('audio',[]),origin)
+                            row['original_programme_audio_quantum'] = candidates[0] if len(candidates) == 1 else None
+                            row['source_quantum_attribution'] = 'available' if len(candidates) == 1 else 'ambiguous' if candidates else 'unbound'
+                            row['source_quantum_candidate_count'] = len(candidates)
                     selected = [i for i,row in enumerate(bounded) if not row.get('decoder_context_only', False) and max(2000,start) <= row['elapsed_ms'] < min(62000,end)]
                     excluded[medium] += len(group) - len(selected)
                     if bounded and selected:
@@ -410,9 +419,10 @@ def summarize(route, audio, video):
         raise ValueError('moving original programme video frame counted twice')
     quanta=[m['row'].get('original_programme_audio_quantum') for m in a]
     known=[q for q in quanta if q is not None]
-    if len(known)!=len(a):raise ValueError('native /3 counted audio lacks original unambiguous source quantum identity')
-    if len(known)!=len(set(known)):
-        raise ValueError('moving original programme audio quantum counted twice across physical owners')
+    # Prospective owner-approved diagnostics only. Actual selected packet/PCM
+    # counts, RTP chronology and decoded identity remain independent hard checks.
+    quantum_overlaps = len(known)-len(set(known))
+    quantum_ambiguous = sum(m['row'].get('source_quantum_attribution') == 'ambiguous' for m in a)
     bins=[sum(second*1000<=m['row']['elapsed_ms']<(second+1)*1000 for m in v) for second in range(2,62)]
     changing=sum(left['hash']!=right['hash'] for left,right in zip(v,v[1:]));wrong=sum(m['wrong_source'] for m in v)
     # Retain the classifier's distinction without relaxing the existing wrong==0
@@ -438,8 +448,13 @@ def summarize(route, audio, video):
         and wrong==0 and sync['status']=='passed')
     passed = passed and route['received_clocks']['audio'] > 0 and route['received_clocks']['video'] > 0
     return dict(index=route['index'],peer_index=route['peer_index'],passed=passed,
-        audio=dict(decoded_seconds=samples/48000,samples=samples,bad_identity_blocks=bad,
-            original_window_packets=len(a),source_quantum_identity_available=len(known),source_quantum_identity_unavailable=len(a)-len(known),maximum_arrival_gap_ms=max(gaps,default=None),
+        quality_profile=MEDIA_QUALITY_PROFILE,metric_scope=MEDIA_METRIC_SCOPE,
+        original_source_sample_coverage_proved=False,
+        audio=dict(quality_profile=MEDIA_QUALITY_PROFILE,metric_scope=MEDIA_METRIC_SCOPE,
+            source_quantum_scope=AUDIO_QUANTUM_SCOPE,original_source_sample_coverage_proved=False,
+            decoded_seconds=samples/48000,samples=samples,bad_identity_blocks=bad,
+            original_window_packets=len(a),source_quantum_identity_available=len(known),source_quantum_identity_unavailable=len(a)-len(known),
+            source_quantum_identity_ambiguous=quantum_ambiguous,source_quantum_overlaps=quantum_overlaps,maximum_arrival_gap_ms=max(gaps,default=None),
             transition_coverage=audio_coverage),
         video=dict(decoded_window_frames=len(v),changing_window_frames=changing,changing_fps=changing/60,
             frames_by_observation_second=bins,wrong_source_pixel_frames=wrong,
@@ -469,11 +484,12 @@ def verify(directory,manifest,metadata):
                     artifacts={k:v for k,v in observed.items() if k!='measurements'}))
         result=summarize(route,decoded['audio'],decoded['video']);result['physical_codec_histories']=custody;results.append(result)
     report=dict(format='connect/moving-native-av-decoded/1',passed=all(r['passed'] for r in results),
+        quality_profile=MEDIA_QUALITY_PROFILE,metric_scope=MEDIA_METRIC_SCOPE,original_source_sample_coverage_proved=False,
         original_moves=TOTAL_MOVES,original_captures=6,physical_captures=TOTAL_MOVES,connections=6,participants=4,sessions=2,
         movement_profile=MOVEMENT_PROFILE,movement_profile_sha256=MOVEMENT_PROFILE_SHA256,
         warmup_seconds=2,observation_seconds=60,source_manifest=manifest,capture_bundle_sha256=metadata['sha256'],
         physical_codec_histories_inspected=number,independently_decoded_codec_histories=decoders_started,routes=results,
         full_timeline_decoded=all(r['video']['undecodable_frames']==0 for r in results),task_complete=False,cell_qualified=False,matrix_qualified=False,whole_gate_qualified=False,
-        scope='Independent whole-window receive-content component. Private context is actual same-physical/stream/SSRC/generation/epoch decoder history and never coverage. Public ownership uses the original signed native writer cut independently of delayed root reply arrival. Actual public output from original admitted owners and exact replacement cuts remains on its original receive clock; source-quantum overlaps fail rather than inflate coverage. Every physical/stream/SSRC history decodes separately with original timestamps; the original completion record binds each immutable cut and actual retirement remains required. No PLC, gaps filled, retiming, duplicated-frame coverage or inferred device presentation. Impairment/browser/remote cells remain separate.')
+        scope='Independent whole-window receive-content component. Each private decoder history retains its physical, stream, SSRC, generation and epoch identity. Coverage includes original public admissions and exact signed replacement cuts on their observed receive clock. Estimated audio source quanta provide diagnostic attribution. Actual packet or frame duplication, decoded source identity errors and repeated original video timestamps fail. Each physical history decodes with original timestamps. Completion records bind immutable cuts and verified retirement. Original gaps and decoder loss are retained. Device presentation, browser, impairment and remote profiles require their own evidence.')
     (output/'decoded.json').write_text(json.dumps(report,indent=2)+'\n')
     return report

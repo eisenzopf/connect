@@ -1964,6 +1964,24 @@
       "path": "patches/rvoip/connect-c-allocator-observation-release-control.patch",
       "sha256": "a0e0a90ae5950604712f0a351c365d83128139615d56689c7031ecc473e0bb4a",
       "source": "Test-only release control for existing feature-gated platform C allocator accounting. Force the original1MiB malloc block to remain observable across its existing held snapshot using an opaque pointer and volatile boundary-byte writes/reads, retaining RAII free before assertions. Preserve the production snapshot, exact requested-byte accounting threshold, supported ABI selection and null RSS/owner-liveness claims. Add numeric original/held/requested diagnostics; do not change allocator behavior, trim/reset/tune, or cache results."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-guarded-worker-registry-counterexample.patch",
+      "source": "G6-054/G6-058 timing investigation: execute original Conference Tokio worker with real guarded audio/video routes while unrelated unguarded member registry is held. Preserve original worker abort/join and actual queued delivery. Counterexample only; no production change or integration qualification.",
+      "sha256": "ea9f1de654d3ca81bf8d58979648aa9b7b05fff5d1b19273b31b736d66312b7d"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-guarded-worker-registry-isolation.patch",
+      "source": "G6-054/G6-058 after both original-Conference guarded audio/video counterexamples fail: acquire the unguarded member registry only on the unguarded mix path. Preserve exact existing staged scene, cadence, current authorization, routes, source clocks and owned task cleanup. Controlled isolation only; no integrated media-cause claim.",
+      "sha256": "2bab922163cf22139d7f988335e952eed53dc9300819c36e1ed925b35c87c091"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-conference-worker-timing.patch",
+      "source": "G6-054/G6-058 original conference worker: fixed numeric terminal summary separating actual interval deadline, wake lateness, callback duration and completion misses; report interrupted work without fabricating completion. No clock policy, per-frame logging, shared reporting lock, queue or timeout changes. Deterministic timing tests plus original worker cancellation/filter regression; component scope only.",
+      "sha256": "b9cb2f869ba0791e3a7a98c0a984bd7068a4a42a79d80df5f4647bc1e66baeea"
     }
   ]
 }

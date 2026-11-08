@@ -46,6 +46,21 @@ if (!isMainThread && workerData?.profile === "connect/replacement-capture-inspec
         observation.data_exchange_receipt_sha256 = dataReceiptDigest(observation.data_exchange_receipt);
         delete observation.data_exchange_receipt;
     }
+    const readiness = observation.private_decoded_readiness;
+    if (readiness !== undefined && readiness !== null) {
+        assert.ok(typeof readiness === "object" && !Array.isArray(readiness));
+        assert.ok(!Object.hasOwn(readiness, "video_decode_receipts_count"));
+        assert.ok(!Object.hasOwn(readiness, "video_decode_receipts_sha256"));
+        if (Object.hasOwn(readiness, "video_decode_receipts")) {
+            const receipts = readiness.video_decode_receipts;
+            assert.ok(Array.isArray(receipts) && receipts.length <= 1860);
+            readiness.video_decode_receipts_count = receipts.length;
+            readiness.video_decode_receipts_sha256 = createHash("sha256")
+                .update(JSON.stringify(receipts)).digest("hex");
+            delete readiness.video_decode_receipts;
+        }
+    }
+    // Offline media verification reads every receipt from the hash-bound original.
     // Transfer bounded metadata only; payload bytes stay in their original file.
     assert.ok(Buffer.byteLength(JSON.stringify(observation)) <= 65536);
     parentPort.postMessage({ observation: { ...observation, received },
