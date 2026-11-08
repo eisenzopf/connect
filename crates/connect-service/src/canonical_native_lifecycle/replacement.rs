@@ -108,7 +108,12 @@ impl NativeLifecyclePolicy for ReplacementPolicy {
         }
         let (owner, read, preroll) = target
             .receiver_epoch_preparation(scope, observation)
-            .map_err(domain_error)?;
+            .map_err(|error| {
+                tracing::debug!(target: "connect_service::canonical_flow_ready",
+                    connection = %scope.media.wire_connection, code = %error.code,
+                    "Private receiver epoch preparation refused");
+                domain_error(error)
+            })?;
         if self.state.phase.load(Ordering::Acquire) != PREPARATION {
             return Err(DispatchError::StorageUnavailable);
         }

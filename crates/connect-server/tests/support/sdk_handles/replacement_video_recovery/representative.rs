@@ -77,6 +77,131 @@ struct Progress {
 }
 type SharedProgress = Arc<Mutex<Progress>>;
 
+// Keep the same hard old-view checks while retaining every bounded violation.
+// One receiver's loss must not hide the next original preparation path.
+fn old_playout_quality_failures(
+    before: &[Progress],
+    during: &[Progress],
+    round: usize,
+    move_started: Instant,
+    first_bin: usize,
+    last_bin: usize,
+) -> Vec<String> {
+    assert_eq!(before.len(), 6);
+    assert_eq!(during.len(), 6);
+    assert!(last_bin <= 26, "original programme measurement bound");
+    let mut failures = Vec::new();
+    if first_bin >= last_bin {
+        failures.push(format!(
+            "round={round} preparation has no complete measured second"
+        ));
+    }
+    for (index, current) in during.iter().enumerate() {
+        let previous = &before[index];
+        if current.frames <= previous.frames {
+            failures.push(format!(
+                "round={round} receiver={index} decoded no newer frame before={} during={}",
+                previous.frames, current.frames
+            ));
+        }
+        if current.timestamp == previous.timestamp {
+            failures.push(format!(
+                "round={round} receiver={index} decoded timestamp did not advance value={:?}",
+                current.timestamp
+            ));
+        }
+        if !current.last_video.is_some_and(|at| at >= move_started) {
+            failures.push(format!(
+                "round={round} receiver={index} lacks newly decoded preparation video"
+            ));
+        }
+        if !current.last_audio.is_some_and(|at| at >= move_started) {
+            failures.push(format!(
+                "round={round} receiver={index} lacks newly decoded preparation audio"
+            ));
+        }
+        if current.audio_samples < 2880 {
+            failures.push(format!(
+                "round={round} receiver={index} consecutive decoded audio samples={} required=2880",
+                current.audio_samples
+            ));
+        }
+        for bin in first_bin..last_bin {
+            if current.bins[bin] < 24 {
+                failures.push(format!(
+                    "round={round} receiver={index} source={} preparation second={bin} decoded={} required=24 publisher_encoded={} publisher_published={}",
+                    SOURCE_FOR_RECEIVER[index], current.bins[bin],
+                    during[SOURCE_FOR_RECEIVER[index]].encoded_bins[bin],
+                    during[SOURCE_FOR_RECEIVER[index]].published_bins[bin]
+                ));
+            }
+        }
+    }
+    failures
+}
+
+fn require_old_playout_quality(failures: &[String]) {
+    assert!(
+        failures.is_empty(),
+        "old playout quality requirements failed: {failures:?}"
+    );
+}
+
+#[test]
+fn old_playout_quality_retains_multiple_receiver_bins_and_still_refuses() {
+    let move_started = Instant::now();
+    let before = vec![
+        Progress {
+            frames: 10,
+            timestamp: Some(3000),
+            ..Progress::default()
+        };
+        6
+    ];
+    let mut current = vec![
+        Progress {
+            frames: 11,
+            timestamp: Some(6000),
+            last_video: Some(move_started),
+            last_audio: Some(move_started),
+            audio_samples: 2880,
+            bins: [30; 26],
+            encoded_bins: [30; 26],
+            published_bins: [30; 26],
+            ..Progress::default()
+        };
+        6
+    ];
+    let passing = old_playout_quality_failures(&before, &current, 0, move_started, 2, 5);
+    require_old_playout_quality(&passing);
+    current[0].frames = 10;
+    current[0].timestamp = Some(3000);
+    current[0].last_video = None;
+    current[0].last_audio = Some(move_started - Duration::from_millis(1));
+    current[0].audio_samples = 960;
+    current[0].bins[2] = 23;
+    current[0].bins[3] = 0;
+    current[4].bins[4] = 22;
+    let failures = old_playout_quality_failures(&before, &current, 0, move_started, 2, 5);
+    assert_eq!(failures.len(), 8);
+    for expected in [
+        "receiver=0 decoded no newer frame",
+        "receiver=0 decoded timestamp did not advance",
+        "receiver=0 lacks newly decoded preparation video",
+        "receiver=0 lacks newly decoded preparation audio",
+        "receiver=0 consecutive decoded audio samples=960 required=2880",
+        "receiver=0 source=3 preparation second=2 decoded=23 required=24",
+        "receiver=0 source=3 preparation second=3 decoded=0 required=24",
+        "receiver=4 source=5 preparation second=4 decoded=22 required=24",
+    ] {
+        assert!(
+            failures.iter().any(|failure| failure.contains(expected)),
+            "{expected}: {failures:?}"
+        );
+    }
+    assert!(std::panic::catch_unwind(|| require_old_playout_quality(&failures)).is_err());
+}
+
 // Application decoder history, matching the normal native media producer. The
 // bounded assembler orders fragments, not complete dependency-bearing frames.
 struct DecodeHistory {
@@ -1169,6 +1294,11 @@ fn spawn_candidate(
                 progress.lock().unwrap()
             );
         }
+        eprintln!(
+            "representative candidate receiver notice observation source={source} inbound={inbound} connection={} incoming_handle={incoming} verified_receiver_notices={:?}",
+            retirement.source,
+            io.verified_video_receiver_notice_count_for_test()
+        );
         let encoder_join = finish_encoder(encoder).await;
         let decoder_join = decoder.close().await;
         result
@@ -1538,6 +1668,7 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
     }
     let mut targets = Vec::<Candidate>::new();
     let mut target_progress = Vec::<SharedProgress>::new();
+    let mut quality_failures = Vec::new();
     let work=AssertUnwindSafe(async {
         wait_original_playout(&progress,&connections,began+Duration::from_secs(8)).await;
         // Warm up two genuine seconds before measuring the first preparation.
@@ -1622,26 +1753,16 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
                 );
                 for sid in 0..2 {eprintln!("representative candidate readiness deadline round={round} route={} progress={:?}",[0,4][sid],target_progress[first+sid].lock().unwrap());}
             }
-            ready.expect("both same original candidates require fresh real audio and fragmented decoded keys");
             let during=clone_progress(&active_progress);
-            for index in 0..6 {
-                assert!(during[index].frames>before[index].frames,"old current receiver did not decode newer frames during preparation");
-                assert_ne!(during[index].timestamp,before[index].timestamp);
-                assert!(during[index].last_video.unwrap()>=move_started);
-                assert!(during[index].last_audio.unwrap()>=move_started);
-                assert!(during[index].audio_samples>=2880,
-                    "old active receiver {index} round={round} lost consecutive decoded audio progress={:?}",during[index]);
-            }
-            // Keep the same24fps bar for every complete PREPARING second in
-            // both rounds, including the generation-two candidate receivers.
+            // Retain every old-view violation without suppressing later
+            // observations. Actual candidate readiness and operation
+            // preconditions remain immediate before each original Ready.
             let first_bin=move_started.saturating_duration_since(began).as_secs() as usize+1;
             let last_bin=Instant::now().saturating_duration_since(began).as_secs() as usize;
-            assert!(first_bin<last_bin,"actual preparation must cover a complete measured second");
-            for (index,view) in during.iter().enumerate() {for bin in first_bin..last_bin {
-                assert!(view.bins[bin]>=24,
-                    "old current receiver {index} preparation second {bin} decoded {} frames receiver={view:?} expected_publisher={} publisher={:?}",
-                    view.bins[bin],SOURCE_FOR_RECEIVER[index],during[SOURCE_FOR_RECEIVER[index]]);
-            }}
+            quality_failures.extend(old_playout_quality_failures(
+                &before, &during, round, move_started, first_bin, last_bin,
+            ));
+            ready.expect("both same original candidates require fresh real audio and fragmented decoded keys");
             for sid in 0..2 {
                 let status=timeout_at(move_cutoff,controllers[sid].operation_get(&commands[sid].operation_id,scope(&commands[sid])))
                     .await.unwrap().unwrap();
@@ -1803,6 +1924,11 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
         f.server.store.packet_observer_claim_diagnostics()
     );
     let shutdown = f.server.shutdown().await;
+    // Preserve secondary failures even when an original protocol/readiness
+    // panic is resumed. No failed quality, child or shutdown is waived.
+    eprintln!(
+        "representative terminal quality_failures={quality_failures:?} task_failures={task_failures:?} server_shutdown={shutdown:?}"
+    );
     if let Err(panic) = work {
         std::panic::resume_unwind(panic);
     }
@@ -1811,6 +1937,7 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
         "original media/codec owners did not join cleanly: {task_failures:?}"
     );
     shutdown.unwrap();
+    require_old_playout_quality(&quality_failures);
 }
 
 // These controls exercise the same real SDK packet parser, bounded assembler

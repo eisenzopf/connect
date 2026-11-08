@@ -82,6 +82,22 @@ impl NativeMediaOrigin {
     pub(crate) fn require_runtime(&self, store: &Store) -> Result<()> {
         current_owner(store, self).map(|_| ())
     }
+    pub(crate) fn require_checked_runtime(
+        &self,
+        store: &Store,
+        checked: &crate::installation_ownership::CheckedRuntimeOwner<'_>,
+    ) -> Result<()> {
+        let owner = checked.owner(store)?;
+        if !self
+            .owner
+            .upgrade()
+            .is_some_and(|old| Arc::ptr_eq(&old, owner))
+            || crate::now() >= self.expires_at
+        {
+            return Err(Error::forbidden());
+        }
+        Ok(())
+    }
     pub fn credential_epoch(&self) -> u64 {
         self.credential_epoch
     }
@@ -1187,24 +1203,41 @@ impl Store {
         held: Arc<AuthorityGuardSet>,
         expiry: i64,
     ) -> Result<std::collections::BTreeMap<(String, Option<String>), NativeMediaRead>> {
-        let owner = self.require_runtime_owner()?;
-        Ok(facts
-            .into_iter()
-            .map(|(id, (target, source, may_subscribe))| {
-                (
-                    id,
-                    NativeMediaRead {
-                        target,
-                        source,
-                        _scopes: held.clone(),
-                        owner: owner.clone(),
-                        expires_at: expiry,
-                        may_subscribe,
-                    },
-                )
-            })
-            .collect())
+        native_scene_reads_with_owner(facts, held, expiry, self.require_runtime_owner()?)
     }
+    pub(crate) fn native_scene_reads_checked(
+        &self,
+        facts: SceneFacts,
+        held: Arc<AuthorityGuardSet>,
+        expiry: i64,
+        checked: &crate::installation_ownership::CheckedRuntimeOwner<'_>,
+    ) -> Result<std::collections::BTreeMap<(String, Option<String>), NativeMediaRead>> {
+        native_scene_reads_with_owner(facts, held, expiry, checked.owner(self)?.clone())
+    }
+}
+
+fn native_scene_reads_with_owner(
+    facts: SceneFacts,
+    held: Arc<AuthorityGuardSet>,
+    expiry: i64,
+    owner: Arc<InstallationOwnership>,
+) -> Result<std::collections::BTreeMap<(String, Option<String>), NativeMediaRead>> {
+    Ok(facts
+        .into_iter()
+        .map(|(id, (target, source, may_subscribe))| {
+            (
+                id,
+                NativeMediaRead {
+                    target,
+                    source,
+                    _scopes: held.clone(),
+                    owner: owner.clone(),
+                    expires_at: expiry,
+                    may_subscribe,
+                },
+            )
+        })
+        .collect())
 }
 
 impl Store {

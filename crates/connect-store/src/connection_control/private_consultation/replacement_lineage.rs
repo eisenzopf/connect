@@ -247,7 +247,12 @@ fn established(c: &Connection, record: &str) -> Result<Option<(String, String, S
 // erase an existing private floor. UNION visits each retained physical ID once,
 // even for corrupt cyclic input; this does not grant a partner or new audience.
 fn has_private_ancestor(c: &Connection, connection: &str) -> Result<bool> {
-    c.query_row("WITH RECURSIVE ancestry(id) AS (SELECT ?1 UNION SELECT o.connection_id FROM ancestry a JOIN native_replacements n ON n.candidate_connection_id=a.id JOIN operations o ON o.record_id=n.operation_record_id WHERE o.connection_id IS NOT NULL) SELECT EXISTS(SELECT 1 FROM ancestry a JOIN native_private_content_floors f ON f.connection_id=a.id)",[connection],|r|r.get(0)).map_err(|_|Error::storage())
+    c.prepare_cached(
+        "WITH RECURSIVE ancestry(id) AS (SELECT ?1 UNION SELECT o.connection_id FROM ancestry a JOIN native_replacements n ON n.candidate_connection_id=a.id JOIN operations o ON o.record_id=n.operation_record_id WHERE o.connection_id IS NOT NULL) SELECT EXISTS(SELECT 1 FROM ancestry a JOIN native_private_content_floors f ON f.connection_id=a.id)",
+    )
+    .map_err(|_| Error::storage())?
+    .query_row([connection], |r| r.get(0))
+    .map_err(|_| Error::storage())
 }
 fn context_consumed(c: &Connection, record: &str) -> Result<bool> {
     c.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_returns r JOIN operation_effects e ON e.id=r.effect_id AND e.state='confirmed' WHERE r.consultation_record_id=?1 AND r.applied_json IS NOT NULL) OR EXISTS(SELECT 1 FROM native_handoffs h JOIN operations o ON o.record_id=h.operation_record_id JOIN operation_effects e ON e.id=h.effect_id AND e.state='confirmed' WHERE h.applied_json IS NOT NULL AND json_extract(o.intent_json,'$.payload_extensions.consultation_record_id')=?1)",[record],|r|r.get(0)).map_err(|_|Error::storage())

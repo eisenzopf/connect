@@ -1,0 +1,195 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1298,6 +1298,14 @@
+     direct: Option<direct_subscriptions::DirectStamp>,
+     admitted_at: Instant,
+ }
++// Only these internal owners may retain the exact refused visual copy. This
++// is invocation metadata, never permission or a reader retained across retry.
++#[derive(Clone, Copy)]
++enum AdmissionOwner<'a> {
++    Ordinary,
++    Original(&'a original_ingress::OriginalStamp),
++    QueuedVisual,
++}
+ struct QueuedMediaAdmission {
+     target: Arc<StreamController>,
+     tokens: Vec<CancellationToken>,
+@@ -1678,6 +1686,18 @@
+         if self.sources.is_empty() {
+             return Err(StreamControlError::Authority);
+         }
++        let owned_visual = self.frame.kind == StreamKind::Video
++            && self.local.is_none()
++            && self.data.is_none()
++            && self.sources.len() == 1
++            && matches!(
++                self.target.binding.negotiated.requested.medium,
++                Medium::Video | Medium::Screen
++            )
++            && self.sources[0].source.binding.negotiated.requested.medium
++                == self.target.binding.negotiated.requested.medium
++            && self.sources[0].source.binding.negotiated.format
++                == self.target.binding.negotiated.format;
+         for provenance in &self.sources {
+             if tokens.iter().any(CancellationToken::is_cancelled) {
+                 return Err(StreamControlError::Cancelled);
+@@ -1711,8 +1731,25 @@
+             if let Some(counters) = &delivery {
+                 counters.record::<()>(VideoPhase::SourceAdmission, self.admitted_at, None);
+             }
+-            let source_result = source
+-                .admit_retained_source_with_deadline(
++            let source_result = if owned_visual {
++                // Retained visual sources already use an independent fresh
++                // policy read; only audio shares active PacketCustody context.
++                source.admit_original_or_queued(
++                    &provenance.source,
++                    &provenance.ticket,
++                    false,
++                    None,
++                    audio_consumer::ConsumerCheck::Retained(provenance.consumer.as_ref()),
++                    None,
++                    scene_consumer::SceneCheck::retained_publish(provenance.scene.as_ref()),
++                    None,
++                    None,
++                    None,
++                    Some(&mut *deadline),
++                    AdmissionOwner::QueuedVisual,
++                )
++            } else {
++                source.admit_retained_source_with_deadline(
+                     &provenance.source,
+                     &provenance.ticket,
+                     provenance.consumer.as_ref(),
+@@ -1720,9 +1757,11 @@
+                     &provenance.custody,
+                     (self.frame.kind != StreamKind::Data).then_some(&mut *deadline),
+                 )
++            }
+                 .map_err(|problem| {
+                     tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
+-                    target = %target.connection, stage = "source-egress", ?problem,
++                    target = %target.connection, stage = "source-egress", frame_kind = ?self.frame.kind,
++                    age_us = self.admitted_at.elapsed().as_micros() as u64, ?problem,
+                     "Guarded audio delivery refused");
+                     problem
+                 });
+@@ -1751,7 +1790,7 @@
+                 counters.record::<()>(VideoPhase::TargetAdmission, self.admitted_at, None);
+             }
+             let target_result = target
+-                .admit_with_deadline(
++                .admit_original_or_queued(
+                     &self.target,
+                     &self.target_ticket,
+                     true,
+@@ -1767,10 +1806,12 @@
+                     None,
+                     leases.last().and_then(|lease| lease.packet_context()),
+                     (self.frame.kind != StreamKind::Data).then_some(&mut *deadline),
++                    if owned_visual { AdmissionOwner::QueuedVisual } else { AdmissionOwner::Ordinary },
+                 )
+                 .map_err(|problem| {
+                     tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
+-                    target = %target.connection, stage = "target-egress", ?problem,
++                    target = %target.connection, stage = "target-egress", frame_kind = ?self.frame.kind,
++                    age_us = self.admitted_at.elapsed().as_micros() as u64, ?problem,
+                     "Guarded audio delivery refused");
+                     problem
+                 });
+@@ -2413,7 +2454,7 @@
+             held,
+             packet_context,
+             queued_deadline,
+-            None,
++            AdmissionOwner::Ordinary,
+         )
+     }
+     fn admit_original_or_queued(
+@@ -2429,12 +2470,16 @@
+         held: Option<&(dyn Any + Send + Sync)>,
+         packet_context: Option<&(dyn Any + Send + Sync)>,
+         mut queued_deadline: Option<&mut tokio::time::Instant>,
+-        original: Option<&original_ingress::OriginalStamp>,
++        owner: AdmissionOwner<'_>,
+     ) -> ControlResult<(
+         Box<dyn MediaAuthorityLease>,
+         audio_consumer::MediaAdmission,
+         tokio::time::Instant,
+     )> {
++        let original = match owner {
++            AdmissionOwner::Original(stamp) => Some(stamp),
++            _ => None,
++        };
+         if queued_deadline
+             .as_deref()
+             .is_some_and(|until| tokio::time::Instant::now() >= *until)
+@@ -2684,10 +2729,11 @@
+             }
+         };
+         let mut retry_owned_visual_original = false;
++        let mut retry_owned_queued_visual = false;
+         if detached {
+-            // This callback must never publish across a model revision. Only a
+-            // still-eligible owned raw visual original may ask its existing
+-            // owner for a completely fresh attempt after every reader drops.
++            // This callback must never publish across a model revision. Only
++            // an exact still-eligible owned raw or queued visual copy may ask
++            // its owner for a fresh attempt after every reader drops.
+             if state.model.revision() != revision {
+                 if original.is_some()
+                     && matches!(
+@@ -2702,6 +2748,20 @@
+                     && queued_deadline.is_some()
+                 {
+                     retry_owned_visual_original = true;
++                } else if matches!(owner, AdmissionOwner::QueuedVisual)
++                    && matches!(
++                        port.binding.negotiated.requested.medium,
++                        Medium::Video | Medium::Screen
++                    )
++                    && data.is_none()
++                    && held.is_none()
++                    && queued_deadline.is_some()
++                    && matches!(&consumer, audio_consumer::ConsumerCheck::Retained(_))
++                    && scene.retains_target()
++                    && sending == source.is_some()
++                    && (sending || packet_context.is_none())
++                {
++                    retry_owned_queued_visual = true;
+                 } else {
+                     return Err(MediaTransitionError::Conflict.into());
+                 }
+@@ -2759,14 +2819,18 @@
+             .as_deref()
+             .map_or(deadline, |until| deadline.min(*until));
+         let deadline = Self::media_deadline(&credential.principal, lease.as_ref(), deadline)?;
+-        if retry_owned_visual_original {
++        if retry_owned_visual_original || retry_owned_queued_visual {
+             // All the normal current port/ticket, consumer/scene, credential
+             // and authority eligibility checks above remain required. This is
+             // still a refusal: no admission or stale lease leaves this call.
+             if tokio::time::Instant::now() >= deadline {
+                 return Err(StreamControlError::Deadline);
+             }
+-            return Err(StreamControlError::MetadataBusy);
++            return Err(if retry_owned_visual_original {
++                StreamControlError::MetadataBusy
++            } else {
++                StreamControlError::NotReady
++            });
+         }
+         Ok((lease, admission, deadline))
+     }
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -254,7 +254,7 @@
+             None,
+             None,
+             Some(&mut self.deadline),
+-            Some(&self.stamp),
++            AdmissionOwner::Original(&self.stamp),
+         )?;
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);

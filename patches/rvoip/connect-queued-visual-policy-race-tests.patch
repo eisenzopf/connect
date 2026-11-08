@@ -1,0 +1,623 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -15,6 +15,7 @@
+     preparation_expiry: Mutex<Option<chrono::DateTime<chrono::Utc>>>,
+     audio_current_gate: Mutex<Option<AudioCurrentGate>>,
+     original_visual_policy_action: Mutex<Option<OriginalVisualPolicyAction>>,
++    queued_visual_receive_action: Mutex<Option<OriginalVisualPolicyAction>>,
+     deny_handoff: AtomicBool,
+     deny_replacement: AtomicBool,
+     resources: Mutex<BTreeMap<ConnectionId, ReplacementResources>>,
+@@ -321,6 +322,14 @@
+         });
+         if scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish) {
+             let action = self.original_visual_policy_action.lock().unwrap().take();
++            if let Some(action) = action {
++                return action(lease);
++            }
++        }
++        if scope.connection.as_str() == "bob"
++            && matches!(scope.purpose, MediaPurpose::Receive { .. })
++        {
++            let action = self.queued_visual_receive_action.lock().unwrap().take();
+             if let Some(action) = action {
+                 return action(lease);
+             }
+@@ -512,6 +521,7 @@
+             preparation_expiry: Mutex::new(None),
+             audio_current_gate: Mutex::new(None),
+             original_visual_policy_action: Mutex::new(None),
++            queued_visual_receive_action: Mutex::new(None),
+             deny_handoff: AtomicBool::new(false),
+             deny_replacement: AtomicBool::new(false),
+             resources: Mutex::new(BTreeMap::new()),
+@@ -3806,3 +3816,5 @@
+ mod original_video_ingress;
+ 
+ mod original_visual_policy_retry;
++
++mod queued_visual_policy_retry;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/queued_visual_policy_retry.rs
+@@ -0,0 +1,581 @@
++//! Owned queued native visual delivery across an after-grant audio model race.
++//! Capture the real queued copy BEFORE installing hooks; never call control
++//! from a scene direct-forward callback which still owns scene.members.
++use super::*;
++use crate::staged_streams::direct_subscriptions::{DirectSubscription, DirectSubscriptionChange};
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum Side {
++    Source,
++    Target,
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum Scenario {
++    Delivery,
++    Revocation,
++    EarlierExpiry,
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum Mutation {
++    AudioOnly,
++    Gate,
++    PauseResume,
++    Credential,
++    Port,
++    Scene,
++    Direct,
++    PolicyAuthority,
++    PolicyConflict,
++    ExpiredLease,
++}
++
++struct HookOwner(Arc<Domain>);
++impl Drop for HookOwner {
++    fn drop(&mut self) {
++        self.0.original_visual_policy_action.lock().unwrap().take();
++        self.0.queued_visual_receive_action.lock().unwrap().take();
++        self.0.audio_current_gate.lock().unwrap().take();
++    }
++}
++// Release first and join the actual original worker even if the test panics.
++struct DeliveryOwner {
++    release: Option<std::sync::mpsc::SyncSender<()>>,
++    worker: Option<std::thread::JoinHandle<ControlResult<()>>>,
++}
++impl DeliveryOwner {
++    fn release(&mut self) {
++        if let Some(release) = self.release.take() {
++            let _ = release.send(());
++        }
++    }
++    fn finish(mut self) -> ControlResult<()> {
++        self.release();
++        self.worker
++            .take()
++            .unwrap()
++            .join()
++            .expect("original queued writer panicked")
++    }
++}
++impl Drop for DeliveryOwner {
++    fn drop(&mut self) {
++        self.release();
++        if let Some(worker) = self.worker.take() {
++            let _ = worker.join();
++        }
++    }
++}
++struct QueuedVisual {
++    room: Room,
++    source: Arc<StreamController>,
++    target: Arc<StreamController>,
++    output: mpsc::Receiver<QueuedMedia>,
++    queued: Option<QueuedMedia>,
++}
++impl QueuedVisual {
++    async fn new(medium: Medium) -> Self {
++        let mut room = Room::new().await;
++        for name in ["alice", "bob"] {
++            let controller = &room.nodes[name].controller;
++            controller
++                .change(
++                    controller.revision(),
++                    &[desired(Medium::Audio), desired(medium)],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++        }
++        let source = room.nodes["alice"].controller.clone();
++        let target = room.nodes["bob"].controller.clone();
++        let logical = desired(medium).logical_id;
++        target
++            .change_direct_subscriptions(
++                target.revision(),
++                DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                    &source,
++                    logical.clone(),
++                    logical,
++                )]),
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++            .unwrap();
++        let port = room.nodes["alice"].adapter.port(medium);
++        let mut output = room.nodes["bob"]
++            .adapter
++            .port(medium)
++            .take_egress()
++            .unwrap();
++        room.add("fresh", Some("public"), true).await;
++        port.try_publish(&frame(&port, 92000)).unwrap();
++        // No hooks during physical ingress or ordinary scene fanout.
++        room.tick();
++        let queued = output.try_recv().expect("actual scene queued visual copy");
++        assert!(output.try_recv().is_err());
++        assert_eq!(queued.frame.kind, StreamKind::Video);
++        assert!(queued.local.is_none() && queued.data.is_none() && queued.sources.len() == 1);
++        drop(
++            room.scene
++                .members
++                .try_lock()
++                .expect("tick retained scene members"),
++        );
++        Self {
++            room,
++            source,
++            target,
++            output,
++            queued: Some(queued),
++        }
++    }
++    fn install(
++        &self,
++        medium: Medium,
++        side: Side,
++        mutation: Mutation,
++        next_read: Option<AudioCurrentGate>,
++        short: bool,
++        allow_after_expiry: Arc<Mutex<Option<Instant>>>,
++        applied: Arc<AtomicBool>,
++    ) -> HookOwner {
++        let source = self.source.clone();
++        let target = self.target.clone();
++        let domain = self.room.domain.clone();
++        let scene = self.room.scene.clone();
++        let runtime = tokio::runtime::Handle::current();
++        let original_admitted = self.queued.as_ref().unwrap().admitted_at;
++        let run = move |lease: Box<dyn MediaAuthorityLease>| {
++            assert_eq!(
++                lease.authority().connection.connection().as_str(),
++                if side == Side::Source { "alice" } else { "bob" }
++            );
++            drop(
++                source
++                    .state
++                    .try_lock()
++                    .expect("queued policy holds source State"),
++            );
++            drop(
++                target
++                    .state
++                    .try_lock()
++                    .expect("queued policy holds target State"),
++            );
++            drop(
++                scene
++                    .members
++                    .try_lock()
++                    .expect("queued policy holds scene members"),
++            );
++            drop(
++                scene
++                    .audiences
++                    .try_lock()
++                    .expect("queued policy holds audience registry"),
++            );
++            let expiry = chrono::Utc::now() + chrono::Duration::milliseconds(60);
++            *allow_after_expiry.lock().unwrap() = Some(Instant::now() + Duration::from_millis(70));
++            let observed_source = source.clone();
++            let observed_target = target.clone();
++            let before = (source.revision(), target.revision());
++            let control_domain = domain.clone();
++            // Never inspect an outcome before this original control worker joins.
++            let control = std::thread::spawn(move || {
++                runtime.block_on(async move {
++                    let id = ConnectionId::from_string("fresh");
++                    let mut plan = scene.plan_audio_audience(AudioAudienceRequest {
++                        operation_id: "activate-fresh".into(),
++                        expected_revision: scene.audience_revision(),
++                        private_connections: BTreeSet::from([id.clone()]),
++                        receivers: BTreeMap::from([(id.clone(), vec![])]),
++                        activate_muted: Some(id.clone()),
++                    })?;
++                    plan.keep_endpoint_muted(&id)?;
++                    let grant = Arc::new(Grant {
++                        domain: control_domain.clone(),
++                        guard: Arc::new(control_domain.base.0.clone().read_owned().await),
++                        approval: Approval::Audience(plan.clone()),
++                        control_deadline: None,
++                        control_owner_delay: None,
++                    });
++                    let (_, handle) = scene
++                        .apply_audio_audience(plan, deadline(), CancellationToken::new(), &grant)
++                        .await?;
++                    assert!(!handle.endpoint_preparation);
++                    assert!(source.revision() > before.0 && target.revision() > before.1);
++                    let changed = if side == Side::Source {
++                        &source
++                    } else {
++                        &target
++                    };
++                    let ids = BTreeSet::from([desired(medium).logical_id]);
++                    match mutation {
++                        Mutation::Gate => {
++                            changed
++                                .set_media_gate(
++                                    changed.revision(),
++                                    &ids,
++                                    if side == Side::Source {
++                                        StreamGateAction::Mute
++                                    } else {
++                                        StreamGateAction::Pause
++                                    },
++                                    deadline(),
++                                )
++                                .await?;
++                        }
++                        Mutation::PauseResume => {
++                            for gate in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                                changed
++                                    .set_media_gate(changed.revision(), &ids, gate, deadline())
++                                    .await?;
++                            }
++                        }
++                        Mutation::Credential => changed.credential.lock().unwrap().revision += 1,
++                        Mutation::Port => {
++                            changed
++                                .change(
++                                    changed.revision(),
++                                    &[desired(Medium::Audio), desired(medium)],
++                                    &ids,
++                                    deadline(),
++                                    CancellationToken::new(),
++                                )
++                                .await?;
++                        }
++                        Mutation::Scene => {
++                            scene.remove(&ConnectionId::from_string(if side == Side::Source {
++                                "alice"
++                            } else {
++                                "bob"
++                            }));
++                        }
++                        Mutation::Direct => {
++                            target
++                                .change_direct_subscriptions(
++                                    target.revision(),
++                                    DirectSubscriptionChange::Clear,
++                                    deadline(),
++                                    CancellationToken::new(),
++                                    None,
++                                )
++                                .await?;
++                        }
++                        _ => {}
++                    }
++                    Ok::<(), StreamControlError>(())
++                })
++            })
++            .join()
++            .expect("original audio control worker panicked");
++            control?;
++            // The first callback completed while the original packet remained live.
++            // This flag also prevents pre-policy expiry from vacuously passing.
++            assert!(
++                original_admitted.elapsed() < Duration::from_millis(200),
++                "control mutation only completed after original frame expiry"
++            );
++            applied.store(true, Ordering::Release);
++            drop(
++                observed_source
++                    .state
++                    .try_lock()
++                    .expect("control retained source State"),
++            );
++            drop(
++                observed_target
++                    .state
++                    .try_lock()
++                    .expect("control retained target State"),
++            );
++            if let Some(gate) = next_read {
++                assert!(domain
++                    .audio_current_gate
++                    .lock()
++                    .unwrap()
++                    .replace(gate)
++                    .is_none());
++            }
++            let response: ControlResult<Box<dyn MediaAuthorityLease>> = match mutation {
++                Mutation::PolicyAuthority => Err(StreamControlError::Authority),
++                Mutation::PolicyConflict => Err(MediaTransitionError::Conflict.into()),
++                Mutation::ExpiredLease => Ok(Box::new(ExpiringPreparationLease {
++                    inner: lease,
++                    expiry: chrono::Utc::now() - chrono::Duration::seconds(1),
++                })),
++                _ if short => Ok(Box::new(ExpiringPreparationLease {
++                    inner: lease,
++                    expiry,
++                })),
++                _ => Ok(lease),
++            };
++            response
++        };
++        let action: OriginalVisualPolicyAction = Box::new(run);
++        let slot = if side == Side::Source {
++            &self.room.domain.original_visual_policy_action
++        } else {
++            &self.room.domain.queued_visual_receive_action
++        };
++        assert!(slot.lock().unwrap().replace(action).is_none());
++        HookOwner(self.room.domain.clone())
++    }
++    fn consumed(&self) -> bool {
++        self.room
++            .domain
++            .original_visual_policy_action
++            .lock()
++            .unwrap()
++            .is_none()
++            && self
++                .room
++                .domain
++                .queued_visual_receive_action
++                .lock()
++                .unwrap()
++                .is_none()
++    }
++}
++
++fn deliver(
++    queued: QueuedMedia,
++    medium: Medium,
++    writes: Arc<AtomicUsize>,
++    fresh_attempt: Arc<AtomicBool>,
++    require_fresh: bool,
++) -> impl Future<Output = ControlResult<()>> {
++    let timestamp = queued.frame.timestamp_rtp;
++    let payload = queued.frame.payload.clone();
++    let origin = queued.delivery_origin();
++    let transport = queued.target.binding.transport_id.clone();
++    let send = move |frame: MediaFrame, actual_origin: Option<MediaDeliveryOrigin>| {
++        writes.fetch_add(1, Ordering::SeqCst);
++        let valid = (!require_fresh || fresh_attempt.load(Ordering::Acquire))
++            && frame.timestamp_rtp == timestamp
++            && frame.payload == payload
++            && frame.stream_id == transport
++            && actual_origin == origin;
++        std::future::ready(if valid {
++            Ok(())
++        } else {
++            Err(StreamControlError::Authority)
++        })
++    };
++    async move {
++        if medium == Medium::Video {
++            queued
++                .deliver_video_with_feedback(move |frame, origin, _route| send(frame, origin))
++                .await
++                .map(|_| ())
++        } else {
++            // Native feedback API is camera-only; Screen uses the same guarded
++            // queued writer through its actual feedback-free origin entry.
++            queued.deliver_with_origin(send).await
++        }
++    }
++}
++
++async fn queued_race(medium: Medium, side: Side) {
++    for scenario in [
++        Scenario::Delivery,
++        Scenario::Revocation,
++        Scenario::EarlierExpiry,
++    ] {
++        let mut f = QueuedVisual::new(medium).await;
++        let (entered_tx, entered_rx) = std::sync::mpsc::sync_channel(1);
++        let (release_tx, release_rx) = std::sync::mpsc::sync_channel(1);
++        let applied = Arc::new(AtomicBool::new(false));
++        let fresh = Arc::new(AtomicBool::new(false));
++        let allow = Arc::new(Mutex::new(None));
++        let _hook = f.install(
++            medium,
++            side,
++            Mutation::AudioOnly,
++            Some(AudioCurrentGate {
++                entered: entered_tx,
++                release: release_rx,
++            }),
++            scenario == Scenario::EarlierExpiry,
++            allow.clone(),
++            applied.clone(),
++        );
++        let queued = f.queued.take().unwrap();
++        let admitted = queued.admitted_at;
++        let writes = Arc::new(AtomicUsize::new(0));
++        let runtime = tokio::runtime::Handle::current();
++        let task = deliver(queued, medium, writes.clone(), fresh.clone(), true);
++        let mut owner = DeliveryOwner {
++            release: Some(release_tx),
++            worker: Some(std::thread::spawn(move || runtime.block_on(task))),
++        };
++        let entered = entered_rx.recv_timeout(Duration::from_millis(250));
++        let readers_released = if entered.is_ok() {
++            // PRE-grant gate is the next complete source attempt, so no new
++            // source/target lease exists yet. A writer proves the old set gone.
++            let available = f.room.domain.base.0.try_write().is_ok()
++                && f.source.state.try_lock().is_ok()
++                && f.target.state.try_lock().is_ok()
++                && f.room.scene.members.try_lock().is_ok();
++            if available && scenario == Scenario::Revocation {
++                f.room
++                    .domain
++                    .base
++                    .0
++                    .write()
++                    .await
++                    .revoked
++                    .insert(if side == Side::Source { "alice" } else { "bob" }.into());
++            }
++            if available && scenario == Scenario::EarlierExpiry {
++                let at = allow.lock().unwrap().unwrap();
++                tokio::time::sleep_until(at.into()).await;
++            }
++            fresh.store(available, Ordering::Release);
++            available
++        } else {
++            false
++        };
++        let still_original_age = admitted.elapsed() < Duration::from_millis(200);
++        owner.release();
++        let result = owner.finish();
++        // Every original worker has joined BEFORE any result assertion, even
++        // on the old implementation's immediate Model(Conflict) failure.
++        assert!(
++            applied.load(Ordering::Acquire) && f.consumed(),
++            "after-grant control was not exercised"
++        );
++        match scenario {
++            Scenario::Delivery => assert!(
++                result.is_ok(),
++                "queued {medium:?} {side:?} stale callback lost original: {result:?}"
++            ),
++            Scenario::Revocation => assert!(
++                matches!(result, Err(StreamControlError::Authority)),
++                "current revocation: {result:?}"
++            ),
++            Scenario::EarlierExpiry => assert!(
++                matches!(result, Err(StreamControlError::Deadline)),
++                "original shorter grant renewed: {result:?}"
++            ),
++        }
++        assert!(
++            entered.is_ok() && readers_released,
++            "old readers survived refused attempt"
++        );
++        assert!(
++            still_original_age,
++            "test did not exercise the shorter bound before original200ms"
++        );
++        assert_eq!(
++            writes.load(Ordering::SeqCst),
++            usize::from(scenario == Scenario::Delivery)
++        );
++        f.room.tick();
++        assert!(
++            f.output.try_recv().is_err(),
++            "same queued original delivered twice"
++        );
++        drop(
++            f.room
++                .domain
++                .base
++                .0
++                .try_write()
++                .expect("completed delivery retained authority"),
++        );
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn queued_video_source_policy_race_reauthorizes_same_owned_packet() {
++    queued_race(Medium::Video, Side::Source).await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn queued_screen_source_policy_race_reauthorizes_same_owned_packet() {
++    queued_race(Medium::Screen, Side::Source).await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn queued_video_target_policy_race_reauthorizes_same_owned_packet() {
++    queued_race(Medium::Video, Side::Target).await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn queued_screen_target_policy_race_reauthorizes_same_owned_packet() {
++    queued_race(Medium::Screen, Side::Target).await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn queued_visual_policy_races_preserve_hard_authority_and_generation_fences() {
++    for medium in [Medium::Video, Medium::Screen] {
++        for side in [Side::Source, Side::Target] {
++            for mutation in [
++                Mutation::Gate,
++                Mutation::PauseResume,
++                Mutation::Credential,
++                Mutation::Port,
++                Mutation::Scene,
++                Mutation::Direct,
++                Mutation::PolicyAuthority,
++                Mutation::PolicyConflict,
++                Mutation::ExpiredLease,
++            ] {
++                let mut f = QueuedVisual::new(medium).await;
++                let applied = Arc::new(AtomicBool::new(false));
++                let _hook = f.install(
++                    medium,
++                    side,
++                    mutation,
++                    None,
++                    false,
++                    Arc::new(Mutex::new(None)),
++                    applied.clone(),
++                );
++                let queued = f.queued.take().unwrap();
++                let writes = Arc::new(AtomicUsize::new(0));
++                let result = deliver(
++                    queued,
++                    medium,
++                    writes.clone(),
++                    Arc::new(AtomicBool::new(false)),
++                    false,
++                )
++                .await;
++                assert!(
++                    applied.load(Ordering::Acquire) && f.consumed(),
++                    "{mutation:?} callback was not exercised"
++                );
++                assert!(
++                    result.is_err(),
++                    "{medium:?} {side:?} {mutation:?} adopted new eligibility"
++                );
++                if mutation == Mutation::PolicyAuthority {
++                    assert!(matches!(result, Err(StreamControlError::Authority)));
++                }
++                if mutation == Mutation::PolicyConflict || mutation == Mutation::Credential {
++                    assert!(matches!(
++                        result,
++                        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++                    ));
++                }
++                if mutation == Mutation::ExpiredLease {
++                    assert!(matches!(result, Err(StreamControlError::Deadline)));
++                }
++                assert_eq!(
++                    writes.load(Ordering::SeqCst),
++                    0,
++                    "{mutation:?} reached writer"
++                );
++                drop(
++                    f.room
++                        .domain
++                        .base
++                        .0
++                        .try_write()
++                        .expect("hard refusal retained policy authority"),
++                );
++            }
++        }
++    }
++}

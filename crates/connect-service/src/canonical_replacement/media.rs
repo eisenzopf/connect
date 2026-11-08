@@ -576,13 +576,48 @@ impl TargetPolicy {
         {
             return Err(Error::forbidden());
         }
-        let owner = self.current_owner(&read).map_err(|error| match error {
-            StreamControlError::NotReady | StreamControlError::MetadataBusy => {
-                Error::new("authority-busy", "Original receiver owner is busy")
-            }
-            _ => Error::forbidden(),
-        })?;
+        #[cfg(feature = "test-support")]
+        let probed = self
+            .base
+            .probe_receiver_epoch_registry_for_test(&root.origin.request().operation_id, || {
+                self.receiver_epoch_owner(&read)
+            });
+        #[cfg(not(feature = "test-support"))]
+        let probed: Option<Result<MediaOwner>> = None;
+        let owner = match probed {
+            Some(result) => result?,
+            None => self.receiver_epoch_owner(&read)?,
+        };
         Ok((owner, read, Arc::downgrade(&preroll)))
+    }
+
+    fn receiver_epoch_owner(
+        &self,
+        read: &connect_store::NativeReplacementMediaRead,
+    ) -> Result<MediaOwner> {
+        // Capture exact registry metadata under this fresh read. Contention is
+        // not evidence that either original physical owner lost authority.
+        let entries = self
+            .base
+            .replacement_preparation_entries(read.source())
+            .map_err(|error| {
+                if error.code == "authority-busy" {
+                    error
+                } else {
+                    Error::forbidden()
+                }
+            })?;
+        let source = self
+            .base
+            .replacement_source_owner_with_entries(read.source(), &entries)
+            .map_err(|_| Error::forbidden())?;
+        self.current_owner_with_source(read, source)
+            .map_err(|error| match error {
+                StreamControlError::NotReady | StreamControlError::MetadataBusy => {
+                    Error::new("authority-busy", "Original receiver owner is busy")
+                }
+                _ => Error::forbidden(),
+            })
     }
 }
 

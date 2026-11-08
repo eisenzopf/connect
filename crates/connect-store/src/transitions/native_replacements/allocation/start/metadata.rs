@@ -38,21 +38,28 @@ impl Metadata {
             scenes: Mutex::new(Vec::new()),
         }
     }
-    fn require(&self, store: &Store, origin: &NativeReplacementMediaOrigin) -> Result<()> {
+    fn require(
+        &self,
+        store: &Store,
+        origin: &NativeReplacementMediaOrigin,
+        checked: &crate::installation_ownership::CheckedRuntimeOwner<'_>,
+    ) -> Result<()> {
         if !self.root.ptr_eq(&Arc::downgrade(&origin.started)) {
             return Err(Error::forbidden());
         }
         let prepared = &origin.started.attempt.allocated.attempt.prepared;
-        let owner = store.require_runtime_owner()?;
+        let owner = checked.owner(store)?;
         if prepared.runtime != store.runtime_epoch()
             || !prepared
                 .owner
                 .upgrade()
-                .is_some_and(|old| Arc::ptr_eq(&old, &owner))
+                .is_some_and(|old| Arc::ptr_eq(&old, owner))
         {
             return Err(Error::forbidden());
         }
-        prepared.selection.require_native_packet_runtime(store)
+        prepared
+            .selection
+            .require_native_packet_runtime(store, checked)
     }
     fn scene(
         &self,
@@ -144,10 +151,12 @@ fn media_read(
     facts: &MediaFacts,
     held: Arc<AuthorityGuardSet>,
     expiry: i64,
+    checked: &crate::installation_ownership::CheckedRuntimeOwner<'_>,
 ) -> Result<NativeReplacementMediaRead> {
-    origin.metadata.require(store, origin)?;
+    origin.metadata.require(store, origin, checked)?;
     let selection = &origin.started.attempt.allocated.attempt.prepared.selection;
-    let source = selection.read_native_packet_facts(store, &facts.source, held.clone(), expiry)?;
+    let source =
+        selection.read_native_packet_facts(store, &facts.source, held.clone(), expiry, checked)?;
     Ok(NativeReplacementMediaRead {
         source,
         target: facts.target.clone(),
@@ -159,7 +168,8 @@ pub(super) fn media(
     origin: &NativeReplacementMediaOrigin,
     receiver: bool,
 ) -> Result<NativeReplacementMediaRead> {
-    origin.metadata.require(store, origin)?;
+    let checked = store.checked_runtime_owner()?;
+    origin.metadata.require(store, origin, &checked)?;
     let memo = if receiver {
         &origin.metadata.receiver_epoch
     } else {
@@ -168,10 +178,11 @@ pub(super) fn media(
     let read = store.try_memoized_current_packet_projection(
         memo.as_ref(),
         |c| capture_media(store, c, origin, receiver),
-        |_, facts, held, expiry| media_read(store, origin, facts, held, expiry),
+        |_, facts, held, expiry| media_read(store, origin, facts, held, expiry, &checked),
         None,
     )?;
-    origin.metadata.require(store, origin)?;
+    checked.revalidate()?;
+    origin.metadata.require(store, origin, &checked)?;
     if !read.current() {
         return Err(Error::forbidden());
     }
@@ -183,9 +194,19 @@ pub(super) fn scene(
     sources: &[Arc<crate::NativeMediaOrigin>],
     custody: Option<(&Arc<AuthorityGuardSet>, i64, &crate::NativeMediaOrigin)>,
 ) -> Result<NativeReplacementSceneRead> {
-    origin.metadata.require(store, origin)?;
+    scene_with_final_hook(store, origin, sources, custody, || {})
+}
+fn scene_with_final_hook(
+    store: &Store,
+    origin: &NativeReplacementMediaOrigin,
+    sources: &[Arc<crate::NativeMediaOrigin>],
+    custody: Option<(&Arc<AuthorityGuardSet>, i64, &crate::NativeMediaOrigin)>,
+    before_return: impl FnOnce(),
+) -> Result<NativeReplacementSceneRead> {
+    let checked = store.checked_runtime_owner()?;
+    origin.metadata.require(store, origin, &checked)?;
     for source in sources {
-        source.require_runtime(store)?;
+        source.require_checked_runtime(store, &checked)?;
     }
     let packet_source = match custody {
         Some((_, _, packet)) => Some(
@@ -233,22 +254,24 @@ pub(super) fn scene(
             Ok((facts, AuthorityScope::merged(&scopes)?, expiry))
         },
         |_, facts, held, expiry| {
-            let media = Arc::new(media_read(store, origin, &facts.media, held.clone(), expiry)?);
+            let media = Arc::new(media_read(store, origin, &facts.media, held.clone(), expiry, &checked)?);
             for source in sources {
-                source.require_runtime(store)?;
+                source.require_checked_runtime(store, &checked)?;
             }
             Ok(NativeReplacementSceneRead {
                 media,
-                reads: store.native_scene_reads(facts.reads.clone(), held, expiry)?,
+                reads: store.native_scene_reads_checked(facts.reads.clone(), held, expiry, &checked)?,
                 audience_sources: facts.audience.clone(),
                 telephone_pairs: std::collections::BTreeMap::new(),
             })
         },
         custody.map(|(held, expiry, _)| (held, expiry)),
     )?;
-    origin.metadata.require(store, origin)?;
+    before_return();
+    checked.revalidate()?;
+    origin.metadata.require(store, origin, &checked)?;
     for source in sources {
-        source.require_runtime(store)?;
+        source.require_checked_runtime(store, &checked)?;
     }
     if !read.current() {
         return Err(Error::forbidden());
@@ -278,5 +301,17 @@ impl NativeReplacementMediaOrigin {
     }
     pub(crate) fn packet_scene_memo_keys_for_test(&self) -> usize {
         self.metadata.scenes.lock().unwrap().len()
+    }
+}
+
+#[cfg(test)]
+impl Store {
+    pub(crate) fn native_scene_with_final_hook_for_test(
+        &self,
+        origin: &NativeReplacementMediaOrigin,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        before_return: impl FnOnce(),
+    ) -> Result<NativeReplacementSceneRead> {
+        scene_with_final_hook(self, origin, sources, None, before_return)
     }
 }

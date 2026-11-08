@@ -78,6 +78,8 @@ pub struct InstallationOwnership {
     epoch: String,
     provider_worker: Mutex<Option<Weak<ProviderWorkerOwnership>>>,
     retirement_signals: Mutex<Vec<Weak<dyn RuntimeRetirementSignal>>>,
+    #[cfg(test)]
+    physical_checks: std::sync::atomic::AtomicU64,
 }
 impl std::fmt::Debug for InstallationOwnership {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -163,12 +165,16 @@ impl InstallationOwnership {
             epoch: format!("runtime_{}", uuid::Uuid::new_v4().simple()),
             provider_worker: Mutex::new(None),
             retirement_signals: Mutex::new(vec![]),
+            #[cfg(test)]
+            physical_checks: std::sync::atomic::AtomicU64::new(0),
         });
         owner.check(&owner.database)?;
         owners.insert(identity, Arc::downgrade(&owner));
         Ok(owner)
     }
     pub(crate) fn check(&self, database: &Path) -> Result<()> {
+        #[cfg(test)]
+        self.physical_checks.fetch_add(1, Ordering::Relaxed);
         if self.retired.load(Ordering::Acquire) {
             return Err(Error::forbidden());
         }
@@ -182,6 +188,10 @@ impl InstallationOwnership {
             &fs::symlink_metadata(&self.lock_path).map_err(|_| unavailable())?,
             Some(self.identity.2),
         )
+    }
+    #[cfg(test)]
+    pub(crate) fn physical_check_count_for_test(&self) -> u64 {
+        self.physical_checks.load(Ordering::Relaxed)
     }
     /// Stop new admissions. Existing owned SQL permits keep the kernel lock until
     /// their work settles; retaining an old Store Arc does not revive this owner.
@@ -198,6 +208,25 @@ impl InstallationOwnership {
     /// Nonblocking predicate for already admitted transport custody.
     pub(crate) fn current(&self) -> bool {
         !self.retired.load(Ordering::Acquire)
+    }
+}
+
+/// One invocation's physically checked runtime owner, never an authority grant.
+/// This borrows the exact Store and cannot be retained in packet metadata.
+pub(crate) struct CheckedRuntimeOwner<'a> {
+    store: &'a Store,
+    owner: Arc<InstallationOwnership>,
+}
+impl CheckedRuntimeOwner<'_> {
+    pub(crate) fn owner(&self, store: &Store) -> Result<&Arc<InstallationOwnership>> {
+        if !std::ptr::eq(self.store, store) || !self.owner.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(&self.owner)
+    }
+    /// Full physical validation after construction, before a read can escape.
+    pub(crate) fn revalidate(&self) -> Result<()> {
+        self.owner(self.store)?.check(&self.store.path)
     }
 }
 
@@ -550,6 +579,12 @@ impl Store {
                 Err(error) => return Err(error),
             }
         }
+    }
+    pub(crate) fn checked_runtime_owner(&self) -> Result<CheckedRuntimeOwner<'_>> {
+        Ok(CheckedRuntimeOwner {
+            store: self,
+            owner: self.require_runtime_owner()?,
+        })
     }
     pub(crate) fn require_runtime_owner(&self) -> Result<Arc<InstallationOwnership>> {
         self.runtime_ownership

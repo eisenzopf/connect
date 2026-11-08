@@ -16,8 +16,12 @@ struct Encoder {
     output: tokio::process::ChildStdout,
 }
 impl Encoder {
-    async fn open(directory: &Path) -> Self {
-        assert_eq!(std::env::consts::OS, "linux");
+    async fn open(directory: &Path, installed_mac_fixture: bool) -> Self {
+        assert!(
+            std::env::consts::OS == "linux"
+                || (installed_mac_fixture && std::env::consts::OS == "macos"),
+            "existing cases retain Linux scope; receiver epoch fixture also supports installed macOS arm64"
+        );
         assert_eq!(std::env::consts::ARCH, "aarch64");
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let binary = directory.join("feedback-encoder");
@@ -235,6 +239,86 @@ async fn decode(directory: &Path, frame: &[u8], index: u32) {
     );
 }
 
+// Metadata-only normal-path proof. Actual original encoded key bytes travel
+// under new current RTP submissions; no decoded Ready or commit is invented.
+#[cfg(feature = "test-support")]
+async fn observe_receiver_epoch_retry(
+    io: &mut NativeVideoDatagrams,
+    incoming: u16,
+    source: &sdk::Stream,
+    key: &[u8],
+    sequence: &mut u16,
+    original_cutoff: tokio::time::Instant,
+) -> std::result::Result<(), String> {
+    use futures_util::FutureExt;
+    use std::panic::AssertUnwindSafe;
+    let cutoff = original_cutoff.min(tokio::time::Instant::now() + Duration::from_secs(2));
+    let stop = tokio_util::sync::CancellationToken::new();
+    let receive = async {
+        let observed = tokio::time::timeout_at(cutoff, async {
+            let mut assembly = connect_client::VideoFrameAssembler::default();
+            loop {
+                let packet = io.receive().await.map_err(|error| format!("{error:?}"))?;
+                let Some(history) = packet.video_epoch else {
+                    continue;
+                };
+                if u16::from_be_bytes(packet.bytes[2..4].try_into().unwrap()) != incoming
+                    || !io
+                        .is_current_video_receive_epoch(incoming, &history)
+                        .map_err(|error| format!("{error:?}"))?
+                {
+                    return Err("foreign or stale receiver history".into());
+                }
+                let packet = connect_client::NativeVideoPacket::parse(packet.bytes[24..].to_vec())
+                    .map_err(|error| format!("{error:?}"))?;
+                if let Some(frame) = assembly
+                    .push(&packet)
+                    .map_err(|error| format!("{error:?}"))?
+                {
+                    if !frame.keyframe || frame.encoded.as_slice() != key {
+                        return Err("different original private key bytes".into());
+                    }
+                    return Ok::<(), String>(());
+                }
+            }
+        })
+        .await
+        .map_err(|_| "original signed receiver notice/video observation expired".to_owned())
+        .and_then(|value| value);
+        stop.cancel();
+        observed
+    };
+    let publish = async {
+        let result = AssertUnwindSafe(async {
+            let mut tick = tokio::time::interval(Duration::from_millis(50));
+            tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            let mut index = 1;
+            loop {
+                tokio::select! {
+                    biased;
+                    _ = stop.cancelled() => break,
+                    _ = tokio::time::sleep_until(cutoff) => break,
+                    _ = tick.tick() => {}
+                }
+                tokio::time::timeout_at(
+                    cutoff,
+                    publish_timestamp(source, key, index * 3000, sequence),
+                )
+                .await
+                .map_err(|_| "original packet publication observation expired".to_owned())?;
+                index += 1;
+            }
+            Ok::<(), String>(())
+        })
+        .catch_unwind()
+        .await;
+        stop.cancel();
+        result.map_err(|_| "original packet publication panicked".to_owned())?
+    };
+    let (received, published) = tokio::join!(receive, publish);
+    received.and(published)
+}
+
 use connect_client::canonical::{
     CanonicalClient, CanonicalHttpClient, CommandScope, NativeVideoDatagrams,
 };
@@ -407,6 +491,20 @@ async fn signed_replacement_commit_preserves_current_owner_under_registry_conten
 #[tokio::test]
 async fn signed_replacement_preparation_preserves_current_authority_under_registry_contention() {
     tokio::time::timeout(Duration::from_secs(90), exercise(4))
+        .await
+        .unwrap();
+}
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(18))
+        .await
+        .unwrap();
+}
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_private_receiver_epoch_retry_keeps_same_registration_and_fresh_history() {
+    tokio::time::timeout(Duration::from_secs(90), exercise(19))
         .await
         .unwrap();
 }
@@ -960,7 +1058,7 @@ async fn exercise(mode: u8) {
         .unwrap(),
     );
     eprintln!("production replacement phase: initial-codec-history");
-    let mut encoder = Encoder::open(f.temp.path()).await;
+    let mut encoder = Encoder::open(f.temp.path(), matches!(mode, 18 | 19)).await;
     let first = encoder.frame(0, true).await;
     let mut original_sequence = 0;
     let mut retained_sequence = 0;
@@ -1029,6 +1127,25 @@ async fn exercise(mode: u8) {
             f.server
                 .service
                 .arm_canonical_held_registry_probe_for_test(&command.operation_id)
+                .unwrap(),
+        )
+    } else {
+        None
+    };
+    #[cfg(feature = "test-support")]
+    let receiver_epoch_registry_probe = if matches!(mode, 18 | 19) {
+        let prefix = if mode == 18 {
+            "receiver-epoch"
+        } else {
+            "receiver-epoch-propagate"
+        };
+        Some(
+            f.server
+                .service
+                .arm_canonical_preparation_registry_probe_for_test(&format!(
+                    "{prefix}:{}",
+                    command.operation_id
+                ))
                 .unwrap(),
         )
     } else {
@@ -1144,6 +1261,55 @@ async fn exercise(mode: u8) {
     phase(&f, &mut controller, &command, 5).await;
     let mut io = replacement.claim_native_video_datagrams().unwrap();
     let mut sequence = 0u16;
+    #[cfg(feature = "test-support")]
+    if mode == 19 {
+        let probe = receiver_epoch_registry_probe.as_ref().unwrap();
+        let observed = observe_receiver_epoch_retry(
+            &mut io,
+            incoming,
+            &retained_send,
+            &first,
+            &mut retained_sequence,
+            original_cutoff,
+        )
+        .await;
+        let notice_count = io.verified_video_receiver_notice_count_for_test();
+        let bits = probe.load(std::sync::atomic::Ordering::Acquire);
+        // Preserve the exact original root: this metadata-only proof never
+        // reports decoded Ready or submits a replacement commit.
+        let status = controller
+            .operation_get(
+                &command.operation_id,
+                CommandScope {
+                    conversation_id: Some(command.conversation_id.clone()),
+                    session_id: Some(command.session_id.clone()),
+                    connection_id: command.connection_id.clone(),
+                    ..Default::default()
+                },
+            )
+            .await;
+        encoder.close().await;
+        let target_closed = replacement.shutdown().await;
+        drop(io);
+        let publisher_closed = publisher.close(options()).await;
+        let subscriber_closed = subscriber.close(options()).await;
+        let server_closed = f.server.shutdown().await;
+        eprintln!("receiver epoch propagated result bits={bits} video={observed:?} notices={notice_count:?} target_closed={target_closed:?} publisher_closed={publisher_closed:?} subscriber_closed={subscriber_closed:?} server_closed={server_closed:?}");
+        target_closed.unwrap();
+        publisher_closed.unwrap();
+        subscriber_closed.unwrap();
+        server_closed.unwrap();
+        assert_eq!(
+            bits, 7,
+            "actual contended epoch leaf must defer rather than retire the original registration"
+        );
+        assert!(observed.is_ok(), "same original signed receiver history/video was not delivered after release: {observed:?}");
+        assert_eq!(notice_count.unwrap(), 1);
+        let status = status.unwrap();
+        assert_eq!(status.record_id, root.record_id);
+        assert_eq!(serde_json::to_value(status).unwrap()["state"], "preparing");
+        return;
+    }
     #[cfg(feature = "test-support")]
     let original_video_phase_rows = if let Some(probe) = video_preparation_probe.as_ref() {
         let probe_cutoff =
@@ -1549,6 +1715,21 @@ async fn exercise(mode: u8) {
         third.close(options()).await.unwrap();
     }
     f.server.shutdown().await.unwrap();
+    #[cfg(feature = "test-support")]
+    if let Some(probe) = receiver_epoch_registry_probe {
+        let bits = probe.load(std::sync::atomic::Ordering::Acquire);
+        eprintln!(
+            "receiver epoch actual-read registry probe: before={} held_busy={} after={} held_forbidden={}",
+            bits & 1 != 0,
+            bits & 2 != 0,
+            bits & 4 != 0,
+            bits & 8 != 0,
+        );
+        assert_eq!(
+            bits, 7,
+            "actual receiver epoch owner under real registry exclusion must be authority-busy, not forbidden"
+        );
+    }
     #[cfg(feature = "test-support")]
     if let Some(probe) = start_registry_probe {
         assert_eq!(

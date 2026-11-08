@@ -209,22 +209,26 @@ impl NativeReplacementSelection {
         read.limit(expires)?;
         Ok(read)
     }
-    pub(crate) fn require_native_packet_runtime(&self, store: &Store) -> Result<()> {
-        let owner = store.require_runtime_owner()?;
+    pub(crate) fn require_native_packet_runtime(
+        &self,
+        store: &Store,
+        checked: &crate::installation_ownership::CheckedRuntimeOwner<'_>,
+    ) -> Result<()> {
+        let owner = checked.owner(store)?;
         if self.origin.runtime != store.runtime_epoch()
             || !self
                 .origin
                 .owner
                 .upgrade()
-                .is_some_and(|old| Arc::ptr_eq(&old, &owner))
+                .is_some_and(|old| Arc::ptr_eq(&old, owner))
         {
             return Err(Error::forbidden());
         }
         let NativeReplacementSourceOrigin::Native(source) = &self.source else {
             return Err(Error::forbidden());
         };
-        source.require_runtime(store)?;
-        self.retained.require_runtime(store)
+        source.require_checked_runtime(store, checked)?;
+        self.retained.require_checked_runtime(store, checked)
     }
     // Private immutable SQL data for exact-version packet construction. This
     // type owns no origin, owner, observer, reader, execution or IO lifetime.
@@ -250,12 +254,13 @@ impl NativeReplacementSelection {
         facts: &NativeReplacementPacketFacts,
         held: Arc<AuthorityGuardSet>,
         expires: i64,
+        checked: &crate::installation_ownership::CheckedRuntimeOwner<'_>,
     ) -> Result<NativeReplacementPreparationRead> {
         let NativeReplacementSourceOrigin::Native(source) = &self.source else {
             return Err(Error::forbidden());
         };
-        source.require_runtime(store)?;
-        self.retained.require_runtime(store)?;
+        source.require_checked_runtime(store, checked)?;
+        self.retained.require_checked_runtime(store, checked)?;
         if !store.authority_covers(&held, &facts.0.scopes) {
             return Err(Error::forbidden());
         }
@@ -263,7 +268,12 @@ impl NativeReplacementSelection {
         // The compound scene/caller interval may expire before either source.
         // Every nested read must carry that same original upper bound.
         resolved.expires_at = resolved.expires_at.min(expires);
-        let mut read = make_native_read(store, self.clone(), resolved, held)?;
+        let mut read = make_native_read_with_owner(
+            self.clone(),
+            resolved,
+            held,
+            checked.owner(store)?.clone(),
+        )?;
         read.limit(expires)?;
         Ok(read)
     }
@@ -536,7 +546,14 @@ fn make_native_read(
     resolved: Resolved,
     held: Arc<AuthorityGuardSet>,
 ) -> Result<NativeReplacementPreparationRead> {
-    let owner = store.require_runtime_owner()?;
+    make_native_read_with_owner(selection, resolved, held, store.require_runtime_owner()?)
+}
+fn make_native_read_with_owner(
+    selection: NativeReplacementSelection,
+    resolved: Resolved,
+    held: Arc<AuthorityGuardSet>,
+    owner: Arc<crate::installation_ownership::InstallationOwnership>,
+) -> Result<NativeReplacementPreparationRead> {
     let make = |target, may_subscribe| NativeMediaRead {
         target,
         source: None,

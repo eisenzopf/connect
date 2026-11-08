@@ -1949,6 +1949,16 @@
       "path": "patches/rvoip/connect-owned-original-visual-policy-retry.patch",
       "sha256": "ccebd9a155f7865b3e064d33ebbb50bf2a8898464a53b2737dc79adc4918340d",
       "source": "Keep the exact post-policy model revision mismatch as a refusal. Only an owned raw Video/Screen OriginalIngress which still passes every normal current credential/model/port/ticket/consumer/scene/authority check returns MetadataBusy before any admission or IO escapes; its original owner retries the same frame with fresh authority and earliest previously observed expiry. Queued/general/Audio callers and policy-returned/model/credential conflicts are unchanged. Regress actual after-grant muted AudioAudience commits for camera and screen with initial State-excluded capture, single fresh retry delivery, gate/pause-resume ABA/credential/current-denial/earlier-lease/policy-conflict/Audio negatives."
+    },
+    {
+      "path": "patches/rvoip/connect-queued-visual-policy-race-tests.patch",
+      "sha256": "8bd97e685eb191aa19304b1e9a33dbfa4043ede90ee3477dd5369fbbaf0f877b",
+      "source": "Tests-only: reproduce owned queued native Video/Screen source and target policy-read model races using existing real AudioAudience control after a fresh grant. Preserve production unchanged. Four separate positives use one owned QueuedMedia captured after scene tick, exact original identity/200ms, old-reader release before fresh admission and one IO; current revocation and earlier lease expiry scenarios. Separate hard-fence negatives. Join original control/delivery workers and clear callback references even on old ModelConflict failures; Screen uses actual feedback-free writer entry."
+    },
+    {
+      "path": "patches/rvoip/connect-owned-queued-visual-policy-retry.patch",
+      "sha256": "7b6a69874c25087c4bae84a759a5bc5d935bb8f98bb571ed5a36ccb3ad36fbf4",
+      "source": "Retry only actual owned single-source queued Video/Screen after a definite internal post-policy model revision race. Private owner tagging excludes ordinary scene forwarding, generic callers, Audio and Data; preserve raw original367 behavior. Refuse the stale callback and run all unchanged current authority/credential/exact model-port-ticket/direct/consumer/scene/earliest-expiry checks before returning NotReady to the existing same-copy bounded queued owner. Drop all source/target leases before its existing1ms retry; no IO on stale grants, no queue/deadline increase, no policy/permanent conflict normalization. Existing error-only source/target egress traces add frame kind and original age numeric context."
     }
   ]
 }

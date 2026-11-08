@@ -179,6 +179,56 @@ impl ReplacementPreparationInvocation {
 }
 #[cfg(feature = "test-support")]
 impl Policy {
+    pub(crate) fn probe_receiver_epoch_registry_for_test(
+        &self,
+        operation: &str,
+        owner: impl Fn() -> connect_protocol::Result<MediaOwner>,
+    ) -> Option<connect_protocol::Result<MediaOwner>> {
+        use std::sync::atomic::Ordering;
+        let (observed, propagate) = {
+            let mut probes = self
+                .preparation_registry_probes
+                .lock()
+                .expect("receiver epoch probe registry");
+            if let Some(observed) = probes.remove(&format!("receiver-epoch:{operation}")) {
+                (Some(observed), false)
+            } else {
+                (
+                    probes.remove(&format!("receiver-epoch-propagate:{operation}")),
+                    true,
+                )
+            }
+        };
+        let Some(observed) = observed else {
+            return None;
+        };
+        let before = owner().is_ok();
+        let mut held = None;
+        self.with_registry_for_test(|| {
+            // The normal leaf receives the original current Store read under
+            // actual registry exclusion. No synthetic domain error is injected.
+            held = Some(owner());
+        })
+        .expect("actual receiver epoch registry lock");
+        let held = held.expect("original receiver epoch leaf was not called");
+        let after = owner().is_ok();
+        let busy = matches!(&held, Err(error) if error.code == "authority-busy");
+        let forbidden = matches!(&held, Err(error) if error.code == "forbidden");
+        observed.store(
+            usize::from(before)
+                | (usize::from(busy) << 1)
+                | (usize::from(after) << 2)
+                | (usize::from(forbidden) << 3),
+            Ordering::Release,
+        );
+        // The second normal case passes this actual under-lock result through
+        // the unchanged lifecycle policy. Its next poll must obtain a fresh read.
+        if propagate {
+            Some(held)
+        } else {
+            None
+        }
+    }
     pub(crate) fn arm_preparation_registry_probe_for_test(
         &self,
         operation: &str,

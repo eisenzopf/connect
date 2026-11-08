@@ -743,3 +743,340 @@ fn private_successor_packet_interval_drains_before_original_target_authority_wri
     drop(m.f.store.try_acquire_authority(&scopes).unwrap());
     assert_private(&m, &target);
 }
+
+fn lineage_cache_counts(m: &Movement) -> (u64, u64, u64, u64) {
+    (
+        m.f.count("operations"),
+        m.f.count("operation_effects"),
+        m.f.count("native_replacement_steps"),
+        m.f.count("journal"),
+    )
+}
+
+// Exact byte-for-byte hot-path SQL. Preparing this statement is not execution:
+// VmStep can rise only when floor() actually executes this compiled statement.
+const LINEAGE_ANCESTRY_STATEMENT: &str = "WITH RECURSIVE ancestry(id) AS (SELECT ?1 UNION SELECT o.connection_id FROM ancestry a JOIN native_replacements n ON n.candidate_connection_id=a.id JOIN operations o ON o.record_id=n.operation_record_id WHERE o.connection_id IS NOT NULL) SELECT EXISTS(SELECT 1 FROM ancestry a JOIN native_private_content_floors f ON f.connection_id=a.id)";
+
+#[test]
+fn private_successor_floor_executes_the_original_cached_ancestry_statement() {
+    use rusqlite::StatementStatus;
+    let m = fixture(true);
+    let before = lineage_cache_counts(&m);
+    let c = m.f.store.connection().unwrap();
+    let seed = c.prepare_cached(LINEAGE_ANCESTRY_STATEMENT).unwrap();
+    seed.reset_status(StatementStatus::VmStep);
+    assert_eq!(seed.get_status(StatementStatus::VmStep), 0);
+    drop(seed);
+    assert!(replacement_lineage::floor(&c, m.sources[0].connection_id())
+        .unwrap()
+        .is_none());
+    let reused = c.prepare_cached(LINEAGE_ANCESTRY_STATEMENT).unwrap();
+    assert!(reused.get_status(StatementStatus::VmStep) > 0,
+        "floor() compiled a separate ancestry statement instead of executing the original cached statement");
+    assert!(reused.reset_status(StatementStatus::VmStep) > 0);
+    assert_eq!(reused.get_status(StatementStatus::VmStep), 0);
+    drop(reused);
+    // A second actual connection ID executes the same compiled query with fresh
+    // bindings. Neither the compiled program nor its cache is a result cache.
+    assert!(replacement_lineage::floor(&c, m.sources[1].connection_id())
+        .unwrap()
+        .is_none());
+    let reused = c.prepare_cached(LINEAGE_ANCESTRY_STATEMENT).unwrap();
+    assert!(reused.get_status(StatementStatus::VmStep) > 0);
+    drop(reused);
+    drop(c);
+    assert_eq!(lineage_cache_counts(&m), before);
+}
+
+#[test]
+fn private_successor_cached_ancestry_observes_changed_floors_and_current_revocation() {
+    let (m, parent) = private_scene();
+    let read =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let pending = read.media().target().connection.connection_id.clone();
+    drop(read);
+    let c = m.f.store.connection().unwrap();
+    let floor = replacement_lineage::floor(&c, m.sources[0].connection_id())
+        .unwrap()
+        .unwrap();
+    assert_eq!(floor.record, parent);
+    assert_eq!(
+        replacement_lineage::floor(&c, &pending).err().unwrap().code,
+        "forbidden",
+        "an unsealed descendant must retain its real private ancestor's restriction"
+    );
+    // Model the existing restoration scalar inside a rollback-only isolated
+    // metadata control. This is not a return/media receipt or an authority grant.
+    c.execute_batch("SAVEPOINT cached_lineage_floor").unwrap();
+    assert_eq!(c.execute("UPDATE native_private_lifetimes SET restored_at=?2 WHERE operation_record_id=?1 AND restored_at IS NULL", params![parent, crate::now()]).unwrap(), 1);
+    assert!(replacement_lineage::floor(&c, m.sources[0].connection_id())
+        .unwrap()
+        .is_none());
+    assert!(
+        replacement_lineage::floor(&c, &pending).unwrap().is_none(),
+        "compiled ancestry must execute fresh rows after the actual floor changes"
+    );
+    c.execute_batch("ROLLBACK TO cached_lineage_floor; RELEASE cached_lineage_floor")
+        .unwrap();
+    assert_eq!(
+        replacement_lineage::floor(&c, &pending).err().unwrap().code,
+        "forbidden"
+    );
+    assert_eq!(
+        replacement_lineage::floor(&c, m.sources[0].connection_id())
+            .unwrap()
+            .unwrap()
+            .record,
+        parent
+    );
+    drop(c);
+    let target = complete(&m, &parent);
+    assert_private(&m, &target);
+    let c = m.f.store.connection().unwrap();
+    assert_eq!(
+        replacement_lineage::floor(&c, target.connection_id())
+            .unwrap()
+            .unwrap()
+            .record,
+        parent
+    );
+    assert_eq!(
+        c.execute(
+            "UPDATE credentials SET revoked=1 WHERE id=?1",
+            [&m.target_request.credentials[0]]
+        )
+        .unwrap(),
+        1
+    );
+    // Restriction metadata may remain, but its cached SQL never grants current
+    // target authentication after the original credential is revoked.
+    assert_eq!(
+        replacement_lineage::floor(&c, target.connection_id())
+            .unwrap()
+            .unwrap()
+            .record,
+        parent
+    );
+    drop(c);
+    assert_eq!(
+        m.f.store
+            .try_native_media_read(&target, Some(&m.sources[1]))
+            .err()
+            .unwrap()
+            .code,
+        "unauthorized"
+    );
+    assert!(m
+        .f
+        .store
+        .try_native_media_read(&m.sources[1], Some(&target))
+        .is_err());
+}
+
+#[test]
+fn private_successor_cached_ancestry_terminates_corrupt_cycle_without_private_fallback() {
+    let (m, parent) = private_scene();
+    let first = complete(&m, &parent);
+    let m = second_scene(m, first.clone());
+    let read =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let pending = read.media().target().connection.connection_id.clone();
+    drop(read);
+    let before = lineage_cache_counts(&m);
+    let c = m.f.store.connection().unwrap();
+    assert_eq!(
+        replacement_lineage::floor(&c, &pending).err().unwrap().code,
+        "forbidden"
+    );
+    let foreign_keys: u64 = c
+        .query_row("PRAGMA foreign_keys", [], |r| r.get(0))
+        .unwrap();
+    let deferred_before: u64 = c
+        .query_row("PRAGMA defer_foreign_keys", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(foreign_keys, 1);
+    assert_eq!(deferred_before, 0);
+    assert_eq!(
+        c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r
+            .get::<_, u64>(
+            0
+        ))
+        .unwrap(),
+        0
+    );
+    c.execute_batch("SAVEPOINT corrupt_lineage_cycle").unwrap();
+    // Both production defenses reject this unpublished candidate edge. Remove
+    // only the trigger and defer only this rollback-only transaction's FK check
+    // to inspect intentionally corrupt ancestry; this is never a valid state.
+    let trigger = c
+        .execute(
+            "UPDATE operations SET connection_id=?2 WHERE record_id=?1",
+            params![first.offer_record_id(), pending],
+        )
+        .unwrap_err();
+    assert!(
+        matches!(trigger, rusqlite::Error::SqliteFailure(_, Some(ref message))
+        if message == "operation intent is immutable")
+    );
+    c.execute_batch("DROP TRIGGER operation_intent_immutable")
+        .unwrap();
+    let foreign_key = c
+        .execute(
+            "UPDATE operations SET connection_id=?2 WHERE record_id=?1",
+            params![first.offer_record_id(), pending],
+        )
+        .unwrap_err();
+    assert!(
+        matches!(foreign_key, rusqlite::Error::SqliteFailure(ref error, _)
+        if error.extended_code == rusqlite::ffi::SQLITE_CONSTRAINT_FOREIGNKEY)
+    );
+    assert!(!c
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1)",
+            [&pending],
+            |r| r.get::<_, bool>(0)
+        )
+        .unwrap());
+    let operation_rowid: i64 = c
+        .query_row(
+            "SELECT rowid FROM operations WHERE record_id=?1",
+            [first.offer_record_id()],
+            |r| r.get(0),
+        )
+        .unwrap();
+    // The real operations schema has both connection_id -> connections.id
+    // and (connection_id, session_id) -> connections.(id, session_id). Derive
+    // their actual SQLite FK IDs; no unrelated violation may be normalized.
+    let mut connection_fks = std::collections::BTreeMap::<i64, Vec<(String, String)>>::new();
+    let mut foreign_key_statement = c.prepare(
+        "SELECT id, \"from\", \"to\" FROM pragma_foreign_key_list('operations') WHERE \"table\"='connections' ORDER BY id,seq",
+    ).unwrap();
+    for row in foreign_key_statement
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, i64>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+            ))
+        })
+        .unwrap()
+    {
+        let (id, from, to) = row.unwrap();
+        connection_fks.entry(id).or_default().push((from, to));
+    }
+    drop(foreign_key_statement);
+    let mut columns = connection_fks.values().cloned().collect::<Vec<_>>();
+    columns.sort();
+    let expected_columns = vec![
+        vec![("connection_id".to_owned(), "id".to_owned())],
+        vec![
+            ("connection_id".to_owned(), "id".to_owned()),
+            ("session_id".to_owned(), "session_id".to_owned()),
+        ],
+    ];
+    assert_eq!(
+        columns, expected_columns,
+        "unexpected operation connection constraints"
+    );
+    let expected_violations = connection_fks
+        .keys()
+        .map(|id| {
+            (
+                "operations".to_owned(),
+                Some(operation_rowid),
+                "connections".to_owned(),
+                *id,
+            )
+        })
+        .collect::<Vec<_>>();
+    c.execute_batch("PRAGMA defer_foreign_keys=ON").unwrap();
+    assert_eq!(
+        c.execute(
+            "UPDATE operations SET connection_id=?2 WHERE record_id=?1",
+            params![first.offer_record_id(), pending],
+        )
+        .unwrap(),
+        1
+    );
+    let mut check = c.prepare(
+        "SELECT \"table\", rowid, parent, fkid FROM pragma_foreign_key_check ORDER BY \"table\",rowid,parent,fkid",
+    ).unwrap();
+    let violations = check
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, Option<i64>>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, i64>(3)?,
+            ))
+        })
+        .unwrap()
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .unwrap();
+    drop(check);
+    assert_eq!(
+        violations, expected_violations,
+        "only this exact operation row's two declared connection FKs may be deferred"
+    );
+    // second -> first -> second has no remaining floor in the cycle. UNION
+    // terminates; absence is only metadata and cannot validate the corrupted
+    // first successor's retained private capture or manufacture an IO permit.
+    assert!(replacement_lineage::floor(&c, &pending).unwrap().is_none());
+    assert_eq!(
+        replacement_lineage::floor(&c, first.connection_id())
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    c.execute_batch("ROLLBACK TO corrupt_lineage_cycle; RELEASE corrupt_lineage_cycle")
+        .unwrap();
+    assert_eq!(
+        c.query_row("PRAGMA foreign_keys", [], |r| r.get::<_, u64>(0))
+            .unwrap(),
+        foreign_keys
+    );
+    assert_eq!(
+        c.query_row("PRAGMA defer_foreign_keys", [], |r| r.get::<_, u64>(0))
+            .unwrap(),
+        deferred_before
+    );
+    assert_eq!(
+        c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r
+            .get::<_, u64>(
+            0
+        ))
+        .unwrap(),
+        0,
+        "rollback must restore clean FK state before any normal projection"
+    );
+    let restored_trigger = c
+        .execute(
+            "UPDATE operations SET connection_id=?2 WHERE record_id=?1",
+            params![first.offer_record_id(), pending],
+        )
+        .unwrap_err();
+    assert!(
+        matches!(restored_trigger, rusqlite::Error::SqliteFailure(_, Some(ref message))
+        if message == "operation intent is immutable"),
+        "rollback must restore the exact original operation-identity trigger"
+    );
+    assert_eq!(
+        replacement_lineage::floor(&c, &pending).err().unwrap().code,
+        "forbidden"
+    );
+    assert_eq!(
+        replacement_lineage::floor(&c, first.connection_id())
+            .unwrap()
+            .unwrap()
+            .record,
+        parent
+    );
+    drop(c);
+    assert_eq!(lineage_cache_counts(&m), before);
+    assert_private(&m, &first);
+}

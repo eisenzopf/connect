@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-08",
-  "run_status": "Latest ended v203 remains0qualified,24failed,8blocked cells and197passed/62failed/173blocked checks. CF8matched7rawfailures/1pass; initial current9/1cache reuse is preserved and corrected current10passed10/10 with fresh affected production builds. The genuine RELEASE case failed0/1 in7.45s before any commit: receiver2/source1 decoded22/required24frames while its publisher encoded/published30. Source and all original owners joined naturally. No sole-cause or cross-window fps improvement is claimed. Prospective286Rust/304Node/197Python/MacACL1 remains unqualified; no new cell, and G6-098 soak remains separate.",
+  "run_status": "Latest ended v203 remains0qualified/24failed/8blocked cells, with197passed/62failed/173blocked checks. The batched fixes now pass all128Store/Core controls:100Store and28Core, with unchanged source and natural joins. Verified changes cover queued visual policy retry,29\u21926physical runtime-owner checks and actual cached recursive-query execution with current authorization preserved. The separate receiver-epoch fix still awaits its2signed RELEASE controls. Next is the shared RELEASE build and3controls, batch commit, then the genuine four-handoff run. G6-098 sustained-growth soak remains separate.",
   "blockers": [
     {
       "id": "B01",
@@ -780,14 +780,14 @@
     {
       "id": "B94",
       "title": "Prior focused tests do not reproduce six-source concurrent handoffs",
-      "status": "Four-condition counterfactual matched all8 expected outcomes, and the corrected normal-source replay passed10/10 after exact cache quarantine. The genuine RELEASE case still failed0/1 before any commit: receiver2 decoded22frames where24are required.",
+      "status": "All4handoffs complete in two focused RELEASE runs. Old-public-video preservation still fails, including with light logging.",
       "change": "The initial endpoint-install policy releases scene, registry and controller guards, then revalidates exact ownership, activation and lease expiry. Immediate visual forwarding borrows only its live source lease while independently authorizing the target; queued media retains no source reader. Three new Core controls and all ten related audio/Probe controls pass in dev mode. Both isolated old-production positive controls fail at their intended assertions. Native replacement unary, receiver-epoch and complete ordered scene metadata now use bounded immutable facts keyed to original Weak owners and exact observer/SQL/clock versions. Every hit obtains fresh current authorization or validates exact original custody, rebuilds readers with the earliest outer and nested expiry, and retains the after-finish version seal. No reader or execution owner is cached.",
       "evidence": "Three new Core controls and ten related audio/Probe controls passed13/13 (receiptff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa). The same new positive controls fail against isolated old362 production at the intended assertions; raw0/2 failure flags are preserved (comparative proof64246ae9143ab589a82219617f3792e84d68c12be8031025cfbe265a80cce792). Genuine RELEASE integration now failed0/1 in13.99s with actual Core/Service/Store and harness opt-level3/debug-assertionsfalse, unchanged source and all original command/controller joins (receipt6a0d01415a36d1cd899ab4b510ab1027d94a05f3d76d28f948dbf5e6e3cf6a28). Both first candidates received some video packets but decoded no keyframe; their final consecutive usable audio run was960 samples, below2880. All six original receivers stalled during preparation. Route counters showed46/96 enqueues but5/19 native video writer inputs, all locally accepted; these are different stages/observation windows, not packet-loss ratios. Direct scene stages reached332/339ms. This establishes a release-profile delivery/admission performance failure, while its precise CPU/SQL/file source remains under investigation.34 distinct component passes are not a fresh250-case cohort or matrix qualification. One bounded same-case release profile also failed0/1 with unchanged source and all joins (receiptbb953c8dc61b58260c2b7969de31aa4d20381fe7de658c1e2299d5dd6de0750a). Fixed Store snapshots show all4slots in capture at readiness failure and0after cleanup; completed capture claim mean14.33ms, actual SQL-held capture mean7.15ms and reseal mean5.66ms, versus file-admit mean0.552ms. These are concurrent completed-interval observations, not CPU time. The sampler exited0naturally and retained a complete30.9MB report, but its collector16MiB post-limit is failed and preserved. Stack observations identify both SQLite planning/execution and authority open/access paths; no new source fix or profiling pass is claimed. The integrated Store memo passed normal --tests typechecking, all six new actual-hit controls and70 retained authorization, receiver, source-set, custody, compound-reseal and slot controls (76 actual passes,0ignored; audit8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23). The raw recorder retains three same-line identity false negatives caused by nocapture output, including one exact known child test; a strict separate identity/count/exit audit verifies all76 natural passes without rerunning them. Disabling only the compound memo-hit branch makes all six new controls fail at their actual-hit assertions; raw failure verdicts remain preserved (comparisonb8ed287657fb6c07f72737bbfadc7271a9633d65be236c5341835ee3cac95b11). Restoring exact source makes all six pass again (receiptdc1d6e977a547489a1daa7a77446623175199ef12d8f7ac6e9fcd954696f5207). A subsequently removed unused getter changed no call path; normal --tests typechecking passed after that deletion (receipt2a1aa075e7a451e16659f3ad2b15abe4f097afb02cc3a1a36e4882ec5dc298f3). All original command groups joined unforced and each attempt kept its sealed source unchanged. These are logical DEV checks, not production throughput evidence. The same genuine RELEASE test after the memo failed0/1 in11.69s, all original groups/controller joined naturally and source unchanged (receipt7de4c0e64ccfb93e8dba0520d674d0520f0ba338b9ccf4099adef367846edaf2). Both outbound generation-two moves completed in4.214s with actual private2880-sample/keyframe readiness, complete-second old24fps and retained fresh uplink assertions passed. Both generation-three return candidates reached fresh private A/V; before their Ready submissions, the old active view failed its2880-consecutive-audio assertion at an unreported index. Its earlier last-audio assertion passed, so this does not establish absent audio. All ten original C decoders exited0 and ten encoders joined naturally. New capture-SQL and reseal-SQL observed completed-interval means were342us/87us versus prior7.15ms/5.66ms, over different windows; these are not CPU or throughput comparisons. Four target counters recorded1902 accepted video writer inputs and0local errors, including postcommit public writes on generation-two targets. Exact comparisonc6529aec00b2bae936fb9f1a39e9dbb2ee2a0c8c472d210a36d844cf5dc1e33f preserves scope and uncertainty. Source review found a round-one-only fixture hotspot: after arming a later replacement, every current-candidate packet/timer iteration synchronously reopened SQLite and ran a full exact-retirement join. The fixture now polls an observed historical commit latch in memory; exact SQL remains at confirmed original completion and terminal-error boundaries. Read-only deadlines are accepted only with that exact witness. Its two new helper controls and another genuine run remain pending; no sole-cause claim is made. A separate source-backed fixture freshness gap is also corrected: duplicate/late RTP ignored without PCM no longer refreshes last-decoded-audio time. A new real-Opus control and the two retirement controls await actual release execution; no historical duplicate cause is inferred. All three exact fixture controls now pass in RELEASE with0ignored (receiptc5a54536843307cda582dc9957175f07a6b96138a6db7e0d44359025f55ccbf7): armed memory-only retirement polling/historical latch; unconfirmed or mismatched retirement and wrong-certainty refusal; real-Opus ignored-duplicate freshness plus actual-output and loss reset. Cargo and all three original command groups/controller joined0unforced with sealed source unchanged. Core, Store, Service and harness profiles are opt3/debug-assertionsfalse. This verifies the fixture helpers, not the four-move integration or its unresolved old-active audio observation. After the fixture corrections, the same genuine RELEASE case failed0/1 in11.62s with clean committed source, all original command/controller joins unforced and full trace retained (receipt298fbaa2ffea0d1b59ba5b18acf61cb8859c6879c5a9e9279f8712ed29d1e873). Two outbound moves completed in4.334s. Both return candidates passed actual-output audio/key/video freshness, all six old active audio>=2880 assertions passed, and retired original receivers closed under their exact witnesses. No media task failed; all ten decoders exited0 and ten encoders joined normally. The next assertion failed: old current receiver2, subscribed to unchanged source1, decoded18frames in complete preparation second7 where24is required. Source1 decoder finished with191outputs; no per-source encoded/published cadence or its decode-history snapshot was retained. Session0 lifetime direct/audio/wake maxima were87.9/60.8/135.2ms, below200ms; these maxima do not isolate second7 or establish CPU cost. Comparison091572760c4fea4b32c0629cc83de5e731fcf1ab8fba705e420d2d55959c3cd7 preserves this remaining failure. Bounded encoded/published26-bin inputs and final all-original/candidate snapshots are now added for diagnosis; their one new boundary unit is pending, and no input/delivery/decoder root cause is yet claimed. The new input-bin boundary unit now passed1/1 in RELEASE with0ignored and unchanged source; normal Cargo build and original unit/controller groups joined0unforced (receipt5a98c99ecc2da5d944f6592882b649ce2963bbf60a406ebaebde24bf9a878811). Its actual0/999ms/1s/25s/26s and saturation checks validate only the new diagnostic binning. The remaining18fps failure has not been rerun or cleared. Input diagnostic receipt e9510d16514030ea729e8785d994ec1c30e23e48862b7b3c42bdb1dbe2332793 preserves0/1 in11.59s, all original Cargo/controller/pressure groups naturally joined, source unchanged. Two outbound moves completed4.425s. In programme second7, actual source3 encoded and locally published30 complete frames while its current receiver0 decoded17. All original publishers also continued after original0/4 retired, adding unintended old input; those loops now stop on the observed exact commit latch. The return-window host sample was55.27%idle with about7.58GBunused; historical per-process CPU was not summed as instant CPU. Six original and four candidate scalar snapshots expose loss, expired assemblies and skipped dependency frames, with0 late completed-frame observations. Source-backed corrections now preserve the same native original after Core Backpressure and map only non-original Publish/Receive continuation MetadataBusy to existing NotReady retry. No queue, deadline, grant or media criterion changes. Measured sole-cause attribution is unproved; unit/counterfactual verification is pending. The first integrated ingress/continuation DEV attempt is terminal (receipt15dca455aa340b8be9d7b176f22b7a2ebd5428f5d7117e33c8cfcb52c806fd97): five exact ingress cases executed with4passes,1failure and0ignored. The new recovery case failed its combined recovered/forwarded/timestamp assertion; source review found the fixture omitted the target direct-video subscription required before packet admission. That omission is independently established, while individual assertion subterms were not logged. The new expiry/retirement/refusal control and all three selected existing ingress controls passed naturally. The eight Service cases did not execute: its debug-info2 compilation reached the8GiB reserve and the owned stop encountered EPERM. The raw Service row preserves forced=true, joined=false and unknown exit status; no natural join is claimed. A separate fresh PID/PPID/process-group observation found every recorded owner absent (a6c2a28c238f28a12441420e5e14a52cbf4f55e85871d5f96cc973e3b8e9f088), without rewriting that raw row. The controller joined exit1 and source stayed unchanged. The initial build unintentionally used a different debug-info2 cache variant; the next logical retry will explicitly reuse debug0/nonincremental settings after sufficient headroom and guarded fixture correction. These four additional passing rows are not added to the114-distinct historical total without an identity deduplication audit. The fixture now installs its actual direct-video subscription before all64queued originals and the retained65th arrival, with separate recovery/forwarding/timestamp assertions and explicit public imports. Normal365-to365 preparation passed three original commands naturally/unforced, kept source unchanged and preserved the complete prior365 tree (receiptb6001897b38cbd08254a912d0b79b5758948fa4a03ef1ff648445ccb17ad969f). The final SourceLock is3766e659268490bdac21a5192379a038c6fcc0b37924403aed3f8ffd6e30b3bf, rvoip grapha4fda4d1069957f205e0590d02b06a11644c841339cb3d11593235b1f2b5b26b and549declared files. A private synthetic owned-parent/child control verifies that injected group-signal EPERM still reaches original-child wait/reap and empty-group observation; forced work remains unqualified (receipt0abb2601a7087751d18fa9f9b4e18967c778b786f5174765d12e3c285d6e9970). The next exact13logical controls explicitly use DEV/TEST/RELEASE_DEBUG=0 and CARGO_INCREMENTAL=0. Their cold4GiB growth forecast retains the8GiB hard reserve; no warm debug0 artifact or pass is assumed. The corrected exact13-case DEV retry now passed13/13 with0ignored (receipt121a5adc434f2b0b2b9207bb5d5a718ee651f930ec5c6b9e44c2a8ea7f9f99eb). The five UCTP controls verify same-original65th-packet recovery, fresh authorization, exact single target IO, expiry/retirement/permanent refusal and the three retained metadata/ordering/queue-bound controls. The eight Service controls verify the actual narrow continuation error mapper and retained current-authority/refusal behavior. Both builds and all13original test command groups\u201415groups total\u2014joined0naturally/unforced; original controller also joined0 (controller28028be1907968ff130cbdcab005af64d4247fc7a6cdb8bc2100952664401205). Source9275e9e7fbd41cdc5d505e4510e17f727ca69c71c845cc0f2c2eee83a908425a stayed unchanged. Actual artifacts are opt0/debug0 with debug assertions enabled, and explicit CARGO_INCREMENTAL=0; measured free-space growth was2.709GiB against the4GiB forecast while preserving the8GiB hard reserve. This is logical DEV verification, not release throughput or a fresh whole280-case cohort. The earlier4pass/1fixture-failure attempt and interrupted Service0-executed raw row remain immutable; its unknown original Service join is not retroactively repaired. No distinct aggregate is increased without identity deduplication. Old-condition counterfactuals and restored-source verification remain pending. A separate visual-original whole-model revision proposal has static reviews but has not been integrated or executed in this cohort. Patch366 is now integrated and normally prepared: only Video/Screen original capture omits the opportunistic whole-model revision while every attempt retains exact current model/policy checks, source port/ticket, consumer/scene activation, credential and earliest original deadline. Audio keeps its strict original model revision. Normal preparation passed three commands0naturally/unforced, preserved the whole old365 tree and kept source unchanged (receipt64d2d9c90b1722f6cda399e5aeae6158d55acd53556bae4c5dceccbd368ef360). SourceLockdf75a8b3b02538d9f1d35bf72bef0c54688d0f9e172c787ec0ba33b9abf79b47 and rvoip graph078079229d770ff55b764341574c277c6b9a9224b475a53117f53ab23d5eb9d2 bind550declared files, including one actual new0644 Core test child. Its three new tests and17retained original-ingress/ordinary-callback controls are pending actual execution. Static review does not identify ModelConflict as the measured17fps cause. The exact20Core logical controls now passed20/20,0ignored (receipt01e6a1beed20743af4485eefeb09ece36ea1b688d1151907c63da656e86f3215). Separate actual Video and Screen originals survive the real PREPARING muted-audio activation while the paired audio original retains its strict whole-model conflict; the negative control preserves current gate, codec, retirement, credential, denial, scene and expiry refusals. All nine retained original-ingress controls and eight ordinary-callback/current-policy controls pass. The normal build and20original test groups\u201421groups total\u2014joined0naturally/unforced, and original controller joined0 (a2fb158b204fdfaf3406e9d55e23686636bf51219ffdeb4035e2a6587fd1741b). Source20c41b1fe4df6597e51156fa7e98875c757de34e84eab9d9b5654a9a37e5c7fc stayed unchanged on HEADb3e17d2bf27e3e52ab4c6239f6b1756986b9f867 plus the explicit366 inputs/progress changes. Actual Core artifact244d9f972ed7db7551f0bc88e12acd4b221580aa135d0c52ad20b98e4b262544 uses opt0/debug0, debug assertions and the prior default/opus/test-support feature union with incremental disabled. Observed disk growth was0.972GiB against2GiB forecast; the8GiB reserve stayed intact. These20passes do not establish production fps improvement, do not classify the historical17fps loss as ModelConflict, and are not added to an aggregate without identity deduplication. Patch367 is now integrated: only an internal post-policy model-revision mismatch on an otherwise eligible owned raw Video/Screen original can return MetadataBusy to its existing owner. Every normal current authority, exact binding/permission, credential, route ticket, consumer/scene activation, shutdown and expiry check still executes; the stale callback returns no admission or IO and retains no policy reader. Policy-returned Conflict/Authority, Audio, queued/general and Control semantics are unchanged. Normal preparation passed three commands0naturally/unforced, kept source unchanged and preserved the whole old366 tree (receiptb16fc2eb9251e39928918d81572788547e5d1a1c9e7fc4d0e5130e42d999951d). SourceLockdf1436f66f64bae81750e34e4328b1d485dec9553bf77bfd9125e07b02541ab3 and rvoip graph4b8ec1cf94b03f89b52c921995a90c87c60c08d5fc778596fc489d9d39029993 bind551declared files and the exact new0644 child. Three new actual after-grant AudioAudience controls plus all preceding20Core controls are pending. Their State-excluded capture witnesses isolate this seam from the earlier visual capture revision issue in a combined old-condition comparison. No measured failed-bin or performance cure is claimed. The actual367Core attempt is terminal22passed/1failed/0ignored (receipt830b9b01743e2f46c14efcd49b50f5582b998e76405a1be976acde5c65d0b693). Both separate new Video/Screen after-grant policy-race controls pass, and all previous20controls pass. The combined hard-negative control failed at its shared no-enqueue helper: actual remaining capacity10 was compared with hardcoded64. Source construction explicitly uses10for Audio and64for visual streams, and the AudioOriginal lane deliberately selects its Audio port. This does not establish stale enqueueing; the helper compared an empty Audio queue with the wrong medium capacity. Its Audio error had not yet been inspected, and later Screen negative lanes are not claimed executed. The normal build and all23case groups\u201424groups total\u2014joined naturally/unforced, original controller joined1 (0c3dc0ca8cf3b22aa7f25b465c00c72136eb4388d37dd382051f649c96d784fa), and sourcefb76233a97b02ac97af4a995cbd557dfe8f0116ccf572db34140f8746b4c81b1 stayed unchanged. Source-bound diagnosis9d2873238bb5dac2878b8aba0b57398a0b6fe4831de3a3e716f4e696d20f683c preserves this distinction. A narrow test-only followthrough will require the exact medium capacity at construction and compare maximum/available from one actual port snapshot while retaining zero occupancy, all hard errors, expiry and no-IO assertions. Production and queue limits remain unchanged; the same full23must run after normal preparation. The capacity-only followthrough now pins constructor maximum10for AudioOriginal or64for visual and verifies initial emptiness; its refusal check compares available==maximum from one actual port snapshot. All production code, hard errors, expiry, authorization, reader/no-IO assertions and three case identities are unchanged. Normal367-to367 preparation passed three commands0naturally/unforced, kept source unchanged and preserved the whole old367tree (receiptf2486564b499fb0cdfd4a7a0d712db8d050426b4269759706dc0d91ad8e63086). SourceLock49c5c6644dae2de72b207ff2713eb433ad0f5eb6ddf6f7e121847cb3c98bcb8c, rvoip graph8faf68b2a19a96b1253630e3e051cf1dbc3e4ee47d8b15384d83aed2f8ecc35c and551declared files bind only corrected test4cf81ae6c17a68022944dd88591841ec820d8caa493d2e29a9e50db23e11fa71. The same23-case retry is pending actual execution. The original raw22/1attempt and its unverified Audio error/later Screen negative lanes remain intact until the corrected run supplies separate evidence. The corrected same23Core retry now passed23/23,0ignored (receipt0ffc350fbec436e21ee582f2ece0aeb8e3de5619c08d2352b9d7480b059ae3e9). The AudioOriginal hard-refusal and later Screen negative lanes now pass in this new cohort; the earlier raw22/1attempt is unchanged and is not relabelled. Both separate post-policy Video/Screen positives and all prior20controls pass. The normal build and23original test groups\u201424groups total\u2014joined0naturally/unforced, and original controller joined0 (cb92dd0751ff951e930ca4420eb0e1c9fadaa96c6b399f0e4f8e00c2c2b64229). Sourcea87f5e1257447a4ff72d2083991ed4908c07af7c5c79b3e9472086faae9a2e53 stayed unchanged. Actual artifact78164b10a65637392d2c9ac42e867de28eb64d9cb8304ca041a3b414129580c3 uses opt0/debug0 with debug assertions and incremental disabled. Only the Core test target rebuilt; all production artifacts were reused, and the attempt completed in32.96s. This verifies the final logical controls, not production fps or a fresh whole286-case cohort. The four-condition counterfactual and exact normal-source replay remain pending before another genuine release run. The four-condition comparison now matches7raw failures and1pass, preserving all raw verdicts. Initial normal replay9/1 reused an identical counterfactual Service binary; exact nine-fingerprint quarantine preserved all three counterfactual binaries. The corrected replay passed10/10 with mandatory fresh builds of the affected consumed production units. The following genuine RELEASE run failed0/1 in7.45s before any move committed: receiver2/source1 decoded22frames in programme second3 despite30encoded/locally published frames. Required profiles, fresh builds, complete trace, unchanged source and natural joins are proved by receipt534e77f7a388abc5a23c594fde16c06acf6dbd6df1c8b6547cefa437cbfba4d4. Structured latest_verification preserves exact digests and cumulative ingress observations; recovery/send-error counts do not establish a measured sole cause or a cross-window fps comparison.",
-      "next": "Keep the original media thresholds and failed matrix verdicts. Capture bounded actual native-egress error classes in the same focused RELEASE case to locate the remaining delivery loss; no sole-cause or fps-improvement claim is established. Heap, installed-Chromium integration and the fresh complete286/304/197 scope remain pending before any new cell; G6-098 soak stays separate.",
+      "next": "Verify queued-policy and private-epoch registry fixes against actual old-condition controls, then repeat the genuine focused RELEASE programme. Diagnose remaining video Deadline/NotReady loss. Finish heap, installed-Chromium and expanded local ARM regressions before a fresh32-cell run.",
       "latest_verification": {
-        "counterfactual_field": "b94_four_condition_counterfactual",
-        "cache_repair_field": "b94_current_replay_cache_repair",
-        "genuine_release_field": "b94_latest_genuine_release"
+        "earlier_genuine_release_field": "b94_latest_genuine_release",
+        "newer_full_programme_field": "b94_full_programme_quality_runs",
+        "queued_policy_baseline_field": "b96_queued_policy_before"
       }
     },
     {
@@ -797,6 +797,38 @@
       "change": "After genuine renderer/statistics joins, retire bounded numeric working histories and preserve immutable final reports. Recompute the final proof at close so earlier status reports cannot hide later observations.",
       "evidence": "One new control covers working-buffer release, unchanged captured failures and later callbacks without another report call. Two counterfactuals reproduce stale final proofs and live report aliases. Original RSS causation remains unproved.",
       "next": "Complete the299-case Node regression and real installed-browser handoff/cleanup verification"
+    },
+    {
+      "id": "B96",
+      "title": "Queued visual policy revision race rejects a retained packet",
+      "status": "UNIT VERIFIED. All5queued-policy controls and23retained Core controls pass.",
+      "change": "Video/Screen source and target policy calls can race a real AudioAudience model revision. The proposed change lets the existing owner retry the same queued packet after all readers drop, retaining the earliest deadline and every current authorization, generation and binding check.",
+      "evidence": "Four exact tests fail at their intended internal ModelConflict assertions against the unchanged production behavior. The combined36-case hard-negative control passes. Receipt b5153ec6ad2f14c88060a5d047682c6e052bb353e3ab19a04cb37f995a6cbee6. This does not establish the cause of all video Deadline losses.",
+      "next": "Verify the genuine six-source/four-handoff RELEASE programme, then the full matrix."
+    },
+    {
+      "id": "B97",
+      "title": "Private receiver epoch lookup treats a busy registry as lost authority",
+      "status": "Production fix integrated. Both signed receiver-epoch after-controls await the normal RELEASE build.",
+      "change": "The existing original-owner lookup converts a real entries.try_lock WouldBlock into permanent Authority. Private receiver epoch preparation can then permanently retire its original registration. Proposed fix reuses exact preparation metadata capture under the fresh Store read and preserves only actual authority-busy, retaining permanent refusal for all other capture errors.",
+      "evidence": "After correcting a fixture status-scope compile error, both exact tests fail at the intended13-vs7 classification assertion. The propagated case receives0verified receiver notices and times out on actual original key bytes, then all four client/server shutdowns returnOk. Receipt4a3cdf60f3f449600f34f0dcbd0af8ad23502624637c1bc685112ec8fe5b5994 proves unchanged source and natural joins. Historical sporadic matrix causation remains unproved.",
+      "next": "Pass both corrected signed receiver-epoch cases in the normal RELEASE build, then verify genuine four-move handoffs."
+    },
+    {
+      "id": "B98",
+      "title": "Private scene construction repeats runtime-owner filesystem checks",
+      "status": "UNIT VERIFIED. Physical owner validations reduce29\u21926on the actual stable memo-hit path, with all ownership/identity/expiry controls passing.",
+      "change": "Use one invocation-local checked runtime owner during native read construction. Preserve full physical checks at entry and final return, all original Weak/runtime/expiry checks, current authorization and actual IO checks.",
+      "evidence": "A stable three-source memo-hit scene currently requires29physical validations over the whole call, with11inside final construction. Four new normal Store tests are staged to prove reduction to6and retain foreign/dead-owner, physical-file, retirement, credential and expiry refusal. These counts await execution. The profile shows this work is secondary to repeated SQL preparation.",
+      "next": "Verify genuine media delivery and cleanup in RELEASE; measured frame-rate benefit remains pending."
+    },
+    {
+      "id": "B99",
+      "title": "Recursive private-ancestry query is recompiled during ordinary media reconstruction",
+      "status": "UNIT VERIFIED. All3statement-reuse/fresh-authorization/cyclic-ancestry controls pass.",
+      "change": "Use the existing bounded per-connection prepared-statement cache for the byte-identical recursive ancestry query. Execute it with current bindings and current rows on every call.",
+      "evidence": "has_private_ancestor currently callsConnection.query_row while adjacent floor queries already useprepare_cached. The retained profile contains333weighted observations with both this ancestry function and SQL preparation/parser on the same sampled path. This does not establish a CPU-time percentage or total frame-rate cure.",
+      "next": "Verify genuine media delivery in RELEASE; no measured total frame-rate cure is claimed."
     }
   ],
   "workplan_tasks": [
@@ -2139,5 +2171,221 @@
       "encoders_joined_unforced": 8,
       "basis": "Six originals plus two first-outbound candidates; no return candidates were created."
     }
+  },
+  "b94_full_programme_quality_runs": {
+    "reporting_change": "Accumulate every old-playout quality violation, continue all handoffs when protocol/readiness preconditions permit, and fail after actual cleanup. On readiness timeout, collect quality before propagating the readiness failure. Required thresholds and Ready submission preconditions are retained.",
+    "heavy": {
+      "path": ".local/gate-6/v203-native-complete-quality-before-fixes/receipt.json",
+      "sha256": "2ccae7233067af3d032320c7ebb1dcc54ab39a1f71d1da9e7bdaa2b58294e4ae",
+      "source_unchanged": true,
+      "all_original_command_groups_joined": true,
+      "results": [
+        {
+          "name": "sdk_handles::replacement_video_recovery::readiness::representative::old_playout_quality_retains_multiple_receiver_bins_and_still_refuses",
+          "group": "native",
+          "actual_counts": [
+            1,
+            0,
+            0
+          ],
+          "passed": true,
+          "command_index": 1
+        },
+        {
+          "name": "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates",
+          "group": "native",
+          "actual_counts": [
+            0,
+            1,
+            0
+          ],
+          "passed": false,
+          "command_index": 2
+        }
+      ],
+      "matrix_qualified": false
+    },
+    "light": {
+      "path": ".local/gate-6/v203-native-light-logging-baseline/receipt.json",
+      "sha256": "9bde320125c626fa53880e7438c32c204e41619b271e479ffa2235e5d96e07f0",
+      "source_unchanged": true,
+      "all_original_command_groups_joined": true,
+      "results": [
+        {
+          "name": "sdk_handles::replacement_video_recovery::readiness::representative::old_playout_quality_retains_multiple_receiver_bins_and_still_refuses",
+          "group": "native",
+          "actual_counts": [
+            1,
+            0,
+            0
+          ],
+          "passed": true,
+          "command_index": 2
+        },
+        {
+          "name": "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates",
+          "group": "native",
+          "actual_counts": [
+            0,
+            1,
+            0
+          ],
+          "passed": false,
+          "command_index": 3
+        }
+      ],
+      "matrix_qualified": false
+    },
+    "light_run": {
+      "handoffs_completed": 4,
+      "return_to_original_device_completed": 2,
+      "round_elapsed_ms": [
+        4469,
+        4015
+      ],
+      "failed_video_bins": [
+        {
+          "receiver": 1,
+          "frames": 16,
+          "required": 24,
+          "programme_second": 7
+        },
+        {
+          "receiver": 2,
+          "frames": 18,
+          "required": 24,
+          "programme_second": 7
+        },
+        {
+          "receiver": 3,
+          "frames": 11,
+          "required": 24,
+          "programme_second": 7
+        },
+        {
+          "receiver": 5,
+          "frames": 22,
+          "required": 24,
+          "programme_second": 7
+        }
+      ],
+      "publisher_encoded_and_locally_published_each": 30,
+      "candidate_receiver_notice_counts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "task_failures": [],
+      "server_shutdown": "Ok",
+      "logging_is_sole_cause": false
+    },
+    "qualification": "The quality helper unit passed in each run; the genuine integration failed in each run. Neither establishes any passed matrix cell."
+  },
+  "b96_queued_policy_before": {
+    "receipt_path": ".local/gate-6/v203-queued-visual-old-condition-controls/receipt.json",
+    "receipt_sha256": "b5153ec6ad2f14c88060a5d047682c6e052bb353e3ab19a04cb37f995a6cbee6",
+    "raw_positive_failures": 4,
+    "combined_hard_negative_passes": 1,
+    "root_causal_audit_sha256": "91b14f806e16412b810a00c1eb505e4f52d9d2b6fa218424620031210ed0dc57",
+    "production_fix_applied": false,
+    "matrix_qualified": false
+  },
+  "b97_receiver_epoch_before": {
+    "receipt_sha256": "4a3cdf60f3f449600f34f0dcbd0af8ad23502624637c1bc685112ec8fe5b5994",
+    "actual_raw_results": [
+      {
+        "name": "sdk_handles::replacement_video_recovery::signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable",
+        "actual_counts": [
+          0,
+          1,
+          0
+        ],
+        "passed": false,
+        "expected_old_failure_matched": true,
+        "command_index": 2
+      },
+      {
+        "name": "sdk_handles::replacement_video_recovery::signed_private_receiver_epoch_retry_keeps_same_registration_and_fresh_history",
+        "actual_counts": [
+          0,
+          1,
+          0
+        ],
+        "passed": false,
+        "expected_old_failure_matched": true,
+        "command_index": 3
+      }
+    ],
+    "expected_failures_matched": true,
+    "source_unchanged": true,
+    "all_original_command_groups_joined": true,
+    "all_unforced": true,
+    "earlier_fixture_build_failure_receipt_sha256": "022e30d55630012b8cd3c989cda257b56f817fd9832082b2777ced698e362c67",
+    "fixture_status_scope_corrected": true,
+    "production_fix_applied": false,
+    "matrix_qualified": false
+  },
+  "b94_retained_profile": {
+    "receipt_path": ".local/gate-6/v203-retained-light-release-stack-sample/receipt.json",
+    "profile_sha256": "18f163eb4416dbf4190ef56c1e9b2a032963935a4911693c391f244e8bcba299",
+    "diagnostic_capture_valid": true,
+    "raw_test_passed": 0,
+    "raw_test_failed": 1,
+    "sample_seconds": 8,
+    "sample_interval_ms": 20,
+    "bytes": 5033105,
+    "all_original_owners_joined": true,
+    "compiled_source_workspace_sha256": "82c3c2861a59186b78e8021995a521e995330dfcda8c11d33eb1008c9ca1a1fa",
+    "compiled_source_is_current_whole_working_tree": false,
+    "same_precise_store_sources": true,
+    "profile_audit_sha256": "dc9889e1468ed6bc3f69e92e73af31bfc81c961aac0b4a3bf6b91800577e7896",
+    "all_thread_weighted_observations": 6937,
+    "thread_roots": 20,
+    "overlapping_ancestry_counts_do_not_add": {
+      "floor": 385,
+      "has_private_ancestor": 381,
+      "private_ancestor_and_prepare_parser": 333,
+      "owner_check": 115,
+      "owner_check_and_native_media_read": 9,
+      "owner_check_and_whole_native_scene": 29
+    },
+    "interpretation": "Observed stack occupancy includes waiting and concurrent threads. The sampler can perturb programme timing. No CPU-time, packet-loss ratio or measured sole-cause claim."
+  },
+  "b98_b99_before_controls": {
+    "original_seven_receipt_sha256": "5f5ef88c0a492bf8efbe8f35cacebf1a06c4de91056d557ba0dce475be090753",
+    "raw_original_passed": 4,
+    "raw_original_failed": 3,
+    "intended_causal_failures": 2,
+    "unexpected_fixture_failure": "Unpublished candidate operation edge first hit enforced FK787. First correction incorrectly assumed one violation, while the schema declares both single and composite connection foreign keys. Both failed attempts remain preserved.",
+    "first_cycle_followthrough_receipt_sha256": "b3fb9a04cab3e6300e184c05eee0c04d8836a80fe7e08df985fbe0963db66dea",
+    "corrected_cycle_receipt_sha256": "8b95c881df63f4ba32d9a366468673f4cfa826a82418dece2f8162df8817365e",
+    "corrected_cycle_passed": true,
+    "current_causal_interpretation": "Across the original cohort and corrected same-name cycle control, both intended causal assertions fail on old production behavior and all5hard-negative controls pass. Original raw verdicts remain unchanged.",
+    "matrix_qualified": false
+  },
+  "b96_b99_actual_after_controls": {
+    "receipt_path": ".local/gate-6/v203-store-core-postbatch-controls/receipt.json",
+    "receipt_sha256": "27fbdbdd392143e397e5acece24f9c2dabf55a82b794d8a3758aebcbbf932a91",
+    "controller_sha256": "0e66994ef5494acb0bcf3fad2907c63982fb50e8e5f76afbeedb305ad796f4f3",
+    "actual_planned_controls": 128,
+    "passed": 128,
+    "failed": 0,
+    "ignored": 0,
+    "groups": {
+      "store": 100,
+      "core": 28
+    },
+    "source_workspace_sha256": "0d871e5ef65554e9e86b1aa605b1023bd3611dce23735caddff98f0dea4095b8",
+    "rvoip_prepared_graph": "071fdb4b8ef4eef72e0e6a9220cd3e7c8f6c38f8757206bdb8b2b1ee539eb245",
+    "source_lock_sha256": "393ce5fc4d6220ac91c80ae199347c364b1e6646af8ada67ac5b70c28475f6cf",
+    "source_unchanged": true,
+    "all_original_command_groups_joined": true,
+    "all_unforced": true,
+    "normal_preparation_receipt_sha256": "1849bdadbc4823d028205e550ba75af98229e4f00635a6c63ce04524de4253a0",
+    "normal_profiles": "DEV opt0, debug0, nonincremental, actual normal package/libtest entry points",
+    "known_nested_child": "Exactly one source-bound parent includes its named child and both successful summaries. Other127controls require one exact test identity and one successful summary.",
+    "release_qualified": false,
+    "matrix_qualified": false
   }
 }

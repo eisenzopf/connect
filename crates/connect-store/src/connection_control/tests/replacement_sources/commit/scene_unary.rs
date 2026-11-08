@@ -987,3 +987,296 @@ fn current_replacement_scene_memo_keys_are_bounded_and_do_not_retain_original_so
     assert_eq!(counts(&m), before);
     drop(occupied);
 }
+
+#[test]
+fn invocation_local_scene_owner_checks_are_six_on_an_actual_stable_three_source_memo_hit() {
+    let m = scene();
+    let occupied = memo_observer_except(&m, 0);
+    let owner = m.f.store.require_runtime_owner().unwrap();
+    let before = counts(&m);
+    let owner_refs = Arc::strong_count(&owner);
+    let mut observations = Vec::new();
+    for _ in 0..4 {
+        actual_scene_memo_hit(&m, &m.sources);
+        let second = crate::now();
+        let memo_before = m.origin.packet_memo_counts_for_test();
+        let admitted = m.f.store.authority.test_admission_attempts();
+        let physical_before = owner.physical_check_count_for_test();
+        let read =
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .unwrap();
+        let physical = owner.physical_check_count_for_test() - physical_before;
+        let memo_after = m.origin.packet_memo_counts_for_test();
+        let stable = crate::now() == second
+            && memo_after[0] == memo_before[0]
+            && memo_after[1] == memo_before[1] + 1
+            && memo_after[2] == memo_before[2];
+        observations.push((physical, memo_before, memo_after, stable));
+        assert!(read.current());
+        for source in &m.sources {
+            assert!(read
+                .existing(source.runtime_connection_id(), None)
+                .unwrap()
+                .current());
+        }
+        drop(read);
+        if stable {
+            assert_eq!(m.f.store.authority.test_admission_attempts() - admitted, 1);
+            assert_eq!(physical, 6, "stable actual memo HIT must use entry, original SQL interval, and final physical fences: {observations:?}");
+            assert_eq!(
+                Arc::strong_count(&owner),
+                owner_refs,
+                "invocation witness or metadata retained a runtime owner after read drop"
+            );
+            assert_eq!(counts(&m), before);
+            drop(occupied);
+            return;
+        }
+    }
+    panic!("no stable actual three-source memo HIT: {observations:?}");
+}
+
+#[test]
+fn invocation_local_scene_owner_rejects_foreign_and_dead_origins_at_every_source_position() {
+    for dead in [false, true] {
+        for position in 0..3 {
+            let m = scene();
+            let occupied = memo_observer_except(&m, 0);
+            actual_scene_memo_hit(&m, &m.sources);
+            let foreign = scene();
+            let foreign_owner = foreign.f.store.require_runtime_owner().unwrap();
+            let own_owner = m.f.store.require_runtime_owner().unwrap();
+            assert!(!Arc::ptr_eq(&foreign_owner, &own_owner));
+            let original = foreign.sources[position].clone();
+            assert_eq!(
+                original.connection_id(),
+                m.sources[position].connection_id()
+            );
+            assert_eq!(original.session_id(), m.sources[position].session_id());
+            assert_eq!(original.generation(), m.sources[position].generation());
+            let weak = Arc::downgrade(&foreign_owner);
+            drop(foreign_owner);
+            // Keep the actual foreign runtime alive in the first lane. In the
+            // second lane the same origin survives only through its Weak owner.
+            let live = if dead {
+                drop(foreign);
+                None
+            } else {
+                Some(foreign)
+            };
+            assert_eq!(weak.upgrade().is_none(), dead);
+            let before = counts(&m);
+            let mut sources = m.sources.clone();
+            sources[position] = original;
+            let memo_before = m.origin.packet_memo_counts_for_test();
+            let error =
+                m.f.store
+                    .try_native_replacement_scene_read(&m.origin, &sources)
+                    .err()
+                    .unwrap();
+            assert_eq!(error.code, "forbidden", "dead={dead}, position={position}");
+            assert_eq!(m.origin.packet_memo_counts_for_test(), memo_before, "owner refusal must precede memo lookup/SQL derive, not arise from a later foreign scene mismatch");
+            assert_eq!(counts(&m), before);
+            actual_scene_memo_hit(&m, &m.sources);
+            drop(live);
+            drop(occupied);
+        }
+    }
+}
+
+#[test]
+fn invocation_local_scene_owner_revalidates_physical_identity_and_retirement_before_return() {
+    struct Displaced {
+        original: std::path::PathBuf,
+        saved: std::path::PathBuf,
+        restored: bool,
+    }
+    impl Displaced {
+        fn replace(original: std::path::PathBuf) -> Self {
+            let saved = original.with_extension("invocation-owner-saved");
+            assert!(!saved.exists());
+            std::fs::rename(&original, &saved).unwrap();
+            let restore = Self {
+                original,
+                saved,
+                restored: false,
+            };
+            std::fs::copy(&restore.saved, &restore.original).unwrap();
+            restore
+        }
+        fn restore(&mut self) {
+            std::fs::remove_file(&self.original).unwrap();
+            std::fs::rename(&self.saved, &self.original).unwrap();
+            self.restored = true;
+        }
+    }
+    impl Drop for Displaced {
+        fn drop(&mut self) {
+            if !self.restored {
+                let _ = std::fs::remove_file(&self.original);
+                let _ = std::fs::rename(&self.saved, &self.original);
+            }
+        }
+    }
+    for change in ["database", "lock", "retire"] {
+        let m = scene();
+        let occupied = memo_observer_except(&m, 0);
+        actual_scene_memo_hit(&m, &m.sources);
+        let owner = m.f.store.require_runtime_owner().unwrap();
+        let before = counts(&m);
+        let displaced = std::cell::RefCell::new(None::<Displaced>);
+        let called = std::cell::Cell::new(0);
+        let result =
+            m.f.store
+                .native_scene_with_final_hook_for_test(&m.origin, &m.sources, || {
+                    called.set(called.get() + 1);
+                    if change == "retire" {
+                        owner.retire();
+                    } else {
+                        let path = if change == "database" {
+                            m.f.store.path().to_path_buf()
+                        } else {
+                            let paths = std::fs::read_dir(m.f.store.path().parent().unwrap())
+                                .unwrap()
+                                .map(|entry| entry.unwrap().path())
+                                .filter(|path| {
+                                    path.file_name()
+                                        .unwrap()
+                                        .to_string_lossy()
+                                        .starts_with(".connect-runtime-")
+                                        && path.extension().is_some_and(|ext| ext == "lock")
+                                })
+                                .collect::<Vec<_>>();
+                            assert_eq!(paths.len(), 1);
+                            paths.into_iter().next().unwrap()
+                        };
+                        *displaced.borrow_mut() = Some(Displaced::replace(path));
+                    }
+                });
+        if let Some(mut saved) = displaced.into_inner() {
+            saved.restore();
+        }
+        assert_eq!(called.get(), 1, "{change}");
+        assert_eq!(
+            result.err().unwrap().code,
+            if change == "retire" {
+                "forbidden"
+            } else {
+                "authority-unavailable"
+            },
+            "changed physical owner must fail its final owner validation: {change}"
+        );
+        if change == "retire" {
+            assert!(!owner.current());
+            assert!(m
+                .f
+                .store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .is_err());
+        } else {
+            assert_eq!(counts(&m), before);
+            actual_scene_memo_hit(&m, &m.sources);
+        }
+        drop(occupied);
+    }
+}
+
+#[test]
+fn invocation_local_scene_owner_keeps_current_credentials_and_earliest_nested_expiry() {
+    for position in 0..3 {
+        for change in ["revoke", "expire"] {
+            let m = scene();
+            let occupied = memo_observer_except(&m, 0);
+            actual_scene_memo_hit(&m, &m.sources);
+            let before = counts(&m);
+            let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
+            if change == "revoke" {
+                external
+                    .execute(
+                        "UPDATE credentials SET revoked=1 WHERE id=?1",
+                        [&m.f.keys[position]],
+                    )
+                    .unwrap();
+            } else {
+                external
+                    .execute(
+                        "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+                        params![m.f.keys[position], crate::now() - 1],
+                    )
+                    .unwrap();
+            }
+            assert_eq!(
+                m.f.store
+                    .try_native_replacement_scene_read(&m.origin, &m.sources)
+                    .err()
+                    .unwrap()
+                    .code,
+                "unauthorized",
+                "{change}, source {position}"
+            );
+            assert_eq!(counts(&m), before);
+            drop(occupied);
+        }
+    }
+    let m = scene();
+    let occupied = memo_observer_except(&m, 0);
+    let original =
+        m.f.store
+            .try_native_replacement_media_read(&m.origin)
+            .unwrap();
+    let earlier = original
+        .source()
+        .source()
+        .expires_at()
+        .min(original.source().retained().expires_at())
+        - 1;
+    assert!(earlier > crate::now());
+    drop(original);
+    let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
+    external
+        .execute(
+            "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+            params![m.f.keys[2], earlier],
+        )
+        .unwrap();
+    actual_scene_memo_hit(&m, &m.sources);
+    let read =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    assert!(read.current());
+    assert!(read.media().source().expires_at() <= earlier);
+    assert!(read.media().source().source().expires_at() <= earlier);
+    assert!(read.media().source().retained().expires_at() <= earlier);
+    for source in &m.sources {
+        assert!(
+            read.existing(source.runtime_connection_id(), None)
+                .unwrap()
+                .expires_at()
+                <= earlier
+        );
+    }
+    drop(read);
+    let called = std::cell::Cell::new(false);
+    let result =
+        m.f.store
+            .native_scene_with_final_hook_for_test(&m.origin, &m.sources, || {
+                called.set(true);
+                let until = std::time::Instant::now() + std::time::Duration::from_secs(6);
+                while crate::now() < earlier {
+                    assert!(
+                        std::time::Instant::now() < until,
+                        "original expiry did not arrive"
+                    );
+                    std::thread::sleep(std::time::Duration::from_millis(2));
+                }
+            });
+    assert!(called.get());
+    assert_eq!(
+        result.err().unwrap().code,
+        "forbidden",
+        "read escaped its original nested credential expiry"
+    );
+    drop(occupied);
+}
