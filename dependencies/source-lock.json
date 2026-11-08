@@ -1944,6 +1944,11 @@
       "path": "patches/rvoip/connect-original-visual-audio-revision.patch",
       "sha256": "fc3ddeeb862c4f14c392feebf0916db7db5e61ce62bf4e8434c9fc656429bb75",
       "source": "Keep original Video and Screen ingress under exact original port/ticket, consumer/scene activation, credential and 200ms custody across unrelated muted audio-audience model revisions. Do not retain the opportunistic whole-controller revision for visual originals; every invocation still checks current model revision before/after fresh policy and all current gates/format/ownership. Audio keeps its previous revision semantics. Regress actual preparing muted AudioAudience activation and same-original single delivery for both visual media, paired unchanged Audio conflict and current gate/codec/retirement/credential/authorization/scene/expiry refusal."
+    },
+    {
+      "path": "patches/rvoip/connect-owned-original-visual-policy-retry.patch",
+      "sha256": "ccebd9a155f7865b3e064d33ebbb50bf2a8898464a53b2737dc79adc4918340d",
+      "source": "Keep the exact post-policy model revision mismatch as a refusal. Only an owned raw Video/Screen OriginalIngress which still passes every normal current credential/model/port/ticket/consumer/scene/authority check returns MetadataBusy before any admission or IO escapes; its original owner retries the same frame with fresh authority and earliest previously observed expiry. Queued/general/Audio callers and policy-returned/model/credential conflicts are unchanged. Regress actual after-grant muted AudioAudience commits for camera and screen with initial State-excluded capture, single fresh retry delivery, gate/pause-resume ABA/credential/current-denial/earlier-lease/policy-conflict/Audio negatives."
     }
   ]
 }

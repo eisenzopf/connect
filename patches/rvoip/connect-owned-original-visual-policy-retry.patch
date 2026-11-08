@@ -1,0 +1,527 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2683,11 +2683,28 @@
+                 Err(error) => return Err(error),
+             }
+         };
++        let mut retry_owned_visual_original = false;
+         if detached {
+-            // Even a pause/resume returning to the same permission must refuse
+-            // this older callback; do not silently borrow its new generation.
++            // This callback must never publish across a model revision. Only a
++            // still-eligible owned raw visual original may ask its existing
++            // owner for a completely fresh attempt after every reader drops.
+             if state.model.revision() != revision {
+-                return Err(MediaTransitionError::Conflict.into());
++                if original.is_some()
++                    && matches!(
++                        port.binding.negotiated.requested.medium,
++                        Medium::Video | Medium::Screen
++                    )
++                    && !sending
++                    && source.is_none()
++                    && data.is_none()
++                    && held.is_none()
++                    && packet_context.is_none()
++                    && queued_deadline.is_some()
++                {
++                    retry_owned_visual_original = true;
++                } else {
++                    return Err(MediaTransitionError::Conflict.into());
++                }
+             }
+             self.check_credential_snapshot(&credential)?;
+             validate(&state)?;
+@@ -2742,6 +2759,15 @@
+             .as_deref()
+             .map_or(deadline, |until| deadline.min(*until));
+         let deadline = Self::media_deadline(&credential.principal, lease.as_ref(), deadline)?;
++        if retry_owned_visual_original {
++            // All the normal current port/ticket, consumer/scene, credential
++            // and authority eligibility checks above remain required. This is
++            // still a refusal: no admission or stale lease leaves this call.
++            if tokio::time::Instant::now() >= deadline {
++                return Err(StreamControlError::Deadline);
++            }
++            return Err(StreamControlError::MetadataBusy);
++        }
+         Ok((lease, admission, deadline))
+     }
+     pub async fn change(
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -5,12 +5,16 @@
+     pending: PreparedParticipantReplacement,
+     proof: Option<Arc<PreparedMediaObservation>>,
+ }
++type OriginalVisualPolicyAction = Box<
++    dyn FnOnce(Box<dyn MediaAuthorityLease>) -> ControlResult<Box<dyn MediaAuthorityLease>> + Send,
++>;
+ struct Domain {
+     base: Arc<Policy>,
+     fresh: AtomicUsize,
+     preparation_action: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+     preparation_expiry: Mutex<Option<chrono::DateTime<chrono::Utc>>>,
+     audio_current_gate: Mutex<Option<AudioCurrentGate>>,
++    original_visual_policy_action: Mutex<Option<OriginalVisualPolicyAction>>,
+     deny_handoff: AtomicBool,
+     deny_replacement: AtomicBool,
+     resources: Mutex<BTreeMap<ConnectionId, ReplacementResources>>,
+@@ -311,10 +315,17 @@
+             }
+             authority.may_route_source = !guard.private;
+         }
+-        Ok(Box::new(Lease {
++        let lease: Box<dyn MediaAuthorityLease> = Box::new(Lease {
+             authority,
+             _guard: guard,
+-        }))
++        });
++        if scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish) {
++            let action = self.original_visual_policy_action.lock().unwrap().take();
++            if let Some(action) = action {
++                return action(lease);
++            }
++        }
++        Ok(lease)
+     }
+     fn current_participant_receive(
+         &self,
+@@ -500,6 +511,7 @@
+             preparation_action: Mutex::new(None),
+             preparation_expiry: Mutex::new(None),
+             audio_current_gate: Mutex::new(None),
++            original_visual_policy_action: Mutex::new(None),
+             deny_handoff: AtomicBool::new(false),
+             deny_replacement: AtomicBool::new(false),
+             resources: Mutex::new(BTreeMap::new()),
+@@ -3792,3 +3804,5 @@
+ }
+ 
+ mod original_video_ingress;
++
++mod original_visual_policy_retry;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs
+@@ -0,0 +1,421 @@
++//! Refuse stale policy callbacks, then reauthorize only the SAME raw original.
++use super::*;
++use crate::staged_streams::direct_subscriptions::{DirectSubscription, DirectSubscriptionChange};
++use crate::staged_streams::original_ingress::OriginalIngress;
++
++#[derive(Clone, Copy, PartialEq, Eq, Debug)]
++enum Change {
++    AudioRouting,
++    Gate,
++    PauseResume,
++    Credential,
++    RevokeAfterRefusal,
++    EarlierLease,
++    PolicyConflict,
++    PolicyAuthority,
++    AudioOriginal,
++}
++// A callback holding this Domain Arc must be removed even when a pre-callback
++// assertion fails, so the fixture never retains its own owner through a cycle.
++struct ActionOwner(Arc<Domain>);
++impl Drop for ActionOwner {
++    fn drop(&mut self) {
++        self.0.original_visual_policy_action.lock().unwrap().take();
++    }
++}
++struct OriginalVisual {
++    room: Room,
++    source: Arc<StreamController>,
++    port: AdapterMediaPort,
++    original: OriginalIngress,
++    output: mpsc::Receiver<QueuedMedia>,
++    received: Instant,
++}
++impl OriginalVisual {
++    async fn new(medium: Medium, audio_original: bool, exclude_initial_state: bool) -> Self {
++        let mut room = Room::new().await;
++        for name in ["alice", "bob"] {
++            let source = &room.nodes[name].controller;
++            source
++                .change(
++                    source.revision(),
++                    &[desired(Medium::Audio), desired(medium)],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++        }
++        let source = room.nodes["alice"].controller.clone();
++        let target = &room.nodes["bob"].controller;
++        let logical = desired(medium).logical_id;
++        target
++            .change_direct_subscriptions(
++                target.revision(),
++                DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                    &source,
++                    logical.clone(),
++                    logical,
++                )]),
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++            .unwrap();
++        let output = room.nodes["bob"]
++            .adapter
++            .port(medium)
++            .take_egress()
++            .unwrap();
++        room.add("fresh", Some("public"), true).await;
++        let port = room.nodes["alice"].adapter.port(if audio_original {
++            Medium::Audio
++        } else {
++            medium
++        });
++        let (maximum, available) = port.ingress_capacity();
++        assert_eq!(maximum, if audio_original { 10 } else { 64 });
++        assert_eq!(
++            available,
++            maximum,
++            "new original port is not empty: maximum={maximum}, available={available}"
++        );
++        // Deliberate exclusion is a normal original-capture path. The two
++        // causal positives use it to isolate THIS post-policy fence even when
++        // the earlier366 capture-time production fix is counterfactually old.
++        let excluded = exclude_initial_state.then(|| source.state.lock().unwrap());
++        let received = Instant::now();
++        let original = port
++            .retain_original_ingress(frame(&port, 91000), received)
++            .unwrap()
++            .unwrap();
++        if exclude_initial_state {
++            assert!(original.captured_model_revision_for_test().is_none());
++        } else {
++            assert_eq!(
++                original.captured_model_revision_for_test(),
++                Some(source.revision())
++            );
++        }
++        drop(excluded); // No Core State survives into the fresh policy callback.
++        Self {
++            room,
++            source,
++            port,
++            original,
++            output,
++            received,
++        }
++    }
++    fn race(&self, medium: Medium, change: Change) -> ActionOwner {
++        let source = self.source.clone();
++        let domain = self.room.domain.clone();
++        let scene = self.room.scene.clone();
++        let runtime = tokio::runtime::Handle::current();
++        let callback: OriginalVisualPolicyAction = Box::new(move |lease: Box<dyn MediaAuthorityLease>| -> ControlResult<Box<dyn MediaAuthorityLease>> {
++            // This is the actual fresh policy lease, captured BEFORE planning
++            // the concurrent control. No Core or SQL mutex is held here.
++            assert_eq!(lease.authority().connection.connection().as_str(), "alice");
++            drop(
++                source
++                    .state
++                    .try_lock()
++                    .expect("raw policy holds source State"),
++            );
++            drop(
++                scene
++                    .members
++                    .try_lock()
++                    .expect("raw policy holds scene members"),
++            );
++            drop(
++                scene
++                    .audiences
++                    .try_lock()
++                    .expect("raw policy holds audience registry"),
++            );
++            let before = source.revision();
++            let expiry = chrono::Utc::now() + chrono::Duration::milliseconds(60);
++            // Join the ORIGINAL control worker before inspecting its outcome.
++            // Even its panic cannot detach a worker holding fixture ownership.
++            let control = std::thread::spawn(move || {
++                runtime.block_on(async move {
++                    let id = ConnectionId::from_string("fresh");
++                    let mut plan = scene.plan_audio_audience(AudioAudienceRequest {
++                        operation_id: "activate-fresh".into(),
++                        expected_revision: scene.audience_revision(),
++                        private_connections: BTreeSet::from([id.clone()]),
++                        receivers: BTreeMap::from([(id.clone(), vec![])]),
++                        activate_muted: Some(id.clone()),
++                    })?;
++                    plan.keep_endpoint_muted(&id)?;
++                    let grant = Arc::new(Grant {
++                        domain: domain.clone(),
++                        guard: Arc::new(domain.base.0.clone().read_owned().await),
++                        approval: Approval::Audience(plan.clone()),
++                        control_deadline: None,
++                        control_owner_delay: None,
++                    });
++                    let (_, handle) = scene
++                        .apply_audio_audience(plan, deadline(), CancellationToken::new(), &grant)
++                        .await?;
++                    assert!(!handle.endpoint_preparation);
++                    assert!(
++                        source.revision() > before,
++                        "audio plan did not cross the active policy call"
++                    );
++                    let ids = BTreeSet::from([desired(medium).logical_id]);
++                    match change {
++                        Change::Gate => {
++                            source
++                                .set_media_gate(
++                                    source.revision(),
++                                    &ids,
++                                    StreamGateAction::Mute,
++                                    deadline(),
++                                )
++                                .await?;
++                        }
++                        Change::PauseResume => {
++                            for gate in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                                source
++                                    .set_media_gate(source.revision(), &ids, gate, deadline())
++                                    .await?;
++                            }
++                        }
++                        Change::Credential => source.credential.lock().unwrap().revision += 1,
++                        _ => {}
++                    }
++                    Ok::<(), StreamControlError>(())
++                })
++            })
++            .join()
++            .expect("original control worker panicked");
++            control?;
++            match change {
++                Change::PolicyConflict => Err(MediaTransitionError::Conflict.into()),
++                Change::PolicyAuthority => Err(StreamControlError::Authority),
++                Change::EarlierLease => Ok(Box::new(ExpiringPreparationLease {
++                    inner: lease,
++                    expiry,
++                })),
++                _ => Ok(lease),
++            }
++        });
++        assert!(self
++            .room
++            .domain
++            .original_visual_policy_action
++            .lock()
++            .unwrap()
++            .replace(callback)
++            .is_none());
++        ActionOwner(self.room.domain.clone())
++    }
++    fn assert_refused_without_readers(&mut self) {
++        assert!(
++            self.room
++                .domain
++                .original_visual_policy_action
++                .lock()
++                .unwrap()
++                .is_none(),
++            "callback was not exercised"
++        );
++        let (maximum, available) = self.port.ingress_capacity();
++        assert_eq!(
++            available,
++            maximum,
++            "stale callback enqueued the original: medium={:?}, maximum={maximum}, available={available}",
++            self.port.binding().negotiated.requested.medium
++        );
++        assert!(
++            self.output.try_recv().is_err(),
++            "stale callback reached target IO"
++        );
++        drop(
++            self.room
++                .domain
++                .base
++                .0
++                .try_write()
++                .expect("refusal retained fresh authority"),
++        );
++        drop(
++            self.source
++                .state
++                .try_lock()
++                .expect("refusal retained source State"),
++        );
++    }
++}
++
++async fn retry_after_actual_audio_control(medium: Medium) {
++    let mut fixture = OriginalVisual::new(medium, false, true).await;
++    let ticket = fixture.port.0.ticket();
++    let scene = fixture.source.current_scene_stamp().unwrap().unwrap();
++    let credential = fixture.source.credential_snapshot();
++    let _action = fixture.race(medium, Change::AudioRouting);
++    let first = fixture.original.try_publish_clocked(|_| None);
++    fixture.assert_refused_without_readers();
++    assert!(
++        matches!(first, Err(StreamControlError::MetadataBusy)),
++        "stale {medium:?} callback: {first:?}"
++    );
++    assert!(ticket.is_current() && ticket.same_generation(&fixture.port.0.ticket()));
++    assert!(scene.same_generation(&fixture.source.current_scene_stamp().unwrap().unwrap()));
++    fixture
++        .source
++        .check_credential_snapshot(&credential)
++        .unwrap();
++    assert!(fixture.received.elapsed() < Duration::from_millis(200));
++    let before = fixture.room.domain.fresh.load(Ordering::Acquire);
++    fixture.original.try_publish_clocked(|_| None).unwrap();
++    assert!(
++        fixture.room.domain.fresh.load(Ordering::Acquire) > before,
++        "retry reused the old grant"
++    );
++    fixture.room.tick();
++    let queued = fixture
++        .output
++        .try_recv()
++        .expect("same original target output");
++    let writes = Arc::new(AtomicUsize::new(0));
++    let count = writes.clone();
++    queued
++        .deliver(move |frame| {
++            assert_eq!(frame.timestamp_rtp, 91000);
++            count.fetch_add(1, Ordering::SeqCst);
++            std::future::ready(Ok(()))
++        })
++        .await
++        .unwrap();
++    assert_eq!(writes.load(Ordering::SeqCst), 1);
++    assert!(fixture.output.try_recv().is_err());
++    assert!(matches!(
++        fixture.original.try_publish_clocked(|_| None),
++        Err(StreamControlError::Cancelled)
++    ));
++    fixture.room.tick();
++    assert!(fixture.output.try_recv().is_err());
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn original_video_policy_race_refuses_stale_callback_then_reauthorizes_same_original() {
++    retry_after_actual_audio_control(Medium::Video).await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn original_screen_policy_race_refuses_stale_callback_then_reauthorizes_same_original() {
++    retry_after_actual_audio_control(Medium::Screen).await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn original_visual_policy_race_preserves_hard_refusals_and_earliest_authority_expiry() {
++    for medium in [Medium::Video, Medium::Screen] {
++        for change in [
++            Change::Gate,
++            Change::PauseResume,
++            Change::Credential,
++            Change::RevokeAfterRefusal,
++            Change::EarlierLease,
++            Change::PolicyConflict,
++            Change::PolicyAuthority,
++            Change::AudioOriginal,
++        ] {
++            let mut fixture =
++                OriginalVisual::new(medium, change == Change::AudioOriginal, false).await;
++            let _action = fixture.race(medium, change);
++            let first = fixture.original.try_publish_clocked(|_| None);
++            fixture.assert_refused_without_readers();
++            assert!(
++                fixture.received.elapsed() < Duration::from_millis(200),
++                "{change:?} only exercised original expiry"
++            );
++            match change {
++                Change::Gate | Change::PauseResume => assert!(
++                    matches!(first, Err(StreamControlError::NotReady)),
++                    "{change:?}: {first:?}"
++                ),
++                Change::Credential | Change::PolicyConflict | Change::AudioOriginal => assert!(
++                    matches!(
++                        first,
++                        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++                    ),
++                    "{change:?}: {first:?}"
++                ),
++                Change::PolicyAuthority => {
++                    assert!(matches!(first, Err(StreamControlError::Authority)))
++                }
++                Change::RevokeAfterRefusal => {
++                    assert!(matches!(first, Err(StreamControlError::MetadataBusy)));
++                    fixture
++                        .room
++                        .domain
++                        .base
++                        .0
++                        .write()
++                        .await
++                        .revoked
++                        .insert("alice".into());
++                    let before = fixture.room.domain.fresh.load(Ordering::Acquire);
++                    assert!(matches!(
++                        fixture.original.try_publish_clocked(|_| None),
++                        Err(StreamControlError::Authority)
++                    ));
++                    assert!(fixture.room.domain.fresh.load(Ordering::Acquire) > before);
++                }
++                Change::EarlierLease => {
++                    assert!(
++                        matches!(first, Err(StreamControlError::MetadataBusy)),
++                        "short lease initial attempt: {first:?}"
++                    );
++                    tokio::time::sleep(Duration::from_millis(65)).await;
++                    assert!(fixture.received.elapsed() < Duration::from_millis(200));
++                    let before = fixture.room.domain.fresh.load(Ordering::Acquire);
++                    assert!(
++                        matches!(
++                            fixture.original.try_publish_clocked(|_| None),
++                            Err(StreamControlError::Deadline)
++                        ),
++                        "fresh lease must not renew original observed expiry"
++                    );
++                    assert_eq!(
++                        fixture.room.domain.fresh.load(Ordering::Acquire),
++                        before,
++                        "expired original should not acquire fresh authority"
++                    );
++                }
++                _ => unreachable!(),
++            }
++            assert!(matches!(
++                fixture.original.try_publish_clocked(|_| None),
++                Err(StreamControlError::Cancelled)
++            ));
++            fixture.room.tick();
++            assert!(
++                fixture.output.try_recv().is_err(),
++                "{medium:?} {change:?} reached visual IO"
++            );
++            assert!(
++                fixture
++                    .room
++                    .nodes
++                    .get_mut("bob")
++                    .unwrap()
++                    .out
++                    .try_recv()
++                    .is_err(),
++                "{change:?} reached audio IO"
++            );
++            drop(
++                fixture
++                    .room
++                    .domain
++                    .base
++                    .0
++                    .try_write()
++                    .expect("terminal refusal retained authority"),
++            );
++        }
++    }
++}
