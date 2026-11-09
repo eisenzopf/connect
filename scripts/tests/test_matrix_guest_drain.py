@@ -114,7 +114,7 @@ class OriginalGuestRetirement(unittest.TestCase):
 
 
 class DurableHostGuestCopy(unittest.TestCase):
-    def fixture(self,temp,corrupt=False):
+    def fixture(self,temp,corrupt=False,*,nested=False):
         root=Path(temp).resolve();matrix_root=root/'matrix';matrix_root.mkdir()
         owner=drain.GuestDrain(matrix_root,'/workspace/.local/g6-058-'+'a'*32,'a'*40)
         data=b'original closed media payload';row=dict(sha256=hashlib.sha256(data).hexdigest(),
@@ -130,6 +130,12 @@ class DurableHostGuestCopy(unittest.TestCase):
                 all_guest_owners_joined=True,original_vm_lease_joined=True,forced=False,cleanup_failures=[],client_inputs_unchanged=True,
                 guest=dict(format='connect/mac-linux-original-job/1',run_id=guest_id,original_pid=42,original_start_ticks=100,
                            exit_code=1,forced=False,original_joined=True)))
+        if nested:
+            report['remote_client_owner']['guest'].update(source_revision='a'*40,
+                capture_owner_created=True,capture_original_joined=True)
+            report['native_process_profile']=dict(format='connect/mac-linux-native-process-resources/1',
+                collection_complete=True,original_owner=report['remote_client_owner'])
+            report['packet_capture']=dict(owner_created=True,original_joined=True,pcap_sha256=row['sha256'])
         directory=matrix_root/'macos-arm64/cells/macos-arm64/remote-profile-fixture/native-quic/EdDSA'
         (directory/'evidence/media').mkdir(parents=True);path=directory/'evidence/media/rehearsal.json';path.write_text(json.dumps(report))
         private=directory/'private/media/remote-owner';private.mkdir(parents=True);(private/'client-inputs.json').write_text('{}')
@@ -168,6 +174,50 @@ class DurableHostGuestCopy(unittest.TestCase):
             path=Path(result['host_destination'])/'output/media.pcap'
             self.assertEqual(drain.digest(path),row['sha256']);self.assertEqual(path.stat().st_mtime_ns,row['signature']['mtime_ns'])
             self.assertEqual(len(owner.completed),1);self.assertTrue(owner.transports[0]['original_joined'])
+
+    def test_nested_remote_native_custody_reaches_normal_drain_and_preserves_failed_report(self):
+        with tempfile.TemporaryDirectory() as temp:
+            owner,payload,calls,row=self.fixture(temp,nested=True)
+            report_path=Path(payload['component_directory'])/'evidence/media/rehearsal.json'
+            original=report_path.read_bytes()
+            with patch.object(storage,'volume',return_value=dict(free_bytes=100*storage.GIB)):
+                result=owner.drain(payload)
+            self.assertEqual(calls,['inspect','unlink'])
+            self.assertTrue(result['all_selected_absent'])
+            self.assertEqual(report_path.read_bytes(),original)
+            self.assertEqual(payload['cell']['status'],'failed')
+            report=json.loads(original)
+            self.assertFalse(report['passed'])
+            self.assertEqual(report['remote_client_owner']['guest']['exit_code'],1)
+            self.assertNotIn('original_workers_joined',report['native_process_profile'])
+
+    def test_nested_remote_native_unknown_or_forced_owner_never_enters_guest_transport(self):
+        for defect in ('forced','missing','foreign-source','wrong-format'):
+            with self.subTest(defect=defect),tempfile.TemporaryDirectory() as temp:
+                owner,payload,calls,row=self.fixture(temp,nested=True)
+                report_path=Path(payload['component_directory'])/'evidence/media/rehearsal.json'
+                report=json.loads(report_path.read_text())
+                profile=report['native_process_profile']
+                if defect=='forced':
+                    profile['original_owner']['guest']['forced']=True
+                elif defect=='missing':
+                    del profile['original_owner']['original_vm_lease_joined']
+                elif defect=='foreign-source':
+                    profile['original_owner']['guest']['source_revision']='b'*40
+                else:
+                    profile['format']='connect/unknown-profile/1'
+                    profile.update(original_workers_joined=True,original_supervisor_joined=True)
+                report_path.write_text(json.dumps(report))
+                payload['cell']['execution']['component']['report_sha256']=drain.digest(report_path)
+                matrix_path=owner.matrix_output/'macos-arm64/matrix.json'
+                matrix_path.write_text(json.dumps(dict(source_revision='a'*40,cells=[payload['cell']])))
+                original=report_path.read_bytes()
+                with self.assertRaisesRegex(ValueError,'All original component owners must join'):
+                    owner.drain(payload)
+                self.assertEqual(calls,[])
+                self.assertEqual(owner.completed,[])
+                self.assertEqual(report_path.read_bytes(),original)
+                self.assertEqual(payload['cell']['status'],'failed')
 
     def test_bad_payload_or_spool_pressure_keeps_original_without_acknowledgement(self):
         for failure in ['hash','spool']:

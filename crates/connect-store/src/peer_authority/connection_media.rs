@@ -714,6 +714,15 @@ impl Store {
         };
         Ok((view, expiry, public_handoff))
     }
+    #[cfg(test)]
+    pub(crate) fn native_media_memo_counts_for_test(
+        &self,
+        origin: &NativeMediaOrigin,
+        paired: bool,
+    ) -> [u64; 3] {
+        snapshot::media_memo_counts(&origin.metadata, paired)
+    }
+
     /// Immediate fresh packet admission. Refuse contention instead of waiting
     /// under engine fences. Capture fresh facts through immediate scope admission;
     /// refuse any concurrent external commit rather than reuse a mixed snapshot.
@@ -835,10 +844,8 @@ impl Store {
             Ok(())
         };
         let source_token = source.map(|source| &source.metadata);
-        let ((target_view, source_view, expires_at, may_subscribe), held) = match held {
-            Some(held) => snapshot::cached_under(self, memo, source_token, held, derive, finish),
-            None => snapshot::cached(self, memo, source_token, derive, finish),
-        }?;
+        let ((target_view, source_view, expires_at, may_subscribe), held) =
+            snapshot::cached_media(self, memo, source_token, held, derive, finish)?;
         if let Some(source) = source {
             current_owner(self, source)?;
         }

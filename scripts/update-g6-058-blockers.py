@@ -3,6 +3,7 @@
 import argparse
 import html
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,16 @@ def main():
     esc = lambda value: html.escape(str(value), quote=True)
     rows = []
     ids = set()
+    tasks = {item["id"]: item for item in data.get("workplan_tasks", [])}
+    workplan_rows = []
+    for task_id in data.get("current_workplan_tasks", []):
+        task = tasks[task_id]
+        workplan_rows.append("<tr>" + "".join("<td>" + esc(value) + "</td>" for value in (
+            task_id + " · " + task["title"], task["status"], task["completion"],
+        )) + "</tr>")
+    workplan = ('<h3 id="current-fix-workplan">Current fix batch</h3>'
+        + '<table><thead><tr><th>Task</th><th>Status</th><th>Required verification</th></tr></thead>'
+        + '<tbody>' + "".join(workplan_rows) + '</tbody></table>') if workplan_rows else ""
     for item in data["blockers"]:
         assert item["id"] not in ids
         ids.add(item["id"])
@@ -32,6 +43,7 @@ def main():
         + '<p>Updated ' + esc(data["updated"]) + '. Implemented fixes stay open until their stated runtime checks pass. '
         + 'Component verification does not change the 32-cell matrix totals. '
         + '<a href="../evidence/gate-6/g6-058-blockers.json">Blocker ledger</a></p>'
+        + workplan
         + '<table><thead><tr><th>Blocker</th><th>Status</th><th>Change</th><th>Evidence / commit</th><th>Next verification</th></tr></thead>'
         + '<tbody>' + "".join(rows) + '</tbody></table></section>' + END)
     current = PAGE.read_text()
@@ -44,6 +56,33 @@ def main():
         anchor = '<h1>G6-058 transport matrix</h1>'
         assert current.count(anchor) == 1
         result = current.replace(anchor, anchor + "\n" + section, 1)
+    latest = data.get("latest_full_run")
+    if latest:
+        evidence = data[latest["evidence_key"]]
+        summary = evidence["summary"]
+        cells, checks = summary["cells"], summary["checks"]
+        overview = ('<p id="next-full-run-status"><a href="'
+            + esc(latest["status_url"]) + '">Completed ' + esc(latest["label"])
+            + ' run — all 32 cell results</a>. Full-cell qualification is '
+            + esc(cells["passed"]) + ' of ' + esc(summary["required_cells"])
+            + '. ' + esc(cells["failed"]) + ' cells failed and '
+            + esc(cells["blocked"]) + ' were blocked. Individual requirement checks: '
+            + esc(checks["passed"]) + ' passed, ' + esc(checks["failed"])
+            + ' failed and ' + esc(checks["blocked"]) + ' blocked.')
+        focused = data.get("current_focused_verification")
+        if focused:
+            overview += (' Focused follow-through checks: '
+                + esc(focused["passed"]) + ' of ' + esc(focused["planned"])
+                + ' passed. ' + esc(focused["next"])
+                + ' These checks do not qualify matrix cells.')
+        next_run = data.get("next_full_run_status")
+        if next_run:
+            overview += (' <a href="' + esc(next_run["url"]) + '">'
+                + esc(next_run["label"]) + '</a>.')
+        overview += '</p>'
+        result, replaced = re.subn(r'<p id="next-full-run-status">.*?</p>',
+            lambda _: overview, result, count=1, flags=re.DOTALL)
+        assert replaced == 1, "Missing current matrix overview"
     if args.check:
         if result != current:
             raise SystemExit("Blocker tracker is stale; run scripts/update-g6-058-blockers.py")

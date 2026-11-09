@@ -2386,3 +2386,18 @@ fn typed_telephone_parent_and_provider_hosts_exclude_the_same_invitation_target_
     assert_eq!(telephone_first.count("provider_session_voice"), 0);
     assert_eq!(telephone_first.count("operation_effects"), 0);
 }
+
+#[test]
+fn snapshot_scope_plan_preserves_provider_source_footprint() {
+    let f = Fixture::new();
+    let origin = f.origin();
+    let items = crate::events::assert_snapshot_scope_plan_for_test(
+        &f.store,
+        &f.keys[0],
+        origin.conversation_id(),
+    );
+    assert!(items.iter().any(|item| matches!(
+        item,
+        connect_protocol::events::SnapshotItem::ProviderCall(_)
+    )));
+}

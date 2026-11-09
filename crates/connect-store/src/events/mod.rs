@@ -349,6 +349,39 @@ pub(crate) fn snapshot_capture_count() -> usize {
     snapshots::capture_count()
 }
 
+/// Differential assertion shared by topology, record and operation fixtures.
+/// The reference uses the actual captured output and its final coverage planner.
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+pub(crate) fn assert_snapshot_scope_plan_for_test(
+    store: &Store,
+    credential: &str,
+    cid: &str,
+) -> Vec<SnapshotItem> {
+    let c = store.connection().unwrap();
+    let actor = actor_from_connection(&c, credential).unwrap();
+    let before = snapshot_capture_count();
+    let planned = admission::snapshot_scopes(
+        &c,
+        &actor,
+        cid,
+        &SnapshotQuery {
+            page: None,
+            limit: Some(100),
+        },
+        store,
+    )
+    .unwrap();
+    assert_eq!(snapshot_capture_count(), before);
+    let items = snapshots::capture(&c, &actor, cid).unwrap().1;
+    let actual = admission::snapshot_projection_scopes(&c, &actor, cid, &items).unwrap();
+    assert!(
+        planned == actual,
+        "source plan differs from actual snapshot footprint"
+    );
+    items
+}
+
 #[cfg(feature = "memory-diagnostics")]
 impl Runtime {
     pub(crate) fn memory_counts(&self) -> serde_json::Value {

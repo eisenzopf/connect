@@ -1,5 +1,6 @@
 //! Owned managed replacement phases; retained tickets contain no domain reader.
 mod allocation;
+mod capture_recording;
 pub(crate) mod continuation;
 mod diagnostics;
 mod media;
@@ -538,22 +539,36 @@ impl Runtime {
                 .and_then(|a| a.started.lock().ok().and_then(|s| s.clone()))
                 .and_then(|s| s.commit.lock().ok().and_then(|c| c.clone()));
             if let Some(captured) = captured {
-                let _ = retry_metadata(&self.stop, || {
-                    let store = self.media.store.clone();
-                    let captured = captured.clone();
-                    store_call(move || match captured {
-                        movement::Capture::Known(c) => {
-                            store.record_native_replacement_committed(&c)
-                        }
-                        movement::Capture::Unknown(c) => {
-                            store.native_replacement_commit_uncertain(&c)
-                        }
-                        movement::Capture::NotSubmitted(c) => {
-                            store.record_native_replacement_commit_not_submitted(&c)
-                        }
-                    })
-                })
-                .await;
+                match captured {
+                    movement::Capture::Known(captured) => {
+                        let _ = captured
+                            .recording
+                            .record(&self.stop, || {
+                                let store = self.media.store.clone();
+                                let capture = captured.value.clone();
+                                move || store.record_native_replacement_committed(&capture)
+                            })
+                            .await;
+                    }
+                    movement::Capture::Unknown(captured) => {
+                        let _ = retry_metadata(&self.stop, || {
+                            let store = self.media.store.clone();
+                            let capture = captured.clone();
+                            store_call(move || store.native_replacement_commit_uncertain(&capture))
+                        })
+                        .await;
+                    }
+                    movement::Capture::NotSubmitted(captured) => {
+                        let _ = retry_metadata(&self.stop, || {
+                            let store = self.media.store.clone();
+                            let capture = captured.clone();
+                            store_call(move || {
+                                store.record_native_replacement_commit_not_submitted(&capture)
+                            })
+                        })
+                        .await;
+                    }
+                }
             }
             let allocated = saved.allocated.lock().ok().and_then(|a| a.clone());
             let telephone = saved.telephone.lock().ok().and_then(|a| a.clone());

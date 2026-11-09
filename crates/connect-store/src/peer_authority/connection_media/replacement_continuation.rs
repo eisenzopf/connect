@@ -257,17 +257,14 @@ impl Store {
         };
         let source_token = source.map(|(o, a)| a.map_or(&o.metadata, |a| &a.metadata));
         let ((target_view, source_view, mut expires_at, may_subscribe), interval) =
-            match source_read {
-                Some(held) => snapshot::cached_under(
-                    self,
-                    memo,
-                    source_token,
-                    held.interval(),
-                    derive,
-                    |_| Ok(()),
-                ),
-                None => snapshot::cached(self, memo, source_token, derive, |_| Ok(())),
-            }?;
+            snapshot::cached_media(
+                self,
+                memo,
+                source_token,
+                source_read.map(NativeMediaRead::interval),
+                derive,
+                |_| Ok(()),
+            )?;
         if let Some(held) = source_read {
             if !held.current() {
                 return Err(Error::forbidden());

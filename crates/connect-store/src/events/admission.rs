@@ -172,8 +172,23 @@ pub(crate) fn snapshot_scopes(
     query: &SnapshotQuery,
     store: &Store,
 ) -> Result<Vec<AuthorityScope>> {
-    let items = snapshots::scope_items(c, actor, cid, query, store)?;
-    snapshot_projection_scopes(c, actor, cid, &items)
+    if query.page.is_some() {
+        // A page is an exact frozen projection with its existing token, epoch,
+        // credential and current source validation. Keep that path unchanged.
+        let items = snapshots::scope_items(c, actor, cid, query, store)?;
+        return snapshot_projection_scopes(c, actor, cid, &items);
+    }
+    authorize(c, actor, cid, "conversation.get")?;
+    limit(store, query.limit)?;
+    let mut scopes = base(c, actor, cid)?;
+    let mut source_bytes = 0;
+    snapshots::visit_sources(c, actor, cid, |item| {
+        // Stop oversized source histories under the original snapshot budget,
+        // without visiting or serializing Connection/Stream descendants.
+        snapshots::charge(&mut source_bytes, &item)?;
+        snapshot_items(c, actor, cid, std::slice::from_ref(&item), &mut scopes)
+    })?;
+    AuthorityScope::merged(&scopes)
 }
 /// Plan the exact trusted projection already captured in this SQL transaction.
 /// This retains no authorization or facts for a later invocation.

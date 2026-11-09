@@ -764,3 +764,31 @@ fn readiness_document_cutoff_and_unavailable_metadata_refuse_before_retention_wo
         );
     }
 }
+
+#[test]
+fn snapshot_scope_plan_preserves_record_only_visibility_without_session_permission() {
+    let f = Fixture::new(true);
+    let credential = f
+        .store
+        .issue(
+            &f.owner,
+            crate::Scope {
+                operations: vec!["conversation.get".into(), "record_get".into()],
+                recipients: vec![],
+            },
+            crate::now() + 300,
+        )
+        .unwrap();
+    let items =
+        crate::events::assert_snapshot_scope_plan_for_test(&f.store, &credential.id, "conv_record");
+    assert!(items.iter().any(|item| matches!(item,
+        connect_protocol::events::SnapshotItem::Record(
+            connect_protocol::events::RecordAvailability::Ready { uuid, .. }
+        ) if uuid == &f.uuid)));
+    assert!(!items.iter().any(|item| matches!(
+        item,
+        connect_protocol::events::SnapshotItem::Session(_)
+            | connect_protocol::events::SnapshotItem::Connection(_)
+            | connect_protocol::events::SnapshotItem::SessionParticipant(_)
+    )));
+}

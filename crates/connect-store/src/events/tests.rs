@@ -1471,3 +1471,92 @@ fn committed_conversation_closure_is_original_immutable_and_scoped_for_each_reci
         Err(e) => assert_eq!(e.code, "forbidden"),
     }
 }
+
+#[test]
+fn source_scope_plan_matches_visible_topology_without_rendering_connection_children() {
+    let f = Fixture::new();
+    f.live_source();
+    let items = assert_snapshot_scope_plan_for_test(&f.store, &f.keys[0], &f.cid);
+    assert!(items
+        .iter()
+        .any(|item| matches!(item, SnapshotItem::Session(_))));
+    assert!(items.iter().any(|item| matches!(item,
+        SnapshotItem::Connection(value) if value.connection_id == "source-connection")));
+    let restricted = f
+        .store
+        .issue(
+            &f.ids[0],
+            Scope {
+                operations: vec!["conversation.get".into()],
+                recipients: vec![],
+            },
+            crate::now() + 300,
+        )
+        .unwrap();
+    let items = assert_snapshot_scope_plan_for_test(&f.store, &restricted.id, &f.cid);
+    assert!(!items.iter().any(|item| matches!(
+        item,
+        SnapshotItem::Session(_) | SnapshotItem::Connection(_) | SnapshotItem::Operation(_)
+    )));
+    assert!(!items.iter().any(|item| matches!(item,
+        SnapshotItem::Participant(member) if member.identity_id == f.ids[1])));
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE participants SET active=0 WHERE conversation_id=?1 AND identity_id=?2",
+            params![f.cid, f.ids[1]],
+        )
+        .unwrap();
+    let items = assert_snapshot_scope_plan_for_test(&f.store, &f.keys[0], &f.cid);
+    assert!(!items.iter().any(|item| matches!(item,
+        SnapshotItem::Participant(member) if member.identity_id == f.ids[1])));
+}
+
+#[test]
+fn source_scope_planning_keeps_the_snapshot_byte_bound_without_rendering_children() {
+    let f = Fixture::new();
+    let (session, _) = f.live_source();
+    // Trusted synthetic rows exercise the actual snapshot bound. A source-only
+    // budget is conservative: a valid full snapshot is always valid for planning.
+    for (size, fits) in [
+        (MAX_SNAPSHOT_BYTES - 65536, true),
+        (MAX_SNAPSHOT_BYTES, false),
+    ] {
+        f.store
+            .connection()
+            .unwrap()
+            .execute(
+                "UPDATE sessions SET media=?2 WHERE id=?1",
+                params![
+                    session,
+                    serde_json::to_string(&vec!["a".repeat(size)]).unwrap()
+                ],
+            )
+            .unwrap();
+        let c = f.store.connection().unwrap();
+        let actor = actor_from_connection(&c, &f.keys[0]).unwrap();
+        let before = snapshot_capture_count();
+        let planned = admission::snapshot_scopes(
+            &c,
+            &actor,
+            &f.cid,
+            &SnapshotQuery {
+                page: None,
+                limit: Some(100),
+            },
+            &f.store,
+        );
+        assert_eq!(snapshot_capture_count(), before);
+        let captured = snapshots::capture(&c, &actor, &f.cid);
+        if fits {
+            let actual =
+                admission::snapshot_projection_scopes(&c, &actor, &f.cid, &captured.unwrap().1)
+                    .unwrap();
+            assert!(planned.unwrap() == actual);
+        } else {
+            assert_eq!(planned.err().unwrap().code, "capacity-exceeded");
+            assert_eq!(captured.unwrap_err().code, "capacity-exceeded");
+        }
+    }
+}

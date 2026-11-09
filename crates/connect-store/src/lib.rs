@@ -855,7 +855,14 @@ impl Store {
         Ok(directory)
     }
 }
+#[cfg(test)]
+mod test_clock;
+
 pub(crate) fn now() -> i64 {
+    #[cfg(test)]
+    if let Some(second) = test_clock::current() {
+        return second;
+    }
     chrono::Utc::now().timestamp()
 }
 pub(crate) fn random_secret() -> String {

@@ -20,10 +20,14 @@ export async function connectFirefoxBidi(modulePath, port) {
                     // Separate visible windows keep both independent decoders
                     // observable; a background Firefox tab can suspend rVFC.
                     const page=await context.newPage({type:"window",background:false});
-                    return {mouse:page.mouse,addInitScript:fn=>page.evaluateOnNewDocument(fn),
-                        goto:url=>page.goto(url),evaluate:(fn,arg)=>page.evaluate(fn,arg)};
+                    return bidiFirefoxPage(page);
                 }};
             },
         };
     } catch(error){await browser.close();throw error;}
+}
+
+export function bidiFirefoxPage(page){
+    return {mouse:page.mouse,addInitScript:(fn,...args)=>page.evaluateOnNewDocument(fn,...args),
+        goto:url=>page.goto(url),evaluate:(fn,arg)=>page.evaluate(fn,arg)};
 }

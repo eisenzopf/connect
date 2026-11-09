@@ -48,6 +48,41 @@ class VmWorkloadLease:
             self.file = None
 
 
+def _native_clients_joined(report, profile):
+    if not isinstance(profile, dict):
+        return False
+    if profile.get("format") == "connect/mac-linux-native-process-resources/1":
+        # This producer records the same actual guest owner as the remote
+        # retention path. A failed programme is not an unknown physical owner.
+        from .mac_linux_fixture import remote_browser_owner_joined
+        owner = profile.get("original_owner")
+        if not remote_browser_owner_joined(owner):
+            return False
+        guest = owner["guest"]
+        revision = report.get("source_revision")
+        capture = report.get("packet_capture", {})
+        if not isinstance(capture, dict):
+            return False
+        if capture.get("owner_created") is True and guest.get("capture_owner_created") is not True:
+            return False
+        if ("capture_owner_created" in guest or "capture_original_joined" in guest):
+            if (type(guest.get("capture_owner_created")) is not bool
+                    or guest.get("capture_original_joined") is not True):
+                return False
+        return (profile.get("collection_complete") is True
+            and profile.get("forced", False) is False
+            and profile.get("forced_cleanup", False) is False
+            and owner == report.get("remote_client_owner")
+            and isinstance(revision, str) and len(revision) == 40
+            and all(c in "0123456789abcdef" for c in revision)
+            and guest.get("source_revision") == revision)
+    if ("original_owner" in profile or profile.get("format") not in
+            (None, "connect/native-workload-process-profile/1")):
+        return False  # Unknown schemas cannot borrow current local flat flags.
+    return (profile.get("original_supervisor_joined") is True
+        and profile.get("original_workers_joined") is True)
+
+
 def cleanup_evidence(report):
     """Only original owner joins permit another measured workload on this VM."""
     if not isinstance(report, dict):
@@ -65,8 +100,9 @@ def cleanup_evidence(report):
     browser = report.get("format") == "connect/browser-matrix-component/1"
     client = report.get("native_process_profile", {})
     clients_joined = (report.get("browser_owner_started") is False or report.get("browser_owner_joined") is True if browser else
-        client.get("original_supervisor_joined") is True and client.get("original_workers_joined") is True)
-    if not browser and report.get("native_programme_started") is False:
+        _native_clients_joined(report, client))
+    if (not browser and report.get("native_programme_started") is False
+            and "native_process_profile" not in report):
         clients_joined = True  # The producer has not entered its programme owner boundary.
     namespace = report.get("network_namespace")
     namespace_joined = namespace is None or (namespace.get("original_namespace_removed") is True and

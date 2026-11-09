@@ -1,0 +1,1003 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs
+index d8f78523a4a7d1b636875535f5575efa99789794..884fffcbc779724c3b888b807e1373d5ed84c3c4 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs
+@@ -869,3 +869,180 @@
+         ))
+         .is_err());
+ }
++
++#[tokio::test]
++async fn fresh_rtc_feedback_does_not_spend_or_renew_original_video_repairs() {
++    for medium in [Medium::Video, Medium::Screen] {
++        let f = Fixture::new(8);
++        f.start(&[medium]).await;
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        let mut output = f.ba.port(medium).take_egress().unwrap();
++        publish(&f, medium, &mut input, 400).await
++            .try_forward_to(&f.b, &desired(medium).logical_id).unwrap();
++        let (repair, feedback) = outgoing(&mut output).await
++            .deliver_video_with_repair_and_feedback(|_, _| async { Ok(()) }).await.unwrap();
++        let feedback = feedback.unwrap();
++        let expiry = repair.expires_at();
++        let excluded = f.policy.0.write().await;
++        for _ in 0..4 {
++            assert!(feedback.dispatch_current(deadline(), |_, _| async {
++                panic!("excluded feedback entered IO")
++            }).await.is_err());
++        }
++        drop(excluded);
++        let sends = Arc::new(AtomicUsize::new(0));
++        for _ in 0..super::super::video_repair::MAX_VIDEO_REPAIRS {
++            let sends = sends.clone();
++            repair.repair(move |frame, _| async move {
++                assert_eq!(frame.timestamp_rtp, 400);
++                sends.fetch_add(1, Ordering::SeqCst);
++                Ok(())
++            }).await.unwrap();
++        }
++        assert_eq!(sends.load(Ordering::SeqCst), 4);
++        assert!(matches!(repair.repair(|_, _| async {
++            panic!("fifth actual repair bypassed original budget")
++        }).await, Err(StreamControlError::Backpressure)));
++        assert_eq!(repair.expires_at(), expiry);
++        tokio::time::sleep_until(expiry.into()).await;
++        assert!(matches!(repair.repair(|_, _| async {
++            panic!("expired repair replayed original bytes")
++        }).await, Err(StreamControlError::Deadline)));
++        feedback.dispatch_current(deadline(), |_, _| async { Ok(()) }).await.unwrap();
++        assert_eq!(repair.expires_at(), expiry);
++    }
++}
++
++#[tokio::test]
++async fn fresh_rtc_feedback_keeps_current_authority_selection_and_physical_generation() {
++    for action in 0..6 {
++        let f = Fixture::new(8);
++        f.start(&[Medium::Video, Medium::Screen]).await;
++        let mut input = f.a.take_ingress(&desired(Medium::Video).logical_id).unwrap();
++        let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++        publish(&f, Medium::Video, &mut input, 500).await
++            .try_forward_to(&f.b, &desired(Medium::Video).logical_id).unwrap();
++        let (_, feedback) = outgoing(&mut output).await
++            .deliver_video_with_repair_and_feedback(|_, _| async { Ok(()) }).await.unwrap();
++        let feedback = feedback.unwrap();
++        match action {
++            0 | 1 => {
++                f.policy.0.write().await.revoked.insert(if action == 0 { "alice" } else { "bob" }.into());
++            },
++            2 => { f.policy.0.write().await.private = true; },
++            3 => {
++                route(&f, DirectSubscriptionChange::Unsubscribe(vec![desired(Medium::Video).logical_id]))
++                    .await.unwrap();
++            },
++            4 => {
++                let logical = desired(Medium::Video).logical_id;
++                f.a.set_paused(&logical, f.a.revision(), true, deadline()).await.unwrap();
++                f.a.set_paused(&logical, f.a.revision(), false, deadline()).await.unwrap();
++            },
++            5 => {
++                let logical = desired(Medium::Video).logical_id;
++                f.b.set_paused(&logical, f.b.revision(), true, deadline()).await.unwrap();
++                f.b.set_paused(&logical, f.b.revision(), false, deadline()).await.unwrap();
++            },
++            _ => unreachable!(),
++        }
++        assert!(feedback.dispatch_current(deadline(), |_, _| async {
++            panic!("stale or forbidden RTC feedback entered IO")
++        }).await.is_err(), "current refusal lane {action}");
++    }
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video, Medium::Screen]).await;
++    let mut input = f.a.take_ingress(&desired(Medium::Video).logical_id).unwrap();
++    let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++    publish(&f, Medium::Video, &mut input, 501).await
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id).unwrap();
++    let mut wrong = outgoing(&mut output).await;
++    wrong.target = f.ba.port(Medium::Screen).0;
++    assert!(matches!(wrong.deliver_video_with_repair_and_feedback(|_, _| async {
++        panic!("camera-to-screen route entered IO")
++    }).await, Err(StreamControlError::Unsupported)));
++}
++
++#[tokio::test]
++async fn fresh_rtc_feedback_destroys_pending_io_before_current_guards_on_cutoff_or_cancel() {
++    struct PendingIo {
++        policy: Arc<Policy>,
++        dropped_under_readers: Arc<AtomicBool>,
++    }
++    impl Drop for PendingIo {
++        fn drop(&mut self) {
++            self.dropped_under_readers.store(self.policy.0.try_write().is_err(), Ordering::SeqCst);
++        }
++    }
++    for cancel in [false, true] {
++        let f = Fixture::new(8);
++        f.start(&[Medium::Video]).await;
++        let mut input = f.a.take_ingress(&desired(Medium::Video).logical_id).unwrap();
++        let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++        let feedback = feedback_record(&f, &mut input, &mut output, 600).await;
++        let callback_entered = AtomicBool::new(false);
++        let expired = feedback.dispatch_current(
++            tokio::time::Instant::now() - Duration::from_millis(1),
++            |_, _| {
++                callback_entered.store(true, Ordering::SeqCst);
++                async { Ok(()) }
++            },
++        ).await;
++        assert!(matches!(expired, Err(StreamControlError::Deadline)));
++        assert!(!callback_entered.load(Ordering::SeqCst));
++        let entered = Arc::new(Notify::new());
++        let dropped = Arc::new(AtomicBool::new(false));
++        let pending = PendingIo { policy: f.policy.clone(), dropped_under_readers: dropped.clone() };
++        let seen = entered.clone();
++        let until = tokio::time::Instant::now() + Duration::from_millis(20);
++        let sending = feedback.dispatch_current(until, move |_, _| async move {
++            let _pending = pending;
++            seen.notify_one();
++            std::future::pending::<ControlResult<()>>().await
++        });
++        let (result, entered) = tokio::join!(sending, async {
++            let entered = tokio::time::timeout(
++                Duration::from_millis(100), entered.notified(),
++            ).await.is_ok();
++            if cancel && entered { f.a.retire(); }
++            entered
++        });
++        assert!(entered, "fresh feedback did not enter its actual IO future");
++        assert!(if cancel { matches!(result, Err(StreamControlError::Cancelled)) }
++            else { matches!(result, Err(StreamControlError::Deadline)) });
++        assert!(dropped.load(Ordering::SeqCst), "IO dropped after current readers");
++        assert!(f.policy.0.try_write().is_ok(), "feedback retained authority after completion");
++        f.a.retire();
++        let callback_entered = AtomicBool::new(false);
++        let cancelled = feedback.dispatch_current(deadline(), |_, _| {
++            callback_entered.store(true, Ordering::SeqCst);
++            async { Ok(()) }
++        }).await;
++        assert!(cancelled.is_err());
++        assert!(!callback_entered.load(Ordering::SeqCst));
++    }
++}
++
++
++#[tokio::test]
++async fn rtc_feedback_metadata_exclusion_does_not_discard_valid_primary_video() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    let mut input = f.a.take_ingress(&desired(Medium::Video).logical_id).unwrap();
++    let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++    publish(&f, Medium::Video, &mut input, 700).await
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id).unwrap();
++    let queued = outgoing(&mut output).await;
++    let direct = queued.direct.clone().unwrap();
++    let excluded = direct.feedback.hold_metadata_for_test();
++    let submitted = Arc::new(AtomicUsize::new(0));
++    let count = submitted.clone();
++    let (repair, feedback) = queued.deliver_video_with_repair_and_feedback(move |_, _| async move {
++        count.fetch_add(1, Ordering::SeqCst);
++        Ok(())
++    }).await.unwrap();
++    drop(excluded);
++    assert_eq!(submitted.load(Ordering::SeqCst), 1);
++    assert!(feedback.is_none());
++    repair.repair(|_, _| async { Ok(()) }).await.unwrap();
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs b/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
+index a1eda1a0a78c98e69dc55f60a69a756e25c71fa6..47a1f287371c8209e8b777329cd33bf4098a1a2e 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
+@@ -191,7 +191,64 @@
+     where
+         F: FnOnce(&AdapterMediaPort, &MediaSource) -> ControlResult<()>,
+     {
+-        if epoch != self.epoch.id || !self.direct.is_current() || self.epoch.scope.cancelled() {
++        let (port, source_owner, admitted) = self.admit_feedback(
++            Some((epoch, sequence)),
++            tokio::time::Instant::now() + Duration::from_millis(100),
++        )?;
++        let result = send(&AdapterMediaPort(port), &self.source);
++        drop((admitted, source_owner));
++        result
++    }
++
++    /// Fresh local RTC feedback, independent of the last media packet's age
++    /// and repair attempts. Both current endpoint readers cover the actual IO;
++    /// cancellation destroys its future before releasing those readers.
++    /// The caller retains its original hint deadline across metadata retries.
++    pub async fn dispatch_current<F, Fut>(
++        &self,
++        until: tokio::time::Instant,
++        send: F,
++    ) -> ControlResult<()>
++    where
++        F: FnOnce(AdapterMediaPort, MediaSource) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        let (port, source_owner, admitted) = self.admit_feedback(None, until)?;
++        let deadline = admitted.deadline;
++        let tokens = admitted.tokens.clone();
++        let source = self.source.clone();
++        let result = tokio::select! { biased;
++            _ = audio_consumer::any_cancelled(tokens.clone()) => {
++                Err(StreamControlError::Cancelled)
++            },
++            result = tokio::time::timeout_at(deadline, async move {
++                // Construct the actual callback only when this branch is
++                // polled, after cancellation and the original cutoff checks.
++                if tokens.iter().any(CancellationToken::is_cancelled) {
++                    return Err(StreamControlError::Cancelled);
++                }
++                if tokio::time::Instant::now() >= deadline {
++                    return Err(StreamControlError::Deadline);
++                }
++                send(AdapterMediaPort(port), source).await
++            }) => result.map_err(|_| StreamControlError::Deadline)?,
++        };
++        drop((admitted, source_owner));
++        result
++    }
++
++    // Share the existing native feedback admission without changing its wire
++    // epoch/sequence contract. RTC allocates a local cursor only after fresh
++    // admission, in this same shared cooldown/replay critical section.
++    fn admit_feedback(
++        &self,
++        wire: Option<(u128, u32)>,
++        until: tokio::time::Instant,
++    ) -> ControlResult<(Arc<Port>, Arc<StreamController>, QueuedMediaAdmission)> {
++        if wire.is_some_and(|(epoch, _)| epoch != self.epoch.id)
++            || !self.direct.is_current()
++            || self.epoch.scope.cancelled()
++        {
+             return Err(StreamControlError::Authority);
+         }
+         let scope = &self.epoch.scope;
+@@ -217,7 +274,7 @@
+         {
+             return Err(StreamControlError::Authority);
+         }
+-        let mut deadline = tokio::time::Instant::now() + Duration::from_millis(100);
++        let mut deadline = until.min(tokio::time::Instant::now() + Duration::from_millis(100));
+         // Fresh feedback has its own bounded admission, never a renewed media
+         // packet age. Retained metadata causes nonblocking queued policy reads.
+         let (source_lease, source_guard, source_bound) = source.admit_with_deadline(
+@@ -268,6 +325,10 @@
+                 .rate
+                 .try_lock()
+                 .map_err(|_| StreamControlError::Backpressure)?;
++            let sequence = wire.map_or_else(
++                || rate.sequence.map_or(0, |previous| previous.wrapping_add(1)),
++                |(_, sequence)| sequence,
++            );
+             if rate.sequence.is_some_and(|previous| {
+                 let distance = sequence.wrapping_sub(previous);
+                 distance == 0 || distance >= (1u32 << 31)
+@@ -281,11 +342,26 @@
+             rate.sequence = Some(sequence);
+             rate.next = Some(now + Duration::from_millis(100));
+         }
+-        let result = send(&AdapterMediaPort(source_port.clone()), &self.source);
+-        // Keep both current permission readers and all route/scene fences
+-        // through the real local dispatch. None are stored in the route record.
+-        drop((source_guard, target_guard, source_lease, target_lease));
+-        result
++        let mut tokens = vec![
++            source.shutdown.clone(),
++            target.shutdown.clone(),
++            self.direct.cancel.clone(),
++        ];
++        for scene in [&scope.source_scene, &scope.target_scene].into_iter().flatten() {
++            tokens.push(scene.cancel.clone());
++        }
++        Ok((
++            source_port,
++            source,
++            QueuedMediaAdmission {
++                target,
++                tokens,
++                deadline,
++                _leases: vec![source_lease, target_lease],
++                _subscriptions: Vec::new(),
++                _admissions: vec![source_guard, target_guard],
++            },
++        ))
+     }
+ }
+ 
+@@ -345,3 +421,59 @@
+         installed.ok_or(StreamControlError::NotReady)
+     }
+ }
++
++impl QueuedMedia {
++    /// Submit one original VP8 packet with independent metadata for fresh RTC
++    /// control hints. The repair handle retains its original bytes, 200ms age
++    /// and four-attempt budget. Feedback never retains those bytes or readers.
++    pub async fn deliver_video_with_repair_and_feedback<F, Fut>(
++        self,
++        send: F,
++    ) -> ControlResult<(VideoRepair, Option<VideoFeedbackRoute>)>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        let medium = self.target.binding.negotiated.requested.medium;
++        if self.frame.kind != StreamKind::Video
++            || self.data.is_some()
++            || self.local.is_some()
++            || self.sources.len() != 1
++            || self.target_consumer.is_some()
++            || !matches!(medium, Medium::Video | Medium::Screen)
++            || self.sources[0].source.binding.negotiated.requested.medium != medium
++            || self.sources[0].consumer.is_some()
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        let source = &self.sources[0];
++        let scope = Scope {
++            source: Arc::downgrade(&source.source),
++            target: Arc::downgrade(&self.target),
++            source_ticket: source.ticket.clone(),
++            target_ticket: self.target_ticket.clone(),
++            source_scene: source.scene.clone(),
++            target_scene: self.target_scene.clone(),
++        };
++        let descriptor = source.descriptor.clone();
++        let direct = self.direct.clone().ok_or(StreamControlError::Authority)?;
++        let mut installed = None;
++        let output = &mut installed;
++        let repair = self
++            .deliver_video_with_repair(move |frame, origin| async move {
++                // Auxiliary metadata contention cannot turn an otherwise valid
++                // primary RTP write into a failure. A previous hint still needs
++                // current exact route admission; no old authority is reused.
++                let route = match VideoFeedbackRoute::issued(scope, descriptor, direct) {
++                    Ok(route) => Some(route),
++                    Err(StreamControlError::Backpressure) => None,
++                    Err(problem) => return Err(problem),
++                };
++                send(frame, origin).await?;
++                *output = route;
++                Ok(())
++            })
++            .await?;
++        Ok((repair, installed))
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+index 8c031c26caebf442a786b7153f1a2d8f8692edcb..fcf29ead738d35cc7f276d090db709359458b5e0 100644
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -1132,7 +1132,7 @@
+         let until = tokio::time::Instant::now() + Duration::from_millis(100);
+         loop {
+             let routes = routes.clone();
+-            let forward = pictures.forward(move |origin, ssrc| async move {
++            let forward = pictures.forward(until, move |origin, ssrc| async move {
+                 let routes = routes.upgrade().ok_or(StreamControlError::Cancelled)?;
+                 let route = routes
+                     .get(&origin.connection)
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+new file mode 100644
+index 0000000000000000000000000000000000000000..840a6aae1173043a60eb2981efc87bc0f7504265
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+@@ -0,0 +1,510 @@
++//! Production CoreVideoEgress -> PictureRequests -> real source SRTCP PLI.
++//! The policy/adapter setup mirrors the existing canonical original-ingress
++//! fixture. This does not manufacture a full installed canonical Route/backend.
++use super::*;
++use crate::{config::WebRtcConfig, peer::{PeerRole, RvoipPeerConnection}};
++use rtc::shared::marshal::Marshal;
++use rvoip_core::{
++    capability::DataProtocol,
++    connection::Transport,
++    identity::{AuthenticatedPrincipal, AuthenticationMethod, IdentityAssurance},
++    ids::*,
++    participant::{ParticipantKind, ParticipantRole},
++    relationships::{ConnectionBinding, EndpointBinding, IdentityBinding, Membership, SessionAppearance},
++    staged_streams::{*, direct_subscriptions::*},
++    stream_lifecycle::*,
++};
++use std::{collections::{BTreeMap, BTreeSet, HashMap}, sync::atomic::AtomicUsize, time::Duration};
++use tokio::sync::{OwnedRwLockReadGuard, RwLock};
++use tokio_util::sync::CancellationToken;
++use chrono::Utc;
++
++fn principal(name: &str) -> AuthenticatedPrincipal {
++    AuthenticatedPrincipal {
++        subject: name.into(),
++        tenant: Some("tenant".into()),
++        scopes: vec![],
++        issuer: Some("fixture".into()),
++        expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Anonymous,
++    }
++}
++fn audio() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "pcmu".into(),
++        clock_rate_hz: 8000,
++        channels: 1,
++        fmtp: None,
++    }
++}
++fn video() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "vp8".into(),
++        clock_rate_hz: 90000,
++        channels: 0,
++        fmtp: None,
++    }
++}
++fn profile() -> EndpointMediaCapabilities {
++    let capabilities = vec![
++        MediaCapability {
++            medium: Medium::Audio,
++            formats: vec![audio()],
++        },
++        MediaCapability {
++            medium: Medium::Video,
++            formats: vec![video()],
++        },
++        MediaCapability {
++            medium: Medium::Screen,
++            formats: vec![video()],
++        },
++        MediaCapability {
++            medium: Medium::Data,
++            formats: vec![MediaFormat::ReliableOrdered(DataProtocol::Json)],
++        },
++    ];
++    EndpointMediaCapabilities {
++        send: capabilities.clone(),
++        receive: capabilities,
++        max_streams: 8,
++        renegotiation: true,
++    }
++}
++fn desired(kind: Medium) -> DesiredStream {
++    DesiredStream {
++        logical_id: StreamId::from_string(match kind {
++            Medium::Audio => "audio",
++            Medium::Video => "video",
++            Medium::Screen => "screen",
++            Medium::Data => "data",
++        }),
++        medium: kind,
++        direction: StreamDirection::Both,
++    }
++}
++fn owner(name: &str) -> MediaOwner {
++    let principal = principal(name);
++    let identity = IdentityBinding::from_authenticated(
++        &principal,
++        IdentityId::from_string(name),
++        chrono::Utc::now(),
++    )
++    .unwrap();
++    let member = Membership::admit(
++        identity.clone(),
++        ConversationId::from_string("conversation"),
++        ParticipantId::from_string(format!("participant-{name}")),
++        ParticipantKind::Human,
++        ParticipantRole::Agent,
++    )
++    .unwrap();
++    let presence =
++        SessionAppearance::admit(&member, SessionId::from_string("session"), None).unwrap();
++    let mut endpoint = EndpointBinding::provision(
++        identity.clone(),
++        EndpointId::from_string(format!("endpoint-{name}")),
++        DeviceId::from_string(format!("device-{name}")),
++        Transport::WebRtc,
++        "fixture-address".into(),
++    )
++    .unwrap();
++    endpoint
++        .verify(&identity, "fixture-evidence".into(), chrono::Utc::now())
++        .unwrap();
++    let mut connection = ConnectionBinding::prepare(
++        &member,
++        &presence,
++        &endpoint,
++        ConnectionId::from_string(name),
++    )
++    .unwrap();
++    connection
++        .observe_ready(&member, &presence, &endpoint, 1)
++        .unwrap();
++    connection.activate(&member, &presence, &endpoint).unwrap();
++    MediaOwner {
++        actor: member.clone(),
++        member,
++        presence,
++        endpoint,
++        connection,
++        may_control: true,
++        send_media: [Medium::Audio, Medium::Video, Medium::Screen, Medium::Data]
++            .into_iter()
++            .collect(),
++        receive_media: [Medium::Audio, Medium::Video, Medium::Screen, Medium::Data]
++            .into_iter()
++            .collect(),
++        local: profile(),
++        remote: profile(),
++        may_route_source: true,
++    }
++}
++struct Policy {
++    owners: HashMap<String, MediaOwner>,
++    guard: Arc<RwLock<()>>,
++    mode: AtomicUsize,
++    attempts: AtomicUsize,
++    original_attempts: AtomicUsize,
++    grant_until: Mutex<Option<chrono::DateTime<Utc>>>,
++}
++struct Lease {
++    owner: MediaOwner,
++    _guard: OwnedRwLockReadGuard<()>,
++    until: Option<chrono::DateTime<Utc>>,
++}
++impl MediaAuthorityLease for Lease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<Utc>> {
++        self.until
++    }
++}
++impl Policy {
++    fn read(
++        &self,
++        scope: &MediaScope<'_>,
++        original: bool,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish) {
++            self.attempts.fetch_add(1, Ordering::SeqCst);
++            if original {
++                self.original_attempts.fetch_add(1, Ordering::SeqCst);
++            }
++            match self.mode.load(Ordering::SeqCst) {
++                1 => {
++                    return Err(StreamControlError::Backpressure);
++                }
++                2 => return Err(StreamControlError::NotReady),
++                3 => return Err(StreamControlError::Authority),
++                _ => {}
++            }
++        }
++        let guard = self
++            .guard
++            .clone()
++            .try_read_owned()
++            .map_err(|_| StreamControlError::Authority)?;
++        Ok(Box::new(Lease {
++            owner: self.owners.get(scope.connection.as_str()).unwrap().clone(),
++            _guard: guard,
++            until: if scope.connection.as_str() == "alice"
++                && matches!(scope.purpose, MediaPurpose::Publish)
++            {
++                *self.grant_until.lock().unwrap()
++            } else {
++                None
++            },
++        }))
++    }
++}
++impl MediaPolicy for Policy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.read(scope, false)
++    }
++    fn current_original_ingress(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.read(scope, true)
++    }
++}
++struct Cleanup;
++#[async_trait::async_trait]
++impl MediaPortCleanup for Cleanup {
++    async fn close(&self) -> ControlResult<()> {
++        Ok(())
++    }
++}
++#[derive(Default)]
++struct Adapter(Mutex<BTreeMap<StreamId, AdapterMediaPort>>);
++impl Adapter {
++    fn port(&self, medium: Medium) -> AdapterMediaPort {
++        self.0.lock().unwrap()[&desired(medium).logical_id].clone()
++    }
++}
++#[async_trait::async_trait]
++impl StagedMediaAdapter for Adapter {
++    async fn prepare(
++        &self,
++        ports: Vec<PortPreparation>,
++        _: tokio::time::Instant,
++        _: CancellationToken,
++    ) -> ControlResult<()> {
++        for preparation in ports {
++            let port = preparation.port;
++            if preparation.is_new {
++                port.install_cleanup(Arc::new(Cleanup))?;
++                let pt = if port.binding().negotiated.requested.medium == Medium::Audio {
++                    0
++                } else {
++                    96
++                };
++                port.observe_ready(&port.binding().negotiated.format, true, true, Some(pt))?;
++            }
++            self.0
++                .lock()
++                .unwrap()
++                .insert(port.binding().negotiated.requested.logical_id.clone(), port);
++        }
++        Ok(())
++    }
++}
++
++struct Fixture {
++    policy: Arc<Policy>,
++    a: Arc<StreamController>,
++    b: Arc<StreamController>,
++    source: AdapterMediaPort,
++    target: AdapterMediaPort,
++    input: mpsc::Receiver<MediaPacket>,
++    medium: Medium,
++}
++fn deadline() -> tokio::time::Instant {
++    tokio::time::Instant::now() + Duration::from_secs(2)
++}
++impl Fixture {
++    async fn new(medium: Medium) -> Self {
++        let policy = Arc::new(Policy {
++            owners: [("alice".into(), owner("alice")), ("bob".into(), owner("bob"))].into(),
++            guard: Arc::new(RwLock::new(())),
++            mode: AtomicUsize::new(0),
++            attempts: AtomicUsize::new(0),
++            original_attempts: AtomicUsize::new(0),
++            grant_until: Mutex::new(None),
++        });
++        let aa = Arc::new(Adapter::default());
++        let ba = Arc::new(Adapter::default());
++        let handles = Arc::new(StreamHandleAllocator::default());
++        let controller = |name: &str, adapter: Arc<Adapter>| {
++            StreamController::new(
++                ConversationId::from_string("conversation"), SessionId::from_string("session"),
++                ConnectionId::from_string(name), principal(name), policy.clone(), adapter,
++                handles.clone(), 8,
++            ).unwrap()
++        };
++        let a = controller("alice", aa.clone());
++        let b = controller("bob", ba.clone());
++        for controller in [&a, &b] {
++            controller.change(controller.revision(), &[desired(medium)], &BTreeSet::new(),
++                deadline(), CancellationToken::new()).await.unwrap();
++        }
++        b.change_direct_subscriptions(b.revision(),
++            DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                &a, desired(medium).logical_id.clone(), desired(medium).logical_id,
++            )]), deadline(), CancellationToken::new(), None).await.unwrap();
++        let input = a.take_ingress(&desired(medium).logical_id).unwrap();
++        Self { policy, a, b, source: aa.port(medium), target: ba.port(medium), input, medium }
++    }
++    async fn enqueue(&mut self, ssrc: u32, sequence: u16) {
++        let packet = rtp::Packet {
++            header: rtp::Header { version: 2, payload_type: 96, ssrc,
++                sequence_number: sequence, timestamp: sequence as u32 * 3000,
++                marker: true, ..Default::default() },
++            payload: vec![0x10, 0, 1, 2].into(),
++        };
++        self.source.try_publish(&MediaFrame {
++            stream_id: self.source.binding().transport_id.clone(), kind: StreamKind::Video,
++            payload: packet.marshal().unwrap().freeze(), timestamp_rtp: packet.header.timestamp,
++            captured_at: Utc::now(), payload_type: Some(96), source_clock: None,
++        }).unwrap();
++        tokio::time::timeout_at(deadline(), self.input.recv()).await.unwrap().unwrap()
++            .try_forward_to(&self.b, &desired(self.medium).logical_id).unwrap();
++    }
++    async fn close(self) -> bool {
++        let a = self.a.shutdown(deadline()).await;
++        let b = self.b.shutdown(deadline()).await;
++        a == 0 && b == 0 && self.policy.guard.clone().try_write_owned().is_ok()
++    }
++}
++struct Peers {
++    publisher: Arc<RvoipPeerConnection>,
++    receiver: Arc<RvoipPeerConnection>,
++}
++impl Peers {
++    async fn new() -> Self {
++        let mut config = WebRtcConfig::loopback();
++        config.require_vp8_audio_video_profile = true;
++        let publisher = RvoipPeerConnection::new_canonical(&config, PeerRole::Offerer).await.unwrap();
++        let receiver = RvoipPeerConnection::new(&config, PeerRole::Answerer).await.unwrap();
++        publisher.add_local_audio_track().await.unwrap();
++        publisher.add_local_video_track().await.unwrap();
++        let offer = publisher.create_offer_and_gather().await.unwrap();
++        let answer = receiver.accept_offer_and_gather(&offer).await.unwrap();
++        publisher.set_remote_answer(&answer).await.unwrap();
++        tokio::try_join!(publisher.wait_connected(Duration::from_secs(3)),
++            receiver.wait_connected(Duration::from_secs(3))).unwrap();
++        let (audio, video) = RvoipPeerConnection::prime_remote_media(
++            &publisher, &receiver, true, Duration::from_secs(3),
++        ).await;
++        assert!(audio.is_some() && video.is_some(), "actual RTP establishes the feedback source SSRC");
++        Self { publisher, receiver }
++    }
++    async fn primary(&self, f: &mut Fixture, sequence: u16) -> (CoreVideoEgress, bool) {
++        let ssrc = self.publisher.local_video_ssrc().unwrap();
++        let mut output = self.publisher.core_video_egress(
++            &f.target, deadline().into_std(),
++        ).await.unwrap();
++        f.enqueue(ssrc, sequence).await;
++        let write = output.submit_next(deadline().into_std()).await.unwrap().unwrap();
++        let result = write.result().await;
++        let joined = write.cancel_and_drain().await;
++        // Consume any negotiation/initial-source request before observing this
++        // test's fresh hint. No notification is counted as new media credit.
++        let requests = self.publisher.video_keyframe_requests();
++        for _ in 0..8 {
++            if tokio::time::timeout(Duration::from_millis(1), requests.notified()).await.is_err() {
++                break;
++            }
++        }
++        (output, result.is_ok() && joined.is_ok())
++    }
++    async fn hint(&self, pictures: &PictureRequests) -> (bool, bool) {
++        let requests = self.publisher.video_keyframe_requests();
++        let notice = requests.notified();
++        tokio::pin!(notice);
++        notice.as_mut().enable();
++        let peer = self.receiver.clone();
++        let attempt = pictures.forward(tokio::time::Instant::now() + Duration::from_millis(100),
++            move |_, ssrc| async move {
++                peer.request_picture_for_source(ssrc).await.map_err(|_| StreamControlError::NotReady)
++            }).await;
++        let observed = tokio::time::timeout(Duration::from_millis(100), notice).await.is_ok();
++        (matches!(attempt, PictureAttempt::Invoked), observed)
++    }
++    async fn close(self) -> bool {
++        let (a, b) = tokio::join!(self.publisher.close(), self.receiver.close());
++        a.is_ok() && b.is_ok()
++    }
++}
++
++#[tokio::test]
++async fn rtc_picture_hint_after_four_busy_admissions_uses_fresh_current_authority() {
++    let peers = Peers::new().await;
++    let mut f = Fixture::new(Medium::Video).await;
++    let (output, primary) = peers.primary(&mut f, 1000).await;
++    let pictures = output.picture_requests();
++    let before = f.policy.attempts.load(Ordering::SeqCst);
++    f.policy.mode.store(1, Ordering::SeqCst); // exact pre-callback Backpressure
++    let mut refused = 0;
++    let entered = AtomicUsize::new(0);
++    for _ in 0..4 {
++        let attempt = pictures.forward(tokio::time::Instant::now() + Duration::from_millis(100),
++            |_, _| async { entered.fetch_add(1, Ordering::SeqCst); Ok(()) }).await;
++        if matches!(attempt, PictureAttempt::MetadataRefused) {
++            refused += 1;
++        }
++    }
++    let attempts = f.policy.attempts.load(Ordering::SeqCst) - before;
++    f.policy.mode.store(0, Ordering::SeqCst);
++    let (invoked, pli) = peers.hint(&pictures).await;
++    drop(output);
++    let core_joined = f.close().await;
++    let peers_joined = peers.close().await;
++    println!("rtc_picture_busy primary={primary} refused={refused} policy_attempts={attempts} invoked={invoked} source_srtcp_pli={pli} core_joined={core_joined} peers_joined={peers_joined}");
++    assert!(core_joined && peers_joined);
++    assert!(primary && refused == 4 && attempts == 4 && entered.load(Ordering::SeqCst) == 0);
++    assert!(invoked && pli, "four refused metadata polls exhausted fresh PLI through packet repair");
++}
++
++#[tokio::test]
++async fn rtc_picture_hint_after_last_media_expiry_does_not_replay_the_old_packet() {
++    let peers = Peers::new().await;
++    let mut observations = Vec::new();
++    for (index, medium) in [Medium::Video, Medium::Screen].into_iter().enumerate() {
++        let mut f = Fixture::new(medium).await;
++        let (output, primary) = peers.primary(&mut f, 1100 + index as u16).await;
++        let pictures = output.picture_requests();
++        tokio::time::sleep(Duration::from_millis(210)).await;
++        let (invoked, pli) = peers.hint(&pictures).await;
++        let no_new_input = f.input.try_recv().is_err();
++        drop(output);
++        let joined = f.close().await;
++        observations.push((medium, primary, invoked, pli, no_new_input, joined));
++    }
++    let peers_joined = peers.close().await;
++    println!("rtc_picture_expired observations={observations:?} peers_joined={peers_joined}");
++    assert!(peers_joined && observations.iter().all(|(_, _, _, _, _, joined)| *joined));
++    assert!(observations.iter().all(|(_, primary, invoked, pli, no_input, _)|
++        *primary && *invoked && *pli && *no_input), "expired media prevented fresh authorized PLI");
++}
++
++#[tokio::test]
++async fn rtc_picture_hint_refuses_revoked_wrong_route_and_current_generation_changes() {
++    let peers = Peers::new().await;
++    let mut observations = Vec::new();
++    for action in 0..4 {
++        let mut f = Fixture::new(Medium::Video).await;
++        let (output, primary) = peers.primary(&mut f, 1200 + action).await;
++        let pictures = output.picture_requests();
++        match action {
++            0 => f.policy.mode.store(3, Ordering::SeqCst),
++            1 => {
++                pictures.latest.lock().unwrap().as_mut().unwrap().1.origin.generation += 1;
++            },
++            2 => {
++                f.a.set_paused(&desired(Medium::Video).logical_id, f.a.revision(), true,
++                    deadline()).await.unwrap();
++            },
++            3 => {
++                f.b.change_direct_subscriptions(f.b.revision(), DirectSubscriptionChange::Clear,
++                    deadline(), CancellationToken::new(), None).await.unwrap();
++            },
++            _ => unreachable!(),
++        }
++        let (invoked, pli) = peers.hint(&pictures).await;
++        f.policy.mode.store(0, Ordering::SeqCst);
++        drop(output);
++        let joined = f.close().await;
++        observations.push((action, primary, invoked, pli, joined));
++    }
++    let peers_joined = peers.close().await;
++    println!("rtc_picture_negative observations={observations:?} peers_joined={peers_joined}");
++    assert!(peers_joined && observations.iter().all(|(_, _, _, _, joined)| *joined));
++    assert!(observations.iter().all(|(_, primary, invoked, pli, _)| *primary && !*invoked && !*pli));
++}
++
++#[tokio::test]
++async fn rtc_picture_hint_earlier_grant_expiry_drops_pending_io_without_reentry() {
++    struct PendingIo {
++        policy: Arc<Policy>,
++        dropped_under_readers: Arc<AtomicBool>,
++    }
++    impl Drop for PendingIo {
++        fn drop(&mut self) {
++            self.dropped_under_readers.store(
++                self.policy.guard.clone().try_write_owned().is_err(), Ordering::SeqCst,
++            );
++        }
++    }
++    let peers = Peers::new().await;
++    let mut f = Fixture::new(Medium::Video).await;
++    let (output, primary) = peers.primary(&mut f, 1300).await;
++    let route = output.picture_requests().latest.lock().unwrap().as_ref().unwrap().0.clone();
++    *f.policy.grant_until.lock().unwrap() = Some(Utc::now() + chrono::Duration::milliseconds(10));
++    let completed = Arc::new(AtomicBool::new(false));
++    let done = completed.clone();
++    let dropped = Arc::new(AtomicBool::new(false));
++    let pending = PendingIo { policy: f.policy.clone(), dropped_under_readers: dropped.clone() };
++    let result = route.dispatch_current(
++        tokio::time::Instant::now() + Duration::from_millis(100),
++        move |_, _| async move {
++            let _pending = pending;
++            tokio::time::sleep(Duration::from_millis(50)).await;
++            done.store(true, Ordering::SeqCst);
++            Ok(())
++        },
++    ).await;
++    let no_reader = f.policy.guard.clone().try_write_owned().is_ok();
++    *f.policy.grant_until.lock().unwrap() = None;
++    drop(output);
++    let core_joined = f.close().await;
++    let peers_joined = peers.close().await;
++    assert!(core_joined && peers_joined);
++    assert!(primary && matches!(result, Err(StreamControlError::Deadline)));
++    assert!(dropped.load(Ordering::SeqCst) && no_reader);
++    assert!(!completed.load(Ordering::SeqCst), "original shorter grant did not bound actual IO");
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+index 28c852142cf6caa7afd2904204af8c5cc88b937b..564af01740ae1b569dfce95ceb3ab022c3208d85 100644
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -9,7 +9,7 @@
+ use rvoip_core::{
+     staged_streams::{
+         AdapterMediaPort, ControlResult, MediaDeliveryOrigin, QueuedMedia, StreamControlError,
+-        VideoRepair,
++        VideoFeedbackRoute, VideoRepair,
+     },
+     stream::{MediaFrame, StreamKind},
+     stream_lifecycle::{MediaFormat, Medium},
+@@ -214,10 +214,10 @@
+ }
+ /// One latest successful delivery, with no idle permission reader. A picture
+ /// request is a bounded control hint, not a media delivery or replay grant.
+-/// Reuse the existing original-age/attempt bound and fresh Core route checks.
++/// Fresh Core feedback admission is independent of packet repair age/budget.
+ #[derive(Clone, Default)]
+ pub(crate) struct PictureRequests {
+-    latest: Arc<Mutex<Option<Retained>>>,
++    latest: Arc<Mutex<Option<(VideoFeedbackRoute, Source)>>>,
+     changed: Arc<tokio::sync::Notify>,
+ }
+ pub(crate) enum PictureAttempt {
+@@ -230,7 +230,11 @@
+     }
+     /// An entered callback is never repeated, including on refusal or uncertain
+     /// IO. Only pre-callback metadata admission may wait for a fresh delivery.
+-    pub(crate) async fn forward<F, Fut>(&self, send: F) -> PictureAttempt
++    pub(crate) async fn forward<F, Fut>(
++        &self,
++        until: tokio::time::Instant,
++        send: F,
++    ) -> PictureAttempt
+     where
+         F: FnOnce(MediaDeliveryOrigin, u32) -> Fut + Send,
+         Fut: std::future::Future<Output = ControlResult<()>> + Send,
+@@ -240,21 +244,20 @@
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+             .clone();
+-        let Some(retained) = retained else {
++        let Some((route, source)) = retained else {
+             return PictureAttempt::MetadataRefused;
+         };
+-        let source = retained.source;
+         let invoked = AtomicBool::new(false);
+         let started = &invoked;
+-        let _result = retained
+-            .core
+-            .repair(move |frame, origin| async move {
+-                if origin.as_ref() != Some(&source.origin) {
+-                    return Err(StreamControlError::Authority);
+-                }
+-                let packet = rtp::Packet::unmarshal(&mut frame.payload.as_ref())
+-                    .map_err(|_| StreamControlError::Unsupported)?;
+-                if packet.header.ssrc != source.ssrc {
++        let _result = route
++            .dispatch_current(until, move |port, descriptor| async move {
++                if descriptor.connection != source.origin.connection
++                    || descriptor.logical_id != source.origin.logical
++                    || descriptor.transport_id != source.origin.transport
++                    || descriptor.stream_generation != source.origin.generation
++                    || port.binding().transport_id != source.origin.transport
++                    || port.binding().generation != source.origin.generation
++                {
+                     return Err(StreamControlError::Authority);
+                 }
+                 started.store(true, Ordering::Release);
+@@ -300,8 +303,8 @@
+             .ok_or(OwnedRtpError::Refused)?;
+         let mut metadata = None;
+         let saved = &mut metadata;
+-        let core = queued
+-            .deliver_video_with_repair(|frame, origin| async move {
++        let (core, feedback) = queued
++            .deliver_video_with_repair_and_feedback(|frame, origin| async move {
+                 let origin = origin.ok_or(StreamControlError::Unsupported)?;
+                 let mut packet = self.packet(&frame)?;
+                 // Read the original source SSRC before hop normalization rewrites it.
+@@ -329,12 +332,11 @@
+             mapping,
+         };
+         *self.retained.lock().unwrap_or_else(|p| p.into_inner()) = Some(retained.clone());
+-        *self
+-            .pictures
+-            .latest
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner()) = Some(retained);
+-        self.pictures.changed.notify_one();
++        if let Some(feedback) = feedback {
++            *self.pictures.latest.lock().unwrap_or_else(|p| p.into_inner()) =
++                Some((feedback, retained.source));
++            self.pictures.changed.notify_one();
++        }
+         Ok(())
+     }
+     fn repair_deadline(&self) -> Option<Instant> {
+@@ -468,3 +470,6 @@
+         assert!(!(update.is_current)());
+     }
+ }
++
++#[cfg(test)]
++mod picture_tests;

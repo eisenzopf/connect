@@ -619,3 +619,104 @@ fn pending_continuation_memo_separates_phase_source_and_observes_external_commit
     drop(external);
     drop(occupied);
 }
+
+#[test]
+fn pending_continuation_positive_memo_keeps_phase_source_and_expiry_across_clock_steps() {
+    let base = crate::now();
+    let clock = crate::test_clock::Clock::at(base);
+    let m = fixture_scoped(true, &["stream.subscribe"]);
+    let scene =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let attempt =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &scene)
+            .unwrap();
+    let activation = attempt.activation().clone();
+    drop(scene);
+    let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
+    external
+        .execute(
+            "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+            params![m.target_request.credentials[0], base + 4],
+        )
+        .unwrap();
+    for selected in 0..crate::packet_observation::OBSERVERS {
+        clock.set(base);
+        let _occupied: Vec<_> =
+            m.f.store
+                .packet_connections
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| *index != selected)
+                .map(|(_, slot)| slot.lock().unwrap())
+                .collect();
+        let read = || {
+            m.f.store.try_native_replacement_continuation_media_read(
+                activation.origin(),
+                Some(&activation),
+                Some((&m.sources[1], None)),
+                None,
+            )
+        };
+        let cold = read().unwrap();
+        let expires = cold.expires_at();
+        assert!(expires > base + 2 && expires <= base + 4);
+        let expected = serde_json::to_value(cold.target().connection.clone()).unwrap();
+        drop(cold);
+        let before = activation.continuation_memo_counts_for_test();
+        for second in [base + 2, base + 1] {
+            clock.set(second);
+            let held =
+                m.f.store
+                    .try_native_media_read(&m.sources[1], None)
+                    .unwrap();
+            let current =
+                m.f.store
+                    .try_native_replacement_continuation_media_read(
+                        activation.origin(),
+                        Some(&activation),
+                        Some((&m.sources[1], None)),
+                        Some(&held),
+                    )
+                    .unwrap();
+            assert!(current.current() && current.permits_subscriptions());
+            assert_eq!(current.expires_at(), expires);
+            assert_eq!(
+                serde_json::to_value(current.target().connection.clone()).unwrap(),
+                expected
+            );
+            assert!(std::sync::Arc::ptr_eq(current.interval(), held.interval()));
+        }
+        let after = activation.continuation_memo_counts_for_test();
+        assert_eq!(after[0], before[0]);
+        assert_eq!(after[1], before[1] + 2);
+        assert!(m
+            .f
+            .store
+            .try_native_media_read(activation.origin(), None)
+            .is_err());
+        assert!(m
+            .f
+            .store
+            .try_native_replacement_continuation_media_read(
+                &m.sources[1],
+                Some(&activation),
+                Some((&m.sources[0], None)),
+                None
+            )
+            .is_err());
+    }
+    clock.set(base + 4);
+    assert!(m
+        .f
+        .store
+        .try_native_replacement_continuation_media_read(
+            activation.origin(),
+            Some(&activation),
+            Some((&m.sources[1], None)),
+            None
+        )
+        .is_err());
+}

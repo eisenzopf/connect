@@ -417,7 +417,8 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
     }
     if (error) throw error;
     return { connections: 6, participants: 4, sessions: 2, source_manifest_sha256: sha(await readFile(join(sourceDirectory, "manifest.json"))),
-        original_receive_tasks_joined: true, seconds: 62, warmup_seconds: 2, observation_seconds: 60,
+        original_receive_tasks_joined: true, programme_window_observed: programmeWindowObserved,
+        seconds: 62, warmup_seconds: 2, observation_seconds: 60,
         routes: routeResults,
         ...(during ? { control_workload: controlResult } : {}),
         scope: "Real public SDK native RTP and source-clock transport only. Independent decoder and profile checks are separate; no full-cell qualification." };

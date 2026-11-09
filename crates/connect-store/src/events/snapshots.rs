@@ -21,8 +21,11 @@ struct PageToken {
     id: String,
     index: usize,
 }
-fn push(items: &mut Vec<SnapshotItem>, bytes: &mut usize, item: SnapshotItem) -> Result<()> {
-    *bytes += serde_json::to_vec(&item)
+/// Charge exactly the same source/output representation against the existing
+/// snapshot budget. Admission charges only source-bearing facts, a subset of
+/// any valid full snapshot, and therefore cannot reject a formerly valid view.
+pub(super) fn charge(bytes: &mut usize, item: &SnapshotItem) -> Result<()> {
+    *bytes += serde_json::to_vec(item)
         .map_err(|_| Error::storage())?
         .len();
     if *bytes > MAX_SNAPSHOT_BYTES {
@@ -31,6 +34,10 @@ fn push(items: &mut Vec<SnapshotItem>, bytes: &mut usize, item: SnapshotItem) ->
             "Authorized topology snapshot exceeds its bounded cache budget",
         ));
     }
+    Ok(())
+}
+fn push(items: &mut Vec<SnapshotItem>, bytes: &mut usize, item: SnapshotItem) -> Result<()> {
+    charge(bytes, &item)?;
     items.push(item);
     Ok(())
 }
@@ -313,7 +320,7 @@ fn visible(c: &Connection, actor: &Actor, cid: &str, item: &SnapshotItem) -> Res
     })
 }
 
-/// Pure topology capture used before admission and again under the owned guard.
+/// Capture the exact topology under the current transaction and owned guard.
 pub(super) fn capture(
     c: &Connection,
     actor: &Actor,
@@ -341,6 +348,81 @@ pub(super) fn capture(
             policy,
         }),
     )?;
+    visit_sources(c, actor, cid, |item| {
+        let session_id = match &item {
+            SnapshotItem::Session(session) => Some(session.id.clone()),
+            _ => None,
+        };
+        push(&mut items, &mut bytes, item)?;
+        if let Some(id) = session_id {
+            let mut appearances=c.prepare("SELECT sp.participant_id,sp.membership_epoch,sp.role,sp.state FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 JOIN identities i ON i.id=p.identity_id AND i.revoked=0 WHERE sp.session_id=?1 ORDER BY sp.participant_id").map_err(|_|Error::storage())?;
+            for appearance in appearances
+                .query_map([&id], |r| {
+                    Ok(SessionAppearance {
+                        session_id: id.clone(),
+                        participant_id: r.get(0)?,
+                        membership_epoch: r.get(1)?,
+                        role: r.get(2)?,
+                        state: r.get(3)?,
+                    })
+                })
+                .map_err(|_| Error::storage())?
+            {
+                let value =
+                    SnapshotItem::SessionParticipant(appearance.map_err(|_| Error::storage())?);
+                if visible(c, actor, cid, &value)? {
+                    push(&mut items, &mut bytes, value)?;
+                }
+            }
+
+            let mut connections=c.prepare("SELECT v.id,v.participant_id,v.membership_epoch,v.endpoint_id,e.device_id,v.generation,v.revision,v.state,v.replaces,v.readiness_json,v.observed_runtime_id FROM connections v JOIN participants p ON p.participant_id=v.participant_id AND p.membership_epoch=v.membership_epoch AND p.active=1 JOIN endpoints e ON e.id=v.endpoint_id JOIN devices d ON d.id=e.device_id AND d.revoked=0 WHERE v.session_id=?1 AND e.verification_state='verified' ORDER BY v.id").map_err(|_|Error::storage())?;
+            for connection in connections
+                .query_map([&id], |r| {
+                    Ok(ConnectionState {
+                        connection_id: r.get(0)?,
+                        session_id: id.clone(),
+                        participant_id: r.get(1)?,
+                        membership_epoch: r.get(2)?,
+                        endpoint_id: r.get(3)?,
+                        device_id: r.get(4)?,
+                        generation: r.get(5)?,
+                        revision: r.get(6)?,
+                        state: r.get(7)?,
+                        replaces: r.get(8)?,
+                        stream_revision: crate::events::stream_revision(
+                            r.get(7)?,
+                            r.get(9)?,
+                            r.get(10)?,
+                        )?,
+                    })
+                })
+                .map_err(|_| Error::storage())?
+            {
+                let parent = connection.map_err(|_| Error::storage())?;
+                let value = SnapshotItem::Connection(parent.clone());
+                if visible(c, actor, cid, &value)? {
+                    push(&mut items, &mut bytes, value)?;
+                    for stream in crate::native_stream_projection::snapshot(c, &parent)? {
+                        push(&mut items, &mut bytes, SnapshotItem::Stream(stream))?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    })?;
+    Ok((revision, items, bytes, watermark))
+}
+/// Enumerate only the visible source-bearing facts, in snapshot order.
+/// Admission consumes their current authority footprint and source-byte budget
+/// without rendering a full topology or visiting Connection/Stream children. The actual snapshot
+/// uses this same traversal, then renders those children under its transaction.
+/// Nothing produced here is an authorization grant or a retained observation.
+pub(super) fn visit_sources(
+    c: &Connection,
+    actor: &Actor,
+    cid: &str,
+    mut visit: impl FnMut(SnapshotItem) -> Result<()>,
+) -> Result<()> {
     let mut statement=c.prepare("SELECT identity_id FROM participants WHERE conversation_id=?1 AND active=1 ORDER BY participant_id").map_err(|_|Error::storage())?;
     for row in statement
         .query_map([cid], |r| r.get::<_, String>(0))
@@ -349,7 +431,7 @@ pub(super) fn capture(
         let identity = row.map_err(|_| Error::storage())?;
         if actor.permits_recipient(&identity) {
             match audience::member(c, &identity, cid, true) {
-                Ok(member) => push(&mut items, &mut bytes, SnapshotItem::Participant(member))?,
+                Ok(member) => visit(SnapshotItem::Participant(member))?,
                 Err(e) if e.code == "forbidden" => (),
                 Err(e) => return Err(e),
             }
@@ -371,63 +453,8 @@ pub(super) fn capture(
                 connect_protocol::membership::ContentKind::Session,
                 &id,
             )? {
-                {
-                    let session = crate::session_control::view(c, cid, &id)?;
-                    push(&mut items, &mut bytes, SnapshotItem::Session(session))?;
-                    let mut appearances=c.prepare("SELECT sp.participant_id,sp.membership_epoch,sp.role,sp.state FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 JOIN identities i ON i.id=p.identity_id AND i.revoked=0 WHERE sp.session_id=?1 ORDER BY sp.participant_id").map_err(|_|Error::storage())?;
-                    for appearance in appearances
-                        .query_map([&id], |r| {
-                            Ok(SessionAppearance {
-                                session_id: id.clone(),
-                                participant_id: r.get(0)?,
-                                membership_epoch: r.get(1)?,
-                                role: r.get(2)?,
-                                state: r.get(3)?,
-                            })
-                        })
-                        .map_err(|_| Error::storage())?
-                    {
-                        let value = SnapshotItem::SessionParticipant(
-                            appearance.map_err(|_| Error::storage())?,
-                        );
-                        if visible(c, actor, cid, &value)? {
-                            push(&mut items, &mut bytes, value)?;
-                        }
-                    }
-
-                    let mut connections=c.prepare("SELECT v.id,v.participant_id,v.membership_epoch,v.endpoint_id,e.device_id,v.generation,v.revision,v.state,v.replaces,v.readiness_json,v.observed_runtime_id FROM connections v JOIN participants p ON p.participant_id=v.participant_id AND p.membership_epoch=v.membership_epoch AND p.active=1 JOIN endpoints e ON e.id=v.endpoint_id JOIN devices d ON d.id=e.device_id AND d.revoked=0 WHERE v.session_id=?1 AND e.verification_state='verified' ORDER BY v.id").map_err(|_|Error::storage())?;
-                    for connection in connections
-                        .query_map([&id], |r| {
-                            Ok(ConnectionState {
-                                connection_id: r.get(0)?,
-                                session_id: id.clone(),
-                                participant_id: r.get(1)?,
-                                membership_epoch: r.get(2)?,
-                                endpoint_id: r.get(3)?,
-                                device_id: r.get(4)?,
-                                generation: r.get(5)?,
-                                revision: r.get(6)?,
-                                state: r.get(7)?,
-                                replaces: r.get(8)?,
-                                stream_revision: crate::events::stream_revision(
-                                    r.get(7)?,
-                                    r.get(9)?,
-                                    r.get(10)?,
-                                )?,
-                            })
-                        })
-                        .map_err(|_| Error::storage())?
-                    {
-                        let parent = connection.map_err(|_| Error::storage())?;
-                        let value = SnapshotItem::Connection(parent.clone());
-                        if visible(c, actor, cid, &value)? {
-                            push(&mut items, &mut bytes, value)?;
-                            for stream in crate::native_stream_projection::snapshot(c, &parent)? {
-                                push(&mut items, &mut bytes, SnapshotItem::Stream(stream))?;
-                            }
-                        }
-                    }
-                }
+                let session = crate::session_control::view(c, cid, &id)?;
+                visit(SnapshotItem::Session(session))?;
             }
         }
     }
@@ -445,12 +472,12 @@ pub(super) fn capture(
                 cid,
                 &sid.map_err(|_| Error::storage())?,
             )? {
-                push(&mut items, &mut bytes, SnapshotItem::Record(value))?;
+                visit(SnapshotItem::Record(value))?;
             }
         }
     }
     for value in crate::transitions::provider_sessions::views_for_conversation(c, actor, cid)? {
-        push(&mut items, &mut bytes, SnapshotItem::ProviderCall(value))?;
+        visit(SnapshotItem::ProviderCall(value))?;
     }
     if actor.permits("operation.get") {
         let mut statement=c.prepare("SELECT record_id FROM operations WHERE owner_id=?1 AND conversation_id=?2 AND tombstoned=0 ORDER BY created_at,record_id").map_err(|_|Error::storage())?;
@@ -460,14 +487,15 @@ pub(super) fn capture(
         {
             let id = row.map_err(|_| Error::storage())?;
             match crate::transitions::snapshot_record(c, actor, &id) {
-                Ok(record) => push(&mut items, &mut bytes, SnapshotItem::Operation(record))?,
+                Ok(record) => visit(SnapshotItem::Operation(record))?,
                 Err(e) if matches!(e.code.as_str(), "forbidden" | "gone") => (),
                 Err(e) => return Err(e),
             }
         }
     }
-    Ok((revision, items, bytes, watermark))
+    Ok(())
 }
+
 pub(super) fn scope_items(
     c: &Connection,
     actor: &Actor,

@@ -65,9 +65,10 @@ async function exerciseLifetime(isolated = false) {
             streams: { byId() { return { media }; } } };
     }
     const began = performance.now();
+    const report = {};
     try {
         const run = nativeAv(connections, groups, sources, join(base, "received"), plan,
-            (value, programme) => { observation = value; joinedProgramme = programme; }, ({ signal, reportFailure }) => new Promise((done, reject) => {
+            (value, programme) => { observation = value; joinedProgramme = programme; report.native_av = programme; }, ({ signal, reportFailure }) => new Promise((done, reject) => {
                 if (isolated) {
                     const abort = () => { clearTimeout(timer); reject(signal.reason ?? Error("original parent cancelled")); };
                     const timer = setTimeout(() => {
@@ -88,7 +89,11 @@ async function exerciseLifetime(isolated = false) {
             }));
         let result;
         if (isolated) await assert.rejects(run, failure => failure === original);
-        else result = await run;
+        else {
+            // Match the conversation runner's assignment after its callback.
+            report.native_av = await run;
+            result = report.native_av;
+        }
         assert.equal(controlJoined, true);
         if (isolated) {
             assert.equal(joinedProgramme.passed, false);
@@ -96,7 +101,11 @@ async function exerciseLifetime(isolated = false) {
             assert.equal(joinedProgramme.programme_window_observed, true);
             assert.equal(joinedProgramme.original_receive_tasks_joined, true);
             assert.equal(joinedProgramme.movement_requested, true);
-        } else assert.equal(result.control_workload.final_capture_joined, true);
+        } else {
+            assert.equal(result.control_workload.final_capture_joined, true);
+            assert.equal(joinedProgramme.programme_window_observed, true);
+            assert.equal(report.native_av.programme_window_observed, true);
+        }
         assert.equal(observation.original_tasks_joined, true);
         assert.equal(observation.original_tasks_started, 30);
         assert.equal(pendingReads, 0); assert.equal(stoppedReads, 12);

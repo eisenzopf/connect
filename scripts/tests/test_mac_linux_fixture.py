@@ -737,6 +737,85 @@ console.log(JSON.stringify({handshakes: 9}));
         for receipt in (None, {}, {"passed": True}, {"guest": None}):
             self.assertFalse(remote_browser_owner_joined(receipt))
 
+    @classmethod
+    def original_failed_remote_native_report(cls):
+        owner = cls.original_failed_remote_owner()
+        owner["guest"].update(source_revision="a" * 40,
+            capture_owner_created=True, capture_original_joined=True)
+        return dict(format="connect/transport-fixture-rehearsal/1", source_revision="a" * 40,
+            passed=False, native_programme_started=True,
+            servers=[dict(original_joined=True)],
+            native_process_profile=dict(format="connect/mac-linux-native-process-resources/1",
+                collection_complete=True, original_owner=owner),
+            remote_client_owner=owner, packet_capture=dict(owner_created=True, original_joined=True))
+
+    def test_remote_native_nested_custody_accepts_natural_nonzero_without_rewriting_verdict(self):
+        import copy
+        report = self.original_failed_remote_native_report()
+        before = copy.deepcopy(report)
+        self.assertNotIn("original_supervisor_joined", report["native_process_profile"])
+        self.assertNotIn("original_workers_joined", report["native_process_profile"])
+        evidence = cleanup_evidence(report)
+        self.assertTrue(evidence["clients_joined"])
+        self.assertTrue(evidence["confirmed"])
+        self.assertEqual(report, before)
+        self.assertFalse(report["passed"])
+        self.assertEqual(report["remote_client_owner"]["guest"]["exit_code"], 1)
+
+    def test_remote_native_nested_custody_refuses_missing_forced_foreign_or_unknown_proof(self):
+        import copy
+        changes = [
+            (("format",), "unknown"), (("collection_complete",), False),
+            (("forced",), True), (("forced_cleanup",), True),
+            (("original_owner", "format"), "unknown"),
+            (("original_owner", "original_joined"), False),
+            (("original_owner", "all_guest_owners_joined"), False),
+            (("original_owner", "original_vm_lease_joined"), False),
+            (("original_owner", "forced"), True),
+            (("original_owner", "client_inputs_unchanged"), False),
+            (("original_owner", "cleanup_failures"), ["unknown-original-owner"]),
+            (("original_owner", "guest", "format"), "unknown"),
+            (("original_owner", "guest", "original_joined"), False),
+            (("original_owner", "guest", "forced"), True),
+            (("original_owner", "guest", "original_pid"), True),
+            (("original_owner", "guest", "original_start_ticks"), 0),
+            (("original_owner", "guest", "exit_code"), None),
+            (("original_owner", "guest", "capture_original_joined"), False),
+            (("original_owner", "guest", "source_revision"), "b" * 40),
+        ]
+        for keys, value in changes:
+            with self.subTest(keys=keys):
+                report = self.original_failed_remote_native_report()
+                profile = report["native_process_profile"]
+                profile.update(original_supervisor_joined=True, original_workers_joined=True)
+                target = profile
+                for key in keys[:-1]:
+                    target = target[key]
+                target[keys[-1]] = value
+                self.assertFalse(cleanup_evidence(report)["confirmed"])
+        for missing in ("original_owner", "collection_complete"):
+            report = self.original_failed_remote_native_report()
+            del report["native_process_profile"][missing]
+            self.assertFalse(cleanup_evidence(report)["confirmed"])
+        for missing in ("original_pid", "original_start_ticks", "source_revision", "capture_original_joined"):
+            report = self.original_failed_remote_native_report()
+            del report["native_process_profile"]["original_owner"]["guest"][missing]
+            self.assertFalse(cleanup_evidence(report)["confirmed"])
+        report = self.original_failed_remote_native_report()
+        report["remote_client_owner"] = copy.deepcopy(report["remote_client_owner"])
+        report["remote_client_owner"]["run_id"] = "foreign-original"
+        self.assertFalse(cleanup_evidence(report)["confirmed"])
+        report = self.original_failed_remote_native_report()
+        report["native_programme_started"] = False
+        report["native_process_profile"]["original_owner"]["forced"] = True
+        self.assertFalse(cleanup_evidence(report)["confirmed"], "unentered marker cannot erase an actual owner")
+        for unknown in (None, {}, dict(format="unknown", original_supervisor_joined=True,
+                                      original_workers_joined=True)):
+            report = self.original_failed_remote_native_report()
+            report["native_programme_started"] = False
+            report["native_process_profile"] = unknown
+            self.assertFalse(cleanup_evidence(report)["confirmed"])
+
     def test_lease_excludes_second_workload_and_releases_original_lock(self):
         directory=self.root/"lease"
         with VmWorkloadLease(directory=directory):

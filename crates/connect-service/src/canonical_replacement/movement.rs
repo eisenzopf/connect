@@ -1,14 +1,11 @@
 //! One actual managed switch followed only by captured metadata projection.
 use super::*;
-use super::{continuation::Phase, start::StartedReplacement};
-use connect_store::{
-    NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain,
-    NativeReplacementCommitted,
-};
+use super::{capture_recording::KnownCapture, continuation::Phase, start::StartedReplacement};
+use connect_store::{NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain};
 use rvoip_core::{adapter::EndReason, participant_transitions::EndpointConfirmationPolicy};
 #[derive(Clone)]
 pub(super) enum Capture {
-    Known(Arc<NativeReplacementCommitted>),
+    Known(Arc<KnownCapture>),
     Unknown(Arc<NativeReplacementCommitUncertain>),
     NotSubmitted(Arc<NativeReplacementCommitNotSubmitted>),
 }
@@ -226,7 +223,7 @@ impl Runtime {
             };
             committed.capture_native_activation(audience)
         })();
-        let capture = Arc::new(committed);
+        let capture = Arc::new(KnownCapture::new(committed));
         *started.commit.lock().map_err(|_| Error::storage())? =
             Some(Capture::Known(capture.clone()));
         // Carry the exact signed resources through the actual Core audience
@@ -255,11 +252,12 @@ impl Runtime {
             roles,
             super::diagnostics::metadata(
                 &self.stop,
-                &capture,
+                &capture.value,
                 super::diagnostics::Phase::Capture,
+                Some(&capture.recording),
                 || {
                     let store = self.media.store.clone();
-                    let capture = capture.clone();
+                    let capture = capture.value.clone();
                     move || store.record_native_replacement_committed(&capture)
                 },
             ),
@@ -358,11 +356,12 @@ impl Runtime {
         });
         let projected = super::diagnostics::metadata(
             &self.stop,
-            &capture,
+            &capture.value,
             super::diagnostics::Phase::Activation,
+            None,
             || {
                 let store = self.media.store.clone();
-                let capture = capture.clone();
+                let capture = capture.value.clone();
                 let installed = installed.clone();
                 move || store.project_native_replacement_committed(&capture, installed.as_ref())
             },
@@ -426,8 +425,8 @@ impl Runtime {
         self.media.remove(&id);
     }
 
-    async fn stop_unactivated_replacement(&self, capture: &Arc<NativeReplacementCommitted>) {
-        let origin = capture.activation().origin().clone();
+    async fn stop_unactivated_replacement(&self, capture: &Arc<KnownCapture>) {
+        let origin = capture.value.activation().origin().clone();
         let id = ConnectionId::from_string(origin.runtime_connection_id());
         loop {
             if self.native_connection_live(&id) {
@@ -437,28 +436,30 @@ impl Runtime {
                     .await;
             }
             let store = self.media.store.clone();
-            let capture = capture.clone();
+            let value = capture.value.clone();
             let origin = origin.clone();
             let absent = crate::canonical_native::Absent {
                 natives: self.media_adapters(),
                 id: id.clone(),
                 generation: origin.generation(),
             };
-            let settled = store_call(move || {
-                store.record_native_replacement_committed(&capture)?;
-                // A final transaction may have committed despite an uncertain
-                // return. Settle that exact lifetime first; otherwise project
-                // the known move directly as stopped, without a Ready event.
-                match store.settle_native_replacement_cleanup(&origin, &absent) {
-                    Ok(()) => Ok(()),
-                    Err(error) if error.code == "forbidden" => store
-                        .project_native_replacement_stopped(&capture, &absent)
-                        .map(|_| ()),
-                    Err(error) => Err(error),
-                }
-            })
-            .await;
-            if settled.is_ok() || self.stop.is_cancelled() {
+            let finished = capture
+                .recording
+                .cleanup_attempt(&self.stop, move || {
+                    store.record_native_replacement_committed(&value)?;
+                    // A final transaction may have committed despite an uncertain
+                    // return. Settle that exact lifetime first; otherwise project
+                    // the known move directly as stopped, without a Ready event.
+                    match store.settle_native_replacement_cleanup(&origin, &absent) {
+                        Ok(()) => Ok(()),
+                        Err(error) if error.code == "forbidden" => store
+                            .project_native_replacement_stopped(&value, &absent)
+                            .map(|_| ()),
+                        Err(error) => Err(error),
+                    }
+                })
+                .await;
+            if finished {
                 break;
             }
             tokio::time::sleep(Duration::from_millis(200)).await;

@@ -1138,15 +1138,15 @@ fn single_credential_snapshot_checks_current_projection_without_duplicate_source
         conversation_id: f.cid.clone(),
         query: query.clone(),
     };
-    let proof = f.admit(&request).unwrap();
     let before = crate::events::snapshot_capture_count();
+    let proof = f.admit(&request).unwrap();
     let page = f
         .store
         .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
         .unwrap();
     assert!(!page.items.is_empty());
-    // The executor source-validates its one captured result under the same
-    // transaction/readers; current binding/key/device checks remain separate.
+    // Count the whole admission plus execution: source planning must not
+    // render the topology on any of the admission rechecks.
     assert_eq!(crate::events::snapshot_capture_count() - before, 1);
 }
 #[test]
@@ -1170,16 +1170,16 @@ fn multi_credential_snapshot_keeps_each_credentials_projection_revalidation() {
         conversation_id: f.cid.clone(),
         query: query.clone(),
     };
-    let proof = f.admit(&request).unwrap();
     let before = crate::events::snapshot_capture_count();
+    let proof = f.admit(&request).unwrap();
     let page = f
         .store
         .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
         .unwrap();
     assert!(!page.items.is_empty());
-    // Each credential still gets both current projection checks, in addition
-    // to the single source-validated capture returned by the executor.
-    assert_eq!(crate::events::snapshot_capture_count() - before, 5);
+    // Each credential retains its current source validation, without rendering
+    // the full topology. The race cases below verify both credentials separately.
+    assert_eq!(crate::events::snapshot_capture_count() - before, 1);
 }
 #[test]
 fn snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_checks() {
@@ -1228,4 +1228,167 @@ fn snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_ch
             .code,
         "forbidden"
     );
+}
+
+#[test]
+fn snapshot_planning_rechecks_each_credential_after_admission() {
+    for credential_index in 0..2 {
+        for change in ["revoke", "expire", "narrow"] {
+            let f = Fixture::new(300);
+            let query = connect_protocol::events::SnapshotQuery {
+                page: None,
+                limit: Some(100),
+            };
+            let mut request = f.request.clone();
+            request.command = PeerCommand::Snapshot {
+                conversation_id: f.cid.clone(),
+                query: query.clone(),
+            };
+            request.credentials = vec![f.admin.clone(), f.user.clone()];
+            f.store
+                .connection()
+                .unwrap()
+                .execute(
+                    "INSERT INTO credential_signing_keys(credential_id,key_id) VALUES(?1,'key')",
+                    [&f.admin],
+                )
+                .unwrap();
+            let proof = f.admit(&request).unwrap();
+            // Deliberately bypass cooperative fences to model a stale proof:
+            // execution must independently check either selected credential.
+            let sql = match change {
+                "revoke" => "UPDATE credentials SET revoked=1 WHERE id=?1",
+                "expire" => "UPDATE credentials SET expires_at=0 WHERE id=?1",
+                _ => "UPDATE credentials SET operations='[]' WHERE id=?1",
+            };
+            f.store
+                .connection()
+                .unwrap()
+                .execute(sql, [&request.credentials[credential_index]])
+                .unwrap();
+            let error = f
+                .store
+                .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
+                .unwrap_err();
+            assert!(
+                matches!(error.code.as_str(), "forbidden" | "unauthorized"),
+                "credential {credential_index} {change}: {}",
+                error.code
+            );
+        }
+    }
+}
+
+#[test]
+fn snapshot_new_source_after_admission_requires_its_current_fence() {
+    let f = Fixture::new(300);
+    let new_identity = f.store.create_identity("new-snapshot-source").unwrap().id;
+    let query = connect_protocol::events::SnapshotQuery {
+        page: None,
+        limit: Some(100),
+    };
+    let mut request = f.request.clone();
+    request.command = PeerCommand::Snapshot {
+        conversation_id: f.cid.clone(),
+        query: query.clone(),
+    };
+    let proof = f.admit(&request).unwrap();
+    // A real membership mutation is fenced. This bypass demonstrates that a
+    // newly visible source can never be returned under the old footprint.
+    f.store.connection().unwrap().execute(
+        "INSERT INTO participants(conversation_id,identity_id,participant_id,role) VALUES(?1,?2,'new-snapshot-participant','participant')",
+        rusqlite::params![f.cid, new_identity],
+    ).unwrap();
+    assert_eq!(
+        f.store
+            .conversation_snapshot_with_peer(&f.user, &f.cid, query.clone(), Some(&proof),)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(proof);
+    let fresh = f.admit(&request).unwrap();
+    let page = f
+        .store
+        .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&fresh))
+        .unwrap();
+    assert!(page.items.iter().any(|item| matches!(item,
+        connect_protocol::events::SnapshotItem::Participant(member)
+            if member.identity_id == new_identity)));
+}
+
+#[test]
+fn snapshot_retired_source_after_admission_is_not_returned() {
+    let f = Fixture::new(300);
+    let retired_identity = f
+        .store
+        .create_identity("retired-snapshot-source")
+        .unwrap()
+        .id;
+    f.store.connection().unwrap().execute(
+        "INSERT INTO participants(conversation_id,identity_id,participant_id,role) VALUES(?1,?2,'retiring-snapshot-participant','participant')",
+        rusqlite::params![f.cid, retired_identity],
+    ).unwrap();
+    let query = connect_protocol::events::SnapshotQuery {
+        page: None,
+        limit: Some(100),
+    };
+    let mut request = f.request.clone();
+    request.command = PeerCommand::Snapshot {
+        conversation_id: f.cid.clone(),
+        query: query.clone(),
+    };
+    let proof = f.admit(&request).unwrap();
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE participants SET active=0 WHERE participant_id='retiring-snapshot-participant'",
+            [],
+        )
+        .unwrap();
+    let page = f
+        .store
+        .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
+        .unwrap();
+    assert!(!page.items.iter().any(|item| matches!(item,
+        connect_protocol::events::SnapshotItem::Participant(member)
+            if member.identity_id == retired_identity)));
+}
+
+#[test]
+fn snapshot_page_planning_reuses_only_the_exact_frozen_page() {
+    let f = Fixture::new(300);
+    let first = f
+        .store
+        .conversation_snapshot(
+            &f.user,
+            &f.cid,
+            connect_protocol::events::SnapshotQuery {
+                page: None,
+                limit: Some(1),
+            },
+        )
+        .unwrap();
+    let query = connect_protocol::events::SnapshotQuery {
+        page: Some(first.next.clone().unwrap()),
+        limit: Some(1),
+    };
+    let mut request = f.request.clone();
+    request.command = PeerCommand::Snapshot {
+        conversation_id: f.cid.clone(),
+        query: query.clone(),
+    };
+    let before = crate::events::snapshot_capture_count();
+    let proof = f.admit(&request).unwrap();
+    let page = f
+        .store
+        .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
+        .unwrap();
+    assert_eq!(crate::events::snapshot_capture_count(), before);
+    assert_eq!(page.snapshot_id, first.snapshot_id);
+    assert_eq!(page.cursor, first.cursor);
+    assert!(matches!(page.items.as_slice(),
+        [connect_protocol::events::SnapshotItem::Participant(member)]
+            if member.identity_id == f.identity));
 }

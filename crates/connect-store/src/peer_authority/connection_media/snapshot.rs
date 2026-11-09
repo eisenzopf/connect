@@ -71,8 +71,9 @@ type MediaFacts = (
 /// Four purpose-separated memos per live origin. Each SQL observer retains one unary capture or
 /// at most four original counterparties, covering the four-participant profile
 /// without replacing paired facts on every mixed packet. Eviction only causes
-/// fresh derivation; it does not limit eligible peers. SQL/clock/source stamps
-/// are still compared without substitution on every read.
+/// fresh derivation; it does not limit eligible peers. SQL and source stamps
+/// remain exact on every read. Positive MediaFacts may span clock seconds only
+/// inside their original validated interval; other metadata remains exact-clock.
 /// No reader, execution handle or IO grant can be retained by this metadata.
 #[derive(Default)]
 pub(super) struct Metadata {
@@ -130,6 +131,59 @@ impl<T> Entry<T> {
             _ => false,
         }
     }
+}
+
+fn media_clock_matches(captured: Version, observed: Version, expires: i64) -> bool {
+    captured.same_database(observed)
+        && captured.second <= observed.second
+        && observed.second < expires
+}
+
+impl Entry<MediaFacts> {
+    // A successful media projection already carries the earliest absolute
+    // expiry of every source/recipient predicate. Keep its original interval;
+    // a hit never advances the capture second or extends that expiry.
+    fn matches_current_media(&self, version: Version, source: Option<&MetadataToken>) -> bool {
+        media_clock_matches(self.version, version, self.facts.2) && self.same_source(source)
+    }
+}
+
+#[cfg(test)]
+pub(super) fn media_memo_counts(metadata: &MetadataToken, paired: bool) -> [u64; 3] {
+    use std::sync::atomic::Ordering::Relaxed;
+    let metadata = metadata.downcast_ref::<Metadata>().unwrap();
+    let memo = if paired {
+        &metadata.paired
+    } else {
+        &metadata.unary
+    };
+    [
+        memo.1.derive.load(Relaxed),
+        memo.1.hit.load(Relaxed),
+        memo.1.publish.load(Relaxed),
+    ]
+}
+
+// Only MediaFacts opt into their proven positive validity interval. Lifetime,
+// peek, signal and generic compound projections keep exact-clock matching.
+// Every invocation still takes current SQL and file authority and seals both.
+pub(super) fn cached_media(
+    store: &Store,
+    memo: &Memo<MediaFacts>,
+    source: Option<&MetadataToken>,
+    held: Option<&Arc<AuthorityGuardSet>>,
+    derive: impl FnMut(&Connection) -> Result<(MediaFacts, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection) -> Result<()>,
+) -> Result<(MediaFacts, Arc<AuthorityGuardSet>)> {
+    cached_with_matching(
+        store,
+        memo,
+        source,
+        held,
+        derive,
+        |c, _| finish(c),
+        Entry::matches_current_media,
+    )
 }
 
 #[cfg(test)]
@@ -195,8 +249,20 @@ fn cached_with<T: Clone>(
     memo: &Memo<T>,
     source: Option<&MetadataToken>,
     held: Option<&Arc<AuthorityGuardSet>>,
+    derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection, &T) -> Result<()>,
+) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    cached_with_matching(store, memo, source, held, derive, finish, Entry::matches)
+}
+
+fn cached_with_matching<T: Clone>(
+    store: &Store,
+    memo: &Memo<T>,
+    source: Option<&MetadataToken>,
+    held: Option<&Arc<AuthorityGuardSet>>,
     mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
     finish: impl FnOnce(&Connection, &T) -> Result<()>,
+    matches: impl Fn(&Entry<T>, Version, Option<&MetadataToken>) -> bool,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let observation = store.packet_connections.observe()?;
     if let Ok(mut entries) = memo.0.try_lock() {
@@ -205,7 +271,7 @@ fn cached_with<T: Clone>(
     let mut captured = None;
     let mut capture = |c: &Connection, version: Version| {
         if let Ok(entry) = memo.0.try_lock() {
-            if let Some(entry) = entry.iter().find(|entry| entry.matches(version, source)) {
+            if let Some(entry) = entry.iter().find(|entry| matches(entry, version, source)) {
                 #[cfg(test)]
                 memo.1
                     .hit
@@ -246,8 +312,9 @@ fn cached_with<T: Clone>(
             if let Ok(reader) = store.try_acquire_authority(&previous.scopes) {
                 let c = store.try_packet_connection(&observation)?;
                 let before = version(&c, c.id())?;
-                // A commit or policy-clock edge invalidates facts, not
-                // necessarily the scope set. Releasing this valid fresh reader
+                // A commit invalidates facts; a clock edge does so for generic
+                // metadata or outside a positive MediaFacts validity interval.
+                // Neither necessarily changes the scope set. Releasing this valid fresh reader
                 // and SQL merely to acquire the same scopes again creates a
                 // needless exact-observer reacquisition race. capture still
                 // checks this observer's exact version and original source.
@@ -297,7 +364,10 @@ fn cached_with<T: Clone>(
                 .publish
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             // Drop dead original sources and superseded versions for this
-            // observer. Retained facts own no reader or grant.
+            // observer. A later media capture does not evict another unchanged
+            // positive whose ORIGINAL validity interval still covers it.
+            // Generic matching retains the previous exact-version behavior.
+            // Retained facts own no reader or grant.
             slot.retain(|previous| {
                 observation.current(previous.version.connection)
                     && previous
@@ -305,7 +375,11 @@ fn cached_with<T: Clone>(
                         .as_ref()
                         .is_none_or(|source| source.strong_count() > 0)
                     && (previous.version.connection != entry.version.connection
-                        || previous.version == entry.version)
+                        || matches(
+                            previous,
+                            entry.version,
+                            previous.source.as_ref().and_then(Weak::upgrade).as_ref(),
+                        ))
             });
             if let Some(previous) = slot.iter_mut().find(|previous| {
                 previous.version.connection == entry.version.connection

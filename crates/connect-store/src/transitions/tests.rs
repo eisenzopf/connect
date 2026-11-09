@@ -2215,3 +2215,16 @@ fn protected_graph_commit_and_reconciliation_wait_for_current_delivery() {
         assert_eq!(f.get("one").result.unwrap()["session_revision"], 1);
     }
 }
+
+#[test]
+fn snapshot_scope_plan_preserves_owned_operation_decision_provenance() {
+    let f = Fixture::new();
+    f.admit("snapshot-source");
+    f.cancel("snapshot-decision", "snapshot-source");
+    let items = crate::events::assert_snapshot_scope_plan_for_test(&f.store, &f.keys[0], &f.cid);
+    for operation_id in ["snapshot-source", "snapshot-decision"] {
+        assert!(items.iter().any(|item| matches!(item,
+            connect_protocol::events::SnapshotItem::Operation(value)
+                if value.operation_id == operation_id)));
+    }
+}

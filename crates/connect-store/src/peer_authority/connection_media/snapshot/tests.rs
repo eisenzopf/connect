@@ -2,6 +2,7 @@
 use super::*;
 use std::time::{Duration, Instant};
 mod hints;
+mod media_clock;
 mod observer_cache;
 mod observer_custody;
 mod observer_retirement;

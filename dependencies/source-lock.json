@@ -2000,6 +2000,12 @@
       "path": "patches/rvoip/connect-end-only-quarantined-route-cleanup.patch",
       "sha256": "05530c4df58e254d529104b90c4437b3caebf3feaa28401b63cbba7215525407",
       "source": "G6-058 B130: explicit end alone may revisit the exact retired quarantined connection generation and registered adapter. Preserve ordinary operational refusal, bounded cleanup, authoritative absence and the existing generation-aware quota resolver. Cover live, already absent, stale and unconfirmed cases. Original v206 Core error remains unobserved."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-rtc-current-picture-feedback.patch",
+      "sha256": "d00942bc71adbd2730231f213c695674be46f85c530d78cadd9ce47a3dd1ce61",
+      "source": "G6-058 v207 follow-through: authorize fresh RTC picture feedback through current exact source and receiver routing independently of the last media packet age and repair attempts. Retain actual media repair limits, native wire replay, original hint deadline, earliest lease expiry and callback cancellation ownership. Regression sources include real source-peer SRTCP observation, current-authority refusal and unchanged packet repair. Runtime verification pending."
     }
   ]
 }

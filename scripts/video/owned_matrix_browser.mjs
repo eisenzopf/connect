@@ -58,11 +58,15 @@ export async function launchMatrixBrowser(spec,profile,initializeProfile){
         if(await browser.version()!=='firefox/158.0.1')throw Error('Frozen Firefox version differs');
         const facade={async newPage(){
             const page=await browser.newPage();
-            return {goto:(url,options)=>page.goto(url,options),evaluate:(fn,arg)=>page.evaluate(fn,arg),
-                addInitScript:fn=>page.evaluateOnNewDocument(fn),
-                exposeFunction:(name,fn)=>page.exposeFunction(name,fn),
-                on:(event,fn)=>page.on(event,fn)};
+            return matrixFirefoxPage(page);
         }};
         return {browser:facade,close,port};
     }catch(error){await close();throw error;}
+}
+
+export function matrixFirefoxPage(page){
+    return {goto:(url,options)=>page.goto(url,options),evaluate:(fn,arg)=>page.evaluate(fn,arg),
+        addInitScript:(fn,...args)=>page.evaluateOnNewDocument(fn,...args),
+        exposeFunction:(name,fn)=>page.exposeFunction(name,fn),
+        on:(event,fn)=>page.on(event,fn)};
 }

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-09",
-  "run_status": "Full v206 completed on 582ac6ea with 0 passed, 17 failed and 15 blocked cells. All 16 native ARM Linux cells and the first Mac native cell ran. The remaining 15 Mac cells were blocked by original-closed-evidence-storage-backpressure. Requirement totals are 201 passed, 27 failed and 204 blocked. Both original workers, controller, storage transports and all 16 ARM guardians closed, with unchanged source. The next batch addresses earlier owned-audio discard paths, native data contention classification, native quarantine retirement, physical server archive receipts and browser source-motion measurement. A browser post-commit 403 remains unlocalized and needs bounded phase evidence. Historical verdicts and all quality and authority requirements remain preserved. G6-054 is deferred and G6-098 sustained growth is separate.",
+  "run_status": "Full v207 has terminal results for all 32 selected cells on baa21ccb: 0 passed, 25 failed and 7 blocked. Requirement totals are 301 passed, 35 failed and 96 blocked. All 16 ARM Linux cells, all eight Mac local cells and the first Mac remote cell executed. The remaining seven Mac remote cells were blocked by the typed remote native ownership report being rejected during retention. Every completed browser cell passed 13 of 14 requirements; decoded media quality remains failing. These results precede the B135\u2013B141 follow-through batch. Preserve historical verdicts and all approved quality and authority requirements. G6-054 remains deferred; G6-098 sustained growth remains separate.",
   "blockers": [
     {
       "id": "B01",
@@ -1109,6 +1109,62 @@
       "change": "Confirm the admitted target with the same opaque Core audience commit as surviving peers. During MOVING, authorize publisher and receiver StreamEpoch metadata through the existing fresh continuation read and phase fence. Keep preparation receiver-only and ordinary readiness gated by projection.",
       "evidence": "Mac native cycle 1 route 1 has a 655.549 ms return gap. Its target starts encoding at frame 1277 and its first new received keyframe is frame 1307, exactly the next natural 30-frame GOP keyframe. This target reports zero consumed PLI while the other three targets report one each. Capture projection takes 723.525 ms with 27 authority-busy attempts. The new keyframe arrives before ordinary adoption, so this is not evidence of a complete source-packet blackout. Source inspection finds both delayed admitted-flow confirmation and an explicit MOVING publisher-epoch filter. Individual dropped or received P frames were not retained. Actual signed verification now passes with the final implementation. With primary SQL held, the admitted publisher consumes current PLI and its fresh keyframe is independently decoded within the original 200 ms. The original root remains preparing and has no ordinary lifetime. A later signed hold denies new RTP. Both-old, confirmation-only and lifecycle-only variants each fail with zero consumed current PLI. All original process groups joined naturally. Runtime receipt b6c6566a29a1d581a1c7bdb2e3d6ebeed8e5e936032279c4e54dda7aa20d3057 preserves all attempts.",
       "next": "Keep the verified publisher implementation unchanged during B133 fixture correction. Include it in the complete committed batch and both local shipping builds before the next full 32-cell run."
+    },
+    {
+      "id": "B135",
+      "title": "Native programme success loses the observed-window field",
+      "status": "FOCUSED REGRESSIONS PASSED. Full matrix qualification pending.",
+      "change": "Return programme_window_observed from nativeAv and test the actual callback followed by awaited assignment.",
+      "evidence": "The successful return overwrites the callback report without this field. This produces a false resource-check failure; it does not explain decoded media failures. Both final 62-second controller cases passed on local ARM Linux. Removing only the successful return field reproduced the expected undefined-versus-true failure with the same test bytes. All original encoders and readers joined. Receipt 41afa0b556c54c05af2d5bc430dc071eeb386a44d529ff90542325c9d0111d6f.",
+      "next": "Run the complete 32-cell matrix on the committed batch using normal local ARM shipping artifacts. Preserve all mandatory quality, authority and cleanup checks."
+    },
+    {
+      "id": "B136",
+      "title": "First-page connection refresh repeats full snapshot derivation",
+      "status": "FOCUSED REGRESSIONS PASSED. Full matrix qualification pending.",
+      "change": "Plan source scopes without rendering connection children; retain one final complete capture and current credential/source checks.",
+      "evidence": "Source inspection shows four full captures for a single-credential first-page refresh. New whole-admission counters and visibility, provenance, revocation and capacity controls are authored. All 21 selected Store snapshot planning and retained authority controls passed in the actual Store34 run; receipt 42fcbfecb29d5b37b81c5cbd4b7480cf9d0fb66d9b48a3720910eb383624910c. Old-code comparison measured four full captures for one credential and eleven for two; the fixed path uses one. The initial five-capture forecast omitted six admission captures. Strict failed comparison receipt remains recorded with source-backed supplemental audit b4be1448ee84881f23611fd5018275a29beee7965d77e5599f5e76ae730a3bc7.",
+      "next": "Run the complete 32-cell matrix on the committed batch using normal local ARM shipping artifacts. Preserve all mandatory quality, authority and cleanup checks."
+    },
+    {
+      "id": "B137",
+      "title": "Movement and watcher duplicate the same committed capture recording",
+      "status": "FOCUSED UNIT AND SIGNED INTEGRATION CHECKS PASSED. Full matrix qualification pending.",
+      "change": "Share an exact-capture recorder with cancellation-safe ownership retained inside the Store call. Preserve the original deadline and mandatory cleanup attempt.",
+      "evidence": "Closed ARM capture evidence records 311 attempts with 309 busy outcomes; a single movement projection took 4.245 seconds. Source confirms independent recorders for the same immutable capture. The specific primary SQL holder is not established. All seven Service recording/cancellation controls and all seven signed native integration controls passed. Service receipt 41624a2ce4da9b6d6b7093d81504c96d24e0d07262fbf0047b7801a656636e2c; signed receipt 288709745ebe0520c8ac3ac921a92dedfff22955a34891510ab71b4ff0fef4ff. Every original owner joined naturally. The old cancelled-busy comparison is recorded below. The unsafe early exit from the first recorder draft reproduced the mandatory-final-attempt failure; the exact restored final case passed.",
+      "next": "Run the complete 32-cell matrix on the committed batch using normal local ARM shipping artifacts. Preserve all mandatory quality, authority and cleanup checks."
+    },
+    {
+      "id": "B138",
+      "title": "RTC picture feedback is coupled to exhausted media repair",
+      "status": "FOCUSED REGRESSIONS PASSED. Full matrix qualification pending.",
+      "change": "Dispatch fresh bounded picture feedback through current route and authority checks without extending old packet repair. Keep lazy callback entry and original uncertainty handling.",
+      "evidence": "The source couples picture requests to an old packet repair lifetime and attempt budget. The tracked upstream patch separates fresh feedback. This does not prove the leaf cause of each historical WSS media gap. All 16 selected Core and four RTC cases passed on normal local ARM compilation. Actual loopback SRTCP PLI was received after four metadata refusals and for expired video/screen repair; authority, route and generation refusals retained no PLI. Receipt 8be6345b22f83f788b15df497f60461d7571a85823a4aa01238960d747a44f9c. This is focused feedback qualification, not a complete browser media or matrix pass. Old-coupling comparisons are recorded below. Both old RTC packet-coupling cases reproduced missing callback and missing actual SRTCP PLI with all owners joined; both restored cases passed. Original failures and final receipts are bound by b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846.",
+      "next": "Run the complete 32-cell matrix on the committed batch using normal local ARM shipping artifacts. Preserve all mandatory quality, authority and cleanup checks."
+    },
+    {
+      "id": "B139",
+      "title": "Firefox initialization drops diagnostic peer-bound arguments",
+      "status": "FOCUSED REGRESSIONS PASSED. Full matrix qualification pending.",
+      "change": "Forward initialization arguments through both browser wrappers and test the actual facade.",
+      "evidence": "The requested 16-peer diagnostic bound becomes the default four because wrapper arguments are dropped. This limits evidence and is not established as a media-stall cause. All four actual Firefox facade tests passed on local macOS ARM. Removing only argument forwarding reproduced both failures; the unchanged final scaffold passed all four cases.",
+      "next": "Run the complete 32-cell matrix on the committed batch using normal local ARM shipping artifacts. Preserve all mandatory quality, authority and cleanup checks."
+    },
+    {
+      "id": "B140",
+      "title": "Remote native custody schema blocks safe result retention",
+      "status": "FOCUSED REGRESSIONS PASSED. Full matrix qualification pending.",
+      "change": "Recognize the typed remote native ownership report and validate its actual nested joins, source revision and capture evidence.",
+      "evidence": "The first Mac remote report contains original owner and guest joins, but the generic parser expects local flat fields. Retention refuses before archiving and seven subsequent Mac cells are blocked. Preserve the failed programme and historical blocked verdicts. All four new typed custody and archive-drain regressions passed on local macOS ARM, including invalid and forced-owner refusals. The old flat-only parser reproduced the false client-join refusal and failure before archive transport. The final scaffold passed all four cases. Supplemental retention preserved the original failed report and seven blocked verdicts.",
+      "next": "Run the complete 32-cell matrix on the committed batch using normal local ARM shipping artifacts. Preserve all mandatory quality, authority and cleanup checks."
+    },
+    {
+      "id": "B141",
+      "title": "Positive native media metadata is rederived at every clock second",
+      "status": "FOCUSED REGRESSIONS PASSED. Full matrix qualification pending.",
+      "change": "Reuse only positive MediaFacts inside their original capture-to-expiry interval. Retain fresh database versions, source identity, file authority and runtime ownership checks.",
+      "evidence": "Closed Firefox packet headers show continuous browser ingress but server egress stalls. Server logs show packet observer contention in that interval. The source invalidates every positive memo on a clock-second change. This is a supported contention-reduction candidate; the exact server scheduling leaf and full media outcome remain unproved. All seven new memo cases and six retained controls passed across the original Store run and corrected two-test rerun. The two original fixture failures are preserved; production code was unchanged by correction. Corrected receipt 51e72828e660f432969681c175c8393b6f9d61b8268e7b5234314f7288fc02b6. Full media quality remains unverified. Restoring exact-second matching reproduced repeated derivation in both ordinary and pending-continuation reads. Both restored cases passed.",
+      "next": "Run the complete 32-cell matrix on the committed batch using normal local ARM shipping artifacts. Preserve all mandatory quality, authority and cleanup checks."
     }
   ],
   "workplan_tasks": [
@@ -1512,9 +1568,139 @@
         "scripts/run-gate6-transport-matrix.py"
       ],
       "solution": "Verify the complete frozen source, commit and push, synchronize both local ARM hosts, prebuild normal shipping artifacts and validate measured retention funding before the full run.",
-      "status": "Both signed B133 and B134 controls passed. Committing verified batch, then local ARM shipping builds and capacity preflight. Full 32-cell run pending.",
+      "status": "Complete execution: 25 failed, 7 blocked, zero passing cells. Seven follow-through fixes are implemented and awaiting focused verification.",
       "completion": "All 32 original cell workloads and mandatory checks pass under the approved quality and authority profile.",
-      "completion_status": "not-started"
+      "completion_status": "executed-not-qualified"
+    },
+    {
+      "id": "S21",
+      "title": "Native programme success loses the observed-window field",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [
+        "S20"
+      ],
+      "code_paths": [
+        "scripts/lib/transport_av.mjs",
+        "scripts/tests/transport_av_lifetime.test.mjs"
+      ],
+      "solution": "Return programme_window_observed from nativeAv and test the actual callback followed by awaited assignment.",
+      "status": "Focused checks and relevant old-behavior comparisons verified. Full matrix qualification remains.",
+      "completion": "Run both existing real 62-second controller cases and the old-field-loss counterexample.",
+      "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S22",
+      "title": "First-page connection refresh repeats full snapshot derivation",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [
+        "S20"
+      ],
+      "code_paths": [
+        "crates/connect-store/src/events/admission.rs",
+        "crates/connect-store/src/events/snapshots.rs"
+      ],
+      "solution": "Plan source scopes without rendering connection children; retain one final complete capture and current credential/source checks.",
+      "status": "Focused checks and relevant old-behavior comparisons verified. Full matrix qualification remains.",
+      "completion": "Verify Store scope planning and current-authority regressions, including the old four-capture counterexample.",
+      "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S23",
+      "title": "Movement and watcher duplicate the same committed capture recording",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [
+        "S20"
+      ],
+      "code_paths": [
+        "crates/connect-service/src/canonical_replacement/capture_recording.rs"
+      ],
+      "solution": "Share an exact-capture recorder with cancellation-safe ownership retained inside the Store call. Preserve the original deadline and mandatory cleanup attempt.",
+      "status": "Focused checks and relevant old-behavior comparisons verified. Full matrix qualification remains.",
+      "completion": "Verify serialization, cancellation, panic, wakeups, deadline consumption and signed native recovery.",
+      "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S24",
+      "title": "RTC picture feedback is coupled to exhausted media repair",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [
+        "S20"
+      ],
+      "code_paths": [
+        "patches/rvoip/gate6-rtc-current-picture-feedback.patch",
+        "dependencies/source-lock.json"
+      ],
+      "solution": "Dispatch fresh bounded picture feedback through current route and authority checks without extending old packet repair. Keep lazy callback entry and original uncertainty handling.",
+      "status": "Focused checks and relevant old-behavior comparisons verified. Full matrix qualification remains.",
+      "completion": "Prepare SourceLock 377, compile and run Core/RTC controls and real SRTCP PLI counterexamples.",
+      "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S25",
+      "title": "Firefox initialization drops diagnostic peer-bound arguments",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [
+        "S20"
+      ],
+      "code_paths": [
+        "scripts/video/browser_bidi_adapter.mjs",
+        "scripts/video/owned_matrix_browser.mjs"
+      ],
+      "solution": "Forward initialization arguments through both browser wrappers and test the actual facade.",
+      "status": "Focused checks and relevant old-behavior comparisons verified. Full matrix qualification remains.",
+      "completion": "Run the four facade and initialization regression cases.",
+      "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S26",
+      "title": "Remote native custody schema blocks safe result retention",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [
+        "S20"
+      ],
+      "code_paths": [
+        "scripts/lib/vm_workload_lease.py"
+      ],
+      "solution": "Recognize the typed remote native ownership report and validate its actual nested joins, source revision and capture evidence.",
+      "status": "Focused checks and relevant old-behavior comparisons verified. Full matrix qualification remains.",
+      "completion": "Verify typed report acceptance plus forced, missing, foreign and unknown-schema refusal, then retain the closed guest evidence.",
+      "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S27",
+      "title": "Positive native media metadata is rederived at every clock second",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [
+        "S20"
+      ],
+      "code_paths": [
+        "crates/connect-store/src/peer_authority/connection_media/snapshot.rs"
+      ],
+      "solution": "Reuse only positive MediaFacts inside their original capture-to-expiry interval. Retain fresh database versions, source identity, file authority and runtime ownership checks.",
+      "status": "Focused checks and relevant old-behavior comparisons verified. Full matrix qualification remains.",
+      "completion": "Verify actual unary, paired and continuation reads, expiry, revocation, external database changes, clock behavior and concurrent readers before the complete matrix.",
+      "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S28",
+      "title": "Verify the complete follow-through batch and rerun all 32 cells",
+      "owner": "Root and local runner agents",
+      "dependencies": [
+        "S21",
+        "S22",
+        "S23",
+        "S24",
+        "S25",
+        "S26",
+        "S27"
+      ],
+      "code_paths": [
+        "scripts/run-gate6-transport-matrix.py"
+      ],
+      "solution": "Run focused regressions and relevant signed integration cases, commit the complete batch, synchronize the local ARM VM, prebuild normal shipping artifacts and run the full matrix.",
+      "status": "All 83 distinct focused checks and relevant comparisons complete; original failures preserved, final source restored and owners closed. Shipping preflight and full matrix remain.",
+      "completion": "All mandatory checks pass for each of the 32 cells; preserve any unresolved failure or blocked item.",
+      "completion_status": "focused-runtime-verified"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -3790,5 +3976,146 @@
       "old_watcher_reproduced_forbidden": true,
       "all_original_groups_naturally_joined": true
     }
+  },
+  "v207_followthrough_batch": {
+    "base_revision": "baa21ccb1e64c71ddba67642ed638cca11750557",
+    "source_lock_patch_count": 377,
+    "status": "All seven fixes integrated and verified by 83 distinct focused checks plus old-behavior comparisons. Final source restored; full matrix qualification pending.",
+    "blockers": [
+      "B135",
+      "B136",
+      "B137",
+      "B138",
+      "B139",
+      "B140",
+      "B141"
+    ],
+    "acceptance_changes": false,
+    "verification": "Focused regression and integration checks for the complete batch, then normal local ARM shipping builds and a complete 32-cell run."
+  },
+  "completed_v207_actual": {
+    "source_revision": "baa21ccb1e64c71ddba67642ed638cca11750557",
+    "run_id": "g6-058-000716a9b3c741a7b10eb92d40e745a9",
+    "summary": {
+      "cells": {
+        "passed": 0,
+        "failed": 25,
+        "blocked": 7,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 301,
+        "failed": 35,
+        "blocked": 96,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "matrix_sha256": "56d72f91f879f2e9b4c390934eca0786f7a0e9f9e49dbda595a3f4c915fb3a66",
+    "source_release": "All original coordinator, worker, capture and VM lease owners closed; both tested checkouts remained at baa21ccb/SourceLock 376.",
+    "closure_receipt_sha256": "57c7edd85c02834a97bfb1539c6576a7065bfa597c6e0f8715b3a23209c8fdef"
+  },
+  "v208_focused_attempts": {
+    "store_initial": {
+      "passed": 32,
+      "failed": 2,
+      "receipt_sha256": "42fcbfecb29d5b37b81c5cbd4b7480cf9d0fb66d9b48a3720910eb383624910c",
+      "failures": "Two new memo tests attempted to reverse irreversible credential revocation. Original failures retained; corrected fixtures use independent expiry/revocation cases and terminal revocation. Production unchanged. Corrected cases await rerun."
+    },
+    "python_custody": {
+      "passed": 4,
+      "failed": 0
+    },
+    "node_firefox": {
+      "passed": 4,
+      "failed": 0
+    },
+    "native_programme_mac": {
+      "passed": 0,
+      "failed": 2,
+      "workload_started": false,
+      "reason": "Fixture requires Linux; rerun underway on local ARM Linux."
+    },
+    "store_corrected": {
+      "passed": 2,
+      "failed": 0,
+      "receipt_sha256": "51e72828e660f432969681c175c8393b6f9d61b8268e7b5234314f7288fc02b6",
+      "production_unchanged": true
+    },
+    "core_rtc": {
+      "passed": 20,
+      "failed": 0,
+      "receipt_sha256": "8be6345b22f83f788b15df497f60461d7571a85823a4aa01238960d747a44f9c"
+    },
+    "python_custody_retained": {
+      "passed": 5,
+      "failed": 0
+    },
+    "native_programme_arm": {
+      "passed": 2,
+      "failed": 0,
+      "old_field_counterexample": "expected failure",
+      "receipt_sha256": "41afa0b556c54c05af2d5bc430dc071eeb386a44d529ff90542325c9d0111d6f"
+    },
+    "service": {
+      "passed": 7,
+      "failed": 0,
+      "receipt_sha256": "41624a2ce4da9b6d6b7093d81504c96d24e0d07262fbf0047b7801a656636e2c"
+    },
+    "signed_native": {
+      "passed": 7,
+      "failed": 0,
+      "receipt_sha256": "288709745ebe0520c8ac3ac921a92dedfff22955a34891510ab71b4ff0fef4ff"
+    }
+  },
+  "v208_focused_verified": {
+    "distinct_passing_checks": 83,
+    "planned_checks": 83,
+    "remaining": "Normal committed shipping artifacts and complete 32-cell qualification.",
+    "matrix_cells_qualified": 0,
+    "tested_base_revision": "baa21ccb1e64c71ddba67642ed638cca11750557",
+    "tested_final_workspace_sha256": "ab94b0e19bc55539cf979751be9c13728c4576ba25b09e4b10d89653e8e473d4",
+    "post_verification_changes": "Progress documentation and its renderer only; library, upstream patch, lock and test bytes unchanged."
+  },
+  "latest_full_run": {
+    "evidence_key": "completed_v207_actual",
+    "label": "v207",
+    "status_url": "../../.local/gate-6/full-matrix-v207/status.html"
+  },
+  "current_focused_verification": {
+    "passed": 83,
+    "planned": 83,
+    "next": "Comparisons completed and final source restored. Full-matrix qualification remains pending."
+  },
+  "current_workplan_tasks": [
+    "S21",
+    "S22",
+    "S23",
+    "S24",
+    "S25",
+    "S26",
+    "S27",
+    "S28"
+  ],
+  "v208_counterexamples": {
+    "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
+    "rust_old_behavior_failures": 7,
+    "rust_restored_affected_passes": 7,
+    "script_old_behavior_failures": 5,
+    "script_summary_sha256": "91f2df44a736a96eae8b65b2e77945dec5e1dea838532fb90b70f8142a177351",
+    "arm_programme_receipt_sha256": "41afa0b556c54c05af2d5bc430dc071eeb386a44d529ff90542325c9d0111d6f",
+    "all_original_owners_closed": true,
+    "final_source_restored": true,
+    "source_lock_sha256": "c058bd6954c4d3e08226845ec4f1de2b3ff59a053f98e278e3b97283d27d4754",
+    "prepared_rvoip_sha256": "cc397acfbe5d00d01035e38a22874cae62a359e65c1b8279e60e3ec37b19905f",
+    "qualification_note": "The Store comparison checker expected five full captures for two credentials, but measured eleven. Its strict failed receipt is preserved. Source review accounts for six admission captures, four execution checks and one output capture; the fixed path passes with one. No test or historical verdict was rewritten. Restored checks do not inflate the 83 distinct focused passes."
+  },
+  "next_full_run_status": {
+    "url": "../../.local/gate-6/v208-followthrough-status.html",
+    "label": "Next full run: live preparation and execution status"
   }
 }

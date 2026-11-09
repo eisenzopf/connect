@@ -42,6 +42,7 @@ pub(super) async fn metadata<T, F, G>(
     stop: &tokio_util::sync::CancellationToken,
     capture: &Arc<NativeReplacementCommitted>,
     phase: Phase,
+    recording: Option<&Arc<super::capture_recording::Recorder>>,
     mut body: F,
 ) -> Result<T>
 where
@@ -51,34 +52,39 @@ where
 {
     let counters = Arc::new(Counters::default());
     let began = Instant::now();
-    let result = retry_metadata(stop, || {
+    let mut tracked = || {
         let call = body();
         let counters = counters.clone();
-        async move {
-            add(&counters.attempts, 1);
-            let queued = Instant::now();
-            store_call(move || {
-                add(&counters.dispatch_us, micros(queued));
-                let execution = Instant::now();
-                let result = call();
-                add(&counters.execution_us, micros(execution));
-                if let Err(error) = &result {
-                    add(
-                        match error.code.as_str() {
-                            "authority-busy" => &counters.authority_busy,
-                            "storage-unavailable" => &counters.storage_unavailable,
-                            _ => &counters.permanent_refusal,
-                        },
-                        1,
-                    );
-                }
-                add(&counters.completed, 1);
-                result
-            })
-            .await
+        add(&counters.attempts, 1);
+        let queued = Instant::now();
+        move || {
+            add(&counters.dispatch_us, micros(queued));
+            let execution = Instant::now();
+            let result = call();
+            add(&counters.execution_us, micros(execution));
+            if let Err(error) = &result {
+                add(
+                    match error.code.as_str() {
+                        "authority-busy" => &counters.authority_busy,
+                        "storage-unavailable" => &counters.storage_unavailable,
+                        _ => &counters.permanent_refusal,
+                    },
+                    1,
+                );
+            }
+            add(&counters.completed, 1);
+            result
         }
-    })
-    .await;
+    };
+    let result = if let Some(recording) = recording {
+        recording.record(stop, &mut tracked).await
+    } else {
+        retry_metadata(stop, || {
+            let call = tracked();
+            async move { store_call(call).await }
+        })
+        .await
+    };
     let elapsed = micros(began);
     let dispatch = counters.dispatch_us.load(Ordering::Relaxed);
     let execution = counters.execution_us.load(Ordering::Relaxed);
