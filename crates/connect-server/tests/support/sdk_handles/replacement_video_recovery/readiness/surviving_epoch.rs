@@ -2,12 +2,12 @@
 use super::*;
 use std::sync::mpsc;
 
-struct SqlOwner {
+pub(super) struct SqlOwner {
     release: Option<mpsc::Sender<()>>,
     job: Option<std::thread::JoinHandle<connect_protocol::Result<()>>>,
 }
 impl SqlOwner {
-    fn acquire(store: std::sync::Arc<connect_store::Store>) -> Self {
+    pub(super) fn acquire(store: std::sync::Arc<connect_store::Store>) -> Self {
         let (entered, ready) = mpsc::channel();
         let (release, stopped) = mpsc::channel();
         let job = std::thread::spawn(move || {
@@ -25,7 +25,7 @@ impl SqlOwner {
             .expect("original primary SQL holder did not enter");
         owner
     }
-    fn finish(&mut self) -> bool {
+    pub(super) fn finish(&mut self) -> bool {
         self.release.take();
         self.job
             .take()
@@ -78,7 +78,7 @@ async fn current_key(
     }
 }
 
-async fn close_decoder(decoder: Decoder, cutoff: Instant) -> bool {
+pub(super) async fn close_decoder(decoder: Decoder, cutoff: Instant) -> bool {
     let Decoder {
         mut child,
         mut input,

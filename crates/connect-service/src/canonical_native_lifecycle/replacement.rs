@@ -1,4 +1,4 @@
-//! Receiver-only signed metadata through the original captured registration.
+//! Signed epoch metadata through the original captured registration.
 use super::*;
 use crate::canonical_replacement::TargetPolicy;
 use std::sync::{
@@ -46,7 +46,7 @@ fn domain_error(error: connect_protocol::Error) -> DispatchError {
 #[async_trait]
 impl NativeLifecyclePolicy for ReplacementPolicy {
     fn receiver_epochs_only(&self) -> bool {
-        self.state.phase.load(Ordering::Acquire) != ORDINARY
+        self.state.phase.load(Ordering::Acquire) == PREPARATION
     }
     async fn authorize(
         &self,
@@ -76,9 +76,6 @@ impl NativeLifecyclePolicy for ReplacementPolicy {
         let NativeLifecycleEvent::StreamEpoch { observation } = event else {
             return Err(DispatchError::StorageUnavailable);
         };
-        if observation.epoch().publisher {
-            return Err(DispatchError::StorageUnavailable);
-        }
         let target = self
             .state
             .target
@@ -105,6 +102,12 @@ impl NativeLifecyclePolicy for ReplacementPolicy {
                 Some(publication),
                 Some((self.state.phase.clone(), MOVING)),
             );
+        }
+        // A private preparation still exposes receiver history only. After
+        // the actual Core cut, both video directions above use the same fresh
+        // publication capability; no ConnectionReady event is admitted here.
+        if observation.epoch().publisher {
+            return Err(DispatchError::StorageUnavailable);
         }
         let (owner, read, preroll) = target
             .receiver_epoch_preparation(scope, observation)

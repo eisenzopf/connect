@@ -229,14 +229,13 @@ impl Runtime {
         let capture = Arc::new(committed);
         *started.commit.lock().map_err(|_| Error::storage())? =
             Some(Capture::Known(capture.clone()));
-        // Confirm surviving audience peers at the actual Core commit so signed
-        // video epochs can advance during metadata projection. Lifecycle
-        // delivery derives current authority. The admitted target follows
-        // inactive-origin publication below.
+        // Carry the exact signed resources through the actual Core audience
+        // commit for both surviving peers and the admitted target. Moving
+        // epoch metadata still needs fresh current continuation authority;
+        // ordinary readiness remains gated by inactive-origin publication.
         let activation_result = activation_result.and_then(|()| {
             for id in handle.audience().commit().connections() {
                 if id != &outcome.replaced
-                    && id != &outcome.admitted
                     && self.native_connection_live(id)
                     && self
                         .observe_native_audio_audience_commit(id, handle.audience().commit())

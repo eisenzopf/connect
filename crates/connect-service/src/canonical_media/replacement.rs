@@ -229,6 +229,15 @@ impl Policy {
             None
         }
     }
+    pub(crate) fn take_preparation_registry_probe_for_test(
+        &self,
+        operation: &str,
+    ) -> Option<Arc<std::sync::atomic::AtomicUsize>> {
+        self.preparation_registry_probes
+            .lock()
+            .ok()?
+            .remove(operation)
+    }
     pub(crate) fn arm_preparation_registry_probe_for_test(
         &self,
         operation: &str,

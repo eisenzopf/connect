@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-08",
+  "updated": "2026-11-09",
   "run_status": "Full v206 completed on 582ac6ea with 0 passed, 17 failed and 15 blocked cells. All 16 native ARM Linux cells and the first Mac native cell ran. The remaining 15 Mac cells were blocked by original-closed-evidence-storage-backpressure. Requirement totals are 201 passed, 27 failed and 204 blocked. Both original workers, controller, storage transports and all 16 ARM guardians closed, with unchanged source. The next batch addresses earlier owned-audio discard paths, native data contention classification, native quarantine retirement, physical server archive receipts and browser source-motion measurement. A browser post-commit 403 remains unlocalized and needs bounded phase evidence. Historical verdicts and all quality and authority requirements remain preserved. G6-054 is deferred and G6-098 sustained growth is separate.",
   "blockers": [
     {
@@ -1097,10 +1097,18 @@
     {
       "id": "B133",
       "title": "A browser return move fails with an unlocalized definitive 403",
-      "status": "SOURCE-BACKED REPLAY FIX IMPLEMENTING. Signed old/new runtime verification pending.",
+      "status": "FOCUSED RUNTIME VERIFIED. Full 32-cell qualification pending.",
       "change": "Retain exact committed native readiness custody through the existing media lifetime owner. A drop guard cancels only its original uncommitted candidate and leaves watcher compensation intact. Committed owner exit removes only its exact root. Preserve current signed readiness, frozen-observation replay and all authority and cleanup failures.",
-      "evidence": "Preparation and capture started, but the failed return has no successful observer activation boundary. Cleanup later recovers the same root completed at generation 3. This excludes the later old-source refresh but does not identify which preceding operation-wait or target-readiness request returned 403. Findings c3b0ec0a preserve the bounds. The exact archived log shows the admission watcher lost the old source during the failed move's 427.881 ms capture projection. It removed committed native preparation custody, making a repeated signed readiness request fail before Store replay. The archived DB confirms the same original root completed at generation 3 and its saved credential was unrevoked and unexpired. The exact failed request is still unrecorded. Keep custody under the existing native media owner, cancel uncommitted dropped work and remove only the exact committed root at owner exit. Current authorization remains mandatory.",
-      "next": "Reproduce the actual signed replay refusal while the Core cut is complete and projection is paused. Verify busy then original completion after the fix, plus cancellation, expiry, wrong-owner and exact-root cleanup cases before the next matrix."
+      "evidence": "Preparation and capture started, but the failed return has no successful observer activation boundary. Cleanup later recovers the same root completed at generation 3. This excludes the later old-source refresh but does not identify which preceding operation-wait or target-readiness request returned 403. Findings c3b0ec0a preserve the bounds. The exact archived log shows the admission watcher lost the old source during the failed move's 427.881 ms capture projection. It removed committed native preparation custody, making a repeated signed readiness request fail before Store replay. The archived DB confirms the same original root completed at generation 3 and its saved credential was unrevoked and unexpired. The exact failed request is still unrecorded. Keep custody under the existing native media owner, cancel uncommitted dropped work and remove only the exact committed root at owner exit. Current authorization remains mandatory. The combined signed final cohort has 4 passes and 3 failures. In the readiness case, the same original root returns preparing then completed successfully. Its held-SQL check fails because it accepts authority-busy only, while the signed request returns the existing transient storage-unavailable code. The cancellation and panic cases wait for the scoped owner before answering the prerequisite signed native offer, so negotiation times out before either owner probe is reached. These failures remain recorded. They do not establish a compensation failure. Corrected verification now passes all seven final cases with zero ignored. The old watcher on the same corrected fixture reproduces the definitive forbidden failure. The fixed signed request preserves the original preparing and completed root. Disposal before polling completes compensation. A preparation panic completes compensation and remains visible as the expected runtime drain failure. All 19 command groups and the controller joined naturally. Corrected runtime receipt 2403cb2c566c3063d3a9fa65fd2d7a204191bcd4bbbd38f049499f3739155569 preserves the results.",
+      "next": "Commit the verified complete batch, build both local ARM hosts and run all 32 cells. Keep the historical individual 403 request attribution explicitly unresolved until new matrix evidence."
+    },
+    {
+      "id": "B134",
+      "title": "Admitted native publisher lacks usable keyframe feedback during projection",
+      "status": "FOCUSED RUNTIME VERIFIED. Full 32-cell qualification pending.",
+      "change": "Confirm the admitted target with the same opaque Core audience commit as surviving peers. During MOVING, authorize publisher and receiver StreamEpoch metadata through the existing fresh continuation read and phase fence. Keep preparation receiver-only and ordinary readiness gated by projection.",
+      "evidence": "Mac native cycle 1 route 1 has a 655.549 ms return gap. Its target starts encoding at frame 1277 and its first new received keyframe is frame 1307, exactly the next natural 30-frame GOP keyframe. This target reports zero consumed PLI while the other three targets report one each. Capture projection takes 723.525 ms with 27 authority-busy attempts. The new keyframe arrives before ordinary adoption, so this is not evidence of a complete source-packet blackout. Source inspection finds both delayed admitted-flow confirmation and an explicit MOVING publisher-epoch filter. Individual dropped or received P frames were not retained. Actual signed verification now passes with the final implementation. With primary SQL held, the admitted publisher consumes current PLI and its fresh keyframe is independently decoded within the original 200 ms. The original root remains preparing and has no ordinary lifetime. A later signed hold denies new RTP. Both-old, confirmation-only and lifecycle-only variants each fail with zero consumed current PLI. All original process groups joined naturally. Runtime receipt b6c6566a29a1d581a1c7bdb2e3d6ebeed8e5e936032279c4e54dda7aa20d3057 preserves all attempts.",
+      "next": "Keep the verified publisher implementation unchanged during B133 fixture correction. Include it in the complete committed batch and both local shipping builds before the next full 32-cell run."
     }
   ],
   "workplan_tasks": [
@@ -1426,6 +1434,87 @@
       "status": "Controlled old/new runtime verification passes.164 Core cases and the real SDK held-SQL keyframe check pass with all owners joined. Native ARM Linux followthrough controls and full-matrix qualification remain pending.",
       "completion": "Actual old failures, corrected behavior and authority negatives pass, followed by all 32 matrix cells.",
       "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S16",
+      "title": "Preserve exact retained audio through every changed policy admission",
+      "owner": "Root and media agent",
+      "dependencies": [
+        "S15"
+      ],
+      "code_paths": [
+        "patches/rvoip/connect-owned-retained-audio-policy-retry.patch"
+      ],
+      "solution": "Use exact owned audio retry at collector, decoded chunk and pending source/target admission, with unchanged current fences.",
+      "status": "194 Core cases pass, including four stage counterexamples and 32 refusal lanes. Committed in 5b503fa3.",
+      "completion": "Full matrix independently decoded audio meets its unchanged profile.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S17",
+      "title": "Retire original quarantined routes and preserve failed-cell custody",
+      "owner": "Runtime and runner agents",
+      "dependencies": [
+        "S15"
+      ],
+      "code_paths": [
+        "patches/rvoip/connect-end-only-quarantined-route-cleanup.patch",
+        "scripts/check-transport-fixtures.py"
+      ],
+      "solution": "End only the exact retired adapter generation and record actual process joins independently of logical shutdown success.",
+      "status": "Core lifecycle controls and proper-host script controls pass. Committed in 5b503fa3.",
+      "completion": "Every safe cell archive permits the next selected workload and actual native owners retire.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S18",
+      "title": "Preserve committed native readiness replay through its actual owner",
+      "owner": "Root and native lifecycle agent",
+      "dependencies": [
+        "S16",
+        "S17"
+      ],
+      "code_paths": [
+        "crates/connect-service/src/canonical_replacement.rs",
+        "crates/connect-service/src/canonical_replacement/preparation.rs"
+      ],
+      "solution": "Keep exact committed native roots reachable, with cancellation and exact-pointer disposal under the existing lifetime owner.",
+      "status": "Corrected final seven cases passed. Old watcher reproduces forbidden on the same fixture. Original-root replay, cancellation compensation and panic reporting verified.",
+      "completion": "Signed replay, cancellation and actual owner cleanup pass before full matrix.",
+      "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S19",
+      "title": "Deliver current publisher epochs for PLI before metadata projection completes",
+      "owner": "Root and media agent",
+      "dependencies": [
+        "S16",
+        "S17"
+      ],
+      "code_paths": [
+        "crates/connect-service/src/canonical_replacement/movement.rs",
+        "crates/connect-service/src/canonical_native_lifecycle/replacement.rs"
+      ],
+      "solution": "Confirm the admitted source at the known Core cut and authorize only moving StreamEpoch metadata through the current continuation capability.",
+      "status": "Actual final signed PLI and independent keyframe decode passed within 200 ms. All three old variants fail with zero current PLI. Current hold and owner cleanup passed.",
+      "completion": "Old conditions fail, fixed conditions decode a PLI-driven keyframe within the original 200 ms, with current hold still enforced.",
+      "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S20",
+      "title": "Commit the complete verified native follow-through and run all 32 cells",
+      "owner": "Root and local runner agent",
+      "dependencies": [
+        "S18",
+        "S19"
+      ],
+      "code_paths": [
+        "scripts/run-gate6-transport-matrix.py"
+      ],
+      "solution": "Verify the complete frozen source, commit and push, synchronize both local ARM hosts, prebuild normal shipping artifacts and validate measured retention funding before the full run.",
+      "status": "Both signed B133 and B134 controls passed. Committing verified batch, then local ARM shipping builds and capacity preflight. Full 32-cell run pending.",
+      "completion": "All 32 original cell workloads and mandatory checks pass under the approved quality and authority profile.",
+      "completion_status": "not-started"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -3617,7 +3706,7 @@
     ]
   },
   "v207_batch": {
-    "status": "Initial batch passes 194 Core, 21 Service, 375 Node and 235 Python checks, plus four real VP8 source paths. A further source-backed native ready-replay custody gap is being fixed and verified before the next full matrix.",
+    "status": "All targeted batch verification passed, including the corrected seven signed native cases. Preparing the complete commit and both local ARM shipping builds before the full 32-cell run.",
     "parallel_scopes": [
       "Owned retained-audio admissions and regression sources",
       "End-only original quarantine cleanup and regression sources",
@@ -3641,10 +3730,10 @@
     },
     "preparation_note": "The first preparation completed, then its inventory check incorrectly expected a new declared test file among changed preexisting files. A separate closure verifies all nine afterimages, eight changed existing files and the new file, preserves the failed check, restores 4145 equal-file mtimes, reruns normal preparation and formatting, and joins all originals.",
     "pending_followthrough": [
-      "Classify and resolve the exact browser 403 request if reproduced. Definitive authority failures remain mandatory.",
-      "Namespaced nonzero server exit cannot prove unforced physical cleanup after systemd collects the unit. Keep that ambiguous case blocked until independently qualified.",
+      "Namespaced nonzero server exit stays blocked when systemd collection prevents proving whether termination was forced.",
       "Extra proper-Linux signed SDK negative profiles and optional opaque UCTP feature profile from the previous batch remain explicit pending scopes."
-    ]
+    ],
+    "verified_initial_commit": "5b503fa31f76317f9ca59b21ae907f8e87d6203f"
   },
   "v207_verified_components": {
     "base_workspace_sha256": "26e72ae50df0005a25ce10eb2546359b5dcc4342a67c447654bda42771b69b1e",
@@ -3671,5 +3760,35 @@
     "all_original_groups_joined": true,
     "full_matrix_qualified": false,
     "additional_B133_source_change": "The subsequent native readiness custody change is outside this verified source seal and requires its own signed runtime verification."
+  },
+  "verified_initial_commit": {
+    "commit": "5b503fa31f76317f9ca59b21ae907f8e87d6203f",
+    "pushed": true,
+    "source_lock_sha256": "ad78d8d5a2b81dde4b1fb469c9eb14c7d34c77debc5ff80c3894e81daab7c3bf",
+    "implementation_and_test_files_matching_verified_source": 15,
+    "document_progress_updates": 3,
+    "total_unit_component_cases": 825,
+    "actual_vp8_source_paths": 4,
+    "full_matrix_qualified": false
+  },
+  "v207_combined_signed_followthrough": {
+    "actual_final_passed": 4,
+    "actual_final_failed": 3,
+    "matrix_qualified": false,
+    "runtime_receipt": ".local/gate-6/v207-combined-signed-verification-resume/runtime/receipt.json",
+    "runtime_receipt_sha256": "b6c6566a29a1d581a1c7bdb2e3d6ebeed8e5e936032279c4e54dda7aa20d3057",
+    "findings_sha256": "2c1b68e088da1f410f04a6b0b3bc9055b6d3381e843b0c97fad92ec0475b1789",
+    "all_owners_naturally_joined": true,
+    "source_restored": true,
+    "remaining": "Commit, local ARM shipping builds, measured capacity preflight and full 32-cell run.",
+    "corrected_final": {
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "runtime_receipt_sha256": "2403cb2c566c3063d3a9fa65fd2d7a204191bcd4bbbd38f049499f3739155569",
+      "source_workspace_sha256": "5d8ef5b6f1c047a0a3d4cf28660a007bbef317c1ac90e6445d1eb59c9b4e3d51",
+      "old_watcher_reproduced_forbidden": true,
+      "all_original_groups_naturally_joined": true
+    }
   }
 }

@@ -1000,3 +1000,11 @@ mod representative;
 #[cfg(feature = "test-support")]
 #[path = "readiness/surviving_epoch.rs"]
 pub(super) mod surviving_epoch;
+
+#[cfg(feature = "test-support")]
+#[path = "readiness/ready_replay.rs"]
+pub(super) mod ready_replay;
+
+#[cfg(feature = "test-support")]
+#[path = "readiness/publisher_epoch.rs"]
+pub(super) mod publisher_epoch;

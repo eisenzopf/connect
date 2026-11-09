@@ -766,18 +766,16 @@ impl Runtime {
                         .await;
                     }
                 }
-                // After RTC adoption the actual RTC worker owns retirement.
-                // Keep its original immutable ready observation reachable for
-                // signed uncertain-delivery recovery while that target lives.
-                // Removing it when the old source retires would race an exact
-                // ready retry against the just-completed original operation.
+                // The original native media future or RTC worker owns the
+                // committed target through actual retirement. Preserve its
+                // immutable ready observation for signed delivery recovery.
                 if saved.handle.is_committed()
                     && saved
                         .allocated
                         .lock()
                         .ok()
                         .and_then(|a| a.clone())
-                        .is_some_and(|a| a.webrtc.is_some())
+                        .is_some()
                 {
                     return;
                 }

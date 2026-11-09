@@ -16,6 +16,89 @@ use rvoip_core::{
     peer_admission::PeerAdmission,
     staged_streams::local_audio::LocalAudioPurpose,
 };
+// Registry custody follows the original tracked native media future.
+struct NativeReplayCustody {
+    runtime: std::sync::Weak<Runtime>,
+    root: std::sync::Weak<PreparedReplacement>,
+    #[cfg(feature = "test-support")]
+    identity_probe: Option<Arc<std::sync::atomic::AtomicUsize>>,
+}
+impl Drop for NativeReplayCustody {
+    fn drop(&mut self) {
+        if std::thread::panicking() {
+            if let Some(runtime) = self.runtime.upgrade() {
+                runtime.retirement_failed.store(true, Ordering::Release);
+            }
+        }
+        let Some(root) = self.root.upgrade() else {
+            return;
+        };
+        // Uncommitted cancellation leaves custody with the existing watcher,
+        // which records the exact stopped or uncertain target afterward.
+        if root.handle.cancel() {
+            return;
+        }
+        if let Some(runtime) = self.runtime.upgrade() {
+            // The scoped pointer probe shares only the original committed
+            // history and records registry identity rather than cleanup success.
+            #[cfg(feature = "test-support")]
+            let shadow = self.identity_probe.as_ref().map(|_| {
+                Arc::new(PreparedReplacement {
+                    handle: root.handle.clone(),
+                    operator: root.operator.clone(),
+                    receipt: root.receipt.clone(),
+                    origin: root.origin.clone(),
+                    plan: root.plan.clone(),
+                    recorded: AtomicBool::new(root.recorded.load(Ordering::Acquire)),
+                    deadline: root.deadline,
+                    telephone: std::sync::Mutex::new(
+                        root.telephone
+                            .lock()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner())
+                            .clone(),
+                    ),
+                    allocated: std::sync::Mutex::new(
+                        root.allocated
+                            .lock()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner())
+                            .clone(),
+                    ),
+                })
+            });
+            let mut registry = runtime
+                .replacements
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            #[cfg(feature = "test-support")]
+            let original_present = registry
+                .get(root.origin.record_id())
+                .is_some_and(|current| Arc::ptr_eq(current, &root));
+            #[cfg(feature = "test-support")]
+            if original_present {
+                if let Some(shadow) = &shadow {
+                    registry.insert(root.origin.record_id().into(), shadow.clone());
+                }
+            }
+            registry.retain(|_, current| {
+                !std::sync::Weak::ptr_eq(&Arc::downgrade(current), &self.root)
+            });
+            #[cfg(feature = "test-support")]
+            if let (Some(shadow), Some(probe)) = (&shadow, &self.identity_probe) {
+                let key = root.origin.record_id();
+                let survived = registry
+                    .get(key)
+                    .is_some_and(|current| Arc::ptr_eq(current, shadow));
+                if survived {
+                    registry.remove(key);
+                }
+                probe.store(
+                    usize::from(original_present) | (usize::from(survived) << 1),
+                    Ordering::Release,
+                );
+            }
+        }
+    }
+}
 impl Runtime {
     pub(super) fn queue_replacement_media(
         self: &Arc<Self>,
@@ -28,17 +111,65 @@ impl Runtime {
             return;
         };
         while work.try_join_next().is_some() {}
+        let native_custody = matches!(
+            &started.lifecycle,
+            super::webrtc::ReplacementLifecycle::Native(_)
+        )
+        .then(|| NativeReplayCustody {
+            runtime: Arc::downgrade(self),
+            root: Arc::downgrade(&root),
+            #[cfg(feature = "test-support")]
+            identity_probe: self
+                .media
+                .take_preparation_registry_probe_for_test(&format!(
+                    "native-replay-identity:{}",
+                    root.origin.request().operation_id
+                )),
+        });
+        #[cfg(feature = "test-support")]
+        let owner_probe = ["native-replay-unpolled", "native-replay-panic"]
+            .into_iter()
+            .enumerate()
+            .find_map(|(kind, prefix)| {
+                self.media
+                    .take_preparation_registry_probe_for_test(&format!(
+                        "{prefix}:{}",
+                        root.origin.request().operation_id
+                    ))
+                    .map(|probe| (kind, probe))
+            });
+        #[cfg(feature = "test-support")]
+        let worker_probe = owner_probe.clone();
         let runtime = self.clone();
-        work.spawn(async move {
-            let result = runtime.prepare_replacement_media(&root,&started,&peer).await;
+        let future = async move {
+            let _native_custody = native_custody;
+            #[cfg(feature = "test-support")]
+            if let Some((1, probe)) = worker_probe {
+                probe.store(1, Ordering::Release);
+                panic!("scoped original native preparation owner panic");
+            }
+            let result = runtime
+                .prepare_replacement_media(&root, &started, &peer)
+                .await;
             // The original preparation future and all its guards are gone.
             // A successful snapshot may include writes after public movement.
-            started.policy.receive_diagnostics.terminal(&started.policy, result.is_ok());
-            if let Err(error)=result {
+            started
+                .policy
+                .receive_diagnostics
+                .terminal(&started.policy, result.is_ok());
+            if let Err(error) = result {
                 tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,code=%error.code,"Private replacement preparation stopped");
                 root.handle.cancel();
             }
-        });
+        };
+        #[cfg(feature = "test-support")]
+        if let Some((0, probe)) = owner_probe {
+            drop(work);
+            drop(future);
+            probe.store(1, Ordering::Release);
+            return;
+        }
+        work.spawn(future);
     }
     pub(super) async fn continuation_read(
         &self,

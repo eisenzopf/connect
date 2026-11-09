@@ -500,6 +500,26 @@ async fn signed_surviving_sdk_receiver_gets_new_epoch_before_captured_metadata_s
     exercise(20).await;
 }
 #[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_admitted_native_publisher_recovers_keyframe_before_captured_metadata_sql() {
+    exercise(24).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_native_ready_replay_keeps_committed_custody_through_capture_sql() {
+    exercise(21).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_native_unpolled_preparation_keeps_watcher_compensation() {
+    exercise(22).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_native_panicked_preparation_keeps_compensation_and_failed_drain() {
+    exercise(23).await;
+}
+#[cfg(feature = "test-support")]
 #[tokio::test]
 async fn signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable() {
     tokio::time::timeout(Duration::from_secs(90), exercise(18))
@@ -1063,7 +1083,11 @@ async fn exercise(mode: u8) {
         .unwrap(),
     );
     eprintln!("production replacement phase: initial-codec-history");
-    let mut encoder = Encoder::open(f.temp.path(), matches!(mode, 18 | 19 | 20)).await;
+    let mut encoder = Encoder::open(
+        f.temp.path(),
+        matches!(mode, 18 | 19 | 20 | 21 | 22 | 23 | 24),
+    )
+    .await;
     let first = encoder.frame(0, true).await;
     let mut original_sequence = 0;
     let mut retained_sequence = 0;
@@ -1190,6 +1214,25 @@ async fn exercise(mode: u8) {
     } else {
         None
     };
+    #[cfg(feature = "test-support")]
+    let native_owner_probe = if matches!(mode, 21 | 22 | 23) {
+        let prefix = match mode {
+            21 => "native-replay-identity",
+            22 => "native-replay-unpolled",
+            _ => "native-replay-panic",
+        };
+        Some(
+            f.server
+                .service
+                .arm_canonical_preparation_registry_probe_for_test(&format!(
+                    "{prefix}:{}",
+                    command.operation_id
+                ))
+                .unwrap(),
+        )
+    } else {
+        None
+    };
     let root = controller.transition(command.clone()).await.unwrap();
     phase(&f, &mut controller, &command, 1).await;
     let original_preparation = readiness::original_cutoff(&f, &root);
@@ -1262,6 +1305,50 @@ async fn exercise(mode: u8) {
     .await
     .expect("original replacement expired during exact answer")
     .unwrap();
+    #[cfg(feature = "test-support")]
+    if matches!(mode, 22 | 23) {
+        let observed = readiness::ready_replay::cancelled_owner(
+            &f,
+            &original_preparation,
+            native_owner_probe.as_ref().unwrap(),
+            &mut encoder,
+            &old_send,
+            &retained_recv,
+            &retained_send,
+            &old_recv,
+            &mut original_sequence,
+            &mut retained_sequence,
+            original_cutoff,
+        )
+        .await;
+        encoder.close().await;
+        let target_closed = replacement.shutdown().await;
+        let publisher_closed = publisher.close(options()).await;
+        let subscriber_closed = subscriber.close(options()).await;
+        let server_closed = f.server.shutdown().await;
+        target_closed.unwrap();
+        publisher_closed.unwrap();
+        subscriber_closed.unwrap();
+        if mode == 23 {
+            let failure = server_closed
+                .as_ref()
+                .expect_err("original task panic was lost from runtime drain")
+                .to_string();
+            assert_eq!(
+                failure,
+                "Canonical shutdown failed: canonical runtime retirement; public Session failure: None",
+                "an unrelated owner failed to join alongside the expected task panic"
+            );
+            eprintln!("scoped original native task panic: compensation joined; runtime drain correctly failed");
+        } else {
+            server_closed.unwrap();
+        }
+        assert!(
+            observed.is_ok(),
+            "original native owner cleanup failed: {observed:?}"
+        );
+        return;
+    }
     eprintln!("production replacement phase: replacement-resource-capture");
     phase(&f, &mut controller, &command, 5).await;
     let mut io = replacement.claim_native_video_datagrams().unwrap();
@@ -1444,25 +1531,46 @@ async fn exercise(mode: u8) {
         return;
     }
     #[cfg(feature = "test-support")]
-    if mode == 20 {
-        let observed = readiness::surviving_epoch::audit(
-            &f,
-            &mut controller,
-            &command,
-            &root,
-            &mut replacement,
-            &mut io,
-            &mut encoder,
-            &retained_send,
-            &mut retained_sequence,
-            incoming,
-            camera,
-            &retained_recv,
-            &mut sequence,
-            &previous_retained_epoch,
-            original_cutoff,
-        )
-        .await;
+    if matches!(mode, 20 | 24) {
+        let observed = if mode == 20 {
+            readiness::surviving_epoch::audit(
+                &f,
+                &mut controller,
+                &command,
+                &root,
+                &mut replacement,
+                &mut io,
+                &mut encoder,
+                &retained_send,
+                &mut retained_sequence,
+                incoming,
+                camera,
+                &retained_recv,
+                &mut sequence,
+                &previous_retained_epoch,
+                original_cutoff,
+            )
+            .await
+        } else {
+            readiness::publisher_epoch::audit(
+                &f,
+                &mut controller,
+                &command,
+                &root,
+                &mut replacement,
+                &mut io,
+                &mut encoder,
+                &retained_send,
+                &mut retained_sequence,
+                incoming,
+                camera,
+                &retained_recv,
+                &mut sequence,
+                &previous_retained_epoch,
+                original_cutoff,
+            )
+            .await
+        };
         // The old-condition assertion is deliberately after every original
         // codec, Client, physical peer and server owner has joined.
         encoder.close().await;
@@ -1475,9 +1583,76 @@ async fn exercise(mode: u8) {
         publisher_closed.unwrap();
         subscriber_closed.unwrap();
         server_closed.unwrap();
+        if mode == 20 {
+            assert!(
+                observed.is_ok(),
+                "surviving SDK epoch was blocked by capture SQL: {observed:?}"
+            );
+        } else {
+            assert!(
+                observed.is_ok(),
+                "admitted native publisher epoch was blocked by capture SQL: {observed:?}"
+            );
+        }
+        return;
+    }
+    #[cfg(feature = "test-support")]
+    if mode == 21 {
+        let observed = readiness::ready_replay::audit(
+            &f,
+            &mut controller,
+            &command,
+            &root,
+            &mut replacement,
+            &mut io,
+            &mut encoder,
+            &retained_send,
+            &mut retained_sequence,
+            incoming,
+            original_cutoff,
+        )
+        .await;
+        encoder.close().await;
+        let target_closed = replacement.shutdown().await;
+        drop(io);
+        let record = root.record_id.as_ref().unwrap().as_str();
+        let registry_retired = tokio::time::timeout_at(original_cutoff, async {
+            loop {
+                if !f
+                    .server
+                    .service
+                    .canonical_replacement_preparation_registered_for_test(record)
+                    .unwrap()
+                {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .is_ok();
+        let publisher_closed = publisher.close(options()).await;
+        let subscriber_closed = subscriber.close(options()).await;
+        let server_closed = f.server.shutdown().await;
+        target_closed.unwrap();
+        publisher_closed.unwrap();
+        subscriber_closed.unwrap();
+        server_closed.unwrap();
+        assert!(
+            registry_retired,
+            "original readiness root survived its joined target"
+        );
         assert!(
             observed.is_ok(),
-            "surviving SDK epoch was blocked by capture SQL: {observed:?}"
+            "committed native readiness replay lost custody: {observed:?}"
+        );
+        assert_eq!(
+            native_owner_probe
+                .as_ref()
+                .unwrap()
+                .load(std::sync::atomic::Ordering::Acquire),
+            3,
+            "exact original custody removed a different Arc with the same logical root"
         );
         return;
     }
