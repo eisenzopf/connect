@@ -1,0 +1,579 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1260,7 +1260,6 @@
+         }
+         result
+     }
+-
+ }
+ /// No raw payload accessor: admission is repeated after dequeue, and the
+ /// current policy plus both route-generation guards live through the send.
+@@ -1298,13 +1297,14 @@
+     direct: Option<direct_subscriptions::DirectStamp>,
+     admitted_at: Instant,
+ }
+-// Only these internal owners may retain the exact refused visual copy. This
++// Only these internal owners may retain their exact refused media copy. This
+ // is invocation metadata, never permission or a reader retained across retry.
+ #[derive(Clone, Copy)]
+ enum AdmissionOwner<'a> {
+     Ordinary,
+     Original(&'a original_ingress::OriginalStamp),
+     QueuedVisual,
++    QueuedAudio,
+ }
+ struct QueuedMediaAdmission {
+     target: Arc<StreamController>,
+@@ -1333,8 +1333,16 @@
+     /// Numeric-only and optional. Repeated calls count repeated observations,
+     /// not unique packets. This admits no IO and changes no original metadata.
+     pub fn observe_private_video_adapter_dequeue(&self) {
+-        if let Some(counters) = self.direct.as_ref().and_then(|stamp| stamp.delivery_counters()) {
+-            counters.record::<()>(direct_subscriptions::delivery::Phase::AdapterDequeue, self.admitted_at, None);
++        if let Some(counters) = self
++            .direct
++            .as_ref()
++            .and_then(|stamp| stamp.delivery_counters())
++        {
++            counters.record::<()>(
++                direct_subscriptions::delivery::Phase::AdapterDequeue,
++                self.admitted_at,
++                None,
++            );
+         }
+     }
+     fn delivery_origin(&self) -> Option<MediaDeliveryOrigin> {
+@@ -1686,6 +1694,9 @@
+         if self.sources.is_empty() {
+             return Err(StreamControlError::Authority);
+         }
++        let owned_audio = self.can_batch_audio()
++            && self.target.binding.negotiated.requested.medium == Medium::Audio
++            && self.sources[0].source.binding.negotiated.requested.medium == Medium::Audio;
+         let owned_visual = self.frame.kind == StreamKind::Video
+             && self.local.is_none()
+             && self.data.is_none()
+@@ -1749,13 +1760,14 @@
+                     AdmissionOwner::QueuedVisual,
+                 )
+             } else {
+-                source.admit_retained_source_with_deadline(
++                source.admit_retained_source_owned(
+                     &provenance.source,
+                     &provenance.ticket,
+                     provenance.consumer.as_ref(),
+                     provenance.scene.as_ref(),
+                     &provenance.custody,
+                     (self.frame.kind != StreamKind::Data).then_some(&mut *deadline),
++                    if owned_audio { AdmissionOwner::QueuedAudio } else { AdmissionOwner::Ordinary },
+                 )
+             }
+                 .map_err(|problem| {
+@@ -1806,7 +1818,9 @@
+                     None,
+                     leases.last().and_then(|lease| lease.packet_context()),
+                     (self.frame.kind != StreamKind::Data).then_some(&mut *deadline),
+-                    if owned_visual { AdmissionOwner::QueuedVisual } else { AdmissionOwner::Ordinary },
++                    if owned_visual { AdmissionOwner::QueuedVisual }
++                    else if owned_audio { AdmissionOwner::QueuedAudio }
++                    else { AdmissionOwner::Ordinary },
+                 )
+                 .map_err(|problem| {
+                     tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
+@@ -1848,7 +1862,6 @@
+             _admissions: admissions,
+         })
+     }
+-
+ }
+ 
+ struct State {
+@@ -2106,7 +2119,10 @@
+             inflight: Arc::new(Semaphore::new(1)),
+             shutdown: lifetime,
+             #[cfg(feature = "memory-diagnostics")]
+-            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("core.stream_controller", 0),
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++                "core.stream_controller",
++                0,
++            ),
+         }))
+     }
+     fn scope<'a>(
+@@ -2341,13 +2357,37 @@
+         audio_consumer::MediaAdmission,
+         tokio::time::Instant,
+     )> {
++        self.admit_retained_source_owned(
++            port,
++            ticket,
++            consumer,
++            scene,
++            custody,
++            deadline,
++            AdmissionOwner::Ordinary,
++        )
++    }
++    fn admit_retained_source_owned(
++        &self,
++        port: &Arc<Port>,
++        ticket: &PeerRouteTicket,
++        consumer: Option<&audio_consumer::ConsumerStamp>,
++        scene: Option<&scene_consumer::SceneStamp>,
++        custody: &PacketCustody,
++        deadline: Option<&mut tokio::time::Instant>,
++        owner: AdmissionOwner<'_>,
++    ) -> ControlResult<(
++        Box<dyn MediaAuthorityLease>,
++        audio_consumer::MediaAdmission,
++        tokio::time::Instant,
++    )> {
+         // Packet context sharing remains audio-only. Video uses a fresh policy
+         // read, bounded by the same original queued admission deadline.
+         let active = (port.kind() == StreamKind::Audio)
+             .then(|| custody.active())
+             .flatten();
+         let weak = active.as_ref().map(Arc::downgrade);
+-        let admitted = self.admit_with_deadline(
++        let admitted = self.admit_original_or_queued(
+             port,
+             ticket,
+             false,
+@@ -2359,6 +2399,7 @@
+             None,
+             weak.as_ref().map(|weak| weak as &(dyn Any + Send + Sync)),
+             deadline,
++            owner,
+         )?;
+         if port.kind() == StreamKind::Audio {
+             custody.observe(admitted.0.as_ref());
+@@ -2730,9 +2771,10 @@
+         };
+         let mut retry_owned_visual_original = false;
+         let mut retry_owned_queued_visual = false;
++        let mut retry_owned_queued_audio = false;
+         if detached {
+             // This callback must never publish across a model revision. Only
+-            // an exact still-eligible owned raw or queued visual copy may ask
++            // an exact still-eligible owned raw visual or queued media copy may ask
+             // its owner for a fresh attempt after every reader drops.
+             if state.model.revision() != revision {
+                 if original.is_some()
+@@ -2762,6 +2804,16 @@
+                     && (sending || packet_context.is_none())
+                 {
+                     retry_owned_queued_visual = true;
++                } else if matches!(owner, AdmissionOwner::QueuedAudio)
++                    && port.binding.negotiated.requested.medium == Medium::Audio
++                    && data.is_none()
++                    && held.is_none()
++                    && queued_deadline.is_some()
++                    && matches!(&consumer, audio_consumer::ConsumerCheck::Retained(Some(_)))
++                    && scene.retains_target()
++                    && sending == source.is_some()
++                {
++                    retry_owned_queued_audio = true;
+                 } else {
+                     return Err(MediaTransitionError::Conflict.into());
+                 }
+@@ -2819,7 +2871,7 @@
+             .as_deref()
+             .map_or(deadline, |until| deadline.min(*until));
+         let deadline = Self::media_deadline(&credential.principal, lease.as_ref(), deadline)?;
+-        if retry_owned_visual_original || retry_owned_queued_visual {
++        if retry_owned_visual_original || retry_owned_queued_visual || retry_owned_queued_audio {
+             // All the normal current port/ticket, consumer/scene, credential
+             // and authority eligibility checks above remain required. This is
+             // still a refusal: no admission or stale lease leaves this call.
+@@ -3138,7 +3190,10 @@
+                 slot: Mutex::new(Some(slot)),
+                 allocation: Mutex::new(Some(allocation)),
+                 #[cfg(feature = "memory-diagnostics")]
+-                _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("core.media_port", 0),
++                _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++                    "core.media_port",
++                    0,
++                ),
+             });
+             self.state
+                 .lock()
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -3818,3 +3818,5 @@
+ mod original_visual_policy_retry;
+ 
+ mod queued_visual_policy_retry;
++
++mod queued_audio_policy_retry;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/queued_audio_policy_retry.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/queued_audio_policy_retry.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/queued_audio_policy_retry.rs
+@@ -0,0 +1,365 @@
++//! Only exact owned queued audio retries an internal after-policy model race.
++use super::*;
++
++#[derive(Clone, Copy)]
++enum Failure {
++    None,
++    RevokedBeforeRetry,
++    GenerationBeforeRetry,
++    ExpiredBeforeRetry,
++    PolicyConflict,
++    PolicyAuthority,
++}
++struct ActionOwner(Arc<Domain>);
++impl Drop for ActionOwner {
++    fn drop(&mut self) {
++        self.0.original_visual_policy_action.lock().unwrap().take();
++        self.0.queued_visual_receive_action.lock().unwrap().take();
++    }
++}
++async fn exercise(target_callback: bool, failure: Failure) {
++    let mut room = Room::new().await;
++    // The existing Room starts Audio only, but its authentic owner capabilities
++    // already negotiate Video. Verify this before freezing the original PCM.
++    {
++        let policy = room.domain.base.0.read().await;
++        let owner = &policy.owners[if target_callback { "bob" } else { "alice" }];
++        assert!(owner.may_control);
++        assert!(owner.send_media.contains(&Medium::Video));
++        assert!(owner.receive_media.contains(&Medium::Video));
++        assert!(
++            negotiate_streams(
++                &owner.local,
++                &owner.remote,
++                &[desired(Medium::Audio), desired(Medium::Video)],
++            )
++            .is_ok()
++        );
++    }
++    room.publish("alice", 1800).unwrap();
++    room.tick();
++    let queued = room.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++    assert!(queued.can_batch_audio());
++    let source = room.nodes["alice"].controller.clone();
++    let target = room.nodes["bob"].controller.clone();
++    let source_for_control = source.clone();
++    let target_for_control = target.clone();
++    let original_source_port = source
++        .active_bindings()
++        .into_iter()
++        .find(|binding| binding.negotiated.requested.medium == Medium::Audio)
++        .expect("original Audio binding disappeared")
++        .transport_id;
++    let original_target_port = target
++        .active_bindings()
++        .into_iter()
++        .find(|binding| binding.negotiated.requested.medium == Medium::Audio)
++        .expect("original Audio binding disappeared")
++        .transport_id;
++    let admitted_at = queued.admitted_at;
++    let source_ticket = queued.sources[0].ticket.clone();
++    let source_consumer = queued.sources[0].consumer.clone();
++    let source_scene = queued.sources[0].scene.clone();
++    let target_ticket = queued.target_ticket.clone();
++    let target_consumer = queued.target_consumer.clone();
++    let target_scene = queued.target_scene.clone();
++    let subscription = queued.subscription.clone();
++    let scene = room.scene.clone();
++    let runtime = tokio::runtime::Handle::current();
++    let completed = Arc::new(AtomicBool::new(false));
++    let completed_by_callback = completed.clone();
++    let applied = Arc::new(AtomicBool::new(false));
++    let applied_by_callback = applied.clone();
++    let action: OriginalVisualPolicyAction = Box::new(move |lease| {
++        // The existing historical visual-named hook observes this actual Audio
++        // policy call too. No new callback seam or fabricated grant is needed.
++        applied_by_callback.store(true, Ordering::Release);
++        if matches!(failure, Failure::PolicyConflict) {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        if matches!(failure, Failure::PolicyAuthority) {
++            return Err(StreamControlError::Authority);
++        }
++        drop(
++            source_for_control
++                .state
++                .try_lock()
++                .expect("source State held"),
++        );
++        drop(
++            target_for_control
++                .state
++                .try_lock()
++                .expect("target State held"),
++        );
++        drop(scene.members.try_lock().expect("scene members held"));
++        let before = (source_for_control.revision(), target_for_control.revision());
++        let worker = std::thread::spawn(move || {
++            runtime.block_on(async move {
++                let changed = if target_callback {
++                    &target_for_control
++                } else {
++                    &source_for_control
++                };
++                let original_cutoff =
++                    tokio::time::Instant::from_std(admitted_at + Duration::from_millis(200));
++                // Reuse Audio's exact Port and selection. No subscription or
++                // audio route reader has to quiesce for this independent add.
++                changed
++                    .change(
++                        changed.revision(),
++                        &[desired(Medium::Audio), desired(Medium::Video)],
++                        &BTreeSet::new(),
++                        original_cutoff,
++                        CancellationToken::new(),
++                    )
++                    .await?;
++                assert_eq!(source_for_control.revision() > before.0, !target_callback);
++                assert_eq!(target_for_control.revision() > before.1, target_callback);
++                assert!(
++                    changed
++                        .active_bindings()
++                        .iter()
++                        .any(|binding| { binding.negotiated.requested.medium == Medium::Video })
++                );
++                assert_eq!(
++                    source_for_control
++                        .active_bindings()
++                        .into_iter()
++                        .find(|binding| binding.negotiated.requested.medium == Medium::Audio)
++                        .expect("original Audio binding disappeared")
++                        .transport_id,
++                    original_source_port
++                );
++                assert_eq!(
++                    target_for_control
++                        .active_bindings()
++                        .into_iter()
++                        .find(|binding| binding.negotiated.requested.medium == Medium::Audio)
++                        .expect("original Audio binding disappeared")
++                        .transport_id,
++                    original_target_port
++                );
++                assert!(source_ticket.is_current() && target_ticket.is_current());
++                assert!(
++                    source_consumer
++                        .as_ref()
++                        .is_none_or(audio_consumer::ConsumerStamp::is_current)
++                );
++                assert!(
++                    target_consumer
++                        .as_ref()
++                        .is_none_or(audio_consumer::ConsumerStamp::is_current)
++                );
++                assert!(
++                    source_scene
++                        .as_ref()
++                        .is_none_or(|stamp| stamp.active_at(admitted_at))
++                );
++                assert!(
++                    target_scene
++                        .as_ref()
++                        .is_none_or(|stamp| stamp.active_at(admitted_at))
++                );
++                assert!(
++                    subscription
++                        .as_ref()
++                        .is_some_and(|stamp| stamp.is_current())
++                );
++                Ok::<(), StreamControlError>(())
++            })
++        });
++        // Join the actual mutation worker before examining its outcome.
++        let result = worker.join().expect("original control worker panicked");
++        eprintln!(
++            "queued-audio-independent-control target_callback={target_callback} result={result:?} age_us={}",
++            admitted_at.elapsed().as_micros(),
++        );
++        assert!(
++            result.is_ok(),
++            "actual independent control failed: {result:?}"
++        );
++        result?;
++        assert!(admitted_at.elapsed() < Duration::from_millis(200));
++        completed_by_callback.store(true, Ordering::Release);
++        Ok(lease)
++    });
++    let slot = if target_callback {
++        &room.domain.queued_visual_receive_action
++    } else {
++        &room.domain.original_visual_policy_action
++    };
++    assert!(slot.lock().unwrap().replace(action).is_none());
++    let _action_owner = ActionOwner(room.domain.clone());
++    let mut writes = 0;
++    let result = QueuedMedia::deliver_ready_audio_batch(vec![queued], |_, _, _| {
++        writes += 1;
++        Ok(())
++    });
++    assert!(
++        applied.load(Ordering::Acquire),
++        "actual callback was not entered"
++    );
++    assert_eq!(
++        completed.load(Ordering::Acquire),
++        !matches!(failure, Failure::PolicyConflict | Failure::PolicyAuthority),
++        "entered callback is not proof that its original control completed",
++    );
++    assert_eq!(writes, 0, "stale callback performed IO");
++    assert_eq!(result.len(), 1);
++    let (queued, problem) = match result.into_iter().next().unwrap() {
++        ReadyAudioDelivery::Refused { queued, problem } => (queued, problem),
++        ReadyAudioDelivery::Submitted(_) => panic!("stale callback submitted IO"),
++    };
++    if matches!(failure, Failure::PolicyConflict) {
++        assert!(matches!(
++            problem,
++            StreamControlError::Model(MediaTransitionError::Conflict)
++        ));
++        return;
++    }
++    if matches!(failure, Failure::PolicyAuthority) {
++        assert!(matches!(problem, StreamControlError::Authority));
++        return;
++    }
++    // Old production fails here with Model(Conflict), after its actual worker
++    // has joined. Neither grant nor permission is carried into the next call.
++    let provenance = &queued.sources[0];
++    eprintln!(
++        "queued-audio-first-refusal target_callback={target_callback} problem={problem:?} age_us={} can_batch={} source_audio={} target_audio={} source_consumer={} target_consumer={} source_scene={} target_scene={} source_ticket_current={} target_ticket_current={} source_consumer_current={} target_consumer_current={} source_scene_active={} target_scene_active={} subscription_current={}",
++        admitted_at.elapsed().as_micros(),
++        queued.can_batch_audio(),
++        provenance.source.binding.negotiated.requested.medium == Medium::Audio,
++        queued.target.binding.negotiated.requested.medium == Medium::Audio,
++        provenance.consumer.is_some(),
++        queued.target_consumer.is_some(),
++        provenance.scene.is_some(),
++        queued.target_scene.is_some(),
++        provenance.ticket.is_current(),
++        queued.target_ticket.is_current(),
++        provenance
++            .consumer
++            .as_ref()
++            .is_none_or(audio_consumer::ConsumerStamp::is_current),
++        queued
++            .target_consumer
++            .as_ref()
++            .is_none_or(audio_consumer::ConsumerStamp::is_current),
++        provenance
++            .scene
++            .as_ref()
++            .is_none_or(|stamp| stamp.active_at(admitted_at)),
++        queued
++            .target_scene
++            .as_ref()
++            .is_none_or(|stamp| stamp.active_at(admitted_at)),
++        queued
++            .subscription
++            .as_ref()
++            .is_some_and(|stamp| stamp.is_current()),
++    );
++    assert!(
++        matches!(problem, StreamControlError::NotReady),
++        "actual original queued-audio refusal: {problem:?}; target_callback={target_callback}"
++    );
++    match failure {
++        Failure::RevokedBeforeRetry => {
++            room.domain
++                .base
++                .0
++                .write()
++                .await
++                .revoked
++                .insert("alice".into());
++        }
++        Failure::GenerationBeforeRetry => {
++            let changed = if target_callback { &target } else { &source };
++            let logical = BTreeSet::from([desired(Medium::Audio).logical_id]);
++            for gate in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                changed
++                    .set_media_gate(changed.revision(), &logical, gate, deadline())
++                    .await
++                    .unwrap();
++            }
++        }
++        Failure::ExpiredBeforeRetry => {
++            tokio::time::sleep_until(tokio::time::Instant::from_std(
++                admitted_at + Duration::from_millis(210),
++            ))
++            .await;
++        }
++        _ => {}
++    }
++    let mut delivered = None;
++    let result = QueuedMedia::deliver_ready_audio_batch(vec![queued], |_, frame, _| {
++        writes += 1;
++        delivered = Some(frame);
++        Ok(())
++    });
++    let outcome = result.into_iter().next().unwrap();
++    if !matches!(failure, Failure::None) {
++        assert_eq!(
++            writes, 0,
++            "old refused PCM crossed a current negative fence"
++        );
++        match outcome {
++            ReadyAudioDelivery::Refused { problem, .. } => match failure {
++                Failure::RevokedBeforeRetry => {
++                    assert!(matches!(problem, StreamControlError::Authority))
++                }
++                Failure::ExpiredBeforeRetry => {
++                    assert!(matches!(problem, StreamControlError::Deadline))
++                }
++                Failure::GenerationBeforeRetry => {
++                    assert!(!matches!(problem, StreamControlError::Deadline))
++                }
++                _ => unreachable!(),
++            },
++            ReadyAudioDelivery::Submitted(_) => panic!("refused original reached IO"),
++        }
++        return;
++    }
++    assert!(matches!(outcome, ReadyAudioDelivery::Submitted(Ok(()))));
++    assert_eq!(writes, 1);
++    let frame = delivered.unwrap();
++    let mut codec =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap();
++    let pcm = codec.decode(&frame.payload).unwrap();
++    assert_eq!(pcm.samples.len(), 160);
++    assert!(
++        pcm.samples
++            .iter()
++            .all(|sample| (i32::from(*sample) - 1800).abs() < 400)
++    );
++    drop(
++        room.domain
++            .base
++            .0
++            .try_write()
++            .expect("completed delivery retained a reader"),
++    );
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn queued_audio_source_revision_race_retries_same_original_pcm_once() {
++    exercise(false, Failure::None).await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn queued_audio_target_revision_race_retries_same_original_pcm_once() {
++    exercise(true, Failure::None).await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn queued_audio_retry_preserves_policy_errors_current_revocation_generation_and_original_expiry()
++ {
++    for target in [false, true] {
++        for failure in [
++            Failure::RevokedBeforeRetry,
++            Failure::GenerationBeforeRetry,
++            Failure::ExpiredBeforeRetry,
++            Failure::PolicyConflict,
++            Failure::PolicyAuthority,
++        ] {
++            exercise(target, failure).await;
++        }
++    }
++}

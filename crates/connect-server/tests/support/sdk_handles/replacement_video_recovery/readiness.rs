@@ -996,3 +996,7 @@ async fn original_target_retired_under(
 // Real six-source, four-participant, two-Session production regression.
 #[path = "representative.rs"]
 mod representative;
+
+#[cfg(feature = "test-support")]
+#[path = "readiness/surviving_epoch.rs"]
+pub(super) mod surviving_epoch;

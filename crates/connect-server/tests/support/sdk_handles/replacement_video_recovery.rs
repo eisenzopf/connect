@@ -495,6 +495,11 @@ async fn signed_replacement_preparation_preserves_current_authority_under_regist
         .unwrap();
 }
 #[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_surviving_sdk_receiver_gets_new_epoch_before_captured_metadata_sql() {
+    exercise(20).await;
+}
+#[cfg(feature = "test-support")]
 #[tokio::test]
 async fn signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable() {
     tokio::time::timeout(Duration::from_secs(90), exercise(18))
@@ -1058,7 +1063,7 @@ async fn exercise(mode: u8) {
         .unwrap(),
     );
     eprintln!("production replacement phase: initial-codec-history");
-    let mut encoder = Encoder::open(f.temp.path(), matches!(mode, 18 | 19)).await;
+    let mut encoder = Encoder::open(f.temp.path(), matches!(mode, 18 | 19 | 20)).await;
     let first = encoder.frame(0, true).await;
     let mut original_sequence = 0;
     let mut retained_sequence = 0;
@@ -1436,6 +1441,44 @@ async fn exercise(mode: u8) {
         publisher.close(options()).await.unwrap();
         subscriber.close(options()).await.unwrap();
         f.server.shutdown().await.unwrap();
+        return;
+    }
+    #[cfg(feature = "test-support")]
+    if mode == 20 {
+        let observed = readiness::surviving_epoch::audit(
+            &f,
+            &mut controller,
+            &command,
+            &root,
+            &mut replacement,
+            &mut io,
+            &mut encoder,
+            &retained_send,
+            &mut retained_sequence,
+            incoming,
+            camera,
+            &retained_recv,
+            &mut sequence,
+            &previous_retained_epoch,
+            original_cutoff,
+        )
+        .await;
+        // The old-condition assertion is deliberately after every original
+        // codec, Client, physical peer and server owner has joined.
+        encoder.close().await;
+        let target_closed = replacement.shutdown().await;
+        drop(io);
+        let publisher_closed = publisher.close(options()).await;
+        let subscriber_closed = subscriber.close(options()).await;
+        let server_closed = f.server.shutdown().await;
+        target_closed.unwrap();
+        publisher_closed.unwrap();
+        subscriber_closed.unwrap();
+        server_closed.unwrap();
+        assert!(
+            observed.is_ok(),
+            "surviving SDK epoch was blocked by capture SQL: {observed:?}"
+        );
         return;
     }
     let (done, original_receiver_history) = readiness::activate(

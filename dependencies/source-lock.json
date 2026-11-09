@@ -1982,6 +1982,12 @@
       "path": "patches/rvoip/connect-conference-worker-timing.patch",
       "source": "G6-054/G6-058 original conference worker: fixed numeric terminal summary separating actual interval deadline, wake lateness, callback duration and completion misses; report interrupted work without fabricating completion. No clock policy, per-frame logging, shared reporting lock, queue or timeout changes. Deterministic timing tests plus original worker cancellation/filter regression; component scope only.",
       "sha256": "b9cb2f869ba0791e3a7a98c0a984bd7068a4a42a79d80df5f4647bc1e66baeea"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-owned-queued-audio-policy-retry.patch",
+      "sha256": "07adde9e8ce59caa8ec3d758ca83fa861b877c964e33334a0b72a0f5f8229808",
+      "source": "G6-058 B126: only exact single-source owned queued Audio may return NotReady for an internal after-policy model revision race, after unchanged fresh route/consumer/scene/credential/current authority and earliest original expiry checks. Retain exact PacketCustody metadata and existing ReadyAudio owner retry; policy-origin conflicts, revocation, generation changes and expiry remain refusals. Three normal-entry controls, no queue/clock/timeout or decoder-credit change. Original v205 occurrence remains unproven."
     }
   ]
 }

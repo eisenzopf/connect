@@ -1041,18 +1041,18 @@
     {
       "id": "B126",
       "title": "Saved native timelines show short decoded-audio coverage",
-      "status": "MEASURED. Packet-level root-cause investigation in progress.",
-      "change": "Trace exact missing packets and shared worker intervals across all routes. Distinguish source pacing, library output and selection errors before changing code. Keep the accepted coverage threshold.",
-      "evidence": "Cycle 1 route 3 decodes 59.88 seconds. Cycle 2 routes 0, 1, 2, 3 and 5 decode 59.86 seconds and route 4 decodes 59.88 seconds. All pass identity, clean-gap and skew checks. Required decoded duration is 59.9 seconds.",
-      "next": "Verify a code-level counterexample and regression before the next full 32-cell run."
+      "status": "CONTROLLED RUNTIME VERIFIED. Full-matrix audio coverage and historical attribution remain pending.",
+      "change": "Preserve exact owned single-source queued PCM across an internal after-policy revision race. Return retryable NotReady after all fresh authority, binding, scene, consumer, ticket and original-deadline checks.",
+      "evidence": "Cycle 1 route 3 decodes 59.88 seconds. Cycle 2 routes 0, 1, 2, 3 and 5 decode 59.86 seconds and route 4 decodes 59.88 seconds. All pass identity, clean-gap and skew checks. Required decoded duration is 59.9 seconds. All 3100 stable-source PCM quanta reach Core. Stable receivers have 3093 total captured packets in cycle 2 and no late tail through the retained capture. A transient queued-audio admission revision conflict is a candidate terminal-discard seam and needs a controlled old/new comparison. Corrected independent Video-addition controls complete within about 1 ms with Audio bindings and delivery guards current. Old code returns actual Model(Conflict) for both source and target callbacks. New three-case scope passes, including exact single PCM write/decode and ten refusal lanes. All original groups join naturally. The initial audio-audience fixture self-blocked on its subscription guard, and its generic-assert attribution is withdrawn. Corrected proof receipt0907d3aa and final closured43618ac preserve the full raw history.",
+      "next": "Run the explicit pending native ARM Linux negatives, then verify all 32 cells on the committed media batch. Keep original v205 audio-loss attribution open until directly observed."
     },
     {
       "id": "B127",
       "title": "Saved moving-source receiver has a multi-second video interruption",
-      "status": "MEASURED. Packet-level root-cause investigation in progress.",
-      "change": "Trace old active sender, private candidate, activation, keyframe and receiver histories around the second handoff. Preserve the original frame-bin threshold.",
-      "evidence": "Cycle 1 route 1 has a 2.854 second gap and fails three video bins. Other cycle-1 receivers pass video bins and all six cycle-2 receivers pass them. All 12 timelines decode the correct source and pass A/V skew.",
-      "next": "Verify a code-level counterexample and regression before the next full 32-cell run."
+      "status": "CONTROLLED RUNTIME VERIFIED. Full-matrix verification pending.",
+      "change": "Immediately after a known Core commit, confirm the opaque committed revision for surviving native peers. Preserve the admitted target activation sequence and propagate confirmation failures after recording the actual effect.",
+      "evidence": "Cycle 1 route 1 has a 2.854 second gap and fails three video bins. Other cycle-1 receivers pass video bins and all six cycle-2 receivers pass them. All 12 timelines decode the correct source and pass A/V skew. Actual Core cut precedes 2.448 seconds of capture metadata projection and about 210 ms of activation. Surviving signed epoch emission requires confirmed_at(current revision), whose confirmation previously followed capture projection. SDK future-epoch packet prefixes expire after 200 ms. Actual old SDK case times out while the primary metadata SQL mutex is held. New case receives and independently decodes the authenticated new keyframe in 33,141 microseconds while SQL remains held, with retained revision1 to3 and the same physical peer. C decoder outputs2 and closes naturally. All codec, SDK, peer, SQL-holder and server owners join before the final test assertion.",
+      "next": "Verify the committed candidate across all 32 cells and the pending native ARM Linux authority negatives."
     }
   ],
   "workplan_tasks": [
@@ -1360,6 +1360,23 @@
       "solution": "Use the remaining original encoder budget, close independent original SDK clients concurrently and reuse the first verified capture-inspection result.",
       "status": "Implemented and covered by the complete local ARM replay. 370 Node and 218 Python cases pass with zero skips. Full-matrix evidence remains pending.",
       "completion": "Normal-entry controls and the new complete matrix pass.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S15",
+      "title": "Verify both media fixes before the next complete cell run",
+      "owner": "Root with media and runtime agents",
+      "dependencies": [
+        "S14"
+      ],
+      "code_paths": [
+        "crates/connect-service/src/canonical_replacement/movement.rs",
+        "patches/rvoip/connect-owned-queued-audio-policy-retry.patch",
+        "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/readiness/surviving_epoch.rs"
+      ],
+      "solution": "Confirm surviving signed epochs at known Core commit and retry exact owned queued PCM after transient internal revision races with current authority checks.",
+      "status": "Controlled old/new runtime verification passes.164 Core cases and the real SDK held-SQL keyframe check pass with all owners joined. Native ARM Linux followthrough controls and full-matrix qualification remain pending.",
+      "completion": "Actual old failures, corrected behavior and authority negatives pass, followed by all 32 matrix cells.",
       "completion_status": "full-matrix-pending"
     }
   ],
@@ -3138,5 +3155,33 @@
     "python_passed": 218,
     "skipped": 0,
     "full_matrix_qualified": false
+  },
+  "next_media_batch": {
+    "status": "Both media changes pass controlled old/new behavior verification.164 selected Core cases pass and the surviving real SDK keyframe decodes in33.141ms under held SQL. Full32 and listed followthrough controls remain pending.",
+    "pushed_script_commit": "ea54cedacf866080ad1b9092910ced56eb865cf6",
+    "video": "Surviving-peer epoch confirmation is installed at known Core commit. A real SDK C-decoder test holds primary metadata SQL and requires a new signed keyframe within 200 ms. Runtime verification pending.",
+    "audio": "Owned queued-audio internal revision races now use the existing current-authority retry path. Three new controls cover both callback positions, exact single PCM delivery and ten refusal lanes. Runtime verification pending.",
+    "verification_order": "Commit and sync the verified batch, recover enough measured local storage, run remaining proper-host controls and all32 matrix cells.",
+    "acceptance_changes": false,
+    "source_lock_sha256": "a0a7368f04545fc9b8fded539be85e7b8183f2ba6fdb9475e2560820dad4e663",
+    "audio_patch_sha256": "07adde9e8ce59caa8ec3d758ca83fa861b877c964e33334a0b72a0f5f8229808",
+    "host_scope": "Mac runs the new installed-codec control and portable current-boundary controls. Existing full SDK revoke, cancellation, expiry and hold/resume controls require native ARM Linux.",
+    "storage": "Current D2 free about17GiB after debug builds. Original8GiB engineering reserve was preserved. Lossless closed-artifact recovery is required before the full matrix."
+  },
+  "verified_media_batch": {
+    "summary_sha256": "73ae425ca59e0646b5933a74d0ef36e2387202872643d25536b124602d28638f",
+    "source_lock_sha256": "a0a7368f04545fc9b8fded539be85e7b8183f2ba6fdb9475e2560820dad4e663",
+    "patch_sha256": "07adde9e8ce59caa8ec3d758ca83fa861b877c964e33334a0b72a0f5f8229808",
+    "rvoip_graph": "540b43a6adda91b7be29a3834acd8a45939ef931c88a1f46a499231119a6f619",
+    "core_tests_passed": 164,
+    "video_new_epoch_elapsed_us": 33141,
+    "full_matrix_qualified": false,
+    "original_v205_audio_causality_proved": false,
+    "all_accepted_groups_natural_joined": true,
+    "pending": [
+      "Portable signed allocation control not executed in this batch yet; forecast/reuse check pending",
+      "Opaque UCTP vcon-signing additional feature profile held for disk forecast",
+      "Existing Linux-only SDK negatives remain pending proper Linux host"
+    ]
   }
 }

@@ -229,6 +229,29 @@ impl Runtime {
         let capture = Arc::new(committed);
         *started.commit.lock().map_err(|_| Error::storage())? =
             Some(Capture::Known(capture.clone()));
+        // Confirm surviving audience peers at the actual Core commit so signed
+        // video epochs can advance during metadata projection. Lifecycle
+        // delivery derives current authority. The admitted target follows
+        // inactive-origin publication below.
+        let activation_result = activation_result.and_then(|()| {
+            for id in handle.audience().commit().connections() {
+                if id != &outcome.replaced
+                    && id != &outcome.admitted
+                    && self.native_connection_live(id)
+                    && self
+                        .observe_native_audio_audience_commit(id, handle.audience().commit())
+                        .is_err()
+                {
+                    return Err(Error::new(
+                        "reconciliation-required",
+                        "Known movement lost surviving native audience confirmation",
+                    ));
+                }
+            }
+            Ok(())
+        });
+        // A confirmation refusal is propagated only after this Known effect
+        // has been recorded, just like a refused activation boundary.
         let recorded = super::projection::record(
             roles,
             super::diagnostics::metadata(
