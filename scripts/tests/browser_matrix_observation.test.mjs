@@ -56,19 +56,72 @@ async function rtcRenderFixture(run){
         connectPeerTag:(peer,id)=>{tags.push({peer,id});return true;},
         document:{createElement(){const canvas={getContext:()=>({drawImage(){},getImageData:()=>({data:new Uint8ClampedArray(128*72*4).fill(100)})})};canvases.push(canvas);return canvas;}}});
     const {browserMatrixPlan}=await import('../lib/browser_matrix_admission.mjs');
-    const observer=browserMatrixObservation(Renderer,browserMatrixPlan(),undefined,Rtc);
+    const plan=browserMatrixPlan();
+    const observer=browserMatrixObservation(Renderer,plan,undefined,Rtc);
     const connection=(id,options)=>{
         const rtc=new Rtc(id,options);
         return {id,rtc,streams:{byId:id=>({id})},render:(input,request)=>rtc.render(input,request)};
     };
     const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
     const audio=(node,timestamp)=>node.port.onmessage({data:{type:'pcm',samples:tone(1100),timestamp}});
-    try{await run({observer,connection,nodes,renders,closedOwners,tags,canvases,release,flush,audio,Renderer});}
+    try{await run({observer,plan,connection,nodes,renders,closedOwners,tags,canvases,release,flush,audio,Renderer});}
     finally{
         release();await observer.close();
         for(const key of keys)if(saved[key]===undefined)delete globalThis[key];else globalThis[key]=saved[key];
     }
 }
+
+test('initial RTC render promises start before later offers and the programme barrier joins each same owner',()=>rtcRenderFixture(async f=>{
+    const state={connections:f.plan.routes.map(route=>f.connection(route.connection,
+        route.index===0?{wait:true}:undefined))};
+    const options={timeoutMs:8000};
+    f.observer.startInitialConnection(0,state.connections[0],options);
+    await f.flush();
+    assert.deepEqual(f.renders.map(row=>row.id),[state.connections[0].id]);
+    assert.equal(f.renders[0].options,options,'Keep the original initial render budget');
+    f.audio(f.nodes[0],0);
+    assert.equal(f.observer.report().routes[0].audio.decoded_seconds,0,
+        'Actual startup before programme origin grants no measured frames');
+    for(const route of f.plan.routes.slice(1))
+        f.observer.startInitialConnection(route.index,state.connections[route.index],options);
+    await f.flush();
+    assert.equal(f.renders.length,6,'A pending first play must not prevent later original receivers from starting');
+    let joined=false;
+    const barrier=f.observer.initial(state,options).then(()=>{joined=true;});
+    await f.flush();
+    assert.equal(joined,false,'The original all-six barrier still awaits pending play');
+    f.release();await barrier;
+    assert.deepEqual(f.renders.map(row=>row.id),state.connections.map(value=>value.id));
+    assert.equal(f.nodes.length,6,'No second decoder graph at the final barrier');
+    const closed=await f.observer.close();
+    assert.equal(closed.joined,true);
+    assert.equal(new Set(f.closedOwners).size,6,'Close every exact original renderer once');
+}));
+
+test('initial RTC render refusal retains earlier owners for cleanup and cannot be retried by the final barrier',()=>rtcRenderFixture(async f=>{
+    const failure=Object.assign(Error('Original initial render refused'),{kind:'media'});
+    const state={connections:f.plan.routes.map(route=>f.connection(route.connection,
+        route.index===0?{wait:true}:route.index===1?{failure}:undefined))};
+    f.observer.startInitialConnection(0,state.connections[0],{timeoutMs:8000});
+    f.observer.startInitialConnection(1,state.connections[1],{timeoutMs:8000});
+    await f.flush();
+    assert.throws(()=>f.observer.startInitialConnection(2,state.connections[2],{timeoutMs:8000}),
+        error=>error===failure,'An observed original refusal prevents later decoder startup');
+    const barrier=f.observer.initial(state,{timeoutMs:8000});
+    void barrier.catch(()=>{});
+    assert.deepEqual(f.renders.map(row=>row.id),state.connections.slice(0,2).map(value=>value.id));
+    let joined=false;
+    const closing=f.observer.close().then(value=>{joined=true;return value;});
+    await f.flush();
+    assert.equal(joined,false,'Failure cleanup must join an earlier pending original render');
+    f.release();
+    await assert.rejects(barrier,error=>error===failure);
+    const closed=await closing;
+    assert.deepEqual(f.closedOwners,[state.connections[0].id],
+        'Later refusal cannot skip an earlier actual render owner');
+    assert.equal(closed.joined,false,'No retirement proof may be inferred for refused startup');
+    assert.ok(closed.retained_surfaces>0);
+}));
 
 test('RTC public rendering waits for validated activation and observes its first output before startup resolves',()=>rtcRenderFixture(async f=>{
     const old=f.connection('old'),target=f.connection('target');

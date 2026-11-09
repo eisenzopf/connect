@@ -191,18 +191,32 @@ impl Store {
         if absent.observe()? != expected {
             return Err(Error::forbidden());
         }
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                crate::authority_admission::conversation_scopes(
-                    &c,
-                    conversation,
-                    AuthorityMode::Write,
-                )
-            },
+        // Physical retirement already happened; project only its exact absence.
+        // Never reserve a writer while a current command/packet reader drains,
+        // or keep that writer while waiting for the primary SQL connection.
+        // The original cleanup owner retries a miss. Continuous readers can
+        // defer this passive record until a gap; a miss is never settlement.
+        // Authority-changing writers keep their normal reserved-gate priority.
+        let scopes = {
+            let c = self.try_connection()?;
+            crate::authority_admission::conversation_scopes(&c, conversation, AuthorityMode::Write)?
+        };
+        let admission = self.try_acquire_authority(&scopes);
+        #[cfg(test)]
+        crate::authority_admission::observe_passive_admission(admission.is_ok());
+        let held = admission?;
+        let mut c = self.try_connection()?;
+        let current = crate::authority_admission::conversation_scopes(
+            &c,
+            conversation,
+            AuthorityMode::Write,
         )?;
-        let mut c = self.connection()?;
+        if !self.authority_covers(&held, &current) {
+            return Err(Error::new(
+                "authority-busy",
+                "Replacement retirement projection scope changed",
+            ));
+        }
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

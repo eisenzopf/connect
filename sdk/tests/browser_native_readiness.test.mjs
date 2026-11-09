@@ -100,3 +100,46 @@ test('duplicate original PCM output cannot create three-frame readiness',async()
  for(let i=0;i<3;i++)f.owner.audioDecoded({identity:f.audio,sequence:1,timestamp:960,arrived,samples:960});
  await assert.rejects(f.finish(25),{code:'timeout'});assert.equal(f.attempts,0);
 });
+
+
+test('attempted native ready retries identical proof across private audio SSRC change before commit',async()=>{
+ let f,accepted=0;
+ f=fixture({beforeReady(attempt){
+  if(attempt===1){
+   f.setCurrent({audio:{...f.audio,ssrc:99},video:{identity:f.vi,epoch:'signed-epoch'}});
+   return temporary();
+  }
+  accepted++;
+ }});
+ f.observe();
+ const result=await f.finish(300);
+ assert.equal(result.state,'completed');
+ assert.equal(f.attempts,2);
+ assert.equal(accepted,1,'one original accepted Ready after its transient refusal');
+ assert.deepEqual(readyCalls(f)[0],readyCalls(f)[1]);
+ assert.equal(readyCalls(f)[0].payload.replacement_preparation.readiness.audio.decoded_samples,2880);
+ assert.equal(readyCalls(f)[0].payload.replacement_preparation.readiness.video.decoded_keyframes,1);
+ assert.equal(f.calls.at(-1).type,'operation.get');
+ assert.equal(f.owner.readinessSubmissionAttempted,true);
+});
+
+test('attempted native ready cannot replay across a changed installed route generation or video identity',async()=>{
+ for(const change of [
+  f=>({audio:{...f.audio,connectionId:'foreign'},video:{identity:f.vi,epoch:'signed-epoch'}}),
+  f=>({audio:{...f.audio,streamId:'foreign'},video:{identity:f.vi,epoch:'signed-epoch'}}),
+  f=>({audio:{...f.audio,generation:2},video:{identity:f.vi,epoch:'signed-epoch'}}),
+  f=>({audio:undefined,video:{identity:f.vi,epoch:'signed-epoch'}}),
+  f=>({audio:f.audio,video:{identity:{...f.vi,connectionId:'foreign'},epoch:'signed-epoch'}}),
+  f=>({audio:f.audio,video:{identity:{...f.vi,streamId:'foreign'},epoch:'signed-epoch'}}),
+  f=>({audio:f.audio,video:{identity:{...f.vi,generation:2},epoch:'signed-epoch'}}),
+  f=>({audio:f.audio,video:{identity:{...f.vi,ssrc:99},epoch:'signed-epoch'}}),
+  f=>({audio:f.audio,video:{identity:f.vi,epoch:'other-epoch'}}),
+ ]){
+  let f;f=fixture({beforeReady(){f.setCurrent(change(f));return temporary();}});
+  f.observe();
+  await assert.rejects(f.finish(300),{code:'timeout'});
+  assert.equal(f.attempts,1);
+  assert.equal(f.owner.mayHaveCommitted,true);
+  assert.equal(f.owner.readinessSubmissionAttempted,true);
+ }
+});

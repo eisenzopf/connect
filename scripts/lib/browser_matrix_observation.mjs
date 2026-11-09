@@ -395,7 +395,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc) {
         const selected=peers[(at+peers.length-1)%peers.length];
         return {measure:new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1),selected,active:null};
     });
-    const bindings=new Map(),owners=[],surfaces=new Set(),pendingRenders=new Set(),originalAudio=Renderer.prototype.audio,originalVideo=Renderer.prototype.video;
+    const bindings=new Map(),owners=[],surfaces=new Set(),pendingRenders=new Set(),initialRenders=new Map(),originalAudio=Renderer.prototype.audio,originalVideo=Renderer.prototype.video;
     let closed=false,closing,lastReport,measurementsRetired=false;const rtcStages=Rtc?browserMatrixRtcStages():null;
     const pipeline=Peer?browserMatrixPipeline(Peer,(connection,kind,stream)=>{
         const owner=bindings.get(connection);
@@ -477,8 +477,57 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc) {
             }
             await render(binding,connection,options);
         },
-        async initial(state,options){for(const route of plan.routes){const selected=routes[route.index].selected;
-            await this.attach(route.index,state.connections[route.index],{audio:route.audio,video:Rtc?route.video:selected.video,sendVideo:route.video,active:true},options);}},
+        startInitialConnection(index,connection,options){
+            const route=plan.routes[index];
+            check(Rtc&&!closed&&route?.index===index&&connection?.id===route.connection,
+                'Exact original planned RTC render Connection required');
+            const existing=initialRenders.get(connection.id);
+            if(existing){
+                check(existing.index===index&&existing.connection===connection,
+                    'Original initial render owner changed');
+                return;
+            }
+            const failed=[...initialRenders.values()].find(value=>value.failure);
+            if(failed)throw failed.failure;
+            const selected=routes[index].selected;
+            const entry={index,connection,failure:null,work:null};
+            // Start the original render invocation now. Its SDK readiness and
+            // play promise may need a later source; retain the work instead of
+            // serializing offers. The final all-six barrier awaits this work.
+            entry.work=this.attach(index,connection,{audio:route.audio,video:Rtc?route.video:selected.video,
+                sendVideo:route.video,active:true},options);
+            initialRenders.set(connection.id,entry);
+            void entry.work.catch(error=>{entry.failure=error;});
+        },
+        async initial(state,options){
+            if(!Rtc){
+                for(const route of plan.routes){const selected=routes[route.index].selected;
+                    await this.attach(route.index,state.connections[route.index],{audio:route.audio,
+                        video:selected.video,sendVideo:route.video,active:true},options);
+                }
+                return;
+            }
+            let startupFailure;
+            try{
+                for(const route of plan.routes)
+                    this.startInitialConnection(route.index,state.connections[route.index],options);
+            }catch(error){startupFailure=error;}
+            // Even an earlier refusal cannot abandon another original render
+            // already waiting for real media under its original startup budget.
+            const starts=[...initialRenders.values()];
+            const results=await Promise.allSettled(starts.map(value=>value.work));
+            if(startupFailure)throw startupFailure;
+            const refused=results.find(value=>value.status==='rejected');
+            if(refused)throw refused.reason;
+            check(starts.length===plan.routes.length,'All six original initial render owners required');
+            for(const entry of starts){
+                const binding=bindings.get(entry.connection.id);
+                check(binding?.initial&&binding.index===entry.index&&routes[entry.index].active===entry.connection.id
+                    &&owners.some(value=>value.connectionId===entry.connection.id&&value.index===entry.index
+                        &&value.owner.diagnostics?.closed!==true),
+                    'Original initial renderer must have completed startup and remain owned');
+            }
+        },
         start(origin){pipeline?.start(origin.originMs);rtcStages?.start(origin.originMs);for(const route of routes)route.measure.start(origin.originMs);},
         activate(index,connectionId,options){const owner=bindings.get(connectionId);check(!closed&&owner?.index===index,'Original prepared observer required');
             const recordCut=()=>{
@@ -575,7 +624,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc) {
                 for(const route of routes)route.measure.retireWorkingState();
                 measurementsRetired=true;
             }
-            owners.length=0;bindings.clear();
+            owners.length=0;bindings.clear();initialRenders.clear();
             return {owners:count,statistics,joined,playback_passed:playbackPassed,
                 measurement_working_state:{retired:joined,before,retained:workingState(),
                     scope:'Decoded-route working histories only. Captured report evidence remains unchanged. No garbage collection or RSS return claim.'},

@@ -53,12 +53,44 @@ export function originalSessionRetirement({now=monotonicMs,globalDeadlineMs=Infi
         })();
         return entry.attempt;
     };
+    const closeOriginalClients = async (clients, deadline, sessionOwners = new Set(), sessionCleanup) => {
+        const original = Array.from(clients), cutoff = Math.min(deadline, globalDeadlineMs);
+        const observations = original.map((_, index) => ({index, status: 'not-started', deadline_met: false}));
+        const results = await Promise.allSettled(original.map(async (client, index) => {
+            // Only a Session's actual original SDK must remain open for its
+            // end/read promises. Every independent original starts immediately.
+            if (sessionOwners.has(client)) await sessionCleanup.catch(() => {});
+            const observation = observations[index], started = now();
+            try {
+                await client.close({timeoutMs: remainingCloseMs(cutoff)});
+                observation.status = 'fulfilled';
+                observation.deadline_met = started < cutoff && now() <= cutoff;
+            } catch (error) {
+                observation.status = 'rejected';
+                observation.failure = failure(error);
+                throw error;
+            }
+        }));
+        return {format: 'connect/original-client-retirement/1',
+            passed: results.every(result => result.status === 'fulfilled')
+                && observations.every(observation => observation.deadline_met),
+            original_cutoff_monotonic_ms: cutoff,
+            clients: observations.slice(0, 16), omitted_clients: Math.max(0, observations.length - 16)};
+    };
+    const cleanup = async deadline => {
+        // All original Session calls settle under this one existing cutoff.
+        const results = await Promise.allSettled(entries.map(entry => finish(entry, deadline)));
+        return {format: 'connect/original-session-retirement/1', passed: results.every(result => result.status === 'fulfilled'),
+            sessions: entries.map(entry => structuredClone(entry.observation)),
+            scope: 'Original public Session handles and planned end IDs only; no replay after uncertainty or renewed cleanup deadline.'};
+    };
     return {
-        own(session,operationId){
+        own(session,operationId,sdkOwner){
             assert.equal(typeof session.id,'string');assert.equal(typeof operationId,'string');
             assert.equal(typeof session.refresh,'function');assert.equal(typeof session.end,'function');
+            if (sdkOwner !== undefined) assert.equal(typeof sdkOwner.close, 'function');
             assert.ok(!entries.some(e=>e.sessionId===session.id||e.operationId===operationId));
-            entries.push({session,sessionId:session.id,operationId,attempt:null,observation:{
+            entries.push({session,sessionId:session.id,operationId,sdkOwner,attempt:null,observation:{
                 session_index:entries.length,original_operation_sha256:hash(operationId),
                 submission_attempted:false,status:'not-attempted'}});
         },
@@ -68,38 +100,21 @@ export function originalSessionRetirement({now=monotonicMs,globalDeadlineMs=Infi
         },
         cleanupDeadline(){return Math.min(globalDeadlineMs,now()+5000);},
         remainingCloseMs,
-        async closeClients(clients,deadline){
-            const original=Array.from(clients),cutoff=Math.min(deadline,globalDeadlineMs);
-            const observations=original.map((_,index)=>({index,status:'not-started',deadline_met:false}));
-            // Each independent original owner starts before awaiting any sibling.
-            // Even an already expired cleanup still joins the SDK close with its
-            // existing minimum1ms cleanup attempt, and can never qualify.
-            const results=await Promise.allSettled(original.map(async(client,index)=>{
-                const observation=observations[index],started=now();
-                try{
-                    await client.close({timeoutMs:remainingCloseMs(cutoff)});
-                    observation.status='fulfilled';
-                    observation.deadline_met=started<cutoff&&now()<=cutoff;
-                }catch(error){
-                    observation.status='rejected';
-                    observation.failure=failure(error);
-                    throw error;
-                }
-            }));
-            return {format:'connect/original-client-retirement/1',
-                passed:results.every(result=>result.status==='fulfilled')
-                    &&observations.every(observation=>observation.deadline_met),
-                original_cutoff_monotonic_ms:cutoff,
-                clients:observations.slice(0,16),omitted_clients:Math.max(0,observations.length-16)};
-        },
-        async cleanup(deadline){
-            // Independent original Sessions get the SAME existing absolute
-            // cutoff. Promise.allSettled joins every original SDK call; no
-            // timeout race detaches a request or grants a second cleanup budget.
-            const results=await Promise.allSettled(entries.map(entry=>finish(entry,deadline)));
-            return {format:'connect/original-session-retirement/1',passed:results.every(r=>r.status==='fulfilled'),
-                sessions:entries.map(entry=>structuredClone(entry.observation)),
-                scope:'Original public Session handles and planned end IDs only; no replay after uncertainty or renewed cleanup deadline.'};
+        closeClients: (clients, deadline) => closeOriginalClients(clients, deadline),
+        cleanup,
+        async cleanupAndCloseClients(clients, deadline) {
+            const original = Array.from(clients), dependent = new Set(entries.map(entry => entry.sdkOwner));
+            assert.equal(new Set(original).size, original.length, 'Each original SDK closes once');
+            assert.ok([...dependent].every(client => client !== undefined && original.includes(client)),
+                'Original Session SDK owners must remain in the cleanup scope');
+            const sessions = cleanup(deadline);
+            const closes = closeOriginalClients(original, deadline, dependent, sessions);
+            // An unexpected Session error still cannot abandon an original
+            // close. Normal failed Session observations remain failed records.
+            const results = await Promise.allSettled([sessions, closes]);
+            const rejected = results.find(result => result.status === 'rejected');
+            if (rejected) throw rejected.reason;
+            return {sessions: results[0].value, clients: results[1].value};
         },
     };
 }

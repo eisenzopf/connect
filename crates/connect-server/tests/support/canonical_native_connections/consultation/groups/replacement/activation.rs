@@ -94,3 +94,35 @@ pub(super) mod continuation;
 #[cfg(feature = "test-support")]
 #[path = "activation/private_continuation.rs"]
 mod private_continuation;
+
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn production_published_replacement_lifecycle_uses_original_entry_under_registry_contention()
+{
+    lifecycle_registry_busy(false).await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn production_published_replacement_lifecycle_retains_current_target_revocation_after_registry_contention(
+) {
+    lifecycle_registry_busy(true).await;
+}
+
+#[cfg(feature = "test-support")]
+async fn lifecycle_registry_busy(revoke_target_key: bool) {
+    exercise_replacement_with_av_control(
+        true,
+        true,
+        false,
+        true,
+        false,
+        None,
+        false,
+        Some((false, false, revoke_target_key)),
+        false,
+        false,
+        ActivationAudit::LifecycleRegistryBusy,
+    )
+    .await;
+}

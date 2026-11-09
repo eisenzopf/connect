@@ -21,6 +21,117 @@ fn fixture_scoped(ready: bool, extra_operations: &[&str]) -> Movement {
     fixture_prepared(ready, prepared_target_scene_scoped(extra_operations))
 }
 
+// The probe only pauses the original Store call after its real file attempt.
+// It supplies no authority and never replaces the actual packet read below.
+fn assert_passive_read_deferral<T: Send>(
+    m: &Movement,
+    call: impl FnOnce() -> crate::Result<T> + Send,
+) {
+    let held =
+        m.f.store
+            .try_native_media_read(&m.sources[1], None)
+            .unwrap();
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let (entered, ready) = std::sync::mpsc::sync_channel(1);
+    let (release, resume) = std::sync::mpsc::sync_channel(1);
+    let (in_flight, packet_current, packet_refusal, result) = std::thread::scope(|workers| {
+        let attempt = workers.spawn(move || {
+            crate::authority_admission::with_passive_admission_probe(
+                move |admitted| {
+                    let _ = entered.send(admitted);
+                    let _ = resume.recv_timeout(std::time::Duration::from_secs(2));
+                },
+                call,
+            )
+        });
+        let in_flight = ready.recv_timeout(std::time::Duration::from_millis(100)) == Ok(false)
+            && !attempt.is_finished();
+        // In the waited old retirement path the original writer is still
+        // reserved here. A fresh, unrelated live source must remain readable.
+        let packet = m.f.store.try_native_media_read(&m.sources[1], None);
+        let packet_current = packet.as_ref().is_ok_and(|read| read.current());
+        let packet_refusal = packet
+            .as_ref()
+            .err()
+            .map(|error| (error.code.clone(), error.message.clone()));
+        drop(packet);
+        drop(held);
+        let _ = release.send(());
+        let result = attempt.join().unwrap();
+        (in_flight, packet_current, packet_refusal, result)
+    });
+    assert!(
+        packet_current,
+        "passive metadata blocked a fresh actual packet read: {packet_refusal:?}"
+    );
+    assert!(
+        in_flight,
+        "packet probe must run before the original Store call returns"
+    );
+    assert_eq!(
+        result.err().expect("held read must defer metadata").code,
+        "authority-busy"
+    );
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+}
+
+fn assert_passive_sql_reacquire_defers<T: Send>(
+    m: &Movement,
+    call: impl FnOnce() -> crate::Result<T> + Send,
+) {
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let (entered, ready) = std::sync::mpsc::sync_channel(1);
+    let (release, resume) = std::sync::mpsc::sync_channel(1);
+    let (done, finished) = std::sync::mpsc::sync_channel(1);
+    let (admitted, returned_while_busy, result) = std::thread::scope(|workers| {
+        let attempt = workers.spawn(move || {
+            let result = crate::authority_admission::with_passive_admission_probe(
+                move |admitted| {
+                    let _ = entered.send(admitted);
+                    let _ = resume.recv_timeout(std::time::Duration::from_secs(2));
+                },
+                call,
+            );
+            let _ = done.send(());
+            result
+        });
+        let admitted = ready.recv_timeout(std::time::Duration::from_secs(1)) == Ok(true);
+        // The real file writer is acquired, but this SQL owner was not present
+        // during initial derivation. No acquired writer may wait behind it.
+        let sql = m.f.store.connection().unwrap();
+        let _ = release.send(());
+        let returned_while_busy = finished
+            .recv_timeout(std::time::Duration::from_millis(100))
+            .is_ok();
+        drop(sql);
+        let result = attempt.join().unwrap();
+        (admitted, returned_while_busy, result)
+    });
+    let result_code = result
+        .as_ref()
+        .map(|_| "ok")
+        .unwrap_or_else(|error| error.code.as_str());
+    assert!(
+        returned_while_busy,
+        "passive writer parked behind the primary SQL mutex: file_admitted={admitted} result={result_code}"
+    );
+    assert!(
+        admitted,
+        "SQL contention must start after actual file admission"
+    );
+    assert_eq!(
+        result.err().expect("busy SQL must defer metadata").code,
+        "authority-busy"
+    );
+    assert!(m
+        .f
+        .store
+        .try_native_media_read(&m.sources[1], None)
+        .unwrap()
+        .current());
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+}
+
 #[test]
 fn captured_projection_refuses_contention_without_parking_packet_readers() {
     let m = fixture(true);
@@ -207,6 +318,19 @@ fn captured_projection_drains_short_packet_readers_without_long_writer_parking()
         Store::inspect_snapshot(m.f.store.path()).unwrap(),
         completed
     );
+}
+
+#[test]
+fn captured_projection_releases_writer_when_sql_reacquire_is_busy() {
+    let m = fixture(true);
+    let capture = activation_barrier::captured(&m);
+    assert_passive_sql_reacquire_defers(&m, || {
+        m.f.store
+            .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+    });
+    m.f.store
+        .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+        .unwrap();
 }
 
 #[test]

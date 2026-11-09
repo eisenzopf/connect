@@ -274,3 +274,39 @@ pub(crate) fn conversation_scopes(
     }
     Ok(scopes)
 }
+
+// Invocation-local observation only. It supplies no scope or authority and is
+// called after the actual file attempt, before SQL reacquisition/return. Tests
+// can keep that original Store call in flight while inspecting released gates.
+#[cfg(test)]
+thread_local! {
+    static PASSIVE_ADMISSION_PROBE: std::cell::RefCell<Option<Box<dyn FnOnce(bool)>>> =
+        std::cell::RefCell::new(None);
+}
+
+#[cfg(test)]
+pub(crate) fn observe_passive_admission(admitted: bool) {
+    let probe = PASSIVE_ADMISSION_PROBE.with(|slot| slot.borrow_mut().take());
+    if let Some(probe) = probe {
+        probe(admitted);
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn with_passive_admission_probe<T>(
+    probe: impl FnOnce(bool) + 'static,
+    call: impl FnOnce() -> T,
+) -> T {
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            PASSIVE_ADMISSION_PROBE.with(|slot| slot.borrow_mut().take());
+        }
+    }
+    PASSIVE_ADMISSION_PROBE.with(|slot| {
+        assert!(slot.borrow().is_none(), "nested passive admission probe");
+        *slot.borrow_mut() = Some(Box::new(probe));
+    });
+    let _reset = Reset;
+    call()
+}

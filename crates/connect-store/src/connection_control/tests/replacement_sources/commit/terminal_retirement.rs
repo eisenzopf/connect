@@ -74,6 +74,108 @@ fn state(m: &Movement, origin: &crate::NativeMediaOrigin) -> (String, u64, bool)
         .unwrap()
 }
 
+fn settle_after_transient_contention(
+    m: &Movement,
+    origin: &crate::NativeMediaOrigin,
+    absent: &Gone,
+) -> crate::Result<()> {
+    let until = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    loop {
+        match m.f.store.settle_native_replacement_cleanup(origin, absent) {
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "authority-busy" | "storage-unavailable"
+                ) && std::time::Instant::now() < until =>
+            {
+                std::thread::sleep(std::time::Duration::from_micros(100));
+            }
+            result => return result,
+        }
+    }
+}
+
+#[test]
+fn replacement_cleanup_defers_without_blocking_other_current_packet_reads() {
+    let m = fixture(true);
+    let (_, origin) = installed(&m);
+    let absent = Gone(origin.runtime_connection_id().into(), origin.generation());
+    assert_passive_read_deferral(&m, || {
+        m.f.store
+            .settle_native_replacement_cleanup(&origin, &absent)
+    });
+    m.f.store
+        .settle_native_replacement_cleanup(&origin, &absent)
+        .unwrap();
+    assert_eq!(
+        state(&m, &origin),
+        ("retired".into(), origin.generation() + 1, true)
+    );
+    let settled = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    m.f.store
+        .settle_native_replacement_cleanup(&origin, &absent)
+        .unwrap();
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), settled);
+}
+
+#[test]
+fn replacement_cleanup_releases_writer_when_sql_or_transaction_is_busy() {
+    let m = fixture(true);
+    let (_, origin) = installed(&m);
+    let absent = Gone(origin.runtime_connection_id().into(), origin.generation());
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let foreign = rusqlite::Connection::open(m.f.store.path()).unwrap();
+    foreign.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let started = std::time::Instant::now();
+    let refused =
+        m.f.store
+            .settle_native_replacement_cleanup(&origin, &absent);
+    let elapsed = started.elapsed();
+    let packet = m.f.store.try_native_media_read(&m.sources[1], None);
+    let packet_current = packet.as_ref().is_ok_and(|read| read.current());
+    drop(packet);
+    foreign.execute_batch("ROLLBACK").unwrap();
+    let timeout: u64 =
+        m.f.store
+            .connection()
+            .unwrap()
+            .query_row("PRAGMA busy_timeout", [], |row| row.get(0))
+            .unwrap();
+    // Preserve both actual SQL observations even when the old primary-mutex
+    // behavior fails below. All original scopes and foreign SQL are released.
+    let refusal_code = refused
+        .as_ref()
+        .err()
+        .map(|error| error.code.as_str())
+        .unwrap_or("ok");
+    eprintln!("passive retirement foreign SQL: code={refusal_code} elapsed_us={} packet_current={packet_current} restored_timeout_ms={timeout}", elapsed.as_micros());
+    assert_passive_sql_reacquire_defers(&m, || {
+        m.f.store
+            .settle_native_replacement_cleanup(&origin, &absent)
+    });
+    assert_eq!(refused.unwrap_err().code, "storage-unavailable");
+    assert!(
+        elapsed < std::time::Duration::from_millis(100),
+        "passive retirement waited on a foreign SQLite writer"
+    );
+    assert!(
+        packet_current,
+        "busy transaction retained an authority writer"
+    );
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    assert_eq!(
+        timeout, 2000,
+        "immediate SQL guard must restore its original timeout"
+    );
+    m.f.store
+        .settle_native_replacement_cleanup(&origin, &absent)
+        .unwrap();
+    assert_eq!(
+        state(&m, &origin),
+        ("retired".into(), origin.generation() + 1, true)
+    );
+}
+
 #[test]
 fn replacement_cleanup_finishes_original_fenced_session_end_and_leave_after_target_revoke() {
     for leave in [false, true] {
@@ -114,14 +216,8 @@ fn replacement_cleanup_finishes_original_fenced_session_end_and_leave_after_targ
 
         let absent = Gone(origin.runtime_connection_id().into(), origin.generation());
         std::thread::scope(|threads| {
-            let first = threads.spawn(|| {
-                m.f.store
-                    .settle_native_replacement_cleanup(&origin, &absent)
-            });
-            let second = threads.spawn(|| {
-                m.f.store
-                    .settle_native_replacement_cleanup(&origin, &absent)
-            });
+            let first = threads.spawn(|| settle_after_transient_contention(&m, &origin, &absent));
+            let second = threads.spawn(|| settle_after_transient_contention(&m, &origin, &absent));
             first.join().unwrap().unwrap();
             second.join().unwrap().unwrap();
         });

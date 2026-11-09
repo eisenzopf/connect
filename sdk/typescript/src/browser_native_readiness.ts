@@ -319,6 +319,29 @@ export class BrowserNativeReadiness {
                     ) === canonicalJson(video as unknown as JsonObject)))
         );
     }
+    private sameReplayRoute(current: CurrentNativePreparation): boolean {
+        const original = this.frozenAudio,
+            audio = current.audio;
+        // This is only continuity for replaying the SAME already-attempted
+        // wire observation. A private neutral-to-remote mix may change audio
+        // SSRC before Core commits. It cannot change the authenticated installed
+        // Connection, logical stream, generation or any video identity/epoch.
+        // It does not supply new decoder credit or establish public activation.
+        return (
+            !!original &&
+            !!audio &&
+            audio.connectionId === original.connectionId &&
+            audio.streamId === original.streamId &&
+            audio.generation === original.generation &&
+            (!this.videoStreamId ||
+                canonicalJson(
+                    (current.video ?? null) as unknown as JsonObject,
+                ) ===
+                    canonicalJson(
+                        (this.frozenVideo ?? null) as unknown as JsonObject,
+                    ))
+        );
+    }
     private freeze(current: CurrentNativePreparation): boolean {
         if (this.frozen) {
             if (!this.sameCurrent(current))
@@ -518,15 +541,16 @@ export class BrowserNativeReadiness {
         };
         const send = async () => {
             const physical = check();
-            if (this.attempted && !this.sameCurrent(physical)) {
-                // Real public activation may replace preparation silence's
-                // SSRC before its durable receipt arrives. A changed source is
-                // never commitment evidence and never refreshes frozen proof.
+            if (this.attempted && !this.sameReplayRoute(physical)) {
+                // A changed installed route or video epoch is never commitment
+                // evidence and cannot refresh the original frozen observation.
                 replay = false;
                 replayDisabled = true;
                 return;
             }
-            this.freeze(physical);
+            // The first proof keeps its full current decoder identity check.
+            // Later attempts send identical saved bytes, never a refreshed proof.
+            if (!this.attempted) this.freeze(physical);
             this.attempted = true;
             attempts++;
             try {

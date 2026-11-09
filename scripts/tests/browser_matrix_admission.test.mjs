@@ -6,6 +6,112 @@ function fixture(create) {
     return Object.fromEntries(roles.map((role,index)=>[role,{identityId:"identity-"+(index<4?index:0),deviceId:"device-"+index,
         client:{role:"browser",capabilities:{refresh:async()=>({selectedTransport:"webtransport"})},conversations:{create}}}]));
 }
+// Public SDK-shaped control model only. It proves initial-owner ordering and
+// failure custody, never real authorization, decoder or transport quality.
+function initialMediaAdmissionFixture() {
+    let serial=0;
+    const plan=browserMatrixPlan(()=>String(++serial)),events=[],captured=new Set(),ready=new Set();
+    const state={},connections=new Map(),sent=new Set(),hooks={};
+    let fourthActive=false,revision=1;
+    const denied=(code,reason)=>Object.assign(Error(reason),{problem:{code,reason},certainty:'refused'});
+    const operation=(value,wait)=>{
+        const reference={operation_id:'original-'+serial++};
+        return {referenceJson:()=>reference,async wait(){
+            if(wait)await wait();
+            return {snapshot:{state:'completed'},value};
+        }};
+    };
+    const actors=fixture();
+    const participants=()=>['participant-1','participant-2','participant-3','participant-4']
+        .filter(role=>role!=='participant-4'||fourthActive)
+        .map(role=>({id:'member-'+role,identityId:actors[role].identityId,active:true}));
+    const session=id=>({id,refresh:async()=>({topologyRevision:1}),
+        accept:async()=>operation({}),
+        update:async input=>{
+            if(input.media.first==='screen')throw denied(501,'unsupported_feature');
+            return operation({});
+        },connections:{
+            byId:id=>connections.get(id),
+            offer:async input=>{
+                const route=plan.routes.find(value=>value.connection===input.connectionId);
+                events.push(['offer',route.index]);
+                hooks.offer?.(route.index);
+                const connection={id:input.connectionId,refresh:async()=>({streamRevision:1}),
+                    streams:{subscribe:async()=>operation({})}};
+                connections.set(connection.id,connection);
+                return operation(connection,async()=>{
+                    assert.ok(captured.has(route.index),'Actual source start precedes original offer readiness');
+                    ready.add(route.index);events.push(['ready',route.index]);
+                });
+            }
+        }});
+    const conversation={id:'original-room',refresh:async()=>({revision,participants:participants()}),
+        send:async input=>{sent.add(input.messageId);return operation({});},
+        participants:{
+            add:async()=>{fourthActive=true;revision++;return operation({});},
+            byId:()=>({
+                update:async input=>{
+                    if(input.role==='participant')throw denied(409,'operation_conflict');
+                    revision++;return operation({});
+                },
+                remove:async()=>{fourthActive=false;revision++;return operation({});}
+            })
+        },sessions:{invite:async input=>operation(session(input.sessionId)),byId:session}};
+    for(const [role,actor] of Object.entries(actors)){
+        const client=actor.client;
+        client.capabilities.refresh=async()=>({selectedTransport:'wss-webrtc'});
+        client.conversations={create:async()=>operation(conversation),byId:()=>({
+            ...conversation,
+            refresh:async()=>{
+                if(role==='participant-4'&&!fourthActive)throw denied(403,'forbidden');
+                return conversation.refresh();
+            }
+        })};
+        client.operations={restore:()=>operation(conversation)};
+        client.operationKinds={conversationCreate:'conversation-create'};
+        client.raw={validate:value=>value,request:async()=>[
+            {value:{type:'ack',payload:{next_cursor:null}}},
+            ...(sent.has(plan.messages.included)
+                ?[{value:{type:'message.send',payload:{msg_id:plan.messages.included}}}]:[])
+        ]};
+    }
+    return {plan,actors,state,events,ready,hooks,async startMedia({route,connection}){
+        assert.equal(connection.id,route.connection);captured.add(route.index);events.push(['capture',route.index]);
+    }};
+}
+
+test('each initial browser renderer starts before the next offer without waiting on its later receive source',async()=>{
+    const f=initialMediaAdmissionFixture(),rendered=[];
+    let resolveFirst;
+    const firstPlay=new Promise(resolve=>{resolveFirst=resolve;});
+    f.hooks.offer=index=>{if(index===1)resolveFirst();};
+    const pending=[];
+    await browserMatrixAdmission({...f,selectedTransport:'wss-webrtc',journal:async()=>{},
+        afterMediaOffer({route,connection,options}){
+            assert.ok(f.ready.has(route.index));
+            assert.equal(connection,f.state.connections[route.index],'Retain the actual completed Connection');
+            assert.equal(options.timeoutMs,8000,'Keep original initial-render options');
+            f.events.push(['render-start',route.index]);
+            const work=route.index===0?firstPlay:Promise.resolve();
+            pending.push(work.then(()=>{rendered.push(route.index);}));
+        }});
+    assert.deepEqual(f.events,Array.from({length:6},(_,index)=>[
+        ['offer',index],['capture',index],['ready',index],['render-start',index]]).flat());
+    await Promise.all(pending);
+    assert.deepEqual(rendered.sort(),[0,1,2,3,4,5]);
+});
+
+test('initial renderer refusal retains completed Connections for cleanup and submits no later offer',async()=>{
+    const f=initialMediaAdmissionFixture(),failure=Error('Original initial renderer refused');
+    await assert.rejects(browserMatrixAdmission({...f,selectedTransport:'wss-webrtc',journal:async()=>{},
+        async afterMediaOffer({route}){
+            assert.ok(f.ready.has(route.index));throw failure;
+        }}),error=>error===failure);
+    assert.deepEqual(f.events,[['offer',0],['capture',0],['ready',0]]);
+    assert.equal(f.state.connections.length,1,'The original cleanup owner retains every completed Connection');
+    assert.equal(f.state.connections[0].id,f.plan.routes[0].connection);
+});
+
 test("an uncertain browser mutation preserves its original scoped operation and admits no later root",async()=>{
     const plan=browserMatrixPlan(),events=[];let submissions=0;
     const original={operationId:plan.operations.create,command:"conversation.create",scope:{}};

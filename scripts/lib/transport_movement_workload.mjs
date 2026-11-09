@@ -329,6 +329,11 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             moves: completed, physical_segments: segments,
             full_timeline_decoded: false, cell_qualified: false, task_complete: false, whole_gate_qualified: false };
         await save(join(directory, "movement.json"), observation);
+        // Preserve this original completed receipt before the surrounding
+        // Session observer can report its independent read-only failure.
+        // Its failure still fails the programme; no handoff is reconstructed.
+        const emitted = emitOriginalObservation(observe, [Object.freeze(observation)]);
+        if (!emitted.emitted) throw emitted.error;
         return { observation, currentConnections: results.slice(0, 2).map(v => v.value) };
     } catch (failure) { firstFailure ??= failure; throw failure; }
     finally {

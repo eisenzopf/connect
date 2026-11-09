@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { deviceMovementWorkload } from "../lib/transport_movement_workload.mjs";
+import { observeMovementSessions } from "../lib/transport_movement_sessions.mjs";
 import { MOVE_START_OFFSETS_MS, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256 } from "../lib/transport_movement_profile.mjs";
 
 async function scenario(mode) {
@@ -40,7 +41,7 @@ async function scenario(mode) {
         async refresh() { return { state: "accepted", topologyRevision: revisions[i] }; } }));
     const original = Object.assign(Error("original unknown move"), mode === "isolated-outbound" ?
         { kind: "authorization", certainty: "refused" } : { kind: "deadline", certainty: "uncertain" });
-    const reported = [];
+    const reported = [], originalObservations = [];
     const workload = { routes, signal: signal.signal, reportFailure(failure) {
         reported.push({ failure, stopped: stopped.length });
     }, programStartUnixUs: 1793600000000000,
@@ -156,6 +157,7 @@ async function scenario(mode) {
             sourcePrograms: Object.fromEntries([0, 4].map(i => [i, { audioPackets: Array(3100).fill([1]), videoProgram: { executable: "/private/.local/encoder", executable_sha256: "a".repeat(64), raw_path: "/private/.local/source.i420", raw_sha256: "b".repeat(64), frame_count: 1860 } }])),
             privateRoot: root, directory: join(directory, "run"), executable: "unexecuted-test-double",
             executableSha256: "0".repeat(64), currentEnds, startTarget, endRetained, now: () => clock,
+            observe: observation => originalObservations.push(observation),
             wait: async (ms, abort) => {
                 assert.equal(abort.aborted, false); clockWaits.push(ms);
                 if (mode === "cancel-during-wait") signal.abort();
@@ -174,6 +176,34 @@ async function scenario(mode) {
                 if (mode === "data-failure") throw original;
                 return { messages: Object.values(args.contract).map(message => ({ message_id: message.message_id })) };
             } });
+        if (mode === "observer-deadline-after-movement") {
+            const deadline = Object.assign(Error("original Session observer deadline"),
+                { kind: "deadline", certainty: "read-only" });
+            let parentObservation;
+            const observingSessions = [0, 1, 2, 3].map(index => ({
+                id: sessions[index % 2].id,
+                async refresh() {
+                    if (index === 0) throw deadline;
+                    return { id: this.id, state: "accepted", isMain: index % 2 === 0 };
+                },
+            }));
+            const parent = observeMovementSessions({ workload,
+                primarySessions: observingSessions.slice(0, 2),
+                controllerSessions: observingSessions.slice(2),
+                run: () => run, now: () => clock,
+                wait: (_ms, signal) => new Promise(resolve => {
+                    if (signal.aborted) resolve();
+                    else signal.addEventListener("abort", resolve, { once: true });
+                }),
+                observe: observation => { parentObservation = observation; },
+            });
+            await assert.rejects(parent, error => error === deadline);
+            assert.equal(parentObservation.passed, false);
+            assert.equal(parentObservation.observers_joined, true);
+            assert.deepEqual(parentObservation.failed_observers, [0]);
+            assert.equal(reported[0].failure, deadline);
+            assert.equal(signal.signal.aborted, false);
+        }
         if (mode === "isolated-outbound") {
             await assert.rejects(run, failure => failure === original);
             assert.equal(signal.signal.aborted, false);
@@ -204,7 +234,7 @@ async function scenario(mode) {
             assert.equal(new Set([...stopped, ...joined]).size, admitted.length);
             return;
         }
-        if (!["normal", "data", "early-wake", "prepared-video", "prepared-video-data", "reuse-inspection"].includes(mode)) {
+        if (!["normal", "data", "early-wake", "prepared-video", "prepared-video-data", "reuse-inspection", "observer-deadline-after-movement"].includes(mode)) {
             await assert.rejects(run, error => ["unknown", "retained-failure", "data-failure", "external-failure"].includes(mode) ? error === original :
                 ["foreign-final-end", "no-progress-wait"].includes(mode) ? error.code === "ERR_ASSERTION" : mode === "retirement-refusal" ? error.certainty === "read-only" : error.kind === "cancelled");
             assert.equal(retainedJoined, true);
@@ -220,6 +250,8 @@ async function scenario(mode) {
             assert.equal(new Set([...stopped, ...joined]).size, admitted.length);
             assert.ok(subscriptions.length <= admitted.length);
             const failure = JSON.parse(await readFile(join(directory, "run/movement-failure.json"), "utf8"));
+            assert.equal(originalObservations.length, 1);
+            assert.equal(originalObservations[0].passed, false);
             assert.equal(failure.passed, false); assert.equal(failure.target_joins_failed, 0);
             if (["cancelled", "cancel-during-wait", "no-progress-wait"].includes(mode)) {
                 assert.equal(starts.length, 0);
@@ -244,6 +276,9 @@ async function scenario(mode) {
             return;
         }
         const { observation, currentConnections } = await run;
+        assert.equal(originalObservations.length, 1);
+        assert.equal(originalObservations[0], observation);
+        assert.deepEqual(originalObservations[0], JSON.parse(await readFile(join(directory, "run/movement.json"), "utf8")));
         assert.equal(starts.length, 4); assert.equal(subscriptions.length, dataProfile ? 4 : 0);
         assert.equal(new Set(starts.map(v => v.operationId)).size, 4);
         assert.equal(new Set(subscriptions.map(v => v.options.operationId)).size, dataProfile ? 4 : 0);
@@ -318,3 +353,5 @@ test("movement refuses missing root-boundary proof, unjoined inspection and fore
     for (const mode of ["missing-root-verification", "unjoined-inspector", "foreign-inspected-clock", "invalid-inspected-hash"])
         await scenario(mode);
 });
+
+test("completed original movement survives a separately failed Session observer without passing the programme", () => scenario("observer-deadline-after-movement"));

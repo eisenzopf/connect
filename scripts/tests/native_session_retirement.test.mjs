@@ -143,3 +143,139 @@ test('late client completion and an expired original cutoff cannot qualify or re
     assert.equal(expired.original_cutoff_monotonic_ms, 1050);
     assert.equal(expired.passed, false);
 });
+
+
+test('independent SDK close releases blocked original Session cleanup before its owner closes', async () => {
+    const retirement = originalSessionRetirement({now: () => 1000, globalDeadlineMs: 1100});
+    let release, independentStarted = false, ownerClosed = false, releasedByIndependent = false;
+    const blocked = new Promise(resolve => { release = resolve; });
+    const first = session('original0'), second = session('original1');
+    const refresh = first.refresh;
+    let firstRead = true;
+    first.refresh = async options => {
+        assert.equal(ownerClosed, false);
+        if (firstRead) { firstRead = false; await blocked; }
+        return refresh(options);
+    };
+    const primary = {async close() {
+        assert.deepEqual(first.calls.map(call => call.kind), ['refresh', 'end', 'wait', 'refresh']);
+        assert.deepEqual(second.calls.map(call => call.kind), ['refresh', 'end', 'wait', 'refresh']);
+        ownerClosed = true;
+    }};
+    const independent = {async close() {
+        independentStarted = true;
+        releasedByIndependent = true;
+        release();
+    }};
+    retirement.own(first, 'planned-end0', primary);
+    retirement.own(second, 'planned-end1', primary);
+    const pending = retirement.cleanupAndCloseClients([primary, independent], 1100);
+    let result;
+    try {
+        assert.equal(independentStarted, true, 'Independent close waited behind Session cleanup');
+        assert.equal(releasedByIndependent, true);
+        assert.equal(ownerClosed, false, 'Session owner closed before its original end calls settled');
+    } finally {
+        release();
+        result = await pending;
+    }
+    assert.equal(result.sessions.passed, true);
+    assert.equal(result.clients.passed, true);
+    assert.equal(ownerClosed, true);
+    assert.deepEqual(result.clients.clients.map(client => client.index), [0, 1]);
+    for (const original of [first, second]) {
+        assert.equal(original.calls.filter(call => call.kind === 'end').length, 1);
+        assert.equal(original.calls.find(call => call.kind === 'end').options.operationId,
+            original === first ? 'planned-end0' : 'planned-end1');
+    }
+});
+
+test('dependent SDK cleanup keeps the original cutoff and cannot renew or duplicate a Session end', async () => {
+    let clock = 1000, releaseWait, releaseClose, ownerCloses = 0, endCalls = 0, enterWait, enterOwnerClose;
+    const waitEntered = new Promise(resolve => { enterWait = resolve; });
+    const ownerCloseEntered = new Promise(resolve => { enterOwnerClose = resolve; });
+    const waiting = new Promise(resolve => { releaseWait = resolve; });
+    const closing = new Promise(resolve => { releaseClose = resolve; });
+    const optionsSeen = [];
+    const retirement = originalSessionRetirement({now: () => clock, globalDeadlineMs: 1050});
+    const original = {
+        id: 'original0',
+        async refresh(options) { optionsSeen.push(options.timeoutMs); return {id: this.id, state: 'accepted', topologyRevision: 7}; },
+        async end(intent, options) {
+            endCalls++;
+            assert.equal(options.operationId, 'planned-end0');
+            assert.equal(intent.expectedTopologyRevision, 7);
+            optionsSeen.push(options.timeoutMs);
+            return {referenceJson: () => ({operation_id: 'planned-end0'}), async wait(waitOptions) {
+                optionsSeen.push(waitOptions.timeoutMs); enterWait();
+                await waiting; return {snapshot: {state: 'completed'}};
+            }};
+        },
+    };
+    const primary = {async close(options) { ownerCloses++; enterOwnerClose(); assert.equal(options.timeoutMs, 1); }};
+    let independentStarted = false;
+    const independent = {close() { independentStarted = true; return closing; }};
+    retirement.own(original, 'planned-end0', primary);
+    const pending = retirement.cleanupAndCloseClients([primary, independent], 1050);
+    await waitEntered;
+    const independentStartedBeforeSession = independentStarted, originalEndCalls = endCalls;
+    clock = 1060;
+    releaseWait();
+    let settled = false;
+    pending.then(() => { settled = true; }, () => { settled = true; });
+    await ownerCloseEntered;
+    const settledBeforeOriginalClose = settled;
+    releaseClose();
+    const result = await pending;
+    assert.equal(independentStartedBeforeSession, true);
+    assert.equal(originalEndCalls, 1);
+    assert.equal(settledBeforeOriginalClose, false, 'An original independent close was abandoned');
+    assert.equal(result.sessions.passed, false);
+    assert.equal(result.sessions.sessions[0].failure.kind, 'deadline');
+    assert.equal(result.clients.passed, false);
+    assert.equal(result.clients.original_cutoff_monotonic_ms, 1050);
+    assert.equal(ownerCloses, 1);
+    assert.ok(optionsSeen.every(value => value > 0 && value <= 50));
+    const again = await retirement.cleanup(5000);
+    assert.equal(again.passed, false);
+    assert.equal(endCalls, 1);
+});
+
+test('a failed independent SDK close joins every original sibling after Session cleanup', async () => {
+    const retirement = originalSessionRetirement({now: () => 1000, globalDeadlineMs: 1100});
+    const original = session('original0');
+    let ownerClosed = false, release, thirdStarted = false, enterOwnerClose;
+    const ownerCloseEntered = new Promise(resolve => { enterOwnerClose = resolve; });
+    const primary = {async close() { ownerClosed = true; enterOwnerClose(); }};
+    const refusal = Object.assign(Error('private close detail'), {kind: 'cleanup-incomplete', certainty: 'read-only'});
+    const failed = {async close() { throw refusal; }};
+    const third = {close() { thirdStarted = true; return new Promise(resolve => { release = resolve; }); }};
+    retirement.own(original, 'planned-end0', primary);
+    const pending = retirement.cleanupAndCloseClients([primary, failed, third], 1100);
+    const thirdStartedBeforeSession = thirdStarted;
+    let settled = false;
+    pending.then(() => { settled = true; }, () => { settled = true; });
+    await ownerCloseEntered;
+    const settledBeforeOriginalClose = settled;
+    release();
+    const result = await pending;
+    assert.equal(thirdStartedBeforeSession, true);
+    assert.equal(settledBeforeOriginalClose, false);
+    assert.equal(result.sessions.passed, true);
+    assert.equal(ownerClosed, true);
+    assert.equal(result.clients.passed, false);
+    assert.deepEqual(result.clients.clients.map(client => client.status), ['fulfilled', 'rejected', 'fulfilled']);
+    assert.deepEqual(result.clients.clients[1].failure, {name: 'Error', kind: 'cleanup-incomplete', certainty: 'read-only'});
+    assert.equal(original.calls.filter(call => call.kind === 'end').length, 1);
+});
+
+test('cleanup before any original Session exists closes every original SDK without an invented dependency', async () => {
+    const retirement = originalSessionRetirement({now: () => 1000, globalDeadlineMs: 1100});
+    const calls = [];
+    const clients = [0, 1].map(index => ({async close(options) { calls.push([index, options.timeoutMs]); }}));
+    const result = await retirement.cleanupAndCloseClients(clients, 1100);
+    assert.deepEqual(calls, [[0, 100], [1, 100]]);
+    assert.equal(result.sessions.passed, true);
+    assert.deepEqual(result.sessions.sessions, []);
+    assert.equal(result.clients.passed, true);
+});

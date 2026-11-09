@@ -47,15 +47,19 @@ impl ReplacementLifecycle {
             n.begin_movement();
         }
     }
-    pub(super) fn activate(&self, runtime: &Runtime) -> Result<()> {
+    pub(super) fn activate(
+        &self,
+        adoption: &crate::canonical_media::replacement::ReplacementAdoption,
+        captured: &Arc<connect_store::NativeReplacementActivation>,
+    ) -> Result<()> {
+        let entry = adoption.lifecycle_entry(captured)?;
         match self {
-            Self::Native(n) => n.activate(runtime),
+            Self::Native(n) => n.activate(entry),
             Self::WebRtc(source) => {
-                let entry = runtime
-                    .media
-                    .entry(source.policy.pending.binding().connection())
-                    .map_err(|_| Error::forbidden())?;
-                if entry.origin.generation() != source.policy.pending.generation() {
+                if entry.origin.runtime_connection_id()
+                    != source.policy.pending.binding().connection().as_str()
+                    || entry.origin.generation() != source.policy.pending.generation()
+                {
                     return Err(Error::forbidden());
                 }
                 if let Some(previous) = source.adopted.get() {

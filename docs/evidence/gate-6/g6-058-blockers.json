@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-09",
-  "run_status": "Full v207 has terminal results for all 32 selected cells on baa21ccb: 0 passed, 25 failed and 7 blocked. Requirement totals are 301 passed, 35 failed and 96 blocked. All 16 ARM Linux cells, all eight Mac local cells and the first Mac remote cell executed. The remaining seven Mac remote cells were blocked by the typed remote native ownership report being rejected during retention. Every completed browser cell passed 13 of 14 requirements; decoded media quality remains failing. These results precede the B135\u2013B141 follow-through batch. Preserve historical verdicts and all approved quality and authority requirements. G6-054 remains deferred; G6-098 sustained growth remains separate.",
+  "run_status": "Full v208 completed on 0e37d42e with 0 passed, 26 failed and 6 blocked cells; requirements310 passed,38 failed,84 blocked. All original owners closed with unchanged tested source. The six Mac remote browser cells were skipped by typed nested remote archive custody validation; historical verdicts stay unchanged. Initial integrated batch passes Rust27, Node70 and Python29 (126/126). Supplemental SDK readiness26, movement21, Store2+7 retained controls and signed lifecycle2 pass58/58. Both old-condition comparisons retain exact raw failures and final source/owners are restored/closed. Initial126/126 remains a separate overlapping component scope. B148 owned lifecycle attachment, B149 prepared version statements, B150 identical Ready replay across private same-route audio SSRC change and B151 completed movement retention are integrated. Data diagnostics are not a delivery fix. Actual media quality, first-outbound WT contention, original parent/observer deadlines and bounded retirement progress remain unresolved. No cell is qualified; G6-054 stays deferred and G6-098 sustained growth stays separate.",
   "blockers": [
     {
       "id": "B01",
@@ -1165,6 +1165,86 @@
       "change": "Reuse only positive MediaFacts inside their original capture-to-expiry interval. Retain fresh database versions, source identity, file authority and runtime ownership checks.",
       "evidence": "Closed Firefox packet headers show continuous browser ingress but server egress stalls. Server logs show packet observer contention in that interval. The source invalidates every positive memo on a clock-second change. This is a supported contention-reduction candidate; the exact server scheduling leaf and full media outcome remain unproved. All seven new memo cases and six retained controls passed across the original Store run and corrected two-test rerun. The two original fixture failures are preserved; production code was unchanged by correction. Corrected receipt 51e72828e660f432969681c175c8393b6f9d61b8268e7b5234314f7288fc02b6. Full media quality remains unverified. Restoring exact-second matching reproduced repeated derivation in both ordinary and pending-continuation reads. Both restored cases passed.",
       "next": "Run the complete 32-cell matrix on the committed batch using normal local ARM shipping artifacts. Preserve all mandatory quality, authority and cleanup checks."
+    },
+    {
+      "id": "B142",
+      "title": "Passive retirement waits can block unrelated current media",
+      "status": "INTEGRATED; FOCUSED RUST CONTROLS PASSED. Real media unverified.",
+      "change": "Replace waited broad writer admission and SQL reacquisition with immediate original-owner attempts, preserving exact authority and generation/absence checks.",
+      "evidence": "Native cut windows contain shared packet-admission refusals and delayed control/retirement. This candidate reduces reserved-writer exclusion; the precise holder is not proved for every gap. Continuous overlapping readers can still starve the immediate writer. Cleanup concurrency starts after retained-current-end and cannot guarantee that earlier cutoff. Whole-Read and Connection-only downgrades are rejected: cached native grants and current participant-presence proofs need complete fencing.",
+      "next": "Store11 focused controls passed. Original-cutoff progress under continuously overlapping readers and actual media remain unproved."
+    },
+    {
+      "id": "B143",
+      "title": "Independent SDK closes wait behind original Session cleanup",
+      "status": "INTEGRATED; FOCUSED SCRIPT CONTROLS PASSED. Real media unverified.",
+      "change": "Close non-Session-owner SDKs concurrently with original Session cleanup; keep the primary Session-owner SDK usable until those original calls settle. Preserve one original cutoff, all joins and mutation identities.",
+      "evidence": "Closed Mac cycles have retained-current-end deadlines and incomplete Session evidence; one later client cleanup exceeds the same five-second cut. The new ordering does not move Session end earlier or prove a cure for the preceding retirement delay.",
+      "next": "Focused script controls pass within Node70. Actual original Session/end/retirement behavior still needs real media verification."
+    },
+    {
+      "id": "B144",
+      "title": "RTC initial rendering begins after readiness observation",
+      "status": "INTEGRATED; FOCUSED SCRIPT CONTROLS PASSED. Real media unverified.",
+      "change": "Start and retain the original renderer before readiness observation, with the same original deadline and explicit cancellation/late completion ownership.",
+      "evidence": "The current fixture ordering can wait for readiness before the renderer needed for observed playback exists. The scoped change is not proof that first-outbound WT admission contention or decoded media gaps are cured.",
+      "next": "Focused admission/observation script controls pass within Node70; installed-browser real media remains unverified."
+    },
+    {
+      "id": "B145",
+      "title": "Archive drain rejects complete nested remote native ownership",
+      "status": "INTEGRATED; FOCUSED SCRIPT CONTROLS PASSED. Real media unverified.",
+      "change": "Validate the exact current typed remote native owner, guest and VM-lease envelope; preserve failed logical exits and refuse forced, missing, foreign or unknown custody.",
+      "evidence": "In v208 the two Mac remote native cells completed, but the archive path still expected flat ownership fields. Its retention refusal blocked all six remaining Mac remote browser cells. This is distinct from the earlier B140 generic cleanup parser fix.",
+      "next": "Focused typed archive regressions pass within Python29; original v208 reports and all six skipped verdicts remain immutable."
+    },
+    {
+      "id": "B146",
+      "title": "Accepted original Data publication has no precise delivery refusal leaf",
+      "status": "INTEGRATED; FOCUSED RUST CONTROLS PASSED. Real media unverified.",
+      "change": "Add bounded first/error-class-change and terminal local-outcome observations, plus one shared Core source/target/internal admission observer using only existing evaluated results.",
+      "evidence": "Closed ARM return0 had the full original eight-second exchange budget. Both exact Data operations completed and effects were confirmed once. Incoming original-to-target reserved the exact target but ultimately recorded local_writer/not_started; outgoing acquired no target writer reservation. Return4 never armed an independent exchange. Exact refusal leaf is still unknown; no delivery fix, timeout extension or replay change is justified.",
+      "next": "Core/UCTP12 diagnostic controls passed. These preserve original checks/outcomes; instrumentation is not a delivery fix and the actual v208 refused leaf remains unknown."
+    },
+    {
+      "id": "B147",
+      "title": "Fresh Data Store contention is collapsed into an authority refusal",
+      "status": "INTEGRATED; FOCUSED RUST CONTROLS PASSED. Real media unverified.",
+      "change": "Refine only proven authority-busy Store read errors to existing MetadataBusy. Keep storage-unavailable, unknown and real authorization failures closed, and exact recipient exclusions terminal.",
+      "evidence": "Only the two fresh unheld publish/receive Store mappings change classification. The original held invocation, current owner/activation, writer reservation and source matching stay intact. Staged Data already retries both classes identically; this is classification, not a delivery repair. Storage-unavailable is not assumed transient.",
+      "next": "Service4 typed-classification/retained controls passed. Actual failing delivery attribution and real media remain pending."
+    },
+    {
+      "id": "B148",
+      "title": "Published replacement lifecycle attachment re-enters a contended media registry",
+      "status": "INTEGRATED; SIGNED2/2 VERIFIED WITH OLD-CONDITION FAILURE. Real media unverified.",
+      "change": "Pass the exact owned ReplacementAdoption entry after immutable capture activation identity validation, instead of relooking it up through a contended registry. Preserve current target authorization and actual delivery checks.",
+      "evidence": "Closed ARM remote WT ES256 cycle3 source4 Connection.end HTTP403 follows a post-publication lifecycle attachment failure. Logs show registry contention immediately after publication, and the source can convert that temporary lookup failure into forbidden; the exact historical mutex caller was not logged. The seven-file fix preserves original operation identity and current target revocation. Original Session/client cleanup passed; this was not an unjoined owner. Actual signed controls pass2/2 with all original owners naturally joined. Restoring only the old shared-registry lookup fails the identical contention control at actual probe3 versus required2. This demonstrates the causal lookup bug under the fixture; the exact historical mutex caller remains unlogged.",
+      "next": "Commit the verified batch and run exact normal378 shipping builds after capacity/source/ARM sync gates. Actual RTC/browser attachment and full32 media qualification remain pending."
+    },
+    {
+      "id": "B149",
+      "title": "Native observer version reads repeatedly prepare identical SQL",
+      "status": "INTEGRATED; STORE2 PLUS7 RETAINED CONTROLS PASSED. Real media unverified.",
+      "change": "Reuse only the two existing PRAGMA prepared statements through the existing bounded32-entry observer SQL cache. Each call still steps fresh SQL and preserves exact observer-relative data/schema versions and all current source/expiry checks.",
+      "evidence": "Both production-linked new Store controls and seven retained current-fact controls pass9/9. Exact old per-call preparation fails the same resident-statement witness at Run0 versus256, while final uses resident statements and fresh SQL values/schema invalidation. Original32-entry cache capacity and generic facts behavior are unchanged. Diagnostic timing old988583ns/final1242416ns has no acceptance threshold and establishes no speedup or WT media cure.",
+      "next": "Commit and prepare exact normal378 shipping, then fresh full32 under unchanged current authorization and media criteria. Reuse correctness is verified; performance benefit in actual media remains unproved."
+    },
+    {
+      "id": "B150",
+      "title": "Original native Ready replay is disabled by a private same-route audio SSRC change",
+      "status": "INTEGRATED; LOGICAL SDK26/26 VERIFIED. Real media unverified.",
+      "change": "After the original Ready attempt, permit identical frozen proof replay only across audio SSRC change on the same authenticated installed Connection, logical stream and generation. Preserve full video identity/epoch, first-proof currentness, original deadline/eight-attempt budget, cancellation and definitive refusals.",
+      "evidence": "Isolated normal SDK build and whole readiness26/26 pass; old send/sameCurrent condition fails the same new positive at the original deadline. Exact final source/dist restored. Active normal SDK build reproduces those four candidate file digests, and integrated readiness26/26 passes within Node47. Historical v208 first Ready response/attempt count/replay flag were not logged, so the particular SDK branch and media cure remain unproved.",
+      "next": "Require fresh real browser/media verification; do not infer public activation or new decoder credit from audio SSRC continuity."
+    },
+    {
+      "id": "B151",
+      "title": "Completed movement evidence is lost after an independent Session observer fails",
+      "status": "INTEGRATED; LOGICAL MOVEMENT21/21 VERIFIED. Real media unverified.",
+      "change": "Retain the original completed movement receipt when a separate Session observer or later programme phase fails. Keep original parent/workload/cleanup failure and require current-authorized retirement evidence.",
+      "evidence": "Isolated whole movement21/21 passes; old omission fails the same missing-receipt regression. Integrated movement21/21 passes within Node47. This corrects evidence retention without counting a child-ready receipt as a completed handoff or hiding an original timeout.",
+      "next": "Real programme and media deadlines still apply. Preserve original failed v208 reports and distinguish completed movement evidence from successful programme/cleanup."
     }
   ],
   "workplan_tasks": [
@@ -1701,6 +1781,154 @@
       "status": "All 83 distinct focused checks and relevant comparisons complete; original failures preserved, final source restored and owners closed. Shipping preflight and full matrix remain.",
       "completion": "All mandatory checks pass for each of the 32 cells; preserve any unresolved failure or blocked item.",
       "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S29",
+      "title": "Passive retirement waits can block unrelated current media",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [
+        "S28"
+      ],
+      "code_paths": [
+        "crates/connect-store/src/peer_authority/connection_media/admission.rs",
+        "crates/connect-store/src/transitions/native_replacements/allocation/start/projection.rs"
+      ],
+      "solution": "Replace waited broad writer admission and SQL reacquisition with immediate original-owner attempts, preserving exact authority and generation/absence checks.",
+      "status": "INTEGRATED; FOCUSED RUST CONTROLS PASSED. Real media unverified.",
+      "completion": "Store11 focused controls passed. Original-cutoff progress under continuously overlapping readers and actual media remain unproved.",
+      "completion_status": "verified-component-only"
+    },
+    {
+      "id": "S30",
+      "title": "Independent SDK closes wait behind original Session cleanup",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [
+        "S28"
+      ],
+      "code_paths": [
+        "scripts/lib/native_session_retirement.mjs",
+        "scripts/check-transport-conversation.mjs"
+      ],
+      "solution": "Close non-Session-owner SDKs concurrently with original Session cleanup; keep the primary Session-owner SDK usable until those original calls settle. Preserve one original cutoff, all joins and mutation identities.",
+      "status": "INTEGRATED; FOCUSED SCRIPT CONTROLS PASSED. Real media unverified.",
+      "completion": "Focused script controls pass within Node70. Actual original Session/end/retirement behavior still needs real media verification.",
+      "completion_status": "focused-script-verified-real-media-pending"
+    },
+    {
+      "id": "S31",
+      "title": "RTC initial rendering begins after readiness observation",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [
+        "S28"
+      ],
+      "code_paths": [
+        "scripts/lib/browser_matrix_admission.mjs",
+        "scripts/lib/browser_matrix_observation.mjs",
+        "scripts/video/browser_matrix_admission.mjs"
+      ],
+      "solution": "Start and retain the original renderer before readiness observation, with the same original deadline and explicit cancellation/late completion ownership.",
+      "status": "INTEGRATED; FOCUSED SCRIPT CONTROLS PASSED. Real media unverified.",
+      "completion": "Focused admission/observation script controls pass within Node70; installed-browser real media remains unverified.",
+      "completion_status": "focused-script-verified-real-media-pending"
+    },
+    {
+      "id": "S32",
+      "title": "Archive drain rejects complete nested remote native ownership",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [
+        "S28"
+      ],
+      "code_paths": [
+        "scripts/lib/matrix_archive_drain.py",
+        "scripts/tests/test_matrix_guest_drain.py"
+      ],
+      "solution": "Validate the exact current typed remote native owner, guest and VM-lease envelope; preserve failed logical exits and refuse forced, missing, foreign or unknown custody.",
+      "status": "INTEGRATED; FOCUSED SCRIPT CONTROLS PASSED. Real media unverified.",
+      "completion": "Focused typed archive regressions pass within Python29; original v208 reports and all six skipped verdicts remain immutable.",
+      "completion_status": "focused-script-verified-real-media-pending"
+    },
+    {
+      "id": "S33",
+      "title": "Accepted original Data publication has no precise delivery refusal leaf",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [
+        "S28"
+      ],
+      "code_paths": [
+        "patches/rvoip/connect-native-data-delivery-diagnostics.patch",
+        "dependencies/source-lock.json"
+      ],
+      "solution": "Add bounded first/error-class-change and terminal local-outcome observations, plus one shared Core source/target/internal admission observer using only existing evaluated results.",
+      "status": "INTEGRATED; FOCUSED RUST CONTROLS PASSED. Real media unverified.",
+      "completion": "Core/UCTP12 diagnostic controls passed. These preserve original checks/outcomes; instrumentation is not a delivery fix and the actual v208 refused leaf remains unknown.",
+      "completion_status": "verified-component-only"
+    },
+    {
+      "id": "S34",
+      "title": "Fresh Data Store contention is collapsed into an authority refusal",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [
+        "S28"
+      ],
+      "code_paths": [
+        "crates/connect-service/src/canonical_media/data.rs"
+      ],
+      "solution": "Refine only proven authority-busy Store read errors to existing MetadataBusy. Keep storage-unavailable, unknown and real authorization failures closed, and exact recipient exclusions terminal.",
+      "status": "INTEGRATED; FOCUSED RUST CONTROLS PASSED. Real media unverified.",
+      "completion": "Service4 typed-classification/retained controls passed. Actual failing delivery attribution and real media remain pending.",
+      "completion_status": "verified-component-only"
+    },
+    {
+      "id": "S35",
+      "title": "Published replacement lifecycle attachment re-enters a contended media registry",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [
+        "S28"
+      ],
+      "code_paths": [],
+      "solution": "Pass the exact owned ReplacementAdoption entry after immutable capture activation identity validation, instead of relooking it up through a contended registry. Preserve current target authorization and actual delivery checks.",
+      "status": "INTEGRATED; SIGNED2/2 VERIFIED WITH OLD-CONDITION FAILURE. Real media unverified.",
+      "completion": "Commit the verified batch and run exact normal378 shipping builds after capacity/source/ARM sync gates. Actual RTC/browser attachment and full32 media qualification remain pending.",
+      "completion_status": "verified-component-only"
+    },
+    {
+      "id": "S36",
+      "title": "Native observer version reads repeatedly prepare identical SQL",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [
+        "S28"
+      ],
+      "code_paths": [],
+      "solution": "Reuse only the two existing PRAGMA prepared statements through the existing bounded32-entry observer SQL cache. Each call still steps fresh SQL and preserves exact observer-relative data/schema versions and all current source/expiry checks.",
+      "status": "INTEGRATED; STORE2 PLUS7 RETAINED CONTROLS PASSED. Real media unverified.",
+      "completion": "Commit and prepare exact normal378 shipping, then fresh full32 under unchanged current authorization and media criteria. Reuse correctness is verified; performance benefit in actual media remains unproved.",
+      "completion_status": "verified-component-only"
+    },
+    {
+      "id": "S37",
+      "title": "Original native Ready replay is disabled by a private same-route audio SSRC change",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [
+        "S28"
+      ],
+      "code_paths": [],
+      "solution": "After the original Ready attempt, permit identical frozen proof replay only across audio SSRC change on the same authenticated installed Connection, logical stream and generation. Preserve full video identity/epoch, first-proof currentness, original deadline/eight-attempt budget, cancellation and definitive refusals.",
+      "status": "INTEGRATED; LOGICAL SDK26/26 VERIFIED. Real media unverified.",
+      "completion": "Require fresh real browser/media verification; do not infer public activation or new decoder credit from audio SSRC continuity.",
+      "completion_status": "verified-component-only"
+    },
+    {
+      "id": "S38",
+      "title": "Completed movement evidence is lost after an independent Session observer fails",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [
+        "S28"
+      ],
+      "code_paths": [],
+      "solution": "Retain the original completed movement receipt when a separate Session observer or later programme phase fails. Keep original parent/workload/cleanup failure and require current-authorized retirement evidence.",
+      "status": "INTEGRATED; LOGICAL MOVEMENT21/21 VERIFIED. Real media unverified.",
+      "completion": "Real programme and media deadlines still apply. Preserve original failed v208 reports and distinguish completed movement evidence from successful programme/cleanup.",
+      "completion_status": "verified-component-only"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -4082,24 +4310,27 @@
     "post_verification_changes": "Progress documentation and its renderer only; library, upstream patch, lock and test bytes unchanged."
   },
   "latest_full_run": {
-    "evidence_key": "completed_v207_actual",
-    "label": "v207",
-    "status_url": "../../.local/gate-6/full-matrix-v207/status.html"
+    "evidence_key": "completed_v208_actual",
+    "label": "v208",
+    "status_url": "../../.local/gate-6/full-matrix-v208/status.html"
   },
   "current_focused_verification": {
-    "passed": 83,
-    "planned": 83,
-    "next": "Comparisons completed and final source restored. Full-matrix qualification remains pending."
+    "passed": 58,
+    "planned": 58,
+    "scope": "Supplemental final additions: integrated whole readiness26, movement21, Store2+7 retained controls and signed lifecycle2 all pass58/58. Initial frozen batch Rust27+Node70+Python29 passed126/126 separately. Whole retained suites overlap; do not sum these as a new distinct historical coverage total.",
+    "next": "Both old-condition controls fail at exact causal witnesses and final source is restored; all original verification groups naturally joined. Commit/push, exact normal378 ARM sync and default shipping, then freshly funded full32 remain pending. Real media is unverified."
   },
   "current_workplan_tasks": [
-    "S21",
-    "S22",
-    "S23",
-    "S24",
-    "S25",
-    "S26",
-    "S27",
-    "S28"
+    "S29",
+    "S30",
+    "S31",
+    "S32",
+    "S33",
+    "S34",
+    "S35",
+    "S36",
+    "S37",
+    "S38"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -4115,7 +4346,187 @@
     "qualification_note": "The Store comparison checker expected five full captures for two credentials, but measured eleven. Its strict failed receipt is preserved. Source review accounts for six admission captures, four execution checks and one output capture; the fixed path passes with one. No test or historical verdict was rewritten. Restored checks do not inflate the 83 distinct focused passes."
   },
   "next_full_run_status": {
-    "url": "../../.local/gate-6/v208-followthrough-status.html",
-    "label": "Next full run: live preparation and execution status"
+    "url": "../../.local/gate-6/full-matrix-v208/status.html",
+    "label": "Closed v208 reports; further full media testing remains pending"
+  },
+  "completed_v208_actual": {
+    "source_revision": "0e37d42e07bfe9f20ff9dc4d5d985db08d7c3005",
+    "run_id": "g6-058-b9537677048c44cc8e35c6b2b42d1864",
+    "summary": {
+      "cells": {
+        "passed": 0,
+        "failed": 26,
+        "blocked": 6,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 310,
+        "failed": 38,
+        "blocked": 84,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "matrix_sha256": "db95ccbff89d40b7d184c06f6cf9214ac7929e0194d20c395dac4400808cb208",
+    "closure_receipt_sha256": "9d11c505f16fa842b5d2516e61775358adccd837cc95165aaa4a6b78d448aad3",
+    "source_release": "Original controller, both workers, copy transports and VM leases closed; tested source remained exact. Original failed and blocked verdicts remain unchanged.",
+    "blocked_scope": "Six Mac remote browser cells: typed nested remote archive ownership validation refused, reported original-closed-evidence-storage-backpressure.",
+    "qualification": false
+  },
+  "v209_integrated_candidate_batch": {
+    "fixes": [
+      {
+        "blocker": "B142",
+        "task": "S29",
+        "manifest": ".local/gate-6/v209-passive-fixes/.local/gate-6/v209-passive-authority-source-proposal/manifest.json",
+        "manifest_sha256": "72eb82ddab47840e4f18bbc3fa5a6a3a09bf242f948c844c53f8c992ce268cf2",
+        "integrated": true,
+        "rust_verified": true,
+        "real_media_verified": false
+      },
+      {
+        "blocker": "B143",
+        "task": "S30",
+        "manifest": ".local/gate-6/v209-passive-fixes/.local/gate-6/v209-independent-sdk-cleanup-test-followthrough/manifest.json",
+        "manifest_sha256": "225cd5a1851e85d57faf78de3ec1042ac4ab60f090040f72438b8956c8713567",
+        "integrated": true,
+        "rust_verified": false,
+        "real_media_verified": false
+      },
+      {
+        "blocker": "B144",
+        "task": "S31",
+        "manifest": ".local/gate-6/v209-passive-fixes/.local/gate-6/v209-rtc-initial-render-source-proposal/manifest.json",
+        "manifest_sha256": "20db6fb8147e369548bd1964d128cf4c74d8898fb0428bee2d5ba950fa0a2002",
+        "integrated": true,
+        "rust_verified": false,
+        "real_media_verified": false
+      },
+      {
+        "blocker": "B145",
+        "task": "S32",
+        "manifest": ".local/gate-6/v209-passive-fixes/.local/gate-6/v209-remote-native-archive-custody-fix/manifest.json",
+        "manifest_sha256": "678c92933f6debc95aa9a03ecc7a09e066c8334cdf388766979488e4e89c439f",
+        "integrated": true,
+        "rust_verified": false,
+        "real_media_verified": false
+      },
+      {
+        "blocker": "B146",
+        "task": "S33",
+        "manifest": ".local/gate-6/v209-passive-fixes/.local/gate-6/v209-original-data-delivery-diagnostics/manifest.json",
+        "manifest_sha256": "3b66ae1dc6d6567c1b9b822e75ae48aa9915a060a4b39e869ab5385bcbc70b1e",
+        "integrated": true,
+        "rust_verified": true,
+        "real_media_verified": false
+      },
+      {
+        "blocker": "B147",
+        "task": "S34",
+        "manifest": ".local/gate-6/v209-passive-fixes/.local/gate-6/v209-data-read-contention-classification/manifest.json",
+        "manifest_sha256": "b8c3ed65b852318f5848ece0e4beffa15918f20a8b64b7d016400a56e8c90b59",
+        "integrated": true,
+        "rust_verified": true,
+        "real_media_verified": false
+      },
+      {
+        "blocker": "B148",
+        "task": "S35",
+        "manifest": ".local/gate-6/v209-passive-fixes/.local/gate-6/v209-owned-lifecycle-activation-fix/manifest.json",
+        "manifest_sha256": "38fb7893cdca10d59016cc097d8e618c483a16b09c23ee86787c4dde977268d6",
+        "integrated": true,
+        "logical_verified": true,
+        "real_media_verified": false,
+        "rust_verified": true
+      },
+      {
+        "blocker": "B149",
+        "task": "S36",
+        "manifest": ".local/gate-6/v209-passive-fixes/.local/gate-6/v209-version-statement-reuse-candidate/manifest.json",
+        "manifest_sha256": "fd49e65c97f99ecb57fd5524ce03503c75d0ff19f6f6e76e422635d88d1c8a8f",
+        "integrated": true,
+        "logical_verified": true,
+        "real_media_verified": false,
+        "rust_verified": true
+      },
+      {
+        "blocker": "B150",
+        "task": "S37",
+        "manifest": ".local/gate-6/v209-passive-fixes/.local/gate-6/v209-native-ready-private-ssrc-retry/verified-manifest.json",
+        "manifest_sha256": "c14ceba3b7810c037aba714a65fb908a989d053b4297ec414f063c3ea6eaca14",
+        "integrated": true,
+        "logical_verified": true,
+        "real_media_verified": false
+      },
+      {
+        "blocker": "B151",
+        "task": "S38",
+        "manifest": ".local/gate-6/v209-passive-fixes/.local/gate-6/v209-completed-movement-observation-fix/manifest.json",
+        "manifest_sha256": "2219ddf7e64cab28315cdc99cb95177c67da23a4fae172a2fd09e65c638cd597",
+        "integrated": true,
+        "logical_verified": true,
+        "real_media_verified": false
+      }
+    ],
+    "source_lock_patch_count": 378,
+    "source_lock_sha256": "9cf2f547a961086d71df192d8e01eed865913d2d55115270b76f024df2cdabc8",
+    "normal_preparation_passed": true,
+    "rvoip_graph_sha256": "ec91ce4381c87b8d8f48332277a4bdcbdb0d501247628f046e2fcee4d5850312",
+    "focused_scripts": {
+      "node_passed": 70,
+      "python_passed": 29,
+      "all_original_commands_natural_zero": true,
+      "node_log": ".local/gate-6/v209-focused-script-verification/node.log",
+      "python_log": ".local/gate-6/v209-focused-python-verification/python.log"
+    },
+    "rust_planned": 27,
+    "rust_verification_pending": false,
+    "real_media_pending": true,
+    "no_matrix_qualification": true,
+    "uncovered_unresolved_blockers": [],
+    "rust_passed": 27,
+    "rust_failed": 0,
+    "initial_focused_passed": 126,
+    "initial_focused_planned": 126,
+    "supplemental_verification": {
+      "integrated_node_passed": 47,
+      "integrated_node_failed": 0,
+      "scope": "Whole SDK readiness26 and movement21; do not add overlapping retained controls as distinct historical coverage.",
+      "integrated_node_log": ".local/gate-6/v209-final-additions/integrated-node.log",
+      "integrated_node_log_sha256": "a3c3290d3ab7a0965f146209408a41f669097ee82e4ebc40fc6a8c63db394daf",
+      "initial_rust_passed": 27,
+      "supplemental_rust_planned": 11,
+      "supplemental_rust_pending": false,
+      "old_condition_controls_planned": 2,
+      "real_media_pending": true,
+      "supplemental_rust_passed": 11,
+      "supplemental_rust_failed": 0,
+      "old_condition_controls_executed": 2,
+      "old_condition_raw_failures": 2,
+      "expected_old_failure_anchors": [
+        "lifecycle probe3 versus required2",
+        "resident statement Run0 versus256"
+      ],
+      "supplemental_passed": 58,
+      "supplemental_planned": 58,
+      "all_original_groups_natural_joined": true,
+      "exact_final_source_restored": true,
+      "completion": ".local/gate-6/v209-version-lifecycle-verification-candidate/completed.json",
+      "completion_sha256": "39582dbbf58e8e0490f3deb6317aed6e04a96add8dbdbe8c260dbcca512e24ac",
+      "diagnostic_version_timing_ns": {
+        "old": 988583,
+        "final": 1242416
+      },
+      "timing_claim": "No timing threshold or demonstrated speedup; not full-media evidence."
+    },
+    "closed_native_timeout_findings": {
+      "path": ".local/gate-6/v208-movement-failures-readonly/diagnosis/findings.json",
+      "sha256": "01dde8a70172808fb510dae72a66b0441a14c6fd0db5af192887256f9fad3407",
+      "bounds": "All12 Core targets adopted in each of the two analyzed native cells; remaining original8s parent completion budgets and Session observer/retained-end read fences are separate from lifecycle attachment. Child-ready near cutoff is not a completed public handoff; exact queued/RPC split unproved."
+    }
   }
 }

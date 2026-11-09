@@ -377,7 +377,26 @@ impl Runtime {
         // Publication establishes the ordinary origin used by each fresh
         // lifecycle authorization. The original captured writer can now emit
         // packet epochs; cached metadata alone never publishes private media.
-        if let Err(error) = started.lifecycle.activate(self) {
+        // Attach through the exact entry whose installation Store just
+        // published. This lends no current authority: lifecycle delivery still
+        // validates the original physical lifetime and fresh Store/media facts.
+        let activate = || {
+            started
+                .lifecycle
+                .activate(&installed.adoption, capture.value.activation())
+        };
+        #[cfg(feature = "test-support")]
+        let activated = self
+            .media
+            .probe_lifecycle_registry_for_test(
+                &root.origin.request().operation_id,
+                &outcome.admitted,
+                &activate,
+            )
+            .unwrap_or_else(&activate);
+        #[cfg(not(feature = "test-support"))]
+        let activated = activate();
+        if let Err(error) = activated {
             self.stop_unactivated_replacement(&capture).await;
             return Err(error);
         }

@@ -271,7 +271,11 @@ try{
                     selected==='wss-webrtc'?BrowserRtcConnection:null);
             }
             state=await browserMatrixAdmission({actors,plan,state,selectedTransport:selected,journal:event=>journal(event),
-                startMedia:input=>sources.start(input),afterControl:async state=>{
+                startMedia:input=>sources.start(input),
+                afterMediaOffer:selected==='wss-webrtc'&&observer
+                    ?({route,connection,options})=>{observer.startInitialConnection(route.index,connection,options);}
+                    :undefined,
+                afterControl:async state=>{
                     window.matrixPhase='transport-selection';
                     const {browserMatrixSelection}=await import('/_matrix/selection.mjs');
                     try{await browserMatrixSelection({Sdk:BrowserSdkClient,Client:BrowserClient,enrollment:selectionEnrollment,

@@ -32,13 +32,19 @@ def original_owners_joined(report):
             # A complete, naturally retired original process-group anchor can
             # still prove its nested failed helper is physically gone.
             profile = report.get('native_process_profile', {})
-            if not (profile.get('format') == 'connect/native-workload-process-profile/1'
+            local_anchor = (profile.get('format') == 'connect/native-workload-process-profile/1'
                     and profile.get('original_supervisor_joined') is True
                     and profile.get('original_workers_joined') is True
                     and profile.get('forced') is False
                     and type(profile.get('exit_code')) is int
                     and profile.get('failure', 'missing') is None
-                    and profile.get('collection_complete') is True):
+                    and profile.get('collection_complete') is True)
+            # cleanup_evidence above already validates the remote profile's
+            # exact nested owner, source, original PID/birth, natural joins,
+            # capture and released VM lease. Its failed logical helper verdict
+            # must not require flags emitted only by the local process owner.
+            remote_anchor = profile.get('format') == 'connect/mac-linux-native-process-resources/1'
+            if not (local_anchor or remote_anchor):
                 return False
     if report.get('browser_forced_cleanup', False) is not False:
         return False

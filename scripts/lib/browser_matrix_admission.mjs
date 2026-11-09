@@ -24,7 +24,7 @@ export function browserMatrixPlan(uuid = () => crypto.randomUUID(), cycle) {
         programmeMs: 62000, operations, messages, sessions, routes, moves,...(cycle?{cycle:{...cycle}}:{})};
 }
 
-export async function browserMatrixAdmission({actors, plan, journal, selectedTransport, startMedia, state={}, afterControl}) {
+export async function browserMatrixAdmission({actors, plan, journal, selectedTransport, startMedia, state={}, afterControl, afterMediaOffer}) {
     check(["webtransport", "wss-webrtc"].includes(selectedTransport), "explicit matrix transport");
     check(typeof journal === "function", "durable original intent journal is required");
     check(plan?.format === "connect/browser-matrix-plan/1" && plan.routes.length === 6 && plan.sessions.length === 2
@@ -169,6 +169,10 @@ export async function browserMatrixAdmission({actors, plan, journal, selectedTra
                 {id: route.video, kind: "video", direction: "sendrecv", codecs: nonempty(["vp8"])}])}, opts),
             () => startMedia({route, connection: session.connections.byId(route.connection), options}));
         connections.push(connection);
+        // Start this completed original receiver before later offers can queue
+        // pre-render media. The caller retains its pending normal render promise;
+        // it must not wait for receive media that depends on a later offer.
+        if (afterMediaOffer) await afterMediaOffer({route, connection, options});
     }
     for (const route of plan.routes) {
         const peers = plan.routes.filter(other => other.session === route.session), at = peers.findIndex(other => other.index === route.index);

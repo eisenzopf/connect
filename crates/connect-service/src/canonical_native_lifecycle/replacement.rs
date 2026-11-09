@@ -217,11 +217,10 @@ impl PreparedReplacementLifecycle {
             .compare_exchange(PREPARATION, MOVING, Ordering::AcqRel, Ordering::Acquire)
             .ok();
     }
-    pub(crate) fn activate(&self, runtime: &Runtime) -> connect_protocol::Result<()> {
-        let entry = runtime
-            .media
-            .entry(&self.id)
-            .map_err(|_| connect_protocol::Error::forbidden())?;
+    pub(crate) fn activate(&self, entry: Arc<Connection>) -> connect_protocol::Result<()> {
+        if entry.origin.runtime_connection_id() != self.id.as_str() {
+            return Err(connect_protocol::Error::forbidden());
+        }
         if let Some(old) = self.state.entry.get() {
             if !Arc::ptr_eq(old, &entry) {
                 return Err(connect_protocol::Error::forbidden());

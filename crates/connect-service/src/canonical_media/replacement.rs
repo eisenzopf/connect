@@ -578,6 +578,22 @@ impl super::Policy {
     }
 }
 impl ReplacementAdoption {
+    /// After successful publication, retain this exact capture's already-
+    /// installed entry for lifecycle attachment; another registry
+    /// lookup cannot add authority and can spuriously fail under contention.
+    /// This does not publish or restore an entry removed by concurrent cleanup.
+    pub(crate) fn lifecycle_entry(
+        &self,
+        captured: &Arc<connect_store::NativeReplacementActivation>,
+    ) -> connect_protocol::Result<Arc<super::Connection>> {
+        if !Arc::ptr_eq(captured, &self.metadata)
+            || !Arc::ptr_eq(captured.origin(), &self.entry.origin)
+        {
+            return Err(connect_protocol::Error::forbidden());
+        }
+        Ok(self.entry.clone())
+    }
+
     pub(crate) fn install(&self) -> ControlResult<()> {
         let target = &self.target;
         if target

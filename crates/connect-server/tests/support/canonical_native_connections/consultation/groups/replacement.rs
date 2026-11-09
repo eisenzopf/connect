@@ -200,6 +200,8 @@ enum ActivationAudit {
     RetireDuringPublication,
     #[cfg(feature = "test-support")]
     RefuseDataObserver,
+    #[cfg(feature = "test-support")]
+    LifecycleRegistryBusy,
 }
 impl ActivationAudit {
     fn data_observer(self) -> bool {
@@ -987,6 +989,22 @@ async fn exercise_replacement_with_av_transfer(
                 rusqlite::Connection::open(&f.config.database).unwrap().execute_batch("CREATE TRIGGER fixture_projection_block BEFORE INSERT ON native_replacement_lifetimes BEGIN SELECT RAISE(ABORT,'isolated projection failure'); END;").unwrap();
             }
             #[cfg(feature = "test-support")]
+            let lifecycle_registry_probe =
+                if matches!(activation_audit, ActivationAudit::LifecycleRegistryBusy) {
+                    assert!(!deferred_projection && !candidate_target && !observer);
+                    Some(
+                        f.server
+                            .service
+                            .arm_canonical_held_registry_probe_for_test(&format!(
+                                "lifecycle:{}",
+                                command.operation_id
+                            ))
+                            .unwrap(),
+                    )
+                } else {
+                    None
+                };
+            #[cfg(feature = "test-support")]
             let continuation_audit = if let ActivationAudit::Continuation(case) = activation_audit {
                 assert!(!deferred_projection && !candidate_target && !observer);
                 let record = status(&f, &key.id, &command.operation_id).await;
@@ -1291,6 +1309,24 @@ async fn exercise_replacement_with_av_transfer(
             if let Some(probe) = &mcp_probe {
                 probe.completed(&done).await;
                 probe.replay().await;
+            }
+            #[cfg(feature = "test-support")]
+            if let Some(state) = &lifecycle_registry_probe {
+                // SQL completion can be observed before lifecycle attachment;
+                // wait for the original owner to finish this exact probe.
+                let until = tokio::time::Instant::now() + Duration::from_secs(5);
+                loop {
+                    let observed = state.load(std::sync::atomic::Ordering::Acquire);
+                    if observed >= 2 {
+                        assert_eq!(observed, 2, "post-publication lifecycle attachment failed under actual registry contention");
+                        break;
+                    }
+                    assert!(
+                        tokio::time::Instant::now() < until,
+                        "original lifecycle registry probe did not finish"
+                    );
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                }
             }
             assert_eq!(done.effects.len(), 7 + usize::from(candidate_target));
             assert!(done

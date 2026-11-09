@@ -2006,6 +2006,12 @@
       "path": "patches/rvoip/gate6-rtc-current-picture-feedback.patch",
       "sha256": "d00942bc71adbd2730231f213c695674be46f85c530d78cadd9ce47a3dd1ce61",
       "source": "G6-058 v207 follow-through: authorize fresh RTC picture feedback through current exact source and receiver routing independently of the last media packet age and repair attempts. Retain actual media repair limits, native wire replay, original hint deadline, earliest lease expiry and callback cancellation ownership. Regression sources include real source-peer SRTCP observation, current-authority refusal and unchanged packet repair. Runtime verification pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-data-delivery-diagnostics.patch",
+      "sha256": "3301b9909d3e94bbbf7f29f5f41c98fe633a66cf6a3c224c3cd169dc9b768b8a",
+      "source": "G6-058 unresolved native Data delivery diagnostic: fixed per-original-operation first/error-class-change cap and terminal local writer disposition from existing evaluated results only. Preserve exact authority/liveness short-circuit evaluations, queue ownership, original retry and publication semantics, recipient refusal and uncertain-submission non-replay. Real signed native retry plus private log-cap regression sources; not a delivery fix or runtime verification. Core one shared admission body exposes a synchronous fixed Internal/Source/Target refusal observer only after local leases drop, preserving the original error and all checks; default callers retain the unchanged wrapper."
     }
   ]
 }

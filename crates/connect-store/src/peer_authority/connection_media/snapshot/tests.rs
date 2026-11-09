@@ -7,6 +7,7 @@ mod observer_cache;
 mod observer_custody;
 mod observer_retirement;
 mod owned;
+mod version_statements;
 
 #[test]
 fn erased_packet_projection_memo_skips_only_unchanged_facts_and_finishes_every_grant() {

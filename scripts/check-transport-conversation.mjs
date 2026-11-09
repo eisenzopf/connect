@@ -256,7 +256,7 @@ try {
     for (const [index, roles] of sessionRoles.entries()) {
         const session = await complete(conversation.sessions.invite({ sessionId: plan["session" + index],
             to: roles.slice(1).map(role => member(view, role).id), medium: "text-chat", intent: "synchronous-engagement", capabilities: caps }, mutation("invite" + index)));
-        originalSessions.own(session,plan["end" + index]);
+        originalSessions.own(session,plan["end" + index],owner);
         for (const role of roles.slice(1)) {
             const peerSession = clients.get(role).conversations.byId(cid).sessions.byId(session.id);
             const before = await peerSession.refresh(options);
@@ -588,9 +588,17 @@ try {
     // retirement and original SDK closes share the existing5s/global cutoff.
     const originalCleanupCutoff=originalSessions.cleanupDeadline();
     if (matrixLifecycle) await matrixLifecycle.terminal();
-    report.original_session_retirement=await originalSessions.cleanup(originalCleanupCutoff);
+    if (mediaWorkload && report.native_av_observation?.original_tasks_joined === true) {
+        // AV/control tasks have settled. The exact SDK recorded with each
+        // original Session stays open; independent originals close concurrently.
+        const retired = await originalSessions.cleanupAndCloseClients(clients.values(), originalCleanupCutoff);
+        report.original_session_retirement = retired.sessions;
+        report.original_client_retirement = retired.clients;
+    } else {
+        report.original_session_retirement = await originalSessions.cleanup(originalCleanupCutoff);
+        report.original_client_retirement = await originalSessions.closeClients(clients.values(), originalCleanupCutoff);
+    }
     report.passed=Boolean(report.passed&&report.original_session_retirement.passed);
-    report.original_client_retirement = await originalSessions.closeClients(clients.values(), originalCleanupCutoff);
     if (!report.original_client_retirement.passed) {
         report.passed = false;
         report.helper_close_failed = true;

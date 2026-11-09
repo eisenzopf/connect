@@ -205,6 +205,8 @@ impl Store {
             derive(&c)
         })?;
         let held = timing.step(1, || self.acquire_authority(&scopes, &wait))?;
+        #[cfg(test)]
+        crate::authority_admission::observe_passive_admission(true);
         let c = timing.step(2, || self.try_connection())?;
         let current = timing.step(3, || derive(&c))?;
         if !self.authority_covers(&held, &current) {

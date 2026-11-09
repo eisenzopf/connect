@@ -52,6 +52,9 @@ impl MediaAuthorityLease for FreshData {
 }
 fn data_denied(error: connect_protocol::Error) -> StreamControlError {
     match error.code.as_str() {
+        // This code denotes a refused metadata poll, never a revoked grant.
+        // Queued Data already retries it with the same original identity.
+        "authority-busy" => StreamControlError::MetadataBusy,
         "not-recipient" | "conflict" | "unsupported-media-profile" => {
             StreamControlError::NotRecipient
         }
@@ -203,5 +206,41 @@ impl Policy {
                 .map_err(denied)?;
         }
         Ok(Box::new(FreshData { _read: read, owner }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn data_read_metadata_contention_remains_distinct_from_storage_or_authority_failure() {
+        let busy = data_denied(connect_protocol::Error::new(
+            "authority-busy",
+            "Current original metadata interval is busy",
+        ));
+        assert!(matches!(busy, StreamControlError::MetadataBusy));
+        // Durable storage failure is not evidence of temporary lock contention.
+        // Unknown future errors must also remain a closed authorization result.
+        for error in [
+            connect_protocol::Error::storage(),
+            connect_protocol::Error::forbidden(),
+            connect_protocol::Error::new("not-ready", "Missing original projection"),
+            connect_protocol::Error::new("unknown-error", "Opaque failure"),
+        ] {
+            assert!(matches!(data_denied(error), StreamControlError::Authority));
+        }
+    }
+
+    #[test]
+    fn data_read_original_audience_refusals_remain_terminal_for_this_message() {
+        for code in ["not-recipient", "conflict", "unsupported-media-profile"] {
+            let error =
+                connect_protocol::Error::new(code, "Original Data cannot address this target");
+            assert!(matches!(
+                data_denied(error),
+                StreamControlError::NotRecipient
+            ));
+        }
     }
 }

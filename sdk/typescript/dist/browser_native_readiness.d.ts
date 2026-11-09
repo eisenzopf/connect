@@ -70,6 +70,7 @@ export declare class BrowserNativeReadiness {
     audioDecoded(value: AudioOutput): void;
     videoDecoded(value: VideoOutput): void;
     private sameCurrent;
+    private sameReplayRoute;
     private freeze;
     close(): void;
     /** One terminal metadata row, before caller cleanup; never an eligibility input. */

@@ -29,15 +29,20 @@ impl Version {
         } == self
     }
 }
+const DATA_VERSION_SQL: &str = "PRAGMA data_version";
+const SCHEMA_VERSION_SQL: &str = "PRAGMA schema_version";
+
 fn version(c: &Connection, observer: ObserverId) -> Result<Version> {
     let external = c
-        .query_row("PRAGMA data_version", [], |row| row.get(0))
+        .prepare_cached(DATA_VERSION_SQL)
+        .and_then(|mut statement| statement.query_row([], |row| row.get(0)))
         .map_err(|_| Error::storage())?;
     Ok(Version {
         connection: observer,
         external,
         schema: c
-            .query_row("PRAGMA schema_version", [], |row| row.get(0))
+            .prepare_cached(SCHEMA_VERSION_SQL)
+            .and_then(|mut statement| statement.query_row([], |row| row.get(0)))
             .map_err(|_| Error::storage())?,
         changes: c.total_changes(),
         second: crate::now(),

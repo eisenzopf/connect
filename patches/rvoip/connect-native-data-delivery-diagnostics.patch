@@ -1,0 +1,891 @@
+diff --git a/crates/uctp/rvoip-uctp/src/staged_data.rs b/crates/uctp/rvoip-uctp/src/staged_data.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_data.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_data.rs
+@@ -15,6 +15,9 @@
+ };
+ use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
+ use tokio_util::sync::CancellationToken;
++
++mod diagnostics;
++use diagnostics::DataDiagnostics;
+ 
+ const DATA_JOBS: usize = 8;
+ const SOURCE_BYTES: usize = 16 * 1024 * 1024;
+@@ -574,40 +577,85 @@
+                     let Some(mut outcome) = identify(&queued, DataDisposition::NotStarted) else {
+                         break;
+                     };
++                    let mut diagnostic = DataDiagnostics::new();
+                     // Keep original identity under transient permission/queue
+                     // contention. A retired source cannot block later messages.
+                     loop {
+-                        if cancelled.is_cancelled() || !queued.data_route_current() {
++                        diagnostic.attempt();
++                        // Preserve the original short-circuit order: diagnostics use
++                        // only liveness values this attempt already evaluated.
++                        let cancelled_now = cancelled.is_cancelled();
++                        let route_current = if cancelled_now {
++                            None
++                        } else {
++                            Some(queued.data_route_current())
++                        };
++                        if cancelled_now || route_current == Some(false) {
++                            diagnostic.refuse(
++                                &outcome,
++                                "route",
++                                if cancelled_now { "cancelled" } else { "not-current" },
++                            );
+                             pending_outcome
+                                 .lock()
+                                 .unwrap_or_else(|p| p.into_inner())
+-                                .push_back(outcome);
++                                .push_back(outcome.clone());
+                             break;
+                         }
+                         let current = origin.lock().unwrap_or_else(|p| p.into_inner()).clone();
+                         let result = match current {
+-                            Some(origin) if origin.current() && origin.is_ready() => {
+-                                match queued.admit_data() {
+-                                    Ok(admission) => {
+-                                        physical.submit(&origin, admission).inspect(|_| {
+-                                            counters.submitted.fetch_add(1, Ordering::AcqRel);
+-                                        })
++                            Some(origin) => {
++                                let current = origin.current();
++                                let ready = if current {
++                                    Some(origin.is_ready())
++                                } else {
++                                    None
++                                };
++                                if !current || ready == Some(false) {
++                                    diagnostic.refuse(
++                                        &outcome,
++                                        "origin",
++                                        if current { "not-ready" } else { "not-current" },
++                                    );
++                                    Err(DispatchError::AuthorityUnavailable)
++                                } else {
++                                    match queued.admit_data_observing(|stage, error| {
++                                        use rvoip_core::staged_streams::reliable_data::DataAdmissionStage;
++                                        let stage = match stage {
++                                            DataAdmissionStage::Internal => "internal-admit",
++                                            DataAdmissionStage::Source => "source-admit",
++                                            DataAdmissionStage::Target => "target-admit",
++                                        };
++                                        diagnostic.refuse_control(&outcome, stage, error);
++                                    }) {
++                                        Ok(admission) => {
++                                            let result = physical.submit(&origin, admission).inspect(|_| {
++                                                counters.submitted.fetch_add(1, Ordering::AcqRel);
++                                            });
++                                            if let Err(error) = &result {
++                                                diagnostic.refuse_dispatch(&outcome, "submit", error);
++                                            }
++                                            result
++                                        }
++                                        Err(StreamControlError::NotRecipient) => {
++                                            // Definitive refusal of this message only. No IO
++                                            // began; preserve its original outcome and let
++                                            // later authorized messages use the same port.
++                                            counters.not_started.fetch_add(1, Ordering::AcqRel);
++                                            pending_outcome
++                                                .lock()
++                                                .unwrap_or_else(|p| p.into_inner())
++                                                .push_back(outcome.clone());
++                                            break;
++                                        }
++                                        Err(_) => Err(DispatchError::AuthorityUnavailable),
+                                     }
+-                                    Err(StreamControlError::NotRecipient) => {
+-                                        // Definitive refusal of this message only. No IO
+-                                        // began; preserve its original outcome and let
+-                                        // later authorized messages use the same port.
+-                                        counters.not_started.fetch_add(1, Ordering::AcqRel);
+-                                        pending_outcome
+-                                            .lock()
+-                                            .unwrap_or_else(|p| p.into_inner())
+-                                            .push_back(outcome);
+-                                        break;
+-                                    }
+-                                    Err(_) => Err(DispatchError::AuthorityUnavailable),
+                                 }
+                             }
+-                            _ => Err(DispatchError::AuthorityUnavailable),
++                            None => {
++                                diagnostic.refuse(&outcome, "origin", "absent");
++                                Err(DispatchError::AuthorityUnavailable)
++                            }
+                         };
+                         match result {
+                             Ok(receipt) => match receipt.wait_or_cancel(cancelled.clone()).await {
+@@ -620,19 +668,21 @@
+                                     pending_outcome
+                                         .lock()
+                                         .unwrap_or_else(|p| p.into_inner())
+-                                        .push_back(outcome);
++                                        .push_back(outcome.clone());
+                                     break;
+                                 }
+                                 Err(DispatchError::SubmissionUnknown) => {
++                                    diagnostic.refuse(&outcome, "receipt", "submission-unknown");
+                                     counters.unknown.fetch_add(1, Ordering::AcqRel);
+                                     outcome.disposition = DataDisposition::SubmissionUnknown;
+                                     pending_outcome
+                                         .lock()
+                                         .unwrap_or_else(|p| p.into_inner())
+-                                        .push_back(outcome);
++                                        .push_back(outcome.clone());
+                                     break;
+                                 }
+-                                Err(_) => {
++                                Err(error) => {
++                                    diagnostic.refuse_dispatch(&outcome, "receipt", &error);
+                                     counters.not_started.fetch_add(1, Ordering::AcqRel);
+                                 }
+                             },
+@@ -642,15 +692,24 @@
+                         }
+                         tokio::select! {_=cancelled.cancelled()=>{},_=tokio::time::sleep(std::time::Duration::from_millis(10))=>{}}
+                     }
+-                    while flush_outcome(&pending_outcome, observer.as_ref(), &scope).is_err() {
+-                        tokio::select! {_=cancelled.cancelled()=>break 'messages,_=tokio::time::sleep(std::time::Duration::from_millis(10))=>{}}
++                    while let Err(error) = flush_outcome(&pending_outcome, observer.as_ref(), &scope) {
++                        diagnostic.refuse_control(&outcome, "observer", &error);
++                        tokio::select! {
++                            _=cancelled.cancelled()=>{
++                                diagnostic.terminal(&outcome, "observer-cancelled");
++                                break 'messages
++                            },
++                            _=tokio::time::sleep(std::time::Duration::from_millis(10))=>{}
++                        }
+                     }
++                    diagnostic.terminal(&outcome, "observer-completed");
+                 }
+                 // No payload/grant accessor or fresh policy read is needed to
+                 // record cancellation of the bounded remaining receiver queue.
+                 if let Some(receiver) = receiver.as_mut() {
+                     while let Ok(queued) = receiver.try_recv() {
+                         if let Some(outcome) = identify(&queued, DataDisposition::NotStarted) {
++                            DataDiagnostics::new().terminal(&outcome, "queue-drained-without-attempt");
+                             pending_outcome
+                                 .lock()
+                                 .unwrap_or_else(|p| p.into_inner())
+diff --git a/crates/uctp/rvoip-uctp/src/staged_data/diagnostics.rs b/crates/uctp/rvoip-uctp/src/staged_data/diagnostics.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_data/diagnostics.rs
+@@ -0,0 +1,255 @@
++//! Bounded observations of results the original delivery attempt already made.
++//! These rows are neither authority nor evidence of a durable observer receipt.
++use super::{DataDisposition, DispatchError, NativeDataOutcome, StreamControlError};
++use rvoip_core::stream_lifecycle::MediaTransitionError;
++use std::time::Instant;
++
++const MAX_REFUSAL_ROWS: u8 = 4;
++
++#[derive(Clone, Copy, PartialEq, Eq)]
++struct Refusal {
++    stage: &'static str,
++    class: &'static str,
++}
++
++pub(super) struct DataDiagnostics {
++    started: Instant,
++    attempts: u64,
++    last: Option<Refusal>,
++    emitted: u8,
++    suppressed: u64,
++    terminal: bool,
++}
++impl DataDiagnostics {
++    pub(super) fn new() -> Self {
++        Self {
++            started: Instant::now(),
++            attempts: 0,
++            last: None,
++            emitted: 0,
++            suppressed: 0,
++            terminal: false,
++        }
++    }
++    pub(super) fn attempt(&mut self) {
++        self.attempts = self.attempts.saturating_add(1);
++    }
++    fn note(&mut self, refusal: Refusal) -> bool {
++        if self.last == Some(refusal) {
++            return false;
++        }
++        self.last = Some(refusal);
++        if self.emitted == MAX_REFUSAL_ROWS {
++            self.suppressed = self.suppressed.saturating_add(1);
++            return false;
++        }
++        self.emitted += 1;
++        true
++    }
++    pub(super) fn refuse(
++        &mut self,
++        outcome: &NativeDataOutcome,
++        stage: &'static str,
++        class: &'static str,
++    ) {
++        if !self.note(Refusal { stage, class }) {
++            return;
++        }
++        tracing::warn!(
++            target: "rvoip_uctp::staged_data",
++            operation_id = %outcome.operation_id,
++            message_id = %outcome.message_id,
++            source = %outcome.source,
++            target = %outcome.target,
++            stage, class,
++            attempts = self.attempts,
++            elapsed_us = self.started.elapsed().as_micros().min(u64::MAX as u128) as u64,
++            "Original Data delivery refused before its terminal outcome"
++        );
++    }
++    pub(super) fn refuse_control(
++        &mut self,
++        outcome: &NativeDataOutcome,
++        stage: &'static str,
++        error: &StreamControlError,
++    ) {
++        // Only fixed error classes; never format model or application contents.
++        let class = match error {
++            StreamControlError::Model(model) => match model {
++                MediaTransitionError::Invalid => "model-invalid",
++                MediaTransitionError::Conflict => "model-conflict",
++                MediaTransitionError::Unsupported => "model-unsupported",
++                MediaTransitionError::Capacity => "model-capacity",
++                MediaTransitionError::Authority => "model-authority",
++                MediaTransitionError::NotReady => "model-not-ready",
++                MediaTransitionError::Expired => "model-expired",
++            },
++            StreamControlError::Unsupported => "unsupported",
++            StreamControlError::Authority => "authority",
++            StreamControlError::NotRecipient => "not-recipient",
++            StreamControlError::Cancelled => "cancelled",
++            StreamControlError::Deadline => "deadline",
++            StreamControlError::NotReady => "not-ready",
++            StreamControlError::MetadataBusy => "metadata-busy",
++            StreamControlError::Backpressure => "backpressure",
++            StreamControlError::CleanupUnconfirmed => "cleanup-unconfirmed",
++        };
++        self.refuse(outcome, stage, class);
++    }
++    pub(super) fn refuse_dispatch(
++        &mut self,
++        outcome: &NativeDataOutcome,
++        stage: &'static str,
++        error: &DispatchError,
++    ) {
++        // DispatchError Display is explicitly bounded and omits envelope data.
++        // Use its stable variant name here rather than any nested wire details.
++        let class = match error {
++            DispatchError::Wire(_) => "wire",
++            DispatchError::UnsupportedMethod => "unsupported-method",
++            DispatchError::Authentication => "authentication",
++            DispatchError::Authority => "authority",
++            DispatchError::AuthorityUnavailable => "authority-unavailable",
++            DispatchError::StorageUnavailable => "storage-unavailable",
++            DispatchError::ScopeDenied => "scope-denied",
++            DispatchError::Signature => "signature",
++            DispatchError::SignatureRequired => "signature-required",
++            DispatchError::StaleSignature => "stale-signature",
++            DispatchError::ReplayCapacity => "replay-capacity",
++            DispatchError::Replay => "replay",
++            DispatchError::ReplayUnavailable => "replay-unavailable",
++            DispatchError::ReplyMismatch => "reply-mismatch",
++            DispatchError::Unsupported => "unsupported",
++            DispatchError::Capacity => "capacity",
++            DispatchError::SubmissionUnknown => "submission-unknown",
++            DispatchError::Closed => "closed",
++        };
++        self.refuse(outcome, stage, class);
++    }
++    pub(super) fn terminal(&mut self, outcome: &NativeDataOutcome, observer: &'static str) {
++        if self.terminal {
++            return;
++        }
++        self.terminal = true;
++        let disposition = match outcome.disposition {
++            DataDisposition::NotStarted => "not-started",
++            DataDisposition::LocalWritten => "local-written",
++            DataDisposition::SubmissionUnknown => "submission-unknown",
++        };
++        tracing::info!(
++            target: "rvoip_uctp::staged_data",
++            operation_id = %outcome.operation_id,
++            message_id = %outcome.message_id,
++            source = %outcome.source,
++            target = %outcome.target,
++            disposition, observer,
++            last_stage = self.last.map(|r| r.stage),
++            last_class = self.last.map(|r| r.class),
++            attempts = self.attempts,
++            refusal_rows = self.emitted,
++            suppressed_changes = self.suppressed,
++            elapsed_us = self.started.elapsed().as_micros().min(u64::MAX as u128) as u64,
++            "Original Data local delivery outcome"
++        );
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use rvoip_core::ids::{ConnectionId, MessageId};
++
++    fn outcome(disposition: DataDisposition) -> NativeDataOutcome {
++        NativeDataOutcome {
++            operation_id: "diagnostic-operation".into(),
++            message_id: MessageId::from_string("diagnostic-message"),
++            source: ConnectionId::from_string("diagnostic-source"),
++            target: ConnectionId::from_string("diagnostic-target"),
++            disposition,
++        }
++    }
++
++    #[test]
++    fn repeated_refusal_and_class_changes_have_a_fixed_bound() {
++        for (model, class) in [
++            (MediaTransitionError::Invalid, "model-invalid"),
++            (MediaTransitionError::Conflict, "model-conflict"),
++            (MediaTransitionError::Unsupported, "model-unsupported"),
++            (MediaTransitionError::Capacity, "model-capacity"),
++            (MediaTransitionError::Authority, "model-authority"),
++            (MediaTransitionError::NotReady, "model-not-ready"),
++            (MediaTransitionError::Expired, "model-expired"),
++        ] {
++            let mut diagnostic = DataDiagnostics::new();
++            let original = StreamControlError::Model(model);
++            diagnostic.refuse_control(&outcome(DataDisposition::NotStarted), "admit", &original);
++            assert_eq!(diagnostic.last.map(|r| r.class), Some(class));
++            assert!(matches!(original, StreamControlError::Model(value) if value == model));
++        }
++        let mut d = DataDiagnostics::new();
++        let busy = Refusal {
++            stage: "admit",
++            class: "metadata-busy",
++        };
++        assert!(d.note(busy));
++        for _ in 0..100 {
++            d.attempt();
++            assert!(!d.note(busy));
++        }
++        assert_eq!(d.emitted, 1);
++        for i in 0..100 {
++            d.note(Refusal {
++                stage: "admit",
++                class: if i % 2 == 0 { "not-ready" } else { "metadata-busy" },
++            });
++        }
++        assert_eq!(d.emitted, MAX_REFUSAL_ROWS);
++        assert_eq!(d.suppressed, 97);
++        assert_eq!(d.attempts, 100);
++    }
++
++    #[derive(Clone, Default)]
++    struct Lines(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
++    impl std::io::Write for Lines {
++        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
++            self.0.lock().unwrap().extend_from_slice(bytes);
++            Ok(bytes.len())
++        }
++        fn flush(&mut self) -> std::io::Result<()> {
++            Ok(())
++        }
++    }
++
++    #[test]
++    fn diagnostic_cap_never_changes_original_error_or_terminal_disposition() {
++        let lines = Lines::default();
++        let writer = lines.clone();
++        let subscriber = tracing_subscriber::fmt()
++            .without_time().with_ansi(false)
++            .with_max_level(tracing::Level::TRACE)
++            .with_writer(move || writer.clone()).finish();
++        tracing::subscriber::with_default(subscriber, || {
++            let mut d = DataDiagnostics::new();
++            let mut original = outcome(DataDisposition::NotStarted);
++            let error = StreamControlError::MetadataBusy;
++            for _ in 0..100 {
++                d.refuse_control(&original, "admit", &error);
++                d.refuse_dispatch(&original, "submit", &DispatchError::Capacity);
++            }
++            assert!(matches!(error, StreamControlError::MetadataBusy));
++            original.disposition = DataDisposition::SubmissionUnknown;
++            d.terminal(&original, "observer-completed");
++            d.terminal(&original, "must-not-duplicate");
++            assert!(matches!(original.disposition, DataDisposition::SubmissionUnknown));
++            assert_eq!(d.emitted, MAX_REFUSAL_ROWS);
++            assert!(d.terminal);
++            assert!(d.suppressed > 0);
++        });
++        let bytes = lines.0.lock().unwrap();
++        let text = std::str::from_utf8(&bytes).unwrap();
++        assert_eq!(text.lines().count(), usize::from(MAX_REFUSAL_ROWS) + 1);
++        assert_eq!(text.matches("Original Data local delivery outcome").count(), 1);
++        assert!(text.contains("submission-unknown"));
++        assert!(!text.contains("must-not-duplicate"));
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
+@@ -11,6 +11,8 @@
+     denied: BTreeSet<ConnectionId>,
+     terminal_operations: BTreeSet<String>,
+     key_refusals: Arc<std::sync::atomic::AtomicUsize>,
++    transient_receives: AtomicUsize,
++    receive_calls: AtomicUsize,
+ }
+ struct DataPolicy(Arc<RwLock<DataState>>);
+ struct DataLease {
+@@ -109,6 +111,12 @@
+             }
+             if data.denied.contains(&source.connection) {
+                 return Err(StreamControlError::Authority);
++            }
++            data.receive_calls.fetch_add(1, Ordering::AcqRel);
++            if data.transient_receives.fetch_update(Ordering::AcqRel, Ordering::Acquire, |left| {
++                left.checked_sub(1)
++            }).is_ok() {
++                return Err(StreamControlError::MetadataBusy);
+             }
+         }
+         if held.is_none() {
+@@ -375,6 +383,8 @@
+             denied: BTreeSet::new(),
+             terminal_operations: BTreeSet::new(),
+             key_refusals: Default::default(),
++            transient_receives: AtomicUsize::new(0),
++            receive_calls: AtomicUsize::new(0),
+         }))));
+         let mut core = core_fixture::Fixture::new().await;
+         core.session = core
+@@ -1542,3 +1552,44 @@
+             && o.disposition != DataDisposition::NotStarted));
+     s.stop().await;
+ }
++
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_native_data_diagnostics_preserve_repeated_busy_retry_and_one_original_write() {
++    let mut s = DataScene::new("quic", false).await;
++    s.select(0, 1).await;
++    // Park the observer after one real write, leaving the next original message
++    // queued before arming the transient current-policy refusals.
++    s.live[1].ready.busy.store(true, Ordering::Release);
++    let first = s.request(0, 220, "first original".into(), "utf8");
++    assert_eq!(s.publish(0, first).await.kind(), "ack");
++    s.receive(1, 0, 220, "first original", "utf8").await;
++    let second = s.request(0, 221, "same queued original".into(), "utf8");
++    assert_eq!(s.publish(0, second).await.kind(), "ack");
++    core_fixture::until(|| s.factory.adapter.queued_data(&s.live[1].id) == Some(1)).await;
++    let calls_before = {
++        let data = s.policy.0.read().await;
++        data.transient_receives.store(12, Ordering::Release);
++        data.receive_calls.load(Ordering::Acquire)
++    };
++    s.live[1].ready.busy.store(false, Ordering::Release);
++    s.receive(1, 0, 221, "same queued original", "utf8").await;
++    core_fixture::until(|| s.live[1].ready.observations.lock().unwrap().iter().any(|o| {
++        o.operation_id == "data_operation_0_221"
++            && o.disposition == DataDisposition::LocalWritten
++    })).await;
++    let calls = s.policy.0.read().await.receive_calls.load(Ordering::Acquire) - calls_before;
++    let accepted = s.factory.adapter.data_counters(&s.live[0].id).unwrap().snapshot();
++    let written = s.factory.adapter.data_counters(&s.live[1].id).unwrap().snapshot();
++    let outcomes = s.live[1].ready.observations.lock().unwrap().iter()
++        .filter(|o| o.operation_id == "data_operation_0_221").cloned().collect::<Vec<_>>();
++    // Original peer/adapter/Core owners join before the final evidence asserts.
++    s.stop().await;
++    assert_eq!(calls, 13, "12 refusals and one fresh successful target policy evaluation");
++    assert_eq!(accepted.ingress_accepted, 2, "no diagnostic-triggered republication");
++    assert_eq!(written.writer_submissions, 2);
++    assert_eq!(written.local_writes, 2);
++    assert_eq!(outcomes.len(), 1);
++    assert_eq!(outcomes[0].message_id.as_str(), "data_message_221");
++    assert_eq!(outcomes[0].disposition, DataDisposition::LocalWritten);
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs b/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
+@@ -278,6 +278,15 @@
+         f.write_str("DataQueueIdentity(redacted)")
+     }
+ }
++/// Diagnostic location of an original queued Data admission refusal.
++/// This value conveys no current authority or retry permission.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum DataAdmissionStage {
++    Internal,
++    Source,
++    Target,
++}
++
+ impl QueuedMedia {
+     pub fn data_identity(&self) -> Option<DataQueueIdentity> {
+         let data = self.data.as_ref()?;
+@@ -328,108 +337,130 @@
+     /// Reacquire current message-specific source and destination authority.
+     /// The queued value remains available for a fresh retry after backpressure.
+     pub fn admit_data(&self) -> ControlResult<Arc<AdmittedData>> {
+-        if self.frame.kind != StreamKind::Data || self.sources.len() != 1 {
+-            return Err(StreamControlError::Unsupported);
+-        }
+-        let data = self.data.as_ref().ok_or(StreamControlError::Unsupported)?;
+-        if self.frame.payload != data.message.bytes {
+-            return Err(StreamControlError::NotReady);
+-        }
+-        let target = self
+-            .target
+-            .owner
+-            .upgrade()
+-            .ok_or(StreamControlError::Cancelled)?;
+-        let provenance = &self.sources[0];
+-        let source = provenance
+-            .source
+-            .owner
+-            .upgrade()
+-            .ok_or(StreamControlError::Cancelled)?;
+-        if source.conversation != target.conversation
+-            || source.session != target.session
+-            || !Arc::ptr_eq(&source.policy, &target.policy)
+-        {
+-            return Err(StreamControlError::Authority);
+-        }
+-        let mut tokens = vec![target.shutdown.clone(), source.shutdown.clone()];
+-        for stamp in [self.target_scene.as_ref(), provenance.scene.as_ref()]
+-            .into_iter()
+-            .flatten()
+-        {
+-            tokens.push(stamp.cancel.clone());
+-        }
+-        if let Some(stamp) = &self.direct {
+-            tokens.push(stamp.cancel.clone());
+-        }
+-        let (source_lease, source_admission, source_end) = source.admit_with_data(
+-            &provenance.source,
+-            &provenance.ticket,
+-            false,
+-            None,
+-            audio_consumer::ConsumerCheck::Retained(provenance.consumer.as_ref()),
+-            None,
+-            scene_consumer::SceneCheck::retained_publish(provenance.scene.as_ref()),
+-            Some(data),
+-            None,
+-            None,
+-        )?;
+-        let (target_lease, target_admission, target_end) = target.admit_with_data(
+-            &self.target,
+-            &self.target_ticket,
+-            true,
+-            Some(&provenance.descriptor),
+-            audio_consumer::ConsumerCheck::Retained(self.target_consumer.as_ref()),
+-            self.direct.as_ref(),
+-            scene_consumer::SceneCheck::retained_receive(
+-                self.target_scene.as_ref(),
+-                provenance.scene.as_ref(),
+-                self.admitted_at,
+-            ),
+-            Some(data),
+-            None,
+-            None,
+-        )?;
+-        let owner = target_lease.authority();
+-        let target_view = DataTarget {
+-            owner: Arc::downgrade(&target),
+-            conversation: target.conversation.clone(),
+-            session: target.session.clone(),
+-            connection: target.connection.clone(),
+-            participant: owner.member.participant().clone(),
+-            identity: owner.member.identity().clone(),
+-            device: owner.endpoint.device().clone(),
+-            membership_epoch: owner.member.epoch(),
+-            principal: target.credential_snapshot().principal,
+-            binding: self.target.binding.clone(),
+-            credential_revision: target.credential_revision(),
+-        };
+-        let mut tickets = vec![provenance.ticket.clone(), self.target_ticket.clone()];
+-        if let Some(direct) = &self.direct {
+-            tickets.push(direct.delivery_ticket());
+-        }
+-        let admission = Arc::new(AdmittedData {
+-            state: Mutex::new(AdmissionState {
+-                phase: Phase::Pending,
+-                guards: Some(OwnedGuards {
+-                    _leases: vec![source_lease, target_lease],
+-                    _admissions: vec![source_admission, target_admission],
++        self.admit_data_observing(|_, _| {})
++    }
++
++    /// Observe exactly one original refusal without changing its admission.
++    /// Source and Target identify admission, including its current Core fences;
++    /// they do not imply that policy alone refused. The synchronous callback
++    /// runs only after a failed attempt has dropped its local authority leases.
++    /// No grant, payload or additional current check is exposed to it.
++    pub fn admit_data_observing(
++        &self,
++        mut refusal: impl FnMut(DataAdmissionStage, &StreamControlError),
++    ) -> ControlResult<Arc<AdmittedData>> {
++        let mut stage = DataAdmissionStage::Internal;
++        let result = (|| {
++            if self.frame.kind != StreamKind::Data || self.sources.len() != 1 {
++                return Err(StreamControlError::Unsupported);
++            }
++            let data = self.data.as_ref().ok_or(StreamControlError::Unsupported)?;
++            if self.frame.payload != data.message.bytes {
++                return Err(StreamControlError::NotReady);
++            }
++            let target = self
++                .target
++                .owner
++                .upgrade()
++                .ok_or(StreamControlError::Cancelled)?;
++            let provenance = &self.sources[0];
++            let source = provenance
++                .source
++                .owner
++                .upgrade()
++                .ok_or(StreamControlError::Cancelled)?;
++            if source.conversation != target.conversation
++                || source.session != target.session
++                || !Arc::ptr_eq(&source.policy, &target.policy)
++            {
++                return Err(StreamControlError::Authority);
++            }
++            let mut tokens = vec![target.shutdown.clone(), source.shutdown.clone()];
++            for stamp in [self.target_scene.as_ref(), provenance.scene.as_ref()]
++                .into_iter()
++                .flatten()
++            {
++                tokens.push(stamp.cancel.clone());
++            }
++            if let Some(stamp) = &self.direct {
++                tokens.push(stamp.cancel.clone());
++            }
++            stage = DataAdmissionStage::Source;
++            let (source_lease, source_admission, source_end) = source.admit_with_data(
++                &provenance.source,
++                &provenance.ticket,
++                false,
++                None,
++                audio_consumer::ConsumerCheck::Retained(provenance.consumer.as_ref()),
++                None,
++                scene_consumer::SceneCheck::retained_publish(provenance.scene.as_ref()),
++                Some(data),
++                None,
++                None,
++            )?;
++            stage = DataAdmissionStage::Target;
++            let (target_lease, target_admission, target_end) = target.admit_with_data(
++                &self.target,
++                &self.target_ticket,
++                true,
++                Some(&provenance.descriptor),
++                audio_consumer::ConsumerCheck::Retained(self.target_consumer.as_ref()),
++                self.direct.as_ref(),
++                scene_consumer::SceneCheck::retained_receive(
++                    self.target_scene.as_ref(),
++                    provenance.scene.as_ref(),
++                    self.admitted_at,
++                ),
++                Some(data),
++                None,
++                None,
++            )?;
++            stage = DataAdmissionStage::Internal;
++            let owner = target_lease.authority();
++            let target_view = DataTarget {
++                owner: Arc::downgrade(&target),
++                conversation: target.conversation.clone(),
++                session: target.session.clone(),
++                connection: target.connection.clone(),
++                participant: owner.member.participant().clone(),
++                identity: owner.member.identity().clone(),
++                device: owner.endpoint.device().clone(),
++                membership_epoch: owner.member.epoch(),
++                principal: target.credential_snapshot().principal,
++                binding: self.target.binding.clone(),
++                credential_revision: target.credential_revision(),
++            };
++            let mut tickets = vec![provenance.ticket.clone(), self.target_ticket.clone()];
++            if let Some(direct) = &self.direct {
++                tickets.push(direct.delivery_ticket());
++            }
++            let admission = Arc::new(AdmittedData {
++                state: Mutex::new(AdmissionState {
++                    phase: Phase::Pending,
++                    guards: Some(OwnedGuards {
++                        _leases: vec![source_lease, target_lease],
++                        _admissions: vec![source_admission, target_admission],
++                    }),
+                 }),
+-            }),
+-            data: data.clone(),
+-            frame: self.frame.clone(),
+-            source: provenance.descriptor.clone(),
+-            target: target_view,
+-            tickets,
+-            tokens,
+-            cancel: CancellationToken::new(),
+-            deadline: source_end.min(target_end),
+-        });
+-        if !admission.current() {
+-            admission.cancel();
+-            return Err(StreamControlError::Cancelled);
+-        }
+-        Ok(admission)
++                data: data.clone(),
++                frame: self.frame.clone(),
++                source: provenance.descriptor.clone(),
++                target: target_view,
++                tickets,
++                tokens,
++                cancel: CancellationToken::new(),
++                deadline: source_end.min(target_end),
++            });
++            if !admission.current() {
++                admission.cancel();
++                return Err(StreamControlError::Cancelled);
++            }
++            Ok(admission)
++        })();
++        if let Err(error) = &result {
++            refusal(stage, error);
++        }
++        result
+     }
+ }
+ 
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
+@@ -12,7 +12,7 @@
+     source: ConnectionId,
+     receiver: ConnectionId,
+ }
+-struct DataPolicy(Arc<Policy>);
++struct DataPolicy(Arc<Policy>, Arc<[AtomicUsize; 2]>);
+ impl MediaPolicy for DataPolicy {
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+         self.0.current(scope)
+@@ -23,6 +23,11 @@
+         data: &StagedData,
+         held: Option<&(dyn Any + Send + Sync)>,
+     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        match scope.purpose {
++            MediaPurpose::Publish => { self.1[0].fetch_add(1, Ordering::AcqRel); }
++            MediaPurpose::Receive { .. } => { self.1[1].fetch_add(1, Ordering::AcqRel); }
++            _ => {}
++        }
+         let context = data
+             .context::<Context>()
+             .ok_or(StreamControlError::Authority)?;
+@@ -81,7 +86,17 @@
+     data(format!("{{\"sequence\":{sequence}}}"), "application/json")
+ }
+ async fn fixture(protocol: DataProtocol, messages_only: bool) -> Fixture {
+-    let f = Fixture::with_policy(8, Some(Box::new(|base| Arc::new(DataPolicy(base)))));
++    fixture_counted(protocol, messages_only).await.0
++}
++async fn fixture_counted(
++    protocol: DataProtocol,
++    messages_only: bool,
++) -> (Fixture, Arc<[AtomicUsize; 2]>) {
++    let calls = Arc::new([AtomicUsize::new(0), AtomicUsize::new(0)]);
++    let observed = calls.clone();
++    let f = Fixture::with_policy(8, Some(Box::new(move |base| {
++        Arc::new(DataPolicy(base, observed))
++    })));
+     {
+         let mut state = f.policy.0.write().await;
+         for owner in state.owners.values_mut() {
+@@ -101,7 +116,7 @@
+         f.ba.mode.store(5, Ordering::Release);
+     }
+     f.start(&[Medium::Data]).await;
+-    f
++    (f, calls)
+ }
+ async fn scene(f: &Fixture) -> Arc<GuardedMediaScene> {
+     let s = GuardedMediaScene::new(
+@@ -726,3 +741,76 @@
+         identity.message_id
+     );
+ }
++
++
++#[tokio::test]
++async fn queued_data_observer_reports_original_source_target_and_internal_refusals_once() {
++    let (f, calls) = fixture_counted(DataProtocol::Json, true).await;
++    let s = scene(&f).await;
++    let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++    let original = message(230).with_operation_id("observed-original").unwrap();
++    let mut q = queued(&f, &s, &mut out, &original).await;
++    let reset = || {
++        for count in calls.iter() { count.store(0, Ordering::Release); }
++    };
++    let snapshot = || calls.each_ref().map(|count| count.load(Ordering::Acquire));
++    for (subject, expected_stage, expected_calls) in [
++        ("alice", DataAdmissionStage::Source, [1, 0]),
++        ("bob", DataAdmissionStage::Target, [1, 1]),
++    ] {
++        f.policy.0.write().await.revoked.insert(subject.into());
++        reset();
++        let ordinary = q.admit_data();
++        let ordinary_calls = snapshot();
++        reset();
++        let mut observed = Vec::new();
++        let result = q.admit_data_observing(|stage, error| {
++            // Source leases acquired before a target refusal must be gone
++            // before this callback; diagnostics cannot extend their custody.
++            assert!(f.policy.0.try_write().is_ok());
++            observed.push((stage, matches!(error, StreamControlError::Authority)));
++        });
++        assert!(matches!(ordinary, Err(StreamControlError::Authority)));
++        assert!(matches!(result, Err(StreamControlError::Authority)));
++        assert_eq!(observed, vec![(expected_stage, true)]);
++        assert_eq!(snapshot(), expected_calls);
++        assert_eq!(snapshot(), ordinary_calls, "no added policy evaluation");
++        f.policy.0.write().await.revoked.clear();
++    }
++    reset();
++    let mut successful_callbacks = 0;
++    let admission = q.admit_data_observing(|_, _| successful_callbacks += 1).unwrap();
++    let success_calls = snapshot();
++    let writing = admission.begin_write().unwrap();
++    let same_message = admission.data().message() == original.message();
++    let same_operation = admission.data().operation_id() == Some("observed-original");
++    let same_bytes = writing.frame().payload == original.message().bytes;
++    drop(writing);
++    let refuses_duplicate_write = admission.begin_write().is_err();
++    let no_second_publication = out.try_recv().is_err();
++    // An internal pre-admission refusal also preserves its exact original error
++    // and invokes no policy. This is the same queued value, not copied logic.
++    q.frame.kind = StreamKind::Audio;
++    reset();
++    let mut internal = Vec::new();
++    let result = q.admit_data_observing(|stage, error| {
++        internal.push((stage, matches!(error, StreamControlError::Unsupported)));
++    });
++    let internal_calls = snapshot();
++    drop(admission);
++    drop(q);
++    drop(out);
++    s.remove(&f.a.connection);
++    s.remove(&f.b.connection);
++    drop(s);
++    let source_remaining = f.a.shutdown(deadline()).await;
++    let target_remaining = f.b.shutdown(deadline()).await;
++    assert_eq!((source_remaining, target_remaining), (0, 0));
++    assert_eq!(successful_callbacks, 0);
++    assert_eq!(success_calls, [1, 1]);
++    assert!(same_message && same_operation && same_bytes);
++    assert!(refuses_duplicate_write && no_second_publication);
++    assert!(matches!(result, Err(StreamControlError::Unsupported)));
++    assert_eq!(internal, vec![(DataAdmissionStage::Internal, true)]);
++    assert_eq!(internal_calls, [0, 0]);
++}

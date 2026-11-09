@@ -525,6 +525,38 @@ impl Policy {
         );
         Some(current)
     }
+    /// Exercise actual post-publication attachment with this original registry
+    /// excluded. No mock grant, media packet or replacement attempt is created.
+    #[cfg(feature = "test-support")]
+    pub(crate) fn probe_lifecycle_registry_for_test(
+        &self,
+        operation: &str,
+        id: &ConnectionId,
+        activate: impl FnOnce() -> connect_protocol::Result<()>,
+    ) -> Option<connect_protocol::Result<()>> {
+        use std::sync::atomic::Ordering;
+        let state = self
+            .held_registry_probes
+            .lock()
+            .ok()?
+            .remove(&format!("lifecycle:{operation}"))?;
+        state.store(1, Ordering::Release);
+        let Ok(registry) = self.entries.lock() else {
+            return Some(Err(connect_protocol::Error::forbidden()));
+        };
+        let original_installed = registry.contains_key(id);
+        let old_lookup_busy = matches!(self.entry(id), Err(StreamControlError::NotReady));
+        let result = activate();
+        state.store(
+            if original_installed && old_lookup_busy && result.is_ok() {
+                2
+            } else {
+                3
+            },
+            Ordering::Release,
+        );
+        Some(result)
+    }
     #[cfg(feature = "test-support")]
     pub(crate) fn with_registry_for_test(
         &self,
