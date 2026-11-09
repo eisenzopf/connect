@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-08",
-  "run_status": "The owner stopped v204. All 16 local cells completed without qualification, two remote attempts were interrupted and 14 cells were unattempted. Recorded totals are 0 passed, 17 failed and 15 blocked cells, with 184 passed, 36 failed and 212 blocked checks. All original processes and VM leases are closed. Focused proofs pass 161 Core, 99 Store, 5 RTC, 31 observer and 31 plumbing controls. The collector has direct before/after proof on both failed captures. The owner approved diagnostic source quanta prospectively, with explicit scope required by independent verifiers. The complete local ARM replay passes 340 of 340 Node and 206 of 206 Python controls, with no skips. All original commands and leases joined naturally and source equality passed. The default shipping check and storage admission precede the next full 32-cell run. G6-054 is deferred and G6-098 sustained growth is separate.",
+  "run_status": "The owner stopped v204. All 16 local cells completed without qualification, two remote attempts were interrupted and 14 cells were unattempted. Recorded totals are 0 passed, 17 failed and 15 blocked cells, with 184 passed, 36 failed and 212 blocked checks. All original processes and VM leases are closed. Focused proofs pass 161 Core, 99 Store, 5 RTC, 31 observer and 31 plumbing controls. The collector has direct before/after proof on both failed captures. The owner approved diagnostic source quanta prospectively, with explicit scope required by independent verifiers. The complete local ARM replay passes 340 of 340 Node and 206 of 206 Python controls, with no skips. All original commands and leases joined naturally and source equality passed. The default server library and binaries check passes with unchanged source and a natural join. Storage admission precedes the next full 32-cell run. G6-054 is deferred and G6-098 sustained growth is separate.",
   "blockers": [
     {
       "id": "B01",
@@ -2880,7 +2880,9 @@
     "all_original_script_commands_natural_joined": true,
     "original_v204_requalified": false,
     "next_run": "full-matrix-v205",
-    "shipping_default_check": "running",
-    "storage_admission": "pending"
+    "shipping_default_check": "passed",
+    "storage_admission": "pending",
+    "shipping_default_receipt_sha256": "aebd3a5d4acbd2f2ba7723fb8b595f0fc0e0a29fde8b08fd7a1a4159d3021bdb",
+    "batch_commit": "f6dd3d2333fcb5fce6172394be94881b27b48c1f"
   }
 }
