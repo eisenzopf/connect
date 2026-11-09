@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-08",
-  "run_status": "The owner stopped v204. All 16 local cells completed without qualification, two remote attempts were interrupted and 14 cells were unattempted. Recorded totals are 0 passed, 17 failed and 15 blocked cells, with 184 passed, 36 failed and 212 blocked checks. All original processes and VM leases are closed. Focused proofs pass 161 Core, 99 Store, 5 RTC, 31 observer and 31 plumbing controls. The collector has direct before/after proof on both failed captures. The owner approved diagnostic source quanta prospectively, with explicit scope required by independent verifiers. The complete local ARM replay passes 340 of 340 Node and 206 of 206 Python controls, with no skips. All original commands and leases joined naturally and source equality passed. The default server library and binaries check passes with unchanged source and a natural join. Storage admission precedes the next full 32-cell run. G6-054 is deferred and G6-098 sustained growth is separate.",
+  "run_status": "Full v205 completed on 5c42dfa6 with 0 passed, 2 failed and 30 blocked cells. Only the first Mac and ARM native cells were attempted. Their requirement totals are 20 passed, 4 failed and 408 blocked. Both original workers and the controller exited and the source guard closed. Closed Linux evidence identifies mismatched Node video-epoch field names, missing three-cycle quality-profile binding, and an offline capture interpreter started with 3.35ms before its physical cutoff. A forced, reaped interpreter also caused archive backpressure to block later cells. The next batch addresses these harness paths with normal-entry regressions. Historical verdicts remain preserved. G6-054 is deferred and G6-098 sustained growth is separate.",
   "blockers": [
     {
       "id": "B01",
@@ -981,6 +981,38 @@
       "change": "Use connect/decoded-audio-quality/3 and measurable-decoded-quality-source-quanta-diagnostic. Retain clock estimates and bounded examples diagnostically. Require original_source_sample_coverage_proved=false in producers and independent verifiers.",
       "evidence": "Owner explicitly selected measurable quality and source-quantum diagnostics on November8. Browser31/31 and Python50/50 focused cohorts pass. New4Python and2browser controls fail on old production and pass after. Contract, producers and independent full/partial verifiers share exact bindings. Historical v204 is preserved. Native manifestc098653d80cdcb202fc46cfc1b84642e97b2240ab1fb919e15f87e209e7b826f and browser8e6355a872ab2263a0fed21d298497acaae56f0abc64dda47b1d0f848515a784.",
       "next": "Complete ARM replay passes all 340 Node and 206 Python controls. Run the fresh 32-cell matrix under the approved prospective profile. Exact original-sample provenance remains outside this quality claim."
+    },
+    {
+      "id": "B119",
+      "title": "Original Node video epochs use SDK field names in the wire capture",
+      "status": "IMPLEMENTED. Normal-entry regression execution is pending the complete batch.",
+      "change": "Serialize the exact typed Node video epoch into the existing snake_case capture contract. Preserve strict independent parsing and reject mixed or unknown fields.",
+      "evidence": "Both closed Linux timelines fail at the same exact-video-epoch check. In-memory field-name mapping alone permits all six routes and 28 physical histories per cycle to parse. Actual decoded quality remains unverified.",
+      "next": "Complete all changes, run normal-entry regression controls, then retest all 32 cells."
+    },
+    {
+      "id": "B120",
+      "title": "Native three-cycle decoded reports lack the new quality-profile binding",
+      "status": "IMPLEMENTED. Normal-entry regression execution is pending the complete batch.",
+      "change": "Bind the wrapper and each of its three exact indexed moving-media observations to the approved profile. Preserve all child and route failures.",
+      "evidence": "The normal native producer emits a three-cycle wrapper. The new scope verifier expects a single report with six routes, so even three positive native cycles cannot qualify. Add normal evaluate_cell coverage.",
+      "next": "Complete all changes, run normal-entry regression controls, then retest all 32 cells."
+    },
+    {
+      "id": "B121",
+      "title": "Offline capture interpretation consumes the physical end deadline",
+      "status": "ROOT APPROVED. Batch implementation in progress. Verification pending.",
+      "change": "Defer bounded capture interpretation until original Worker retirement and the T+10 observation. Use the same original cycle deadline for the owned interpreter, keeping physical event and resource bounds.",
+      "evidence": "Linux cycle 3 starts its interpreter with 3.348ms remaining, then SIGKILL is recorded. Earlier interpreters complete naturally in about 0.43s. Original Node, server, packet capture and guardian later close.",
+      "next": "Complete all changes, run normal-entry regression controls, then retest all 32 cells."
+    },
+    {
+      "id": "B122",
+      "title": "Failed logical cleanup blocks archive custody after physical closure",
+      "status": "ROOT APPROVED. Batch implementation in progress. Verification pending.",
+      "change": "Separate failed qualification from safe native archival under a complete natural original process anchor. Preserve forced-helper evidence and all unknown-owner backpressure.",
+      "evidence": "The original guardian releases after all five custody joins, but conversation_control.all_observed_helpers_joined=false prevents archival and blocks the next 15 ARM cells. No stuck original guardian was observed.",
+      "next": "Complete all changes, run normal-entry regression controls, then retest all 32 cells."
     }
   ],
   "workplan_tasks": [
@@ -1209,6 +1241,65 @@
       "solution": "Use bounded authority for metadata retirement and retain original custody through settlement. Close exact original queue sessions.",
       "status": "Implemented.5 actual RTC and31 plumbing controls pass, including cutoff and unconfirmed-group refusals.",
       "completion": "Fresh full-matrix behavior and resource checks pass.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S11",
+      "title": "Match actual native capture and three-cycle report schemas",
+      "owner": "Schema and independent-verifier implementation / expiry_review",
+      "dependencies": [
+        "S9"
+      ],
+      "code_paths": [
+        "scripts/lib/transport_av.mjs",
+        "scripts/lib/transport_matrix.py",
+        "scripts/check-transport-fixtures.py"
+      ],
+      "solution": "Use canonical video epochs and exact native three-cycle profile binding through normal producer and evaluate_cell entry points.",
+      "test_names": [
+        "native capture serializes the actual SDK video epoch without changing its values",
+        "test_native_three_cycle_quality_binds_each_original_cycle_and_preserves_failures"
+      ],
+      "status": "Implemented with real SDK serialization and full native three-cycle verdict regression cases. Execution awaits the full batch.",
+      "completion": "Normal-entry regression controls and the fresh full matrix pass.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S12",
+      "title": "Retire live owners before offline capture interpretation",
+      "owner": "Capture ownership implementation / v199_driver",
+      "dependencies": [
+        "S10"
+      ],
+      "code_paths": [
+        "scripts/check-transport-conversation.mjs",
+        "scripts/lib/native_programme_controller.mjs",
+        "scripts/lib/transport_movement_capture_owner.mjs"
+      ],
+      "solution": "Seal a bounded request, observe original Worker retirement and T+10, then join an offline interpreter under the original overall deadline.",
+      "test_names": [
+        "post-idle capture interpretation preserves physical and original cycle deadlines"
+      ],
+      "status": "Approved batch implementation in progress. No new test results yet.",
+      "completion": "Normal-entry regression controls and the fresh full matrix pass.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S13",
+      "title": "Archive failed native attempts with complete physical custody",
+      "owner": "Archive custody implementation / v199_driver",
+      "dependencies": [
+        "S12"
+      ],
+      "code_paths": [
+        "scripts/lib/matrix_archive_drain.py"
+      ],
+      "solution": "Use the original naturally settled NativeOwner profile to distinguish safe failed-attempt archival from unknown or surviving ownership.",
+      "test_names": [
+        "failed native original custody permits later selected cells while qualification remains failed"
+      ],
+      "status": "Approved batch implementation in progress. No new test results yet.",
+      "completion": "Normal-entry regression controls and the fresh full matrix pass.",
       "completion_status": "full-matrix-pending"
     }
   ],
@@ -2884,5 +2975,42 @@
     "storage_admission": "pending",
     "shipping_default_receipt_sha256": "aebd3a5d4acbd2f2ba7723fb8b595f0fc0e0a29fde8b08fd7a1a4159d3021bdb",
     "batch_commit": "f6dd3d2333fcb5fce6172394be94881b27b48c1f"
+  },
+  "completed_v205_actual": {
+    "source_revision": "5c42dfa650d5193c5cdf05e79164388447c7d911",
+    "matrix_sha256": "5df2888c489b2d6c555a0294b38dacd8ae071c0d4aae6e4fcfaca309fe2bebc7",
+    "state_sha256": "cf6b60166c847a8abeb9f56d6c0313f0578a48b1ac9d4e2d0784c4e635b087b1",
+    "summary": {
+      "cells": {
+        "passed": 0,
+        "failed": 2,
+        "blocked": 30,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 20,
+        "failed": 4,
+        "blocked": 408,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "selected_cells": 32,
+    "attempted_cells": 2,
+    "worker_exit_codes": {
+      "macos-arm64": 1,
+      "ubuntu24-arm64": 1
+    },
+    "source_guard_active": false,
+    "controller_joined": true,
+    "controller_exit_code": 1,
+    "original_verdicts_preserved": true,
+    "linux_failure_findings_sha256": "17fe018906fdce089f1b87fdd34d8b831e108359df7e2bcd8ec79f4b18f1cc5d",
+    "native_schema_proposal_sha256": "5d0961af43893093ee7d01127a88f742d9390f304998ac15d966a98839fee791",
+    "postprocessing_proposal_sha256": "ba631194486bd05d35c1ee0a3d985f2a24de8839dd96ccb1e0688c73be622313"
   }
 }
