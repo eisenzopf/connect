@@ -59,6 +59,23 @@ fn data_denied(error: connect_protocol::Error) -> StreamControlError {
     }
 }
 impl Policy {
+    pub(super) fn data_entry(
+        &self,
+        id: &ConnectionId,
+    ) -> connect_protocol::Result<Arc<Connection>> {
+        self.entry(id).map_err(|error| {
+            // entry() returns NotReady only when its metadata mutex is busy.
+            // Missing or poisoned entries remain definitive authority failures.
+            let error = match error {
+                StreamControlError::NotReady => {
+                    connect_protocol::Error::new("authority-busy", "Native data registry is busy")
+                }
+                _ => connect_protocol::Error::forbidden(),
+            };
+            crate::canonical_native_data::failure("data-invocation-registry", &error);
+            error
+        })
+    }
     pub(crate) fn data_invocation(
         self: &Arc<Self>,
         a: Arc<AuthorizedEnvelope>,
@@ -69,14 +86,15 @@ impl Policy {
             .authority::<StoreInvocationAuthority>()
             .and_then(|h| h.peer_guard())
             .ok_or_else(connect_protocol::Error::forbidden)?;
-        let connection = self
-            .entry(&ConnectionId::from_string(lease.runtime_connection_id()))
-            .map_err(|_| connect_protocol::Error::forbidden())?;
-        let read = Arc::new(self.store.native_data_read_with_peer(
-            &connection.origin,
-            proof,
-            lease,
-        )?);
+        let connection =
+            self.data_entry(&ConnectionId::from_string(lease.runtime_connection_id()))?;
+        let read = Arc::new(
+            self.store
+                .native_data_read_with_peer(&connection.origin, proof, lease)
+                .inspect_err(|error| {
+                    crate::canonical_native_data::failure("data-invocation-store", error);
+                })?,
+        );
         let wire = crate::canonical_native_streams::intent(a.envelope())?;
         let i = Arc::new(DataInvocation {
             policy: self.clone(),
@@ -86,9 +104,14 @@ impl Policy {
             wire,
             deadline,
         });
-        i.current()
-            .map_err(|_| connect_protocol::Error::forbidden())?;
-        crate::peer_authority::bind_native_data(&i.authorized, &i)?;
+        i.current().map_err(|_| {
+            let error = connect_protocol::Error::forbidden();
+            crate::canonical_native_data::failure("data-invocation-current", &error);
+            error
+        })?;
+        crate::peer_authority::bind_native_data(&i.authorized, &i).inspect_err(|error| {
+            crate::canonical_native_data::failure("data-invocation-binding", error);
+        })?;
         Ok(i)
     }
     pub(super) fn data_authority(

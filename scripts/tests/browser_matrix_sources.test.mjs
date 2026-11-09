@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {browserMatrixSources,matrixSourceFrame} from '../lib/browser_matrix_sources.mjs';
+import {classifySourceFrame} from '../video/source_identity.mjs';
 
 // Ownership/clock boundary fixtures only, not browser decoding or media proof.
 async function fixture(run) {
@@ -31,8 +32,30 @@ async function fixture(run) {
         createGain(){const events=[];gains.push(events);return {gain:{setValueAtTime:(value,time)=>events.push({value,time})},connect(){},disconnect(){}};}
         createMediaStreamDestination(){throw Error('No unused source destination or master tracks');}
     }
+    const rectangles = new WeakMap();
+    const createCanvas = () => {
+        const rows = [];
+        const paint = {fillStyle:'black', fillRect(x, y, width, height) {
+            if (x === 0 && y === 0 && width === 640 && height === 360) rows.length = 0;
+            const gray = /^rgb\((\d+),/.exec(this.fillStyle);
+            const value = this.fillStyle === 'white' ? 255 : this.fillStyle === 'black' ? 0 : gray ? Number(gray[1]) : 100;
+            rows.push({x,y,width,height,value});
+        }};
+        const canvas = {getContext:() => paint,
+            captureStream(){throw Error('Only the public SDK may create derived canvas tracks');}};
+        rectangles.set(canvas, rows);
+        return canvas;
+    };
+    const sample = (canvas, width, height) => Uint8Array.from({length:width * height}, (_, index) => {
+        const x = (index % width + .5) * 640 / width;
+        const y = (Math.floor(index / width) + .5) * 360 / height;
+        const pixel = rectangles.get(canvas).findLast(row => x >= row.x && x < row.x + row.width
+            && y >= row.y && y < row.y + row.height);
+        assert.ok(pixel, 'Actual source drawing must cover the sample');
+        return pixel.value;
+    });
     const values={AudioContext:Audio,MediaStream:Stream,performance:{now:()=>clock},
-        document:{createElement:()=>({getContext:()=>({fillRect(){}}),captureStream(){throw Error('Only the public SDK may create derived canvas tracks');}})},
+        document:{createElement:createCanvas},
         setInterval:fn=>{intervals.add(fn);return fn;},clearInterval:fn=>intervals.delete(fn),
         setTimeout:fn=>{timeouts.add(fn);return fn;},clearTimeout:fn=>timeouts.delete(fn)};
     for(const [key,value] of Object.entries(values))Object.defineProperty(globalThis,key,{configurable:true,value});
@@ -47,7 +70,7 @@ async function fixture(run) {
     }});
     try{
         owner=await browserMatrixSources();
-        await run({owner,route,connection,captures,tracks,gains,audio,canvasCaptures,
+        await run({owner,route,connection,captures,tracks,gains,audio,canvasCaptures,sample,
             tick:(time,sourceTime)=>{clock=time;audio.currentTime=sourceTime;for(const fn of [...intervals])fn();},
             setClock:time=>{clock=time;},
             takeTimeout:()=>{const callback=[...timeouts][0];assert.ok(callback,'Original terminal timer required');timeouts.delete(callback);return callback;},
@@ -212,4 +235,45 @@ test('a dequeued source terminal callback cannot rearm after explicit source clo
     pending();
     assert.deepEqual(f.timers(),{intervals:0,timeouts:0},'A late callback cannot resurrect a released source owner');
     assert.equal(f.audio.closed,1);
+}));
+
+
+test('actual source pulse frames keep white identity centres and distinct motion samples', () => fixture(async f => {
+    for (let index = 0; index < 6; index++) {
+        await f.owner.start({route:f.route(index),connection:f.connection('pulse-' + index),options:{}});
+    }
+    const programme = f.owner.beginProgramme(), frames = [];
+    for (const elapsed of [301, 335, 368]) {
+        f.tick(programme.originMs + elapsed, programme.audioOriginSeconds + elapsed / 1000);
+        frames.push(f.owner.sources.map(source => ({identity:f.sample(source.canvas, 8, 8),
+            change:f.sample(source.canvas, 128, 72)})));
+    }
+    for (let index = 0; index < 6; index++) {
+        assert.ok(frames.every(frame => classifySourceFrame(frame[index].identity) === 'pulse'));
+        assert.deepEqual(frames[0][index].identity, frames[1][index].identity);
+        assert.ok(frames[0][index].change.some((value, pixel) => value !== frames[1][index].change[pixel]));
+        assert.ok(frames[1][index].change.some((value, pixel) => value !== frames[2][index].change[pixel]));
+    }
+    assert.equal(matrixSourceFrame(399).pulse, true);
+    assert.equal(matrixSourceFrame(400).pulse, false);
+}));
+
+test('actual source footer preserves source identity and never changes a repeated source frame', () => fixture(async f => {
+    for (let index = 0; index < 6; index++) {
+        await f.owner.start({route:f.route(index),connection:f.connection('identity-' + index),options:{}});
+    }
+    const programme = f.owner.beginProgramme();
+    f.tick(programme.originMs + 1001, programme.audioOriginSeconds + 1.001);
+    const first = f.owner.sources.map(source => f.sample(source.canvas, 128, 72));
+    f.tick(programme.originMs + 1001, programme.audioOriginSeconds + 1.001);
+    for (const [index, source] of f.owner.sources.entries()) {
+        assert.deepEqual(f.sample(source.canvas, 128, 72), first[index]);
+        assert.equal(classifySourceFrame(f.sample(source.canvas, 8, 8)), String(source.sourceId));
+    }
+    f.tick(programme.originMs + 1035, programme.audioOriginSeconds + 1.035);
+    for (const [index, source] of f.owner.sources.entries()) {
+        const next = f.sample(source.canvas, 128, 72);
+        assert.ok(first[index].some((value, pixel) => value !== next[pixel]));
+        assert.equal(classifySourceFrame(f.sample(source.canvas, 8, 8)), String(source.sourceId));
+    }
 }));

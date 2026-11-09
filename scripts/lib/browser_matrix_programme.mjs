@@ -211,7 +211,8 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
         }
         const began=performance.now(),cutoff=Math.min(began+8000,original.deadlineMs);
         const options=()=>{const timeoutMs=Math.floor(cutoff-performance.now());check(timeoutMs>0,'Original movement deadline');return {timeoutMs};};
-        let operation,targetOwner,cleanupEntry;
+        let operation, targetOwner, cleanupEntry, ownerReceipts = null;
+        let phase = 'source-session-refresh';
         try{
             const sid=plan.sessions[route.session].id,cid=state.conversation.id;
             const sourceSession=actors[before.role].client.conversations.byId(cid).sessions.byId(sid);
@@ -219,6 +220,7 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             const peers=plan.routes.filter(other=>other.session===route.session),retained=peers.find(other=>other.index!==route.index);
             check(typeof target.endpointId==='string'&&target.endpointId.length,'Actual provisioned target Endpoint required');
             const snapshot=await sourceSession.refresh(options());
+            phase = 'source-connection-refresh';
             const sourceSnapshot=cleanupMoves?await before.connection.refresh(options()):undefined;
             const command={retain:current[retained.index].connection.id,target:{endpoint:target.endpointId},
                 expectedTopologyRevision:snapshot.topologyRevision,video:{publications:[{previous:before.video,replacement:intent.video}],
@@ -226,20 +228,33 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             await journal({kind:'move-intent',name:`move-${route.index}-${intent.ordinal}`,operationId:intent.operation,
                 sourceConnectionId:before.connection.id,command,scheduledStartMs:intent.scheduledStartMs,actualStartMs:began-original.originMs});
             cleanupEntry=cleanupMoves?.track({intent,route,before,targetSession,retain:command.retain,sourceSnapshot});
+            phase = 'replace-device';
             operation=await before.connection.replaceDevice(command,{...options(),operationId:intent.operation});
             if(cleanupEntry)cleanupMoves.accepted(cleanupEntry,operation);
             const reference=operation.referenceJson();
             await journal({kind:'move-accepted',operationId:intent.operation,reference});
+            phase = 'target-preparation';
             targetOwner=await targetSession.connections.prepareReplacement({operation:operation.reference,audio:intent.audio,
                 video:{send:intent.video,receive:intent.receiveVideo}},options());
             if(cleanupEntry)cleanupMoves.prepared(cleanupEntry,targetOwner.connection);
             await journal({kind:'move-target-prepared',operationId:intent.operation,connectionId:targetOwner.connection.id});
+            phase = 'target-capture';
             await sources.start({route,connection:targetOwner.connection,options:options()});
+            phase = 'prepared-observer-attachment';
             if(observer)await observer.attach(route.index,targetOwner.connection,{audio:intent.audio,video:intent.receiveVideo,sendVideo:intent.video},options());
             // Both receipts retain their original owners; do not cancel or
             // resubmit a mutation when one response is uncertain.
+            phase = 'original-owner-receipts';
             const outcomes=await Promise.allSettled([operation.wait(options()),targetOwner.completion]);
+            ownerReceipts = outcomes.map((outcome, index) => ({
+                owner:index === 0 ? 'source-operation' : 'target-preparation', status:outcome.status,
+                ...(outcome.status === 'rejected' ? {failure:failureDetails(outcome.reason)} : {
+                    connection_id:outcome.value?.value?.connection?.id ?? null,
+                    activation_state:outcome.value?.value?.activationState ?? null
+                })
+            }));
             const rejected=outcomes.find(outcome=>outcome.status==='rejected');if(rejected)throw rejected.reason;
+            phase = 'original-receipt-validation';
             const moved=outcomes[0].value.value,prepared=outcomes[1].value.value;
             check(moved.connection.id===targetOwner.connection.id&&prepared.connection.id===moved.connection.id,
                 'Both original owners must identify the same admitted target');
@@ -253,7 +268,9 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             // source retirement. Observe its subsequent genuine decoder output
             // now; an additional verification read must not manufacture a gap.
             // Prepared outputs remain excluded and are never replayed.
+            phase = 'public-observer-activation';
             await observer?.activate(route.index,targetOwner.connection.id,options());
+            phase = 'retired-source-refresh';
             const old=await before.connection.refresh(options());check(old.state==='retired','Original source must be durably retired');
             sources.retireConnection(before.connection.id);
             current[route.index]={connection:targetOwner.connection,role:intent.targetRole,video:intent.video,receiveVideo:intent.receiveVideo};
@@ -267,9 +284,11 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             report.moves.push(result);await journal({kind:'move-completed',...result});
         }catch(error){
             report.failures.push({operation_id:intent.operation,source_index:route.index,ordinal:intent.ordinal,
+                phase, owner_receipts:ownerReceipts,
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:error.problem?{code:error.problem.code,reason:error.problem.reason}:null});
             await journal({kind:'move-failure',operationId:intent.operation,reference:operation?.referenceJson()??cleanupEntry?.reference??null,
+                phase, owner_receipts:ownerReceipts,
                 certainty:error.certainty??null,kindOfFailure:error.kind??error.name});throw error;
         }
     }

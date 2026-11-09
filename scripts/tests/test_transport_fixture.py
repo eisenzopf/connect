@@ -1,5 +1,10 @@
 """Fixture configuration cannot broaden scope, renew trust or replace existing state."""
+import ast
 import copy
+import importlib.util
+import os
+import signal
+import subprocess
 import datetime
 import hashlib
 import json
@@ -8,6 +13,7 @@ import sys
 import tempfile
 import tomllib
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -218,6 +224,103 @@ class FixtureBoundary(unittest.TestCase):
             publish(path, b"replacement")
         self.assertEqual(path.read_bytes(), b"original")
         self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
+
+class OriginalServerPhysicalCustody(unittest.TestCase):
+    def producer_cleanup(self, process, report):
+        # Execute the actual producer finally branch, including its poll/wait
+        # ordering. A helper-only test would miss the old already-exited skip.
+        path = ROOT / "scripts/check-transport-fixtures.py"
+        spec = importlib.util.spec_from_file_location("physical_fixture_producer", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        tree = ast.parse(path.read_text())
+        branch = next(node for node in ast.walk(tree) if isinstance(node, ast.If)
+            and ast.unparse(node.test).startswith("namespace is None and server is not None"))
+        environment = dict(namespace=None, server=process, report=report, signal=signal,
+                           subprocess=subprocess, os=os, record_server_exit=getattr(module, "record_server_exit", None))
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[branch], type_ignores=[])), str(path), "exec"), environment)
+
+    def report(self, process):
+        return dict(passed=False, servers=[dict(original_joined=False, original_pid=process.pid)], native_programme_started=False,
+                    packet_capture=dict(owner_created=False))
+
+    def test_natural_nonzero_server_exit_records_custody_without_passing_shutdown(self):
+        from lib.vm_workload_lease import cleanup_evidence
+        for code in (0, 1):
+            with self.subTest(code=code):
+                process = subprocess.Popen([sys.executable, "-c", "raise SystemExit(" + str(code) + ")"],
+                                           start_new_session=True)
+                self.assertEqual(process.wait(timeout=5), code)
+                report = self.report(process)
+                self.producer_cleanup(process, report)
+                row = report["servers"][0]
+                self.assertEqual(row["original_pid"], process.pid)
+                self.assertEqual(row["original_exit_code"], code)
+                self.assertTrue(row["original_process_group_joined"])
+                self.assertEqual(row["original_joined"], code == 0)
+                self.assertFalse(row["original_forced"])
+                self.assertFalse(report["passed"])
+                self.assertTrue(cleanup_evidence(report)["confirmed"])
+
+    def test_missing_or_foreign_server_pid_never_borrows_another_process_join(self):
+        from lib.vm_workload_lease import cleanup_evidence
+        class Process:
+            pid = 2147483647
+            returncode = 1
+            def poll(self): return 1
+            def wait(self, timeout=None): return 1
+        for pid in (None, 2147483646):
+            with self.subTest(pid=pid):
+                process = Process()
+                report = self.report(process)
+                row = report["servers"][0]
+                if pid is None:
+                    del row["original_pid"]
+                else:
+                    row["original_pid"] = pid
+                with patch.object(os, "killpg") as group:
+                    with self.assertRaisesRegex(AssertionError, "PID receipt mismatch"):
+                        self.producer_cleanup(process, report)
+                group.assert_not_called()
+                self.assertFalse(row["original_joined"])
+                self.assertFalse(cleanup_evidence(report)["confirmed"])
+        process = Process()
+        process.returncode = 2
+        report = self.report(process)
+        with patch.object(os, "killpg") as group:
+            with self.assertRaisesRegex(AssertionError, "wait receipt mismatch"):
+                self.producer_cleanup(process, report)
+        group.assert_not_called()
+        self.assertFalse(cleanup_evidence(report)["confirmed"])
+
+    def test_forced_live_and_unobservable_server_groups_never_prove_custody(self):
+        from lib.vm_workload_lease import cleanup_evidence
+        class Process:
+            pid = 2147483647
+            def poll(self): return None
+            def send_signal(self, value): self.signal = value
+            def wait(self, timeout=None):
+                if timeout is not None and self.force:
+                    raise subprocess.TimeoutExpired("original-server", timeout)
+                self.returncode = -signal.SIGKILL if self.force else 1
+                return self.returncode
+        for kind in ("forced", "live", "unknown"):
+            with self.subTest(kind=kind):
+                process = Process()
+                process.force = kind == "forced"
+                report = self.report(process)
+                def group(pid, value):
+                    self.assertEqual(pid, process.pid)
+                    if value == signal.SIGKILL: return
+                    if kind == "forced": raise ProcessLookupError()
+                    if kind == "unknown": raise PermissionError()
+                with patch.object(os, "killpg", side_effect=group):
+                    self.producer_cleanup(process, report)
+                self.assertFalse(report["servers"][0]["original_process_group_joined"])
+                self.assertFalse(report["servers"][0]["original_joined"])
+                self.assertFalse(cleanup_evidence(report)["confirmed"])
+                self.assertFalse(report["passed"])
 
 
 if __name__ == "__main__":

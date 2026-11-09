@@ -1988,6 +1988,18 @@
       "path": "patches/rvoip/connect-owned-queued-audio-policy-retry.patch",
       "sha256": "07adde9e8ce59caa8ec3d758ca83fa861b877c964e33334a0b72a0f5f8229808",
       "source": "G6-058 B126: only exact single-source owned queued Audio may return NotReady for an internal after-policy model revision race, after unchanged fresh route/consumer/scene/credential/current authority and earliest original expiry checks. Retain exact PacketCustody metadata and existing ReadyAudio owner retry; policy-origin conflicts, revocation, generation changes and expiry remain refusals. Three normal-entry controls, no queue/clock/timeout or decoder-credit change. Original v205 occurrence remains unproven."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-owned-retained-audio-policy-retry.patch",
+      "sha256": "f59b2b0bcd4b7b7593f26190fc8e48ca8fb7c47ac5483911981dbf3a225cc6bc",
+      "source": "G6-058 B128: actual owned collector packets, decoded chunks and pending source/target PCM retry only internal after-policy revision races under the existing exact consumer, scene, ticket, binding, current authority and earliest original deadline checks. Four real Room stage controls and 32 refusal lanes; generic Ordinary and raw ingress semantics remain unchanged."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-end-only-quarantined-route-cleanup.patch",
+      "sha256": "05530c4df58e254d529104b90c4437b3caebf3feaa28401b63cbba7215525407",
+      "source": "G6-058 B130: explicit end alone may revisit the exact retired quarantined connection generation and registered adapter. Preserve ordinary operational refusal, bounded cleanup, authoritative absence and the existing generation-aware quota resolver. Cover live, already absent, stale and unconfirmed cases. Original v206 Core error remains unobserved."
     }
   ]
 }

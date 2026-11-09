@@ -403,13 +403,21 @@ impl Runtime {
         }
         // Actual end is scoped to this Core route. An unconfirmed drain keeps
         // custody/quota; no other Connection or the physical peer is closed.
+        let mut end_refusal_logged = false;
         loop {
             self.check_custodian_stop_deadline(&mut cleanup_cutoff)?;
             if native.is_connection_live(&id) {
-                let _ = self
+                let ended = self
                     .core
                     .end_connection(id.clone(), rvoip_core::adapter::EndReason::Normal)
                     .await;
+                if let Err(error) = ended {
+                    if !end_refusal_logged {
+                        tracing::debug!(stage = "core-end-first-refusal", connection = %id,
+                            error = %error, "Native offer cleanup stage");
+                        end_refusal_logged = true;
+                    }
+                }
             }
             // Cleanup takes current authority fences and may wait behind a live
             // command's reader. Blocking this executor prevents that command's

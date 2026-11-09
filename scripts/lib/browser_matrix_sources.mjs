@@ -18,6 +18,30 @@ export function matrixSourceFrame(elapsedMs) {
     return {frame,pulse:ordinal>=0&&frame<pulses[ordinal]+3,ordinal:ordinal>=0?ordinal:null};
 }
 
+// Keep the independently sampled 8x8 identity/pulse centres untouched. The
+// bottom macroblock starts below their final y=337.5 centre; its eight visible
+// rows remain inside the observer's actual 128x72 change sample.
+function paintMatrixVideoFrame(paint, {frame, pulse}, role) {
+    paint.fillStyle = `hsl(${frame % 360} 90% 40%)`;
+    paint.fillRect(0, 0, 640, 360);
+    paint.fillStyle = 'white';
+    paint.fillRect((frame * 7) % 580, 70, 60, 150);
+    markerCells(role).forEach((value, index) => {
+        paint.fillStyle = `rgb(${value},${value},${value})`;
+        paint.fillRect(index % 2 * 80, Math.floor(index / 2) * 45, 80, 45);
+    });
+    if (pulse) {
+        paint.fillStyle = 'white';
+        paint.fillRect(0, 0, 640, 360);
+    }
+    // Actual source-frame bits change even while the cadence pulse is white.
+    // They grant no identity or frame credit without real decoded pixels.
+    for (let bit = 0; bit < 11; bit++) {
+        paint.fillStyle = frame & (1 << bit) ? 'white' : 'black';
+        paint.fillRect(bit * 32, 352, 32, 8);
+    }
+}
+
 /** Caller-owned graph/canvas sources survive per-Connection capture retirement.
  * The SDK creates and retires each derived track. The original six sources and
  * fixed clock stay here; generated input never qualifies decoded quality. */
@@ -87,12 +111,7 @@ export async function browserMatrixSources() {
                     const {frame,pulse,ordinal}=coordinate;
                     record.maximumDrawGapMs=Math.max(record.maximumDrawGapMs,record.lastDrawMs===null?0:now-record.lastDrawMs);
                     record.lastDrawMs=now;
-                    paint.fillStyle=`hsl(${frame%360} 90% 40%)`;paint.fillRect(0,0,640,360);
-                    paint.fillStyle='white';paint.fillRect((frame*7)%580,70,60,150);
-                    markerCells(role).forEach((value,index)=>{
-                        paint.fillStyle=`rgb(${value},${value},${value})`;paint.fillRect(index%2*80,Math.floor(index/2)*45,80,45);
-                    });
-                    if(pulse){paint.fillStyle='white';paint.fillRect(0,0,640,360);}
+                    paintMatrixVideoFrame(paint, coordinate, role);
                     if(pulse&&record.lastPulseOrdinal!==ordinal){record.lastPulseOrdinal=ordinal;record.pulseOrdinals.push(ordinal);}
                     record.draws++;
                 };

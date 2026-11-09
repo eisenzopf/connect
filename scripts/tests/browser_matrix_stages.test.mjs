@@ -143,3 +143,35 @@ test('three diagnostics cycles release only closed original peers and retain eac
  }
  assert.equal(archived.length,3);assert.ok(archived.every(snapshot=>snapshot.omitted_peers===0&&snapshot.peer_bound===16));
 });
+
+
+test('a video refusal refreshes bounded original VP8 reason snapshots without retaining codec owners', () => {
+ const stages = new MatrixMediaStages();
+ const encoding = {inputCalls:1,acceptedFrames:1,nativeOutputs:1,forwardedOutputs:1,
+  stoppedRefusals:0,queueRefusals:0,timestampRefusals:0,rateRefusals:0,suspendedRefusals:0,
+  outputRateDrops:0,outputWaitingForKeyDrops:0,maxEncoderQueue:0,
+  lastInputTimestampUs:0,lastEncodedTimestampUs:0};
+ const peer = {diagnostics:{droppedPackets:0},routeDiagnostics:[
+  {connectionId:'original',streamId:'video',kind:'video',encoding},
+  {connectionId:'foreign',streamId:'foreign-video',kind:'video',encoding}
+ ]};
+ stages.video('original', 0, 1, true, peer);
+ encoding.inputCalls++;
+ encoding.queueRefusals++;
+ encoding.maxEncoderQueue = 2;
+ stages.video('original', 0, 1.1, false, peer);
+ const report = stages.report().owners[0];
+ assert.equal(report.snapshots.length, 1);
+ assert.equal(report.snapshots[0].callback_seconds, 1.1);
+ assert.equal(report.snapshots[0].video_encoders.length, 1);
+ const captured = report.snapshots[0].video_encoders[0];
+ assert.equal(captured.stream_id, 'video');
+ assert.equal(captured.encoding.queueRefusals, 1);
+ assert.equal(captured.encoding.maxEncoderQueue, 2);
+ assert.equal(captured.encoding.acceptedFrames, 1);
+ encoding.queueRefusals = 99;
+ assert.equal(captured.encoding.queueRefusals, 1);
+ for (let i = 2; i < 100; i++) stages.video('original', 0, i, false, peer);
+ assert.equal(stages.report().owners[0].snapshots.length, 63);
+ assert.equal(stages.report().overflow, true);
+});

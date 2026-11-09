@@ -44,6 +44,25 @@ def port(kind):
         return reservation.getsockname()[1]
 
 
+def record_server_exit(row, process, code, *, forced):
+    """Record physical custody separately from the original shutdown verdict."""
+    assert type(code) is int and type(process.pid) is int and process.pid > 1
+    assert row.get("original_pid") == process.pid, "Original server PID receipt mismatch"
+    assert type(process.returncode) is int and process.returncode == code, "Original server wait receipt mismatch"
+    assert type(forced) is bool
+    retired = False
+    try:
+        os.killpg(process.pid, 0)
+    except ProcessLookupError:
+        retired = True
+    except OSError:
+        pass  # An unobservable original group cannot establish custody.
+    row.update(original_pid=process.pid, original_exit_code=code,
+               original_process_group_joined=retired and not forced, original_forced=forced,
+               original_joined=code == 0 and retired and not forced)
+    return retired
+
+
 def main(actors=False, conversation=False, data_workload=False, signing_algorithm="EdDSA", network_profile="local", media_workload=False, host_capture=True, native_port=None, arm64_component=False, native_replacement_metadata_trace=False, native_replacement_commit_trace=False, native_packet_policy_trace=False, native_authority_summary=False, resource_cycles=1):
     assert type(resource_cycles) is int and resource_cycles in (1, 3)
     assert resource_cycles == 1 or media_workload
@@ -298,6 +317,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 namespace.server_command(binary, config, server_env))
             server = subprocess.Popen(command, cwd=ROOT, env=server_env,
                 stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
+            report["servers"].append(dict(name=name, running_binary_sha256=report["binary_sha256"],
+                original_joined=False, managed_by_systemd=namespace is not None,
+                **(dict(original_pid=server.pid) if namespace is None else {})))
             if namespace is not None:
                 namespace.owner = server
             until = time.monotonic() + 15
@@ -308,7 +330,6 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             actual_executable = (Path(f"/proc/{server_pid}/exe") if platform.system() == "Linux" else
                 Path(subprocess.check_output(["/bin/ps", "-ww", "-p", str(server_pid), "-o", "comm="], text=True).strip()))
             assert actual_executable.is_absolute() and digest(actual_executable) == report["binary_sha256"]
-            report["servers"].append(dict(name=name, running_binary_sha256=report["binary_sha256"], original_joined=False, managed_by_systemd=namespace is not None))
 
         def stop():
             nonlocal server
@@ -316,13 +337,10 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 namespace.stop_server(server)
             else:
                 server.send_signal(signal.SIGTERM)
-                assert server.wait(timeout=10) == 0
-                try:
-                    os.killpg(server.pid, 0)
-                except ProcessLookupError:
-                    pass
-                else:
-                    raise AssertionError("Original server group survived")
+                code = server.wait(timeout=10)
+                retired = record_server_exit(report["servers"][-1], server, code, forced=False)
+                assert code == 0, "Original server shutdown failed"
+                assert retired, "Original server group survived"
             report["servers"][-1]["original_joined"] = True
             server = None
 
@@ -838,8 +856,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 server = None
             except (AssertionError, OSError, ValueError, subprocess.SubprocessError) as error:
                 report["failure_cleanup"] = dict(systemd_stop_confirmed=False, name=type(error).__name__)
-        if namespace is None and server is not None and server.poll() is None:
-            server.send_signal(signal.SIGTERM)
+        if namespace is None and server is not None:
+            if server.poll() is None:
+                server.send_signal(signal.SIGTERM)
             forced = False
             try:
                 code = server.wait(timeout=10)
@@ -847,14 +866,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 forced = True
                 os.killpg(server.pid, signal.SIGKILL)
                 code = server.wait()
-            retired = False
-            try:
-                os.killpg(server.pid, 0)
-            except ProcessLookupError:
-                retired = True
+            retired = record_server_exit(report["servers"][-1], server, code, forced=forced)
             report["failure_cleanup"] = dict(server_exit_code=code, forced=forced, original_group_retired=retired)
-            if code == 0 and not forced and retired and report["servers"]:
-                report["servers"][-1]["original_joined"] = True
         if namespace is not None:
             report["network_namespace"] = namespace.close()
             report["passed"] = bool(report["passed"] and report["network_namespace"]["passed"])

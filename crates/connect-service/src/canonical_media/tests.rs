@@ -9,6 +9,52 @@ use serde_json::json;
 #[cfg(feature = "test-support")]
 mod mixer_writer;
 #[test]
+fn native_data_registry_contention_retries_without_authorizing_a_missing_connection() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        Store::initialize(
+            &dir.path().join("state.sqlite3"),
+            connect_protocol::Limits::default(),
+        )
+        .unwrap(),
+    );
+    let policy = Policy::new(store, 8);
+    let id = ConnectionId::from_string("original-data-source");
+    let held = policy.entries.lock().unwrap();
+    assert_eq!(policy.data_entry(&id).err().unwrap().code, "authority-busy");
+    drop(held);
+    assert_eq!(policy.data_entry(&id).err().unwrap().code, "forbidden");
+}
+
+#[test]
+fn poisoned_native_data_registry_remains_a_definitive_refusal() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        Store::initialize(
+            &dir.path().join("state.sqlite3"),
+            connect_protocol::Limits::default(),
+        )
+        .unwrap(),
+    );
+    let policy = Policy::new(store, 8);
+    let owner = policy.clone();
+    assert!(std::thread::spawn(move || {
+        let _held = owner.entries.lock().unwrap();
+        panic!("controlled native data registry poison");
+    })
+    .join()
+    .is_err());
+    assert_eq!(
+        policy
+            .data_entry(&ConnectionId::from_string("original-data-source"))
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+}
+
+#[test]
 fn assistant_registry_contention_is_retryable_without_claiming_a_missing_source() {
     let dir = tempfile::tempdir().unwrap();
     let store = Arc::new(

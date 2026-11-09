@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-08",
-  "run_status": "Full v205 completed on 5c42dfa6 with 0 passed, 2 failed and 30 blocked cells. Only the first Mac and ARM native cells were attempted. Their requirement totals are 20 passed, 4 failed and 408 blocked. Both original workers and the controller exited and the source guard closed. Closed Linux evidence identifies mismatched Node video-epoch field names, missing three-cycle quality-profile binding, and an offline capture interpreter started with 3.35ms before its physical cutoff. A forced, reaped interpreter also caused archive backpressure to block later cells. The next batch addresses these harness paths with normal-entry regressions. Historical verdicts remain preserved. G6-054 is deferred and G6-098 sustained growth is separate.",
+  "run_status": "Full v206 completed on 582ac6ea with 0 passed, 17 failed and 15 blocked cells. All 16 native ARM Linux cells and the first Mac native cell ran. The remaining 15 Mac cells were blocked by original-closed-evidence-storage-backpressure. Requirement totals are 201 passed, 27 failed and 204 blocked. Both original workers, controller, storage transports and all 16 ARM guardians closed, with unchanged source. The next batch addresses earlier owned-audio discard paths, native data contention classification, native quarantine retirement, physical server archive receipts and browser source-motion measurement. A browser post-commit 403 remains unlocalized and needs bounded phase evidence. Historical verdicts and all quality and authority requirements remain preserved. G6-054 is deferred and G6-098 sustained growth is separate.",
   "blockers": [
     {
       "id": "B01",
@@ -1041,18 +1041,66 @@
     {
       "id": "B126",
       "title": "Saved native timelines show short decoded-audio coverage",
-      "status": "CONTROLLED RUNTIME VERIFIED. Full-matrix audio coverage and historical attribution remain pending.",
+      "status": "FINAL-OUTPUT REGRESSION VERIFIED. Full v206 audio quality failed. Earlier admission gaps are tracked in B128.",
       "change": "Preserve exact owned single-source queued PCM across an internal after-policy revision race. Return retryable NotReady after all fresh authority, binding, scene, consumer, ticket and original-deadline checks.",
       "evidence": "Cycle 1 route 3 decodes 59.88 seconds. Cycle 2 routes 0, 1, 2, 3 and 5 decode 59.86 seconds and route 4 decodes 59.88 seconds. All pass identity, clean-gap and skew checks. Required decoded duration is 59.9 seconds. All 3100 stable-source PCM quanta reach Core. Stable receivers have 3093 total captured packets in cycle 2 and no late tail through the retained capture. A transient queued-audio admission revision conflict is a candidate terminal-discard seam and needs a controlled old/new comparison. Corrected independent Video-addition controls complete within about 1 ms with Audio bindings and delivery guards current. Old code returns actual Model(Conflict) for both source and target callbacks. New three-case scope passes, including exact single PCM write/decode and ten refusal lanes. All original groups join naturally. The initial audio-audience fixture self-blocked on its subscription guard, and its generic-assert attribution is withdrawn. Corrected proof receipt0907d3aa and final closured43618ac preserve the full raw history.",
-      "next": "Run the explicit pending native ARM Linux negatives, then verify all 32 cells on the committed media batch. Keep original v205 audio-loss attribution open until directly observed."
+      "next": "Retain the verified final-output fix and cover every earlier owned-audio stage in B128 before another complete matrix."
     },
     {
       "id": "B127",
       "title": "Saved moving-source receiver has a multi-second video interruption",
-      "status": "CONTROLLED RUNTIME VERIFIED. Full-matrix verification pending.",
+      "status": "CONTROLLED RUNTIME VERIFIED. Full v206 has remaining video-quality failures, tracked separately.",
       "change": "Immediately after a known Core commit, confirm the opaque committed revision for surviving native peers. Preserve the admitted target activation sequence and propagate confirmation failures after recording the actual effect.",
       "evidence": "Cycle 1 route 1 has a 2.854 second gap and fails three video bins. Other cycle-1 receivers pass video bins and all six cycle-2 receivers pass them. All 12 timelines decode the correct source and pass A/V skew. Actual Core cut precedes 2.448 seconds of capture metadata projection and about 210 ms of activation. Surviving signed epoch emission requires confirmed_at(current revision), whose confirmation previously followed capture projection. SDK future-epoch packet prefixes expire after 200 ms. Actual old SDK case times out while the primary metadata SQL mutex is held. New case receives and independently decodes the authenticated new keyframe in 33,141 microseconds while SQL remains held, with retained revision1 to3 and the same physical peer. C decoder outputs2 and closes naturally. All codec, SDK, peer, SQL-holder and server owners join before the final test assertion.",
-      "next": "Verify the committed candidate across all 32 cells and the pending native ARM Linux authority negatives."
+      "next": "Preserve the held-SQL decoded-keyframe control. Resolve B132 and remaining actual video gaps without changing the quality limits."
+    },
+    {
+      "id": "B128",
+      "title": "Earlier owned-audio admissions can discard a valid retained quantum",
+      "status": "CONTROLLED RUNTIME VERIFIED. Complete matrix verification pending.",
+      "change": "Extend retry classification to actual retained collector packets, decoded chunks and pending source and target PCM. Preserve original deadlines, exact custody, current authority and callback-origin refusals.",
+      "evidence": "Stable cycle-1 receivers lose 13 and 11 media-clock quanta with perfectly continuous output sequences. Source 2 submitted every nominal quantum on time. Core counters record actual collector and pending-quantum refusals near these windows. Those earlier admissions still use Ordinary ownership and can discard an internal model-revision conflict. The historical refusal types and exact wire-to-Core identities remain unproved. Read-only findings c45db10a bind the evidence. Four stage-specific old-production controls fail naturally after real independent Video additions. Fixed source passes all five new controls, including 32 refusal lanes. The full 194-case Core scope passes with every prior 164 case preserved and all groups joined. Exact old logs stop at absence of a fresh retry after discarded input. The original v206 refusal type was not logged.",
+      "next": "Independent Video-addition controls must fail on old code and preserve exact PCM once on new code at every changed admission stage. Retain revocation, binding, cancellation and expiry refusals, then retest all 32 cells."
+    },
+    {
+      "id": "B129",
+      "title": "Native data capture converts metadata contention to a permanent refusal",
+      "status": "CLASSIFIER AND BOUNDED-RETRY CONTROLS VERIFIED. Complete signed matrix verification pending.",
+      "change": "Return authority-busy only for actual registry or invocation-binding mutex contention. Preserve missing or poisoned entries and all current proof and attempt refusals. Record bounded registry, current and binding failure stages.",
+      "evidence": "One Mac cycle-2 accepted message failed with forbidden before Core publication. Registry entry and invocation-binding lookups contain source-proven contention-to-forbidden conversions. The original log cannot identify which leaf caused that specific failure. Read-only findings 31080e16 preserve this limitation. The same test sources produce two natural old failures with forbidden instead of authority-busy, while both poison controls pass. Fixed source passes all 21 cases across native media policy, native data metadata retry and invocation binding. Normal opt0/debug2 artifacts, exact source restoration and every group join are verified. The original Mac failure leaf remains unidentified.",
+      "next": "Verify actual held mutex, release-to-missing and poisoned-mutex behavior plus existing same-original bounded retry, cancellation and expiry controls."
+    },
+    {
+      "id": "B130",
+      "title": "A retired Core context can leave its original adapter route unsettled",
+      "status": "CORE LIFECYCLE CONTROLS VERIFIED. Actual v206 ignored error remains unobserved.",
+      "change": "Retry cleanup through the exact existing quarantined route only from end_connection, with matching original lifecycle generation and registered transport. Keep ordinary operational lookups denied and settle ownership only after actual adapter absence.",
+      "evidence": "The Mac has 29 durable retirements for 30 original custodians, one retained native worker and 691 reconciliation-required observations. Core removes operational context before bounded adapter cleanup and can retain a quarantined live route. Subsequent end_connection currently cannot find that context. The original failing Core error was not logged. Findings 0d8b5ec5 separate the actual leak from this source-proven lifecycle gap. All 194 Core cases pass, including same-route end retry, already absent route, stale ownership and unconfirmed cleanup. An independent composition audit confirms Core directly registers the actual native adapters with authoritative liveness and generation-bound quarantine creation. This validates reachability in Connect, while the particular v206 Core error remains unlogged.",
+      "next": "Exercise normal public end_session followed by same-route end retry, wrong or active generations, persistent adapter failure, exact quota settlement and unchanged operational refusal. Verify signed native cleanup afterward."
+    },
+    {
+      "id": "B131",
+      "title": "A physically joined failed server lacks archive custody fields",
+      "status": "PROPER-HOST SCRIPT CONTROLS VERIFIED. Full-matrix continuation pending.",
+      "change": "Record actual original PID, observed exit code and process-group join from the existing server owner. Preserve logical shutdown failure, forced termination and unknown-owner refusal.",
+      "evidence": "The Mac server exited 1 with canonical runtime retirement failure. Its actual process group retired naturally. The native producer omitted typed physical join fields supported by the existing archive guard, so all 15 later Mac cells were blocked. Findings 87bbceb1 bind the evidence. All 375 Node and 235 Python tests pass on native ARM Linux. Every prior 370 Node and 218 Python name is preserved, and all 17 cases in the newly selected transport fixture file run. Natural nonzero direct server exit, forced or live group, missing and foreign owner cases are covered. Namespaced nonzero exit remains blocked when systemd collection prevents proving whether termination was forced.",
+      "next": "Verify natural nonzero exit can be safely archived with its failed verdict preserved. Forced, surviving, missing and foreign owner evidence must continue to block."
+    },
+    {
+      "id": "B132",
+      "title": "Static pulse frames reduce the browser changing-frame budget",
+      "status": "ACTUAL VP8 AND PROPER-HOST SCRIPT CONTROLS VERIFIED. Complete matrix pending.",
+      "change": "Keep real motion outside the pulse and identity sampling regions throughout the source programme. Retain the pulse cadence, 24-changing-frame minimum, actual callback accounting and all quality limits. Preserve existing bounded VP8 refusal counters.",
+      "evidence": "A complete browser cycle draws all 1860 source frames, but the affected bins decode 27 frames and contain 23 changes. Two three-frame white pulses contribute four intentionally identical transitions, giving an ideal 30-to-26 changing-frame budget. The source encoder also refuses some frames. The observer does not reset at bin boundaries. Findings 993b5b4c preserve both fixture and delivery contributions. Installed Chrome 156 runs the normal real 62-second source and production capture, VP8, RTP and decode paths for four source identities. All meet the unchanged video profile, with minimum changing FPS of 28 or 29 and first and last bins at 29. Identity and pulse classification pass. Both browser and Node owners join naturally. The first harness attempt stopped before media on its source-diff buffer limit and is preserved.",
+      "next": "Verify actual VP8-decoded pulse classification and frame changes, source duration and counter snapshots. Do not substitute synthetic callbacks or adjust the quality threshold."
+    },
+    {
+      "id": "B133",
+      "title": "A browser return move fails with an unlocalized definitive 403",
+      "status": "SOURCE-BACKED REPLAY FIX IMPLEMENTING. Signed old/new runtime verification pending.",
+      "change": "Retain exact committed native readiness custody through the existing media lifetime owner. A drop guard cancels only its original uncommitted candidate and leaves watcher compensation intact. Committed owner exit removes only its exact root. Preserve current signed readiness, frozen-observation replay and all authority and cleanup failures.",
+      "evidence": "Preparation and capture started, but the failed return has no successful observer activation boundary. Cleanup later recovers the same root completed at generation 3. This excludes the later old-source refresh but does not identify which preceding operation-wait or target-readiness request returned 403. Findings c3b0ec0a preserve the bounds. The exact archived log shows the admission watcher lost the old source during the failed move's 427.881 ms capture projection. It removed committed native preparation custody, making a repeated signed readiness request fail before Store replay. The archived DB confirms the same original root completed at generation 3 and its saved credential was unrevoked and unexpired. The exact failed request is still unrecorded. Keep custody under the existing native media owner, cancel uncommitted dropped work and remove only the exact committed root at owner exit. Current authorization remains mandatory.",
+      "next": "Reproduce the actual signed replay refusal while the Core cut is complete and projection is paused. Verify busy then original completion after the fix, plus cancellation, expiry, wrong-owner and exact-root cleanup cases before the next matrix."
     }
   ],
   "workplan_tasks": [
@@ -3183,5 +3231,445 @@
       "Opaque UCTP vcon-signing additional feature profile held for disk forecast",
       "Existing Linux-only SDK negatives remain pending proper Linux host"
     ]
+  },
+  "completed_v206_actual": {
+    "source_revision": "582ac6eade7f88bb95c46cc8d7791f9cedd16d7c",
+    "matrix_sha256": "aa8e920cd23d39964e235896f62d272446fe7778e6de4ef6b6c694da8bbb4dba",
+    "summary": {
+      "cells": {
+        "passed": 0,
+        "failed": 17,
+        "blocked": 15,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 201,
+        "failed": 27,
+        "blocked": 204,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "attempted_cells": 17,
+    "selected_cells": 32,
+    "original_verdicts_preserved": true,
+    "all_original_owners_closed": true,
+    "closure_receipt_path": ".local/gate-6/v206-final-closure/receipt.json",
+    "closure_receipt_sha256": "de7b0c43ccdc734cc0620dbfb2eeeed294a7e7052a457f54266f30688660928b",
+    "cells": [
+      {
+        "id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "device-replacement-and-old-owner-retirement",
+          "declared-concurrent-workload",
+          "independently-decoded-duplex-media-and-profile-budgets",
+          "owned-drain-and-resource-reclamation"
+        ],
+        "component": {
+          "report_sha256": "d38065f1b74714e61a34e9136f1838e0966c614fbb564a126079c567d2678f49",
+          "exit_code": 1,
+          "failure_phase": "public-sdk-conversation-control",
+          "failure_kind": "AssertionError"
+        }
+      },
+      {
+        "id": "G6-058/macos-arm64/local/native-quic/ES256",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+        "status": "blocked",
+        "reason": "original-closed-evidence-storage-backpressure",
+        "failed_checks": [],
+        "component": null
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "device-replacement-and-old-owner-retirement",
+          "independently-decoded-duplex-media-and-profile-budgets",
+          "owned-drain-and-resource-reclamation"
+        ],
+        "component": {
+          "report_sha256": "02c1d9031da42b3a28672c3da960ff35bff6dd2a96ecd976086423726906c807",
+          "exit_code": 1,
+          "failure_phase": "public-sdk-conversation-control",
+          "failure_kind": "AssertionError"
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets",
+          "owned-drain-and-resource-reclamation"
+        ],
+        "component": {
+          "report_sha256": "b619eec482583ea4fb692e12945e576bea02d5c75b2e11030f8c3b41fc80d26d",
+          "exit_code": 1,
+          "failure_phase": "public-sdk-conversation-control",
+          "failure_kind": "AssertionError"
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "device-replacement-and-old-owner-retirement",
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "f70611a32c24e4bf2ec09286b1f1bff0408f806a33720f14aea34ef0402e348e",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "99ba6bc89dba06e5d4fc5baa6c05a6a430d4b72c632b2d890bbdc5a9c663137a",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "5430be160bfbc75b4210a35a57e76cc39ab18bbd4ec2abcca05b45c0aa109d76",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "ead5255ed6880d5467cd459ef6cff3fa9b1d54097b1518a0c7e7a0e3ef310563",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "aa6bc45341d5bcae28ab2bacdfb19d8c5bf563166b45647271282a44d77f3dc5",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "846461306414acceb315fbdd1b8424adead9c8b5edced546a628cb9a01dc82da",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "device-replacement-and-old-owner-retirement",
+          "independently-decoded-duplex-media-and-profile-budgets",
+          "owned-drain-and-resource-reclamation"
+        ],
+        "component": {
+          "report_sha256": "2ab378143e400e35c94bcf6da3c07b8833f69bfeab867ef2ccbb0276a9f1938c",
+          "exit_code": 1,
+          "failure_phase": "public-sdk-conversation-control",
+          "failure_kind": "AssertionError"
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets",
+          "owned-drain-and-resource-reclamation"
+        ],
+        "component": {
+          "report_sha256": "1bc7e06207ae86b9d8fc326299e3088f6c6a83bbbe784c85e8a6d9abd6807d85",
+          "exit_code": 1,
+          "failure_phase": "public-sdk-conversation-control",
+          "failure_kind": "AssertionError"
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "0b712664b560237caf1516398171b0cab4300107cf6c7e34a90c932689fdc822",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "05d43b24351e296c95c16a0c8eef05e452654574b51d4756b235b3b3d326c7a5",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "8199b73d24b148e6c78792c26210ec2d57818b26e27bc331d532ab221b50e2f2",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "9883b169af2b49ec77a9f90db11febf33356cb8cd5016c6d99962d4a640e68d1",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "849d301e1d200a9c493fa1ded30e3fa566ff10614ad3616bf265981eb7c2e3fc",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      },
+      {
+        "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+        "status": "failed",
+        "reason": "original-attempt-requirement-results",
+        "failed_checks": [
+          "independently-decoded-duplex-media-and-profile-budgets"
+        ],
+        "component": {
+          "report_sha256": "43c116323570b98ff88098c6f84e32bbf75e66be1fbde22d983ab88326d1e111",
+          "exit_code": 1,
+          "failure_phase": "actual-browser-quality",
+          "failure_kind": null
+        }
+      }
+    ]
+  },
+  "v207_batch": {
+    "status": "Initial batch passes 194 Core, 21 Service, 375 Node and 235 Python checks, plus four real VP8 source paths. A further source-backed native ready-replay custody gap is being fixed and verified before the next full matrix.",
+    "parallel_scopes": [
+      "Owned retained-audio admissions and regression sources",
+      "End-only original quarantine cleanup and regression sources",
+      "Script custody, browser fixture and bounded diagnostics",
+      "Native data classification, evidence ledger and batch integration"
+    ],
+    "acceptance_changes": false,
+    "verification_order": [
+      "Finish and review the complete source and test batch.",
+      "Integrate tracked upstream patches and source-lock digests, then normal dependency preparation and formatting.",
+      "Run targeted old/new controls and all affected units on their proper local ARM hosts.",
+      "Commit and push the verified batch, synchronize both hosts, measure build and full retention funding.",
+      "Run the complete 32-cell matrix through the normal entry point."
+    ],
+    "source_lock_sha256": "ad78d8d5a2b81dde4b1fb469c9eb14c7d34c77debc5ff80c3894e81daab7c3bf",
+    "proper_host_unit_roster": {
+      "node": 375,
+      "python": 235,
+      "previous_names_preserved": true,
+      "changed_files_selected_in_full": true
+    },
+    "preparation_note": "The first preparation completed, then its inventory check incorrectly expected a new declared test file among changed preexisting files. A separate closure verifies all nine afterimages, eight changed existing files and the new file, preserves the failed check, restores 4145 equal-file mtimes, reruns normal preparation and formatting, and joins all originals.",
+    "pending_followthrough": [
+      "Classify and resolve the exact browser 403 request if reproduced. Definitive authority failures remain mandatory.",
+      "Namespaced nonzero server exit cannot prove unforced physical cleanup after systemd collects the unit. Keep that ambiguous case blocked until independently qualified.",
+      "Extra proper-Linux signed SDK negative profiles and optional opaque UCTP feature profile from the previous batch remain explicit pending scopes."
+    ]
+  },
+  "v207_verified_components": {
+    "base_workspace_sha256": "26e72ae50df0005a25ce10eb2546359b5dcc4342a67c447654bda42771b69b1e",
+    "source_lock_sha256": "ad78d8d5a2b81dde4b1fb469c9eb14c7d34c77debc5ff80c3894e81daab7c3bf",
+    "core": {
+      "passed": 194,
+      "receipt_sha256": "13ccfdc825f73aba248dc0723e923e1e17c40b733121592cf7b5d978177ec280"
+    },
+    "service": {
+      "passed": 21,
+      "receipt_sha256": "7e553d9e676cbb2d7b13f22fd394e6de53544b8446fbe1110680037966a6201c"
+    },
+    "scripts": {
+      "node": 375,
+      "python": 235,
+      "skipped": 0,
+      "summary_sha256": "088a5ff1b0452d9cf52244c59253f71fc4eb5d3d2ae8fd2a5ceb72042d73650d"
+    },
+    "actual_vp8_footer": {
+      "passed_paths": 4,
+      "programme_seconds": 62,
+      "receipt_sha256": "8fd8d9ec1b220fa57437da9271ca18b03b327dfdfa343ffca04a6aff28beee97"
+    },
+    "all_original_groups_joined": true,
+    "full_matrix_qualified": false,
+    "additional_B133_source_change": "The subsequent native readiness custody change is outside this verified source seal and requires its own signed runtime verification."
   }
 }

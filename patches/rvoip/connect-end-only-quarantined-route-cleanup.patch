@@ -1,0 +1,287 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -3284,6 +3284,42 @@
+         let transport = entry.transport;
+         drop(entry);
+         self.adapter(transport)
++    }
++
++    /// Only explicit end may revisit a physically unresolved retired route.
++    /// Operational lookups continue to require the removed Connection entry.
++    fn quarantined_adapter_for_end(
++        &self,
++        connection: &ConnectionId,
++    ) -> Result<(Arc<dyn ConnectionAdapter>, AdapterCleanupQuarantine)> {
++        let _registry = self
++            .connection_registry_lock
++            .lock()
++            .unwrap_or_else(|poisoned| poisoned.into_inner());
++        let missing = || RvoipError::ConnectionNotFound(connection.clone());
++        if self.connections.contains_key(connection) {
++            return Err(missing());
++        }
++        let quarantine = *self
++            .adapter_cleanup_quarantines
++            .get(connection)
++            .ok_or_else(missing)?;
++        let lifecycle = self
++            .connection_lifecycles
++            .get(connection)
++            .ok_or_else(missing)?;
++        let state = lifecycle.lock().unwrap_or_else(|p| p.into_inner());
++        if state.active
++            || !state.retired
++            || state.generation != quarantine.lifecycle_generation
++            || state
++                .peer_admission
++                .as_ref()
++                .is_some_and(|permit| permit.transport != quarantine.transport)
++        {
++            return Err(missing());
++        }
++        Ok((self.adapter(quarantine.transport)?, quarantine))
+     }
+ 
+     /// Return the registered transport that owns a live connection. Useful to
+@@ -9855,8 +9891,38 @@
+         connection_id: ConnectionId,
+         reason: EndReason,
+     ) -> Result<()> {
+-        let adapter = self.adapter_for_cleanup(&connection_id)?;
+-        adapter.end(connection_id, reason).await
++        let (adapter, quarantine) = match self.adapter_for_cleanup(&connection_id) {
++            Ok(adapter) => return adapter.end(connection_id, reason).await,
++            Err(RvoipError::ConnectionNotFound(_)) => {
++                self.quarantined_adapter_for_end(&connection_id)?
++            }
++            Err(error) => return Err(error),
++        };
++        // The original route remains quarantined across cancellation, timeout,
++        // adapter failure, and an acknowledgement without confirmed absence.
++        if !adapter.lifecycle_capabilities().authoritative_liveness
++            || adapter.is_connection_live(&connection_id)
++        {
++            tokio::time::timeout(
++                INBOUND_ADMISSION_ADAPTER_CLEANUP_TIMEOUT,
++                adapter.end(connection_id.clone(), reason),
++            )
++            .await
++            .map_err(|_| RvoipError::InvalidState("quarantined connection end timed out"))??;
++        }
++        if !adapter.lifecycle_capabilities().authoritative_liveness
++            || adapter.is_connection_live(&connection_id)
++        {
++            return Err(RvoipError::InvalidState(
++                "quarantined connection remains physically unconfirmed",
++            ));
++        }
++        self.resolve_adapter_cleanup_quarantine(
++            &connection_id,
++            quarantine.transport,
++            quarantine.lifecycle_generation,
++        );
++        Ok(())
+     }
+ 
+     pub async fn hold(&self, connection_id: ConnectionId) -> Result<()> {
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/lifecycle_drain_tests.rs b/crates/foundation/rvoip-core/src/orchestrator/lifecycle_drain_tests.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/lifecycle_drain_tests.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/lifecycle_drain_tests.rs
+@@ -273,3 +273,45 @@
+     ));
+     assert_eq!(supervisor.task_count(), 0);
+ }
++
++#[tokio::test]
++async fn quarantined_end_refuses_missing_active_and_stale_lifecycles() {
++    let core = Orchestrator::new(Config::default());
++    let connection = ConnectionId::new();
++    assert!(core.ensure_connection_lifecycle(&connection));
++    let lifecycle = core.connection_lifecycles.get(&connection).unwrap().clone();
++    let generation = lifecycle.lock().unwrap().generation;
++    // There is deliberately no adapter. A failed ownership check must return
++    // ConnectionNotFound before it can resolve or invoke any transport.
++    for (quarantine, active, retired, current_generation) in [
++        (None, false, true, generation),
++        (Some(generation), true, false, generation),
++        (Some(generation), false, false, generation),
++        (Some(generation), false, true, generation + 1),
++    ] {
++        core.adapter_cleanup_quarantines.remove(&connection);
++        if let Some(lifecycle_generation) = quarantine {
++            core.adapter_cleanup_quarantines.insert(
++                connection.clone(),
++                AdapterCleanupQuarantine {
++                    transport: Transport::Sip,
++                    lifecycle_generation,
++                },
++            );
++        }
++        {
++            let mut state = lifecycle.lock().unwrap();
++            state.active = active;
++            state.retired = retired;
++            state.generation = current_generation;
++        }
++        assert!(matches!(
++            core.end_connection(connection.clone(), EndReason::Normal).await,
++            Err(RvoipError::ConnectionNotFound(id)) if id == connection
++        ));
++        assert_eq!(
++            core.adapter_cleanup_quarantine_count(),
++            usize::from(quarantine.is_some())
++        );
++    }
++}
+diff --git a/crates/foundation/rvoip-core/tests/participant_control.rs b/crates/foundation/rvoip-core/tests/participant_control.rs
+--- a/crates/foundation/rvoip-core/tests/participant_control.rs
++++ b/crates/foundation/rvoip-core/tests/participant_control.rs
+@@ -620,3 +620,116 @@
+         .participants
+         .is_empty());
+ }
++
++#[tokio::test]
++async fn explicit_end_retries_only_retired_quarantine_and_keeps_operational_access_closed() {
++    use rvoip_core::{adapter::ConnectionAdapter, RvoipError};
++    for already_physically_absent in [false, true] {
++        let f = Fixture::new().await;
++        let (connection, _) = f.connection("alice", true).await;
++        f.join(&f.session, "alice", &connection).await;
++        f.adapter.fail_end.store(true, Ordering::Release);
++        f.orch
++            .end_session(f.session.clone(), EndReason::Normal)
++            .await
++            .unwrap();
++        assert_eq!(
++            f.orch.session(&f.session).unwrap().read().unwrap().state,
++            SessionState::Ended
++        );
++        until(|| f.adapter.ended.load(Ordering::Acquire) == 1).await;
++        assert_eq!(f.orch.adapter_cleanup_quarantine_count(), 1);
++        assert!(f.adapter.is_connection_live(&connection));
++        let still_failing = f
++            .orch
++            .end_connection(connection.clone(), EndReason::Normal)
++            .await;
++        let after_failed = f.orch.adapter_cleanup_quarantine_count();
++        let still_live = f.adapter.is_connection_live(&connection);
++        f.adapter.fail_end.store(false, Ordering::Release);
++        if already_physically_absent {
++            // The original adapter has closed without a terminal hint. Its exact
++            // quarantine is still required; no new route or ID is substituted.
++            f.adapter
++                .end(connection.clone(), EndReason::Normal)
++                .await
++                .unwrap();
++        }
++        f.adapter.refuse_absent_end.store(true, Ordering::Release);
++        let before_retry_calls = f.adapter.ended.load(Ordering::Acquire);
++        let retried = f
++            .orch
++            .end_connection(connection.clone(), EndReason::Normal)
++            .await;
++        let after_retry_calls = f.adapter.ended.load(Ordering::Acquire);
++        let after_retry = f.orch.adapter_cleanup_quarantine_count();
++        let actually_absent = !f.adapter.is_connection_live(&connection);
++        let hold = f.orch.hold(connection.clone()).await;
++        let resume = f.orch.resume(connection.clone()).await;
++        let principal = f.orch.connection_principal(&connection);
++        // Even the old body must retire the exact test route and join its owners
++        // before the causal success assertion can fail.
++        f.adapter.refuse_absent_end.store(false, Ordering::Release);
++        f.adapter
++            .end(connection.clone(), EndReason::Normal)
++            .await
++            .unwrap();
++        f.orch
++            .drain_connection_lifecycle_tasks_until(
++                tokio::time::Instant::now() + Duration::from_secs(2),
++            )
++            .await
++            .unwrap();
++        assert!(still_failing.is_err());
++        assert_eq!(after_failed, 1);
++        assert!(still_live);
++        assert!(
++            retried.is_ok(),
++            "explicit end must reach original quarantine: {retried:?}"
++        );
++        assert_eq!(
++            after_retry_calls - before_retry_calls,
++            usize::from(!already_physically_absent)
++        );
++        assert!(actually_absent);
++        assert_eq!(after_retry, 0);
++        assert!(matches!(hold, Err(RvoipError::ConnectionNotFound(_))));
++        assert!(matches!(resume, Err(RvoipError::ConnectionNotFound(_))));
++        assert!(matches!(principal, Err(RvoipError::ConnectionNotFound(_))));
++    }
++}
++
++#[tokio::test]
++async fn quarantined_end_without_authoritative_absence_keeps_cleanup_unconfirmed() {
++    use rvoip_core::adapter::ConnectionAdapter;
++    let f = Fixture::new().await;
++    let (connection, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &connection).await;
++    f.adapter.fail_end.store(true, Ordering::Release);
++    f.orch
++        .end_session(f.session.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    until(|| f.adapter.ended.load(Ordering::Acquire) == 1).await;
++    f.adapter.fail_end.store(false, Ordering::Release);
++    f.adapter
++        .authoritative_liveness
++        .store(false, Ordering::Release);
++    let result = f
++        .orch
++        .end_connection(connection.clone(), EndReason::Normal)
++        .await;
++    let quarantine = f.orch.adapter_cleanup_quarantine_count();
++    f.adapter.end(connection, EndReason::Normal).await.unwrap();
++    f.orch
++        .drain_connection_lifecycle_tasks_until(
++            tokio::time::Instant::now() + Duration::from_secs(2),
++        )
++        .await
++        .unwrap();
++    assert!(result.is_err());
++    assert_eq!(
++        quarantine, 1,
++        "an adapter acknowledgement is not an absence proof"
++    );
++}
+diff --git a/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs b/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
+--- a/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
++++ b/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
+@@ -244,6 +244,7 @@
+     pub accepted: AtomicUsize,
+     pub ended: AtomicUsize,
+     pub fail_end: AtomicBool,
++    pub refuse_absent_end: AtomicBool,
+     pub delay_after_graph_ms: AtomicUsize,
+ }
+ impl TestAdapter {
+@@ -258,6 +259,7 @@
+             accepted: AtomicUsize::new(0),
+             ended: AtomicUsize::new(0),
+             fail_end: AtomicBool::new(false),
++            refuse_absent_end: AtomicBool::new(false),
+             delay_after_graph_ms: AtomicUsize::new(0),
+         })
+     }
+@@ -336,7 +338,10 @@
+         if self.fail_end.load(Ordering::Acquire) {
+             return Err(RvoipError::InvalidState("fixture end uncertain"));
+         }
+-        self.live.lock().unwrap().remove(&id);
++        let removed = self.live.lock().unwrap().remove(&id);
++        if !removed && self.refuse_absent_end.load(Ordering::Acquire) {
++            return Err(RvoipError::ConnectionNotFound(id));
++        }
+         Ok(())
+     }
+     async fn hold(&self, _: ConnectionId) -> Result<()> {

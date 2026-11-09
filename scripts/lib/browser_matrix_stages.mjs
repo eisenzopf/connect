@@ -32,11 +32,22 @@ export class MatrixMediaStages {
         }
         return row;
     }
-    snapshot(row,at,peer){
-        const second=Math.floor(at);if(row.last_second===second)return;row.last_second=second;
-        if(row.snapshots.length>=63){this.overflow=true;return;}
-        row.snapshots.push({callback_seconds:at,peer:peer?.diagnostics??null,
-            routes:peer?.routeDiagnostics?.filter(r=>r.connectionId===row.connection).slice(0,16)??null});
+    snapshot(row, at, peer, refusal = false) {
+        const second = Math.floor(at), sameSecond = row.last_second === second;
+        if (sameSecond && !refusal) return;
+        if (!sameSecond && row.snapshots.length >= 63) { this.overflow = true; return; }
+        const routes = peer?.routeDiagnostics?.filter(route => route.connectionId === row.connection).slice(0,16) ?? null;
+        const videoEncoders = routes?.filter(route => route.kind === 'video' && route.encoding).map(route => ({
+            stream_id:route.streamId,
+            encoding:Object.fromEntries(['inputCalls','acceptedFrames','nativeOutputs','forwardedOutputs',
+                'stoppedRefusals','queueRefusals','timestampRefusals','rateRefusals','suspendedRefusals',
+                'outputRateDrops','outputWaitingForKeyDrops','maxEncoderQueue',
+                'lastInputTimestampUs','lastEncodedTimestampUs'].map(key => [key, route.encoding[key]]))
+        })) ?? [];
+        const snapshot = {callback_seconds:at, peer:peer?.diagnostics ?? null, routes, video_encoders:videoEncoders};
+        if (sameSecond) row.snapshots[row.snapshots.length - 1] = snapshot;
+        else row.snapshots.push(snapshot);
+        row.last_second = second;
     }
     audio(connection,index,timestamp,at,samples,identity,accepted,peer){
         const row=this.owner(connection,index);if(!row)return;row.audio_input++;if(accepted)row.audio_accepted++;
@@ -59,7 +70,7 @@ export class MatrixMediaStages {
     }
     video(connection,index,at,accepted,peer){
         const row=this.owner(connection,index);if(!row)return;row.video_input++;if(accepted)row.video_accepted++;
-        this.snapshot(row,at,peer);
+        this.snapshot(row,at,peer,!accepted);
     }
     report(){return {scope:'Original capture/codec diagnostics only; no media-quality pass',owner_bound:10,
         snapshot_bound_per_owner:63,suspect_bound_per_owner:32,low_rms_diagnostic_limit:.03,overflow:this.overflow,
