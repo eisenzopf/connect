@@ -22,7 +22,7 @@ from lib.transport_capture import NativeCapture
 from lib.transport_av import prepare as prepare_av, decode_completed as decode_completed_av
 from lib.transport_namespace import NativeNamespace
 from lib.transport_fixture import FixtureError, RELIABLE_PAYLOAD_BYTES, materialize, publish, toml_bytes
-from lib.transport_matrix import digest
+from lib.transport_matrix import digest, native_three_cycle_quality
 from lib.native_matrix_idle import run_native_matrix
 from lib.native_matrix_authority import run_native_authority
 from lib.mac_linux_fixture import MacLinuxFixture, rewrite_paths
@@ -750,8 +750,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                                     decoded_cycles.append(dict(index=index, observation=value, passed=value is not None and value.get("passed") is True))
                                 except Exception as error:
                                     decoded_cycles.append(dict(index=index, passed=False, failure=type(error).__name__))
-                            decoded = dict(format="connect/native-three-cycle-decoded-media/1", cycles=decoded_cycles,
-                                passed=len(decoded_cycles) == 3 and all(c["passed"] for c in decoded_cycles), cell_qualified=False)
+                            decoded = native_three_cycle_quality(decoded_cycles)
                         else:
                             decoded = decode_completed_av(observed, PRIVATE / "av-received", media_sources)
                         if decoded is not None:

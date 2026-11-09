@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { addLiveVideoFixture } from "./live_video_fixture.mjs";
-import { nativeAv } from "../lib/transport_av.mjs";
+import { nativeAv, nativeVideoCaptureEpoch } from "../lib/transport_av.mjs";
 import { assertNativeCounterObservation, OriginalFailureJoinClock } from "./native_av_observation_assertions.mjs";
 
 async function checkFailure(context, firstSubmissionAccepted, setupFailure = false, withControl = false, cleanupFailure = false) {
@@ -216,4 +216,44 @@ test("native AV refuses an occupied output leaf without touching its original by
         assert.equal(touched, false);
         assert.deepEqual(await readFile(marker), original);
     } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+
+test("native capture serializes the actual SDK video epoch without changing its values", async () => {
+    const { captureVideoEpoch } = await import("../../sdk/typescript/dist/node_video_feedback.js");
+    const wire = {
+        epoch: "1".repeat(32),
+        incarnation: "2".repeat(32),
+        revision: 4,
+        ssrc: 7,
+        first_sequence: 0xffffffff,
+        first_timestamp: 0xfffffffe,
+    };
+    const typed = captureVideoEpoch(wire);
+    const before = JSON.stringify(typed);
+    assert.deepEqual(nativeVideoCaptureEpoch(typed), wire);
+    assert.equal(JSON.stringify(typed), before);
+    assert.deepEqual(Object.keys(nativeVideoCaptureEpoch(typed)).sort(), Object.keys(wire).sort());
+});
+
+test("native capture refuses mixed unknown or malformed video epoch fields", () => {
+    const typed = {
+        epoch: "1".repeat(32),
+        incarnation: "2".repeat(32),
+        revision: 1,
+        ssrc: 7,
+        firstSequence: 0,
+        firstTimestamp: 0,
+    };
+    const invalidChanges = [
+        { first_sequence: 0 },
+        { unknown: true },
+        { ssrc: 0 },
+        { revision: 0 },
+        { firstSequence: -1 },
+        { epoch: "0".repeat(32) },
+    ];
+    for (const change of invalidChanges) {
+        assert.throws(() => nativeVideoCaptureEpoch({ ...typed, ...change }));
+    }
 });

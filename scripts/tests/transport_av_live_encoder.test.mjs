@@ -7,10 +7,11 @@ import { mkdir, mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { Vp8Assembler } from "../../sdk/typescript/dist/browser.js";
 import { nativeAv } from "../lib/transport_av.mjs";
+import { LiveVp8Encoder } from "../lib/live_vp8_encoder.mjs";
 import { addLiveVideoFixture } from "./live_video_fixture.mjs";
 
 const gone = pid => assert.throws(() => process.kill(pid, 0), error => error.code === "ESRCH");
-async function check(setupFailure) {
+async function check(setupFailure, observeVideoPacket = () => {}) {
     const parent = resolve(".local/gate-6/live-source-integration");
     await mkdir(parent, { recursive: true, mode: 0o700 });
     const directory = await mkdtemp(join(parent, "owned-"));
@@ -48,6 +49,7 @@ async function check(setupFailure) {
                 async sendRtp(packet, { timeoutMs }) {
                     assert.ok(timeoutMs > 0 && timeoutMs <= 200);
                     if (id === plan[item.prefix + "-video"]) {
+                        observeVideoPacket(index, packet, timeoutMs);
                         const frame = assemblers[index].push({ ...packet.header,
                             sequence: packet.header.sequenceNumber, payload: packet.payload });
                         if (frame) {
@@ -120,3 +122,51 @@ async function check(setupFailure) {
 
 test("native sender uses fresh current frames and joins only the retired Connection encoder", { timeout: 30000 }, () => check(false));
 test("native sender setup refusal joins the encoder opened for the previous Connection", { timeout: 30000 }, () => check(true));
+
+test("native encoder uses the remaining original frame budget beyond 100 ms without renewing 200 ms", { timeout: 30000 }, async () => {
+    const originalFrame = LiveVp8Encoder.prototype.frame;
+    let delayed = false;
+    let requestBudget;
+    let replyElapsed;
+    let delayTimer;
+    const firstPacketBudgets = new Map();
+    LiveVp8Encoder.prototype.frame = async function (index, force, options) {
+        if (delayed) return originalFrame.call(this, index, force, options);
+        delayed = true;
+        requestBudget = options.timeoutMs;
+        const began = performance.now();
+        // Retain one real C result briefly before returning it to the normal
+        // sender. No process is signalled, and its timestamp stays unchanged.
+        const frame = await originalFrame.call(this, index, force, options);
+        try {
+            await new Promise(resolve => {
+                delayTimer = setTimeout(resolve, Math.max(0, 120 - (performance.now() - began)));
+            });
+            replyElapsed = performance.now() - began;
+            return frame;
+        } finally {
+            clearTimeout(delayTimer);
+        }
+    };
+    try {
+        await check(false, (index, packet, timeoutMs) => {
+            if (packet.header.timestamp === 0 && !firstPacketBudgets.has(index)) {
+                firstPacketBudgets.set(index, timeoutMs);
+            }
+        });
+        assert.equal(delayed, true);
+        // This assertion, through actual nativeAv, catches the old 100 ms caller
+        // cap. The real C reply does not claim a delayed encoder timeout proof.
+        assert.ok(requestBudget > 120 && requestBudget <= 200);
+        assert.ok(replyElapsed >= 110 && replyElapsed < requestBudget);
+        assert.equal(firstPacketBudgets.size, 6);
+        assert.ok([...firstPacketBudgets.values()].some(remaining => remaining < 100),
+            "packet IO must use the residual original age after the held C result");
+        for (const remaining of firstPacketBudgets.values()) {
+            assert.ok(remaining > 0 && remaining <= 200);
+        }
+    } finally {
+        clearTimeout(delayTimer);
+        LiveVp8Encoder.prototype.frame = originalFrame;
+    }
+});

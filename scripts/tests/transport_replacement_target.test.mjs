@@ -3,7 +3,8 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { replacementInput, physicalReplacementTarget, verifyReplacementStreamIdentities, verifyPhysicalOwnerEndReceipt } from "../lib/transport_replacement_target.mjs";
+import { inspectReplacementCapture } from "../lib/transport_capture_inspection.mjs";
+import { replacementInput, physicalReplacementTarget, verifyReplacementStreamIdentities, verifyPhysicalOwnerEndReceipt, verifyProgrammeCaptureBoundaries } from "../lib/transport_replacement_target.mjs";
 
 const intent = () => ({ operationId: "original-operation", conversationId: "original-conversation",
     sessionId: "original-session", connectionId: "original-source", retainedConnectionId: "original-retained",
@@ -269,4 +270,36 @@ test("prepared video mapping reaches the SDK unchanged under the persisted origi
         assert.equal(submissions.length, 1);
         assert.deepEqual(submissions[0].input.video, replacementInput(value).command.intent.video);
     } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+
+test("the first actual joined capture inspector verifies every original root-boundary flag before stage reuse", async () => {
+    const root = resolve(".local");
+    await mkdir(root, {recursive: true, mode: 0o700});
+    const directory = await mkdtemp(join(root, "first-stage-capture-inspection-"));
+    const source = {programStartUnixUs: 1793600000000000,
+        programClock: {kind: "linux-monotonic-v1", domain: "fixture", origin_ns: "1"}};
+    try {
+        for (const [index, rows] of [[{original_root_completed_observed: false}, {original_root_completed_observed: true}],
+                [{original_root_completed_observed: "unproven"}], [{}]].entries()) {
+            const path = join(directory, "observation-" + index + ".json");
+            const bytes = JSON.stringify({program_start_unix_us: source.programStartUnixUs,
+                program_clock: source.programClock, received: rows});
+            await writeFile(path, bytes, {mode: 0o600});
+            const inspected = await inspectReplacementCapture(path, 65536, 16);
+            assert.equal(inspected.worker_joined, true);
+            assert.equal(inspected.sha256, createHash("sha256").update(bytes).digest("hex"));
+            if (index === 0) {
+                assert.equal(verifyProgrammeCaptureBoundaries(inspected.observation, source), true);
+                assert.throws(() => verifyProgrammeCaptureBoundaries(inspected.observation,
+                    {...source, programStartUnixUs: source.programStartUnixUs + 1}));
+                assert.throws(() => verifyProgrammeCaptureBoundaries(inspected.observation,
+                    {...source, programClock: {...source.programClock, domain: "foreign"}}));
+            } else {
+                assert.throws(() => verifyProgrammeCaptureBoundaries(inspected.observation, source), /original-root observation boundary/);
+            }
+        }
+    } finally {
+        await rm(directory, {recursive: true, force: true});
+    }
 });

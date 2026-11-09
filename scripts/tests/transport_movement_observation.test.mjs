@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, writeFile, readFile, rm, chmod, unlink, symlink } from 
 import { join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { physicalMovementSegments } from "../lib/transport_movement_observation.mjs";
-import { writeJoinedMovementCapture } from "../lib/transport_movement_capture_owner.mjs";
+import { writeJoinedMovementCapture, sealMovementCaptureRequest, writePostIdleMovementCapture } from "../lib/transport_movement_capture_owner.mjs";
 import { startProgrammeClock } from "../lib/transport_programme_clock.mjs";
 
 import { MOVE_START_OFFSETS_MS, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256 } from "../lib/transport_movement_profile.mjs";
@@ -208,6 +208,90 @@ test("capture interpretation cannot acquire a fresh deadline or start after orig
     await assert.rejects(writeJoinedMovementCapture(input, { signal: stop.signal }), error => error === failure);
     await assert.rejects(readFile(join(input.outputDirectory, "movement-capture-owner.json")), { code: "ENOENT" });
     await assert.rejects(writeJoinedMovementCapture({ ...input, packetWorkersJoined: false }), /packet owners must join/);
+}));
+
+function originalPostIdleContext() {
+    const current = Number(process.hrtime.bigint()) / 1e9;
+    const terminal = current - 11;
+    const owner = { profile: "connect/native-programme-worker/1", original_node_pid: process.pid,
+        logical_worker_thread_id: 1, created_monotonic_seconds: current - 90,
+        started_monotonic_seconds: current - 89, original_global_deadline_monotonic_seconds: current + 5 };
+    const reportSha = "b".repeat(64);
+    const worker = { owner, original_terminal_monotonic_seconds: terminal,
+        original_exit_observed: true, exit_code: 0, forced: false, stdio_joined: true,
+        report_digest_verified: true, report_sha256: reportSha, report_bytes: 1000, failure: null,
+        exit_monotonic_seconds: terminal + .1, joined_monotonic_seconds: terminal + .2 };
+    // Framework ownership facts only; no real media or resource claim.
+    return { original_worker_owner: owner, programme_worker: worker,
+        original_worker_report_sha256: reportSha, original_terminal_monotonic_seconds: terminal,
+        original_idle_observed_monotonic_seconds: current - .01,
+        retirement_passed: true, original_sessions_ended: true, idle_passed: true };
+}
+
+test("post-idle interpreter uses the original Worker budget after the physical cutoff and preserves its sealed request", () => run(undefined, async options => {
+    const { input, hashes } = await interpreterInput(options);
+    const current = startProgrammeClock();
+    input.movement.original_program_clock = { ...current, origin_ns: (BigInt(current.origin_ns) - 70_000_000_000n).toString() };
+    input.movement.current_owner_end.original_cutoff_monotonic_ms = Number(BigInt(input.movement.original_program_clock.origin_ns)) / 1e6 + 67000;
+    await assert.rejects(writeJoinedMovementCapture(input), /original monotonic programme must be current/);
+    const request = await sealMovementCaptureRequest(input), before = await readFile(request.path);
+    const context = originalPostIdleContext();
+    const result = await writePostIdleMovementCapture(request, context);
+    assert.deepEqual(await readFile(request.path), before);
+    assert.equal(result.request_sha256, sha(before));
+    assert.equal(result.original_worker_report_sha256, context.original_worker_report_sha256);
+    assert.deepEqual(result.original_capture_sha256, hashes);
+    const receipt = JSON.parse(await readFile(join(input.outputDirectory, "movement-capture-joined.json")));
+    assert.equal(receipt.phase, "post-idle");
+    assert.equal(receipt.original_cutoff_monotonic_ms, context.original_worker_owner.original_global_deadline_monotonic_seconds * 1000);
+    assert.equal(receipt.joined, true); assert.equal(receipt.forced, false);
+    assert.equal(receipt.exit_code, 0); assert.equal(receipt.signal, null);
+    assert.ok(receipt.closed_monotonic_ms < receipt.original_cutoff_monotonic_ms);
+}, "io"));
+
+test("post-idle capture refuses missing original retirement, wrong owner and changed request without starting a child", () => run(undefined, async options => {
+    const { input } = await interpreterInput(options), request = await sealMovementCaptureRequest(input);
+    for (const change of [
+        c => { c.idle_passed = false; },
+        c => { c.retirement_passed = false; },
+        c => { c.original_sessions_ended = false; },
+        c => { c.programme_worker.forced = true; },
+        c => { c.original_worker_report_sha256 = "c".repeat(64); },
+        c => { c.original_idle_observed_monotonic_seconds = c.original_terminal_monotonic_seconds + 9; },
+        c => { c.original_worker_owner.original_global_deadline_monotonic_seconds = Number(process.hrtime.bigint()) / 1e9 - .1; },
+        c => { c.original_worker_owner.original_global_deadline_monotonic_seconds = c.original_worker_owner.created_monotonic_seconds + 301; },
+        c => { c.original_worker_owner.original_node_pid += 1; },
+    ]) {
+        const context = originalPostIdleContext(); change(context);
+        await assert.rejects(writePostIdleMovementCapture(request, context));
+    }
+    await assert.rejects(writePostIdleMovementCapture({ ...request, sha256: "d".repeat(64) }, originalPostIdleContext()));
+    await assert.rejects(readFile(join(input.outputDirectory, "movement-capture-owner.json")), { code: "ENOENT" });
+    input.movement.current_owner_end.original_cutoff_monotonic_ms += 1;
+    await assert.rejects(sealMovementCaptureRequest(input));
+}));
+
+test("post-idle cancellation after child creation still joins its original interpreter and cannot return success", () => run(undefined, async options => {
+    const { input } = await interpreterInput(options), request = await sealMovementCaptureRequest(input);
+    const stop = new AbortController(), reason = Error("original post-idle cancellation");
+    const work = writePostIdleMovementCapture(request, originalPostIdleContext(), { signal: stop.signal });
+    work.catch(() => {});
+    const until = performance.now() + 3000;
+    for (;;) {
+        try {
+            await readFile(join(input.outputDirectory, "movement-capture-owner.json"));
+            break;
+        } catch (error) {
+            if (error.code !== "ENOENT") throw error;
+            assert.ok(performance.now() < until, "actual original interpreter owner must become observable");
+            await new Promise(done => setTimeout(done, 1));
+        }
+    }
+    stop.abort(reason);
+    await assert.rejects(work, error => error === reason);
+    const receipt = JSON.parse(await readFile(join(input.outputDirectory, "movement-capture-joined.json")));
+    assert.equal(receipt.joined, true);
+    assert.ok(receipt.forced && receipt.signal === "SIGKILL" || !receipt.forced && receipt.exit_code === 0);
 }));
 
 test("four capture records bind two exact original chains without claiming decoded quality", () => run(undefined, async options => {

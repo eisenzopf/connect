@@ -985,34 +985,74 @@
     {
       "id": "B119",
       "title": "Original Node video epochs use SDK field names in the wire capture",
-      "status": "IMPLEMENTED. Normal-entry regression execution is pending the complete batch.",
+      "status": "UNIT VERIFIED on local ARM. Full-matrix verification pending.",
       "change": "Serialize the exact typed Node video epoch into the existing snake_case capture contract. Preserve strict independent parsing and reject mixed or unknown fields.",
-      "evidence": "Both closed Linux timelines fail at the same exact-video-epoch check. In-memory field-name mapping alone permits all six routes and 28 physical histories per cycle to parse. Actual decoded quality remains unverified.",
-      "next": "Complete all changes, run normal-entry regression controls, then retest all 32 cells."
+      "evidence": "Both closed Linux timelines fail at the same exact-video-epoch check. In-memory field-name mapping alone permits all six routes and 28 physical histories per cycle to parse. Actual decoded quality remains unverified. Both exact SDK serialization regression cases pass in the complete ARM Node attempt. That attempt records 368 passed and two unrelated fixture setup failures.",
+      "next": "Resolve measured B126 audio coverage and B127 video blackout, then rerun all 32 cells."
     },
     {
       "id": "B120",
       "title": "Native three-cycle decoded reports lack the new quality-profile binding",
-      "status": "IMPLEMENTED. Normal-entry regression execution is pending the complete batch.",
+      "status": "UNIT VERIFIED on local ARM. Full-matrix verification pending.",
       "change": "Bind the wrapper and each of its three exact indexed moving-media observations to the approved profile. Preserve all child and route failures.",
       "evidence": "The normal native producer emits a three-cycle wrapper. The new scope verifier expects a single report with six routes, so even three positive native cycles cannot qualify. Add normal evaluate_cell coverage.",
-      "next": "Complete all changes, run normal-entry regression controls, then retest all 32 cells."
+      "next": "Resolve measured B126 audio coverage and B127 video blackout, then rerun all 32 cells."
     },
     {
       "id": "B121",
       "title": "Offline capture interpretation consumes the physical end deadline",
-      "status": "ROOT APPROVED. Batch implementation in progress. Verification pending.",
+      "status": "UNIT VERIFIED on local ARM. Full-matrix verification pending.",
       "change": "Defer bounded capture interpretation until original Worker retirement and the T+10 observation. Use the same original cycle deadline for the owned interpreter, keeping physical event and resource bounds.",
       "evidence": "Linux cycle 3 starts its interpreter with 3.348ms remaining, then SIGKILL is recorded. Earlier interpreters complete naturally in about 0.43s. Original Node, server, packet capture and guardian later close.",
-      "next": "Complete all changes, run normal-entry regression controls, then retest all 32 cells."
+      "next": "Resolve measured B126 audio coverage and B127 video blackout, then rerun all 32 cells."
     },
     {
       "id": "B122",
       "title": "Failed logical cleanup blocks archive custody after physical closure",
-      "status": "ROOT APPROVED. Batch implementation in progress. Verification pending.",
+      "status": "UNIT VERIFIED on local ARM. Full-matrix verification pending.",
       "change": "Separate failed qualification from safe native archival under a complete natural original process anchor. Preserve forced-helper evidence and all unknown-owner backpressure.",
       "evidence": "The original guardian releases after all five custody joins, but conversation_control.all_observed_helpers_joined=false prevents archival and blocks the next 15 ARM cells. No stuck original guardian was observed.",
-      "next": "Complete all changes, run normal-entry regression controls, then retest all 32 cells."
+      "next": "Resolve measured B126 audio coverage and B127 video blackout, then rerun all 32 cells."
+    },
+    {
+      "id": "B123",
+      "title": "Native live encoder receives an artificial 100 ms sub-budget",
+      "status": "UNIT VERIFIED on local ARM. Full-matrix verification pending.",
+      "change": "Forward the remaining original 200 ms frame-age budget to the live encoder. Preserve source age, RTP deadline, feedback and late-frame refusal.",
+      "evidence": "Mac cycle 1 records a live encoder request timeout. The caller previously capped the request at 100 ms despite a remaining source-frame budget. A real-encoder regression covers forwarding above 120 ms.",
+      "next": "Resolve measured B126 audio coverage and B127 video blackout, then rerun all 32 cells."
+    },
+    {
+      "id": "B124",
+      "title": "Sequential independent SDK closes consume the shared retirement cutoff",
+      "status": "UNIT VERIFIED on local ARM. Full-matrix verification pending.",
+      "change": "Start independent original client closes together and await every result under the same original cutoff. Preserve failed and late closes and the original programme error.",
+      "evidence": "Mac cycles 2 and 3 complete media encoding but fail final retirement timing. Saved SQLite and service evidence shows terminal transitions near the cutoff. No persistent Session leak is proved.",
+      "next": "Resolve measured B126 audio coverage and B127 video blackout, then rerun all 32 cells."
+    },
+    {
+      "id": "B125",
+      "title": "Final retirement repeats the complete physical capture inspection",
+      "status": "UNIT VERIFIED on local ARM. Full-matrix verification pending.",
+      "change": "Validate root flags, original clock and source origin during the first joined inspection. Reuse its SHA-bound stage facts before current-owner refresh. Preserve full independent post-idle capture verification.",
+      "evidence": "Mac final physical owner ended before the cutoff while later refresh observation failed near it. The harness performed a redundant second complete capture parse before that refresh. Three regressions cover joined receipt reuse and malformed or foreign evidence.",
+      "next": "Resolve measured B126 audio coverage and B127 video blackout, then rerun all 32 cells."
+    },
+    {
+      "id": "B126",
+      "title": "Saved native timelines show short decoded-audio coverage",
+      "status": "MEASURED. Packet-level root-cause investigation in progress.",
+      "change": "Trace exact missing packets and shared worker intervals across all routes. Distinguish source pacing, library output and selection errors before changing code. Keep the accepted coverage threshold.",
+      "evidence": "Cycle 1 route 3 decodes 59.88 seconds. Cycle 2 routes 0, 1, 2, 3 and 5 decode 59.86 seconds and route 4 decodes 59.88 seconds. All pass identity, clean-gap and skew checks. Required decoded duration is 59.9 seconds.",
+      "next": "Verify a code-level counterexample and regression before the next full 32-cell run."
+    },
+    {
+      "id": "B127",
+      "title": "Saved moving-source receiver has a multi-second video interruption",
+      "status": "MEASURED. Packet-level root-cause investigation in progress.",
+      "change": "Trace old active sender, private candidate, activation, keyframe and receiver histories around the second handoff. Preserve the original frame-bin threshold.",
+      "evidence": "Cycle 1 route 1 has a 2.854 second gap and fails three video bins. Other cycle-1 receivers pass video bins and all six cycle-2 receivers pass them. All 12 timelines decode the correct source and pass A/V skew.",
+      "next": "Verify a code-level counterexample and regression before the next full 32-cell run."
     }
   ],
   "workplan_tasks": [
@@ -1260,7 +1300,7 @@
         "native capture serializes the actual SDK video epoch without changing its values",
         "test_native_three_cycle_quality_binds_each_original_cycle_and_preserves_failures"
       ],
-      "status": "Implemented with real SDK serialization and full native three-cycle verdict regression cases. Execution awaits the full batch.",
+      "status": "Implemented and covered by the complete local ARM replay. 370 Node and 218 Python cases pass with zero skips. Full-matrix evidence remains pending.",
       "completion": "Normal-entry regression controls and the fresh full matrix pass.",
       "completion_status": "full-matrix-pending"
     },
@@ -1280,7 +1320,7 @@
       "test_names": [
         "post-idle capture interpretation preserves physical and original cycle deadlines"
       ],
-      "status": "Approved batch implementation in progress. No new test results yet.",
+      "status": "Implemented and covered by the complete local ARM replay. 370 Node and 218 Python cases pass with zero skips. Full-matrix evidence remains pending.",
       "completion": "Normal-entry regression controls and the fresh full matrix pass.",
       "completion_status": "full-matrix-pending"
     },
@@ -1298,8 +1338,28 @@
       "test_names": [
         "failed native original custody permits later selected cells while qualification remains failed"
       ],
-      "status": "Approved batch implementation in progress. No new test results yet.",
+      "status": "Implemented and covered by the complete local ARM replay. 370 Node and 218 Python cases pass with zero skips. Full-matrix evidence remains pending.",
       "completion": "Normal-entry regression controls and the fresh full matrix pass.",
+      "completion_status": "full-matrix-pending"
+    },
+    {
+      "id": "S14",
+      "title": "Keep original retirement work within its existing deadline",
+      "owner": "Root and parallel implementation agents",
+      "dependencies": [
+        "S11",
+        "S12",
+        "S13"
+      ],
+      "code_paths": [
+        "scripts/lib/transport_av.mjs",
+        "scripts/lib/native_session_retirement.mjs",
+        "scripts/lib/transport_movement_workload.mjs",
+        "scripts/lib/transport_replacement_target.mjs"
+      ],
+      "solution": "Use the remaining original encoder budget, close independent original SDK clients concurrently and reuse the first verified capture-inspection result.",
+      "status": "Implemented and covered by the complete local ARM replay. 370 Node and 218 Python cases pass with zero skips. Full-matrix evidence remains pending.",
+      "completion": "Normal-entry controls and the new complete matrix pass.",
       "completion_status": "full-matrix-pending"
     }
   ],
@@ -3012,5 +3072,71 @@
     "linux_failure_findings_sha256": "17fe018906fdce089f1b87fdd34d8b831e108359df7e2bcd8ec79f4b18f1cc5d",
     "native_schema_proposal_sha256": "5d0961af43893093ee7d01127a88f742d9390f304998ac15d966a98839fee791",
     "postprocessing_proposal_sha256": "ba631194486bd05d35c1ee0a3d985f2a24de8839dd96ccb1e0688c73be622313"
+  },
+  "v206_pending_batch": {
+    "status": "Complete script batch verified on local ARM with 370 Node and 218 Python passes and zero skips. B126 audio coverage and B127 video blackout remain under packet-level investigation. Historical v205 remains 0 passed cells.",
+    "field_mismatch": "Canonical producer serialization creates a fresh snake_case epoch object without mutating the SDK value. Independent reader remains strict.",
+    "maintenance_condition": "Finish all compression and archive maintenance before the next full quality run. Root overlapped disk compression with v205 media. Its causal contribution is unproved.",
+    "research_result": "Conference guarded worker no longer takes the unrelated task-members registry mutex. v205 recorded 24703 started and completed worker ticks, with mean work of 1.06 to 2.66 ms and maximum 64 ms. Complete decoded quality has not yet been measured.",
+    "remaining_uncertainty": "Saved Mac evidence demonstrates late final control and retirement. It does not identify a specific blocking SQL or guard operation. No speculative backend lock rewrite is included.",
+    "historical_verdict": "v205 remains 0 passed, 2 failed, 30 blocked. Saved-capture diagnostic replay cannot change these original outcomes."
+  },
+  "v206_precommit_unit_attempt": {
+    "scope": {
+      "node": 370,
+      "python": 218
+    },
+    "node_passed": 368,
+    "node_failed": 2,
+    "node_skipped": 0,
+    "python_completed_ok": 210,
+    "python_incomplete": 8,
+    "python_timed_out": true,
+    "unit_failures": "Two new Node fixtures did not create their private .local parent. A newly selected Python scheduler test entered a real nested VM lease. Both fixture corrections are now applied. Complete replay follows.",
+    "ownership": "Node original guardian released and joined. Python original command timed out and was terminated, its group joined and outer guardian released. Detached nested guardian original natural join was not recorded. Supplemental exact-process census and kernel lock probe show no remaining owner. Preserve original failure.",
+    "next": "Repeat every selected test after fixture corrections. Do not convert failed or interrupted attempts into passes."
+  },
+  "saved_v205_independent_decode": {
+    "receipt_sha256": "cccee6fdc72b30836edeac5520da397e697a85b30f6de5a02bbf8615d75fcb84",
+    "diagnostic_projection_only": true,
+    "original_verdict_unchanged": true,
+    "cycles": 2,
+    "receiver_timelines": 12,
+    "receiver_timelines_passed": 4,
+    "ffmpeg_commands": 56,
+    "all_codec_commands_natural_and_joined": true,
+    "all_originals_and_sources_unchanged": true,
+    "decoded_identity_passed": 12,
+    "av_skew_passed": 12,
+    "failed_quality": "One cycle-1 receiver has a 2.854 second video gap. Seven receiver timelines fall 20 or 40 ms below the 59.9 second decoded-audio requirement. No threshold changed.",
+    "next": "Attribute exact source, transport and receive gaps using the original packet and worker timelines before a new full matrix."
+  },
+  "v206_precommit_unit_retry": {
+    "scope": {
+      "node": 370,
+      "python": 218
+    },
+    "node_passed": 368,
+    "node_failed": 2,
+    "python_passed": 218,
+    "python_failed": 0,
+    "skipped": 0,
+    "remaining_unit_failure": "Both new Worker tests reached an omitted createHash import. The one-import correction passes both complete post-idle scenarios in a portable copied fixture closure, with original source unchanged and every process joined. The corrected import is now applied.",
+    "source_and_ownership": "Original Node and Python groups exited without forced cleanup, both guardians released and joined, primary and isolated source unchanged.",
+    "next": "Repeat the full 370 Node and 218 Python cases on the same prepared ARM source tree."
+  },
+  "v206_verified_script_batch": {
+    "format": "connect/verified-script-batch-integration/1",
+    "base_revision": "c3469c59b8953522c5476d4de0dbf77487543960",
+    "verified_workspace_sha256": "267dd1c817eb00e0934265bc6855ec08971fb7ee6f8aa63a52906840641f0690",
+    "files_compared": 5761,
+    "differences_before_progress_update": [],
+    "host_receipt_sha256": "2186548af6237dc0b253320c75738076a6643b77a4a23fc03ff46fd3265da73d",
+    "node_receipt_sha256": "14b3e6d4a21a7bd9ad027fb7b84a14e1b25f0d37ea235bc6f574811e2589cf88",
+    "python_receipt_sha256": "c95f8626c6f7827cfc3c669ba3b6f7af4faf490163ecade8e418dbe9db658a9a",
+    "node_passed": 370,
+    "python_passed": 218,
+    "skipped": 0,
+    "full_matrix_qualified": false
   }
 }

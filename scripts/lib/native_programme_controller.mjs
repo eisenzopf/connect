@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {setTimeout as sleep} from 'node:timers/promises';
+import {writePostIdleMovementCapture} from './transport_movement_capture_owner.mjs';
 import {nativeMatrixLifecycle} from './native_matrix_lifecycle.mjs';
 import {NATIVE_PROGRAMME_PROFILE,now,sealedFile,ownWorkerStdio,originalWorkerOwner,workerJoinVerified} from './native_programme_profile.mjs';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -23,7 +24,8 @@ async function runNativeProgrammeCycle({inputPath,outputPath,programmeUrl,privat
   assert.equal(input.format,'connect/transport-conversation-input/1');
   assert.ok(Number.isFinite(input.matrix_programme_budget_seconds)&&input.matrix_programme_budget_seconds>=20&&input.matrix_programme_budget_seconds<=300);
   const directory=realpathSync(input.matrix_resource_directory);assert.ok(directory.startsWith(privateRoot+'/'));
-  return {directory,budget:input.matrix_programme_budget_seconds,prefix:input.matrix_resource_prefix??''};})();
+  return {directory,budget:input.matrix_programme_budget_seconds,prefix:input.matrix_resource_prefix??'',
+   mediaOutputDirectory:input.media_output_directory};})();
  for(const fd of logFds)assert.ok(fstatSync(fd).isFile(),'Inherited ordinary log descriptors required');
  assert.ok(Number.isFinite(originalDeadline)&&originalDeadline>created&&originalDeadline<=created+config.budget,'Existing original supervisor deadline is required');
  const cutoff=originalDeadline,workReportPath=outputPath+'.worker.json';
@@ -98,7 +100,49 @@ async function runNativeProgrammeCycle({inputPath,outputPath,programmeUrl,privat
  receipt.failure=failure;observation.retirement.passed=Boolean(observation.retirement.passed&&workerJoinVerified(receipt,owner,terminal));
  report.programme_worker=receipt;report.programme_worker_stdio=stdio;report.programme_report_loaded_monotonic_seconds=loadedAt;
  report.retirement=observation.retirement;report.native_idle_observation=observation.idle_observer;
- report.passed=Boolean(report.passed&&observation.retirement.passed&&observation.idle_observer.passed&&!failure);
+ let postprocessingPassed = true;
+ if (report.native_movement_capture_request !== undefined) {
+  const request = report.native_movement_capture_request;
+  const context = {
+   original_worker_owner: owner,
+   programme_worker: receipt,
+   original_worker_report_sha256: sealed.sha256,
+   original_terminal_monotonic_seconds: terminal,
+   original_idle_observed_monotonic_seconds: loadedAt,
+   retirement_passed: observation.retirement.passed,
+   original_sessions_ended: cleanup?.original_session_retirement?.passed === true,
+   idle_passed: observation.idle_observer.passed === true,
+  };
+  const stop = new AbortController();
+  // The media Worker timer ended at its actual join. Reuse the SAME absolute
+  // cycle cutoff for the new offline child; no renewed budget is allocated.
+  const postDeadline = setTimeout(() => stop.abort(Error('original postprocessing deadline')),
+   Math.max(0, (cutoff - now()) * 1000));
+  try {
+   assert.equal(workerJoinVerified(receipt, owner, terminal), true);
+   assert.equal(typeof config.mediaOutputDirectory, 'string');
+   const expectedDirectory = resolve(config.mediaOutputDirectory);
+   assert.equal(expectedDirectory, config.mediaOutputDirectory);
+   assert.equal(realpathSync(expectedDirectory), expectedDirectory);
+   assert.ok(expectedDirectory.startsWith(privateRoot + '/'));
+   assert.equal(request.output_directory, expectedDirectory);
+   assert.equal(request.path, join(expectedDirectory, 'movement-capture-request.json'));
+   assert.equal(sealedFile(workReportPath, buffer).sha256, sealed.sha256);
+   report.native_movement_capture = await writePostIdleMovementCapture(request, context, {signal: stop.signal});
+   assert.equal(sealedFile(workReportPath, buffer).sha256, sealed.sha256);
+   assert.ok(now() < cutoff);
+   report.capture_postprocessing = {passed: true, original_worker_report_sha256: sealed.sha256,
+    request_sha256: request.sha256, original_deadline_monotonic_seconds: cutoff};
+  } catch (error) {
+   postprocessingPassed = false;
+   report.capture_postprocessing = {passed: false, failure: safeName(error),
+    original_worker_report_sha256: sealed.sha256, request_sha256: request?.sha256 ?? null,
+    original_deadline_monotonic_seconds: cutoff};
+  } finally {
+   clearTimeout(postDeadline);
+  }
+ }
+ report.passed=Boolean(report.passed&&observation.retirement.passed&&observation.idle_observer.passed&&!failure&&postprocessingPassed);
  writeFileSync(outputPath,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});
  const fd=openSync(outputPath,'r');try{fsyncSync(fd);}finally{closeSync(fd);}
  const summary={passed:report.passed,checks:report.checks.length,cell_qualified:false,profile:NATIVE_PROGRAMME_PROFILE,

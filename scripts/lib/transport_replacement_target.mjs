@@ -156,6 +156,18 @@ export function verifyPhysicalOwnerEndReceipt(receipt, intent, admittedConnectio
     });
 }
 
+// The first joined inspector already removed payload bytes from these rows.
+// Its verified facts travel with the owned stage receipt; offline verification
+// still reopens the exact original capture and checks its full SHA.
+export function verifyProgrammeCaptureBoundaries(observed, source) {
+    assert.equal(observed.program_start_unix_us, source.programStartUnixUs);
+    assert.deepEqual(observed.program_clock, source.programClock);
+    assert.ok(Array.isArray(observed.received) && observed.received.length <= 16000);
+    assert.ok(observed.received.every(row => typeof row.original_root_completed_observed === "boolean"),
+        "each physical packet must retain its actual original-root observation boundary");
+    return true;
+}
+
 // Preparing includes reservation and in-flight Core preparation. Only the
 // exact durable prepare receipt permits launching the independent target.
 // This is an observation, never authority: allocation revalidates everything.
@@ -264,6 +276,9 @@ async function physicalTarget({ controller, retireOriginal, privateRoot,
                 report.target_start_video_index = observed.source_start_video_index;
             }
             assert.ok(Array.isArray(observed.received) && observed.received.length <= (intent.source.video ? 16000 : 4000));
+            if (intent.source.video && intent.source.programStartUnixUs !== undefined) {
+                report.capture_root_boundaries_verified = verifyProgrammeCaptureBoundaries(observed, intent.source);
+            }
             if (intent.source.video) {
                 assert.equal(observed.original_root_completed_observed, true);
                 assert.equal(observed.video_transfer_admitted, true);

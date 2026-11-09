@@ -13,6 +13,39 @@ import { ConnectionMediaOwner } from "./transport_media_owner.mjs";
 import { SwitchingMediaReader } from "./transport_media_reader.mjs";
 import { joinMediaProgramme } from "./transport_programme_lifetime.mjs";
 import { PublisherVideoFeedback, VideoReceiveHistory } from "./transport_video_recovery.mjs";
+// The Node SDK exposes camelCase typed fields. The durable capture contract
+// shared with physical peers and the independent Python reader is snake_case.
+export function nativeVideoCaptureEpoch(epoch) {
+    assert.ok(epoch && typeof epoch === "object" && !Array.isArray(epoch));
+    assert.deepEqual(
+        Object.keys(epoch).sort(),
+        ["epoch", "incarnation", "revision", "ssrc", "firstSequence", "firstTimestamp"].sort(),
+    );
+    for (const key of ["epoch", "incarnation"]) {
+        assert.ok(
+            typeof epoch[key] === "string"
+            && /^[0-9a-f]{32}$/.test(epoch[key])
+            && !/^0+$/.test(epoch[key]),
+        );
+    }
+    assert.ok(Number.isSafeInteger(epoch.revision) && epoch.revision > 0);
+    for (const key of ["ssrc", "firstSequence", "firstTimestamp"]) {
+        assert.ok(
+            Number.isSafeInteger(epoch[key])
+            && epoch[key] >= (key === "ssrc" ? 1 : 0)
+            && epoch[key] <= 0xffffffff,
+        );
+    }
+    return {
+        epoch: epoch.epoch,
+        incarnation: epoch.incarnation,
+        revision: epoch.revision,
+        ssrc: epoch.ssrc,
+        first_sequence: epoch.firstSequence,
+        first_timestamp: epoch.firstTimestamp,
+    };
+}
+
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 async function fileSha(path, size) {
     const before = await lstat(path), limit = size ?? 16 * 1024 * 1024;
@@ -157,7 +190,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                     remaining = Math.min(200, Math.floor(200 - (monotonicNow() - start - elapsed)));
                     if (remaining <= 0) { route.lateSendFrames++; continue; }
                     frame = await route.videoEncoder.frame(index, forceKeyframe || Boolean(permit?.isFresh()),
-                        { signal: route.owner.signal, timeoutMs: Math.min(100, remaining) });
+                        { signal: route.owner.signal, timeoutMs: remaining });
                 } catch (failure) {
                     // A stopped owner must still join the encoder in sending's
                     // finally. The process wrapper does not invent SDK errors.
@@ -250,7 +283,7 @@ export async function nativeAv(connections, rolesBySession, sourceDirectory, out
                     route.video.push({ elapsed_ms: elapsed, timestamp: frame.timestamp, key: frame.key,
                         stream_id: streamId,
                         decoder_history: frame.decoderHistory,
-                        ...(frame.videoEpoch ? { video_epoch: frame.videoEpoch } : {}),
+                        ...(frame.videoEpoch ? { video_epoch: nativeVideoCaptureEpoch(frame.videoEpoch) } : {}),
                         ssrc: value.header.ssrc,
                         payload: Buffer.from(frame.bytes).toString("base64") });
                 }

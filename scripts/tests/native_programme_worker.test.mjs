@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {test} from 'node:test';
 import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,existsSync,rmSync,openSync,closeSync,realpathSync,lstatSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {join,resolve} from 'node:path';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {NATIVE_PROGRAMME_PROFILE,now,sealedFile,workerJoinVerified} from '../lib/native_programme_profile.mjs';
 import {runNativeProgrammeWorker} from '../lib/native_programme_controller.mjs';
@@ -115,3 +116,92 @@ test('three independent original cycles keep one Node process and retain the fir
   }
  }finally{stopping=true;await observer;closeSync(fd);rmSync(root,{recursive:true,force:true});}
 });
+
+
+async function postIdleRefusal(foreignCycle = false) {
+    mkdirSync(resolve('.local'), {recursive: true, mode: 0o700});
+    const root = realpathSync(mkdtempSync(join(resolve('.local'), 'native-worker-post-idle-')));
+    const work = join(root, 'work');
+    mkdirSync(work);
+    const resources = join(work, 'resources'), capture = join(work, 'capture');
+    const requestedCapture = foreignCycle ? join(work, 'foreign-cycle') : capture;
+    mkdirSync(resources);
+    mkdirSync(capture);
+    if (foreignCycle) mkdirSync(requestedCapture);
+    const input = join(work, 'input.json'), output = join(work, 'report.json');
+    const requestPath = join(requestedCapture, 'movement-capture-request.json');
+    const bytes = Buffer.from('{}\n');
+    writeFileSync(requestPath, bytes, {mode: 0o600});
+    const info = lstatSync(requestPath);
+    const request = {format: 'connect/native-movement-capture-request/1', path: requestPath,
+        sha256: createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length,
+        identity: {device: info.dev, inode: info.ino, mode: info.mode,
+            mtime_ms: info.mtimeMs, ctime_ms: info.ctimeMs, bytes: bytes.length},
+        output_directory: requestedCapture, original_move_records_bound: 4};
+    writeFileSync(input, JSON.stringify({format: 'connect/transport-conversation-input/1',
+        matrix_programme_profile: NATIVE_PROGRAMME_PROFILE, matrix_programme_budget_seconds: 20,
+        matrix_resource_directory: resources, media_output_directory: capture, reported_quality_passed: true,
+        pending_capture_request: request}), {mode: 0o600});
+    const fd = openSync(join(root, 'original.log'), 'wx', 0o600);
+    let stopping = false, terminal, idleAt;
+    const observer = (async () => {
+        while (!stopping) {
+            for (const phase of ['baseline', 'terminal', 'retired']) {
+                const path = join(resources, `resources-${phase}.json`);
+                const response = join(resources, `resources-${phase}-response.json`);
+                if (!existsSync(path) || existsSync(response)) continue;
+                const value = JSON.parse(readFileSync(path, 'utf8'));
+                if (phase === 'terminal') terminal = value.monotonic_seconds;
+                if (phase === 'retired') {
+                    assert.equal(value.retirement.original_session_retirement.passed, true);
+                    assert.equal(workerJoinVerified(value.retirement.programme_worker, value.programme_owner, terminal), true);
+                    assert.equal(existsSync(join(capture, 'movement-capture-owner.json')), false);
+                    if (now() < terminal + 10) continue;
+                    idleAt = now();
+                }
+                writeFileSync(response, JSON.stringify({passed: true}), {flag: 'wx', mode: 0o600});
+            }
+            await sleep(5);
+        }
+    })();
+    try {
+        const result = await runNativeProgrammeWorker({inputPath: input, outputPath: output, privateRoot: root,
+            programmeUrl: new URL('./fixtures/native_programme_framework_workload.mjs', import.meta.url),
+            logFds: [fd, fd], originalDeadline: now() + 19});
+        const report = JSON.parse(readFileSync(output, 'utf8'));
+        const original = readFileSync(output + '.worker.json');
+        const joinedPath = join(requestedCapture, 'movement-capture-joined.json');
+        assert.equal(result.passed, false);
+        assert.equal(report.capture_postprocessing.passed, false);
+        assert.equal(JSON.parse(original).passed, true);
+        assert.equal(createHash('sha256').update(original).digest('hex'), report.programme_worker.report_sha256);
+        assert.equal(report.capture_postprocessing.original_worker_report_sha256, report.programme_worker.report_sha256);
+        assert.equal(report.programme_worker.failure, null);
+        assert.equal(report.programme_worker.forced, false);
+        assert.equal(report.retirement.passed, true);
+        assert.equal(report.native_idle_observation.passed, true);
+        if (foreignCycle) {
+            assert.equal(existsSync(joinedPath), false);
+            assert.equal(existsSync(join(requestedCapture, 'movement-capture-owner.json')), false);
+            assert.equal(existsSync(join(capture, 'movement-capture-owner.json')), false);
+        } else {
+            const interpreter = JSON.parse(readFileSync(joinedPath, 'utf8'));
+            assert.ok(interpreter.started_monotonic_ms >= idleAt * 1000);
+            assert.equal(interpreter.original_cutoff_monotonic_ms, report.programme_worker.owner.original_global_deadline_monotonic_seconds * 1000);
+            assert.equal(interpreter.joined, true);
+            assert.equal(interpreter.forced, false);
+            assert.equal(interpreter.exit_code, 1);
+        }
+        assert.deepEqual(readFileSync(requestPath), bytes);
+    } finally {
+        stopping = true;
+        await observer;
+        closeSync(fd);
+        rmSync(root, {recursive: true, force: true});
+    }
+}
+
+test('post-idle interpretation refusal lowers only the derived report after the exact original Worker and T+10',
+    {timeout: 25000}, () => postIdleRefusal());
+test('a pending capture descriptor from a foreign cycle cannot start an interpreter after idle',
+    {timeout: 25000}, () => postIdleRefusal(true));

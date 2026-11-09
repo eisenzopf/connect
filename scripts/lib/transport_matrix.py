@@ -16,6 +16,24 @@ def media_quality_bound(decoded):
             or decoded.get("metric_scope") != MEDIA_METRIC_SCOPE
             or decoded.get("original_source_sample_coverage_proved") is not False):
         return False
+    if decoded.get("format") == "connect/native-three-cycle-decoded-media/1":
+        cycles = decoded.get("cycles")
+        if not isinstance(cycles, list) or len(cycles) != 3:
+            return False
+        for index, cycle in enumerate(cycles, 1):
+            if (not isinstance(cycle, dict)
+                    or type(cycle.get("index")) is not int
+                    or cycle["index"] != index
+                    or cycle.get("passed") is not True):
+                return False
+            observation = cycle.get("observation")
+            if (not isinstance(observation, dict)
+                    or observation.get("passed") is not True
+                    or observation.get("format") != "connect/moving-native-av-decoded/1"
+                    or not media_quality_bound(observation)
+                    or not all(route.get("passed") is True for route in observation["routes"])):
+                return False
+        return True
     routes = decoded.get("routes")
     return (isinstance(routes, list) and len(routes) == 6 and all(
         isinstance(route, dict) and isinstance(route.get("audio"), dict)
@@ -24,6 +42,20 @@ def media_quality_bound(decoded):
         and route["audio"].get("source_quantum_scope") == AUDIO_QUANTUM_SCOPE
         and route["audio"].get("original_source_sample_coverage_proved") is False
         for route in routes))
+
+
+def native_three_cycle_quality(cycles):
+    """Preserve every original cycle outcome and bind its prospective metric scope."""
+    report = dict(
+        format="connect/native-three-cycle-decoded-media/1",
+        cycles=cycles,
+        quality_profile=MEDIA_QUALITY_PROFILE,
+        metric_scope=MEDIA_METRIC_SCOPE,
+        original_source_sample_coverage_proved=False,
+        cell_qualified=False,
+    )
+    report["passed"] = media_quality_bound(report)
+    return report
 
 
 DIMENSIONS = {

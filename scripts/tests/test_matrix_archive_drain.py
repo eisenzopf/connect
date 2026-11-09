@@ -23,8 +23,8 @@ def joined_report(joined=True,forced=False):
 
 
 class DurableArchiveCustody(unittest.TestCase):
-    def fixture(self,root,*,owners=True,stream_status=0,corrupt=False,forced=False):
-        body=json.dumps(joined_report(owners,forced)).encode();report_sha=hashlib.sha256(body).hexdigest()
+    def fixture(self,root,*,owners=True,stream_status=0,corrupt=False,forced=False,report=None):
+        body=json.dumps(joined_report(owners,forced) if report is None else report).encode();report_sha=hashlib.sha256(body).hexdigest()
         packed=io.BytesIO()
         with tarfile.open(fileobj=packed,mode='w:gz') as archive:
             member=tarfile.TarInfo('evidence/media/rehearsal.json');member.size=len(body);archive.addfile(member,io.BytesIO(body))
@@ -91,6 +91,51 @@ class DurableArchiveCustody(unittest.TestCase):
             owner,payload,calls,_=self.fixture(Path(temp),forced=True)
             with self.assertRaises(ValueError):owner.drain(payload)
             self.assertEqual(calls,['inspect'])
+
+    def test_failed_nested_helper_is_archived_only_after_its_natural_original_anchor_physically_joins(self):
+        report = joined_report()
+        report['conversation_control']['all_observed_helpers_joined'] = False
+        report['conversation_control']['capture_interpreter'] = dict(
+            joined=True, forced=True, exit_code=None, signal='SIGKILL')
+        report['native_process_profile'].update(
+            format='connect/native-workload-process-profile/1',
+            exit_code=1, failure=None, collection_complete=True)
+        self.assertTrue(drain.original_owners_joined(report))
+        with tempfile.TemporaryDirectory() as temp:
+            owner, payload, calls, _ = self.fixture(Path(temp), report=report)
+            result = owner.drain(payload)
+            self.assertEqual(calls, ['inspect', 'unlink'])
+            self.assertTrue(result['original_archive_absent'])
+            with tarfile.open(result['host_archive'], 'r:gz') as archive:
+                stored = json.load(archive.extractfile('evidence/media/rehearsal.json'))
+            self.assertEqual(stored, report)
+            self.assertFalse(stored['passed'])
+            self.assertFalse(stored['conversation_control']['all_observed_helpers_joined'])
+            self.assertTrue(stored['conversation_control']['capture_interpreter']['forced'])
+
+    def test_failed_logical_helper_without_complete_physical_anchor_never_acknowledges(self):
+        for field, value in [
+                ('format', 'unknown'),
+                ('original_supervisor_joined', False),
+                ('original_workers_joined', False),
+                ('forced', True),
+                ('collection_complete', False),
+                ('failure', 'unavailable'),
+                ('exit_code', None),
+                ('exit_code', True)]:
+            with self.subTest(field=field, value=value):
+                report = joined_report()
+                report['conversation_control']['all_observed_helpers_joined'] = False
+                report['native_process_profile'].update(
+                    format='connect/native-workload-process-profile/1',
+                    exit_code=1, failure=None, collection_complete=True)
+                report['native_process_profile'][field] = value
+                self.assertFalse(drain.original_owners_joined(report))
+                with tempfile.TemporaryDirectory() as temp:
+                    owner, payload, calls, _ = self.fixture(Path(temp), report=report)
+                    with self.assertRaises(ValueError):
+                        owner.drain(payload)
+                    self.assertEqual(calls, ['inspect'])
 
     def test_failed_exact_destination_mtime_never_unlinks(self):
         with tempfile.TemporaryDirectory() as temp:

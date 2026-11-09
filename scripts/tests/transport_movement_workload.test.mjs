@@ -1,6 +1,7 @@
 import { recordPrivateTargetCleanup } from "../lib/transport_failure_isolation.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { deviceMovementWorkload } from "../lib/transport_movement_workload.mjs";
@@ -42,7 +43,8 @@ async function scenario(mode) {
     const reported = [];
     const workload = { routes, signal: signal.signal, reportFailure(failure) {
         reported.push({ failure, stopped: stopped.length });
-    }, programStartUnixUs: 1793600000000000, startedAt: 0 };
+    }, programStartUnixUs: 1793600000000000,
+        programClock: {kind: "linux-monotonic-v1", domain: "fixture", origin_ns: "1"}, startedAt: 0 };
     const currentEnds = roles.map((_, index) => ({ index, operationId: "end-" + index }));
     let retainedJoined = false;
     const endRetained = async args => {
@@ -102,9 +104,20 @@ async function scenario(mode) {
         await mkdir(options.directory);
         await writeFile(join(options.directory, "target-observation.json"), JSON.stringify({
             program_start_unix_us: workload.programStartUnixUs,
+            program_clock: workload.programClock,
             received: [{ original_root_completed_observed: false }, { original_root_completed_observed: true }],
         }), { mode: 0o600 });
-        const stage = { passed: true };
+        const capturedBytes = await readFile(join(options.directory, "target-observation.json"));
+        const stage = { passed: true, capture_inspection_worker_joined: true,
+            capture_root_boundaries_verified: true,
+            target_observation_sha256: createHash("sha256").update(capturedBytes).digest("hex"),
+            original_program_start_unix_us: workload.programStartUnixUs,
+            original_program_clock: structuredClone(workload.programClock) };
+        if (mode === "reuse-inspection") await rm(join(options.directory, "target-observation.json"));
+        if (mode === "missing-root-verification") delete stage.capture_root_boundaries_verified;
+        if (mode === "unjoined-inspector") stage.capture_inspection_worker_joined = false;
+        if (mode === "foreign-inspected-clock") stage.original_program_clock.domain = "foreign";
+        if (mode === "invalid-inspected-hash") stage.target_observation_sha256 = "not-a-hash";
         if (dataProfile) stage.physical_data_exchange_verified = true;
         if (ordinal === 1) {
             assert.equal(options.source.terminalEndOperationId, "end-" + (sid === 0 ? 0 : 4));
@@ -186,7 +199,12 @@ async function scenario(mode) {
             await assert.rejects(run, { code: "ERR_ASSERTION" });
             assert.equal(starts.length, 0); return;
         }
-        if (!["normal", "data", "early-wake", "prepared-video", "prepared-video-data"].includes(mode)) {
+        if (["missing-root-verification", "unjoined-inspector", "foreign-inspected-clock", "invalid-inspected-hash"].includes(mode)) {
+            await assert.rejects(run, error => error.code === "ERR_ASSERTION");
+            assert.equal(new Set([...stopped, ...joined]).size, admitted.length);
+            return;
+        }
+        if (!["normal", "data", "early-wake", "prepared-video", "prepared-video-data", "reuse-inspection"].includes(mode)) {
             await assert.rejects(run, error => ["unknown", "retained-failure", "data-failure", "external-failure"].includes(mode) ? error === original :
                 ["foreign-final-end", "no-progress-wait"].includes(mode) ? error.code === "ERR_ASSERTION" : mode === "retirement-refusal" ? error.certainty === "read-only" : error.kind === "cancelled");
             assert.equal(retainedJoined, true);
@@ -249,6 +267,15 @@ async function scenario(mode) {
             assert.ok(original);
         }
         assert.equal(observation.physical_segments.length, 4);
+        if (mode === "reuse-inspection") {
+            // Movement consumes the exact already-owned stage receipt, not a
+            // second file read. The separate post-idle interpreter still requires
+            // every original file and cannot qualify this missing-file fixture.
+            for (const segment of observation.physical_segments) {
+                assert.match(segment.sha256, /^[0-9a-f]{64}$/);
+                await assert.rejects(readFile(segment.observation), {code: "ENOENT"});
+            }
+        }
         assert.equal(observation.planned_peak_connection_slots, 8);
         assert.equal(observation.shared_sdk_closed_during_replacement, false);
         assert.equal(observation.full_timeline_decoded, false);
@@ -284,3 +311,10 @@ test("two Session chains cannot silently share one serialized ordinary control h
  test("prepared video keeps its receiver while separately authorized Data subscriptions complete", () => scenario("prepared-video-data"));
 
  test("a definitively refused original outbound blocks only its own return while the original sibling reaches40s and62s cleanup", () => scenario("isolated-outbound"));
+
+
+test("movement reuses the joined stage inspection without rereading its large capture before original retirement", () => scenario("reuse-inspection"));
+test("movement refuses missing root-boundary proof, unjoined inspection and foreign clock or capture hash", async () => {
+    for (const mode of ["missing-root-verification", "unjoined-inspector", "foreign-inspected-clock", "invalid-inspected-hash"])
+        await scenario(mode);
+});

@@ -73,3 +73,73 @@ test('an expired original cutoff cannot admit a fresh cleanup effect',async()=>{
     assert.equal(result.passed,false);assert.deepEqual(s.calls,[]);
     assert.equal(result.sessions[0].failure.kind,'deadline');assert.equal(result.sessions[0].submission_attempted,false);
 });
+
+
+test('independent client closes all start under one original cutoff before any gated reply', async () => {
+    let clock = 1000;
+    const owner = originalSessionRetirement({now: () => clock, globalDeadlineMs: 1050});
+    const starts = [], releases = [];
+    const clients = Array.from({length: 3}, (_, index) => ({
+        close(options) {
+            starts.push({index, timeoutMs: options.timeoutMs});
+            return new Promise(resolve => releases.push(resolve));
+        },
+    }));
+    const closing = owner.closeClients(clients, 1100);
+    assert.deepEqual(starts, [{index: 0, timeoutMs: 50}, {index: 1, timeoutMs: 50}, {index: 2, timeoutMs: 50}]);
+    assert.equal(releases.length, 3);
+    clock = 1049;
+    for (const release of releases) release();
+    const result = await closing;
+    assert.equal(result.passed, true);
+    assert.equal(result.original_cutoff_monotonic_ms, 1050);
+    assert.ok(result.clients.every(client => client.status === 'fulfilled' && client.deadline_met));
+});
+
+test('one original client close failure joins every sibling and preserves the original programme failure', async () => {
+    const original = Error('original programme failure');
+    const closeError = Object.assign(Error('private close detail'), {kind: 'deadline', certainty: 'read-only'});
+    const programme = {passed: false, failure: original};
+    const owner = originalSessionRetirement({now: () => 1000, globalDeadlineMs: 1050});
+    const releases = [];
+    const clients = Array.from({length: 3}, (_, index) => ({
+        close() {
+            if (index === 1) return Promise.reject(closeError);
+            return new Promise(resolve => releases.push(resolve));
+        },
+    }));
+    let settled = false;
+    const closing = owner.closeClients(clients, 1050).then(result => { settled = true; return result; });
+    await Promise.resolve();
+    assert.equal(settled, false);
+    assert.equal(releases.length, 2);
+    for (const release of releases) release();
+    const result = await closing;
+    programme.passed = Boolean(programme.passed && result.passed);
+    assert.equal(result.passed, false);
+    assert.deepEqual(result.clients.map(client => client.status), ['fulfilled', 'rejected', 'fulfilled']);
+    assert.deepEqual(result.clients[1].failure, {name: 'Error', kind: 'deadline', certainty: 'read-only'});
+    assert.equal(programme.passed, false);
+    assert.equal(programme.failure, original);
+    assert.equal(JSON.stringify(result).includes('private close detail'), false);
+});
+
+test('late client completion and an expired original cutoff cannot qualify or renew the cleanup budget', async () => {
+    let clock = 1000, release;
+    const owner = originalSessionRetirement({now: () => clock, globalDeadlineMs: 1050});
+    const calls = [];
+    const closing = owner.closeClients([{close(options) {
+        calls.push(options.timeoutMs);
+        return new Promise(resolve => { release = resolve; });
+    }}], 1100);
+    clock = 1051;
+    release();
+    const late = await closing;
+    assert.equal(late.passed, false);
+    assert.equal(late.clients[0].status, 'fulfilled');
+    assert.equal(late.clients[0].deadline_met, false);
+    const expired = await owner.closeClients([{async close(options) { calls.push(options.timeoutMs); }}], 1100);
+    assert.deepEqual(calls, [50, 1]);
+    assert.equal(expired.original_cutoff_monotonic_ms, 1050);
+    assert.equal(expired.passed, false);
+});

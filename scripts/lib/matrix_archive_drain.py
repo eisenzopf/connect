@@ -28,7 +28,18 @@ def original_owners_joined(report):
         return False
     if report.get('format') != 'connect/browser-matrix-component/1':
         if report.get('conversation_control', {}).get('all_observed_helpers_joined') is not True:
-            return False
+            # Logical cleanup deadlines and natural qualification stay failed.
+            # A complete, naturally retired original process-group anchor can
+            # still prove its nested failed helper is physically gone.
+            profile = report.get('native_process_profile', {})
+            if not (profile.get('format') == 'connect/native-workload-process-profile/1'
+                    and profile.get('original_supervisor_joined') is True
+                    and profile.get('original_workers_joined') is True
+                    and profile.get('forced') is False
+                    and type(profile.get('exit_code')) is int
+                    and profile.get('failure', 'missing') is None
+                    and profile.get('collection_complete') is True):
+                return False
     if report.get('browser_forced_cleanup', False) is not False:
         return False
     if 'client_network_removed' in report and report['client_network_removed'] is not True:

@@ -9,6 +9,11 @@ const terminal=new Set(['ended','cancelled','rejected','failed']);
  * No Session, client, credential or replacement operation is created here. */
 export function originalSessionRetirement({now=monotonicMs,globalDeadlineMs=Infinity}={}){
     const entries=[];
+    const remainingCloseMs=deadline=>Math.max(1,Math.floor(Math.min(deadline,globalDeadlineMs)-now()));
+    const failure=value=>{
+        const text=field=>typeof field==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(field)?field:null;
+        return {name:text(value?.name),kind:text(value?.kind),certainty:text(value?.certainty)};
+    };
     const remaining=deadline=>{
         const timeoutMs=Math.floor(Math.min(deadline,globalDeadlineMs)-now());
         if(timeoutMs<1)throw Object.assign(Error('Original Session cleanup deadline'),{kind:'deadline',certainty:'read-only'});
@@ -62,7 +67,31 @@ export function originalSessionRetirement({now=monotonicMs,globalDeadlineMs=Infi
             return finish(entry,Math.min(globalDeadlineMs,now()+timeoutMs));
         },
         cleanupDeadline(){return Math.min(globalDeadlineMs,now()+5000);},
-        remainingCloseMs(deadline){return Math.max(1,Math.floor(Math.min(deadline,globalDeadlineMs)-now()));},
+        remainingCloseMs,
+        async closeClients(clients,deadline){
+            const original=Array.from(clients),cutoff=Math.min(deadline,globalDeadlineMs);
+            const observations=original.map((_,index)=>({index,status:'not-started',deadline_met:false}));
+            // Each independent original owner starts before awaiting any sibling.
+            // Even an already expired cleanup still joins the SDK close with its
+            // existing minimum1ms cleanup attempt, and can never qualify.
+            const results=await Promise.allSettled(original.map(async(client,index)=>{
+                const observation=observations[index],started=now();
+                try{
+                    await client.close({timeoutMs:remainingCloseMs(cutoff)});
+                    observation.status='fulfilled';
+                    observation.deadline_met=started<cutoff&&now()<=cutoff;
+                }catch(error){
+                    observation.status='rejected';
+                    observation.failure=failure(error);
+                    throw error;
+                }
+            }));
+            return {format:'connect/original-client-retirement/1',
+                passed:results.every(result=>result.status==='fulfilled')
+                    &&observations.every(observation=>observation.deadline_met),
+                original_cutoff_monotonic_ms:cutoff,
+                clients:observations.slice(0,16),omitted_clients:Math.max(0,observations.length-16)};
+        },
         async cleanup(deadline){
             // Independent original Sessions get the SAME existing absolute
             // cutoff. Promise.allSettled joins every original SDK call; no

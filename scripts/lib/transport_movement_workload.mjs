@@ -7,7 +7,6 @@ import { join } from "node:path";
 import { startPhysicalReplacementTarget } from "./transport_replacement_target.mjs";
 import { liveVideoProgram } from "./transport_live_video_program.mjs";
 import { operationFailure } from "./transport_failure.mjs";
-import { inspectReplacementCapture } from "./transport_capture_inspection.mjs";
 import { endRetainedConnections } from "./transport_current_end.mjs";
 import { exchangeMovementData } from "./transport_movement_data.mjs";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -126,13 +125,14 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         if (dataWorkload) assert.equal(stage.physical_data_exchange_verified, true);
         owners.delete(owner);
         const observation = join(moveDirectory, "target-observation.json");
-        const inspected = await inspectReplacementCapture(observation, 80 * 1024 * 1024, 16000);
-        const captured = inspected.observation;
-        assert.equal(captured.program_start_unix_us, workload.programStartUnixUs);
-        assert.deepEqual(captured.program_clock, workload.programClock);
-        assert.ok(captured.received.every(row => typeof row.original_root_completed_observed === "boolean"),
-            "each physical packet must retain its actual original-root observation boundary");
-        segments.push({ sourceIndex, observation, sha256: inspected.sha256 });
+        // finish() already owns the first joined, SHA-bound capture inspection.
+        // Keep the original67s current-owner refresh free of a second full parse.
+        assert.equal(stage.capture_inspection_worker_joined, true);
+        assert.equal(stage.capture_root_boundaries_verified, true);
+        assert.match(stage.target_observation_sha256, /^[0-9a-f]{64}$/);
+        assert.equal(stage.original_program_start_unix_us, workload.programStartUnixUs);
+        assert.deepEqual(stage.original_program_clock, workload.programClock);
+        segments.push({ sourceIndex, observation, sha256: stage.target_observation_sha256 });
         if (natural) {
             const end = stage.final_current_owner_end;
             assert.equal(end?.operation_id, currentEnds.find(end => end.index === sourceIndex).operationId);

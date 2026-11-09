@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from lib.transport_matrix import inventory, load_contract
+from lib.transport_matrix import inventory, load_contract, native_three_cycle_quality, media_quality_bound
 from lib.transport_matrix_execution import configure_execution, merge_hosts
 from lib.transport_matrix_verdict import evaluate_cell, summarize
 
@@ -50,21 +50,81 @@ class FullMatrix(unittest.TestCase):
         self.assertEqual(len(all_ids), 32)
 
     def test_first_exception_does_not_stop_any_other_cell_and_no_check_disappears(self):
-        reports = []
-        visited = []
-        for host in ("macos-arm64", "ubuntu24-arm64"):
-            matrix = self.configured(host)
-            def execute(cell):
-                visited.append(cell["id"])
-                if len(visited) == 1:
-                    raise RuntimeError("original failed fixture")
-                return {}, "b" * 64, 1
-            with tempfile.TemporaryDirectory() as temp:
-                driver.execute_selected(matrix, [c["id"] for c in matrix["cells"]], Path(temp), execute)
-            reports.append(matrix)
+        reports, visited, admitted, archived, drained, guest_drained, leases = [], [], [], [], [], [], []
+
+        class UnitLease:
+            # Only scheduling is under test. No real VM owner is constructed.
+            blocked = False
+
+            def __enter__(self):
+                self.completed = False
+                self.exited = False
+                leases.append(self)
+                return self
+
+            def complete(self, report):
+                self.completed = True
+
+            def __exit__(self, *_):
+                self.exited = True
+
+        def admit(cell):
+            admitted.append(cell["id"])
+            return dict(admitted=True, unit_fixture_only=True)
+
+        def archive(directory, report):
+            self.assertTrue(directory.is_dir())
+            self.assertEqual(report, {})
+            archived.append(str(directory))
+            return dict(unit_fixture_only=True)
+
+        def drain(cell, report):
+            self.assertEqual(report, {})
+            drained.append(cell["id"])
+            return dict(unit_fixture_only=True)
+
+        def drain_guest(cell, directory):
+            self.assertTrue(directory.is_dir())
+            guest_drained.append(cell["id"])
+            return dict(unit_fixture_only=True)
+
+        # Force the Linux branch even on the Mac so this fixture always covers
+        # its mocked lease seam. Admission, archive and drain are unit callbacks;
+        # no real component, VM, storage broker or payload processing is entered.
+        with patch.object(driver.platform, "system", return_value="Linux"), \
+                patch.object(driver, "GuardedVmWorkloadLease", UnitLease), \
+                patch("lib.matrix_archive.archive_joined", side_effect=archive):
+            for host in ("macos-arm64", "ubuntu24-arm64"):
+                matrix = self.configured(host)
+
+                def execute(cell):
+                    visited.append(cell["id"])
+                    if len(visited) == 1:
+                        raise RuntimeError("original failed fixture")
+                    directory = output / "cells" / cell["server"] / cell["network"] / cell["transport"] / cell["signing"]
+                    directory.mkdir(parents=True)
+                    return {}, "b" * 64, 1
+
+                with tempfile.TemporaryDirectory() as temp:
+                    output = Path(temp)
+                    driver.execute_selected(matrix, [c["id"] for c in matrix["cells"]], output, execute,
+                                            storage_admit=admit, drain_archive=drain, drain_guest=drain_guest)
+                reports.append(matrix)
         merged = merge_hosts(inventory(ROOT, "a" * 40), reports)
         self.assertEqual(len(visited), len(set(visited)))
         self.assertEqual(len(visited), 32)
+        self.assertEqual(admitted, visited)
+        self.assertEqual(len(leases), 32)
+        self.assertTrue(all(lease.exited for lease in leases))
+        self.assertEqual(sum(lease.completed for lease in leases), 31)
+        self.assertEqual(len(archived), 31)
+        self.assertEqual(drained, visited[1:])
+        expected_guest = {cell["id"] for cell in merged["cells"]
+                          if cell["server"] == "macos-arm64" and cell["network"] == "remote-profile-fixture"}
+        self.assertEqual(set(guest_drained), expected_guest)
+        self.assertEqual(len(guest_drained), 8)
+        first = next(cell for cell in merged["cells"] if cell["id"] == visited[0])
+        self.assertEqual(first["execution"]["failure_class"], "RuntimeError")
         self.assertEqual(sum(len(c["check_results"]) for c in merged["cells"]), 432)
         self.assertEqual(merged["summary"]["checks"]["not-run"], 0)
         self.assertEqual(merged["summary"]["checks"]["passed"], 0)
@@ -99,6 +159,95 @@ class FullMatrix(unittest.TestCase):
                 return json.dumps(bad) if path==ROOT/'contracts/gate6-transport-matrix.json' else original(path,*args,**kwargs)
             with self.subTest(contract_field=field),patch.object(Path,'read_text',read),self.assertRaises(ValueError):
                 load_contract(ROOT)
+
+    def native_quality_cycles(self):
+        audio = dict(
+            quality_profile="connect/decoded-audio-quality/3",
+            metric_scope="measurable-decoded-quality-source-quanta-diagnostic",
+            source_quantum_scope="diagnostic-only-source-clock-attribution",
+            original_source_sample_coverage_proved=False,
+        )
+        decoded = dict(
+            format="connect/moving-native-av-decoded/1",
+            passed=True,
+            quality_profile=audio["quality_profile"],
+            metric_scope=audio["metric_scope"],
+            original_source_sample_coverage_proved=False,
+            routes=[dict(passed=True, audio=dict(audio)) for _ in range(6)],
+        )
+        return [dict(index=index, passed=True, observation=copy.deepcopy(decoded))
+                for index in (1, 2, 3)]
+
+    def test_native_three_cycle_quality_binds_each_original_cycle_and_preserves_failures(self):
+        cycles = self.native_quality_cycles()
+        report = native_three_cycle_quality(cycles)
+        self.assertTrue(report["passed"])
+        self.assertTrue(media_quality_bound(report))
+        self.assertEqual(report["cycles"], cycles)
+        changes = ["scope", "result", "observation-result", "route-result", "wrong-format", "missing", "index"]
+        for position in range(3):
+            for change in changes:
+                bad = copy.deepcopy(cycles)
+                if change == "scope":
+                    bad[position]["observation"]["metric_scope"] = "historical"
+                elif change == "result":
+                    bad[position]["passed"] = False
+                elif change == "observation-result":
+                    bad[position]["observation"]["passed"] = False
+                elif change == "route-result":
+                    bad[position]["observation"]["routes"][0]["passed"] = False
+                elif change == "wrong-format":
+                    bad[position]["observation"]["format"] = "connect/browser-matrix-decoded-media/2"
+                elif change == "missing":
+                    del bad[position]["observation"]
+                else:
+                    bad[position]["index"] = True
+                with self.subTest(position=position, change=change):
+                    failed = native_three_cycle_quality(bad)
+                    self.assertFalse(failed["passed"])
+                    self.assertEqual(failed["cycles"], bad)
+        self.assertFalse(native_three_cycle_quality(cycles[:2])["passed"])
+        nested = copy.deepcopy(cycles)
+        nested[0]["observation"] = report
+        self.assertFalse(native_three_cycle_quality(nested)["passed"])
+
+    def test_native_three_cycle_quality_reaches_full_cell_verdict_and_refuses_stale_children(self):
+        matrix = self.configured("ubuntu24-arm64")
+        cell = next(cell for cell in matrix["cells"]
+                    if cell["execution"]["runnable"]
+                    and cell["transport"] == "native-quic" and cell["network"] == "local")
+        decoded = native_three_cycle_quality(self.native_quality_cycles())
+        report = dict(
+            source_revision="a" * 40,
+            host=dict(platform=cell["server"]),
+            network_profile="local",
+            signing_algorithm=cell["signing"],
+            source_inputs_unchanged=True,
+            sdk_dist_inputs_unchanged=True,
+            executables_unchanged=True,
+            native_av_decoded=decoded,
+        )
+        check = "independently-decoded-duplex-media-and-profile-budgets"
+        evaluate_cell(cell, report, "b" * 64, environment=matrix["execution_environment"], revision="a" * 40)
+        self.assertEqual(cell["check_results"][check]["status"], "passed")
+        # A nominal outer passed flag cannot conceal a failed or stale child.
+        for change in ["scope", "result", "missing", "wrapper-scope", "wrapper-history"]:
+            bad = copy.deepcopy(report)
+            value = bad["native_av_decoded"]
+            if change == "scope":
+                value["cycles"][1]["observation"]["metric_scope"] = "historical"
+            elif change == "result":
+                value["cycles"][1]["passed"] = False
+            elif change == "missing":
+                del value["cycles"][1]["observation"]
+            elif change == "wrapper-scope":
+                value["quality_profile"] = "historical"
+            else:
+                del value["quality_profile"]
+            self.assertTrue(value["passed"])
+            evaluate_cell(cell, bad, "b" * 64, environment=matrix["execution_environment"], revision="a" * 40)
+            with self.subTest(change=change):
+                self.assertEqual(cell["check_results"][check]["status"], "failed")
 
     def test_later_av_failure_preserves_current_control_passes(self):
         matrix = self.configured("ubuntu24-arm64")

@@ -22,7 +22,7 @@ import { operationFailure } from "./lib/transport_failure.mjs";
 import { liveSessionUpgrade } from "./lib/transport_live_upgrade.mjs";
 import { deviceMovementWorkload } from "./lib/transport_movement_workload.mjs";
 import { observeMovementSessions } from "./lib/transport_movement_sessions.mjs";
-import { writeJoinedMovementCapture } from "./lib/transport_movement_capture_owner.mjs";
+import { writeJoinedMovementCapture, sealMovementCaptureRequest } from "./lib/transport_movement_capture_owner.mjs";
 import { TOTAL_MOVES } from "./lib/transport_movement_profile.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -460,14 +460,21 @@ try {
             report.replacement_media_ownership_observed = report.device_movement.original_moves_completed === TOTAL_MOVES;
             report.data_workload.current_owner_end = report.device_movement.current_owner_end;
             phase = "original-and-physical-capture-custody";
-            report.native_movement_capture = await writeJoinedMovementCapture({ directory: join(privateDirectory, "movement"),
+            const captureRequest = { directory: join(privateDirectory, "movement"),
                 outputDirectory: input.media_output_directory,
                 movement: report.device_movement,
                 packetWorkersJoined: report.native_av.original_receive_tasks_joined,
                 conversationId: cid, sessionIds: sessions.map(session => session.id),
                 connectionIds: connections.map(item => item.connection.id),
                 streamIds: connections.map(item => ({ audio: plan[item.prefix + "-audio"], video: plan[item.prefix + "-video"], data: plan[item.prefix + "-stream"] })),
-                executableSha256: input.physical_peer_sha256 });
+                executableSha256: input.physical_peer_sha256 };
+            if (programmeWorker) {
+                // The immutable Worker report binds only this small file receipt.
+                // Its parent interprets after actual retirement and the T+10 idle observation.
+                report.native_movement_capture_request = await sealMovementCaptureRequest(captureRequest);
+            } else {
+                report.native_movement_capture = await writeJoinedMovementCapture(captureRequest);
+            }
             assert.equal(report.device_movement.replacement_data_io_verified, true);
             const movementMessages = report.device_movement.replacement_data_exchanges.flatMap(exchange => exchange.messages);
             assert.equal(movementMessages.length, TOTAL_MOVES * 2);
@@ -583,9 +590,10 @@ try {
     if (matrixLifecycle) await matrixLifecycle.terminal();
     report.original_session_retirement=await originalSessions.cleanup(originalCleanupCutoff);
     report.passed=Boolean(report.passed&&report.original_session_retirement.passed);
-    for (const client of clients.values()) {
-        try { await client.close({ timeoutMs: originalSessions.remainingCloseMs(originalCleanupCutoff) }); }
-        catch { report.passed = false; report.helper_close_failed = true; }
+    report.original_client_retirement = await originalSessions.closeClients(clients.values(), originalCleanupCutoff);
+    if (!report.original_client_retirement.passed) {
+        report.passed = false;
+        report.helper_close_failed = true;
     }
     for (const pid of observedHelpers) {
         if (await processExists(pid)) { report.passed = false; report.helper_survived = true; }

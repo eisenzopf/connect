@@ -7,7 +7,8 @@ import { constants } from "node:fs";
 import { open, realpath, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { monotonicNow, programmeElapsed } from "./transport_programme_clock.mjs";
+import { originalWorkerOwner, workerJoinVerified } from "./native_programme_profile.mjs";
+import { monotonicNow, programmeElapsed, validateProgrammeClock, programmeClockDomain } from "./transport_programme_clock.mjs";
 
 const file = fileURLToPath(import.meta.url);
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -40,7 +41,10 @@ async function original(path, maximum, json = false) {
         const after = await handle.stat();
         for (const key of ["dev", "ino", "size", "mode", "mtimeMs", "ctimeMs"]) assert.equal(after[key], before[key]);
         assert.equal(size, before.size);
-        return { sha256: hash.digest("hex"), ...(parts ? { value: JSON.parse(Buffer.concat(parts, size)) } : {}) };
+        return { sha256: hash.digest("hex"), bytes: size,
+            identity: { device: before.dev, inode: before.ino, mode: before.mode,
+                mtime_ms: before.mtimeMs, ctime_ms: before.ctimeMs, bytes: size },
+            ...(parts ? { value: JSON.parse(Buffer.concat(parts, size)) } : {}) };
     } finally { await handle.close(); }
 }
 
@@ -54,43 +58,126 @@ function originalCutoff(options) {
     return cutoff;
 }
 
+function physicalCutoff(options) {
+    assert.equal(options.packetWorkersJoined, true, "original packet owners must join before interpretation");
+    const clock = validateProgrammeClock(options.movement.original_program_clock);
+    const domain = programmeClockDomain();
+    assert.equal(clock.kind, domain.kind); assert.equal(clock.domain, domain.domain);
+    const cutoff = Number(BigInt(clock.origin_ns)) / 1e6 + 67000;
+    assert.equal(options.movement.current_owner_end.original_cutoff_monotonic_ms, cutoff);
+    assert.ok(monotonicNow() >= cutoff - 5000, "original programme must finish before interpretation");
+    return cutoff;
+}
+
+function postIdleCutoff(request, context) {
+    assert.equal(request.format, "connect/native-movement-capture-request/1");
+    const owner = originalWorkerOwner(context.original_worker_owner);
+    assert.equal(workerJoinVerified(context.programme_worker, owner, context.original_terminal_monotonic_seconds), true);
+    assert.equal(context.original_worker_report_sha256, context.programme_worker.report_sha256);
+    assert.equal(context.retirement_passed, true);
+    assert.equal(context.original_sessions_ended, true);
+    assert.equal(context.idle_passed, true);
+    const terminal = context.original_terminal_monotonic_seconds * 1000;
+    const observed = context.original_idle_observed_monotonic_seconds * 1000;
+    const cutoff = owner.original_global_deadline_monotonic_seconds * 1000;
+    assert.ok(Number.isFinite(observed) && observed >= terminal + 10000 && observed <= monotonicNow());
+    assert.ok(monotonicNow() < cutoff, "original postprocessing deadline expired");
+    assert.match(request.sha256, hashPattern);
+    assert.ok(Number.isSafeInteger(request.bytes) && request.bytes > 0 && request.bytes <= 256 * 1024);
+    return cutoff;
+}
+
+export async function sealMovementCaptureRequest(options) {
+    physicalCutoff(options);
+    await privateDirectory(options.directory); await privateDirectory(options.outputDirectory);
+    const bytes = encode(options);
+    assert.ok(Buffer.byteLength(bytes) <= 256 * 1024);
+    const path = join(options.outputDirectory, "movement-capture-request.json");
+    await writeFile(path, bytes, { flag: "wx", mode: 0o600 });
+    const actual = await original(path, 256 * 1024);
+    assert.equal(actual.sha256, sha(bytes));
+    return { format: "connect/native-movement-capture-request/1", path,
+        sha256: actual.sha256, bytes: Buffer.byteLength(bytes), identity: actual.identity,
+        output_directory: options.outputDirectory, original_move_records_bound: options.movement.original_moves_completed };
+}
+
 async function interpret(path) {
-    const input = await original(path, 256 * 1024, true), options = input.value;
-    originalCutoff(options);
+    const input = await original(path, 256 * 1024, true);
+    let options = input.value, context, request;
+    if (options.format === "connect/native-post-idle-capture-input/1") {
+        ({ context, request } = options);
+        postIdleCutoff(request, context);
+        assert.equal(context.original_worker_owner.original_node_pid, process.ppid);
+        assert.equal(request.path, join(request.output_directory, "movement-capture-request.json"));
+        const captured = await original(request.path, 256 * 1024, true);
+        assert.equal(captured.sha256, request.sha256);
+        assert.equal(captured.bytes, request.bytes);
+        assert.deepEqual(captured.identity, request.identity);
+        options = captured.value;
+        assert.equal(options.outputDirectory, request.output_directory);
+        assert.equal(options.movement.original_moves_completed, request.original_move_records_bound);
+        physicalCutoff(options);
+    }
+    const currentCutoff = () => context ? postIdleCutoff(request, context) : originalCutoff(options);
+    currentCutoff();
     await privateDirectory(options.directory); await privateDirectory(options.outputDirectory);
     const plan = await original(join(options.directory, "plan.json"), 2 * 1024 * 1024, true);
     const { physicalMovementSegments } = await import("./transport_movement_observation.mjs");
     const normalized = await physicalMovementSegments({ ...options, plan: plan.value });
     const captures = [];
     for (let index = 0; index < 6; index++) {
-        originalCutoff(options);
+        currentCutoff();
         captures.push((await original(join(options.outputDirectory, "received-" + index + ".json"), 96 * 1024 * 1024)).sha256);
     }
     const bytes = encode(normalized);
-    originalCutoff(options);
+    currentCutoff();
     const output = join(options.outputDirectory, "movement-segments.json");
     await writeFile(output, bytes, { flag: "wx", mode: 0o600 });
     const written = await original(output, 96 * 1024 * 1024);
     assert.equal(written.sha256, sha(bytes));
-    originalCutoff(options);
+    currentCutoff();
     process.stdout.write(JSON.stringify({ format: normalized.format, sha256: written.sha256,
         original_capture_sha256: captures, original_move_records_bound: normalized.original_move_records_bound,
         reliable_data_exchanges_bound: normalized.reliable_data_exchanges_bound,
-        interpreter_input_sha256: input.sha256 }) + "\n");
+        interpreter_input_sha256: input.sha256,
+        ...(context ? { request_sha256: request.sha256, original_worker_report_sha256: context.original_worker_report_sha256 } : {}) }) + "\n");
 }
 
 export async function writeJoinedMovementCapture(options, { signal } = {}) {
-    const cutoff = originalCutoff(options);
+    return runInterpreter(options, originalCutoff(options), { signal });
+}
+
+export async function writePostIdleMovementCapture(request, context, { signal } = {}) {
+    const cutoff = postIdleCutoff(request, context);
+    assert.equal(context.original_worker_owner.original_node_pid, process.pid);
+    await privateDirectory(request.output_directory);
+    assert.equal(request.path, join(request.output_directory, "movement-capture-request.json"));
+    const captured = await original(request.path, 256 * 1024);
+    assert.equal(captured.sha256, request.sha256);
+    assert.equal(captured.bytes, request.bytes);
+    assert.deepEqual(captured.identity, request.identity);
+    return runInterpreter({ format: "connect/native-post-idle-capture-input/1", request, context }, cutoff, { signal });
+}
+
+async function runInterpreter(payload, cutoff, { signal }) {
+    const postIdle = payload.format === "connect/native-post-idle-capture-input/1";
+    const outputDirectory = postIdle ? payload.request.output_directory : payload.outputDirectory;
+    const currentCutoff = () => postIdle ? postIdleCutoff(payload.request, payload.context) : originalCutoff(payload);
+    const expectedMoves = postIdle ? payload.request.original_move_records_bound : payload.movement.original_moves_completed;
     signal?.throwIfAborted();
-    await privateDirectory(options.directory); await privateDirectory(options.outputDirectory);
-    const inputPath = join(options.outputDirectory, "movement-capture-input.json"), bytes = encode(options);
+    await privateDirectory(outputDirectory);
+    const inputPath = join(outputDirectory, "movement-capture-input.json"), bytes = encode(payload);
     assert.ok(Buffer.byteLength(bytes) <= 256 * 1024, "only bounded original metadata crosses to the interpreter");
     await writeFile(inputPath, bytes, { flag: "wx", mode: 0o600 });
-    signal?.throwIfAborted(); originalCutoff(options);
+    signal?.throwIfAborted(); currentCutoff();
     const child = spawn(process.execPath, [file, "--interpret", inputPath], { stdio: ["ignore", "pipe", "pipe"] });
     let output = Buffer.alloc(0), diagnostic = Buffer.alloc(0), failure, forced = false, closed = false;
     const receipt = { format: "connect/native-movement-capture-owner/1", parent_pid: process.pid, pid: child.pid ?? null,
-        interpreter_input_sha256: sha(bytes), original_program_clock: options.movement.original_program_clock,
+        interpreter_input_sha256: sha(bytes),
+        ...(postIdle ? { phase: "post-idle", request_sha256: payload.request.sha256,
+            original_worker_report_sha256: payload.context.original_worker_report_sha256,
+            original_worker_owner: payload.context.original_worker_owner }
+            : { original_program_clock: payload.movement.original_program_clock }),
         original_cutoff_monotonic_ms: cutoff, started_monotonic_ms: monotonicNow(),
         joined: false, forced: false, exit_code: null, signal: null };
     const stop = error => {
@@ -118,10 +205,10 @@ export async function writeJoinedMovementCapture(options, { signal } = {}) {
     const interrupt = () => stop(Error("original capture owner interrupted"));
     signal?.addEventListener("abort", abort, { once: true });
     process.once("SIGTERM", interrupt); process.once("SIGINT", interrupt);
-    const timer = setTimeout(() => stop(Error("original programme cleanup cutoff elapsed")), Math.max(0, cutoff - monotonicNow()));
+    const timer = setTimeout(() => stop(Error(postIdle ? "original postprocessing cutoff elapsed" : "original programme cleanup cutoff elapsed")), Math.max(0, cutoff - monotonicNow()));
     if (signal?.aborted) abort();
     try {
-        await writeFile(join(options.outputDirectory, "movement-capture-owner.json"), encode(receipt), { flag: "wx", mode: 0o600 });
+        await writeFile(join(outputDirectory, "movement-capture-owner.json"), encode(receipt), { flag: "wx", mode: 0o600 });
         await joined;
     } catch (error) {
         stop(error); await joined;
@@ -129,18 +216,23 @@ export async function writeJoinedMovementCapture(options, { signal } = {}) {
         clearTimeout(timer); signal?.removeEventListener("abort", abort);
         process.removeListener("SIGTERM", interrupt); process.removeListener("SIGINT", interrupt);
         receipt.forced = forced;
-        await writeFile(join(options.outputDirectory, "movement-capture-joined.json"), encode(receipt), { flag: "wx", mode: 0o600 });
-        if (diagnostic.length) await writeFile(join(options.outputDirectory, "movement-capture-error.json"), diagnostic, { flag: "wx", mode: 0o600 });
+        await writeFile(join(outputDirectory, "movement-capture-joined.json"), encode(receipt), { flag: "wx", mode: 0o600 });
+        if (diagnostic.length) await writeFile(join(outputDirectory, "movement-capture-error.json"), diagnostic, { flag: "wx", mode: 0o600 });
     }
     if (failure) throw failure;
     assert.equal(receipt.joined, true); assert.equal(receipt.exit_code, 0); assert.equal(receipt.signal, null);
     assert.ok(receipt.closed_monotonic_ms < cutoff, "interpreter must join inside the original cleanup cutoff");
     const result = JSON.parse(output);
     assert.deepEqual(Object.keys(result).sort(), ["format", "sha256", "original_capture_sha256",
-        "original_move_records_bound", "reliable_data_exchanges_bound", "interpreter_input_sha256"].sort());
+        "original_move_records_bound", "reliable_data_exchanges_bound", "interpreter_input_sha256",
+        ...(postIdle ? ["request_sha256", "original_worker_report_sha256"] : [])].sort());
+    if (postIdle) {
+        assert.equal(result.request_sha256, payload.request.sha256);
+        assert.equal(result.original_worker_report_sha256, payload.context.original_worker_report_sha256);
+    }
     assert.equal(result.format, "connect/physical-movement-segments/1");
     assert.equal(result.interpreter_input_sha256, sha(bytes)); assert.match(result.sha256, hashPattern);
-    assert.equal(result.original_move_records_bound, options.movement.original_moves_completed);
+    assert.equal(result.original_move_records_bound, expectedMoves);
     assert.ok(Number.isSafeInteger(result.reliable_data_exchanges_bound) && result.reliable_data_exchanges_bound >= 0);
     assert.equal(result.original_capture_sha256.length, 6);
     for (const hash of result.original_capture_sha256) assert.match(hash, hashPattern);
