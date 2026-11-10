@@ -86,12 +86,17 @@ export interface Vp8Frame {
 export declare class Vp8Assembler {
     private readonly pending;
     private readonly completed;
+    private readonly recovered;
     private fragments;
     private remove;
     expire(now?: number): number;
     get queuedFrames(): number;
     get queuedFragments(): number;
     clear(): void;
+    /** Acknowledge the exact complete key accepted by the decoder after frame
+     * ordering. Earlier partials for its RTP source are superseded and cannot
+     * later signal another loss. This preserves newer partials' original ages. */
+    retireOlderPartialsAfterKeyframe(frame: Vp8Frame, now?: number): void;
     push(packet: RtpDatagram, now?: number, capacity?: {
         frames: number;
         fragments: number;

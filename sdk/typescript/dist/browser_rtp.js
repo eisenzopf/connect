@@ -207,6 +207,7 @@ export class RtpSender {
 export class Vp8Assembler {
     pending = new Map();
     completed = new Map();
+    recovered = new Map();
     fragments = 0;
     remove(key) {
         const frame = this.pending.get(key);
@@ -221,8 +222,8 @@ export class Vp8Assembler {
                 this.remove(key);
                 expired++;
             }
-        for (const [key, time] of this.completed)
-            if (now - time >= MEDIA_LIMITS.assemblyMs)
+        for (const [key, completion] of this.completed)
+            if (now - completion.at >= MEDIA_LIMITS.assemblyMs)
                 this.completed.delete(key);
         return expired;
     }
@@ -235,7 +236,35 @@ export class Vp8Assembler {
     clear() {
         this.pending.clear();
         this.completed.clear();
+        this.recovered.clear();
         this.fragments = 0;
+    }
+    /** Acknowledge the exact complete key accepted by the decoder after frame
+     * ordering. Earlier partials for its RTP source are superseded and cannot
+     * later signal another loss. This preserves newer partials' original ages. */
+    retireOlderPartialsAfterKeyframe(frame, now = performance.now()) {
+        const completion = this.completed.get(frame.ssrc + ":" + frame.timestamp);
+        const key = completion?.key;
+        if (!completion ||
+            !key ||
+            key.frame.deref() !== frame ||
+            !Number.isFinite(now) ||
+            now < key.arrived ||
+            now - key.arrived >= MEDIA_LIMITS.assemblyMs)
+            return;
+        completion.key = undefined;
+        const previous = this.recovered.get(frame.ssrc);
+        if (previous !== undefined && ((frame.timestamp - previous) | 0) <= 0)
+            return;
+        for (const [id, partial] of this.pending) {
+            if (partial.ssrc === frame.ssrc &&
+                ((partial.timestamp - frame.timestamp) | 0) <= 0)
+                this.remove(id);
+        }
+        if (previous === undefined &&
+            this.recovered.size >= MEDIA_LIMITS.frames)
+            this.recovered.delete(this.recovered.keys().next().value);
+        this.recovered.set(frame.ssrc, frame.timestamp);
     }
     push(packet, now = performance.now(), capacity = {
         frames: MEDIA_LIMITS.frames,
@@ -270,13 +299,18 @@ export class Vp8Assembler {
         if (offset >= p.length || (p[0] & 15) !== 0)
             return invalid();
         const key = packet.ssrc + ":" + packet.timestamp;
-        if (this.completed.has(key))
+        const recovered = this.recovered.get(packet.ssrc);
+        if (this.completed.has(key) ||
+            (recovered !== undefined &&
+                ((packet.timestamp - recovered) | 0) <= 0))
             return undefined;
         let frame = this.pending.get(key);
         if (!frame) {
             while (this.pending.size >= frames || this.fragments >= fragments)
                 this.remove(this.pending.keys().next().value);
             frame = {
+                ssrc: packet.ssrc,
+                timestamp: packet.timestamp,
                 created: now,
                 fragments: new Map(),
                 datagrams: new Map(),
@@ -333,8 +367,7 @@ export class Vp8Assembler {
         this.remove(key);
         if (this.completed.size >= 64)
             this.completed.delete(this.completed.keys().next().value);
-        this.completed.set(key, now);
-        return {
+        const complete = {
             arrived: frame.created,
             bytes: output,
             timestamp: packet.timestamp,
@@ -344,6 +377,13 @@ export class Vp8Assembler {
             lastSequence: frame.end,
             datagramSequences: Object.freeze(Array.from({ length: count }, (_, i) => frame.datagrams.get((frame.start + i) & 65535))),
         };
+        this.completed.set(key, {
+            at: now,
+            key: complete.key
+                ? { frame: new WeakRef(complete), arrived: frame.created }
+                : undefined,
+        });
+        return complete;
     }
 }
 /** Drop obsolete media instead of allowing control backpressure to accumulate speech. */

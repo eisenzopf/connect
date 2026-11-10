@@ -390,3 +390,64 @@ async fn recovery_silence_refuses_withdrawn_signed_history_suspended_owner_and_c
         server.await.unwrap();
     }
 }
+
+#[tokio::test]
+async fn completed_recovery_key_does_not_request_again_for_an_old_partial() {
+    let (mut client, mut io, server) = recovery_owner(false, Duration::from_secs(2)).await;
+    let notice = io.shared.state.lock().unwrap().as_ref().unwrap().active[&(7, false)].clone();
+    let mut push = |sequence: u16, timestamp: u32, start: bool, marker: bool, key: bool| {
+        let mut bytes = video();
+        bytes[4..8].copy_from_slice(&u32::from(sequence).to_be_bytes());
+        bytes[25] = 96 | if marker { 0x80 } else { 0 };
+        bytes[26..28].copy_from_slice(&sequence.to_be_bytes());
+        bytes[28..32].copy_from_slice(&timestamp.to_be_bytes());
+        bytes[36] = if start { 0x10 } else { 0 };
+        bytes[37] = if key { 0x30 } else { 0x31 };
+        let packet = Waiting {
+            packet: observe_video_epoch_datagram(&bytes).unwrap(),
+            bytes,
+            arrived: Instant::now(),
+        };
+        io.receive_video(packet, notice.clone()).unwrap();
+        let recovery = &io.recovery[&7];
+        (
+            recovery.waiting,
+            recovery.sequence,
+            recovery.assembler.diagnostics().pending_frames,
+        )
+    };
+    push(10, 100, true, true, true);
+    let mut before = 0;
+    for i in 0..8 {
+        before = push(11 + i * 2, 200 + u32::from(i) * 100, true, false, false).2;
+    }
+    let key = push(27, 1000, true, true, true);
+    push(30, 1200, false, true, false);
+    let delta = push(28, 1100, true, true, false);
+    let reordered = push(29, 1200, true, false, false);
+    let gap = push(32, 1400, true, true, false);
+    client.close();
+    drop(io);
+    client.shutdown().await.unwrap();
+    server.await.unwrap();
+
+    assert_eq!(
+        before, 8,
+        "original incomplete frames must fill the bounded assembler"
+    );
+    assert!(!key.0, "the exact complete recovery key must end the wait");
+    assert!(
+        !delta.0,
+        "obsolete partial forced a key wait after exact recovery"
+    );
+    assert_eq!(
+        delta.1, key.1,
+        "contiguous delta cannot schedule another PLI"
+    );
+    assert!(
+        !reordered.0,
+        "newer reordered tail must survive the key boundary"
+    );
+    assert_eq!(reordered.2, 0);
+    assert!(gap.0, "a genuinely newer loss must still request recovery");
+}

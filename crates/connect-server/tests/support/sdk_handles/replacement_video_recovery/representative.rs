@@ -331,6 +331,7 @@ impl DecodeHistory {
         self.last_sequence = Some(range.last);
         self.timestamp = Some(frame.timestamp_rtp);
         if frame.keyframe {
+            self.assembler.retire_older_partials_after_keyframe();
             self.waiting_key = false;
             self.need_key = false;
         }
@@ -2157,4 +2158,65 @@ fn representative_video_history_preserves_wrapping_order_and_epoch_key_boundarie
     assert_eq!(measured.late_video_packets, 2);
     assert_eq!(measured.skipped_delta_frames, 2);
     assert_eq!(measured.decode_attempts, 5);
+}
+
+#[test]
+fn representative_recovered_key_keeps_the_next_contiguous_delta() {
+    let progress = Arc::new(Mutex::new(Progress::default()));
+    let mut history = DecodeHistory::default();
+    let fragment = |sequence, timestamp, marker| {
+        let mut bytes = continuity_packet(sequence, timestamp, 7, false).rtp;
+        if marker {
+            bytes[12] = 0; // Final fragment, with the start still in flight.
+        } else {
+            bytes[1] &= !0x80; // Start fragment whose marker will be lost.
+        }
+        NativeVideoPacket::parse(bytes).unwrap()
+    };
+    assert!(history
+        .push(&continuity_packet(10, 100, 7, true), &progress)
+        .is_some());
+    for i in 0..8 {
+        assert!(history
+            .push(
+                &fragment(11 + i * 2, 200 + u32::from(i) * 100, false),
+                &progress
+            )
+            .is_none());
+    }
+    assert_eq!(history.assembler.diagnostics().pending_frames, 8);
+    assert!(
+        history
+            .push(&continuity_packet(27, 1000, 7, true), &progress)
+            .unwrap()
+            .keyframe
+    );
+    let losses_at_key = progress.lock().unwrap().video_losses;
+    let now = Instant::now();
+    assert!(!history.take_request(now));
+
+    // Receive the future frame's final fragment before the contiguous delta.
+    // Before the fix the old fragments still fill the assembly queue, and an
+    // unrelated eviction during this delta creates a second false key wait.
+    assert!(history.push(&fragment(30, 1200, true), &progress).is_none());
+    let next = history.push(&continuity_packet(28, 1100, 7, false), &progress);
+    assert!(
+        next.is_some_and(|frame| !frame.keyframe),
+        "obsolete partial forced a key wait after exact recovery"
+    );
+    assert_eq!(progress.lock().unwrap().video_losses, losses_at_key);
+    assert!(!history.take_request(now));
+    assert!(
+        history
+            .push(&fragment(29, 1200, false), &progress)
+            .is_some(),
+        "newer reordered tail must survive the key boundary"
+    );
+
+    // A genuinely newer gap still cannot feed a delta to this decoder.
+    assert!(history
+        .push(&continuity_packet(32, 1400, 7, false), &progress)
+        .is_none());
+    assert!(history.take_request(now));
+    assert_eq!(progress.lock().unwrap().video_losses, losses_at_key + 1);
 }

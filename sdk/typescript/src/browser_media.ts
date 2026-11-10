@@ -1457,9 +1457,11 @@ export class BrowserMediaPeer {
                             height: decoded.displayHeight,
                         });
                 })
-            )
+            ) {
+                if (frame.key)
+                    route.assembler!.retireOlderPartialsAfterKeyframe(frame);
                 route.observed.submitted++;
-            else route.observed.skipped++;
+            } else route.observed.skipped++;
         }
         this.requestVideoRecovery(route);
     }

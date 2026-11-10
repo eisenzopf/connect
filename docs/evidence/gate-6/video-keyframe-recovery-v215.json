@@ -1,0 +1,99 @@
+{
+  "format": "connect/video-keyframe-recovery/1",
+  "updated": "2026-11-10T23:37:39.909419+00:00",
+  "base_commit": "0e93202880150265eb13c85beb2697c0766d9535",
+  "status": "Component verified; actual representative cadence and full matrix pending.",
+  "root_cause": "An incomplete older VP8 frame can expire after a newer recovery keyframe was accepted, falsely rearming keyframe wait and amplifying packet loss. This does not establish the initial packet-loss cause.",
+  "fix": "Acknowledge only the exact accepted recovery keyframe, retire superseded same-SSRC partials, and retain a separate bounded recovery watermark. Preserve newer partial age, other SSRCs, original loss fences, signed generations and duplicate rejection. Browser acknowledgement follows ordering and successful decoder submission.",
+  "rust_review_sha256": "7bf5ffa701b7c8c6121585d566ef460b6ddf67a7dd6ccd7a317eab26f2dffd70",
+  "browser_review_sha256": "258cb02f7638287fe4c746d0956071f09d5e108811b733fc9282be2a5d38239b",
+  "fixed": {
+    "sdk": {
+      "receipt_sha256": "5d1750ddd5b69aa070aa855ecb699ca206c8165658a2f7a6eddfd7f9923b254d",
+      "summary": {
+        "selected": 9,
+        "completed": 9,
+        "passed": 9,
+        "failed": 0
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "representative_decoder": {
+      "receipt_sha256": "703e03296177a5c0ac81f1da8183c2d492f0692a36173755285b5659e6a00de1",
+      "summary": {
+        "selected": 3,
+        "completed": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "independent_peer": {
+      "receipt_sha256": "683e7b80621aa61b3ea23c17963ea51882e9b1e36df1e8f8ea09adc04882f6b0",
+      "summary": {
+        "selected": 10,
+        "completed": 10,
+        "passed": 10,
+        "failed": 0
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "browser": {
+      "receipt_sha256": "f0f1c3fc6058d2552b08340b0d927112a41225188cad764f3bd9f9ea55e99fa0",
+      "summary": {
+        "pass": 55,
+        "fail": 0,
+        "skipped": 0
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    }
+  },
+  "old_condition": {
+    "sdk": {
+      "receipt_sha256": "4ca4519aa4bc02dbb2b7f95252ab71b2d04b8ea88c72f93efb68c2c213caaf93",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true,
+      "qualification": "Produced source-bound artifact; containing broad build was later cancelled and is not a successful build claim."
+    },
+    "representative_decoder": {
+      "receipt_sha256": "a6b792d9d1f006666c850cbd68d28d8e6c76845526cb5689e5141b2a91f8d9e4",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "browser": {
+      "receipt_sha256": "49fe878d18fd3d26ac715bdbe6b01a392d021bfa70c511ad189e3963c5e4e998",
+      "summary": {
+        "pass": 0,
+        "fail": 1,
+        "skipped": 0
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    }
+  },
+  "limits": "Local macOS ARM64 component evidence only. No cell pass inferred. Original 24fps/200ms limits remain. Remaining SQL custody fix must be verified before the combined representative retest.",
+  "verification_total": {
+    "rust_passed": 22,
+    "browser_passed": 55,
+    "failed": 0,
+    "full_matrix_last_run": "v214",
+    "full_matrix_passed": 0,
+    "full_matrix_required": 32
+  }
+}

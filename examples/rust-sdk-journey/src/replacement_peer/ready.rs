@@ -236,13 +236,15 @@ impl Observer {
                     self.incomplete_or_waiting_frames += 1;
                     return Ok(None);
                 }
-                if frame.keyframe {
-                    self.waiting_key = false;
-                }
+                let keyframe = frame.keyframe;
                 self.decoder
                     .as_mut()
                     .ok_or("actual video decoder unavailable")?
                     .submit(frame, epoch.clone(), arrived, until)?;
+                if keyframe {
+                    self.assembler.retire_older_partials_after_keyframe();
+                    self.waiting_key = false;
+                }
             }
             return Ok(None);
         }

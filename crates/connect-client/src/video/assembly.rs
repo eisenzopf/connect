@@ -74,6 +74,11 @@ struct Pending {
     bytes: Vec<u8>,
     fragments: HashMap<u16, Fragment>,
 }
+struct CompletedFrame {
+    range: VideoSequenceRange,
+    timestamp_rtp: u32,
+    unacknowledged_keyframe: bool,
+}
 /// At most eight incomplete frames and 64 reordered packets across all frames.
 /// Partial assemblies expire after 200 ms; accumulated bytes are independently
 /// bounded to 256 KiB per frame. Completed frame duplicates are ignored.
@@ -82,8 +87,11 @@ pub struct VideoFrameAssembler {
     pending: VecDeque<Pending>,
     completed: VecDeque<(u32, u32)>,
     retired: VecDeque<(u32, u32)>,
+    // Key acknowledgments must not displace the loss/expiry floors of other
+    // RTP sources. Both histories use the same fixed bound independently.
+    recovered: VecDeque<(u32, u32)>,
     diagnostics: VideoAssemblyDiagnostics,
-    completed_sequence: Option<VideoSequenceRange>,
+    latest_complete: Option<CompletedFrame>,
 }
 impl VideoFrameAssembler {
     /// Packet range for the frame returned by the latest [`Self::push`].
@@ -91,7 +99,25 @@ impl VideoFrameAssembler {
     /// can retain this numeric metadata beside a frame to check decoder continuity
     /// after their own bounded reordering and playout; it contains no media bytes.
     pub fn completed_sequence_range(&self) -> Option<VideoSequenceRange> {
-        self.completed_sequence
+        self.latest_complete.as_ref().map(|frame| frame.range)
+    }
+    /// After accepting the keyframe returned by the latest push for playout,
+    /// retire earlier incomplete frames from its RTP source. Their later expiry
+    /// or eviction cannot signal a new loss after this decoder recovery point.
+    /// An incomplete push, a delta frame, and a different source cannot advance
+    /// this boundary. Newer fragments retain their original assembly deadlines.
+    pub fn retire_older_partials_after_keyframe(&mut self) {
+        let Some(frame) = self.latest_complete.as_mut() else {
+            return;
+        };
+        if !std::mem::take(&mut frame.unacknowledged_keyframe) {
+            return;
+        }
+        let source = (frame.range.ssrc, frame.timestamp_rtp);
+        self.pending.retain(|frame| {
+            frame.source.0 != source.0 || frame.source.1.wrapping_sub(source.1) as i32 > 0
+        });
+        Self::advance_watermark(&mut self.recovered, source);
     }
     /// Observe bounded assembly usage. Historical peaks include every insertion,
     /// rather than sampling only the queue depth after a completed frame.
@@ -117,7 +143,7 @@ impl VideoFrameAssembler {
         while index < self.pending.len() {
             if self.pending[index].started.elapsed() > Duration::from_millis(VIDEO_ASSEMBLY_MS) {
                 if let Some(expired) = self.pending.remove(index) {
-                    self.retire(expired.source);
+                    Self::advance_watermark(&mut self.retired, expired.source);
                     self.diagnostics.expired_frames += 1;
                 }
             } else {
@@ -128,13 +154,17 @@ impl VideoFrameAssembler {
     /// Accept reordered fragments but yield only a contiguous start-to-marker
     /// frame. Callers should decode completed frames in their RTP timestamp order.
     pub fn push(&mut self, packet: &NativeVideoPacket) -> Result<Option<NativeVideoFrame>> {
-        self.completed_sequence = None;
+        self.latest_complete = None;
         self.expire_stale();
         let source = (packet.ssrc, packet.timestamp_rtp);
         if self.completed.contains(&source)
-            || self.retired.iter().any(|(ssrc, timestamp)| {
-                *ssrc == source.0 && source.1.wrapping_sub(*timestamp) as i32 <= 0
-            })
+            || self
+                .retired
+                .iter()
+                .chain(&self.recovered)
+                .any(|(ssrc, timestamp)| {
+                    *ssrc == source.0 && source.1.wrapping_sub(*timestamp) as i32 <= 0
+                })
         {
             return Ok(None);
         }
@@ -144,7 +174,7 @@ impl VideoFrameAssembler {
         } else {
             while self.pending.len() >= MAX_INCOMPLETE_FRAMES {
                 if let Some(discarded) = self.pending.pop_front() {
-                    self.retire(discarded.source);
+                    Self::advance_watermark(&mut self.retired, discarded.source);
                 }
                 self.diagnostics.discarded_frames += 1;
             }
@@ -241,10 +271,15 @@ impl VideoFrameAssembler {
                 };
                 self.remember(source);
                 self.diagnostics.completed_frames += 1;
-                self.completed_sequence = Some(range);
+                let keyframe = p.bytes.first().is_some_and(|byte| byte & 1 == 0);
+                self.latest_complete = Some(CompletedFrame {
+                    range,
+                    timestamp_rtp: packet.timestamp_rtp,
+                    unacknowledged_keyframe: keyframe,
+                });
                 return Ok(Some(NativeVideoFrame {
                     timestamp_rtp: packet.timestamp_rtp,
-                    keyframe: p.bytes.first().is_some_and(|b| b & 1 == 0),
+                    keyframe,
                     encoded: p.bytes,
                 }));
             }
@@ -260,23 +295,23 @@ impl VideoFrameAssembler {
     fn discard(&mut self, index: usize) {
         if let Some(p) = self.pending.remove(index) {
             self.remember(p.source);
-            self.retire(p.source);
+            Self::advance_watermark(&mut self.retired, p.source);
             self.diagnostics.discarded_frames += 1;
         }
     }
-    // One monotonic RTP watermark per recently observed source prevents a late
-    // fragment from restarting an expired frame's deadline. Source history is
-    // bounded just like concurrent assembly; timestamp wrap remains supported.
-    fn retire(&mut self, source: (u32, u32)) {
-        if let Some((_, timestamp)) = self.retired.iter_mut().find(|(ssrc, _)| *ssrc == source.0) {
+    // Each history has one monotone RTP cutoff per recently observed source.
+    // The age floor prevents restarting an expired frame's deadline, and the
+    // separate accepted-key floor prevents reintroducing superseded partials.
+    fn advance_watermark(history: &mut VecDeque<(u32, u32)>, source: (u32, u32)) {
+        if let Some((_, timestamp)) = history.iter_mut().find(|(ssrc, _)| *ssrc == source.0) {
             if source.1.wrapping_sub(*timestamp) as i32 > 0 {
                 *timestamp = source.1;
             }
         } else {
-            while self.retired.len() >= MAX_INCOMPLETE_FRAMES {
-                self.retired.pop_front();
+            while history.len() >= MAX_INCOMPLETE_FRAMES {
+                history.pop_front();
             }
-            self.retired.push_back(source);
+            history.push_back(source);
         }
     }
 }
@@ -427,5 +462,101 @@ mod tests {
             assembler.push(&new[0]).unwrap().unwrap().encoded,
             vec![4; 100]
         );
+    }
+    #[test]
+    fn accepted_key_retires_only_older_partials_of_its_exact_source() {
+        let mut old_sequence = 8;
+        let old = packetize(&[2; 2000], u32::MAX - 5, &mut old_sequence, 7, 96).unwrap();
+        let mut sequence = 10;
+        let key = packetize(&[4; 100], 10, &mut sequence, 7, 96).unwrap();
+        let newer = packetize(&[7; 2000], 20, &mut sequence, 7, 96).unwrap();
+        let delta = packetize(&[9; 100], 30, &mut sequence, 7, 96).unwrap();
+        let later = packetize(&[11; 2000], 40, &mut sequence, 7, 96).unwrap();
+        let mut other_sequence = 20;
+        let other = packetize(&[6; 2000], u32::MAX - 5, &mut other_sequence, 8, 96).unwrap();
+        let mut assembler = VideoFrameAssembler::default();
+        assert!(assembler.push(&old[0]).unwrap().is_none());
+        assert!(assembler.push(&other[1]).unwrap().is_none());
+        assert!(assembler.push(&newer[1]).unwrap().is_none());
+        // A partial's marker is not a completed key boundary.
+        assembler.retire_older_partials_after_keyframe();
+        assert_eq!(assembler.diagnostics().pending_frames, 3);
+        let newer_started = assembler
+            .pending
+            .iter()
+            .find(|frame| frame.source == (7, 20))
+            .unwrap()
+            .started;
+        let key = assembler.push(&key[0]).unwrap().unwrap();
+        assert!(key.keyframe);
+        let range = assembler.completed_sequence_range().unwrap();
+        assembler.retire_older_partials_after_keyframe();
+        assert_eq!(assembler.completed_sequence_range(), Some(range));
+        assert_eq!(assembler.diagnostics().pending_frames, 2);
+        assert_eq!(assembler.diagnostics().discarded_frames, 0);
+        assert_eq!(assembler.diagnostics().expired_frames, 0);
+        assert_eq!(
+            assembler
+                .pending
+                .iter()
+                .find(|frame| frame.source == (7, 20))
+                .unwrap()
+                .started,
+            newer_started
+        );
+        for packet in &old {
+            assert!(
+                assembler.push(packet).unwrap().is_none(),
+                "pre-key timestamp restarted across wrap"
+            );
+        }
+        assert_eq!(
+            assembler.push(&newer[0]).unwrap().unwrap().encoded,
+            vec![7; 2000]
+        );
+        assert_eq!(
+            assembler.push(&other[0]).unwrap().unwrap().encoded,
+            vec![6; 2000]
+        );
+        assert!(assembler.push(&later[1]).unwrap().is_none());
+        assert!(!assembler.push(&delta[0]).unwrap().unwrap().keyframe);
+        assembler.retire_older_partials_after_keyframe();
+        assert_eq!(assembler.diagnostics().pending_frames, 1);
+        assert_eq!(
+            assembler.push(&later[0]).unwrap().unwrap().encoded,
+            vec![11; 2000]
+        );
+    }
+    #[test]
+    fn healthy_key_cannot_evict_another_sources_original_expiry_floor() {
+        let mut assembler = VideoFrameAssembler::default();
+        let mut first_source = Vec::new();
+        for source in 1..=8 {
+            let mut sequence = 0;
+            let fragments = packetize(&[2; 2000], 90, &mut sequence, source, 96).unwrap();
+            assert!(assembler.push(&fragments[0]).unwrap().is_none());
+            assembler.pending[0].started =
+                Instant::now() - Duration::from_millis(VIDEO_ASSEMBLY_MS + 1);
+            assembler.expire_stale();
+            if source == 1 {
+                first_source = fragments;
+            }
+        }
+        assert_eq!(assembler.diagnostics().expired_frames, 8);
+        let mut sequence = 0;
+        let key = packetize(&[4; 100], 100, &mut sequence, 9, 96).unwrap();
+        assert!(assembler.push(&key[0]).unwrap().unwrap().keyframe);
+        assembler.retire_older_partials_after_keyframe();
+        let first_ack = assembler.diagnostics();
+        assembler.retire_older_partials_after_keyframe();
+        assert_eq!(assembler.diagnostics(), first_ack);
+        for packet in first_source.iter().rev() {
+            assert!(
+                assembler.push(packet).unwrap().is_none(),
+                "acknowledging another source's key resurrected this expired frame"
+            );
+        }
+        assert_eq!(assembler.diagnostics().pending_frames, 0);
+        assert_eq!(assembler.diagnostics().completed_frames, 1);
     }
 }

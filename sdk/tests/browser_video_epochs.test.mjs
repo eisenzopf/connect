@@ -7,7 +7,7 @@ const base = process.env.CONNECT_GATE6_TS_DIST ? pathToFileURL(path.resolve(proc
 const {BrowserVideoEpochs, videoNotice, videoAllocation} = await import(base + 'browser_video_epochs.js');
 const {BrowserMediaPeer} = await import(base + 'browser_media.js');
 const {encodeNativeVideoFeedback, decodeNativeVideoFeedback, decodeNativeRtpDatagram, decodeNativeVideoEpoch} = await import(base + 'browser_video_wire.js');
-const {RtpSender} = await import(base + 'browser_rtp.js');
+const {RtpSender, Vp8Assembler} = await import(base + 'browser_rtp.js');
 const {envelope} = await import(base + 'uctp_wire.js');
 const profile='rtcp-pli-epoch/1', root={cid:'room',sid:'session',connid:'connection'};
 const binding={handle:7,streamId:'video',connectionId:'connection',sessionId:'session',generation:1,kind:'video',codec:'vp8',payloadType:96,direction:'sendrecv'};
@@ -74,8 +74,8 @@ test('browser feedback expires from physical arrival, consumes once, and cannot 
 
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 async function until(check){for(let i=0;i<100;i++){if(check())return;await new Promise(r=>setTimeout(r,2));}assert.fail('bounded browser worker observation did not arrive');}
-test('browser physical owner stages signed epochs, resets same-SSRC decode history, writes current feedback and forces only a fresh frame',async()=>{
- const names=['VideoEncoder','VideoDecoder','VideoFrame','EncodedVideoChunk'];const old=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]);
+test('browser physical owner stages signed epochs, resets same-SSRC decode history, writes current feedback and forces only a fresh frame',async t=>{
+ const names=['VideoEncoder','VideoDecoder','VideoFrame','EncodedVideoChunk','performance'];const old=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]);
  const encoded=[],decoded=[];let resets=0,closedFrames=0;
  class Encoder{
   state='unconfigured';encodeQueueSize=0;static async isConfigSupported(){return{supported:true};}
@@ -107,7 +107,15 @@ test('browser physical owner stages signed epochs, resets same-SSRC decode histo
  }
  let peer;const c=new Control();
  try{
+  const scheduleInterval = globalThis.setInterval;
+  let pollMedia;
+  const interval = t.mock.method(globalThis, 'setInterval', (callback, delay, ...args) => {
+   if (delay === 50) pollMedia = () => callback(...args);
+   return scheduleInterval(callback, delay, ...args);
+  });
   peer=new BrowserMediaPeer(c,{error:e=>assert.fail(e)});
+  interval.mock.restore();
+  assert.equal(typeof pollMedia, 'function');
   const opening=peer.offerConnection({conversationId:'room',sessionId:'session',connectionId:'connection',operationId:'offer',video:'video',nativeVideoFeedback:true});
   void opening.catch(()=>{});
   await tick();assert.equal(peer.diagnostics.activeBindings,0,'signed notice alone cannot install prepared media');releaseStatus();const connection=await opening;
@@ -141,6 +149,41 @@ test('browser physical owner stages signed epochs, resets same-SSRC decode histo
   c.incoming.enqueue(packet(3,25,75000,83,true));await until(()=>decoded.length===6);
   c.incoming.enqueue(packet(3,23,69000,83,false));await tick();
   assert.equal(decoded.length,6,'late missing frame cannot rewind recovery');
+  // The real owner's expiry callback must not treat a partial superseded by
+  // an accepted newer key as a fresh loss. Advance only this fixture's clock.
+  const realNow = performance.now.bind(performance);
+  let mediaNow = realNow();
+  Object.defineProperty(globalThis, 'performance', {
+   configurable: true,
+   value: {now: () => mediaNow},
+  });
+  const partial = packet(3, 26, 78000, 83, false);
+  partial[25] &= 0x7f;
+  c.incoming.enqueue(partial);
+  await until(() => peer.routeDiagnostics[0].incompleteFrames === 1);
+  const completeAtPartial = peer.routeDiagnostics[0].counters.complete;
+  mediaNow += 40;
+  c.incoming.enqueue(packet(3, 28, 84000, 83, true));
+  await until(() => peer.routeDiagnostics[0].counters.complete === completeAtPartial + 1);
+  mediaNow += 20;
+  await until(() => decoded.length === 7);
+  assert.equal(decoded.at(-1).type, 'key');
+  const lossesAtKey = peer.routeDiagnostics[0].recovery.assemblyLosses;
+  const feedbackAtKey = c.writes.filter(bytes => bytes.length === 48).length;
+  mediaNow += 141;
+  pollMedia();
+  assert.equal(peer.routeDiagnostics[0].recovery.assemblyLosses, lossesAtKey,
+   'superseded partial rearmed key recovery after the accepted key');
+  c.incoming.enqueue(packet(3, 29, 87000, 83, false));
+  await until(() => decoded.length === 8);
+  assert.equal(decoded.at(-1).type, 'delta');
+  assert.equal(c.writes.filter(bytes => bytes.length === 48).length, feedbackAtKey);
+  // Resume normal clock progression for the remainder of the same fixture.
+  const resumedAt = realNow();
+  Object.defineProperty(globalThis, 'performance', {
+   configurable: true,
+   value: {now: () => mediaNow + realNow() - resumedAt},
+  });
   assert.equal(connection.encodeVideo('video',new Frame(0)),true);await until(()=>c.writes.some(b=>b.length!==48));
   const source=c.writes.find(b=>b[9]===224),own=decodeNativeRtpDatagram(source);
   const published=notice(1,'publisher',own.datagramSequence,own.ssrc);published.payload.first_timestamp=own.timestamp;c.emit(published);
@@ -153,4 +196,45 @@ test('browser physical owner stages signed epochs, resets same-SSRC decode histo
   connection.encodeVideo('video',new Frame(99999));assert.equal(encoded.at(-1).key,false,'hold clears already-read pending feedback');
   assert.equal(closedFrames,4);await peer.shutdown();assert.equal(c.events.size,0);assert.equal(peer.diagnostics.activeBindings,0);assert.equal(c.datagrams.readable.locked,false);assert.equal(c.datagrams.writable.locked,false);
  }finally{await peer?.shutdown();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
+});
+
+
+test('accepted VP8 key retires only its older source fragments at the original age', () => {
+ const assembler = new Vp8Assembler();
+ const fragment = (sequence, timestamp, ssrc, start, marker, key = false) => {
+  const bytes = packet(1, sequence, timestamp, ssrc, key);
+  if (!marker) bytes[25] &= 0x7f;
+  if (!start) bytes[36] &= 0xef;
+  return decodeNativeVideoEpoch(bytes).packet;
+ };
+ const old = fragment(1, 0xfffffffa, 83, true, false);
+ const oldTail = fragment(2, 0xfffffffa, 83, false, true);
+ const newer = fragment(5, 20, 83, false, true);
+ const other = fragment(7, 0xfffffffa, 84, true, false);
+ assert.equal(assembler.push(old, 100), undefined);
+ assert.equal(assembler.push(other, 120), undefined);
+ assert.equal(assembler.push(newer, 130), undefined);
+ const key = assembler.push(fragment(3, 10, 83, true, true, true), 140);
+ assert.ok(key?.key);
+ assembler.retireOlderPartialsAfterKeyframe({...key}, 141);
+ assert.equal(assembler.queuedFrames, 3, 'a copied frame cannot acknowledge a key');
+ assembler.retireOlderPartialsAfterKeyframe(key, 142);
+ assembler.retireOlderPartialsAfterKeyframe(key, 143);
+ assert.equal(assembler.queuedFrames, 2);
+ assert.equal(assembler.queuedFragments, 2);
+ assert.equal(assembler.push(oldTail, 144), undefined);
+ assert.equal(assembler.queuedFrames, 2, 'late pre-key fragment restarted the frame');
+ const later = assembler.push(fragment(4, 20, 83, true, false), 145);
+ assert.equal(later.arrived, 130);
+ assert.deepEqual(later.datagramSequences, [4, 5]);
+ assert.equal(assembler.expire(319), 0);
+ assert.equal(assembler.expire(320), 1, 'other source keeps its original expiry');
+ assert.equal(assembler.push(old, 342), undefined);
+ assert.equal(assembler.queuedFrames, 0, 'key cutoff survives the duplicate map expiry');
+
+ // Clearing for a new signed history also clears its acknowledged key floor.
+ assembler.clear();
+ assembler.retireOlderPartialsAfterKeyframe(key, 343);
+ assert.equal(assembler.push(old, 344), undefined);
+ assert.ok(assembler.push(oldTail, 345));
 });

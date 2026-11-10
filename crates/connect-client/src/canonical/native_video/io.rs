@@ -321,6 +321,7 @@ impl NativeVideoDatagrams {
             }
             recovery.last_frame = Some(range.last);
             if frame.keyframe {
+                recovery.assembler.retire_older_partials_after_keyframe();
                 recovery.waiting = false;
             }
         }

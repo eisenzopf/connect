@@ -971,8 +971,11 @@ export class BrowserMediaPeer {
                         width: decoded.displayWidth,
                         height: decoded.displayHeight,
                     });
-            }))
+            })) {
+                if (frame.key)
+                    route.assembler.retireOlderPartialsAfterKeyframe(frame);
                 route.observed.submitted++;
+            }
             else
                 route.observed.skipped++;
         }

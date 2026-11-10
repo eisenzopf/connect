@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T23:09:16.269959+00:00",
-  "run_status": "Full v214 remains0/32 cells,288/432 checks pass. Epoch-fix batch:27/27 Store controls,2/2 receiver guards and4/4 signed preparation pass across source-bound receipts. Both representative cadence cases fail after completed handoffs. Investigating packet loss and stale-partial decoder recovery.",
+  "updated": "2026-11-10T23:37:39.909419+00:00",
+  "run_status": "Full v214 remains 0/32 cells, 288/432 checks pass. Recovery batch: 22 Rust and 55 browser component checks pass after reproducing obsolete-partial recovery failures. SQL custody fix independently reviewed; runtime verification next. Both earlier representative cadence cases remain failed until the combined retest.",
   "blockers": [
     {
       "id": "B01",
@@ -1485,6 +1485,22 @@
       "change": "Fresh exact recorded-capture Read before Writer acquisition. First recording and uncertain outcomes retain Writer; no cached successful permission or effect replay.",
       "evidence": "docs/evidence/gate-6/media-epoch-fix-batch-v215.json",
       "next": "Five focused Store controls and actual signed postcommit delivery, then representative cadence and full32."
+    },
+    {
+      "id": "B182",
+      "title": "Obsolete partial video frame rearms keyframe wait after recovery",
+      "status": "Implemented; 22 Rust and 55 browser component checks pass. Old SDK, representative and browser counterexamples reproduced.",
+      "change": "Acknowledge only the exact accepted recovery keyframe, retire superseded same-SSRC partials, and retain a separate bounded recovery watermark. Preserve newer partial age, other SSRCs, original loss fences, signed generations and duplicate rejection. Browser acknowledgement follows ordering and successful decoder submission.",
+      "evidence": "docs/evidence/gate-6/video-keyframe-recovery-v215.json",
+      "next": "Combined signed cadence retest after SQL custody fix; then all 32 matrix cells."
+    },
+    {
+      "id": "B183",
+      "title": "Replacement preparation holds authority Writer while waiting for primary SQL",
+      "status": "Source-reviewed fix and tests-only counterexamples ready; runtime verification pending.",
+      "change": "Release the entire Writer proof on primary SQL mutex refusal before waiting. Reacquire current scopes within the original 250ms budget, before any transaction or mutation.",
+      "evidence": "Independent review 08ce1a5fab434585f12bb02382e43b9e9391430a78659fc2a59dc12df1c32af3; private bounded candidate retained.",
+      "next": "Reproduce reserve/begin publication stalls on old code, apply fix, run both regressions and preserved authorization/effect controls."
     }
   ],
   "workplan_tasks": [
@@ -16877,5 +16893,17 @@
     "representative_passed": 0,
     "representative_failed": 2,
     "receiver_guards_passed": 2
+  },
+  "v215_video_keyframe_recovery": {
+    "public_evidence": "docs/evidence/gate-6/video-keyframe-recovery-v215.json",
+    "status": "Component verified; actual representative cadence and full matrix pending.",
+    "verification_total": {
+      "rust_passed": 22,
+      "browser_passed": 55,
+      "failed": 0,
+      "full_matrix_last_run": "v214",
+      "full_matrix_passed": 0,
+      "full_matrix_required": 32
+    }
   }
 }
