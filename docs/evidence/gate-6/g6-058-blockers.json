@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T00:56:51.977437+00:00",
+  "updated": "2026-11-10T02:15:51.142192+00:00",
   "run_status": "Full v209 completed on 054cbe2f: all 32 cells ran; 0 passed, 32 failed and 0 blocked. All 432 requirements were evaluated: 390 passed and 42 failed. Failures overlap across 32 media, 8 resource and 2 replacement requirements. Original processes, leases and source guards closed naturally. The next reviewed batch is integrated for focused regression verification; no new matrix pass is claimed.",
   "blockers": [
     {
@@ -1349,6 +1349,22 @@
       "change": "Publish routing and connection metadata immutably; retain synchronization on state-change writers and one-time ownership transitions. Remove steady-path SQL/file/mutex admission and retries where replaced.",
       "evidence": "Source-lock384 upstream108/108: Core52, RTC20, stack8, native28. Held-publication controls verify current/owner metadata reads do not wait for preparation writer. Replacement begin now returns immutable original provenance in the same transaction; RTC releases completed activation aliases before metadata retry. Store exact-origin no-hidden-authority test passes. Service15/15 pass, including publication readers progressing under held writer and changed-generation-only role reconciliation. Store primary-mutex and SQLite-writer exclusion controls pass without parking original capture.",
       "next": "Actual signed and full matrix verification. Retain serialized state changes, original signed reply custody, codec/mixer state and IO drain fences; no whole-path lock-free claim."
+    },
+    {
+      "id": "B165",
+      "title": "Unnecessary packet allocations and broad cross-process invalidation",
+      "status": "UNIT VERIFIED97/97; signed RTC3/3 pass; native initial admission blocked byB166",
+      "change": "Use fixed two-publication custody, allocation-free source keys with exact Weak owner validation, direct immutable registry lookups and tracing-enabled timing. Use shared atomic registry availability on packet admission/epochs and scope-local cross-process busy invalidation; retain global hard-fault refusal and shared Conversation dependencies.",
+      "evidence": "Current-source70/70 Store and27/27 Service tests pass. Covers exact cross-process disjoint scope isolation, revoked/expired packet refusal, hard-fault withdrawal, fixed publication lifetime/drop order, source owner/generation/epoch, trace filters, immutable registry reads and retained replacement/credential lifecycle controls. Initial invalid fixture alias corrected before the final passing rerun. Evidence:docs/evidence/gate-6/hotpath-cleanup-v212.json.",
+      "next": "Fix separately reproduced native subscription writer boundary B166, then signed native and complete local32 matrix."
+    },
+    {
+      "id": "B166",
+      "title": "Native subscription journal mutation lacks coordinated writer",
+      "status": "REPRODUCED:2/2 signed native scenarios fail at initial subscription; fix in progress",
+      "change": "Prepare short typed Write boundaries for control journal acceptance/effect/result mutations, releasing invocation Read before acquiring Write; preserve fresh source binding and avoid holding conversation Write through codec/media IO. No SQL guard exemption or acceptance weakening.",
+      "evidence": "Signed native mode25 and18 both fail before replacement at feedback-source-select. Diagnostic reproduces503 storage_unavailable. Source audit identifies Read-scoped NativeStream invocation and unbound accept_native_stream transaction at guarded operation_members insert. Signed RTC3/3 and cleanup97/97 units pass independently. Evidence:docs/evidence/gate-6/signed-transport-followthrough-v212.json.",
+      "next": "Add exact writer-boundary regression, implement phase-safe short writer custody, then rerun both original signed native controls before full matrix."
     }
   ],
   "workplan_tasks": [
@@ -2175,6 +2191,40 @@
       "solution": "Publish routing and connection metadata immutably; retain synchronization on state-change writers and one-time ownership transitions. Remove steady-path SQL/file/mutex admission and retries where replaced.",
       "status": "CORE packet14 and native-flow7 passed; activation/credential snapshot candidates reviewed",
       "completion": "Verify metadata reads during control publication, actual positive lifecycle, stale-generation refusal, and control-side commit ordering.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S52",
+      "title": "Remove unnecessary media-path work and refresh fan-out",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [
+        "S49",
+        "S51"
+      ],
+      "code_paths": [
+        "crates/connect-store/src/media_authorization.rs",
+        "crates/connect-service/src/canonical_media/packets.rs",
+        "crates/connect-service/src/canonical_media/native_snapshots.rs"
+      ],
+      "solution": "Use fixed two-publication custody, allocation-free source keys with exact Weak owner validation, direct immutable registry lookups and tracing-enabled timing. Use shared atomic registry availability on packet admission/epochs and scope-local cross-process busy invalidation; retain global hard-fault refusal and shared Conversation dependencies.",
+      "status": "Unit verified97/97; signed transport verification running",
+      "completion": "Verify unchanged authority/expiry and original-source boundaries, disjoint writer isolation, hard-fault refusal and original publication custody.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S53",
+      "title": "Repair native subscription metadata writer boundary",
+      "owner": "Root with Store and Service parallel review",
+      "dependencies": [
+        "S52"
+      ],
+      "code_paths": [
+        "crates/connect-store/src/transitions/native_streams.rs",
+        "crates/connect-service/src/canonical_native_streams.rs"
+      ],
+      "solution": "Prepare short typed Write boundaries for control journal acceptance/effect/result mutations, releasing invocation Read before acquiring Write; preserve fresh source binding and avoid holding conversation Write through codec/media IO. No SQL guard exemption or acceptance weakening.",
+      "status": "Reproduced503; fix in progress",
+      "completion": "Original signed initial subscription and replacement controls pass with strict writer guards; no long-lived conversation writer across preparation/media.",
       "completion_status": "verification-pending"
     }
   ],
@@ -4562,10 +4612,10 @@
     "status_url": "../../.local/gate-6/full-matrix-v209/status.html"
   },
   "current_focused_verification": {
-    "passed": 200,
-    "planned": null,
-    "scope": "Upstream108/108, Store65/65, Service15/15 and Quinn12/12 passed. Actual signed transport and full matrix qualification remain pending.",
-    "next": "Commit tested batch; verify actual signed RTC/native preparation and rerun complete local transport matrix."
+    "passed": 97,
+    "planned": 97,
+    "scope": "Current hotpath cleanup:70 Store and27 Service unit checks. Earlier200 component baseline overlaps; no additive total or matrix qualification inferred.",
+    "next": "SignedRTC3/3passed; both native scenarios expose initial subscription503 (B166). Fix and retest before full local matrix."
   },
   "current_workplan_tasks": [
     "S39",
@@ -4580,7 +4630,9 @@
     "S48",
     "S49",
     "S50",
-    "S51"
+    "S51",
+    "S52",
+    "S53"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",

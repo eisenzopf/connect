@@ -1,0 +1,841 @@
+{
+  "format": "connect/g6-058-hotpath-cleanup/1",
+  "updated": "2026-11-10T02:11:08.622662+00:00",
+  "platform": "Local Mac Studio macOS arm64",
+  "profile": "Normal Cargo test/dev, locked/offline, no profile overrides; Server test-support feature graph",
+  "source": {
+    "base": "1cd730cfc33217e673c2b46017c761f3a696b10b",
+    "source_lock": "7b6d7cf3ad6ce66e2f86c37f7150a0b64f6c49a42b2c553580f69dfb21e6a156",
+    "files": [
+      {
+        "path": "crates/connect-service/src/canonical_media.rs",
+        "sha256": "b404247ff75b14d6a649de713ccc627ebb05851f371555b36b76b70b6be35686"
+      },
+      {
+        "path": "crates/connect-service/src/canonical_media/native_snapshots.rs",
+        "sha256": "38b6040c1662b2bde05032845ea3e7ae785097965d5d63e41d699de829dd5c5c"
+      },
+      {
+        "path": "crates/connect-service/src/canonical_media/packets.rs",
+        "sha256": "5894d2091e21d7dcf7104f6dc927a872635dbe7b3dd519087668c90f8a0927ff"
+      },
+      {
+        "path": "crates/connect-store/src/authority_fences/tests.rs",
+        "sha256": "18667c2cbd7b38fbe968a8fca3506e7b33fa720dda9bf6e9d95608449d5cea2e"
+      },
+      {
+        "path": "crates/connect-store/src/media_authorization.rs",
+        "sha256": "6989283fb9dbeb0129ef7a3eb08f83966ff17430a46d83f14f1abe84fd815bf9"
+      },
+      {
+        "path": "crates/connect-store/src/media_authorization/tests.rs",
+        "sha256": "777f0cf5455dab2937f753326ae5be7f9bfeaf0cbc05781afd7f432377b79fe3"
+      }
+    ]
+  },
+  "groups": {
+    "connect_store": {
+      "receipt_sha256": "aeb05269b21f6ab7acb4ba6c24e074422410bd7deaa625f2aa34f5d5b639c433",
+      "binary_sha256": "b020012e6df502f2b34ffd6aa178cc72a0ae0a45fd38aef4dfbf2279b324ec22",
+      "passed": 70,
+      "failed": 0,
+      "tests": [
+        {
+          "test": "media_authorization::tests::hard_external_probe_failure_still_revokes_every_scope_and_old_epoch",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "e81e287aa50f35c0cc724d2e73af9bbf8861001ffbb82abad31507dbcab61e00",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::immutable_scope_probe_names_reuse_the_published_vector_without_holding_a_fence",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "4a2c310bac3e448ee2a399d2d6c567d42070ba1d03087680862e8462475c4466",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::lifetime_observation_distinguishes_refresh_from_refusal_and_never_revives_original_epoch",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "67ebb226126112631300c5baff2a885ecdc35dbe376f8ec88c2b69106cf55df3",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::local_writer_revokes_before_wait_and_drains_actual_io_without_renewing_queued_stamp",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "8526fb3b4254a7c3ff50f564574bd40232ddc10d477bae7045da091b9ca751f8",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::media_admission_does_not_enter_control_mutex_or_refresh_projection",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "c0774004e2a65aad04fb4640bcb4155834f0cd84f2c315c4e40342581c7796ab",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::monotonic_original_expiry_refuses_even_before_watcher_reaps_publication",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "992472da9b1031a5ac073cb02a8d5074ce02d8f1406ffc3a77f4329c734c97f7",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::original_failed_lifetime_refresh_cannot_publish_across_a_racing_writer_sequence",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "d772ea6f3d2fff4ecc0b3723c012ea737653415e97a7481918cc19ce4903f394",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::packet_availability_drops_without_pinning_registry_and_never_resurrects",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "5707f3818f191581fc17ccfd4fe3ffe506c09d89160b00ccef1dc36cc6751a54",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::publication_requires_boundary_worker_and_original_owner",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "1ac06c2355be0ac97dc3600a6347398e268f4feb5773790f722f8664c91b62ba",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::queued_epoch_owns_no_fence_and_last_handle_withdrawal_revokes_it",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "cdb6b43fa242937b9e5550556a771b179624d858856ce12fca633251e28c1a8e",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::route_miss_registration_refuses_control_contention_without_running_factory",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "7fa13b6eec78c78519b744fac2c288ff86ae8ab341bdaedb18d35351c499f5f5",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::scope_probe_has_one_healthy_call_and_deduplicated_busy_fallback",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "709c2363cffb90c8ec326c1dc069fbb3b2d2e8c77214bd62e96cb59f04c458f9",
+          "naturally_joined": true
+        },
+        {
+          "test": "media_authorization::tests::unchanged_definitive_denial_waits_for_next_write_outcome_instead_of_polling_sql",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "7f20b4d2e6ba985a3c7c2a45b78ca7ab06f58df7d4eb301f10a545e155f4c0bf",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_writer_boundary::tests::actual_row_refuses_missing_read_foreign_and_wrong_identity_writers",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "a942ed91a4c04010ce99ccb13d20f6e1ca1d84cff6884107a5dab3b09b3b583c",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_writer_boundary::tests::cached_statement_steps_the_current_exact_unit_permit",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "cba12a5589e8ca3eaafee49229a7aa876d26ad7dbdbade8619b22b65c73c5859",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_writer_boundary::tests::native_flow_phase_and_join_projection_preserve_permissions_but_control_mutations_need_write",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "00c59ea7548a2e9996ef0fd4fef1e87fafcf14ad4425a8d3865742d61e485bf0",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_writer_boundary::tests::original_journal_append_fills_metadata_but_cannot_rewrite_a_saved_export_prefix",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "488467f5c49bdc1854d838577d6776bb76081cd8e95841cf1d5c567c5318c170",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_writer_boundary::tests::raw_sql_cannot_revoke_a_live_store_credential",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "a6c47502b57a5f0d8257f929ff960f0c7d5091099d84b9d3d08459e3081ef7fa",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_writer_boundary::tests::sql_unit_pins_the_original_writer_and_rolls_back_before_releasing_it",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "18f629a4ce48330c7709c1ac9b75c666846a11d48c756cd54a4d05bb6abd0d68",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_writer_boundary::tests::update_or_replace_cannot_erase_another_identity_with_only_the_source_writer",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "cc2499936ce9b6dd1979040e2ad7ab62be62a9b86b57c6fb097a54f202e49919",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_writer_boundary::tests::watcher_cannot_enable_after_a_guard_trigger_or_schema_table_changes",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "413f25f42247cddc662745ef01c99cf4b8d0ec768df7b067e322d4462d7e715d",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_fences::tests::cross_process_writer_invalidates_live_snapshot_and_waits_for_original_io",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "c7e2beb447196f308d0e0aebc267b21cf2e5abca19a855c47df91135cd042b1f",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_fences::tests::cross_process_writer_preserves_disjoint_snapshot_without_rederivation",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "be607d8a3c9eccb31202bc850ca552460a0511491dc52ea1513a97327bf3d61f",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::snapshot_binding::original_presence_lifetime_snapshot_observes_without_sql_and_rejects_foreign_origin",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "8ae39a080ac88d93310617033d2964a95a9175e9fd65f7138d319a1967aee9ac",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::snapshot_binding::unary_snapshot_cannot_bind_a_different_real_source_origin",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "1f2949d757af22508d1cbb46a797058a036fdfe622ea3853e755b88891248580",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::snapshot_binding::unary_snapshot_preserves_exact_original_source_epoch_and_earliest_expiry",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "d28fdaf5e61edcfb14af72c03f0d716a2381c637aca607a211d03bd626b7914a",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::snapshot_binding::unary_snapshot_refuses_expired_original_without_renewing_live_publication",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "331002f78d00c5753c434f014ed59cf2847c165accaf242585360429f8f102f4",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_fences::tests::actual_child_process_revocation_waits_for_parent_delivery_guard_and_admin_open_preserves_runtime",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "7fc7f2dfe399077c10a74f5598847e74e04cb3b94c6502fca4f68c69a3f3bfe1",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_fences::tests::immediate_admission_refuses_queued_writer_and_releases_partial_scopes",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "e57197019142e35e3797c178f544c1e9d401aca36f5a315bf1cf4a4858fc7dee",
+          "naturally_joined": true
+        },
+        {
+          "test": "authority_fences::tests::writer_intent_stops_new_readers_held_proof_reuses_without_reentry_and_other_identity_proceeds",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "5a8e59b9c853fdc963a7f34590a8aaf7003c98901929f8dc01761a13a95355d7",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::credential_refresh_writer::credential_epoch_mutation_waits_for_original_media_and_reuses_its_exact_writer",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "bb5265ac38621364adbecd74a19986f62405b1ed5332a1a7ed3aa43e45845e0d",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::native_operation_writer::signed_native_cancellation_owns_write_before_changing_original_packet_eligibility",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "21c7dbcfb51c80c64c972d5a4a3c5e47f57e5f74e7600bebb6ed631207284977",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::native_operation_writer::supplied_read_only_proof_cannot_cancel_a_native_publication",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "bd7190c1358da6a576f694906073d1290287f5e338a852795e4a10eae305bd46",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_begins_once_under_independent_target_and_original_grants_without_io",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "97d76c6895a41da4c7cc5fb0372f58122c6bebee15de573316be7607fe7bcea2",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_cannot_upgrade_a_binding_only_fence_or_borrow_revoked_source",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "ac4f58e7e5b84cb1866895d33fb58115213689d5d870d1c867a10b9741ef26fe",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_planning_contention_has_no_effect_and_begin_remains_once_only",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "dbd81fcf7823290a2411c23e79066375b7ec60d4473ecc141a3c20d308c3ef7a",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::allocation::replacement_mutation_owner_drop_restores_independent_established_packet_reads",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "ba9d45b6278542d5328f6596d784d82a17868035c84cdcbf593649438897d2b0",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::allocation::signed_allocation_capture_and_replay_do_not_park_writer_on_primary_sql",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "f2743edc1c1948878646b6cae19e34a9f595661f072fa0cf42e19f295e8dc1ca",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::allocation::signed_allocation_capture_does_not_wait_for_another_sqlite_writer",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "f87d91e4072d6332111035d4489426c9474aee450622040cd37ecc3959ade28b",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::candidate::candidate_claim_crash_recovery_settles_only_original_absence_and_never_prepares_a_ticket",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "f1f1b7ccfdca21f64db4ba0a0eeb4f504263cd6597a1e09e06523a7ec5f519f0",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::candidate::candidate_retirement_sql_contention_preserves_original_attempt_and_allows_metadata_only_retry",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "9f8a84882c60c7873372d51fb7494f99222b1a05de4745c09320fb96cbacbd7d",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::candidate::known_candidate_retirement_metadata_survives_revocation_without_granting_fresh_preparation",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "7efb12e5dfa2c4a0651c980a0b658571d70e125ccd547b155e6de90915d7a1e2",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::candidate::pending_candidate_claim_preserves_original_receipt_and_requires_attributed_retirement_before_fresh_ticket",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "8e9ca1ad26debb77489264255102965464663e3a7b5e50a766b60d9388ecee35",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::captured_projection_drains_short_packet_readers_without_long_writer_parking",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "b9ef03461d80babde4cd08a29d1d0a8b66c1e396c1ced81be45e862e4fc3dfb0",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::captured_projection_refuses_contention_without_parking_packet_readers",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "dbfdda9e6d87d3eaa7cf8faec488dcc4d83383fe13ffff2372f6b573008930da",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::captured_projection_releases_writer_when_sql_reacquire_is_busy",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "227fd1fe6e1c95bcba82103c6462c84170526ed27d1c333d1f4c63ad3423250b",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::replacement_audience_revisions_are_atomic_historical_and_keep_surviving_native_controls_current",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "a7a6b158fbd888709c52432098a59def04b7da280b284c486a271ed0de1d6949",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::replacement_commit_requires_actual_private_readiness_and_complete_current_scene",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "ac92f7e6f9601d27cf0775f67d37d28425a50c34cdffc86dc8e7b1292d614850",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::replacement_known_commit_capture_survives_cancel_revocation_and_failed_metadata_write_without_reexecution",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "c0f3a3605bcf2e5f5587cadfd8ea3aeb86331e64e93328986e63c14fd0191d1d",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::terminal_retirement::fair_admission::replacement_cleanup_fair_admission_drains_continuously_overlapping_short_readers",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "de4a9c24856524d092330eecb22bd9c7b118bf2d588b154b637e90f3aab2b349",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::terminal_retirement::fair_admission::replacement_cleanup_long_reader_releases_short_reservation_without_changing_facts",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "5cb51beeabf6ec8d7009350ac55cee4c031cf3a5ff13de024bc455486c45c060",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_defers_without_blocking_other_current_packet_reads",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "5a0195b1aa39154ac736dfe40143eeddb85bafeaa26a6a3543b1bfaf899038b4",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_finishes_original_fenced_session_end_and_leave_after_target_revoke",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "f4c971d41a28c232342002b362335e57f9e1f6085a133679837a9a7b44d266ca",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_refuses_wrong_absence_and_unexplained_local_fences_without_changes",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "7c6a5c8ac2e0066d719ac79a74fa23a51bae92105ea756876419294e9080b290",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_releases_writer_when_sql_or_transaction_is_busy",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "920dac1d73bca778d3ea25be7c124dd2747f93a6bb432f7f31fa34020a79aeac",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_commit_refuses_read_only_scene_without_starting_an_effect",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "6ba0cb9a8455e40946aa36027b6129235ca76ab65925e1e39df145a6984bd2d9",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_write_drains_old_readers_then_rederives_and_commits_once",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "1e33bdc937fe9ee44d8c5d4ae3dcd515b12631aaf5aaca18f02c14eb616da7b3",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_writer_keeps_original_expiry_and_rejects_foreign_scene",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "fabd77860b84a3e8eb212a576dcb8bed6ad3dd914c5b10831394a6149aec4351",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::custody::reservation_writer_drains_original_packet_reads_and_does_not_pin_later_media",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "32f53fa1c91ef8f48cd37ae9e04c660ec7dbdec3c51179549c0d0c731fa33534",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_ends_when_the_same_movement_commit_starts",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "c3f9d26503027f173df507fc910fa9ba6d47aba0216738a8681e185b3e7f5c23",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_observes_current_authority_and_original_root",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "c95afc6c9b87d4f269c3f2ec06e31390bb0d613955036011edb32c7f18b984a0",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_requires_activation_but_not_decoded_ready",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "ecb963b7e54e280ca2fd28569737b6df3853f99ba4c08b503131d29c0c2bfa15",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::start::replacement_begin_returns_exact_start_origin_without_an_authority_or_sql_alias",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "40fe80f5d30d9a742c4d0b719bcb17fa99ac9327daef9cfedf376f9032ad6896",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::start::replacement_private_media_phases_are_ordered_once_only_and_capture_without_projection",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "0cf5391f3fc312dbc16045cc591ddbbebb05452746d85548dab1e1f0dc164b45",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::start::replacement_start_has_separate_once_only_effect_and_fresh_provisional_generation_two_reads",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "48c1f4f2f3ad3b760d421e79ea019b5efcd2b27bf23684edfcc49d4267652435",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::start::signed_start_capture_and_replay_do_not_park_writer_on_primary_sql",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "d7f64b839a7882c6a7a41dfd1f6d2e10d1444d5deac05e1d699aeeee8c7018ea",
+          "naturally_joined": true
+        },
+        {
+          "test": "connection_control::tests::replacement_sources::start::uncertain_private_attach_does_not_reexecute_and_exact_native_retirement_settles_only_local_resources",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "f5e90647204b3e4e14a31bb1ab78ff7b4f2a225ce40b7ae208bf344dd48bfbd9",
+          "naturally_joined": true
+        },
+        {
+          "test": "peer_authority::connection_media::lifetime_snapshot::tests::lifetime_successor_is_same_original_physical_lineage_not_new_generation_or_foreign_owner",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "ec5b6911aef97a8c5cbc8d1cc5f686d03eeb7aa4e058a2f5c490b78927b0f2b9",
+          "naturally_joined": true
+        },
+        {
+          "test": "peer_authority::connection_media::snapshot::tests::packet_snapshot_refuses_queued_writer_without_waiting_under_sql_and_recovers",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "a888cc1d229f7d58ab817d199b91c8e5cfe3e1c391f71c63cdb5f0af07b3b772",
+          "naturally_joined": true
+        },
+        {
+          "test": "records::writer_boundary::inserting_a_record_revokes_the_original_conversation_epoch_and_drains_its_io",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "3d3a94d982a677e23a7fc53da639e5b97d1ea6d12938608c1728917272d94cd3",
+          "naturally_joined": true
+        }
+      ]
+    },
+    "connect_service": {
+      "receipt_sha256": "bb855013668346d69a94d5bd581a8d0de3fe34092df17aeef623e384a3c0d1e3",
+      "binary_sha256": "a9c6f476139826ae0bf1fb5b0b7e119f52ea6115dc2be0f027dc1a5ab006efdf",
+      "passed": 27,
+      "failed": 0,
+      "tests": [
+        {
+          "test": "canonical_media::packets::tests::publication_pair_retains_both_until_io_drop_in_original_order",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "e6461483be39de2a5931786fae7ff9635c4dfb264579551b90b0d509d3b4dc8b",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::packets::tests::publication_pair_refusal_releases_target_and_never_admits_later_source",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "a6e46dd53920380366f431ad8a473f5dd45420a1e995d19dddf00667c7bbe8fd",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::native_snapshots::tests::route_source_key_requires_exact_owner_generation_and_credential_epoch",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "82d2eed390e059ce433399693994c6ff104914ad25b828c6e0bd01eadebcf1ec",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::native_snapshots::tests::dead_route_source_cannot_be_resurrected_by_equal_runtime_metadata",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "cdacfaae9c8df7818b5d047bd12fc222ca84acfee523674d8005d83beac4e9a6",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::packets::tests::packet_trace_clock_only_observes_existing_elapsed_event_targets",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "49587e47b35d588cc1c196263dfd48cc0020d96f0e241a1fd7fecad1687a53d0",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::tests::native_packet_registry_writers_do_not_block_or_lend_missing_source_authority",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "e26ba09dd5dfa1ee8b00c09dfc79f0cb5efea8bd6f35f0e43919058d6129ce0c",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::tests::native_packet_poisoned_registry_is_authority_failure_rather_than_retry",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "414f169b6666ffe7d5c12a2f66d8464e283d3226fa46035d8450b5f1cdec96a8",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::tests::queued_receive_registry_contention_returns_to_the_async_packet_owner",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "7fa823f8f7633482760fbc6c4cb7c990959b3318fea3f463f47d866e1322e34d",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::tests::queued_source_registry_contention_returns_to_the_original_packet_owner",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "3fb4e0c0d677225d39a1a76194e39845e397cfab01ce726ad4e412142f733d6f",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::tests::original_ingress_reads_published_absence_while_all_writers_are_excluded",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "c62b4dfa9ddd44897d1125e90f1618b782f9173002b59eda80917355ecc99d52",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::packets::tests::publication_metadata_busy_uses_only_nonoriginal_media_retry_contract",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "55b14114d0f82e1b26796ecbc9f9dc4ea5d3258f930482b63057aedf944c31ce",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::packets::tests::publication_retry_mapping_preserves_every_other_refusal_and_payload",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "5bba8e2bc768fcbcd626003c489f88414dbeed929d3152d429af5f26befd4281",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::native_snapshots::tests::continuation_phase_key_never_borrows_ordinary_or_another_activation",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "a7e0305dcaa0293d25178e715b02d583f359060c59a7fb5f9183d0f8bb03943a",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::native_snapshots::tests::eager_enrollment_defers_only_effect_free_authority_busy",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "d27fa77e849e6d61c258ca3a51d4dde73f24abcc778456fa2ddaec5adcb1b8e8",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::published::tests::readers_use_complete_published_map_while_writer_prepares_next_state",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "2095327f57ea2f4feca6c7e7533e551a20bbd1b5e88b2f7d33076b0f59737813",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::published::tests::writer_poison_never_publishes_partial_state_or_serves_old_metadata",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "9b6ccbfeef043276981126332b0aeab6a2eeadeef126b6aff16397aaff7a4e9f",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::lifetime::tests::replaced_selected_lifetime_refusal_is_retryable_and_next_successor_is_observed",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "be4d226c41d717cad8bac4ccb63d42e3a35b19aa1162c706efd02a1ec3b72534",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::lifetime::tests::unchanged_selected_lifetime_preserves_definitive_and_binding_refusals",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "3180d294251321fe95047214f785c47a51e09083076c67b8ffe210625180aaf4",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::roles::generation_tests::role_generation_racing_completion_remains_pending_without_renewed_authority",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "b7877322ae27e6e0f6488a1f94a8f7f5130ca41ade9b9caa84fb72f58bd0582f",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_media::roles::generation_tests::role_generation_retries_busy_and_skips_only_successfully_reconciled_state",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "76efb90919e81a64a2f39ea1cbe4058e6dff047d975785235a8fba8f04e29956",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_runtime::control_work::tests::cancelled_native_control_retains_running_sql_poll_through_drain",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "d84ba96789942a081df29bb65dcd7f7c7de4f7a2ede80f98def218176cb5d52c",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_runtime::control_work::tests::cancelled_original_store_waiter_retains_and_joins_actual_write_acquisition",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "ea9a14a903ce714971e649d74366f48f820b085b0ad424f88355e84d1f30ab63",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_runtime::control_work::tests::native_control_poll_panic_remains_a_failed_drain",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "bfde192b91a7529ca626ae61b860585e04574e250fc96c9c48ecb43cf0fa7608",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_runtime::control_work::tests::native_control_preserves_wakeups_deadline_and_nested_blocking_progress",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "7845e4e73fbecbcc9c20a8dc10d7c87ff7d47818bc95906a70dc7ec3dd5a7640",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_runtime::control_work::tests::native_control_sql_wait_preserves_executor_progress_and_original_join",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "31fd42e32a29ca6700312b06e8cf8969d50146b5bcb88028fd966a273564391c",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_runtime::control_work::tests::original_store_call_keeps_typed_writer_until_caller_releases_it",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "2c049fc2c2eeaf85af2720fc23b1095458fc12490bc9448fcf8f6964a3281681",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_runtime::control_work::tests::periodic_custodian_joins_completed_controls_without_new_submission_or_cancelling_pending",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "db6a1a6f1e725cd87b510ecce541c3ab2e9fca5d700891330aeaafe895b29edc",
+          "naturally_joined": true
+        }
+      ]
+    }
+  },
+  "summary": {
+    "passed": 97,
+    "failed": 0,
+    "skipped": 0
+  },
+  "initial_failure": "The first27 Store tests passed26; the new disjoint-owner test failed before the scenario because its identity alias contained spaces. Corrected the alias, rebuilt, and all70 selected Store tests passed. No authority or media criterion changed.",
+  "limits": [
+    "Component verification only; no throughput/speedup measurement or decoded media qualification inferred.",
+    "Signed transport verification and the full32 matrix remain separate.",
+    "Historical200 baseline checks overlap these selections and are not added to this97 count."
+  ]
+}

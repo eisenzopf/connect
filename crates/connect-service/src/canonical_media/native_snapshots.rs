@@ -17,9 +17,34 @@ fn phase_key<C, A>(continuation: &Arc<C>, activation: &Arc<A>) -> PhaseKey {
         activation: Arc::as_ptr(activation) as usize,
     }
 }
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+// Connection origins are immutable. Exact Arc identity plus generation/epoch
+// therefore already pins its runtime ID. The retained Weak below both prevents
+// address reuse and verifies the actual owner; no per-packet String is needed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct SourceKey {
+    generation: u64,
+    credential_epoch: u64,
+    owner: usize,
+}
+fn source_key<T>(source: &Arc<T>, generation: u64, credential_epoch: u64) -> SourceKey {
+    SourceKey {
+        generation,
+        credential_epoch,
+        owner: Arc::as_ptr(source) as usize,
+    }
+}
+fn same_source_owner<T>(registered: Option<&Weak<T>>, current: Option<&Arc<T>>) -> bool {
+    match (registered, current) {
+        (None, None) => true,
+        (Some(registered), Some(current)) => registered
+            .upgrade()
+            .is_some_and(|registered| Arc::ptr_eq(&registered, current)),
+        _ => false,
+    }
+}
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) struct RouteKey {
-    source: Option<(String, u64, u64, usize)>,
+    source: Option<SourceKey>,
     target_phase: Option<PhaseKey>,
     source_phase: Option<PhaseKey>,
 }
@@ -92,11 +117,10 @@ fn key(
 ) -> RouteKey {
     RouteKey {
         source: source.map(|source| {
-            (
-                source.origin.runtime_connection_id().to_owned(),
+            source_key(
+                source,
                 source.origin.generation(),
                 source.origin.credential_epoch(),
-                Arc::as_ptr(source) as usize,
             )
         }),
         target_phase: target_phase.map(|current| phase_key(current, &current.metadata)),
@@ -385,15 +409,8 @@ impl Connection {
             )?;
             return Err(busy());
         }
-        if let Some(source) = source {
-            if !published
-                .source
-                .as_ref()
-                .and_then(Weak::upgrade)
-                .is_some_and(|registered| Arc::ptr_eq(&registered, source))
-            {
-                return Err(connect_protocol::Error::forbidden());
-            }
+        if !same_source_owner(published.source.as_ref(), source) {
+            return Err(connect_protocol::Error::forbidden());
         }
         if !phase_matches(published.target_phase.as_ref(), target_continuation, self)
             || match source {
@@ -419,6 +436,43 @@ impl Connection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn route_source_key_requires_exact_owner_generation_and_credential_epoch() {
+        let source = Arc::new("same-runtime-id");
+        let other = Arc::new("same-runtime-id");
+        let weak = Arc::downgrade(&source);
+        let original = source_key(&source, 2, 3);
+        assert_eq!(original, source_key(&source.clone(), 2, 3));
+        assert_ne!(original, source_key(&other, 2, 3));
+        assert_ne!(original, source_key(&source, 4, 3));
+        assert_ne!(original, source_key(&source, 2, 4));
+        assert!(same_source_owner(Some(&weak), Some(&source)));
+        assert!(!same_source_owner(Some(&weak), Some(&other)));
+        assert!(!same_source_owner(Some(&weak), None));
+        assert!(!same_source_owner(None, Some(&source)));
+        assert!(same_source_owner::<&str>(None, None));
+        assert_eq!(
+            Arc::strong_count(&source),
+            1,
+            "key/validation must not pin the physical owner"
+        );
+    }
+    #[test]
+    fn dead_route_source_cannot_be_resurrected_by_equal_runtime_metadata() {
+        let source = Arc::new("same-runtime-id");
+        let weak = Arc::downgrade(&source);
+        let key = source_key(&source, 2, 3);
+        drop(source);
+        let successor = Arc::new("same-runtime-id");
+        assert!(weak.upgrade().is_none());
+        assert!(!same_source_owner(Some(&weak), Some(&successor)));
+        assert_ne!(
+            key,
+            source_key(&successor, 2, 3),
+            "retained Weak prevents allocation address reuse"
+        );
+        assert_eq!(Arc::strong_count(&successor), 1);
+    }
     #[test]
     fn eager_enrollment_defers_only_effect_free_authority_busy() {
         assert!(defer_eager_enrollment(Ok(())).is_ok());

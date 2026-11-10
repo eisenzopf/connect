@@ -8,7 +8,7 @@ use crate::{AuthorityGuardSet, AuthorityScope};
 use arc_swap::ArcSwapOption;
 use connect_protocol::{Error, Result};
 use std::sync::{
-    atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicUsize, Ordering},
     Arc, Condvar, Mutex, Weak,
 };
 use std::thread::JoinHandle;
@@ -61,20 +61,66 @@ impl<T: SnapshotFacts> Generation<T> {
         self.epoch.current() && self.prepared.facts.current()
     }
 }
+// Shared off-media lifetime flag only; it owns no Registry, file, or grant.
+// One atomic read replaces packet-side Weak upgrades and two flag reads.
+const DISABLED: u8 = 0;
+const AVAILABLE: u8 = 1;
+const STOPPED: u8 = 2;
+const DROPPED: u8 = 3;
+struct Availability(AtomicU8);
+impl Availability {
+    fn current(&self) -> bool {
+        self.0.load(Ordering::Acquire) == AVAILABLE
+    }
+    fn check(&self) -> Result<()> {
+        match self.0.load(Ordering::Acquire) {
+            AVAILABLE => Ok(()),
+            DROPPED => Err(Error::forbidden()),
+            _ => Err(busy()),
+        }
+    }
+    fn enable(&self) -> Result<()> {
+        match self
+            .0
+            .compare_exchange(DISABLED, AVAILABLE, Ordering::AcqRel, Ordering::Acquire)
+        {
+            Ok(_) | Err(AVAILABLE) => Ok(()),
+            Err(_) => Err(Error::forbidden()),
+        }
+    }
+    fn disable(&self) {
+        // A late invalidation must never undo permanent stop/drop.
+        let _ = self
+            .0
+            .compare_exchange(AVAILABLE, DISABLED, Ordering::AcqRel, Ordering::Acquire);
+    }
+    fn stop(&self) {
+        let _ = self
+            .0
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |state| {
+                (state != DROPPED).then_some(STOPPED)
+            });
+    }
+    fn stopped(&self) -> bool {
+        self.0.load(Ordering::Acquire) >= STOPPED
+    }
+    fn dropped(&self) {
+        self.0.store(DROPPED, Ordering::Release);
+    }
+}
+
 /// Packet metadata only: retaining this cannot pin any authority Read fence.
 #[derive(Clone)]
 pub(crate) struct Epoch {
     revoked: Arc<AtomicBool>,
-    registry: Weak<Registry>,
+    availability: Arc<Availability>,
     until: Instant,
 }
 impl Epoch {
     pub(crate) fn current(&self) -> bool {
         !self.revoked.load(Ordering::Acquire)
             && Instant::now() < self.until
-            && self.registry.upgrade().is_some_and(|registry| {
-                registry.enabled.load(Ordering::Acquire) && !registry.stopped()
-            })
+            && self.availability.current()
     }
     fn revoke(&self) {
         self.revoked.store(true, Ordering::Release);
@@ -139,7 +185,7 @@ struct Slot<T: SnapshotFacts> {
     refusal: ArcSwapOption<Refusal>,
     scope_hint: ArcSwapOption<Vec<AuthorityScope>>,
     attempt: Mutex<RefreshAttempt>,
-    registry: Weak<Registry>,
+    availability: Arc<Availability>,
     refresh: Box<Refresh<T>>,
 }
 pub(crate) struct Handle<T: SnapshotFacts> {
@@ -178,8 +224,7 @@ impl<T: SnapshotFacts> Handle<T> {
         match self.admit() {
             Ok(lease) => Ok(lease),
             Err(error) => {
-                let registry = self.slot.registry.upgrade().ok_or_else(Error::forbidden)?;
-                if !registry.enabled.load(Ordering::Acquire) || registry.stopped() {
+                if !self.slot.availability.current() {
                     return Err(error);
                 }
                 if let Some(refusal) = self.slot.refusal.load_full() {
@@ -192,10 +237,7 @@ impl<T: SnapshotFacts> Handle<T> {
         }
     }
     fn admit_at(&self, stamp: Option<Stamp>) -> Result<Lease<T>> {
-        let registry = self.slot.registry.upgrade().ok_or_else(Error::forbidden)?;
-        if !registry.enabled.load(Ordering::Acquire) || registry.stopped.load(Ordering::Acquire) {
-            return Err(busy());
-        }
+        self.slot.availability.check()?;
         let generation = self.slot.publication.load_full().ok_or_else(busy)?;
         if stamp.is_some_and(|s| s.slot != self.slot.id || s.generation != generation.number)
             || !generation.current()
@@ -221,13 +263,14 @@ fn busy() -> Error {
     )
 }
 fn intersects(left: &[AuthorityScope], right: &[AuthorityScope]) -> bool {
-    left.iter()
-        .any(|a| right.iter().any(|b| a.read_scope() == b.read_scope()))
+    // All stored hints and notification/probe inputs are normalized once.
+    // Compare names without cloning their Strings for every slot/pair.
+    left.iter().any(|a| right.contains(a))
 }
 trait ErasedSlot: Send + Sync {
     fn revoke(&self);
     fn revoke_for(&self, scopes: &[AuthorityScope]);
-    fn published_scopes(&self) -> Option<Arc<[AuthorityScope]>>;
+    fn published_scopes(&self) -> Option<Arc<Vec<AuthorityScope>>>;
     fn refresh_if_missing(&self, registry: &Registry);
 }
 impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
@@ -256,7 +299,7 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
             self.revoke();
         }
     }
-    fn published_scopes(&self) -> Option<Arc<[AuthorityScope]>> {
+    fn published_scopes(&self) -> Option<Arc<Vec<AuthorityScope>>> {
         if let Some(current) = self.publication.load_full() {
             let valid = current.current();
             // Do not pin the resource while revoking publication.
@@ -268,15 +311,13 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
         // Names only, with no file/SQL/authority owner: keep watching an old
         // scope after withdrawal so a cross-process writer's release can wake
         // exactly one fresh projection of an otherwise unchanged route.
-        self.scope_hint
-            .load_full()
-            .map(|hint| hint.as_slice().into())
+        self.scope_hint.load_full()
     }
     fn refresh_if_missing(&self, registry: &Registry) {
         if self.handles.load(Ordering::Acquire) == 0 || self.publication.load().is_some() {
             return;
         }
-        if !registry.enabled.load(Ordering::Acquire) || registry.stopped.load(Ordering::Acquire) {
+        if !registry.availability.current() {
             return;
         }
         let sequence = match registry.control.lock() {
@@ -317,8 +358,7 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
                         && state.sequence == sequence
                         && state.writers.is_empty()
                         && !state.external_busy
-                        && registry.enabled.load(Ordering::Acquire)
-                        && !registry.stopped()
+                        && registry.availability.current()
                     {
                         self.refusal.store(Some(Arc::new(Refusal {
                             error,
@@ -339,8 +379,7 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
             || state.sequence != sequence
             || !state.writers.is_empty()
             || state.external_busy
-            || !registry.enabled.load(Ordering::Acquire)
-            || registry.stopped.load(Ordering::Acquire)
+            || !registry.availability.current()
         {
             return;
         }
@@ -353,7 +392,7 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
         self.scope_hint
             .store(Some(Arc::new(prepared.scopes.to_vec())));
         let epoch = Epoch {
-            registry: self.registry.clone(),
+            availability: self.availability.clone(),
             revoked: Arc::new(AtomicBool::new(false)),
             until: prepared.until,
         };
@@ -387,8 +426,7 @@ pub(crate) struct Registry {
     control: Mutex<Control>,
     changed: Condvar,
     probe: Box<Probe>,
-    enabled: AtomicBool,
-    stopped: AtomicBool,
+    availability: Arc<Availability>,
     watcher_started: AtomicBool,
 }
 impl Registry {
@@ -406,23 +444,22 @@ impl Registry {
             }),
             changed: Condvar::new(),
             probe: Box::new(probe),
-            enabled: AtomicBool::new(false),
-            stopped: AtomicBool::new(false),
+            availability: Arc::new(Availability(AtomicU8::new(DISABLED))),
             watcher_started: AtomicBool::new(false),
         })
     }
     /// Call only after the persistent coordinated-writer boundary is verified.
     /// Merely registering SQLite functions is not that proof.
     pub(crate) fn enable_after_writer_boundary(&self) -> Result<()> {
-        if self.stopped.load(Ordering::Acquire) || !self.watcher_started.load(Ordering::Acquire) {
+        if self.availability.stopped() || !self.watcher_started.load(Ordering::Acquire) {
             return Err(Error::forbidden());
         }
-        self.enabled.store(true, Ordering::Release);
+        self.availability.enable()?;
         self.changed.notify_all();
         Ok(())
     }
     pub(crate) fn stopped(&self) -> bool {
-        self.stopped.load(Ordering::Acquire)
+        self.availability.stopped()
     }
     pub(crate) fn register<T: SnapshotFacts>(
         self: &Arc<Self>,
@@ -475,7 +512,7 @@ impl Registry {
                 retry_at: Instant::now(),
                 backoff: Duration::from_millis(1),
             }),
-            registry: Arc::downgrade(self),
+            availability: self.availability.clone(),
             refresh: Box::new(refresh),
         });
         let erased: Arc<dyn ErasedSlot> = slot.clone();
@@ -505,6 +542,13 @@ impl Registry {
         self: &Arc<Self>,
         scopes: &[AuthorityScope],
     ) -> Result<WriterNotice> {
+        // Notification names only. Actual Manager Write proofs are untouched.
+        let scopes = AuthorityScope::merged(
+            &scopes
+                .iter()
+                .map(AuthorityScope::read_scope)
+                .collect::<Vec<_>>(),
+        )?;
         let mut state = self.control.lock().map_err(|_| Error::storage())?;
         if state.writers.len() >= MAX_WRITERS {
             return Err(Error::new(
@@ -520,7 +564,7 @@ impl Registry {
         let id = state.next_writer;
         state.slots.retain(|s| s.strong_count() > 0);
         for slot in state.slots.iter().filter_map(Weak::upgrade) {
-            slot.revoke_for(scopes);
+            slot.revoke_for(&scopes);
         }
         state.writers.push(Pending { id });
         drop(state);
@@ -531,7 +575,7 @@ impl Registry {
         })
     }
     pub(crate) fn invalidate_all(&self) {
-        self.enabled.store(false, Ordering::Release);
+        self.availability.disable();
         if let Ok(mut state) = self.control.lock() {
             state.sequence = state.sequence.saturating_add(1);
             for slot in state.slots.iter().filter_map(Weak::upgrade) {
@@ -539,6 +583,26 @@ impl Registry {
             }
         }
         self.changed.notify_all();
+    }
+    fn blocked_external_scopes(&self, scopes: &[AuthorityScope]) -> Result<Vec<AuthorityScope>> {
+        let scopes = AuthorityScope::merged(scopes)?;
+        if scopes.is_empty() {
+            return Ok(Vec::new());
+        }
+        match (self.probe)(&scopes) {
+            Ok(()) => return Ok(Vec::new()),
+            Err(error) if error.code == "authority-busy" => {}
+            Err(error) => return Err(error),
+        }
+        let mut blocked = Vec::new();
+        for scope in scopes {
+            match (self.probe)(std::slice::from_ref(&scope)) {
+                Ok(()) => {}
+                Err(error) if error.code == "authority-busy" => blocked.push(scope),
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(blocked)
     }
     pub(crate) fn start_watcher(self: &Arc<Self>, interval: Duration) -> Result<OwnedWatcher> {
         if self.stopped()
@@ -566,7 +630,7 @@ impl Registry {
                                 .collect::<Vec<_>>()
                         }
                         Err(_) => {
-                            registry.stopped.store(true, Ordering::Release);
+                            registry.availability.stop();
                             registry.invalidate_all();
                             return;
                         }
@@ -579,10 +643,8 @@ impl Registry {
                         .filter_map(|slot| slot.published_scopes())
                         .flat_map(|scopes| scopes.to_vec())
                         .collect::<Vec<_>>();
-                    let external_busy = !scopes.is_empty()
-                        && AuthorityScope::merged(&scopes)
-                            .and_then(|scopes| (registry.probe)(&scopes))
-                            .is_err();
+                    let blocked = registry.blocked_external_scopes(&scopes);
+                    let external_busy = blocked.as_ref().map_or(true, |scopes| !scopes.is_empty());
                     {
                         let Ok(mut state) = registry.control.lock() else {
                             return;
@@ -592,9 +654,19 @@ impl Registry {
                             state.sequence = state.sequence.saturating_add(1);
                         }
                     }
-                    if external_busy {
-                        for slot in &slots {
-                            slot.revoke();
+                    match &blocked {
+                        Ok(scopes) if !scopes.is_empty() => {
+                            for slot in &slots {
+                                slot.revoke_for(scopes);
+                            }
+                        }
+                        Ok(_) => {}
+                        Err(_) => {
+                            // Namespace/storage/owner failure is not a narrow
+                            // busy scope. Preserve the original global refusal.
+                            for slot in &slots {
+                                slot.revoke();
+                            }
                         }
                     }
                     // Bound new/invalidated refresh work between writer-intent
@@ -618,7 +690,7 @@ impl Registry {
                         }
                     }
                     let Ok(state) = registry.control.lock() else {
-                        registry.stopped.store(true, Ordering::Release);
+                        registry.availability.stop();
                         registry.invalidate_all();
                         return;
                     };
@@ -626,7 +698,7 @@ impl Registry {
                         break;
                     }
                     if registry.changed.wait_timeout(state, interval).is_err() {
-                        registry.stopped.store(true, Ordering::Release);
+                        registry.availability.stop();
                         registry.invalidate_all();
                         return;
                     }
@@ -644,16 +716,28 @@ impl Registry {
         })
     }
 }
+impl Drop for Registry {
+    fn drop(&mut self) {
+        self.availability.dropped();
+        let state = self
+            .control
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        for slot in state.slots.iter().filter_map(Weak::upgrade) {
+            slot.revoke();
+        }
+    }
+}
 impl crate::RuntimeRetirementSignal for Registry {
     fn retire(&self) {
-        self.stopped.store(true, Ordering::Release);
+        self.availability.stop();
         self.invalidate_all();
     }
 }
 struct WatcherExit(Arc<Registry>);
 impl Drop for WatcherExit {
     fn drop(&mut self) {
-        self.0.stopped.store(true, Ordering::Release);
+        self.0.availability.stop();
         self.0.invalidate_all();
     }
 }
@@ -665,7 +749,7 @@ pub struct OwnedWatcher {
 }
 impl OwnedWatcher {
     pub fn shutdown(&mut self) -> Result<()> {
-        self.registry.stopped.store(true, Ordering::Release);
+        self.registry.availability.stop();
         self.registry.invalidate_all();
         self.registry.changed.notify_all();
         if let Some(thread) = self.thread.take() {
@@ -690,7 +774,7 @@ impl Drop for WriterNotice {
                 state.writers.retain(|p| p.id != self.id);
                 state.sequence = state.sequence.saturating_add(1);
             } else {
-                registry.enabled.store(false, Ordering::Release);
+                registry.availability.disable();
             }
             registry.changed.notify_all();
         }

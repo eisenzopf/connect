@@ -709,7 +709,7 @@ async fn gate(
 }
 async fn exercise(mode: u8) {
     let _ = tracing_subscriber::fmt()
-        .with_env_filter("connect_client::canonical::native_video=debug,connect_service::canonical_flow_ready=debug,connect_service::canonical_replacement=debug")
+        .with_env_filter(std::env::var("RUST_LOG").unwrap_or_else(|_| "connect_client::canonical::native_video=debug,connect_service::canonical_flow_ready=debug,connect_service::canonical_replacement=debug".into()))
         .with_test_writer()
         .try_init();
     let f = Fixture::with_native_end_scope("EdDSA", 12).await;
@@ -989,7 +989,16 @@ async fn exercise(mode: u8) {
                 mutation(operation),
             )
             .await
-            .unwrap()
+            .unwrap_or_else(|error| {
+                let credential = f.server.store.authenticate(&f.client.credential).unwrap().credential_id;
+                let recorded = f.server.store.execute_operation_action(
+                    &credential,
+                    connect_protocol::transitions::OperationAction::Get {
+                        operation_id: operation.into(),
+                    },
+                );
+                panic!("initial subscription {operation} refused: {error:?}; problem={:?}; observation={:?}; recorded={recorded:?}", error.problem, error.observation);
+            })
             .wait(options())
             .await
             .unwrap();

@@ -856,6 +856,13 @@ mod identity_wait;
 
 #[test]
 fn cross_process_writer_invalidates_live_snapshot_and_waits_for_original_io() {
+    cross_process_scope_invalidation(false);
+}
+#[test]
+fn cross_process_writer_preserves_disjoint_snapshot_without_rederivation() {
+    cross_process_scope_invalidation(true);
+}
+fn cross_process_scope_invalidation(check_disjoint: bool) {
     use crate::media_authorization::{Prepared, SnapshotFacts};
     struct CurrentOwner;
     impl SnapshotFacts for CurrentOwner {
@@ -864,6 +871,21 @@ fn cross_process_writer_invalidates_live_snapshot_and_waits_for_original_io() {
         }
     }
     let f = Fixture::new();
+    let other_user = check_disjoint.then(|| {
+        let identity = f
+            .store
+            .create_identity("unrelated-snapshot-owner")
+            .unwrap()
+            .id;
+        f.store
+            .issue(
+                &identity,
+                Scope::collaboration(vec!["*".into()]),
+                crate::now() + 600,
+            )
+            .unwrap()
+            .id
+    });
     let registry = f.store.media_authorization_registry().clone();
     let weak_store = Arc::downgrade(&f.store);
     let credential = f.user.clone();
@@ -882,6 +904,28 @@ fn cross_process_writer_invalidates_live_snapshot_and_waits_for_original_io() {
             )
         })
         .unwrap();
+    let other_refreshes = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let other_handle = other_user.as_ref().map(|credential| {
+        let weak = Arc::downgrade(&f.store);
+        let credential = credential.clone();
+        let refreshes = other_refreshes.clone();
+        registry
+            .register(move || {
+                let store = weak.upgrade().ok_or_else(Error::forbidden)?;
+                let read = store.read_authority(
+                    &credential,
+                    None,
+                    &AuthorityWait::new(Duration::from_millis(5)),
+                )?;
+                refreshes.fetch_add(1, Ordering::Relaxed);
+                Prepared::new(
+                    Arc::new(CurrentOwner),
+                    read,
+                    Instant::now() + Duration::from_secs(10),
+                )
+            })
+            .unwrap()
+    });
     let mut watcher = registry.start_watcher(Duration::from_millis(1)).unwrap();
     registry.enable_after_writer_boundary().unwrap();
     let end = Instant::now() + Duration::from_secs(2);
@@ -892,6 +936,18 @@ fn cross_process_writer_invalidates_live_snapshot_and_waits_for_original_io() {
         assert!(Instant::now() < end, "initial snapshot not published");
         std::thread::sleep(Duration::from_millis(1));
     };
+    let other_lease = other_handle.as_ref().map(|handle| {
+        let end = Instant::now() + Duration::from_secs(2);
+        loop {
+            if let Ok(lease) = handle.admit() {
+                break lease;
+            }
+            assert!(Instant::now() < end, "disjoint snapshot not published");
+            std::thread::sleep(Duration::from_millis(1));
+        }
+    });
+    let other_queued = other_lease.as_ref().map(|lease| lease.stamp());
+    let other_before = other_refreshes.load(Ordering::Relaxed);
     let queued = lease.stamp();
     let mut child = Process::start(&f, "revoke");
     child.line("FENCE READY");
@@ -907,12 +963,25 @@ fn cross_process_writer_invalidates_live_snapshot_and_waits_for_original_io() {
     let denied_new = handle.admit().is_err();
     let child_still_waits_for_io = child.child.try_wait().unwrap().is_none();
     let credential_still_valid = f.store.revalidate(&f.user).is_ok();
+    let disjoint_stays_current = match (&other_lease, &other_handle, other_queued) {
+        (Some(lease), Some(handle), Some(stamp)) => {
+            lease.current() && (0..16).all(|_| handle.admit_original(stamp).is_ok())
+        }
+        _ => !check_disjoint,
+    };
     drop(lease);
     child.line("FENCE COMMITTED");
     child.finish();
     let rejected_revoked_credential = f.store.revalidate(&f.user).is_err();
     let rejected_old_work = handle.admit_original(queued).is_err();
+    let disjoint_never_rederived = other_refreshes.load(Ordering::Relaxed) == other_before;
+    let disjoint_after_commit = other_lease.as_ref().is_none_or(|lease| lease.current());
+    drop(other_lease);
     watcher.shutdown().unwrap();
     assert!(revoked_before_commit && denied_new && child_still_waits_for_io);
     assert!(credential_still_valid && rejected_revoked_credential && rejected_old_work);
+    assert!(
+        disjoint_stays_current && disjoint_after_commit && disjoint_never_rederived,
+        "unrelated snapshot revoked/rederived for another Identity writer"
+    );
 }

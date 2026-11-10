@@ -1067,14 +1067,17 @@ impl Policy {
         Ok(read)
     }
 }
+type ContinuationPublications =
+    [Option<rvoip_core::orchestrator::participant_control::CurrentReplacementPublication>; 2];
 struct Fresh {
     owner: MediaOwner,
     _read: Arc<NativeMediaRead>,
     weak: std::sync::Weak<dyn Any + Send + Sync>,
     // Active IO only. Queued packets can retain only the weak reference above.
     _source: Option<Arc<NativeMediaRead>>,
-    _continuations:
-        Vec<rvoip_core::orchestrator::participant_control::CurrentReplacementPublication>,
+    // Exact target/source slots retain actual IO publications in that order.
+    // The ordinary path needs no continuation heap allocation.
+    _continuations: ContinuationPublications,
 }
 impl Fresh {
     fn new(owner: MediaOwner, read: NativeMediaRead, source: Option<Arc<NativeMediaRead>>) -> Self {
@@ -1088,13 +1091,10 @@ impl Fresh {
             _read: read,
             weak: Arc::downgrade(&erased),
             _source: source,
-            _continuations: Vec::new(),
+            _continuations: [None, None],
         }
     }
-    fn with_continuations(
-        mut self,
-        current: Vec<rvoip_core::orchestrator::participant_control::CurrentReplacementPublication>,
-    ) -> Self {
+    fn with_continuations(mut self, current: ContinuationPublications) -> Self {
         self._continuations = current;
         self
     }

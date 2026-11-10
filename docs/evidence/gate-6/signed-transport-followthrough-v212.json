@@ -1,0 +1,108 @@
+{
+  "format": "connect/g6-058-signed-transport-followthrough/1",
+  "updated": "2026-11-10T02:15:51.142192+00:00",
+  "source": {
+    "base": "1cd730cfc33217e673c2b46017c761f3a696b10b",
+    "source_lock": "7b6d7cf3ad6ce66e2f86c37f7150a0b64f6c49a42b2c553580f69dfb21e6a156",
+    "files": [
+      {
+        "path": "crates/connect-service/src/canonical_media.rs",
+        "sha256": "b404247ff75b14d6a649de713ccc627ebb05851f371555b36b76b70b6be35686"
+      },
+      {
+        "path": "crates/connect-service/src/canonical_media/native_snapshots.rs",
+        "sha256": "38b6040c1662b2bde05032845ea3e7ae785097965d5d63e41d699de829dd5c5c"
+      },
+      {
+        "path": "crates/connect-service/src/canonical_media/packets.rs",
+        "sha256": "5894d2091e21d7dcf7104f6dc927a872635dbe7b3dd519087668c90f8a0927ff"
+      },
+      {
+        "path": "crates/connect-store/src/authority_fences/tests.rs",
+        "sha256": "18667c2cbd7b38fbe968a8fca3506e7b33fa720dda9bf6e9d95608449d5cea2e"
+      },
+      {
+        "path": "crates/connect-store/src/media_authorization.rs",
+        "sha256": "6989283fb9dbeb0129ef7a3eb08f83966ff17430a46d83f14f1abe84fd815bf9"
+      },
+      {
+        "path": "crates/connect-store/src/media_authorization/tests.rs",
+        "sha256": "777f0cf5455dab2937f753326ae5be7f9bfeaf0cbc05781afd7f432377b79fe3"
+      }
+    ]
+  },
+  "platform": "Local macOS arm64, isolated synthetic native peers; no provider or cloud calls",
+  "groups": {
+    "gate6_canonical_webtransport": {
+      "receipt_sha256": "c0766238db9e849725c921ba4a84287e66e19ae3bf35a73581f935c2ee8cf0f8",
+      "binary_sha256": "060ab5e181562641c5faa88cde2e40c6aa60f540e1719e6006bdc9784fc1ac94",
+      "summary": {
+        "selected": 3,
+        "completed": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      "tests": [
+        {
+          "test": "canonical_websocket_control::webrtc::signed_wss_quarantined_sdp_answer_progresses_under_real_domain_writer",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "e1377e26072702fefecb4b27a04b1c62791477e030a318f71dd8cb813ed06bc1",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_websocket_control::webrtc::signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_retirement",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "c52ebc1f4e59818e551ec7aa62d406f606a2ae66d688808c1c6707edd69ea794",
+          "naturally_joined": true
+        },
+        {
+          "test": "canonical_websocket_control::webrtc::admission::current_withdrawal_after_rtc_media_admission_retires_only_that_route",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "log_sha256": "9da7790f738479e61df623902fc17743805c1cd57b423ef208b91c7e728504c9",
+          "naturally_joined": true
+        }
+      ]
+    },
+    "gate6_replacement_video": {
+      "receipt_sha256": "19d3b34bed1f54e53cf16546e2f21a8399ef180cb04a2d52c089bfc57d748c64",
+      "binary_sha256": "5829588c7c797f66a8f98d631022a357a4b6942c8c09a4688b602b311c62146b",
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "tests": [
+        {
+          "test": "sdk_handles::replacement_video_recovery::signed_replacement_initial_mute_dispatch_uses_exact_held_target_under_registry_contention",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "log_sha256": "2cc2fc4dc92e01f0a29b3e5260c680483a4d41c0611a094a14e562501807812e",
+          "naturally_joined": true
+        },
+        {
+          "test": "sdk_handles::replacement_video_recovery::signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "log_sha256": "998e1b328e68d1313c00aaa6f14992f3d634b9df2fe972d5abff81ab93decc0e",
+          "naturally_joined": true
+        }
+      ]
+    }
+  },
+  "summary": {
+    "passed": 3,
+    "failed": 2,
+    "skipped": 0
+  },
+  "diagnosis": "Both native tests fail before the replacement scenario at initial feedback-source-select stream.subscribe. A subsequent test-only diagnostic reproduces503 storage_unavailable. Store operation_members writes lack a bound coordinated Write while the envelope owns only Read. No full matrix run or media-quality pass inferred.",
+  "diagnostic_log_sha256": "7458ebcc12cd9d3b0830e75c0724053674081247eed76dd21c207f5ef85aef2e"
+}

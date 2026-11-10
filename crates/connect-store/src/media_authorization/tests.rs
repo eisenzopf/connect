@@ -38,11 +38,14 @@ impl Fixture {
         }
     }
     fn register(&self, until: Instant) -> Handle<Facts> {
+        self.register_for(&self.scope, until)
+    }
+    fn register_for(&self, scope: &AuthorityScope, until: Instant) -> Handle<Facts> {
         let manager = self.manager.clone();
         let owner = self.owner.clone();
         let revision = self.revision.clone();
         let refreshes = self.refreshes.clone();
-        let scope = self.scope.clone();
+        let scope = scope.clone();
         self.registry
             .register(move || {
                 let guards = manager.try_acquire(std::slice::from_ref(&scope))?;
@@ -389,7 +392,7 @@ fn original_failed_lifetime_refresh_cannot_publish_across_a_racing_writer_sequen
     // the stale refusal was processed before inspecting the observed status.
     // Module-local publication model: no extra watcher is manufactured. The
     // owned thread below drives the same refresh function as the Runtime worker.
-    f.registry.enabled.store(true, Ordering::Release);
+    f.registry.availability.enable().unwrap();
     let slot = handle.slot.clone();
     let registry = f.registry.clone();
     let worker = std::thread::spawn(move || slot.refresh_if_missing(&registry));
@@ -407,11 +410,120 @@ fn original_failed_lifetime_refresh_cannot_publish_across_a_racing_writer_sequen
     drop(writer);
     handle.slot.refresh_if_missing(&f.registry);
     let new_current = handle.observe().is_ok();
-    f.registry.enabled.store(false, Ordering::Release);
+    f.registry.availability.disable();
     f.registry.invalidate_all();
     assert_eq!(
         raced_status, "authority-busy",
         "old failed derivation must not become a definitive refusal after writer invalidation"
     );
     assert!(new_current);
+}
+
+#[test]
+fn packet_availability_drops_without_pinning_registry_and_never_resurrects() {
+    let f = Fixture::new();
+    let handle = f.register(Instant::now() + Duration::from_secs(5));
+    // Drive the same production publication method under the module's explicit
+    // verified-boundary model, without manufacturing another watcher.
+    f.registry.availability.enable().unwrap();
+    handle.slot.refresh_if_missing(&f.registry);
+    let lease = handle.admit().unwrap();
+    let epoch = lease.packet_epoch();
+    let weak_registry = Arc::downgrade(&f.registry);
+    drop(f.registry);
+    let registry_not_pinned = weak_registry.upgrade().is_none();
+    let refused = handle.admit().err().unwrap().code;
+    let invalidated = !lease.current() && !epoch.current();
+    // Actual in-flight IO still drains its original Read before a writer. A
+    // queued epoch has no fence of its own and cannot revive a new Registry.
+    let before_drain = f.manager.try_acquire(&[f.scope.write_scope()]).is_err();
+    drop(lease);
+    let after_drain = f.manager.try_acquire(&[f.scope.write_scope()]).is_ok();
+    let successor = f.manager.media_snapshot_registry().unwrap();
+    successor.availability.enable().unwrap();
+    let old_stays_invalid = !epoch.current() && handle.admit().is_err();
+    successor.invalidate_all();
+    assert!(registry_not_pinned && invalidated && before_drain && after_drain && old_stays_invalid);
+    assert_eq!(refused, "forbidden");
+}
+#[test]
+fn scope_probe_has_one_healthy_call_and_deduplicated_busy_fallback() {
+    let a = AuthorityScope::identity("first", AuthorityMode::Read).unwrap();
+    let b = AuthorityScope::identity("second", AuthorityMode::Read).unwrap();
+    let selected = b.clone();
+    let busy_scope = Arc::new(AtomicBool::new(false));
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let seen = calls.clone();
+    let busy = busy_scope.clone();
+    let registry = Registry::new(move |scopes| {
+        seen.lock().unwrap().push(scopes.to_vec());
+        if busy.load(Ordering::Acquire) && scopes.contains(&selected) {
+            Err(super::busy())
+        } else {
+            Ok(())
+        }
+    });
+    let input = [a.clone(), b.clone(), a.clone()];
+    assert!(registry.blocked_external_scopes(&input).unwrap().is_empty());
+    assert_eq!(calls.lock().unwrap().len(), 1);
+    calls.lock().unwrap().clear();
+    busy_scope.store(true, Ordering::Release);
+    assert!(registry.blocked_external_scopes(&input).unwrap() == vec![b]);
+    let calls = calls.lock().unwrap();
+    assert_eq!(calls.len(), 3); // One aggregate + exactly two unique scopes.
+    assert_eq!(calls[0].len(), 2);
+    assert!(calls[1..].iter().all(|scopes| scopes.len() == 1));
+}
+#[test]
+fn hard_external_probe_failure_still_revokes_every_scope_and_old_epoch() {
+    let mut f = Fixture::new();
+    let fail = Arc::new(AtomicBool::new(false));
+    let flag = fail.clone();
+    let manager = f.manager.clone();
+    f.registry = Registry::new(move |scopes| {
+        if flag.load(Ordering::Acquire) {
+            return Err(Error::storage());
+        }
+        drop(manager.try_acquire(scopes)?);
+        Ok(())
+    });
+    let first = f.register(Instant::now() + Duration::from_secs(5));
+    let other = AuthorityScope::identity("unrelated", AuthorityMode::Read).unwrap();
+    let second = f.register_for(&other, Instant::now() + Duration::from_secs(5));
+    let mut watcher = f.start();
+    let a = admit(&first);
+    let b = admit(&second);
+    let old_a = a.stamp();
+    let old_b = b.stamp();
+    fail.store(true, Ordering::Release);
+    until(|| !a.current() && !b.current());
+    let both_refused = first.admit().is_err() && second.admit().is_err();
+    drop(a);
+    drop(b);
+    fail.store(false, Ordering::Release);
+    let restored_a = admit(&first);
+    let restored_b = admit(&second);
+    let old_not_reused =
+        first.admit_original(old_a).is_err() && second.admit_original(old_b).is_err();
+    watcher.shutdown().unwrap();
+    assert!(both_refused && old_not_reused);
+    assert!(!restored_a.current() && !restored_b.current());
+}
+
+#[test]
+fn immutable_scope_probe_names_reuse_the_published_vector_without_holding_a_fence() {
+    let f = Fixture::new();
+    let handle = f.register(Instant::now() + Duration::from_secs(5));
+    f.registry.availability.enable().unwrap();
+    handle.slot.refresh_if_missing(&f.registry);
+    let first = handle.slot.published_scopes().unwrap();
+    let second = handle.slot.published_scopes().unwrap();
+    let unchanged_names_reused = Arc::ptr_eq(&first, &second);
+    drop(handle);
+    // Retaining these off-media names is not a retained IO/authority read.
+    let writer = f.manager.try_acquire(&[f.scope.write_scope()]);
+    let names_hold_no_fence = writer.is_ok();
+    drop(writer);
+    f.registry.invalidate_all();
+    assert!(unchanged_names_reused && names_hold_no_fence);
 }

@@ -35,23 +35,24 @@ fn packet_read_until<T>(
         }
     }
 }
-// Only the leaf registry lookups passed here define NotReady as mutex
-// exclusion. Never reclassify a target's readiness or activation result.
-fn packet_lookup<T>(
-    until: std::time::Instant,
-    original: bool,
-    stage: &'static str,
-    read: impl FnMut() -> ControlResult<T>,
-) -> ControlResult<T> {
-    super::packet_metadata::read_until(until, read).map_err(|error| {
-        tracing::debug!(target: "connect_service::packet_refusal", stage, ?error,
-            "Current packet registry lookup refused");
-        if original && matches!(error, StreamControlError::NotReady) {
-            StreamControlError::MetadataBusy
-        } else {
-            error
-        }
-    })
+// Measurement only: actual authority/expiry clocks remain unconditional in
+// their owners. Healthy packet delivery does not read a tracing clock unless
+// one of the existing elapsed-time events can be recorded.
+fn packet_trace_clock() -> Option<std::time::Instant> {
+    (tracing::enabled!(target: "connect_service::canonical_packet", tracing::Level::TRACE)
+        || tracing::enabled!(target: "connect_service::packet_refusal", tracing::Level::DEBUG))
+    .then(std::time::Instant::now)
+}
+// Both publications belong to this one IO lease. Admit target before source;
+// a source refusal drops the already-admitted target, and success retains the
+// same target/source destruction order without allocating a Vec per packet.
+fn publication_pair<T>(
+    target: impl FnOnce() -> ControlResult<Option<T>>,
+    source: impl FnOnce() -> ControlResult<Option<T>>,
+) -> ControlResult<[Option<T>; 2]> {
+    let target = target()?;
+    let source = source()?;
+    Ok([target, source])
 }
 // A continuation lookup can straddle ordinary publication after its registry
 // Arc was captured. Retained media owners already retry NotReady using the same
@@ -111,33 +112,15 @@ impl Policy {
         queued: bool,
         original: bool,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
-        // Queued realtime owners already retry NotReady asynchronously under
-        // their original frame age and earlier lease expiry. Return contention
-        // after one current read so synchronous callbacks cannot occupy their
-        // executor while the metadata writer/other media needs that executor.
-        // Fresh ingress retains its existing synchronous admission budget: its
-        // adapter has not yet accepted the original frame into a queued owner.
-        let budget =
-            if queued || held.is_some() || matches!(scope.purpose, MediaPurpose::Receive { .. }) {
-                std::time::Duration::ZERO
-            } else {
-                std::time::Duration::from_millis(10)
-            };
-        let until = std::time::Instant::now() + budget;
-        if let Some(target) = packet_lookup(until, original, "initial-target", || {
-            self.initial_target(scope.connection)
-        })? {
+        // Registry leaves load immutable Published maps. They cannot report
+        // mutex NotReady; preserve downstream semantic refusal/retry handling.
+        if let Some(target) = self.initial_target(scope.connection)? {
             return target.current(scope);
         }
-        if let Some(target) = packet_lookup(until, original, "telephone-target", || {
-            self.telephone_target(scope.connection)
-        })? {
+        if let Some(target) = self.telephone_target(scope.connection)? {
             return target.current(scope);
         }
-        let target_continuation = if let Some(target) =
-            packet_lookup(until, original, "replacement-target", || {
-                self.replacement_target(scope.connection)
-            })? {
+        let target_continuation = if let Some(target) = self.replacement_target(scope.connection)? {
             match target.current_continuation()? {
                 Some(current) if !matches!(scope.purpose, MediaPurpose::Control) => Some(current),
                 _ => {
@@ -154,34 +137,23 @@ impl Policy {
         };
         let entry = match &target_continuation {
             Some(current) => current.entry.clone(),
-            None => packet_lookup(until, original, "native-entry", || {
-                self.entry(scope.connection)
-            })?,
+            None => self.entry(scope.connection)?,
         };
         self.scope(scope, &entry).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet scope refused");error})?;
         if let MediaPurpose::Receive { source } = scope.purpose {
-            if let Some(initial) = packet_lookup(until, original, "source-initial-target", || {
-                self.initial_target(&source.connection)
-            })? {
+            if let Some(initial) = self.initial_target(&source.connection)? {
                 return initial.native_receive(scope, source, &entry);
             }
-            if let Some(telephone) =
-                packet_lookup(until, original, "source-telephone-target", || {
-                    self.telephone_target(&source.connection)
-                })?
-            {
+            if let Some(telephone) = self.telephone_target(&source.connection)? {
                 return telephone.native_receive(scope, source, &entry);
             }
         }
         let source_continuation = match scope.purpose {
-            MediaPurpose::Receive { source } => {
-                packet_lookup(until, original, "source-replacement-target", || {
-                    self.replacement_target(&source.connection)
-                })?
+            MediaPurpose::Receive { source } => self
+                .replacement_target(&source.connection)?
                 .map(|target| target.current_continuation())
                 .transpose()?
-                .flatten()
-            }
+                .flatten(),
             _ => None,
         };
         let source = match scope.purpose {
@@ -189,14 +161,12 @@ impl Policy {
                 source,
                 match &source_continuation {
                     Some(current) => current.entry.clone(),
-                    None => packet_lookup(until, original, "source-entry", || {
-                        self.entry(&source.connection)
-                    })?,
+                    None => self.entry(&source.connection)?,
                 },
             )),
             _ => None,
         };
-        let started = std::time::Instant::now();
+        let started = packet_trace_clock();
         if let (Some(held), Some((descriptor, source))) = (held.as_deref(), source.as_ref()) {
             source_matches(descriptor, source, held.target())?;
         }
@@ -215,7 +185,7 @@ impl Policy {
         })();
         tracing::trace!(target: "connect_service::canonical_packet",
             connection = entry.origin.connection_id(),
-            elapsed_us = started.elapsed().as_micros() as u64,
+            elapsed_us = started.as_ref().map_or(0, |started| started.elapsed().as_micros() as u64),
             publishing = matches!(scope.purpose, MediaPurpose::Publish),
             owned_file_custody = held.is_some(),
             role = result.as_ref().ok().map(|r|r.target().presence_role.as_str()),
@@ -230,7 +200,7 @@ impl Policy {
                 publishing = matches!(scope.purpose, MediaPurpose::Publish),
                 queued, original, owned_file_custody = held.is_some(),
                 code = %error.code, detail = %error.message,
-                elapsed_us = started.elapsed().as_micros() as u64,
+                elapsed_us = started.as_ref().map_or(0, |started| started.elapsed().as_micros() as u64),
                 "Current packet Store read refused");
             if original && error.code == "authority-busy" {
                 StreamControlError::MetadataBusy
@@ -292,37 +262,44 @@ impl Policy {
         let owner = owner?;
         // Current Store readers exist before these short Core metadata checks.
         // Capture no Core mutex across authorization acquisition or packet IO.
-        let mut continuations = Vec::with_capacity(2);
-        if let Some(current) = &target_continuation {
-            let publication = current.current(&owner);
-            #[cfg(feature = "test-support")]
-            audio_diagnostic::result(
-                scope.connection,
-                Stage::PolicyPublication,
-                publication.as_ref().err(),
-            );
-            continuations.push(publication?);
-        }
-        if let Some(current) = &source_continuation {
-            let source_owner = current.entry.owner(
-                read.source().ok_or(StreamControlError::Authority)?,
-                &current.entry.principal,
-                false,
-            )?;
-            let source_owner = current
-                .entry
-                .activation()?
-                .ok_or(StreamControlError::NotReady)?
-                .current(source_owner)?;
-            let publication = current.current(&source_owner);
-            #[cfg(feature = "test-support")]
-            audio_diagnostic::result(
-                source_owner.connection.connection(),
-                Stage::PolicyPublication,
-                publication.as_ref().err(),
-            );
-            continuations.push(publication?);
-        }
+        let continuations = publication_pair(
+            || {
+                let Some(current) = &target_continuation else {
+                    return Ok(None);
+                };
+                let publication = current.current(&owner);
+                #[cfg(feature = "test-support")]
+                audio_diagnostic::result(
+                    scope.connection,
+                    Stage::PolicyPublication,
+                    publication.as_ref().err(),
+                );
+                publication.map(Some)
+            },
+            || {
+                let Some(current) = &source_continuation else {
+                    return Ok(None);
+                };
+                let source_owner = current.entry.owner(
+                    read.source().ok_or(StreamControlError::Authority)?,
+                    &current.entry.principal,
+                    false,
+                )?;
+                let source_owner = current
+                    .entry
+                    .activation()?
+                    .ok_or(StreamControlError::NotReady)?
+                    .current(source_owner)?;
+                let publication = current.current(&source_owner);
+                #[cfg(feature = "test-support")]
+                audio_diagnostic::result(
+                    source_owner.connection.connection(),
+                    Stage::PolicyPublication,
+                    publication.as_ref().err(),
+                );
+                publication.map(Some)
+            },
+        )?;
         Ok(Box::new(
             Fresh::new(owner, read, held).with_continuations(continuations),
         ))
@@ -332,6 +309,86 @@ impl Policy {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn packet_trace_clock_only_observes_existing_elapsed_event_targets() {
+        use tracing_subscriber::prelude::*;
+        tracing::subscriber::with_default(tracing::subscriber::NoSubscriber::default(), || {
+            assert!(packet_trace_clock().is_none());
+        });
+        for (directives, expected) in [
+            ("off,connect_service::canonical_packet=trace", true),
+            ("off,connect_service::packet_refusal=debug", true),
+            ("off,connect_service::canonical_packet=debug", false),
+            ("off,connect_service::packet_refusal=info", false),
+            ("off,unrelated_packet=trace", false),
+        ] {
+            let subscriber = tracing_subscriber::registry()
+                .with(tracing_subscriber::EnvFilter::try_new(directives).unwrap());
+            tracing::subscriber::with_default(subscriber, || {
+                assert_eq!(packet_trace_clock().is_some(), expected, "{directives}");
+            });
+        }
+    }
+    #[test]
+    fn publication_pair_retains_both_until_io_drop_in_original_order() {
+        use std::{cell::RefCell, rc::Rc};
+        struct Publication(&'static str, Rc<RefCell<Vec<&'static str>>>);
+        impl Drop for Publication {
+            fn drop(&mut self) {
+                self.1.borrow_mut().push(self.0);
+            }
+        }
+        let dropped = Rc::new(RefCell::new(Vec::new()));
+        let calls = RefCell::new(Vec::new());
+        let pair = publication_pair(
+            || {
+                calls.borrow_mut().push("target");
+                Ok(Some(Publication("target", dropped.clone())))
+            },
+            || {
+                calls.borrow_mut().push("source");
+                assert!(dropped.borrow().is_empty());
+                Ok(Some(Publication("source", dropped.clone())))
+            },
+        )
+        .unwrap();
+        assert_eq!(*calls.borrow(), ["target", "source"]);
+        assert!(dropped.borrow().is_empty());
+        drop(pair);
+        assert_eq!(*dropped.borrow(), ["target", "source"]);
+        let empty = publication_pair::<Publication>(|| Ok(None), || Ok(None)).unwrap();
+        assert!(empty.iter().all(Option::is_none));
+    }
+    #[test]
+    fn publication_pair_refusal_releases_target_and_never_admits_later_source() {
+        use std::cell::Cell;
+        struct Publication<'a>(&'a Cell<usize>);
+        impl Drop for Publication<'_> {
+            fn drop(&mut self) {
+                self.0.set(self.0.get() + 1);
+            }
+        }
+        let dropped = Cell::new(0);
+        let source_called = Cell::new(false);
+        let result = publication_pair::<Publication<'_>>(
+            || Err(StreamControlError::Authority),
+            || {
+                source_called.set(true);
+                Ok(None)
+            },
+        );
+        assert!(matches!(result, Err(StreamControlError::Authority)));
+        assert!(!source_called.get());
+        let result = publication_pair(
+            || Ok(Some(Publication(&dropped))),
+            || {
+                assert_eq!(dropped.get(), 0);
+                Err(StreamControlError::NotRecipient)
+            },
+        );
+        assert!(matches!(result, Err(StreamControlError::NotRecipient)));
+        assert_eq!(dropped.get(), 1);
+    }
     #[test]
     fn temporary_packet_read_rechecks_and_never_reuses_a_prior_grant() {
         let mut calls = 0;
