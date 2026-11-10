@@ -2060,6 +2060,24 @@
       "path": "patches/rvoip/gate6-live-subscription-authenticated-unit-fixture.patch",
       "sha256": "f6385f52fc7b24b9a421ff16c2dd6dcd0d20909ac01889b1facea0bb52d38e89",
       "source": "G6-058 test-only correction: live subscription resource unit fixture must carry tenant and issuer required by existing production checked_principal before fresh same-command authorization. Assert fixture authentication at construction. Preserve production checks, current lease/marker/BOTH publication contract and exact six causal selectors; original E two authentication failures retained, corrected runtime pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-live-codec-and-replacement-current-activation.patch",
+      "sha256": "18093a2ac79d6c974f61d6eb09382177e73f5bbc00ade7c33e1dfcd6761e89c3",
+      "source": "G6-058 same-original current activation: release original InitialOffer authorization for typed pre-SQL Start retry; Core live selected resource quarantine drops planning control before codec IO and validates exact staged formats against fresh held Change at activation; UCTP sealed parameter-only codec exchange with weak nonrecursive reply proof, authenticated broker confirmation and mandatory fresh same-reservation activation. Preserve original cutoffs, physical owners, once-only custody, old-media continuity and rollback. Add causal writer/withdrawal/cancellation/format/cutoff and signed codec controls; runtime verification pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-codec-quarantine-test-owned-failure.patch",
+      "sha256": "c85c918b907821758bc3e9d8af50489d25af82d7426c8fdf942b9808b2911d4f",
+      "source": "G6-058 test-only followthrough: keep original live-codec writer JoinHandle across progress timeout, answer and join the same original exchange/writer, then report failure after cleanup. Preserve one-second criterion, exact original operation, current-withdrawal and old-audio checks. Production API unchanged; runtime pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-selected-quarantine-fixture-policy-domain.patch",
+      "sha256": "d98120dff5eab0ce7d0140eb4b7ae56ecd93631701ec2503a3d350698607ca3e",
+      "source": "G6-058 test-only correction: shared selected-codec fixture must install the identical policy object on both still-idle endpoints before opening Audio and Video, as existing Core routing requires. Preserve original identities, principals, adapters and handle registry; omit unrelated direct Video subscription. Keep all five real writer, fresh-format withdrawal, cancellation, deadline, rollback and decoded-audio assertions unchanged. Original F five setup failures retained; corrected runtime pending."
     }
   ]
 }

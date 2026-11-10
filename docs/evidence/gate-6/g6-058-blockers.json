@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T09:06:25.287730+00:00",
-  "run_status": "G6-058 remains open. E2 complete:124/124 Connect units and33/33 upstream controls have passing evidence. Focused signed16/27 passed (15/26 production plus1 helper); WebRTC5/5, Data3/3, DTMF4/4 and new live-subscription positive pass. Native, telephone, provider return/initialization, codec offers and withdrawal fixture remain failed; one added native test was misrouted to Mac despite Linux-only guard. Provider processes no longer abort. Full v209 unchanged0/32 complete,390/432 checks passed.",
+  "updated": "2026-11-10T10:35:30.979193+00:00",
+  "run_status": "G6-058 remains open. Cleanup F/F2 implementation verified by217 unit/component controls and8 signed upstream controls (225 total). Corrected coherent Connect build passed. Batch checkpoint and focused Connect signed retest next. Full v209 unchanged0/32 complete,390/432 requirement checks passed; no matrix improvement inferred from components.",
   "blockers": [
     {
       "id": "B01",
@@ -15192,5 +15192,23 @@
       "Codec capture/storage recovery passes; bad confirmation and live preferences time out awaiting offer. Offload causal units pass but actual remaining admission failure is not solved."
     ],
     "qualification": "Unit/component results do not qualify full cells. Full matrix remains v209 0/32 complete,390/432 checks passed,42failed,0blocked. All previous failures preserved."
+  },
+  "v212_pending_batch_f": {
+    "status": "implemented and unit/component verified; focused Connect signed retest next",
+    "integrated": [
+      "subscription withdrawal fixture changes actual mutable session acceptance",
+      "return bookkeeping uses exact Conversation and conditional enrollment writers",
+      "telephone allocation blocking Store resolution runs in owned worker",
+      "native first-uplink failure captures bounded existing counters"
+    ],
+    "pending": [
+      "native Start typed pre-SQL deferral with fresh same-command authorization",
+      "live codec resource preparation without retained domain read and fresh exact activation",
+      "codec peer fixture completes independent original handshakes concurrently",
+      "provider metadata scopes preserve unrelated identity readers"
+    ],
+    "last_completed_verification": "E2 124/124 Connect units,33/33 upstream evidence,16/27 focused signed; no full-matrix advancement claimed",
+    "evidence": "docs/evidence/gate-6/cleanup-batch-f-v212.json",
+    "store_evidence": "docs/evidence/gate-6/cleanup-batch-f-store-v212.json"
   }
 }

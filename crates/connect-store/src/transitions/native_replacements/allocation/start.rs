@@ -31,6 +31,10 @@ impl NativeReplacementStartRead {
     pub fn expires_at(&self) -> i64 {
         self.source.expires_at()
     }
+    /// A fresh pre-begin read cannot renew the original physical control cap.
+    pub fn limit(&mut self, expires_at: i64) -> Result<()> {
+        self.source.limit(expires_at)
+    }
     pub fn source(&self) -> &NativeReplacementPreparationRead {
         &self.source
     }
@@ -245,11 +249,35 @@ impl Store {
         NativeReplacementStartRead,
         Arc<NativeReplacementStartOrigin>,
     )> {
+        self.try_begin_native_replacement_start_with_read(allocated, credential, proof, read)?
+            .ok_or_else(|| Error::new("authority-busy", "Current state is busy"))
+    }
+    /// None proves the primary SQL mutex was not acquired: no transaction,
+    /// reservation or effect was entered. Only that typed result can repeat.
+    /// Every error after SQL admission remains an original uncertain/refused
+    /// outcome; callers must never infer retry safety from its string code.
+    pub fn try_begin_native_replacement_start_with_read(
+        &self,
+        allocated: Arc<NativeReplacementAllocated>,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+        read: NativeReplacementStartRead,
+    ) -> Result<
+        Option<(
+            NativeReplacementStartAttempt,
+            NativeReplacementStartRead,
+            Arc<NativeReplacementStartOrigin>,
+        )>,
+    > {
         let prepared = &allocated.attempt.prepared;
         if !read.current() || read.source.selection().origin.record != prepared.record {
             return Err(Error::forbidden());
         }
-        let mut c = self.try_connection()?;
+        let mut c = match self.try_connection() {
+            Ok(c) => c,
+            Err(error) if error.code == "authority-busy" => return Ok(None),
+            Err(error) => return Err(error),
+        };
         c.bind_available_mutation_authority(self, Self::peer_scopes(proof))?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -312,7 +340,7 @@ impl Store {
         // no committed once-only attempt is lost behind a second SQL admission.
         let origin = webrtc::start_origin(self, &tx, &attempt, &read)?;
         tx.commit().map_err(|_| Error::storage())?;
-        Ok((attempt, read, origin))
+        Ok(Some((attempt, read, origin)))
     }
     pub fn record_native_replacement_started_with_peer(
         &self,

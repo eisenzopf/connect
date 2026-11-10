@@ -9,7 +9,30 @@ use connect_store::{
     TelephoneReplacementUncertain,
 };
 use rvoip_sip::{SipDeviceReplacementContext, SipDeviceReplacementSignal};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{
+    atomic::{AtomicI64, Ordering},
+    Mutex, OnceLock,
+};
+
+fn allocation_stage<T>(stage: &'static str, result: Result<T>) -> Result<T> {
+    if let Err(error) = &result {
+        let code = match error.code.as_str() {
+            "authority-busy"
+            | "storage-unavailable"
+            | "forbidden"
+            | "conflict"
+            | "invalid-request"
+            | "unsupported-media-profile"
+            | "not-ready"
+            | "capacity-exceeded"
+            | "busy" => error.code.as_str(),
+            _ => "other",
+        };
+        tracing::debug!(target: "connect_service::telephone_replacement::allocation",
+            stage, code, "Original telephone allocation stage refused");
+    }
+    result
+}
 
 pub(crate) struct Allocated {
     _packet_observers: connect_store::PacketObserverScope,
@@ -37,38 +60,83 @@ impl Runtime {
         let store = self.media.store.clone();
         let observer_stop = root.handle.cancellation();
         let observer_deadline = root.deadline.into_std();
-        let packet_observers = store_call(move || {
-            store.retain_packet_observers_until(observer_deadline, || observer_stop.is_cancelled())
-        })
-        .await?;
+        let packet_observers = allocation_stage(
+            "packet-observer-custody",
+            store_call(move || {
+                store.retain_packet_observers_until(observer_deadline, || {
+                    observer_stop.is_cancelled()
+                })
+            })
+            .await,
+        )?;
         let _roles = self.role_projection.lock().await;
         let previous = { root.telephone.lock().map_err(|_| Error::storage())?.clone() };
         if let Some(previous) = previous {
-            self.record_telephone_allocation(&previous).await?;
+            allocation_stage(
+                "replay-record",
+                self.record_telephone_allocation(&previous).await,
+            )?;
             return Ok(previous);
         }
-        let (adapter, configured) = self.telephone_route(&route.policy.route_reference)?;
+        let (adapter, configured) = allocation_stage(
+            "configured-route",
+            self.telephone_route(&route.policy.route_reference),
+        )?;
         if !Arc::ptr_eq(&route, &configured) {
-            return Err(Error::forbidden());
+            return allocation_stage("configured-route-identity", Err(Error::forbidden()));
         }
-        let read = retry_metadata(&self.stop, || async {
-            self.media.store.telephone_replacement_allocation_read(
-                &root.receipt,
-                &route.credential_id,
-                &route.policy,
-            )
+        // These are synchronous primary-SQL lookups. Keep them on the existing
+        // owned blocking-call path so the async owner of a contending SQL guard
+        // can progress. No allocation/effect/Core/SIP action belongs in retry.
+        // First actual source expiry remains the cap across metadata retries.
+        let original_cutoff = Arc::new(AtomicI64::new(i64::MAX));
+        let resolved = retry_metadata(&self.stop, || {
+            let runtime = self.clone();
+            let prepared = root.receipt.clone();
+            let route = route.clone();
+            let original_cutoff = original_cutoff.clone();
+            self.owned_store_call(move || {
+                if chrono::Utc::now().timestamp() >= original_cutoff.load(Ordering::Acquire) {
+                    return allocation_stage("original-resolution-cutoff", Err(Error::forbidden()));
+                }
+                let mut read = allocation_stage(
+                    "planning-read",
+                    runtime.media.store.telephone_replacement_allocation_read(
+                        &prepared,
+                        &route.credential_id,
+                        &route.policy,
+                    ),
+                )?;
+                original_cutoff.fetch_min(read.expires_at(), Ordering::AcqRel);
+                read.limit(original_cutoff.load(Ordering::Acquire))?;
+                let original = allocation_stage(
+                    "source-owner",
+                    runtime
+                        .media
+                        .replacement_source_owner(read.source())
+                        .map_err(|_| Error::forbidden()),
+                )?;
+                let target = allocation_stage(
+                    "route-target",
+                    authority::allocated_target(&runtime, &read, &route, &original.member),
+                )?;
+                // A late synchronous lookup may join after expiry/cancellation;
+                // it can never authorize a dormant resource or a later begin.
+                if runtime.stop.is_cancelled() || !read.current() {
+                    return allocation_stage("resolved-current", Err(Error::forbidden()));
+                }
+                Ok((read, Arc::new(target)))
+            })
         })
-        .await?;
-        let original = self
-            .media
-            .replacement_source_owner(read.source())
-            .map_err(|_| Error::forbidden())?;
-        let target = Arc::new(authority::allocated_target(
-            self,
-            &read,
-            &route,
-            &original.member,
-        )?);
+        .await;
+        let (read, target) = allocation_stage("resolution", resolved)?;
+        if self.stop.is_cancelled()
+            || root.handle.cancellation().is_cancelled()
+            || tokio::time::Instant::now() >= root.deadline
+            || !read.current()
+        {
+            return allocation_stage("joined-current", Err(Error::forbidden()));
+        }
         let writer = Arc::new(write::InviteAuthority {
             runtime: Arc::downgrade(self),
             attempt: OnceLock::new(),
@@ -77,24 +145,32 @@ impl Runtime {
             cancelled: root.handle.cancellation(),
             deadline: root.deadline,
         });
-        let context = adapter
-            .device_replacement_context(
-                &self.core,
-                &root.handle,
-                target.principal.clone(),
-                target.endpoint.clone(),
-                route
-                    .originate
-                    .clone()
-                    .with_request_write_authority(writer.clone()),
-            )
-            .map_err(|_| Error::forbidden())?;
-        let signals = context.take_signals().map_err(|_| Error::forbidden())?;
-        let begin_cutoff = read.expires_at();
+        let context = allocation_stage(
+            "resource-context",
+            adapter
+                .device_replacement_context(
+                    &self.core,
+                    &root.handle,
+                    target.principal.clone(),
+                    target.endpoint.clone(),
+                    route
+                        .originate
+                        .clone()
+                        .with_request_write_authority(writer.clone()),
+                )
+                .map_err(|_| Error::forbidden()),
+        )?;
+        let signals = allocation_stage(
+            "signal-custody",
+            context.take_signals().map_err(|_| Error::forbidden()),
+        )?;
+        let begin_cutoff = read
+            .expires_at()
+            .min(original_cutoff.load(Ordering::Acquire));
         drop(read);
         // PRE-reservation contention has no effect to replay. Re-derive only
         // within the original cutoff; once an attempt returns, leave this loop.
-        let attempt = retry_metadata(&root.handle.cancellation(), || {
+        let begun = retry_metadata(&root.handle.cancellation(), || {
             let store = self.media.store.clone();
             let prepared = root.receipt.clone();
             let route = route.clone();
@@ -111,16 +187,17 @@ impl Runtime {
                 store.begin_telephone_replacement_allocation(read)
             })
         })
-        .await?;
+        .await;
+        let attempt = allocation_stage("allocation-begin", begun)?;
         // Custody is returned before a fresh IO interval can contend. Retain
         // and retry only this original attempt; never repeat begin or Core work.
-        let read = match retry_metadata(&root.handle.cancellation(), || {
+        let ready = retry_metadata(&root.handle.cancellation(), || {
             let store = self.media.store.clone();
             let attempt = attempt.clone();
             store_call(move || store.telephone_replacement_allocation_begun_read(attempt))
         })
-        .await
-        {
+        .await;
+        let read = match allocation_stage("begun-current", ready) {
             Ok(read) => read,
             Err(error) => {
                 root.handle.cancel();
@@ -147,21 +224,22 @@ impl Runtime {
             &invocation,
         );
         drop(invocation);
-        let capture = result.map_err(|_| Error::forbidden()).and_then(|actual| {
-            if actual != root.handle.intent().replacement {
-                return Err(Error::forbidden());
-            }
-            let mut observation = observed(&root.handle, &root.plan)?;
-            observation["allocated"] = serde_json::json!(true);
-            observation["transport"] = serde_json::json!("sip");
-            let reference = context
-                .prepared_call_reference()
-                .map_err(|_| Error::forbidden())?;
-            observation["call_reference"] =
-                serde_json::json!({"kind":reference.kind(),"value":reference.expose_secret()});
-            attempt.allocated(observation)
-        });
-        let receipt = match capture {
+        let capture = allocation_stage("core-allocate", result.map_err(|_| Error::forbidden()))
+            .and_then(|actual| {
+                if actual != root.handle.intent().replacement {
+                    return Err(Error::forbidden());
+                }
+                let mut observation = observed(&root.handle, &root.plan)?;
+                observation["allocated"] = serde_json::json!(true);
+                observation["transport"] = serde_json::json!("sip");
+                let reference = context
+                    .prepared_call_reference()
+                    .map_err(|_| Error::forbidden())?;
+                observation["call_reference"] =
+                    serde_json::json!({"kind":reference.kind(),"value":reference.expose_secret()});
+                attempt.allocated(observation)
+            });
+        let receipt = match allocation_stage("capture", capture) {
             Ok(receipt) => Arc::new(receipt),
             Err(error) => {
                 root.handle.cancel();
@@ -186,7 +264,10 @@ impl Runtime {
             resource_failure: Mutex::new(None),
         });
         *root.telephone.lock().map_err(|_| Error::storage())? = Some(allocated.clone());
-        self.record_telephone_allocation(&allocated).await?;
+        allocation_stage(
+            "record-allocation",
+            self.record_telephone_allocation(&allocated).await,
+        )?;
         Ok(allocated)
     }
     async fn record_telephone_allocation(&self, leg: &Allocated) -> Result<()> {

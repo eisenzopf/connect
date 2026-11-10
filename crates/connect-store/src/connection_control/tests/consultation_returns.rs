@@ -361,11 +361,10 @@ fn native_return_reservation_refuses_contended_sql_or_authority_without_effect()
     writer.execute_batch("ROLLBACK").unwrap();
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
 
-    let identity = f.store.revalidate(&key).unwrap().identity_id;
     let reader = f
         .store
-        .try_acquire_authority(&[crate::AuthorityScope::identity(
-            &identity,
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
             crate::AuthorityMode::Read,
         )
         .unwrap()])
@@ -993,4 +992,73 @@ fn native_return_get_recovers_only_under_fresh_writer_and_keeps_current_and_term
             f.count("journal")
         )
     );
+}
+
+#[test]
+fn native_return_metadata_keeps_identity_readers_through_reservation_begin_and_capture() {
+    let (f, command, key, _, sources) = fixture_full();
+    f.store
+        .admit_transition_command(&key, command.clone())
+        .unwrap();
+    let origin = f
+        .store
+        .native_consultation_return_origin(&key, command)
+        .unwrap();
+    let plan = return_plan(&f, &origin, &sources);
+    let actor = f.store.revalidate(&key).unwrap().identity_id;
+    let reader = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::identity(
+            &actor,
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .unwrap();
+    let read = f
+        .store
+        .try_native_return_read(&origin, &sources, &[])
+        .unwrap();
+    let lease = f
+        .store
+        .prepare_native_consultation_return(read, plan.clone())
+        .unwrap()
+        .unwrap();
+    let read = f
+        .store
+        .native_consultation_return_attempt_read(&lease)
+        .unwrap();
+    let (attempt, read) = f
+        .store
+        .begin_native_consultation_return(lease, read)
+        .unwrap();
+    drop(read);
+    // Controlled outcome only; signed Service owns physical restoration proof.
+    let observed = observation(&plan);
+    let receipt = attempt
+        .applied(
+            observed.clone(),
+            crate::native_stream_projection::unchanged_audience_metadata_for_test(&observed),
+        )
+        .unwrap();
+    f.store
+        .record_native_consultation_return_applied(&receipt)
+        .unwrap();
+    assert!(
+        f.store
+            .complete_native_consultation_return(&receipt)
+            .unwrap()
+            .is_none(),
+        "live original candidate still requires actual retirement"
+    );
+    assert!(
+        f.store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &actor,
+                crate::AuthorityMode::Write
+            )
+            .unwrap()])
+            .is_err(),
+        "original unrelated identity reader was never consumed or upgraded"
+    );
+    drop(reader);
 }

@@ -78,12 +78,88 @@ pub(super) fn original_root_state(
     history
 }
 
+// Existing aggregate counters only. Sampling creates no packet reader, probe,
+// task or domain authority. Counter identities are explicit; these are not a
+// per-route causal proof when other media is active in the same fixture.
+fn client_stats(client: &sdk::Client) -> Value {
+    match client.media_stats() {
+        Ok(s) => json!({"received_datagrams":s.received_datagrams,"rtp_packets":s.rtp_packets,
+            "clock_reports":s.clock_reports,"malformed_datagrams":s.malformed_datagrams,
+            "unknown_handles":s.unknown_handles,"overflow_drops":s.overflow_drops,
+            "control_drops":s.control_drops,"binding_change_drops":s.binding_change_drops,
+            "queued_packets":s.queued_packets,"queued_bytes":s.queued_bytes,
+            "feedback_datagrams":s.feedback_datagrams,"feedback_drops":s.feedback_drops}),
+        Err(_) => json!({"unavailable":"client-media-stats"}),
+    }
+}
+pub(super) fn safe_media_sample(
+    f: &Fixture,
+    original_source: &sdk::Client,
+    retained: &sdk::Client,
+    connection: &sdk::Connection,
+    stream: &sdk::Stream,
+    target: &NativeVideoDatagrams,
+) -> Value {
+    std::panic::catch_unwind(AssertUnwindSafe(|| {
+        let runtime = f.server.service.canonical_runtime_snapshot().map(|s| json!({
+            "media_readers":s.media_readers,"media_datagrams_accepted":s.media_datagrams_accepted,
+            "media_datagrams_rejected":s.media_datagrams_rejected}));
+        let core = f.server.service.canonical_runtime_media_diagnostics().map(|d| {
+            let s = d.snapshot();
+            let queues = s.queues.into_iter().filter(|(stage,_)| stage.kind()=="video").take(8)
+                .map(|(stage,q)| json!({"stage":stage.name(),"capacity":q.capacity_packets,
+                    "observations":q.observations,"high_water":q.sampled_high_water_packets,
+                    "enqueue_full":q.enqueue_full_observations,"stale_discards":q.stale_forwarding_discards,
+                    "max_forwarded_age_ms":q.max_forwarded_frame_age_ms})).collect::<Vec<_>>();
+            let forwarding = s.forwarding.into_iter().take(3).map(|(stage,v)| json!({
+                "stage":stage.name(),"samples":v.samples,"max_us":v.max_us,
+                "missing_ingress":v.missing_ingress_observations,"handoff_timeouts":v.handoff_timeouts})).collect::<Vec<_>>();
+            let quic = s.quic.map(|v| json!({"samples":v.samples,"accepted_datagrams":v.accepted_datagrams,
+                "too_large":v.too_large,"disabled":v.disabled,"connection_lost":v.connection_lost,
+                "unsupported_by_peer":v.unsupported_by_peer,"video_budget_observations":v.video_budget_observations,
+                "video_packetizer_discards":v.video_packetizer_discards,"video_no_datagram_budget":v.video_no_datagram_budget}));
+            json!({"queues":queues,"forwarding":forwarding,"quic":quic,
+                "scope":"installed-Core aggregates; absent means unobserved, not zero"})
+        });
+        let allocation = match connection.native_negotiation() {
+            Ok(Some(n)) => {
+                let binding=n.streams.iter().find(|b| &b.id==stream.id());
+                let feedback=n.video_feedback.get(stream.id());
+                json!({"connection_matches":connection.id()==stream.connection_id(),
+                    "stream_revision":n.stream_revision,"binding_present":binding.is_some(),
+                    "stream_local_id":binding.and_then(|b|b.stream_local_id),
+                    "payload_type":binding.and_then(|b|b.codec["params"]["payload_type"].as_u64()),
+                    "direction":binding.map(|b|format!("{:?}",b.direction)),
+                    "feedback_present":feedback.is_some(),
+                    "stream_generation":feedback.map(|b|b.stream_generation),
+                    "connection_generation":feedback.map(|b|b.connection_generation)})
+            }
+            Ok(None)=>json!({"unavailable":"no-local-negotiation"}),
+            Err(_)=>json!({"unavailable":"local-negotiation"}),
+        };
+        #[cfg(feature = "test-support")]
+        let target_notices = target.verified_video_receiver_notice_count_for_test().ok();
+        #[cfg(not(feature = "test-support"))]
+        let target_notices = { let _ = target; None::<usize> };
+        json!({"original_source_sdk":client_stats(original_source),"retained_receiver_sdk":client_stats(retained),
+            "replacement_target_sdk":{"unavailable":"raw CanonicalClient has no Client.media_stats"},
+            "replacement_target_verified_receiver_notices":target_notices,
+            "retained_allocation":allocation,"runtime":runtime,"core":core})
+    })).unwrap_or_else(|_|json!({"unavailable":"diagnostic-panicked"}))
+}
+
 pub(super) fn public_uplink(
     f: &Fixture,
     command: &TransitionCommand,
     root: &connect_client::canonical::payloads::OperationUpdated,
     target: &str,
     retained: &sdk::Stream,
+    before: &Value,
+    failed: &Value,
+    camera_handle: u16,
+    first_sequence: u16,
+    next_sequence: u16,
+    previous_epoch: &sdk::VideoReceiveEpoch,
 ) {
     let mut report = serde_json::json!({
         "stage":"first-public-target-to-retained-uplink",
@@ -91,6 +167,14 @@ pub(super) fn public_uplink(
         "private_decode_completed":true,"root_completed_observed":true,
         "concurrent_snapshot":true,"payloads_retained":false,
         "packet_observer":f.server.store.packet_observer_claim_diagnostics(),
+        "media_before_send":before,"media_at_failure":failed,
+        "original_uplink":{"target_camera_handle":camera_handle,"payload_type":96,"ssrc":0x74657374u32,
+            "rtp_timestamp":3000,"first_sequence":first_sequence,"next_sequence":next_sequence,
+            "locally_submitted_packets":next_sequence.wrapping_sub(first_sequence)},
+        "previous_retained_receiver_history":{"epoch_sha256":format!("{:x}",Sha256::digest(previous_epoch.epoch.as_bytes())),
+            "incarnation_sha256":format!("{:x}",Sha256::digest(previous_epoch.incarnation.as_bytes())),
+            "revision":previous_epoch.revision,"ssrc":previous_epoch.ssrc,
+            "first_sequence":previous_epoch.first_sequence,"first_timestamp":previous_epoch.first_timestamp},
         "limits":{"rows_per_query":16,"sql_vm_ops":100000,"sql_vm_cooperative_wall_ms":100,"busy_wait_ms":0,"output_bytes":16384},
         "limitations":"State after failure; no proof of exact lost-packet stage or receiver-task liveness. SQL statements may observe different commits."
     });

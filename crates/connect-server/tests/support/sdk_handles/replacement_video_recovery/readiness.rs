@@ -398,6 +398,10 @@ pub(super) async fn activate(
     incoming: u16,
     camera: u16,
     publisher_receiver: &sdk::Stream,
+    original_source_client: &sdk::Client,
+    retained_client: &sdk::Client,
+    retained_connection: &sdk::Connection,
+    previous_retained_epoch: &sdk::VideoReceiveEpoch,
     target_sequence: &mut u16,
     cutoff: Instant,
 ) -> (Value, sdk::VideoReceiveEpoch) {
@@ -444,6 +448,11 @@ pub(super) async fn activate(
             // first public downlink. This used to prune the retired private
             // receiver registry row and mint a different decoder revision.
             assert!(!io.take_keyframe_request(camera,0x74657374).unwrap(),"no cached publisher hint may qualify");
+            // Bounded in-memory baseline only; emit it solely if the original
+            // receive fails. No new IO, retry, media read or acceptance rule.
+            let stage_before = failure_diagnostics::safe_media_sample(
+                f, original_source_client, retained_client, retained_connection, publisher_receiver, io);
+            let first_sequence = *target_sequence;
             raw_publish(io,camera,&key,1,target_sequence);
             let uplink=AssertUnwindSafe(receive(publisher_receiver,1)).catch_unwind().await;
             let (uplink,uplink_epoch)=match uplink {
@@ -453,7 +462,11 @@ pub(super) async fn activate(
                     // bypass the outer decoder's original natural cleanup.
                     let _=std::panic::catch_unwind(AssertUnwindSafe(||
                         failure_diagnostics::public_uplink(f,command,root,
-                            preparation.connection_id().unwrap(),publisher_receiver)));
+                            preparation.connection_id().unwrap(),publisher_receiver,
+                            &stage_before,
+                            &failure_diagnostics::safe_media_sample(f,original_source_client,
+                                retained_client,retained_connection,publisher_receiver,io),
+                            camera,first_sequence,*target_sequence,previous_retained_epoch)));
                     std::panic::resume_unwind(original)
                 }
             };

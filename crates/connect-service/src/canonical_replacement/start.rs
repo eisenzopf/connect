@@ -171,19 +171,171 @@ impl Runtime {
             // as the lifetime of the original preparation.
             super::readiness::ReadyGate::new_native(&read, &plan, saved.deadline, mapped.as_ref())?;
         let challenge = gate.native_challenge(record)?;
-        let (attempt, read, start_origin) = {
-            let store = self.media.store.clone();
-            let a = a.clone();
-            let receipt = allocated.receipt.clone();
-            let key = credential.to_owned();
-            store_call(move || {
-                store.begin_native_replacement_start_with_read(receipt, &key, proof(&a)?, read)
-            })
-            .await
-            .map_err(|error| start_refused("start-begin", error))?
-        };
+        let original_until = read.expires_at();
+        let original_target = read.target().connection.clone();
         let participant = read.target().connection.participant_id.clone();
         let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();
+        // Release both the original control and shared final-reply guards before
+        // any pre-begin pause. This SAME signed offer retains only its original
+        // bounded parameter-exchange capability; it cannot authorize media.
+        drop(read);
+        drop(entries);
+        drop(roles);
+        let original = Arc::try_unwrap(a).map_err(|_| {
+            Error::new(
+                "conflict",
+                "Original replacement invocation is still shared",
+            )
+        })?;
+        let a = Arc::new(
+            original
+                .into_resource_preparation(
+                    participant,
+                    plan.selected()
+                        .iter()
+                        .map(|s| s.requested.logical_id.as_str().to_owned())
+                        .collect(),
+                    deadline,
+                )
+                .map_err(|_| Error::forbidden())?,
+        );
+        let root_cancel = saved.handle.cancellation();
+        let (attempt, read, start_origin, entries, admission, roles) = loop {
+            if self.stop.is_cancelled()
+                || physical.lifetime.is_cancelled()
+                || root_cancel.is_cancelled()
+                || a.invocation_cancellation().is_cancelled()
+                || tokio::time::Instant::now() >= deadline
+            {
+                return Err(Error::forbidden());
+            }
+            // This policy call rechecks only the SAME already-signed command.
+            // It does not send a frame, consume a signature or reserve an effect.
+            let admission = match a.reauthorize_resource_preparation().await {
+                Ok(admission) => Some(admission),
+                Err(rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityUnavailable) => None,
+                Err(_) => return Err(Error::forbidden()),
+            };
+            if let Some(admission) = admission {
+                if root_cancel.is_cancelled()
+                    || physical.lifetime.is_cancelled()
+                    || !a.resource_activation_current(&admission)
+                {
+                    return Err(Error::forbidden());
+                }
+                let authority = admission
+                    .authority::<StoreInvocationAuthority>()
+                    .ok_or_else(Error::forbidden)?;
+                physical.validate(&a, authority)?;
+                if allocated
+                    .physical
+                    .upgrade()
+                    .is_none_or(|p| !Arc::ptr_eq(&p, &physical))
+                {
+                    return Err(Error::forbidden());
+                }
+                // Never wait for the scene coordinator with a domain guard.
+                if let Ok(roles) = self.role_projection.try_lock() {
+                    let runtime = self.clone();
+                    let current = admission.clone();
+                    let receipt = allocated.receipt.clone();
+                    let key = credential.to_owned();
+                    let expected_target = original_target.clone();
+                    let selected = plan.selected().to_vec();
+                    let rejected = plan.rejected().to_vec();
+                    let principal = a.principal().clone();
+                    let resource = a.clone();
+                    let original_root_cancel = root_cancel.clone();
+                    let original_physical_cancel = physical.lifetime.clone();
+                    let result = self
+                        .owned_store_call(move || {
+                            if original_root_cancel.is_cancelled()
+                                || original_physical_cancel.is_cancelled()
+                                || !resource.resource_activation_current(&current)
+                            {
+                                return Err(Error::forbidden());
+                            }
+                            let proof = current
+                                .authority::<StoreInvocationAuthority>()
+                                .and_then(|a| a.peer_guard())
+                                .ok_or_else(Error::forbidden)?;
+                            let mut read = match runtime
+                                .media
+                                .store
+                                .native_replacement_start_read_with_peer(&receipt, &key, proof)
+                            {
+                                Ok(read) => read,
+                                Err(error) if error.code == "authority-busy" => return Ok(None),
+                                Err(error) => return Err(error),
+                            };
+                            read.limit(original_until)?;
+                            let (_, fresh_plan) = crate::canonical_media::offer_plan(
+                                read.target(),
+                                &crate::canonical_native::base_profile()?,
+                                &principal,
+                            )
+                            .map_err(|_| Error::forbidden())?;
+                            if read.target().connection != expected_target
+                                || fresh_plan.selected() != selected.as_slice()
+                                || fresh_plan.rejected() != rejected.as_slice()
+                            {
+                                return Err(Error::forbidden());
+                            }
+                            let entries = match runtime
+                                .media
+                                .replacement_preparation_entries(read.source())
+                            {
+                                Ok(entries) => entries,
+                                Err(error) if error.code == "authority-busy" => return Ok(None),
+                                Err(error) => return Err(error),
+                            };
+                            if runtime.stop.is_cancelled()
+                                || original_root_cancel.is_cancelled()
+                                || original_physical_cancel.is_cancelled()
+                                || !resource.resource_activation_current(&current)
+                                || tokio::time::Instant::now() >= deadline
+                            {
+                                return Err(Error::forbidden());
+                            }
+                            // Only None proves no SQL/transaction/effect began. An
+                            // error after SQL admission is NEVER put back in this loop.
+                            runtime
+                                .media
+                                .store
+                                .try_begin_native_replacement_start_with_read(
+                                    receipt, &key, proof, read,
+                                )
+                                .map(|begun| {
+                                    begun.map(|(attempt, read, origin)| {
+                                        (attempt, read, origin, entries)
+                                    })
+                                })
+                        })
+                        .await;
+                    match result {
+                        Ok(Some((attempt, read, origin, entries))) => {
+                            break (attempt, read, origin, entries, admission, roles);
+                        }
+                        Ok(None) => {
+                            drop(roles);
+                        }
+                        Err(error) => {
+                            drop(roles);
+                            return Err(start_refused("start-begin", error));
+                        }
+                    }
+                }
+                // All callback captures have joined and dropped their aliases.
+                // Release this exact fresh Writer BEFORE the original retry pause.
+                drop(admission);
+            }
+            tokio::select! { biased;
+                _ = self.stop.cancelled() => return Err(Error::forbidden()),
+                _ = physical.lifetime.cancelled() => return Err(Error::forbidden()),
+                _ = root_cancel.cancelled() => return Err(Error::forbidden()),
+                _ = tokio::time::sleep_until(deadline.min(tokio::time::Instant::now()+Duration::from_millis(20))) => {},
+            }
+        };
         let read = Arc::new(read);
         let id = saved.handle.intent().replacement.clone();
         let scope = StagedRtpScope {
@@ -216,12 +368,20 @@ impl Runtime {
         });
         let invocation = Arc::new(StartInvocation {
             policy: policy.clone(),
-            authority: super::media::StartAuthority::Signed(a.clone()),
+            authority: super::media::StartAuthority::Reauthorized {
+                resource: a.clone(),
+                admission,
+                peer: peer.clone(),
+            },
             read,
             entries,
             deadline,
         });
         let result=async {
+            if self.stop.is_cancelled() || root_cancel.is_cancelled() || !invocation.read.current()
+                || a.invocation_cancellation().is_cancelled() || tokio::time::Instant::now() >= deadline {
+                return Err(Error::forbidden());
+            }
             self.media.register_replacement_target(&policy).map_err(|_|Error::forbidden())?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="configure","Replacement resource start");
             let controller=native.configure_negotiated_media_with_held(&id,&a,ConversationId::from_string(intent.conversation_id.clone()),scope,self.media.clone(),policy.profile.clone(),policy.data_observer.clone().map(|observer| observer as Arc<dyn rvoip_uctp::v2::native_negotiation::NativeDataObserver>),8,invocation.as_ref()).map_err(|_|Error::forbidden())?;
@@ -236,11 +396,6 @@ impl Runtime {
             ).await.map_err(|_| Error::forbidden())?;
             drop(invocation);
             drop(roles);
-            let a = Arc::try_unwrap(a).map_err(|_| Error::new("conflict", "Original replacement invocation is still shared"))?
-                .into_resource_preparation(participant,
-                    policy.plan.selected().iter().map(|s| s.requested.logical_id.as_str().to_owned()).collect(), deadline)
-                .map_err(|_| Error::forbidden())?;
-            let a = Arc::new(a);
             tracing::debug!(target:"connect_service::canonical_replacement",stage="quarantined-negotiate","Replacement resource start");
             let prepared = native.prepare_quarantined_native_offer(&id, a.clone(), candidate, Some(challenge))
                 .await.map_err(|error| { tracing::debug!(target:"connect_service::canonical_replacement",?error,"Replacement resource preparation refused"); Error::forbidden() })?;

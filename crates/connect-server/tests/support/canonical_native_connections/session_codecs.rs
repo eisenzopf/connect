@@ -1,6 +1,9 @@
 //! Actual initial and live Session codec policy, signed peer confirmation,
 //! retained explicit routes, independent decoding and immutable replay.
 use super::*;
+#[path = "session_codecs/handshakes.rs"]
+mod handshakes;
+use handshakes::{collect_original_handshakes, OriginalHandshake};
 #[tokio::test]
 async fn production_session_codec_preferences_select_current_policy_switch_live_peers_preserve_fallback_routes_and_replay(
 ) {
@@ -274,37 +277,72 @@ async fn scenario(algorithm: &str, mode: &str) {
     let mut offers = Vec::new();
     let mut handles = [sh, th];
     let mut changed = 0;
-    for (index, old_codec) in [source_codec, target_codec].into_iter().enumerate() {
-        if old_codec == desired {
-            continue;
+    // Per-Connection workers have no source-before-target offer-order contract.
+    // Drive each whole original signed handshake; cancelling a losing receive
+    // future could retire a partial physical frame, so do not select/drop it.
+    let offer_cutoff = tokio::time::Instant::now() + Duration::from_secs(8);
+    let previous_handles = handles;
+    let capabilities = [
+        s.original()["payload"]["capabilities"].clone(),
+        t.original()["payload"]["capabilities"].clone(),
+    ];
+    let work: Vec<OriginalHandshake<'_, (usize, u16, Value)>> = clients
+        .iter_mut()
+        .enumerate()
+        .filter_map(|(index, client)| {
+            if [source_codec, target_codec][index] == desired {
+                return None;
+            }
+            let capabilities = capabilities[index].clone();
+            Some(Box::pin(async move {
+                let offer = tokio::time::timeout_at(offer_cutoff, client.receive_control())
+                    .await
+                    .unwrap()
+                    .unwrap();
+                assert_eq!(offer.kind(), "connection.offer", "{:?}", offer.original());
+                assert!(offer
+                    .scope(rvoip_uctp::v2::Scope::Operation)
+                    .unwrap()
+                    .starts_with("scodec_child_"));
+                let stream = &offer.original()["payload"]["substrate_setup"]["streams"][0];
+                assert_eq!(stream["codec"]["name"], desired, "{algorithm}/{mode}");
+                let handle = stream["stream_local_id"].as_u64().unwrap() as u16;
+                assert_ne!(handle, previous_handles[index]);
+                answer(
+                    client,
+                    &offer,
+                    capabilities,
+                    mode == "bad-confirmation" && index == 0,
+                )
+                .await;
+                (index, handle, offer.original().clone())
+            }) as OriginalHandshake<'_, (usize, u16, Value)>)
+        })
+        .collect();
+    let completed = collect_original_handshakes(work).await;
+    // All original receives/answers have settled before reporting a failure.
+    // Preserve the first original panic, including through cleanup failure.
+    let mut first_panic = None;
+    for result in completed {
+        match result {
+            Ok((index, handle, offer)) => {
+                handles[index] = handle;
+                offers.push(offer);
+                changed += 1;
+            }
+            Err(payload) if first_panic.is_none() => first_panic = Some(payload),
+            Err(_) => (),
         }
-        let offer = tokio::time::timeout(Duration::from_secs(8), clients[index].receive_control())
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(offer.kind(), "connection.offer", "{:?}", offer.original());
-        assert!(offer
-            .scope(rvoip_uctp::v2::Scope::Operation)
-            .unwrap()
-            .starts_with("scodec_child_"));
-        offers.push(offer.original().clone());
-        let stream = &offer.original()["payload"]["substrate_setup"]["streams"][0];
-        assert_eq!(stream["codec"]["name"], desired, "{algorithm}/{mode}");
-        let handle = stream["stream_local_id"].as_u64().unwrap() as u16;
-        assert_ne!(handle, handles[index]);
-        handles[index] = handle;
-        answer(
-            &mut clients[index],
-            &offer,
-            if index == 0 {
-                s.original()["payload"]["capabilities"].clone()
-            } else {
-                t.original()["payload"]["capabilities"].clone()
-            },
-            mode == "bad-confirmation" && index == 0,
-        )
-        .await;
-        changed += 1;
+    }
+    if let Some(payload) = first_panic {
+        use futures_util::FutureExt;
+        for client in clients {
+            client.close();
+        }
+        let _ = std::panic::AssertUnwindSafe(f.server.shutdown())
+            .catch_unwind()
+            .await;
+        std::panic::resume_unwind(payload);
     }
     if mode == "bad-confirmation" {
         let partial = tokio::time::timeout(Duration::from_secs(12), async {

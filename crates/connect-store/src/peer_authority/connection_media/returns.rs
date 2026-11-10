@@ -142,10 +142,10 @@ impl NativeReturnSelection {
     ) -> Result<Vec<AuthorityScope>> {
         let (_, mut scopes, _) = resolve(store, c, self)?;
         if write {
-            scopes.extend(crate::authority_admission::conversation_scopes(
+            scopes.extend(store.native_return_mutation_scopes(
                 c,
-                &self.origin.request.conversation_id,
-                AuthorityMode::Write,
+                self.origin.record_id(),
+                false,
             )?);
         }
         AuthorityScope::merged(&scopes)
@@ -519,10 +519,10 @@ impl Store {
             return Err(Error::forbidden());
         }
         let mut mutation_routing = current.clone();
-        mutation_routing.extend(crate::authority_admission::conversation_scopes(
+        mutation_routing.extend(self.native_return_mutation_scopes(
             c,
-            &origin.request.conversation_id,
-            AuthorityMode::Write,
+            origin.record_id(),
+            false,
         )?);
         let mutation_routing = AuthorityScope::merged(&mutation_routing)?;
         let owner = self.require_runtime_owner()?;

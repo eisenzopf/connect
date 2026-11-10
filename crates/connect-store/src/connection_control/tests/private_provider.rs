@@ -2297,3 +2297,68 @@ fn native_consultation_get_uses_read_until_recovery_then_drains_before_original_
     assert_eq!(closed.state, OperationState::Failed);
     assert_eq!(closed.effects[0].id, recovered.effects[0].id);
 }
+
+#[test]
+fn private_provider_lifecycle_preserves_unrelated_identity_readers_and_exact_cid_exclusion() {
+    for completed in [false, true] {
+        let (f, sources, candidate, origin, endpoint) = if completed {
+            let (f, sources, candidate, origin, _, endpoint, _) = fixture();
+            (f, sources, candidate, origin, endpoint)
+        } else {
+            fresh_fixture()
+        };
+        let actor = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
+        let identity_scope =
+            crate::AuthorityScope::identity(&actor, crate::AuthorityMode::Read).unwrap();
+        let identity_reader = f.store.try_acquire_authority(&[identity_scope]).unwrap();
+        let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
+        // A real reader of the metadata actually modified still excludes begin.
+        let cid_reader = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::conversation(
+                &f.cid,
+                crate::AuthorityMode::Read,
+            )
+            .unwrap()])
+            .unwrap();
+        let read = f.store.try_private_provider_read(&context).unwrap();
+        assert_eq!(
+            f.store
+                .begin_private_provider_context(context.clone(), read)
+                .unwrap_err()
+                .code,
+            "authority-busy"
+        );
+        assert_eq!(
+            f.store
+                .connection()
+                .unwrap()
+                .query_row(
+                    "SELECT started FROM private_provider_contexts WHERE delivery_id=?1",
+                    [context.delivery_id()],
+                    |row| row.get::<_, i64>(0)
+                )
+                .unwrap(),
+            0
+        );
+        drop(cid_reader);
+        // Controlled custody only: the signed provider fixture proves real IO.
+        let receipt = delivered(&f, &context);
+        f.store.record_private_provider_closed(&receipt).unwrap();
+        f.store.record_private_provider_closed(&receipt).unwrap();
+        assert_eq!(f.store.connection().unwrap().query_row(
+            "SELECT started=1 AND export_started=1 AND delivered_at IS NOT NULL AND closed_at IS NOT NULL FROM private_provider_contexts WHERE delivery_id=?1",
+            [context.delivery_id()], |row| row.get::<_, bool>(0)).unwrap(), true);
+        assert!(
+            f.store
+                .try_acquire_authority(&[crate::AuthorityScope::identity(
+                    &actor,
+                    crate::AuthorityMode::Write
+                )
+                .unwrap()])
+                .is_err(),
+            "original identity reader must remain held through lifecycle recording"
+        );
+        drop(identity_reader);
+    }
+}

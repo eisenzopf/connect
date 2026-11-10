@@ -157,18 +157,14 @@ pub(super) fn scopes(
         )?
         .scopes
     } else {
-        context.selection.scopes(store, c, write)?
+        context.selection.scopes(store, c, false)?
     };
     if write {
         scopes.extend(mutation_scopes(c, context.consultation_record_id())?);
     }
     scopes.push(AuthorityScope::identity(
         &facts.actor.identity_id,
-        if write {
-            AuthorityMode::Write
-        } else {
-            AuthorityMode::Read
-        },
+        AuthorityMode::Read,
     )?);
     scopes.push(AuthorityScope::identity(
         &facts.delegate.identity_id,
@@ -344,8 +340,24 @@ pub(super) fn mutation_scopes(c: &Connection, root: &str) -> Result<Vec<Authorit
         .map_err(|_| Error::storage())?
         .ok_or_else(Error::forbidden)?;
     let cid = cid.as_deref().ok_or_else(Error::forbidden)?;
-    Ok(vec![
-        AuthorityScope::identity(&owner, AuthorityMode::Write)?,
+    // Provider lifecycle metadata changes the Conversation, not the actor's
+    // identity policy. Retain current identity reads; only exact enrolled
+    // subjects referenced by the operations trigger additionally require Write.
+    let mut scopes = vec![
+        AuthorityScope::identity(&owner, AuthorityMode::Read)?,
         AuthorityScope::conversation(cid, AuthorityMode::Write)?,
-    ])
+    ];
+    let mut statement = c.prepare_cached(
+        "SELECT e.identity_id FROM client_enrollments e JOIN operations o ON o.tenant_id=e.tenant_id AND o.owner_id=e.issuer_identity_id AND o.operation_id=e.complete_operation_id WHERE o.record_id=?1"
+    ).map_err(|_| Error::storage())?;
+    for subject in statement
+        .query_map([root], |row| row.get::<_, String>(0))
+        .map_err(|_| Error::storage())?
+    {
+        scopes.push(AuthorityScope::identity(
+            &subject.map_err(|_| Error::storage())?,
+            AuthorityMode::Write,
+        )?);
+    }
+    AuthorityScope::merged(&scopes)
 }

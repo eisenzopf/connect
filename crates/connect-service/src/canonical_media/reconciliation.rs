@@ -316,7 +316,10 @@ impl Policy {
         let entries = self
             .entries
             .try_lock()
-            .map_err(|_| DispatchError::Authority)?
+            .map_err(|error| match error {
+                std::sync::TryLockError::WouldBlock => DispatchError::StorageUnavailable,
+                std::sync::TryLockError::Poisoned(_) => DispatchError::Authority,
+            })?
             .values()
             .filter(|e| {
                 e.origin.session_id() == entry.origin.session_id()
@@ -337,6 +340,14 @@ impl Policy {
                     );
                 }
                 Err(e) if e.code == "forbidden" => (),
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "authority-busy" | "storage-unavailable"
+                    ) =>
+                {
+                    return Err(DispatchError::StorageUnavailable)
+                }
                 Err(_) => return Err(DispatchError::Authority),
             }
         }
@@ -354,6 +365,14 @@ impl Policy {
                     sources.insert(id, StreamSource::Telephone(phone, Arc::new(read)));
                 }
                 Err(error) if error.code == "forbidden" => (),
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "authority-busy" | "storage-unavailable"
+                    ) =>
+                {
+                    return Err(DispatchError::StorageUnavailable)
+                }
                 Err(_) => return Err(DispatchError::Authority),
             }
         }
@@ -373,6 +392,14 @@ impl Policy {
                     );
                 }
                 Err(error) if error.code == "forbidden" => (),
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "authority-busy" | "storage-unavailable"
+                    ) =>
+                {
+                    return Err(DispatchError::StorageUnavailable)
+                }
                 Err(_) => return Err(DispatchError::Authority),
             }
         }

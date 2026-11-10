@@ -1,0 +1,163 @@
+{
+  "format": "connect/gate6-focused-signed-evidence/1",
+  "batch": "v212-F2",
+  "scope": "exact signed upstream peer and live-codec controls; no G6-058 matrix-cell qualification",
+  "build": {
+    "argv": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "--manifest-path",
+      ".deps/rvoip/Cargo.toml",
+      "-p",
+      "rvoip-uctp",
+      "--test",
+      "v2_peer_admission",
+      "--test",
+      "v2_canonical_transports",
+      "--features",
+      "rvoip-core/opus,rvoip-core/vcon-signing,rvoip-core/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 461.20137095451355,
+    "naturally_joined": true,
+    "log": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.local/gate-6/v212-final-cleanup-verification-f2/upstream-retained-build.log",
+    "log_sha256": "3e2652f6374e14cab4a1dd93af9526ab5fad05077df2b165169d065ec27b0fcb",
+    "source_seal_sha256": "e03794eacc464bc4fdf8bc72086cf0d172781ca9f721fb718e9d8901d3c1cff0"
+  },
+  "groups": {
+    "upstream_codec_retained": {
+      "summary": {
+        "selected": 3,
+        "completed": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      "rows": [
+        {
+          "test": "peer_native::canonical_media::native_offers::session_codecs::actual_session_codec_execution_confirms_live_replacement_preserves_old_audio_and_has_noop_without_io",
+          "exit_code": 0,
+          "elapsed_seconds": 0.33633995056152344,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "a690de6b5f65c55d42a5ea1fe0ed0aad0fc524b873b83d8c5cece432f9c6cb0d",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "peer_native::canonical_media::native_offers::session_codecs::actual_session_codec_execution_refuses_current_denial_stale_revision_and_mismatched_confirmation_without_retry",
+          "exit_code": 0,
+          "elapsed_seconds": 0.18128490447998047,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "b17005a96e989c58b8d0e812de7399da17c4dcabc7f0ec824efff680893f3a85",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "peer_native::canonical_media::native_offers::session_codecs::actual_session_codec_resource_wait_releases_control_and_fresh_withdrawal_keeps_old_audio_once",
+          "exit_code": 0,
+          "elapsed_seconds": 0.12156820297241211,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "43d631a87e948e846800e29e0dc65d0085db246d10a6a5a5f9e118a493a9ef71",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        }
+      ],
+      "binary_sha256": "384270a47ed73b3222318309c949c4d37eb8333ee45189fe06f3c76414d6ad01",
+      "source_seal_sha256": "e03794eacc464bc4fdf8bc72086cf0d172781ca9f721fb718e9d8901d3c1cff0",
+      "dependency_seal_sha256": "b71fb4e198183c87f9f75786d459d1bb3385a2ca223066dea4b9cf7174d96a39",
+      "receipt_sha256": "200a8e23460ca6d9a817e24a443eea6863ff5117f171f2289073a91ff3556ba8"
+    },
+    "upstream_uctp_retained": {
+      "summary": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "rows": [
+        {
+          "test": "offer_answers::quarantined_signed_exchange_releases_real_domain_reader_and_retains_exact_original_answer",
+          "exit_code": 0,
+          "elapsed_seconds": 0.05907082557678223,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "cb1dd246f0c51c30d87c9fcddd37e2e90c91feadf6725686331a7115953467c9",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "offer_answers::quarantined_resource_answer_refuses_foreign_scopes_streams_and_participant_before_one_write",
+          "exit_code": 0,
+          "elapsed_seconds": 0.05206584930419922,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "e23d69519f8bb8f47c8b0b7ee70d9801e80ec95b29c30d87280d5c995b552f13",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "offer_answers::ordinary_resource_exchange_releases_domain_reader_before_signed_answer",
+          "exit_code": 0,
+          "elapsed_seconds": 0.06619763374328613,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "7dc37dc41afe9f2665f49772ef48034568264c0e236fe86aceabddd608a7f6fb",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "offer_answers::resource_final_reply_is_exact_answer_or_scoped_error_without_original_domain_alias",
+          "exit_code": 0,
+          "elapsed_seconds": 0.09665393829345703,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "9683d30439cc0085cbfd2ff9d03bfd0bf699d0b916f1539676552bc8d2e987da",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "offer_answers::resumed_resource_offer_releases_domain_then_revalidates_both_credentials_before_publication",
+          "exit_code": 0,
+          "elapsed_seconds": 0.0719759464263916,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "f099360621116823f5bd48e43d18fd79c611c489312b7b891f93c72fde8da521",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        }
+      ],
+      "binary_sha256": "384270a47ed73b3222318309c949c4d37eb8333ee45189fe06f3c76414d6ad01",
+      "source_seal_sha256": "e03794eacc464bc4fdf8bc72086cf0d172781ca9f721fb718e9d8901d3c1cff0",
+      "dependency_seal_sha256": "b71fb4e198183c87f9f75786d459d1bb3385a2ca223066dea4b9cf7174d96a39",
+      "receipt_sha256": "c1d364e2e2b787c87809d15285344c1a9b469494e66682471fe66d2257ae1959"
+    }
+  },
+  "passed": 8,
+  "failed": 0,
+  "naturally_joined": true,
+  "no_test_preflight_preserved": "wrong binary/module recipe rejected before execution; corrected exact selectors verified against actual inventory"
+}

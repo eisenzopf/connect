@@ -1,0 +1,108 @@
+{
+  "format": "connect/gate6-focused-unit-evidence/1",
+  "batch": "v212-F2",
+  "scope": "exact five corrected Core live-selected tests; prior F22 existing Core controls retained unchanged",
+  "build": {
+    "argv": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "--manifest-path",
+      ".deps/rvoip/Cargo.toml",
+      "-p",
+      "rvoip-core",
+      "-p",
+      "rvoip-uctp",
+      "--lib",
+      "--features",
+      "rvoip-core/opus,rvoip-core/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 13.547055959701538,
+    "naturally_joined": true,
+    "log": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.local/gate-6/v212-final-cleanup-verification-f2/upstream-lib-build.log",
+    "log_sha256": "e51ec44f3908c85066e38c189811dc049dbaf556618aa527b9d4dc6b10bfa0ca",
+    "source_seal_sha256": "e03794eacc464bc4fdf8bc72086cf0d172781ca9f721fb718e9d8901d3c1cff0"
+  },
+  "summary": {
+    "selected": 5,
+    "completed": 5,
+    "passed": 5,
+    "failed": 0
+  },
+  "rows": [
+    {
+      "test": "staged_streams::tests::quarantined_selected::live_selected_prepare_releases_domain_and_fresh_exact_change_replaces_only_selected_port",
+      "exit_code": 0,
+      "elapsed_seconds": 0.04626584053039551,
+      "passed": 1,
+      "failed": 0,
+      "result_summary_count": 1,
+      "log_sha256": "6ad28052116b1627e14f5981545192a842ace81c7fce68a1031122f52bf0c0c5",
+      "naturally_joined": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "test": "staged_streams::tests::quarantined_selected::live_selected_foreign_activation_rolls_back_candidate_and_preserves_decoded_audio",
+      "exit_code": 0,
+      "elapsed_seconds": 0.03761792182922363,
+      "passed": 1,
+      "failed": 0,
+      "result_summary_count": 1,
+      "log_sha256": "6ac61dbec41beb5a672fda2397ee31fdacc8d375b0af6c136686bc8a8a7b294f",
+      "naturally_joined": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "test": "staged_streams::tests::quarantined_selected::live_selected_cancelled_prepare_joins_and_preserves_decoded_audio",
+      "exit_code": 0,
+      "elapsed_seconds": 0.03830981254577637,
+      "passed": 1,
+      "failed": 0,
+      "result_summary_count": 1,
+      "log_sha256": "69b993a5b09e273e8049a5a310eecd04feb257acaa48dc8b4e01d9fde7795c11",
+      "naturally_joined": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "test": "staged_streams::tests::quarantined_selected::live_selected_original_cutoff_refuses_fresh_activation_without_repeating_prepare",
+      "exit_code": 0,
+      "elapsed_seconds": 0.0417170524597168,
+      "passed": 1,
+      "failed": 0,
+      "result_summary_count": 1,
+      "log_sha256": "93e0feaff250f0009d73b2315a0fa2e3d266565fbbdb4762880ddf3f1d47b932",
+      "naturally_joined": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "test": "staged_streams::tests::quarantined_selected::live_selected_fresh_format_withdrawal_refuses_prepared_codec_without_renegotiation",
+      "exit_code": 0,
+      "elapsed_seconds": 0.03814101219177246,
+      "passed": 1,
+      "failed": 0,
+      "result_summary_count": 1,
+      "log_sha256": "34636919f04ace8d0cf51aa7b101ba734537d143b595a9dc5c9959030500ac3a",
+      "naturally_joined": true,
+      "source_unchanged": true,
+      "ok": true
+    }
+  ],
+  "binary_sha256": "e689922cb9dc1a8f3aeaa72a24fd2556dbe4d38dbd355b6867a3e52be6fc1474",
+  "source_seal_sha256": "e03794eacc464bc4fdf8bc72086cf0d172781ca9f721fb718e9d8901d3c1cff0",
+  "dependency_seal_sha256": "b71fb4e198183c87f9f75786d459d1bb3385a2ca223066dea4b9cf7174d96a39",
+  "receipt_sha256": "ae63fdbe1f536538f2d3d3cdd719cf847522a248d0f06ee75f56fcd05b78b255",
+  "original_five_failures_preserved": true,
+  "owner_session": 74340,
+  "naturally_joined": true,
+  "acceptance_changed": false
+}

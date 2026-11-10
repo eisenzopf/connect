@@ -1,0 +1,446 @@
+{
+  "format": "connect/gate6-cleanup-batch/1",
+  "updated": "2026-11-10T10:35:30.973320+00:00",
+  "gate": "G6-058",
+  "batch": "v212-F",
+  "status": "implementation and targeted unit/component verification complete;217 unit/component controls and8 signed upstream controls passed. Coherent Connect build passed. Focused Connect signed media retest next; no full-matrix change claimed.",
+  "acceptance_changes": false,
+  "execution": "local Mac ARM and designated local ARM Linux only",
+  "last_full_matrix": "v209 0/32 complete;390/432 requirement checks passed",
+  "last_focused": "E2 124/124 Connect units,33/33 upstream controls,16/27 focused signed; all owners joined",
+  "issues": [
+    {
+      "id": "F1",
+      "kind": "fixture",
+      "fix": "Withdraw video from mutable current acceptance, preserving immutable endpoint and audio",
+      "status": "Store withdrawal control passed; Connect signed withdrawal pending",
+      "tests_run": true,
+      "candidate_manifest_sha256": "073f7e2cc8b2078f91c983e9d3b87dd9f9a61a102d1dccc6c54acb26e086d94f",
+      "candidate_patch_sha256": "2c9603261fdfbe9372cecf81c0f29257a0fd97a03be2fb0054e5c36e8f42ef4c",
+      "files": [
+        "crates/connect-server/tests/support/canonical_native_connections/subscription_quarantine.rs",
+        "crates/connect-store/src/connection_control/tests/native_stream_authority/session_codecs.rs",
+        "crates/connect-store/src/installation_ownership.rs"
+      ]
+    },
+    {
+      "id": "F2",
+      "kind": "library",
+      "fix": "Use exact return metadata writers, retain current identity readers",
+      "status": "Held-identity-reader regression and retained return completion controls passed; signed provider return pending",
+      "tests_run": true,
+      "candidate_manifest_sha256": "32e805bca810016a41e5dc9166147f990fc5d4809b59c8c7f314d8f0cfa91d91",
+      "candidate_patch_sha256": "1c565022c0b29c66c8de433f73807d0b22aec460f7de2d5de9ace5bfcbc49032",
+      "files": [
+        "crates/connect-store/src/connection_control/tests/consultation_returns.rs",
+        "crates/connect-store/src/peer_authority/connection_media/returns.rs",
+        "crates/connect-store/src/transitions/native_returns/custody.rs"
+      ]
+    },
+    {
+      "id": "F3",
+      "kind": "library",
+      "fix": "Move blocking allocation resolution to owned worker under original deadline",
+      "status": "Owned-store worker and cancellation controls passed; signed telephone checks pending",
+      "tests_run": true,
+      "candidate_manifest_sha256": "86eb6e10d02e989be6dd73db1325adcc21aee3fe69e136760367eda8d22d25de",
+      "candidate_patch_sha256": "7eee4af0d903142f67c75824cdcc60203c6e3e211155a75351cf3753236d6ac5",
+      "files": [
+        "crates/connect-service/src/telephone_replacement/allocation.rs"
+      ]
+    },
+    {
+      "id": "F4",
+      "kind": "diagnostics",
+      "fix": "Capture bounded existing counters around failed first public uplink",
+      "status": "Bounded diagnostics compiled; first public uplink cause remains unproven pending runtime evidence",
+      "tests_run": false,
+      "candidate_manifest_sha256": "dafd5d25faa2474f4ca5e887cb1b9f37588f72a286c013326ef728878e5cbdb2",
+      "candidate_patch_sha256": "bafa580841daacd0a51e0f5e2dc5886cbd2c3023c46f106b8c251f3db885f9dc",
+      "files": [
+        "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/readiness/failure_diagnostics.rs",
+        "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/readiness.rs",
+        "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery.rs"
+      ]
+    },
+    {
+      "id": "F5",
+      "kind": "library",
+      "fix": "Use exact provider metadata writers, preserve current identity readers and enrolled subjects",
+      "status": "Provider lifecycle and retained custody controls passed; signed provider cases pending",
+      "tests_run": true,
+      "candidate_manifest_sha256": "5013745f3c1063e13d9a024bb53c4b68cf1a4833771b9a0ed781e1dbb15539f0",
+      "candidate_patch_sha256": "feaf8ab89a17733b420e8bb507363ffabd187c61946e03a2d8d0a22cd25efbd9",
+      "files": [
+        "crates/connect-store/src/private_provider/authority.rs",
+        "crates/connect-store/src/connection_control/tests/private_provider.rs"
+      ]
+    },
+    {
+      "id": "F6",
+      "kind": "library",
+      "fix": "Release original guard and retry only typed pre-SQL Start deferral using same original command",
+      "status": "Typed pre-SQL deferral, currentness and original resource authorization controls passed; signed native checks pending",
+      "tests_run": true,
+      "candidate_manifest_sha256": "0734980b74b758be49d90ce3a1d28a4a09f0aac077d3b95be5d581897bc5915e",
+      "candidate_patch_sha256": "72fabb3527e6ace388472f8fcea8897337d3eac611f5d2972e4f2eb4ff45f938",
+      "files": [
+        ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs",
+        ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs",
+        "crates/connect-service/src/canonical_replacement/media.rs",
+        "crates/connect-service/src/canonical_replacement/start.rs",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/start.rs",
+        "crates/connect-store/src/transitions/native_replacements/allocation/start.rs"
+      ]
+    },
+    {
+      "id": "F7",
+      "kind": "fixture",
+      "fix": "Complete independent original peer handshakes concurrently with original deadline and cleanup",
+      "status": "Both reverse-order and failed-sibling controls passed; signed Connect codec cases pending",
+      "tests_run": true,
+      "candidate_manifest_sha256": "d8913f128c0ef80f34d61d6816b1c28943168fee39a0cf9c9d6d558197746278",
+      "candidate_patch_sha256": "4e522541242f59962b7b81ad0e30f91fd234f18fca13e79bb01d83d0c2452ab9",
+      "files": [
+        "crates/connect-server/tests/support/canonical_native_connections/session_codecs/handshakes.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/session_codecs.rs"
+      ]
+    },
+    {
+      "id": "F8",
+      "kind": "library",
+      "fix": "Prepare live codec resources without old domain read; validate exact selected format under fresh activation",
+      "status": "All five Core selected-quarantine controls passed after fixture correction; three signed codec controls passed",
+      "tests_run": true,
+      "candidate_manifest_sha256": "139c43182aa9eebf4397c1a862f751f6d6abb2378ccd122909220a195e2ebcd6",
+      "candidate_patch_sha256": "8580008b3daa61982f42cb35fbe849744122448c41a0cc14c9c613afdbaf5bab",
+      "files": [
+        "crates/foundation/rvoip-core/src/staged_streams/tests/quarantined_selected.rs",
+        "crates/foundation/rvoip-core/src/staged_streams/tests.rs",
+        "crates/foundation/rvoip-core/src/staged_streams.rs"
+      ]
+    },
+    {
+      "id": "F9",
+      "kind": "library",
+      "fix": "Seal parameter-only codec exchange, release old domain grant, authorize same original reservation at activation",
+      "status": "Service original-receipt current-read controls and three signed codec scenarios passed, including real writer progress, fresh withdrawal, old Audio and once-only execution",
+      "tests_run": true
+    }
+  ],
+  "store_units": {
+    "passed": 125,
+    "failed": 0,
+    "evidence": "docs/evidence/gate-6/cleanup-batch-f-store-v212.json"
+  },
+  "source_lock_sha256": "9c8e2357bf778dc0be1f9a0772f329168528a56d3942e012924f9ca9ec0d1b81",
+  "final_test_owner_correction": {
+    "manifest_sha256": "c668cc3143e3c5c8850583a4a518410deff4a25d7292096593046d0dd9cf5d87",
+    "patch_sha256": "c85c918b907821758bc3e9d8af50489d25af82d7426c8fdf942b9808b2911d4f",
+    "source_review": "passed",
+    "runtime": "pending"
+  },
+  "upstream_lib_build": {
+    "argv": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "--manifest-path",
+      ".deps/rvoip/Cargo.toml",
+      "-p",
+      "rvoip-core",
+      "-p",
+      "rvoip-uctp",
+      "--lib",
+      "--features",
+      "rvoip-core/opus,rvoip-core/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 369.46542167663574,
+    "naturally_joined": true,
+    "log": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.local/gate-6/v212-final-cleanup-verification-f/upstream-lib-build.log",
+    "log_sha256": "e725b15a25c5e3d235f782a2add35c23f9d0e72415b42757e12494086a2682a8",
+    "source_seal_sha256": "9229084c4efd6cc606262214770fe7bd5b4cce3f66c4622f97b55a68025ca816"
+  },
+  "upstream_initial_units": {
+    "upstream_core": {
+      "summary": {
+        "selected": 27,
+        "completed": 27,
+        "passed": 22,
+        "failed": 5
+      },
+      "receipt_sha256": "822a0db2c6e43e0d64e0a73c30e44f73783c5e9a643261103ad4cc67af26f5de",
+      "failed": [
+        {
+          "test": "staged_streams::tests::quarantined_selected::live_selected_prepare_releases_domain_and_fresh_exact_change_replaces_only_selected_port",
+          "log_sha256": "afd91c80e59d6df7fc336a4586486d38f20fe9ff40b694debb412cb442e0d378",
+          "exit_code": 101
+        },
+        {
+          "test": "staged_streams::tests::quarantined_selected::live_selected_foreign_activation_rolls_back_candidate_and_preserves_decoded_audio",
+          "log_sha256": "63bf07b0cdd3914af9c90c72a7c862cf8e95344d2b001a8a4b242bcd7105101f",
+          "exit_code": 101
+        },
+        {
+          "test": "staged_streams::tests::quarantined_selected::live_selected_cancelled_prepare_joins_and_preserves_decoded_audio",
+          "log_sha256": "de4525c1aed08996b7c4677c253362814b3c89fa79586a0172c3bac7e2f0c315",
+          "exit_code": 101
+        },
+        {
+          "test": "staged_streams::tests::quarantined_selected::live_selected_original_cutoff_refuses_fresh_activation_without_repeating_prepare",
+          "log_sha256": "73ccf0cab6ad61f5cb942ce5c38faa9c63814a741fd96e71609e89fb168c229b",
+          "exit_code": 101
+        },
+        {
+          "test": "staged_streams::tests::quarantined_selected::live_selected_fresh_format_withdrawal_refuses_prepared_codec_without_renegotiation",
+          "log_sha256": "e20d8626e50894685cf6a71a2a53a830d27e9d0ba3e4b721451e8fc5ff5391ab",
+          "exit_code": 101
+        }
+      ]
+    },
+    "upstream_uctp": {
+      "summary": {
+        "selected": 8,
+        "completed": 8,
+        "passed": 8,
+        "failed": 0
+      },
+      "receipt_sha256": "33b14c4769337264be694f171ba661ce5a91ab022d71c5eab9bf997e11183611",
+      "failed": []
+    }
+  },
+  "service_units": {
+    "passed": 43,
+    "failed": 0,
+    "evidence": "docs/evidence/gate-6/cleanup-batch-f-service-v212.json"
+  },
+  "coherent_build_f": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "-p",
+      "connect-client",
+      "-p",
+      "connect-store",
+      "-p",
+      "connect-service",
+      "-p",
+      "connect-server",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--test",
+      "gate6_replacement_video",
+      "--test",
+      "gate6_canonical_runtime",
+      "--features",
+      "connect-server/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 101,
+    "elapsed_seconds": 1834.605600118637,
+    "log_sha256": "c259fc523a8b521bfb9ae5cec7f46a0cae831c906b9de31fe16e511f1cf917c6",
+    "naturally_joined": true
+  },
+  "completed_ready_units": [
+    {
+      "group": "connect_service",
+      "exit_code": 0,
+      "summary": {
+        "selected": 43,
+        "completed": 43,
+        "passed": 43,
+        "failed": 0
+      },
+      "naturally_joined": true
+    },
+    {
+      "group": "connect_server",
+      "exit_code": 0,
+      "summary": {
+        "selected": 7,
+        "completed": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "naturally_joined": true
+    }
+  ],
+  "corrected_core_units": {
+    "passed": 5,
+    "failed": 0,
+    "retained_prior_core_passes": 22,
+    "evidence": "docs/evidence/gate-6/cleanup-batch-f2-core-v212.json"
+  },
+  "signed_upstream": {
+    "passed": 8,
+    "failed": 0,
+    "evidence": "docs/evidence/gate-6/cleanup-batch-f2-upstream-signed-v212.json"
+  },
+  "coherent_build_f2": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "-p",
+      "connect-client",
+      "-p",
+      "connect-store",
+      "-p",
+      "connect-service",
+      "-p",
+      "connect-server",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--test",
+      "gate6_replacement_video",
+      "--test",
+      "gate6_canonical_runtime",
+      "--features",
+      "connect-server/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 54.54917311668396,
+    "log_sha256": "2856a969f4cbba5f0d02296a3f68c5817569d86d4d34bfd476119d0eeec30ce4",
+    "naturally_joined": true
+  },
+  "remaining_component_controls": {
+    "codec_fixture_units": {
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "receipt_sha256": "023cad764dd56e9f676d90e13e6b58e9ab92305130754313c66379a45c9de217",
+      "binary_sha256": "fc1756f0c908a9e8dfec9772f28039011527817f5b1f094032ede96ed33f6d92",
+      "rows": [
+        {
+          "test": "canonical_native_connections::session_codecs::handshakes::independent_codec_peers_answer_reverse_offer_order_and_release_actual_cid_writer",
+          "exit_code": 0,
+          "elapsed_seconds": 0.5214617252349854,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "cb15f6f988c09b2a22a0ef2c8f177c46aec93101704d75828afb36fcc6f1b479",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "canonical_native_connections::session_codecs::handshakes::failed_codec_handshake_keeps_other_original_handshake_owned_until_completion",
+          "exit_code": 0,
+          "elapsed_seconds": 0.08822917938232422,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "8f53132ab1a62dd7e12bda8f7cefbe16817f73b764bbe22ed1f66c473ebcdd75",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        }
+      ]
+    },
+    "connect_client": {
+      "summary": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "receipt_sha256": "4ba064911abf0320e81b3a85095118047ebdd91205a71f011fbe8fddf023c777",
+      "binary_sha256": "d0f77c8826ffec3e99267184a86a386761e902b090e292b3c5f9ee0b94efd891",
+      "rows": [
+        {
+          "test": "canonical::public_audio::tests::accepted_subscription_waits_for_original_completed_media_result",
+          "exit_code": 0,
+          "elapsed_seconds": 0.05025005340576172,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "e2a5297e06a6b68593f4c7a7886adfb36f2657d5e9ba60e600ea6f0ed4d915b2",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "canonical::public_audio::tests::pending_subscription_cannot_switch_original_record_or_intent",
+          "exit_code": 0,
+          "elapsed_seconds": 0.05629777908325195,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "80e5830f17480596092145f37b0a99bdedc962570e361bf178f582af7a40dd82",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "canonical::public_audio::tests::public_audio_signed_preparing_get_completed_waits_for_final_ack_before_new_handle",
+          "exit_code": 0,
+          "elapsed_seconds": 0.23746109008789062,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "06966c7214ce256497a7cf2a67df393c962ece0e627ced651750deb449684070",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "canonical::public_audio::tests::public_audio_signed_preparing_reads_keep_original_deadline_and_close_without_publishing",
+          "exit_code": 0,
+          "elapsed_seconds": 0.3555760383605957,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "6fe02e00d28e69c241f7c3737fba8e86703b91674ac6eedde2833cdaecd41f70",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        },
+        {
+          "test": "canonical::public_audio::tests::subscription_terminal_failure_or_foreign_media_never_completes",
+          "exit_code": 0,
+          "elapsed_seconds": 0.04868197441101074,
+          "passed": 1,
+          "failed": 0,
+          "result_summary_count": 1,
+          "log_sha256": "25a646a6ee7d42bc691be356ca4574ca9134c17ccffc2a557c39037cd469c1df",
+          "naturally_joined": true,
+          "source_unchanged": true,
+          "ok": true
+        }
+      ]
+    }
+  },
+  "verified_controls": {
+    "store": 125,
+    "service": 43,
+    "server": 7,
+    "client": 5,
+    "handshake_fixture": 2,
+    "core": 27,
+    "uctp": 8,
+    "unit_component_total": 217,
+    "signed_upstream": 8,
+    "total": 225
+  }
+}

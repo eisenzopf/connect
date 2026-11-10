@@ -1,0 +1,98 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/session_codecs.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/session_codecs.rs
+@@ -365,14 +365,41 @@
+             .unwrap();
+         decoded_codec(&received(&s.wire).await, 0);
+         let domain = s.grants.0.clone();
+-        let writer = tokio::spawn(async move { domain.write_owned().await });
+-        let writer = tokio::time::timeout(Duration::from_secs(1), writer)
+-            .await
+-            .expect("actual current writer must progress while codec answer is withheld")
+-            .unwrap();
+-        drop(writer);
++        let mut writer = tokio::spawn(async move { domain.write_owned().await });
++        let mut writer_joined = false;
++        let writer_progress = match tokio::time::timeout(Duration::from_secs(1), &mut writer).await
++        {
++            Ok(joined) => {
++                writer_joined = true;
++                match joined {
++                    Ok(guard) => {
++                        drop(guard);
++                        true
++                    }
++                    Err(_) => false,
++                }
++            }
++            Err(_) => false,
++        };
++        // Even the old retained-reader counterfactual must answer and join the
++        // SAME original exchange/writer before reporting its progress failure.
+         s.confirm(&callback).await;
+-        let outcome = task.await.unwrap().unwrap();
++        if !writer_joined {
++            drop(writer.await);
++        }
++        let returned = task.await;
++        if !writer_progress {
++            use futures::FutureExt;
++            let _ = std::panic::AssertUnwindSafe(s.wire.server.shutdown())
++                .catch_unwind()
++                .await;
++            assert!(
++                writer_progress,
++                "actual current writer must progress while codec answer is withheld"
++            );
++            return;
++        }
++        let outcome = returned.unwrap().unwrap();
+         assert_eq!(outcome.revision(), 2);
+         assert!(outcome.resources_changed());
+         assert_eq!(outcome.operation(), "live_pcma");
+@@ -534,13 +561,40 @@
+     s.f.verify_server(&callback).await;
+     // Withdraw only control, not old send/receive Audio. This is a real writer
+     // while the original signed answer is withheld; no copied grant can survive.
+-    let mut writer = tokio::time::timeout(Duration::from_secs(1), s.grants.0.clone().write_owned())
+-        .await
+-        .expect("codec resource preparation retained old domain authority");
+-    writer.owners.get_mut(&connection).unwrap().may_control = false;
+-    drop(writer);
++    let domain = s.grants.0.clone();
++    let mut writer = tokio::spawn(async move { domain.write_owned().await });
++    let mut writer_joined = false;
++    let writer_progress = match tokio::time::timeout(Duration::from_secs(1), &mut writer).await {
++        Ok(joined) => {
++            writer_joined = true;
++            match joined {
++                Ok(mut guard) => {
++                    guard.owners.get_mut(&connection).unwrap().may_control = false;
++                    drop(guard);
++                    true
++                }
++                Err(_) => false,
++            }
++        }
++        Err(_) => false,
++    };
+     s.confirm(&callback).await;
+-    let failure = task.await.unwrap().unwrap_err();
++    if !writer_joined {
++        drop(writer.await);
++    }
++    let returned = task.await;
++    if !writer_progress {
++        use futures::FutureExt;
++        let _ = std::panic::AssertUnwindSafe(s.wire.server.shutdown())
++            .catch_unwind()
++            .await;
++        assert!(
++            writer_progress,
++            "codec resource preparation retained old domain authority"
++        );
++        return;
++    }
++    let failure = returned.unwrap().unwrap_err();
+     assert!(failure.effect_possible);
+     assert_eq!(controller.revision(), 1);
+     assert_eq!(

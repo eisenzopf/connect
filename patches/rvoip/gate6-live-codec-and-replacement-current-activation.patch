@@ -1,0 +1,1168 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2066,6 +2066,86 @@
+         owner.finish_change(self.staged).await
+     }
+ }
++/// A live selected-media candidate with no retained domain authorization.
++/// Existing ports stay published throughout resource preparation; routing is unchanged.
++pub struct QuarantinedSelectedMedia {
++    staged: StagedChange,
++    replace: BTreeSet<StreamId>,
++}
++/// The exact original adapter batch completed once; this owns its rollback path.
++pub struct PreparedSelectedMedia {
++    staged: StagedChange,
++    replace: BTreeSet<StreamId>,
++}
++impl QuarantinedSelectedMedia {
++    pub async fn prepare(mut self) -> ControlResult<PreparedSelectedMedia> {
++        let s = &mut self.staged;
++        let owner = s.candidate.owner.clone();
++        debug_assert!(s.control.is_none());
++        tokio::select! { biased;
++            _ = s.cancellation.cancelled() => return Err(StreamControlError::Cancelled),
++            _ = owner.shutdown.cancelled() => return Err(StreamControlError::Cancelled),
++            result = tokio::time::timeout_at(s.deadline,
++                owner.adapter.prepare(s.selected.clone(), s.deadline, s.candidate.cancellation.clone())) => {
++                result.map_err(|_| StreamControlError::Deadline)??;
++            }
++        }
++        s.adapter_prepared = true;
++        Ok(PreparedSelectedMedia {
++            staged: self.staged,
++            replace: self.replace,
++        })
++    }
++}
++impl PreparedSelectedMedia {
++    pub async fn activate_with_held(
++        mut self,
++        held: Arc<dyn Any + Send + Sync>,
++    ) -> ControlResult<()> {
++        let owner = self.staged.candidate.owner.clone();
++        let desired = self
++            .staged
++            .selected
++            .iter()
++            .map(|p| p.port.0.binding.negotiated.requested.clone())
++            .collect::<Vec<_>>();
++        owner.check_credential_snapshot(&self.staged.credential)?;
++        self.staged.control = Some(owner.policy.current_control(
++            &owner.scope(&self.staged.credential.principal, MediaPurpose::Control),
++            &MediaControlIntent::Change {
++                expected: self.staged.expected,
++                desired: &desired,
++                replace: &self.replace,
++            },
++            held.as_ref(),
++        )?);
++        // DesiredStream carries the medium/direction, not the chosen codec.
++        // Revalidate the unchanged negotiated formats under this fresh held
++        // control before activation; never renegotiate or repeat adapter IO.
++        let current = self
++            .staged
++            .control
++            .as_ref()
++            .expect("fresh selected control")
++            .authority()?;
++        let selected = self
++            .staged
++            .selected
++            .iter()
++            .map(|p| p.port.0.binding.negotiated.clone())
++            .collect::<Vec<_>>();
++        validate_selected_streams(&current.local, &current.remote, &selected)?;
++        drop(current);
++        self.staged.control_cancel = self
++            .staged
++            .control
++            .as_ref()
++            .expect("fresh selected control")
++            .cancellation
++            .clone();
++        owner.finish_change(self.staged).await
++    }
++}
+ /// A live subscription candidate with no retained domain authorization. Existing
+ /// ports and routing stay published until fresh authorization commits this plan.
+ pub struct QuarantinedSubscriptionMedia {
+@@ -3224,6 +3304,53 @@
+             Some((scene, change)),
+         )
+         .await
++    }
++    /// Stage the exact live selected-media change without transport IO. The
++    /// caller must release its own planning aliases before preparing this token.
++    /// Fresh activation rechecks the original credential, revision, selected media and replacement set.
++    pub async fn stage_selected_with_held(
++        self: &Arc<Self>,
++        expected: u64,
++        selected: &[NegotiatedStream],
++        replace: &BTreeSet<StreamId>,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: Arc<dyn Any + Send + Sync>,
++    ) -> ControlResult<QuarantinedSelectedMedia> {
++        let desired = selected
++            .iter()
++            .map(|s| s.requested.clone())
++            .collect::<Vec<_>>();
++        let credential = self.credential_snapshot();
++        let control = self.policy.current_control(
++            &self.scope(&credential.principal, MediaPurpose::Control),
++            &MediaControlIntent::Change {
++                expected,
++                desired: &desired,
++                replace,
++            },
++            held.as_ref(),
++        )?;
++        let mut staged = self
++            .stage_change(
++                expected,
++                &desired,
++                replace,
++                deadline,
++                cancellation,
++                credential,
++                Some(control),
++                Some(selected),
++                None,
++            )
++            .await?;
++        staged.control.take();
++        staged.control_cancel = staged.cancellation.clone();
++        drop(held);
++        Ok(QuarantinedSelectedMedia {
++            staged,
++            replace: replace.clone(),
++        })
+     }
+     /// Stage the exact live resource/routing change without transport IO. The
+     /// caller must release its own planning aliases before preparing this token.
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2858,3 +2858,5 @@
+ mod retired_queue_ownership;
+ 
+ mod quarantined_initial;
++
++mod quarantined_selected;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/quarantined_selected.rs
+@@ -0,0 +1,216 @@
++//! Live selected-media resource ownership on the existing real adapter fixture.
++use super::*;
++struct ExactPolicy {
++    base: Arc<HeldPolicy>,
++    desired: Vec<DesiredStream>,
++    replace: BTreeSet<StreamId>,
++    checked: AtomicUsize,
++}
++impl MediaPolicy for ExactPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.base.current(scope)
++    }
++    fn current_control(
++        &self,
++        scope: &MediaScope<'_>,
++        intent: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        if let MediaControlIntent::Change {
++            expected,
++            desired,
++            replace,
++        } = intent
++        {
++            if *expected != 1 || *desired != self.desired.as_slice() || *replace != &self.replace {
++                return Err(StreamControlError::Authority);
++            }
++            self.checked.fetch_add(1, Ordering::AcqRel);
++        }
++        self.base.current_control(scope, intent, held)
++    }
++}
++async fn audio(
++    f: &Fixture,
++    source: &AdapterMediaPort,
++    input: &mut mpsc::Receiver<MediaPacket>,
++    output: &mut mpsc::Receiver<QueuedMedia>,
++    sequence: u32,
++) {
++    source.try_publish(&frame(source, sequence)).unwrap();
++    receive(input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    assert_audio(outgoing(output).await).await;
++}
++async fn exercise(mode: &str) {
++    let mut f = Fixture::new(8);
++    let replace = BTreeSet::from([desired(Medium::Video).logical_id]);
++    let policy = Arc::new(ExactPolicy {
++        base: HeldPolicy::new(&f),
++        desired: vec![desired(Medium::Audio), desired(Medium::Video)],
++        replace: replace.clone(),
++        checked: AtomicUsize::new(0),
++    });
++    let initial = held_context(&f, CancellationToken::new(), deadline()).await;
++    f.a = held_controller(&f, policy.clone(), initial.as_ref()).unwrap();
++    drop(initial);
++    f.start(&[Medium::Audio, Medium::Video]).await;
++    let expected = f.a.revision();
++    assert_eq!(expected, 1);
++    let old_audio = f.aa.port(Medium::Audio);
++    let old_video = f.aa.port(Medium::Video);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    audio(&f, &old_audio, &mut input, &mut output, 160).await;
++    let selected =
++        f.a.active_bindings()
++            .into_iter()
++            .map(|b| b.negotiated)
++            .collect::<Vec<_>>();
++    assert_eq!(
++        selected
++            .iter()
++            .map(|s| s.requested.clone())
++            .collect::<Vec<_>>(),
++        policy.desired
++    );
++    let resource_cancel = CancellationToken::new();
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    let calls = f.aa.prepare_calls.load(Ordering::Acquire);
++    let candidate =
++        f.a.stage_selected_with_held(
++            expected,
++            &selected,
++            &replace,
++            deadline(),
++            resource_cancel.clone(),
++            held,
++        )
++        .await
++        .unwrap();
++    f.aa.mode.store(1, Ordering::Release);
++    let task = tokio::spawn(candidate.prepare());
++    tokio::time::timeout(Duration::from_secs(1), f.aa.entered.notified())
++        .await
++        .unwrap();
++    let provisional = f.aa.port(Medium::Video);
++    let writer = f.policy.0.clone().try_write_owned();
++    let writer_progressed = writer.is_ok();
++    if let Ok(mut writer) = writer {
++        if mode == "withdraw-format" {
++            let owner = writer.owners.get_mut("alice").unwrap();
++            let alternative = MediaFormat::Encoded {
++                name: "h264".into(),
++                clock_rate_hz: 90000,
++                channels: 0,
++                fmtp: None,
++            };
++            // Video remains allowed and H264 still negotiable. Only the exact
++            // already-prepared VP8 is withdrawn; Audio is unchanged.
++            assert!(owner.send_media.contains(&Medium::Video));
++            assert!(owner.receive_media.contains(&Medium::Video));
++            for set in [&mut owner.local.send, &mut owner.local.receive] {
++                set.iter_mut()
++                    .find(|cap| cap.medium == Medium::Video)
++                    .unwrap()
++                    .formats
++                    .push(alternative.clone());
++            }
++            for set in [&mut owner.remote.send, &mut owner.remote.receive] {
++                set.iter_mut()
++                    .find(|cap| cap.medium == Medium::Video)
++                    .unwrap()
++                    .formats = vec![alternative.clone()];
++            }
++        }
++    }
++    assert_eq!(f.a.revision(), expected);
++    assert_eq!(old_video.status(), PortStatus::Active);
++    assert_eq!(provisional.status(), PortStatus::Prepared);
++    assert_ne!(
++        old_video.binding().transport_id,
++        provisional.binding().transport_id
++    );
++    assert!(provisional.try_publish(&frame(&provisional, 3000)).is_err());
++    audio(&f, &old_audio, &mut input, &mut output, 320).await;
++    let result = if mode == "cancel" {
++        resource_cancel.cancel();
++        match task.await.unwrap() {
++            Err(error) => Err(error),
++            Ok(_) => panic!("cancelled adapter wait unexpectedly completed"),
++        }
++    } else {
++        f.aa.release.notify_one();
++        let mut prepared = task.await.unwrap().unwrap();
++        if mode == "expired" {
++            prepared.staged.deadline = tokio::time::Instant::now();
++        }
++        let fresh: Arc<dyn Any + Send + Sync> = if mode == "foreign" {
++            Arc::new(())
++        } else {
++            held_context(&f, CancellationToken::new(), deadline()).await
++        };
++        prepared.activate_with_held(fresh).await
++    };
++    let revision = f.a.revision();
++    let status = provisional.status();
++    let old_status = old_video.status();
++    let prepares = f.aa.prepare_calls.load(Ordering::Acquire);
++    audio(&f, &old_audio, &mut input, &mut output, 480).await;
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++    assert_eq!(f.b.shutdown(deadline()).await, 0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 0);
++    assert_eq!(f.ba.outstanding.load(Ordering::Acquire), 0);
++    assert!(
++        writer_progressed,
++        "live resource preparation retained the original domain reader"
++    );
++    assert_eq!(prepares, calls + 1, "adapter.prepare repeated");
++    if mode == "current" {
++        result.unwrap();
++        assert_eq!(revision, expected + 1);
++        assert_eq!(status, PortStatus::Active);
++        assert_eq!(old_status, PortStatus::Retired);
++        assert_eq!(policy.checked.load(Ordering::Acquire), 2);
++    } else {
++        match mode {
++            "foreign" => assert!(matches!(result, Err(StreamControlError::Authority))),
++            "cancel" => assert!(matches!(result, Err(StreamControlError::Cancelled))),
++            "expired" => assert!(matches!(result, Err(StreamControlError::Deadline))),
++            "withdraw-format" => assert!(matches!(
++                result,
++                Err(StreamControlError::Model(MediaTransitionError::Unsupported))
++            )),
++            _ => unreachable!(),
++        }
++        assert_eq!(revision, expected);
++        assert_eq!(status, PortStatus::Retired);
++        assert_eq!(old_status, PortStatus::Active);
++    }
++}
++#[tokio::test]
++async fn live_selected_prepare_releases_domain_and_fresh_exact_change_replaces_only_selected_port()
++{
++    exercise("current").await;
++}
++#[tokio::test]
++async fn live_selected_foreign_activation_rolls_back_candidate_and_preserves_decoded_audio() {
++    exercise("foreign").await;
++}
++#[tokio::test]
++async fn live_selected_cancelled_prepare_joins_and_preserves_decoded_audio() {
++    exercise("cancel").await;
++}
++#[tokio::test]
++async fn live_selected_original_cutoff_refuses_fresh_activation_without_repeating_prepare() {
++    exercise("expired").await;
++}
++
++#[tokio::test]
++async fn live_selected_fresh_format_withdrawal_refuses_prepared_codec_without_renegotiation() {
++    exercise("withdraw-format").await;
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
+@@ -219,7 +219,7 @@
+             ._lease
+             .authority::<ResourcePreparation>()
+             .ok_or(DispatchError::Authority)?;
+-        if resource.kind != PreparationKind::Subscription || !self._lease.current() {
++        if !self._lease.current() {
+             return Err(DispatchError::Authority);
+         }
+         let lease = self
+@@ -242,6 +242,17 @@
+             physical: self.origin.lifetime.child_token(),
+             deadline,
+         }))
++    }
++    /// Current original-command authority for this exact resource instance.
++    /// This is not a resource grant or permission to install application replies.
++    pub fn resource_activation_current(&self, authority: &ResourceActivationAuthority) -> bool {
++        self._lease
++            .authority::<ResourcePreparation>()
++            .is_some_and(|resource| {
++                Arc::ptr_eq(&resource.marker, &authority.marker)
++                    && self._lease.current()
++                    && authority.current()
++            })
+     }
+     /// Install final application reply rights only from this instance's actual
+     /// fresh policy admission. Resource-only preparation never permits results.
+@@ -313,6 +324,11 @@
+         request: &Envelope,
+         reply: &Envelope,
+     ) -> Option<Result<(), DispatchError>> {
++        if let Some(resource) =
++            self.authority::<super::super::native_session_codecs::resource_preparation::CodecParameterReply>()
++        {
++            return Some(resource.reply(request, reply));
++        }
+         self.authority::<ResourcePreparation>().map(|resource| {
+             resource.permits(request)?;
+             if request.kind() != "connection.offer" || reply.kind() != "connection.answer" ||
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
+@@ -325,3 +325,153 @@
+         .expect("consumed final slot must not retain a second domain alias before BOTH refresh");
+     drop(writer);
+ }
++
++fn initial_authorized() -> AuthorizedEnvelope {
++    let mut a = authorized();
++    a.envelope = envelope(
++        "connection.offer",
++        json!({
++            "by_participant":"part_alice", "substrate":"quic",
++            "capabilities":{"audio_codecs":[{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}],"max_streams_per_connection":8},
++            "streams_offered":[{"id":"audio","kind":"audio","direction":"sendrecv","codec_preferences":["pcmu"]}],
++            "replacement_preparation":{"profile":"connect-replacement-media-v1","operation_record_id":"record"}
++        }),
++    );
++    a
++}
++#[tokio::test]
++async fn initial_offer_reauthorization_releases_original_guards_and_retains_exact_original_cap() {
++    let mut a = initial_authorized();
++    let grants = Arc::new(tokio::sync::RwLock::new(false));
++    let until = Instant::now() + Duration::from_secs(2);
++    let original = AuthorityLease::checking(grants.clone().read_owned().await, until, || true);
++    a.reply_authority.replace(original.retained());
++    a.reply_authority.1.store(false, Ordering::Release);
++    a._lease = original;
++    let policy = Arc::new(OriginalPolicy {
++        expected: a.envelope().original().clone(),
++        grants: grants.clone(),
++        calls: std::sync::atomic::AtomicUsize::new(0),
++        deadline: Instant::now() + Duration::from_secs(30),
++    });
++    let (context, replay) = crate::v2::auth_peer::exchange::resource_test_context(
++        policy.clone(),
++        a.principal().clone(),
++        a.origin.lifetime.clone(),
++        a.origin.deadline,
++    );
++    replay.consume(a.envelope().id()).unwrap();
++    a.exchange = Some(context);
++    assert!(grants.clone().try_write_owned().is_err());
++    let a = a
++        .into_resource_preparation(
++            "part_alice".into(),
++            ["audio".into()].into_iter().collect(),
++            Instant::now() + Duration::from_secs(30),
++        )
++        .unwrap();
++    let writer = grants
++        .clone()
++        .try_write_owned()
++        .expect("initial invocation AND final reply domain guards released");
++    drop(writer);
++    let fresh = a.reauthorize_resource_preparation().await.unwrap();
++    assert!(a.resource_activation_current(&fresh));
++    assert!(fresh.deadline <= until && fresh.deadline <= a.origin.deadline);
++    assert!(fresh
++        .authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
++        .is_some());
++    assert!(
++        grants.clone().try_write_owned().is_err(),
++        "same fresh guard retained through local reservation"
++    );
++    assert_eq!(policy.calls.load(Ordering::Acquire), 1);
++    assert_eq!(
++        replay.usage().0,
++        1,
++        "no signature consumption or physical command replay"
++    );
++    assert_eq!(
++        a.install_resource_reply_authority(&fresh),
++        Err(DispatchError::Authority),
++        "initial resource cannot install application result rights"
++    );
++    assert_eq!(
++        a.reply_authority.for_replies(&[result(&a)]).unwrap_err(),
++        DispatchError::ReplyMismatch
++    );
++    drop(fresh);
++    let mut writer = grants
++        .clone()
++        .try_write_owned()
++        .expect("fresh guard released before retry pause");
++    *writer = true;
++    drop(writer);
++    assert!(matches!(
++        a.reauthorize_resource_preparation().await,
++        Err(DispatchError::Authority)
++    ));
++    assert_eq!(policy.calls.load(Ordering::Acquire), 2);
++    assert_eq!(replay.usage().0, 1);
++}
++
++#[tokio::test]
++async fn initial_offer_fresh_authority_rejects_foreign_marker_expiry_and_cancel_without_replay() {
++    let mut a = initial_authorized();
++    let policy = Arc::new(OriginalPolicy {
++        expected: a.envelope().original().clone(),
++        grants: Arc::new(tokio::sync::RwLock::new(false)),
++        calls: std::sync::atomic::AtomicUsize::new(0),
++        deadline: Instant::now() + Duration::from_secs(1),
++    });
++    let (context, replay) = crate::v2::auth_peer::exchange::resource_test_context(
++        policy.clone(),
++        a.principal().clone(),
++        a.origin.lifetime.clone(),
++        a.origin.deadline,
++    );
++    replay.consume(a.envelope().id()).unwrap();
++    a.exchange = Some(context);
++    let mut a = a
++        .into_resource_preparation(
++            "part_alice".into(),
++            ["audio".into()].into_iter().collect(),
++            Instant::now() + Duration::from_secs(1),
++        )
++        .unwrap();
++    let other = initial_authorized();
++    let other_resource = other._lease.authority::<ResourcePreparation>().unwrap();
++    let foreign = Arc::new(ResourceActivationAuthority {
++        marker: other_resource.marker.clone(),
++        lease: AuthorityLease::holding(17u64),
++        invocation: a.invocation.child_token(),
++        physical: a.origin.lifetime.child_token(),
++        deadline: Instant::now() + Duration::from_secs(1),
++    });
++    assert!(foreign.current());
++    assert!(!a.resource_activation_current(&foreign));
++    let expired = token(
++        &a,
++        Arc::new(AtomicBool::new(true)),
++        Instant::now() - Duration::from_millis(1),
++    );
++    assert!(!a.resource_activation_current(&expired));
++    let fresh = a.reauthorize_resource_preparation().await.unwrap();
++    assert!(a.resource_activation_current(&fresh));
++    let mut old_cap = a._lease.authority::<ResourcePreparation>().unwrap().clone();
++    old_cap.deadline = Instant::now() - Duration::from_millis(1);
++    a._lease = AuthorityLease::checking(old_cap.clone(), old_cap.deadline, || true);
++    assert!(matches!(
++        a.reauthorize_resource_preparation().await,
++        Err(DispatchError::Authority)
++    ));
++    assert_eq!(
++        policy.calls.load(Ordering::Acquire),
++        1,
++        "expired original cannot call policy to renew lifetime"
++    );
++    assert!(!a.resource_activation_current(&fresh));
++    a.origin.lifetime.cancel();
++    assert!(!fresh.current());
++    assert_eq!(replay.usage().0, 1);
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1451,14 +1451,14 @@
+             return Err(Failure::before_effect(E::Conflict));
+         }
+         let scope = invocation.plan.origin.request_scope(expected);
+-        let guard = broker
+-            .begin_server_invocation(
+-                invocation.clone(),
+-                Arc::new(CodecRequestPolicy(policy)),
+-                slot,
+-            )
+-            .map_err(Failure::before_effect)?;
+         if !invocation.plan().changes_resources() {
++            let guard = broker
++                .begin_server_invocation(
++                    invocation.clone(),
++                    Arc::new(CodecRequestPolicy(policy)),
++                    slot,
++                )
++                .map_err(Failure::before_effect)?;
+             let bindings = controller.active_bindings();
+             if bindings.len() != guard.plan().selected().len()
+                 || bindings
+@@ -1473,17 +1473,45 @@
+                 scope, operation, expected, false, bindings,
+             ));
+         }
+-        controller
+-            .change_selected_with_held(
++        // Reserve the exact live candidate under current original permission,
++        // then release every domain/control alias before parameter/codec IO.
++        let resource = resource_preparation::CodecResourcePreparation::new(&invocation);
++        let staged = controller
++            .stage_selected_with_held(
+                 expected,
+-                guard.plan().selected(),
++                invocation.plan().media().selected(),
+                 &std::collections::BTreeSet::new(),
+                 invocation.deadline(),
+                 invocation.cancellation(),
+                 Arc::new(invocation.clone()),
+             )
+             .await
+-            .map_err(|e| Failure::possible_effect(guard.error(e)))?;
++            .map_err(|error| Failure::before_effect(E::from(error)))?;
++        drop(invocation);
++        let guard = broker
++            .begin_server_invocation(Arc::new(resource.clone()), resource.clone(), slot)
++            .map_err(Failure::before_effect)?;
++        resource
++            .bind_offer(guard.source_id(), guard.source_substrate())
++            .map_err(Failure::before_effect)?;
++        let prepared = staged
++            .prepare()
++            .await
++            .map_err(|error| Failure::possible_effect(guard.error(error)))?;
++        let original = NativeSessionCodecActivation::new(resource.clone())
++            .map_err(|error| Failure::possible_effect(E::Dispatch(error)))?;
++        // Await the actual host admission: dropping its future may detach a
++        // blocking domain acquisition. Late completion never renews this cap.
++        let authority = policy
++            .authorize_codec_activation(&original)
++            .await
++            .map_err(|error| Failure::possible_effect(E::Dispatch(error)))?;
++        let invocation = NativeSessionCodecInvocation::resume(&original, authority)
++            .map_err(|error| Failure::possible_effect(E::Dispatch(error)))?;
++        prepared
++            .activate_with_held(Arc::new(invocation.clone()))
++            .await
++            .map_err(|error| Failure::possible_effect(guard.error(error)))?;
+         // Core success is authoritative historical evidence. A subsequent
+         // revocation must stop future IO, not erase this already observed fact.
+         let bindings = guard.committed_bindings();
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -250,6 +250,9 @@
+     pub(crate) fn source_id(&self) -> &str {
+         self.operation.envelope.id()
+     }
++    pub(crate) fn source_substrate(&self) -> &str {
++        &self.operation.substrate
++    }
+     pub(crate) fn committed(&self) {
+         // Snapshot once: mutex guard temporaries inside different fields of
+         // one struct expression otherwise overlap and relock this same mutex.
+--- a/crates/uctp/rvoip-uctp/src/v2/native_session_codecs.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_session_codecs.rs
+@@ -4,6 +4,8 @@
+     native_requests::{NativeRequestOrigin, NativeRequestScope},
+ };
+ use std::sync::Arc;
++pub(in crate::v2) mod resource_preparation;
++pub use resource_preparation::NativeSessionCodecActivation;
+ /// Planning alone cannot perform IO, advance a revision or create a receipt.
+ /// Execution must independently reauthorize and fence this exact current origin,
+ /// revision, peer capability declaration and complete selected binding set.
+@@ -56,6 +58,12 @@
+         scope: &NativeRequestScope,
+         plan: &NativeSessionCodecPlan,
+         operation: &str,
++    ) -> Result<super::auth_dispatch::AuthorityLease, super::auth_dispatch::DispatchError>;
++    /// Reauthorize the SAME original admitted attempt after its independent
++    /// resource preparation. This must never reserve or submit another effect.
++    async fn authorize_codec_activation(
++        &self,
++        original: &NativeSessionCodecActivation,
+     ) -> Result<super::auth_dispatch::AuthorityLease, super::auth_dispatch::DispatchError>;
+ }
+ /// Historical metadata sealed only after a confirmed local commit, or a
+@@ -129,7 +137,7 @@
+ /// Distinct from subscription authorization. Core hosts must validate this
+ /// exact typed invocation, selected codecs and current held authority.
+ pub struct NativeSessionCodecInvocation {
+-    pub(crate) plan: NativeSessionCodecPlan,
++    pub(crate) plan: Arc<NativeSessionCodecPlan>,
+     operation: String,
+     authority: super::auth_dispatch::AuthorityLease,
+     deadline: tokio::time::Instant,
+@@ -150,13 +158,33 @@
+             .min(tokio::time::Instant::now() + std::time::Duration::from_secs(30));
+         let cancel = plan.origin.cancellation().child_token();
+         Arc::new(Self {
+-            plan,
++            plan: Arc::new(plan),
+             operation,
+             authority,
+             deadline,
+             cancel,
+             confirmation: std::sync::Mutex::new(None),
+         })
++    }
++    pub(crate) fn resume(
++        original: &NativeSessionCodecActivation,
++        authority: super::auth_dispatch::AuthorityLease,
++    ) -> Result<Arc<Self>, super::auth_dispatch::DispatchError> {
++        if !original.current() || !authority.current() {
++            return Err(super::auth_dispatch::DispatchError::Authority);
++        }
++        let deadline = authority
++            .deadline()
++            .unwrap_or(original.deadline())
++            .min(original.deadline());
++        Ok(Arc::new(Self {
++            plan: original.resource.plan.clone(),
++            operation: original.operation().to_owned(),
++            authority,
++            deadline,
++            cancel: original.resource.cancel.clone(),
++            confirmation: std::sync::Mutex::new(Some(original.resource.confirmed_fence()?)),
++        }))
+     }
+     pub fn plan(&self) -> &NativeSessionCodecPlan {
+         &self.plan
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_session_codecs/resource_preparation.rs
+@@ -0,0 +1,276 @@
++//! Sealed server-generated codec parameter rights; never media/application authority.
++use super::*;
++use crate::v2::{
++    auth_dispatch::lifecycle::NativeLifecycleFence,
++    auth_dispatch::{AuthorityLease, DispatchError},
++    native_negotiation::{
++        catalog::{codec_wire, direction, kind, payload_type},
++        ServerInvocation,
++    },
++    native_requests::{NativeRequestPolicy, NativeRequestReply},
++    Envelope, Scope,
++};
++use serde_json::json;
++use std::{collections::BTreeSet, sync::OnceLock};
++use tokio::time::Instant;
++use tokio_util::sync::CancellationToken;
++
++struct OfferBinding {
++    id: String,
++    substrate: String,
++}
++
++pub(in crate::v2) struct CodecResourcePreparation {
++    pub(super) plan: Arc<NativeSessionCodecPlan>,
++    operation: String,
++    marker: Arc<()>,
++    offer: OnceLock<OfferBinding>,
++    confirmation: OnceLock<Arc<dyn NativeLifecycleFence>>,
++    pub(super) cancel: CancellationToken,
++    deadline: Instant,
++}
++impl CodecResourcePreparation {
++    pub(in crate::v2) fn new(original: &Arc<NativeSessionCodecInvocation>) -> Arc<Self> {
++        Arc::new(Self {
++            plan: original.plan.clone(),
++            operation: original.operation().into(),
++            marker: Arc::new(()),
++            offer: OnceLock::new(),
++            confirmation: OnceLock::new(),
++            cancel: original.cancellation(),
++            deadline: original.deadline(),
++        })
++    }
++    pub(in crate::v2) fn bind_offer(
++        &self,
++        offer: &str,
++        substrate: &str,
++    ) -> Result<(), DispatchError> {
++        if offer.is_empty() || offer.len() > 128 || substrate.is_empty() || substrate.len() > 32 {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        self.offer
++            .set(OfferBinding {
++                id: offer.into(),
++                substrate: substrate.into(),
++            })
++            .map_err(|_| DispatchError::ReplyMismatch)
++    }
++    fn base_current(&self) -> bool {
++        !self.cancel.is_cancelled() && Instant::now() < self.deadline && self.plan.origin.current()
++    }
++    fn current(&self) -> bool {
++        self.base_current() && self.confirmation.get().is_none_or(|fence| fence.current())
++    }
++    fn proposal(&self, proposal: &Envelope) -> Result<(), DispatchError> {
++        let scope = self.plan.scope();
++        let origin = &scope.origin;
++        let p = &proposal.original()["payload"];
++        let setup = &p["substrate_setup"];
++        let bound = self.offer.get().ok_or(DispatchError::Authority)?;
++        if !self.current()
++            || proposal.kind() != "connection.offer"
++            || proposal.scope(Scope::Reply).is_some()
++            || proposal.scope(Scope::Operation) != Some(self.operation.as_str())
++            || proposal.scope(Scope::Conversation) != origin.media.wire_conversation.as_deref()
++            || proposal.scope(Scope::Session) != Some(origin.media.wire_session.as_str())
++            || proposal.scope(Scope::Connection) != Some(origin.media.wire_connection.as_str())
++            || proposal.expected_revision() != Some(scope.stream_revision)
++            || p["by_participant"] != origin.participant.as_str()
++            || setup["kind"] != "native-prepared/1"
++            || setup["revision"].as_u64() != scope.stream_revision.checked_add(1)
++            || setup["offer_id"].as_str() != Some(bound.id.as_str())
++            || p["substrate"].as_str() != Some(bound.substrate.as_str())
++        {
++            return Err(DispatchError::Authority);
++        }
++        let streams = setup["streams"]
++            .as_array()
++            .ok_or(DispatchError::ReplyMismatch)?;
++        if streams.is_empty()
++            || streams.len() > 32
++            || streams.len() != self.plan.media().selected().len()
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        let mut ids = BTreeSet::new();
++        let mut handles = BTreeSet::new();
++        for stream in streams {
++            let id = stream["strm_id"]
++                .as_str()
++                .ok_or(DispatchError::ReplyMismatch)?;
++            let selected = self
++                .plan
++                .media()
++                .selected()
++                .iter()
++                .find(|s| s.requested.logical_id.as_str() == id)
++                .ok_or(DispatchError::Authority)?;
++            let handle = stream["stream_local_id"]
++                .as_u64()
++                .ok_or(DispatchError::ReplyMismatch)?;
++            if !ids.insert(id)
++                || !handles.insert(handle)
++                || !(1..=65535).contains(&handle)
++                || stream["kind"] != kind(selected.requested.medium)
++                || stream["direction"] != direction(selected.requested.direction)
++                || stream["codec"] != codec_wire(&selected.format, payload_type(&selected.format))
++            {
++                return Err(DispatchError::Authority);
++            }
++        }
++        let offered=streams.iter().map(|s|json!({"id":s["strm_id"],"kind":s["kind"],"direction":s["direction"],"codec_preferences":[s["codec"]["name"]]})).collect::<Vec<_>>();
++        if p["streams_offered"] != json!(offered) {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        Ok(())
++    }
++    pub(in crate::v2) fn reply(
++        &self,
++        request: &Envelope,
++        reply: &Envelope,
++    ) -> Result<(), DispatchError> {
++        self.proposal(request)?;
++        if reply.kind() != "connection.answer"
++            || reply.scope(Scope::Reply) != Some(request.id())
++            || [
++                Scope::Conversation,
++                Scope::Session,
++                Scope::Connection,
++                Scope::Operation,
++            ]
++            .into_iter()
++            .any(|scope| reply.scope(scope) != request.scope(scope))
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        let p = &reply.original()["payload"];
++        if p["substrate"] != request.original()["payload"]["substrate"]
++            || p["by_participant"] != self.plan.scope().origin.participant.as_str()
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        // This is authenticated input for the original negotiation only, not
++        // current/application authority. The broker owns full setup/codec
++        // confirmation validation before confirmed() or fresh activation. A
++        // malformed original answer must reach its definitive Confirmation
++        // failure rather than silently keeping the original waiter open.
++        Ok(())
++    }
++    pub(super) fn confirmed_fence(&self) -> Result<Arc<dyn NativeLifecycleFence>, DispatchError> {
++        self.confirmation
++            .get()
++            .cloned()
++            .ok_or(DispatchError::Authority)
++    }
++}
++#[async_trait::async_trait]
++impl NativeRequestPolicy for CodecResourcePreparation {
++    async fn authorize(
++        &self,
++        scope: &NativeRequestScope,
++        proposal: &Envelope,
++        held: Option<&AuthorityLease>,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let held = held.ok_or(DispatchError::Authority)?;
++        let actual = held
++            .authority::<CodecParameterReply>()
++            .and_then(|proof| proof.resource.upgrade())
++            .ok_or(DispatchError::Authority)?;
++        if !std::ptr::eq(self, Arc::as_ptr(&actual))
++            || !Arc::ptr_eq(&self.marker, &actual.marker)
++            || !Arc::ptr_eq(&scope.origin, &self.plan.scope().origin)
++            || scope.stream_revision != self.plan.expected_revision()
++            || scope.connection_generation != self.plan.scope().connection_generation
++            || scope.credential_revision != self.plan.scope().credential_revision
++            || scope.conversation != self.plan.scope().conversation
++        {
++            return Err(DispatchError::Authority);
++        }
++        self.proposal(proposal)?;
++        Ok(held.retained())
++    }
++}
++impl ServerInvocation for Arc<CodecResourcePreparation> {
++    fn scope(&self) -> &NativeRequestScope {
++        self.plan.scope()
++    }
++    fn media(&self) -> &NativeOfferPlan {
++        self.plan.media()
++    }
++    fn operation(&self) -> &str {
++        &self.operation
++    }
++    fn current(&self) -> bool {
++        CodecResourcePreparation::current(self)
++    }
++    fn origin(&self) -> &Arc<NativeRequestOrigin> {
++        &self.plan.origin
++    }
++    fn lease(&self) -> AuthorityLease {
++        // A confirmed reply fence retains this authority. Its backedge must be
++        // Weak and base-only: cap -> fence -> cap would leak and recurse current.
++        let resource = Arc::downgrade(self);
++        let current = resource.clone();
++        AuthorityLease::checking(CodecParameterReply { resource }, self.deadline, move || {
++            current.upgrade().is_some_and(|cap| cap.base_current())
++        })
++    }
++    fn cancellation(&self) -> CancellationToken {
++        self.cancel.child_token()
++    }
++    fn confirmed(&self, reply: &NativeRequestReply) -> Result<(), NativeOfferError> {
++        if !reply.current() || reply.scope().stream_revision != self.plan.expected_revision() {
++            return Err(NativeOfferError::Cancelled);
++        }
++        self.confirmation
++            .set(reply.commit_fence())
++            .map_err(|_| NativeOfferError::Conflict)
++    }
++}
++pub(in crate::v2) struct CodecParameterReply {
++    resource: std::sync::Weak<CodecResourcePreparation>,
++}
++impl CodecParameterReply {
++    pub(in crate::v2) fn reply(
++        &self,
++        request: &Envelope,
++        reply: &Envelope,
++    ) -> Result<(), DispatchError> {
++        self.resource
++            .upgrade()
++            .ok_or(DispatchError::Closed)?
++            .reply(request, reply)
++    }
++}
++
++/// Exact original prepared codec attempt. Construction is private to the
++/// executor after one authenticated parameter answer; it is not a current grant.
++pub struct NativeSessionCodecActivation {
++    pub(super) resource: Arc<CodecResourcePreparation>,
++}
++impl NativeSessionCodecActivation {
++    pub(in crate::v2) fn new(
++        resource: Arc<CodecResourcePreparation>,
++    ) -> Result<Self, DispatchError> {
++        if !resource.current() || resource.confirmation.get().is_none() {
++            return Err(DispatchError::Authority);
++        }
++        Ok(Self { resource })
++    }
++    pub fn current(&self) -> bool {
++        self.resource.current()
++    }
++    pub fn plan(&self) -> &NativeSessionCodecPlan {
++        &self.resource.plan
++    }
++    pub fn scope(&self) -> &NativeRequestScope {
++        self.resource.plan.scope()
++    }
++    pub fn operation(&self) -> &str {
++        &self.resource.operation
++    }
++    pub fn deadline(&self) -> Instant {
++        self.resource.deadline
++    }
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/session_codecs.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/session_codecs.rs
+@@ -103,6 +103,36 @@
+         self.reads.fetch_add(1, Ordering::AcqRel);
+         Ok(AuthorityLease::holding(proof))
+     }
++    async fn authorize_codec_activation(
++        &self,
++        original: &NativeSessionCodecActivation,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if !original.current()
++            || !self
++                .operations
++                .lock()
++                .unwrap()
++                .contains(original.operation())
++        {
++            return Err(DispatchError::Authority);
++        }
++        let wire = self.wire.grants.clone().read_owned().await;
++        let guard = self.domain.0.clone().read_owned().await;
++        let proof = FreshProof {
++            domain: self.domain.clone(),
++            wire_domain: self.wire.clone(),
++            guard,
++            wire,
++            principal: original.scope().origin.principal.clone(),
++            plan: original.plan().media().clone(),
++            expected: original.plan().expected_revision(),
++            operation: original.operation().into(),
++            proposal: Mutex::new(None),
++        };
++        validate(&proof, original.scope())?;
++        self.reads.fetch_add(1, Ordering::AcqRel);
++        Ok(AuthorityLease::holding(proof))
++    }
+ }
+ #[async_trait]
+ impl NativeRequestPolicy for Policy {
+@@ -310,6 +340,7 @@
+         let old = controller.active_bindings()[0].clone();
+         let first = StreamId::from_string("first");
+         let mut input = controller.take_ingress(&first).unwrap();
++        let idle_origin_owners = Arc::strong_count(&origin);
+         let selected = plan(&s, &origin, "pcma");
+         assert!(selected.changes_resources());
+         let task = execute(&s, selected, "live_pcma", policy.clone());
+@@ -335,8 +366,11 @@
+         decoded_codec(&received(&s.wire).await, 0);
+         let domain = s.grants.0.clone();
+         let writer = tokio::spawn(async move { domain.write_owned().await });
+-        tokio::task::yield_now().await;
+-        assert!(!writer.is_finished());
++        let writer = tokio::time::timeout(Duration::from_secs(1), writer)
++            .await
++            .expect("actual current writer must progress while codec answer is withheld")
++            .unwrap();
++        drop(writer);
+         s.confirm(&callback).await;
+         let outcome = task.await.unwrap().unwrap();
+         assert_eq!(outcome.revision(), 2);
+@@ -344,11 +378,10 @@
+         assert_eq!(outcome.operation(), "live_pcma");
+         assert_eq!(outcome.scope().stream_revision, 1);
+         assert_eq!(controller.revision(), 2);
+-        drop(
+-            tokio::time::timeout(Duration::from_secs(1), writer)
+-                .await
+-                .unwrap()
+-                .unwrap(),
++        assert_eq!(
++            Arc::strong_count(&origin),
++            idle_origin_owners,
++            "completed resource cap/confirmation fence must not retain an origin cycle"
+         );
+         let current = controller.active_bindings()[0].clone();
+         assert_ne!(old.stream_local_id, current.stream_local_id);
+@@ -387,8 +420,16 @@
+             .unwrap_err();
+         assert!(!repeated.effect_possible);
+         assert_eq!(controller.revision(), 2);
+-        assert!(policy.held.load(Ordering::Acquire) > 0);
+-        assert_eq!(policy.reads.load(Ordering::Acquire), 2);
++        assert_eq!(
++            policy.held.load(Ordering::Acquire),
++            0,
++            "parameter-only codec exchange must not borrow a host application grant"
++        );
++        assert_eq!(
++            policy.reads.load(Ordering::Acquire),
++            3,
++            "one initial admission, one fresh activation, one no-change admission"
++        );
+         // Retaining historical outcomes keeps neither authorization reader nor
+         // an exchange alive, even though the physical origin remains usable.
+         drop(s.grants.0.clone().try_write_owned().unwrap());
+@@ -477,3 +518,71 @@
+     assert_eq!(controller.revision(), 3);
+     s.wire.server.shutdown().await.unwrap();
+ }
++
++#[tokio::test]
++async fn actual_session_codec_resource_wait_releases_control_and_fresh_withdrawal_keeps_old_audio_once(
++) {
++    let (mut s, origin, policy) = setup("quic").await;
++    let controller = s.controller();
++    let first = StreamId::from_string("first");
++    let old = controller.active_bindings()[0].clone();
++    let mut input = controller.take_ingress(&first).unwrap();
++    let selected = plan(&s, &origin, "pcma");
++    let connection = selected.scope().origin.media.connection.clone();
++    let task = execute(&s, selected, "withdraw_after_codec_prepare", policy.clone());
++    let callback = s.wire.read().await;
++    s.f.verify_server(&callback).await;
++    // Withdraw only control, not old send/receive Audio. This is a real writer
++    // while the original signed answer is withheld; no copied grant can survive.
++    let mut writer = tokio::time::timeout(Duration::from_secs(1), s.grants.0.clone().write_owned())
++        .await
++        .expect("codec resource preparation retained old domain authority");
++    writer.owners.get_mut(&connection).unwrap().may_control = false;
++    drop(writer);
++    s.confirm(&callback).await;
++    let failure = task.await.unwrap().unwrap_err();
++    assert!(failure.effect_possible);
++    assert_eq!(controller.revision(), 1);
++    assert_eq!(
++        controller.active_bindings()[0].transport_id,
++        old.transport_id
++    );
++    send(&s.wire, encoded_audio(old.stream_local_id, 0, 71));
++    packet(&mut input)
++        .await
++        .try_forward_to(&controller, &first)
++        .unwrap();
++    decoded_codec(&received(&s.wire).await, 0);
++    assert_eq!(policy.operations.lock().unwrap().len(), 1);
++    assert_eq!(
++        policy.reads.load(Ordering::Acquire),
++        1,
++        "withdrawn current control must refuse before publishing a fresh grant"
++    );
++    assert!(
++        tokio::time::timeout(Duration::from_millis(50), s.wire.reader.next())
++            .await
++            .is_err()
++    );
++    s.grants
++        .0
++        .write()
++        .await
++        .owners
++        .get_mut(&connection)
++        .unwrap()
++        .may_control = true;
++    let repeated = execute(
++        &s,
++        plan(&s, &origin, "pcma"),
++        "withdraw_after_codec_prepare",
++        policy.clone(),
++    )
++    .await
++    .unwrap()
++    .unwrap_err();
++    assert!(!repeated.effect_possible);
++    assert_eq!(policy.operations.lock().unwrap().len(), 1);
++    assert_eq!(controller.revision(), 1);
++    s.wire.server.shutdown().await.unwrap();
++}

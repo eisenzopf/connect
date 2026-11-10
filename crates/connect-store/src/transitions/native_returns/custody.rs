@@ -151,6 +151,54 @@ pub(super) fn touch(c: &Connection, record: &str, store: &Store) -> Result<()> {
     event(c, &rows::by_record(c, record)?, store)
 }
 impl Store {
+    /// Exact SQL footprint for one original return. Identity policy facts keep
+    /// Read; only affected Conversation metadata and enrolled dependents gain
+    /// Write. This is never a reusable permission to restore media.
+    pub(crate) fn native_return_mutation_scopes(
+        &self,
+        c: &Connection,
+        record: &str,
+        include_parent: bool,
+    ) -> Result<Vec<crate::AuthorityScope>> {
+        let row = rows::by_record(c, record)?;
+        if !row.native_return || row.record.command_type != "session.consult.return" {
+            return Err(Error::forbidden());
+        }
+        let cid = row
+            .record
+            .conversation_id
+            .as_deref()
+            .ok_or_else(Error::forbidden)?;
+        let parent: String = c.query_row(
+            "SELECT consultation_record_id FROM native_consultation_returns WHERE operation_record_id=?1",
+            [record], |r| r.get(0),
+        ).map_err(|_| Error::storage())?;
+        let original = rows::by_record(c, &parent)?;
+        if original.record.conversation_id.as_deref() != Some(cid) {
+            return Err(Error::forbidden());
+        }
+        let mut scopes = vec![
+            crate::AuthorityScope::identity(&row.owner, crate::AuthorityMode::Read)?,
+            crate::AuthorityScope::conversation(cid, crate::AuthorityMode::Write)?,
+        ];
+        // The persistent operations trigger also guards an enrollment subject
+        // conditionally dependent on either operation actually changed here.
+        let mut q = c.prepare_cached(
+            "SELECT e.identity_id FROM client_enrollments e JOIN operations o ON o.tenant_id=e.tenant_id AND o.owner_id=e.issuer_identity_id AND o.operation_id=e.complete_operation_id WHERE o.record_id=?1 OR (?3 AND o.record_id=?2)"
+        ).map_err(|_| Error::storage())?;
+        for subject in q
+            .query_map(params![record, parent, include_parent], |r| {
+                r.get::<_, String>(0)
+            })
+            .map_err(|_| Error::storage())?
+        {
+            scopes.push(crate::AuthorityScope::identity(
+                &subject.map_err(|_| Error::storage())?,
+                crate::AuthorityMode::Write,
+            )?);
+        }
+        crate::AuthorityScope::merged(&scopes)
+    }
     fn native_return_recording_sql<'a>(
         &'a self,
         record: &str,
@@ -161,13 +209,13 @@ impl Store {
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
         let scopes = {
             let c = self.try_connection_with_wait(&wait)?;
-            admission::mutation_row_scopes(&rows::by_record(&c, record)?)?
+            self.native_return_mutation_scopes(&c, record, false)?
         };
         let held = self.acquire_authority(&scopes, &wait)?;
         let c = self.try_connection()?;
         if !self.authority_covers(
             &held,
-            &admission::mutation_row_scopes(&rows::by_record(&c, record)?)?,
+            &self.native_return_mutation_scopes(&c, record, false)?,
         ) {
             return Err(Error::forbidden());
         }
@@ -339,7 +387,10 @@ impl Store {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = rows::by_record(&tx, &origin.record)?;
-        if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+        if !self.authority_covers(
+            &held,
+            &self.native_return_mutation_scopes(&tx, &row.record.record_id, false)?,
+        ) {
             return Err(Error::forbidden());
         }
         admission::require_row(self, &held, &row)?;
@@ -388,7 +439,10 @@ impl Store {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = rows::by_record(&tx, &receipt.record)?;
-        if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+        if !self.authority_covers(
+            &held,
+            &self.native_return_mutation_scopes(&tx, &row.record.record_id, false)?,
+        ) {
             return Err(Error::forbidden());
         }
         admission::require_row(self, &held, &row)?;
@@ -512,8 +566,9 @@ impl Store {
                             .conversation_id
                             .as_deref()
                             .ok_or_else(Error::storage)?,
-                        crate::AuthorityMode::Write,
+                        crate::AuthorityMode::Read,
                     )?);
+                    scopes.extend(self.native_return_mutation_scopes(&c, &receipt.record, true)?);
                     let context: String = c.query_row("SELECT context_selection_json FROM native_consultation_returns WHERE operation_record_id=?1",[&receipt.record],|r|r.get(0)).map_err(|_|Error::storage())?;
                     let context: serde_json::Value = serde_json::from_str(&context).map_err(|_|Error::storage())?;
                     for port in context["private"].as_array().ok_or_else(Error::storage)?.iter().chain(std::iter::once(&context["remote"])) {
@@ -539,6 +594,12 @@ impl Store {
         let (parent, context, candidate) = original.ok_or_else(Error::forbidden)?;
         if row.record.state == OperationState::Completed {
             return Ok(Some(row.record));
+        }
+        if !self.authority_covers(
+            &held,
+            &self.native_return_mutation_scopes(&tx, &receipt.record, true)?,
+        ) {
+            return Err(Error::forbidden());
         }
         if !matches!(
             row.record.state,

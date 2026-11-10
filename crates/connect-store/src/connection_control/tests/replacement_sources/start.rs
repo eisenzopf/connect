@@ -962,3 +962,200 @@ fn signed_start_capture_and_replay_do_not_park_writer_on_primary_sql() {
     assert_eq!(f.count("native_replacement_steps"), 3);
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), stable);
 }
+
+#[test]
+fn replacement_start_sql_not_acquired_releases_writer_then_begins_same_original_once() {
+    let (f, _, command, allocated, request) = fixture();
+    let proof = f.admit(&request);
+    let read = f
+        .store
+        .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
+        .unwrap();
+    let original_until = read.expires_at();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let sql = f.store.connection().unwrap();
+    let deferred = f
+        .store
+        .try_begin_native_replacement_start_with_read(
+            allocated.clone(),
+            &request.credentials[0],
+            &proof,
+            read,
+        )
+        .unwrap();
+    assert!(
+        deferred.is_none(),
+        "typed deferral only before primary SQL admission"
+    );
+    assert_eq!(
+        sql.query_row(
+            "SELECT count(*) FROM native_replacement_steps WHERE phase='start'",
+            [],
+            |r| r.get::<_, u64>(0)
+        )
+        .unwrap(),
+        0
+    );
+    drop(proof); // Same caller releases every original/fresh domain alias.
+    let other_writer = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &command.conversation_id,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap()])
+        .expect("actual independent writer progresses while primary SQL is still held");
+    drop(other_writer);
+    drop(sql);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    let current = f.admit(&request);
+    let mut read = f
+        .store
+        .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &current)
+        .unwrap();
+    read.limit(original_until).unwrap();
+    let (attempt, read, origin) = f
+        .store
+        .try_begin_native_replacement_start_with_read(
+            allocated.clone(),
+            &request.credentials[0],
+            &current,
+            read,
+        )
+        .unwrap()
+        .expect("same original begins after SQL drain");
+    assert!(read.expires_at() <= original_until && origin.expires_at() <= original_until);
+    assert_eq!(
+        origin.operation_record_id(),
+        f.store
+            .connection()
+            .unwrap()
+            .query_row(
+                "SELECT record_id FROM operations WHERE operation_id=?1",
+                [&command.operation_id],
+                |r| r.get::<_, String>(0),
+            )
+            .unwrap()
+    );
+    drop(read);
+    let repeat = f
+        .store
+        .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &current)
+        .unwrap();
+    assert_eq!(
+        f.store
+            .try_begin_native_replacement_start_with_read(
+                allocated,
+                &request.credentials[0],
+                &current,
+                repeat,
+            )
+            .unwrap_err()
+            .code,
+        "reconciliation-required"
+    );
+    assert_eq!(f.count("native_replacement_steps"), 3);
+    drop(current);
+    f.store
+        .native_replacement_start_uncertain(&attempt.uncertain())
+        .unwrap();
+    let row = f
+        .store
+        .execute_operation_action(
+            &f.admin,
+            OperationAction::Get {
+                operation_id: command.operation_id,
+            },
+        )
+        .unwrap();
+    assert_eq!(row.effects.len(), 3);
+    let start = row
+        .effects
+        .iter()
+        .filter(|effect| effect.provider == "native-replacement-start")
+        .collect::<Vec<_>>();
+    assert_eq!(start.len(), 1);
+    assert_eq!(start[0].attempt, 1);
+    assert_eq!(start[0].submission_generation, 1);
+}
+
+#[test]
+fn replacement_start_typed_deferral_never_accepts_expired_or_wrong_original_authority() {
+    let (f, _, _, allocated, request) = fixture();
+    let proof = f.admit(&request);
+    let mut read = f
+        .store
+        .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
+        .unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    assert_eq!(read.limit(crate::now() - 1).unwrap_err().code, "forbidden");
+    assert_eq!(
+        f.store
+            .try_begin_native_replacement_start_with_read(
+                allocated.clone(),
+                &request.credentials[0],
+                &proof,
+                read,
+            )
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    let read = f
+        .store
+        .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
+        .unwrap();
+    let mut unrelated = request.clone();
+    unrelated.command = crate::PeerCommand::Binding;
+    let foreign = f.admit(&unrelated);
+    assert_eq!(
+        f.store
+            .try_begin_native_replacement_start_with_read(
+                allocated,
+                &request.credentials[0],
+                &foreign,
+                read,
+            )
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    drop(foreign);
+    drop(proof);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+}
+
+#[test]
+fn replacement_start_after_sql_admission_error_is_never_a_typed_prebegin_deferral() {
+    let (f, _, _, allocated, request) = fixture();
+    let proof = f.admit(&request);
+    let read = f
+        .store
+        .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
+        .unwrap();
+    {
+        let sql = f
+            .store
+            .connection_with_authority(Store::peer_scopes(&proof))
+            .unwrap();
+        sql.execute_batch("CREATE TRIGGER isolated_start_reservation_failure BEFORE INSERT ON native_replacement_steps WHEN NEW.phase='start' BEGIN SELECT RAISE(ABORT,'isolated original start transaction failure'); END;").unwrap();
+    }
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let refused = f.store.try_begin_native_replacement_start_with_read(
+        allocated,
+        &request.credentials[0],
+        &proof,
+        read,
+    );
+    assert_eq!(
+        refused.unwrap_err().code,
+        "storage-unavailable",
+        "post-admission failure must not look like retryable None"
+    );
+    assert_eq!(f.count("native_replacement_steps"), 2);
+    assert_eq!(
+        Store::inspect_snapshot(f.store.path()).unwrap(),
+        before,
+        "original failed transaction rolls back its partial effect"
+    );
+}

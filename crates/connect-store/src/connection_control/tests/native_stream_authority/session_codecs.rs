@@ -639,3 +639,55 @@ fn session_codec_reservation_keeps_identity_readers_but_requires_original_conver
     );
     assert_eq!(f.count("operation_effects"), 2);
 }
+
+#[cfg(feature = "test-support")]
+#[test]
+fn subscription_video_withdrawal_changes_only_current_acceptance_under_exact_writer() {
+    let (f, origin, _) = fixture();
+    let writer = f.controlled_conversation_writer(0);
+    // Controlled accepted state only: actual media/revocation is verified by
+    // the signed Service fixture. This unit exercises the real mutation guard.
+    let (before, endpoint, connection) = {
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        let raw: String = c.query_row("SELECT cap.capabilities_json FROM session_presence_capabilities cap JOIN connections n ON n.session_id=cap.session_id AND n.participant_id=cap.participant_id AND n.membership_epoch=cap.membership_epoch WHERE n.id=?1", [origin.connection_id()], |r| r.get(0)).unwrap();
+        let mut caps: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        caps["video"] = json!(["vp8"]);
+        c.execute("UPDATE session_presence_capabilities SET capabilities_json=?2 WHERE (session_id,participant_id,membership_epoch)=(SELECT session_id,participant_id,membership_epoch FROM connections WHERE id=?1)", params![origin.connection_id(),caps.to_string()]).unwrap();
+        let endpoint: String = c.query_row("SELECT e.capabilities_json FROM endpoints e JOIN connections n ON n.endpoint_id=e.id WHERE n.id=?1", [origin.connection_id()], |r| r.get(0)).unwrap();
+        let connection: String = c.query_row("SELECT json_object('state',state,'generation',generation,'revision',revision,'runtime',observed_runtime_id,'readiness',readiness_json,'membership_epoch',membership_epoch) FROM connections WHERE id=?1", [origin.connection_id()], |r| r.get(0)).unwrap();
+        (caps, endpoint, connection)
+    };
+    drop(writer);
+    let foreign = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            "foreign-conversation",
+            crate::AuthorityMode::Write,
+        )
+        .unwrap()])
+        .unwrap();
+    assert_eq!(
+        f.store
+            .withdraw_native_session_video_for_test(&foreign, origin.connection_id())
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    drop(foreign);
+    let writer = f.controlled_conversation_writer(0);
+    f.store
+        .withdraw_native_session_video_for_test(&writer, origin.connection_id())
+        .unwrap();
+    drop(writer);
+    let c = f.store.connection().unwrap();
+    let raw: String = c.query_row("SELECT cap.capabilities_json FROM session_presence_capabilities cap JOIN connections n ON n.session_id=cap.session_id AND n.participant_id=cap.participant_id AND n.membership_epoch=cap.membership_epoch WHERE n.id=?1", [origin.connection_id()], |r| r.get(0)).unwrap();
+    let mut expected = before;
+    expected.as_object_mut().unwrap().remove("video");
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&raw).unwrap(),
+        expected
+    );
+    assert_eq!(c.query_row("SELECT e.capabilities_json FROM endpoints e JOIN connections n ON n.endpoint_id=e.id WHERE n.id=?1", [origin.connection_id()], |r| r.get::<_,String>(0)).unwrap(), endpoint);
+    assert_eq!(c.query_row("SELECT json_object('state',state,'generation',generation,'revision',revision,'runtime',observed_runtime_id,'readiness',readiness_json,'membership_epoch',membership_epoch) FROM connections WHERE id=?1", [origin.connection_id()], |r| r.get::<_,String>(0)).unwrap(), connection);
+    drop(c);
+}

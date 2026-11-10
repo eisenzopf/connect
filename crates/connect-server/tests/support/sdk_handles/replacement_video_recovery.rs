@@ -1741,6 +1741,10 @@ async fn exercise(mode: u8) {
         incoming,
         camera,
         &retained_recv,
+        &publisher,
+        &subscriber,
+        &target,
+        &previous_retained_epoch,
         &mut sequence,
         original_cutoff,
     )

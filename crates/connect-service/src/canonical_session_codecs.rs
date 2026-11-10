@@ -83,13 +83,93 @@ impl NativeSessionCodecPolicy for Policy {
         if runtime.stop.is_cancelled() {
             return Err(DispatchError::Closed);
         }
+        // An original reservation already exists. A transient immediate SQL
+        // refusal must retain it and retry only this fresh read, never begin.
+        let until = self.attempt.with_ready(|lease| Ok(lease.expires_at()))?;
+        let cutoff = tokio::time::Instant::now()
+            + Duration::from_secs((until - chrono::Utc::now().timestamp()).max(0) as u64);
+        retry_original_codec_current(
+            &runtime.stop,
+            cutoff,
+            || chrono::Utc::now().timestamp() < until,
+            || self.current_attempt_grant(&runtime, scope, plan, operation),
+        )
+        .await
+    }
+    async fn authorize_codec_activation(
+        &self,
+        original: &rvoip_uctp::v2::native_session_codecs::NativeSessionCodecActivation,
+    ) -> Result<AuthorityLease, DispatchError> {
+        let runtime = self.runtime.upgrade().ok_or(DispatchError::Closed)?;
+        // Borrow only the original Slot receipt; never claim or begin again.
+        retry_original_codec_current(
+            &runtime.stop,
+            original.deadline(),
+            || original.current(),
+            || {
+                self.current_attempt_grant(
+                    &runtime,
+                    original.scope(),
+                    original.plan(),
+                    original.operation(),
+                )
+            },
+        )
+        .await
+    }
+}
+async fn retry_original_codec_current<T>(
+    stop: &CancellationToken,
+    cutoff: tokio::time::Instant,
+    current: impl Fn() -> bool,
+    mut read: impl FnMut() -> Result<T, DispatchError>,
+) -> Result<T, DispatchError> {
+    loop {
+        if stop.is_cancelled() || tokio::time::Instant::now() >= cutoff || !current() {
+            return Err(DispatchError::Closed);
+        }
+        match read() {
+            Err(DispatchError::StorageUnavailable) => {
+                tokio::select! { biased;
+                    _ = stop.cancelled() => return Err(DispatchError::Closed),
+                    _ = tokio::time::sleep_until(cutoff) => return Err(DispatchError::Closed),
+                    _ = tokio::time::sleep(Duration::from_millis(20)) => {},
+                }
+            }
+            result => return result,
+        }
+    }
+}
+#[cfg(all(test, feature = "test-support"))]
+mod current_read_tests;
+
+fn current_codec_error(error: Error) -> DispatchError {
+    tracing::debug!(target:"connect_service::canonical_session_codecs", code=%error.code,
+        "Original codec attempt current admission refused");
+    if matches!(
+        error.code.as_str(),
+        "authority-busy" | "storage-unavailable"
+    ) {
+        DispatchError::StorageUnavailable
+    } else {
+        DispatchError::Authority
+    }
+}
+impl Policy {
+    fn current_attempt_grant(
+        &self,
+        runtime: &Arc<Runtime>,
+        scope: &NativeRequestScope,
+        plan: &NativeSessionCodecPlan,
+        operation: &str,
+    ) -> Result<AuthorityLease, DispatchError> {
         self.attempt.with_ready(|lease| {
             let source = Arc::new(
                 runtime
                     .media
                     .store
                     .try_native_session_codec_attempt_read(&self.entry.origin, &self.target, lease)
-                    .map_err(|_| DispatchError::Authority)?,
+                    .map_err(current_codec_error)?,
             );
             let grant = runtime.media.codec_grant(
                 self.domain.clone(),
@@ -108,7 +188,7 @@ impl NativeSessionCodecPolicy for Policy {
                     lease,
                     &grant.descriptor()?,
                 )
-                .map_err(|_| DispatchError::Authority)?;
+                .map_err(current_codec_error)?;
             Ok(canonical_media::reconciliation::lease(grant))
         })
     }

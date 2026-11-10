@@ -382,11 +382,11 @@ impl Store {
         Ok(held())
     }
 
-    /// Isolated live-subscription fixture: withdraw only Video from an existing
-    /// endpoint while preserving Audio and every physical identity. The supplied
-    /// real Writer remains pinned to this exact primary SQL unit and transaction.
+    /// Isolated live-subscription fixture: withdraw only Video from the exact
+    /// current participant acceptance. Endpoint capabilities remain immutable;
+    /// Audio and the original physical connection are unchanged.
     #[cfg(feature = "test-support")]
-    pub fn withdraw_native_endpoint_video_for_test(
+    pub fn withdraw_native_session_video_for_test(
         &self,
         held: &Arc<crate::AuthorityGuardSet>,
         connection_id: &str,
@@ -396,9 +396,9 @@ impl Store {
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let (endpoint, identity, cid, encoded): (String, String, String, String) = tx.query_row(
-            "SELECT e.id,e.identity_id,s.conversation_id,e.capabilities_json FROM connections n JOIN sessions s ON s.id=n.session_id JOIN endpoints e ON e.id=n.endpoint_id WHERE n.id=?1 AND n.state IN ('ready','active') AND e.verification_state='verified'",
-            [connection_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)),
+        let (sid, pid, epoch, identity, cid, encoded): (String, String, u64, String, String, String) = tx.query_row(
+            "SELECT n.session_id,n.participant_id,n.membership_epoch,n.identity_id,s.conversation_id,cap.capabilities_json FROM connections n JOIN sessions s ON s.id=n.session_id JOIN session_participants sp ON sp.session_id=n.session_id AND sp.participant_id=n.participant_id AND sp.membership_epoch=n.membership_epoch JOIN session_presence_capabilities cap ON cap.session_id=sp.session_id AND cap.participant_id=sp.participant_id AND cap.membership_epoch=sp.membership_epoch WHERE n.id=?1 AND n.state IN ('ready','active') AND sp.state='present'",
+            [connection_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?)),
         ).map_err(|_| Error::forbidden())?;
         if !self.authority_covers(
             held,
@@ -409,16 +409,24 @@ impl Store {
         ) {
             return Err(Error::forbidden());
         }
-        let mut capabilities: Vec<String> =
+        let mut capabilities: serde_json::Value =
             serde_json::from_str(&encoded).map_err(|_| Error::storage())?;
-        if !capabilities.iter().any(|v| v == "audio") || !capabilities.iter().any(|v| v == "video")
+        let accepted = capabilities.as_object_mut().ok_or_else(Error::forbidden)?;
+        if !accepted
+            .get("audio")
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|v| !v.is_empty())
+            || !accepted
+                .get("video")
+                .and_then(serde_json::Value::as_array)
+                .is_some_and(|v| !v.is_empty())
         {
             return Err(Error::forbidden());
         }
-        capabilities.retain(|v| v != "video");
+        accepted.remove("video");
         let changed = tx.execute(
-            "UPDATE endpoints SET capabilities_json=?2 WHERE id=?1 AND identity_id=?3 AND capabilities_json=?4",
-            rusqlite::params![endpoint, serde_json::to_string(&capabilities).map_err(|_| Error::storage())?, identity, encoded],
+            "UPDATE session_presence_capabilities SET capabilities_json=?4 WHERE session_id=?1 AND participant_id=?2 AND membership_epoch=?3 AND capabilities_json=?5",
+            rusqlite::params![sid, pid, epoch, capabilities.to_string(), encoded],
         ).map_err(|_| Error::storage())?;
         if changed != 1 {
             return Err(Error::forbidden());

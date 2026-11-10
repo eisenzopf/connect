@@ -190,7 +190,7 @@ async fn scenario(withdraw_video: bool) {
             &AuthorityWait::new(Duration::from_millis(500)),
         )?;
         if withdraw_video {
-            store.withdraw_native_endpoint_video_for_test(&held, "quarantine-target")?;
+            store.withdraw_native_session_video_for_test(&held, "quarantine-target")?;
         }
         drop(held);
         connect_protocol::Result::Ok(())
@@ -344,6 +344,6 @@ async fn scenario(withdraw_video: bool) {
     f.server.shutdown().await.unwrap();
     assert!(
         writer_progressed,
-        "actual domain writer was blocked across the original resource wait: {writer:?}"
+        "actual domain writer or current session acceptance mutation failed during original resource wait: {writer:?}"
     );
 }

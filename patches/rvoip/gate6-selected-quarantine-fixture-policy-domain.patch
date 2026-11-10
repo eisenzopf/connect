@@ -1,0 +1,27 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/quarantined_selected.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/quarantined_selected.rs
+@@ -56,7 +56,23 @@
+     let initial = held_context(&f, CancellationToken::new(), deadline()).await;
+     f.a = held_controller(&f, policy.clone(), initial.as_ref()).unwrap();
+     drop(initial);
+-    f.start(&[Medium::Audio, Medium::Video]).await;
++    // Packet routing requires the identical policy object on both endpoints,
++    // not just wrappers over the same domain. Rebind the still-idle receiver
++    // before opening any ports, preserving its exact principal and identities.
++    f.b = StreamController::new(
++        f.b.conversation.clone(),
++        f.b.session.clone(),
++        f.b.connection.clone(),
++        f.b.credential_snapshot().principal.as_ref().clone(),
++        policy.clone(),
++        f.ba.clone(),
++        f.b.handles.clone(),
++        8,
++    )
++    .unwrap();
++    // This test changes selected ports, not direct subscriptions. Audio is
++    // forwarded explicitly below; no Video routing operation is required.
++    f.start_unsubscribed(&[Medium::Audio, Medium::Video]).await;
+     let expected = f.a.revision();
+     assert_eq!(expected, 1);
+     let old_audio = f.aa.port(Medium::Audio);

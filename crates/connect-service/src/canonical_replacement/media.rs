@@ -114,6 +114,11 @@ impl MediaActivation for Activation {
 #[derive(Clone)]
 pub(super) enum StartAuthority {
     Signed(Arc<AuthorizedEnvelope>),
+    Reauthorized {
+        resource: Arc<AuthorizedEnvelope>,
+        admission: Arc<rvoip_uctp::v2::auth_dispatch::ResourceActivationAuthority>,
+        peer: Arc<rvoip_core::peer_admission::PeerAdmission>,
+    },
     Resumed {
         proof: Arc<connect_store::PeerAuthorityGuard>,
         peer: Arc<rvoip_core::peer_admission::PeerAdmission>,
@@ -130,6 +135,22 @@ impl StartAuthority {
                         principal,
                     )
             }
+            Self::Reauthorized {
+                resource,
+                admission,
+                peer,
+            } => {
+                resource.resource_activation_current(admission)
+                    && admission
+                        .authority::<crate::StoreInvocationAuthority>()
+                        .and_then(|authority| authority.peer_guard())
+                        .is_some_and(|proof| proof.current())
+                    && rvoip_core::staged_streams::reliable_data::same_credential(
+                        resource.principal(),
+                        principal,
+                    )
+                    && peer.validate_principal(principal).is_ok()
+            }
             Self::Resumed {
                 proof,
                 peer,
@@ -144,6 +165,7 @@ impl StartAuthority {
     fn cancellation(&self) -> tokio_util::sync::CancellationToken {
         match self {
             Self::Signed(a) => a.invocation_cancellation(),
+            Self::Reauthorized { resource, .. } => resource.invocation_cancellation(),
             Self::Resumed { cancel, .. } => cancel.clone(),
         }
     }
