@@ -1,5 +1,6 @@
 //! Controlled return admission; these rows are not native restore evidence.
 use super::*;
+mod return_begin_admission;
 use crate::NativeMediaOrigin;
 use connect_protocol::transitions::{
     OperationAction, OperationState, TransitionCommand, TransitionIntent,

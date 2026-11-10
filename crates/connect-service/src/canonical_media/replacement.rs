@@ -215,27 +215,58 @@ impl Policy {
         let Some(observed) = observed else {
             return None;
         };
-        let before = owner().is_ok();
+        let before = owner();
         let mut held = None;
+        let mut writer_excluded = false;
         self.with_registry_for_test(|| {
-            // The normal leaf receives the original current Store read under
-            // actual registry exclusion. No synthetic domain error is injected.
+            // The actual writer is excluded, but readers must use the last
+            // complete published map under their unchanged current Store read.
+            writer_excluded = matches!(
+                self.entries.try_lock(),
+                Err(std::sync::TryLockError::WouldBlock)
+            );
             held = Some(owner());
         })
         .expect("actual receiver epoch registry lock");
         let held = held.expect("original receiver epoch leaf was not called");
-        let after = owner().is_ok();
+        let after = owner();
+        let same_owner = |left: &MediaOwner, right: &MediaOwner| {
+            left.connection.same_incarnation(&right.connection)
+                && left.connection.generation() == right.connection.generation()
+                && left.connection.connection() == right.connection.connection()
+                && left.connection.device() == right.connection.device()
+                && left.connection.endpoint() == right.connection.endpoint()
+                && left.member.identity() == right.member.identity()
+                && left.member.participant() == right.member.participant()
+                && left.member.epoch() == right.member.epoch()
+                && left.send_media == right.send_media
+                && left.receive_media == right.receive_media
+                && left.may_control == right.may_control
+                && left.may_route_source == right.may_route_source
+        };
+        let held_same = before
+            .as_ref()
+            .ok()
+            .zip(held.as_ref().ok())
+            .is_some_and(|(before, held)| same_owner(before, held));
+        let after_same = before
+            .as_ref()
+            .ok()
+            .zip(after.as_ref().ok())
+            .is_some_and(|(before, after)| same_owner(before, after));
         let busy = matches!(&held, Err(error) if error.code == "authority-busy");
         let forbidden = matches!(&held, Err(error) if error.code == "forbidden");
         observed.store(
-            usize::from(before)
-                | (usize::from(busy) << 1)
-                | (usize::from(after) << 2)
-                | (usize::from(forbidden) << 3),
+            usize::from(before.is_ok())
+                | (usize::from(held_same) << 1)
+                | (usize::from(after_same) << 2)
+                | (usize::from(writer_excluded) << 3)
+                | (usize::from(busy) << 4)
+                | (usize::from(forbidden) << 5),
             Ordering::Release,
         );
-        // The second normal case passes this actual under-lock result through
-        // the unchanged lifecycle policy. Its next poll must obtain a fresh read.
+        // The second normal case passes this actual published-owner result
+        // through unchanged lifecycle policy and verifies one original notice.
         if propagate {
             Some(held)
         } else {

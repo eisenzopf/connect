@@ -194,6 +194,48 @@ impl NativeReplacementSelection {
         let c = store.try_connection()?;
         self.read_with_connection(store, &c, held, expires)
     }
+    // Owned CONTROL resolution only. Packet/current try APIs remain immediate.
+    // No SQL guard spans file admission, and a later SQL wait never renews the
+    // first resolved facts' expiry or retries a failed policy/SQL statement.
+    pub(crate) fn read_with_wait(
+        &self,
+        store: &Store,
+        wait: &crate::AuthorityWait,
+        original_until: &mut i64,
+        validate: impl Fn(&Connection) -> Result<()>,
+    ) -> Result<NativeReplacementPreparationRead> {
+        let remaining = std::time::Duration::from_secs(
+            (*original_until).saturating_sub(crate::now()).max(0) as u64,
+        );
+        let wait = wait.bounded(remaining);
+        let (scopes, until) = {
+            let c = store
+                .try_connection_with_wait(&wait)
+                .map_err(|e| preparation_read_refused("control-first-sql", e))?;
+            validate(&c)?;
+            let resolved = resolve(store, &c, &self.origin, &self.source, &self.retained)?;
+            // Publish even when a later file/SQL admission refuses. A caller
+            // retry may never renew this first actual current-facts cutoff.
+            *original_until = (*original_until).min(resolved.expires_at);
+            (resolved.scopes, *original_until)
+        };
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            until.saturating_sub(crate::now()).max(0) as u64,
+        ));
+        let held = store
+            .acquire_authority(&scopes, &wait)
+            .map_err(|e| preparation_read_refused("control-authority", e))?;
+        let c = store
+            .try_connection_with_wait(&wait)
+            .map_err(|e| preparation_read_refused("control-current-sql", e))?;
+        validate(&c)?;
+        let read = self.read_with_connection(store, &c, held, until)?;
+        wait.check()?;
+        if !read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
+    }
     pub(crate) fn read_with_connection(
         &self,
         store: &Store,

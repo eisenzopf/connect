@@ -1,0 +1,178 @@
+{
+  "format": "connect/gate6-cleanup-batch/1",
+  "updated": "2026-11-10T11:34:54.665419+00:00",
+  "batch": "v212-H",
+  "source_base": "af122a73",
+  "status": "135 distinct affected controls pass across H/H2/H3. Focused signed retest deferred until remaining provider/telephone/scoped-refresh hotpath fixes are integrated.",
+  "candidates": [
+    {
+      "name": "v212-native-allocation-single-sql-candidate",
+      "manifest_sha256": "4b00e8098a0acf411a48442e2a316929d113345f254b1122b4321eca9d220f67",
+      "patch_sha256": "a7b8090cf286e31745f26ed5ef2d67051c9f547172bfddf581fa852e7c7a45d8",
+      "files": [
+        "crates/connect-store/src/connection_control/tests/replacement_sources/allocation.rs",
+        "crates/connect-store/src/transitions/native_replacements/allocation.rs"
+      ],
+      "review_receipts": {
+        "independent-v207-review.json": "77fa218fb94a4a5693cbdc74a52469c05768d692d452d3aef324d1e2e6c8f3a2",
+        "root-review.json": "00ae4db1ec40044cd0d4f18c61ebee5a8be3a140d4e21b658e7ee9897a3ac9c0"
+      }
+    },
+    {
+      "name": "v212-receiver-epoch-published-probe-candidate",
+      "manifest_sha256": "6bed21332d127aefe5879b81a2ed104e242cb71314747ccd065267f9ebd1fba0",
+      "patch_sha256": "f408be5f1b34eb61965389590f6b40a860e366670186af9cc4f205c780d2536d",
+      "files": [
+        "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery.rs",
+        "crates/connect-service/src/canonical_media/replacement.rs"
+      ],
+      "review_receipts": {
+        "independent-v199-review.json": "052b06a4ed90183b38bd1639b8d9b2fe85862cfd06e18eff382bbdc94d28ca45",
+        "independent-v198-review.json": "d6aef550bc08c31a5dfabc866ab4a10544aed7dff1ab9f0700f1b7d94bece5ea",
+        "root-review.json": "9a049e995c5cee86d159b661c86eb339baf70d5d36b2871b365e38eb4de242c6"
+      }
+    },
+    {
+      "name": "v212-reserved-preparation-control-read-candidate",
+      "manifest_sha256": "5c5836dbeae98d9680c43963e052ddfbaacb6db257b19dc82645f905f4deecb5",
+      "patch_sha256": "25793538f1320c3cc40c1c7bea7bd8d32cebbd95fc24fd424166ab465b3785db",
+      "files": [
+        "crates/connect-service/src/canonical_replacement.rs",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs",
+        "crates/connect-store/src/peer_authority/connection_media/replacement.rs",
+        "crates/connect-store/src/transitions/native_replacements.rs"
+      ],
+      "review_receipts": {
+        "independent-v207-review.json": "8c8e800ac74757422961fca23b5691102d9c68a290ea2ad96130283bab7388ac"
+      }
+    },
+    {
+      "name": "v212-return-original-begin-admission-candidate",
+      "manifest_sha256": "b8e23816f9fc00df4a9dd2c64a55c1faa2b87922bcb978f3b5b3602a672a84b9",
+      "patch_sha256": "1f53f45e85f399632828d6ba0647212a2bc498a31d75db31195adc750664b6b1",
+      "files": [
+        "crates/connect-service/src/canonical_consultation_return.rs",
+        "crates/connect-store/src/connection_control/tests/consultation_returns/return_begin_admission.rs",
+        "crates/connect-store/src/connection_control/tests/consultation_returns.rs",
+        "crates/connect-store/src/transitions/native_returns/custody.rs"
+      ],
+      "review_receipts": {
+        "independent-v207-review.json": "862fd699e571cbec27a1b7cc20df56b9138e149b6806dfe6f9196b9e0d206822"
+      }
+    }
+  ],
+  "acceptance_changes": false,
+  "last_full_matrix": {
+    "passed_cells": 0,
+    "required_cells": 32,
+    "passed_checks": 390,
+    "required_checks": 432
+  },
+  "previous_focused": {
+    "batch": "G2",
+    "passed": 19,
+    "failed": 7,
+    "selected": 26
+  },
+  "planned_verification": {
+    "affected_store_units": 87,
+    "affected_service_units": 43,
+    "focused_signed": 27
+  },
+  "limits": [
+    "Focused signed results do not qualify complete matrix cells.",
+    "Linux-only native selector remains pending local ARM Linux.",
+    "Exact historic competing SQL holders are not established."
+  ],
+  "unit_results": [
+    {
+      "batch": "h",
+      "group": "connect_store",
+      "summary": {
+        "selected": 87,
+        "completed": 87,
+        "passed": 85,
+        "failed": 2
+      },
+      "receipt_sha256": "82c3b7cee3089acaa6f52a6fc4d4bf6f7fda8a30311d58d8987fc5dcad573ea4",
+      "binary_sha256": "b69816bb975de300a702fa08dc84d898c526b5151d9f18386c2f0b3aa8e44db8"
+    },
+    {
+      "batch": "h",
+      "group": "connect_service",
+      "summary": {
+        "selected": 43,
+        "completed": 43,
+        "passed": 43,
+        "failed": 0
+      },
+      "receipt_sha256": "d1130205914a70dfaf2a2f7cb9563b3b6ee02f6e3b5b035bc551767bdce64880",
+      "binary_sha256": "48255a0744d0e59f0ccd7a018e8c164cf7ac7763d8e1c552988463ce549d747c"
+    },
+    {
+      "batch": "h2",
+      "group": "connect_store",
+      "summary": {
+        "selected": 7,
+        "completed": 7,
+        "passed": 6,
+        "failed": 1
+      },
+      "receipt_sha256": "8eb7280f007a93b183000139bb9726552e3e46243a2b54b3eca0bb9e93298a69",
+      "binary_sha256": "f5f05a4bd1b7f09880ae1a7590bd825c548597fd349408526e95df7161c30a23"
+    },
+    {
+      "batch": "h3",
+      "group": "connect_store",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "receipt_sha256": "15bc4af5a71d78ab8e03cd582b20d0963909b2fe0e55f8e6dd89cd349e9ae4f2",
+      "binary_sha256": "beb497de1598c5fbaafa31e0aabb2150a7559c5c7ca635fdcdc776c63c39990f"
+    }
+  ],
+  "distinct_current_controls": {
+    "passed": 135,
+    "failed": 0
+  },
+  "instrumentation_corrections": [
+    "Observe actual shared file-lock WouldBlock in cfg(test) rendezvous; retained assertions and deadlines.",
+    "Expect existing unauthorized result for revoked credential, with no returned authority or extra effect."
+  ],
+  "build_result": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "-p",
+      "connect-client",
+      "-p",
+      "connect-store",
+      "-p",
+      "connect-service",
+      "-p",
+      "connect-server",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--test",
+      "gate6_replacement_video",
+      "--test",
+      "gate6_canonical_runtime",
+      "--features",
+      "connect-server/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 318.71229004859924,
+    "log_sha256": "16295f6fc54c19d31e7504dc097e1e1020f3d15dc53927c41095804d9a1ac274",
+    "naturally_joined": true
+  }
+}

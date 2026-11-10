@@ -521,14 +521,14 @@ async fn signed_native_panicked_preparation_keeps_compensation_and_failed_drain(
 }
 #[cfg(feature = "test-support")]
 #[tokio::test]
-async fn signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable() {
+async fn signed_private_receiver_epoch_lookup_uses_current_published_owner_under_registry_writer() {
     tokio::time::timeout(Duration::from_secs(90), exercise(18))
         .await
         .unwrap();
 }
 #[cfg(feature = "test-support")]
 #[tokio::test]
-async fn signed_private_receiver_epoch_retry_keeps_same_registration_and_fresh_history() {
+async fn signed_private_receiver_epoch_published_owner_keeps_same_registration_and_fresh_history() {
     tokio::time::timeout(Duration::from_secs(90), exercise(19))
         .await
         .unwrap();
@@ -1463,8 +1463,8 @@ async fn exercise(mode: u8) {
         subscriber_closed.unwrap();
         server_closed.unwrap();
         assert_eq!(
-            bits, 7,
-            "actual contended epoch leaf must defer rather than retire the original registration"
+            bits, 15,
+            "published epoch owner must preserve the same physical incarnation and authority while the actual registry writer is excluded"
         );
         assert!(observed.is_ok(), "same original signed receiver history/video was not delivered after release: {observed:?}");
         assert_eq!(notice_count.unwrap(), 1);
@@ -2012,15 +2012,17 @@ async fn exercise(mode: u8) {
     if let Some(probe) = receiver_epoch_registry_probe {
         let bits = probe.load(std::sync::atomic::Ordering::Acquire);
         eprintln!(
-            "receiver epoch actual-read registry probe: before={} held_busy={} after={} held_forbidden={}",
+            "receiver epoch published-owner registry probe: before={} held_same={} after_same={} writer_excluded={} held_busy={} held_forbidden={}",
             bits & 1 != 0,
             bits & 2 != 0,
             bits & 4 != 0,
             bits & 8 != 0,
+            bits & 16 != 0,
+            bits & 32 != 0,
         );
         assert_eq!(
-            bits, 7,
-            "actual receiver epoch owner under real registry exclusion must be authority-busy, not forbidden"
+            bits, 15,
+            "actual receiver epoch must retain identical physical owner and permissions before, under and after the excluded registry writer"
         );
     }
     #[cfg(feature = "test-support")]

@@ -806,3 +806,60 @@ fn signed_allocation_capture_does_not_wait_for_another_sqlite_writer() {
     assert!(record.effects.iter().all(|effect| effect.attempt == 1));
     assert_eq!(f.count("native_replacement_steps"), 2);
 }
+
+#[test]
+fn replacement_allocation_resolves_source_under_original_sql_custody() {
+    let (f, _, _, receipt, request) = prepared_target();
+    let proof = f.admit(&request);
+    let read = {
+        // The real signed proof precedes SQL. This guard owns the actual Store
+        // primary mutex, so any hidden second acquisition deterministically
+        // refuses instead of depending on a background refresh winning a race.
+        let c = f.store.connection().unwrap();
+        let read = f
+            .store
+            .native_replacement_allocation_read_in(&c, &receipt, &request.credentials[0], &proof)
+            .unwrap();
+        assert!(read.current());
+        assert_eq!(
+            c.query_row(
+                "SELECT COUNT(*) FROM native_replacement_steps WHERE phase='allocate'",
+                [],
+                |row| row.get::<_, u64>(0),
+            )
+            .unwrap(),
+            0
+        );
+        read
+    };
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_allocation_with_read(
+            &receipt,
+            &request.credentials[0],
+            &proof,
+            read,
+        )
+        .unwrap();
+    assert!(read.current());
+    drop(read);
+    // The same original signed command cannot create a second allocation.
+    assert_eq!(
+        f.store
+            .begin_native_replacement_allocation_with_peer(
+                &receipt,
+                &request.credentials[0],
+                &proof,
+            )
+            .err()
+            .expect("same allocation must remain once-only")
+            .code,
+        "reconciliation-required"
+    );
+    drop(proof);
+    f.store
+        .native_replacement_allocation_uncertain(attempt)
+        .unwrap();
+    assert_eq!(f.count("native_replacement_steps"), 2);
+    assert_eq!(f.count("connections"), 2);
+}

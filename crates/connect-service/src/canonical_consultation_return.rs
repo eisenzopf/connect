@@ -8,7 +8,10 @@ use connect_protocol::{transitions::TransitionCommand, Error, Result};
 use rvoip_core::ids::SessionId;
 use std::{
     collections::{BTreeMap, BTreeSet},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicI64, Ordering},
+        Arc,
+    },
     time::Duration,
 };
 struct Job {
@@ -49,6 +52,72 @@ impl Runtime {
             record: record.clone(),
         };
         work.spawn(async move {let _job=job;if let Err(error)=runtime.apply_consultation_return(credential,command,record).await{tracing::debug!(target:"connect_service::canonical_consultation",code=%error.code,"Native return did not complete");}});
+    }
+    async fn begin_original_return(
+        self: &Arc<Self>,
+        lease: Arc<connect_store::NativeConsultationReturnLease>,
+    ) -> Result<(
+        connect_store::NativeConsultationReturnAttempt,
+        connect_store::NativeReturnRead,
+    )> {
+        // One original metadata-admission window. Never renew it on a fresh
+        // read or after a file/SQL deferral; the first successful read narrows it.
+        let until = Arc::new(AtomicI64::new(
+            lease.expires_at().min(chrono::Utc::now().timestamp() + 5),
+        ));
+        let cutoff = tokio::time::Instant::now() + Duration::from_secs(5);
+        loop {
+            if self.stop.is_cancelled() {
+                return Err(Error::forbidden());
+            }
+            if tokio::time::Instant::now() >= cutoff
+                || chrono::Utc::now().timestamp() >= until.load(Ordering::Acquire)
+            {
+                return Err(Error::new(
+                    "authority-busy",
+                    "Original native return begin admission ended",
+                ));
+            }
+            let store = self.media.store.clone();
+            let original = lease.clone();
+            let original_until = until.clone();
+            let stop = self.stop.clone();
+            // Actual blocking owner is retained and joined. No metadata SQL,
+            // validation or five-ms file drain runs on the async media thread.
+            let result = self.owned_store_call(move || {
+                if stop.is_cancelled() || tokio::time::Instant::now() >= cutoff {
+                    return Err(Error::forbidden());
+                }
+                let read = match store.native_consultation_return_attempt_read_before(
+                    &original, original_until.load(Ordering::Acquire)) {
+                    Ok(read) => read,
+                    Err(error) if error.code == "authority-busy" => {
+                        tracing::debug!(target: "connect_service::canonical_consultation", stage="return-current", code=%error.code,
+                            "Original return current read deferred before begin");
+                        return Ok(None);
+                    }
+                    Err(error) => return Err(error),
+                };
+                original_until.fetch_min(read.expires_at(), Ordering::AcqRel);
+                if stop.is_cancelled() || tokio::time::Instant::now() >= cutoff {
+                    return Err(Error::forbidden());
+                }
+                // Only Store's typed pre-DML None may loop. SQL/policy/commit
+                // errors after entry return immediately, never replaying begin.
+                store.try_begin_native_consultation_return_before(
+                    original, read, original_until.load(Ordering::Acquire))
+            }).await?;
+            if let Some(started) = result {
+                // Even if stop raced the joined result, retain this exact
+                // attempt: the existing Core/capture path owns its uncertainty.
+                return Ok(started);
+            }
+            tokio::select! { biased;
+                _ = self.stop.cancelled() => return Err(Error::forbidden()),
+                _ = tokio::time::sleep_until(cutoff) => return Err(Error::new("authority-busy", "Original native return begin admission ended")),
+                _ = tokio::time::sleep(Duration::from_millis(20)) => {},
+            }
+        }
     }
     async fn apply_consultation_return(
         self: &Arc<Self>,
@@ -110,7 +179,12 @@ impl Runtime {
                 .scene_origins(&command.session_id)
                 .map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-scene",?error,"Native return refused");Error::forbidden()})?;
             let sips = self.media.scene_sip_origins(&command.session_id).map_err(|_|Error::forbidden())?;
-            let read = self.media.store.try_native_return_read(&origin, &sources, &sips).map_err(|error| {
+            let store = self.media.store.clone();
+            let read_origin = origin.clone();
+            let read_sources = sources.clone();
+            let read_sips = sips.clone();
+            let read = self.owned_store_call(move || store.try_native_return_read(
+                &read_origin, &read_sources, &read_sips)).await.map_err(|error| {
                 // Emit only these exact constant Store reasons, never arbitrary
                 // error text containing caller or resource details.
                 let reason = match error.message.as_str() {
@@ -120,6 +194,7 @@ impl Runtime {
                 };
                 tracing::debug!(target:"connect_service::canonical_consultation",stage="return-read",code=%error.code,reason,"Native return planning refused");error
             })?;
+            if self.stop.is_cancelled() { return Err(Error::forbidden()); }
             let revision = self
                 .core
                 .audio_audience_revision(&sid)
@@ -169,15 +244,7 @@ impl Runtime {
         .await? else {
             return Ok(());
         };
-        let read = retry_metadata(&self.stop, || async {
-            self.media
-                .store
-                .native_consultation_return_attempt_read(&lease)
-        })
-        .await?;
-        let store = self.media.store.clone();
-        let (attempt, read) =
-            store_call(move || store.begin_native_consultation_return(lease, read)).await?;
+        let (attempt, read) = self.begin_original_return(Arc::new(lease)).await?;
         let remaining = (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
         let invocation = AudienceInvocation {
             policy: self.media.clone(),

@@ -260,12 +260,30 @@ impl Store {
         credential: &str,
         proof: &PeerAuthorityGuard,
     ) -> Result<NativeReplacementAllocationRead> {
-        let (member, descriptor) = {
-            let c = self.try_connection()?;
-            let saved = current_prepared(self, &c, prepared)?;
-            target_facts(self, &c, prepared, credential, proof, &saved)?
-        };
-        let source = prepared.selection.read_with_peer(self, proof)?;
+        let c = self.try_connection()?;
+        self.native_replacement_allocation_read_in(&c, prepared, credential, proof)
+    }
+    // Complete this effect-free resolution inside the original SQL custody.
+    // Dropping it between target facts and source resolution makes a successful
+    // initial admission race a second immediate primary-mutex acquisition.
+    pub(crate) fn native_replacement_allocation_read_in(
+        &self,
+        c: &Connection,
+        prepared: &NativeReplacementPrepared,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+    ) -> Result<NativeReplacementAllocationRead> {
+        let saved = current_prepared(self, c, prepared)?;
+        let (member, descriptor) = target_facts(self, c, prepared, credential, proof, &saved)?;
+        if !proof.current() {
+            return Err(Error::forbidden());
+        }
+        let source = prepared.selection.read_with_connection(
+            self,
+            c,
+            Self::peer_scopes(proof).clone(),
+            proof.expires_at(),
+        )?;
         let mut target = source.source().session().clone();
         target.actor = member;
         Ok(NativeReplacementAllocationRead {

@@ -1299,3 +1299,213 @@ fn replacement_status_recovery_releases_original_read_before_exact_writer() {
         drop(identity_read);
     }
 }
+
+#[test]
+fn reserved_control_read_waits_for_actual_sql_drain_without_reacquiring_or_renewing() {
+    let (f, key, _, origin, sources) = setup();
+    let lease = prepare(&f, &origin, &sources);
+    let owner = f.store.revalidate(&key).unwrap().identity_id;
+    let writer = f
+        .store
+        .acquire_authority(
+            &[crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Write).unwrap()],
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    let original_until = (crate::now() + 3).min(lease.expires_at());
+    let wait = crate::AuthorityWait::new(std::time::Duration::from_secs(2));
+    let (at_file, file_wait) = std::sync::mpsc::channel();
+    let (done, result) = std::sync::mpsc::channel();
+    let (observed, completion_while_sql_held, joined) = std::thread::scope(|scope| {
+        let store = &f.store;
+        let lease = &lease;
+        let worker = scope.spawn(move || {
+            let mut until = original_until;
+            let read = crate::authority_fences::with_waited_lock_probe(
+                move || {
+                    let _ = at_file.send(());
+                },
+                || {
+                    store.native_replacement_preparation_attempt_read_with_wait(
+                        lease, &mut until, &wait,
+                    )
+                },
+            );
+            done.send(()).unwrap();
+            (read, until)
+        });
+        // This real WouldBlock proves first SQL/facts completed, with no SQL
+        // mutex held while the worker waits for the actual Identity fence.
+        let reached_file = file_wait.recv_timeout(std::time::Duration::from_secs(1));
+        let sql = f.store.connection().unwrap();
+        drop(writer);
+        let early = result.recv_timeout(std::time::Duration::from_millis(30));
+        drop(sql);
+        let joined = worker.join().unwrap();
+        (reached_file, early, joined)
+    });
+    assert!(observed.is_ok());
+    assert!(
+        completion_while_sql_held.is_err(),
+        "control read must wait for the actual SQL holder"
+    );
+    let (read, cap) = joined;
+    let read = read.unwrap();
+    assert!(read.current());
+    assert!(read.expires_at() <= cap && cap <= original_until);
+    drop(read);
+    assert_eq!(f.count("native_replacement_steps"), 1);
+    let c = f.store.connection().unwrap();
+    let (started, attempt): (bool, u64) = c.query_row(
+        "SELECT s.started,e.attempt FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id WHERE s.operation_record_id=?1",
+        [lease.record_id()], |r| Ok((r.get(0)?,r.get(1)?)),
+    ).unwrap();
+    assert!(!started && attempt == 0);
+}
+
+#[test]
+fn reserved_control_read_rechecks_withdrawn_original_policy_after_file_wait() {
+    let (f, key, _, origin, sources) = setup();
+    let lease = prepare(&f, &origin, &sources);
+    let effects_before = f.count("operation_effects");
+    let owner = f.store.revalidate(&key).unwrap().identity_id;
+    let writer = f
+        .store
+        .acquire_authority(
+            &[crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Write).unwrap()],
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    let original_until = (crate::now() + 3).min(lease.expires_at());
+    let wait = crate::AuthorityWait::new(std::time::Duration::from_secs(2));
+    let (at_file, file_wait) = std::sync::mpsc::channel();
+    let (observed, joined) = std::thread::scope(|scope| {
+        let store = &f.store;
+        let lease = &lease;
+        let worker = scope.spawn(move || {
+            let mut until = original_until;
+            let read = crate::authority_fences::with_waited_lock_probe(
+                move || {
+                    let _ = at_file.send(());
+                },
+                || {
+                    store.native_replacement_preparation_attempt_read_with_wait(
+                        lease, &mut until, &wait,
+                    )
+                },
+            );
+            (read, until)
+        });
+        let observed = file_wait.recv_timeout(std::time::Duration::from_secs(1));
+        {
+            let c = f.store.connection_with_authority(&writer).unwrap();
+            assert_eq!(
+                c.execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&key])
+                    .unwrap(),
+                1
+            );
+        }
+        drop(writer);
+        (observed, worker.join().unwrap())
+    });
+    assert!(observed.is_ok());
+    let (read, until) = joined;
+    assert_eq!(
+        read.err()
+            .expect("withdrawn original credential must refuse current authentication")
+            .code,
+        "unauthorized"
+    );
+    assert!(until <= original_until);
+    assert_eq!(f.count("native_replacement_steps"), 1);
+    assert_eq!(f.count("operation_effects"), effects_before);
+}
+
+#[test]
+fn reserved_control_sql_wait_cancels_without_beginning_original_attempt() {
+    let (f, _, _, origin, sources) = setup();
+    let lease = prepare(&f, &origin, &sources);
+    let effects_before = f.count("operation_effects");
+    let wait = crate::AuthorityWait::new(std::time::Duration::from_secs(2));
+    let sql = f.store.connection().unwrap();
+    let (entered, started) = std::sync::mpsc::channel();
+    let (done, completion) = std::sync::mpsc::channel();
+    let (early, joined) = std::thread::scope(|scope| {
+        let store = &f.store;
+        let lease = &lease;
+        let worker_wait = wait.clone();
+        let worker = scope.spawn(move || {
+            let mut until = lease.expires_at();
+            entered.send(()).unwrap();
+            let read = store.native_replacement_preparation_attempt_read_with_wait(
+                lease,
+                &mut until,
+                &worker_wait,
+            );
+            done.send(()).unwrap();
+            (read, until)
+        });
+        let _ = started.recv_timeout(std::time::Duration::from_secs(1));
+        let early = completion.recv_timeout(std::time::Duration::from_millis(30));
+        wait.cancel();
+        (early, worker.join().unwrap())
+    });
+    drop(sql);
+    assert!(early.is_err());
+    let (read, until) = joined;
+    assert_eq!(
+        read.err()
+            .expect("actual SQL wait must observe cancellation")
+            .code,
+        "cancelled"
+    );
+    assert!(until <= lease.expires_at());
+    assert_eq!(f.count("native_replacement_steps"), 1);
+    assert_eq!(f.count("operation_effects"), effects_before);
+}
+
+#[test]
+fn reserved_control_first_facts_cutoff_survives_failed_file_admission() {
+    let (f, key, _, origin, sources) = setup();
+    let lease = prepare(&f, &origin, &sources);
+    let owner = f.store.revalidate(&key).unwrap().identity_id;
+    let writer = f
+        .store
+        .acquire_authority(
+            &[crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Write).unwrap()],
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    let mut until = lease.expires_at();
+    let refused = f
+        .store
+        .native_replacement_preparation_attempt_read_with_wait(
+            &lease,
+            &mut until,
+            &crate::AuthorityWait::new(std::time::Duration::from_millis(500)),
+        );
+    drop(writer);
+    assert_eq!(
+        refused
+            .err()
+            .expect("actual Identity writer must exclude Read admission")
+            .code,
+        "authority-busy"
+    );
+    // Initial SQL and facts completed before file admission refused. Preserve
+    // that cutoff despite there having been no successfully returned Read.
+    assert!(until <= crate::now() + 5 && until < lease.expires_at());
+    let first_until = until;
+    let read = f
+        .store
+        .native_replacement_preparation_attempt_read_with_wait(
+            &lease,
+            &mut until,
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    assert!(read.current());
+    assert!(read.expires_at() <= first_until && until <= first_until);
+    drop(read);
+    assert_eq!(f.count("native_replacement_steps"), 1);
+}

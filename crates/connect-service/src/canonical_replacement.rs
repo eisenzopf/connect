@@ -342,8 +342,22 @@ impl Runtime {
             let plan = plan.clone();
             let telephone_route = telephone_route.clone();
             let begin_until_for_resolution = begin_until.clone();
-            let resolved = self.owned_store_call(move || {
-                let read = runtime.media.store.native_replacement_preparation_attempt_read(&resolution_lease)?;
+            let resolution_wait = connect_store::AuthorityWait::new(
+                begin_deadline.saturating_duration_since(tokio::time::Instant::now()),
+            );
+            let _cancel_resolution = resolution_wait.cancel_on_drop();
+            let owned_wait = resolution_wait.clone();
+            let resolution = self.owned_store_call(move || {
+                let mut first_until = begin_until_for_resolution.load(Ordering::Acquire);
+                let resolved_read = runtime.media.store.native_replacement_preparation_attempt_read_with_wait(
+                    &resolution_lease,
+                    &mut first_until,
+                    &owned_wait,
+                );
+                // Capture the first resolved facts even if a subsequent file
+                // or SQL admission fails before producing a full owned Read.
+                begin_until_for_resolution.fetch_min(first_until, Ordering::AcqRel);
+                let read = resolved_read?;
                 // Capture even a Read whose later registry/credential resolution
                 // refuses. Subsequent reads may only shorten this first cutoff.
                 begin_until_for_resolution.fetch_min(read.expires_at(), Ordering::AcqRel);
@@ -378,7 +392,28 @@ impl Runtime {
                     None
                 };
                 Ok((read, entries, principal, telephone_target))
-            }).await;
+            });
+            tokio::pin!(resolution);
+            let resolved = tokio::select! { biased;
+                _ = self.stop.cancelled() => None,
+                _ = tokio::time::sleep_until(begin_deadline) => None,
+                result = &mut resolution => Some(result),
+            };
+            let resolved = match resolved {
+                Some(result) => result,
+                None => {
+                    resolution_wait.cancel();
+                    // Join the SAME original blocking owner. Any late read is
+                    // discarded here, never allowed to begin after this cutoff.
+                    drop(resolution.await);
+                    drop(roles);
+                    return Err(if self.stop.is_cancelled() {
+                        Error::forbidden()
+                    } else {
+                        Error::new("authority-busy", "Original replacement begin cutoff expired")
+                    });
+                }
+            };
             let (read, entries, principal, telephone_target) = match resolved {
                 Ok(value) => value,
                 Err(error) => { drop(roles); return Err(error); }

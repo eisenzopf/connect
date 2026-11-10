@@ -11,7 +11,7 @@ pub struct NativeConsultationReturnLease {
     expires_at: i64,
 }
 pub struct NativeConsultationReturnAttempt {
-    lease: NativeConsultationReturnLease,
+    lease: Arc<NativeConsultationReturnLease>,
 }
 pub struct NativeConsultationReturnApplied {
     owner: Weak<crate::InstallationOwnership>,
@@ -110,9 +110,9 @@ impl NativeConsultationReturnAttempt {
             owner: origin.owner.clone(),
             runtime: origin.runtime.clone(),
             record: origin.record.clone(),
-            attempt: self.lease.attempt,
-            effect: self.lease.effect,
-            hash: self.lease.hash,
+            attempt: self.lease.attempt.clone(),
+            effect: self.lease.effect.clone(),
+            hash: self.lease.hash.clone(),
             observation: encoded,
             metadata,
         })
@@ -149,6 +149,10 @@ pub(super) fn touch(c: &Connection, record: &str, store: &Store) -> Result<()> {
         return Err(conflict());
     }
     event(c, &rows::by_record(c, record)?, store)
+}
+fn return_begin_refused(stage: &'static str, error: &Error) {
+    tracing::debug!(target: "connect_store::native_return::admission", stage, code=%error.code,
+        "Original native return begin deferred before effect");
 }
 impl Store {
     /// Exact SQL footprint for one original return. Identity policy facts keep
@@ -298,12 +302,21 @@ impl Store {
         &self,
         lease: &NativeConsultationReturnLease,
     ) -> Result<NativeReturnRead> {
+        self.native_consultation_return_attempt_read_before(lease, i64::MAX)
+    }
+    /// Fresh current authority for this exact original reservation only. A
+    /// pre-begin retry may narrow, never renew, its first actual read cutoff.
+    pub fn native_consultation_return_attempt_read_before(
+        &self,
+        lease: &NativeConsultationReturnLease,
+        original_until: i64,
+    ) -> Result<NativeReturnRead> {
         {
             let c = self.try_connection()?;
             bound(&c, self, lease)?;
         }
         let mut read = lease.selection.read(self)?;
-        read.limit(lease.expires_at)?;
+        read.limit(lease.expires_at.min(original_until))?;
         Ok(read)
     }
     /// A fresh complete selection remains held through the bounded Core call.
@@ -311,9 +324,21 @@ impl Store {
     pub fn begin_native_consultation_return(
         &self,
         lease: NativeConsultationReturnLease,
-        mut read: NativeReturnRead,
+        read: NativeReturnRead,
     ) -> Result<(NativeConsultationReturnAttempt, NativeReturnRead)> {
-        read.limit(lease.expires_at)?;
+        self.try_begin_native_consultation_return_before(Arc::new(lease), read, i64::MAX)?
+            .ok_or_else(|| Error::new("authority-busy", "Native return begin admission is busy"))
+    }
+    /// None means definite pre-effect admission failure only. The caller retains
+    /// the SAME Arc lease and may obtain a fresh current read, never re-prepare
+    /// or repeat a possibly started mutation. Every other error is terminal.
+    pub fn try_begin_native_consultation_return_before(
+        &self,
+        lease: Arc<NativeConsultationReturnLease>,
+        mut read: NativeReturnRead,
+        original_until: i64,
+    ) -> Result<Option<(NativeConsultationReturnAttempt, NativeReturnRead)>> {
+        read.limit(lease.expires_at.min(original_until))?;
         if !read.current()
             || read.selection().snapshot() != lease.selection.snapshot()
             || read.origin().record_id() != lease.record_id()
@@ -323,8 +348,22 @@ impl Store {
         }
         let (selection, routing, until) = read.into_mutation_selection(self)?;
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
-        let held = self.acquire_authority(&routing, &wait)?;
-        let mut c = self.try_connection()?;
+        let held = match self.acquire_authority(&routing, &wait) {
+            Ok(held) => held,
+            Err(error) if error.code == "authority-busy" => {
+                return_begin_refused("file-admission", &error);
+                return Ok(None);
+            }
+            Err(error) => return Err(error),
+        };
+        let mut c = match self.try_connection() {
+            Ok(c) => c,
+            Err(error) if error.code == "authority-busy" => {
+                return_begin_refused("primary-sql", &error);
+                return Ok(None);
+            }
+            Err(error) => return Err(error),
+        };
         if !self.authority_covers(&held, &selection.scopes(self, &c, true)?) {
             return Err(Error::new(
                 "authority-busy",
@@ -332,9 +371,22 @@ impl Store {
             ));
         }
         c.bind_available_mutation_authority(self, &held)?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
+        let tx = match c.transaction_with_behavior(TransactionBehavior::Immediate) {
+            Ok(tx) => tx,
+            Err(error)
+                if matches!(
+                    error.sqlite_error_code(),
+                    Some(rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked)
+                ) =>
+            {
+                return_begin_refused(
+                    "begin-immediate",
+                    &Error::new("authority-busy", "Native return begin metadata is busy"),
+                );
+                return Ok(None);
+            }
+            Err(_) => return Err(Error::storage()),
+        };
         if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
             return Err(Error::forbidden());
         }
@@ -362,7 +414,7 @@ impl Store {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok((NativeConsultationReturnAttempt { lease }, read))
+        Ok(Some((NativeConsultationReturnAttempt { lease }, read)))
     }
     /// An engine error after attempt admission is uncertainty, never permission
     /// to call Core again. The caller drops its bounded IO readers first.

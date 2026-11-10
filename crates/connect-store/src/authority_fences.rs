@@ -901,7 +901,11 @@ fn lock_admission(file: &File, mode: AuthorityMode, wait: Option<&AuthorityWait>
         match FileExt::try_lock_shared(file) {
             Ok(()) => return Ok(()),
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => match wait {
-                Some(wait) => wait.pause()?,
+                Some(wait) => {
+                    #[cfg(test)]
+                    observe_waited_lock();
+                    wait.pause()?;
+                }
                 None => return Err(authority_busy()),
             },
             Err(_) => return Err(Error::new("authority-unavailable", "Authority lock failed")),

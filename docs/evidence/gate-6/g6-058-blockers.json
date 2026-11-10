@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T11:15:00.768260+00:00",
-  "run_status": "G6-058 remains open. Cleanup G/G2:232 unit/component/upstream controls passed. Focused G2 finished19/26 passed,7failed: native allocation1, stale registry-busy fixture1, telephone preparation3, private return2. Both provider creation/export paths now complete; failures moved to return. Next fixes address these four families. Fullv209 remains0/32 complete,390/432 requirement checks passed.",
+  "updated": "2026-11-10T11:34:54.665419+00:00",
+  "run_status": "H/H2/H3: all135 distinct affected unit controls passed. Further audit found provider idle Read/100ms SQL refresh, established telephone packet SQL and global missing-route refresh pause. These are being fixed as one additional batch before focused signed retest. G2 remains19/26; last full matrix remains0/32.",
   "blockers": [
     {
       "id": "B01",
@@ -2551,9 +2551,9 @@
       "dependencies": [],
       "code_paths": [],
       "solution": "Resolve target and source under the same original SQL guard and signed proof; remove unnecessary second immediate admission.",
-      "status": "Isolated candidate preparation/review; not yet unit tested",
+      "status": "H/H2/H3 implemented and unit verified; 135 distinct affected controls passed; signed verification pending",
       "completion": "Causal unit regressions and original focused signed check pass without changed media budgets.",
-      "completion_status": "in-progress"
+      "completion_status": "verification-pending"
     },
     {
       "id": "S72",
@@ -2562,9 +2562,9 @@
       "dependencies": [],
       "code_paths": [],
       "solution": "Replace obsolete Busy expectation with same physical owner/permissions before, during and after actual writer exclusion; keep current-authority controls.",
-      "status": "Isolated candidate preparation/review; not yet unit tested",
+      "status": "H/H2/H3 implemented and unit verified; 135 distinct affected controls passed; signed verification pending",
       "completion": "Causal unit regressions and original focused signed check pass without changed media budgets.",
-      "completion_status": "in-progress"
+      "completion_status": "verification-pending"
     },
     {
       "id": "S73",
@@ -2573,9 +2573,9 @@
       "dependencies": [],
       "code_paths": [],
       "solution": "Use a control-only bounded read across required file and SQL admission; preserve initial expiry, original lease and cancellation, and fresh policy after waits.",
-      "status": "Isolated candidate preparation/review; not yet unit tested",
+      "status": "H/H2/H3 implemented and unit verified; 135 distinct affected controls passed; signed verification pending",
       "completion": "Causal unit regressions and original focused signed check pass without changed media budgets.",
-      "completion_status": "in-progress"
+      "completion_status": "verification-pending"
     },
     {
       "id": "S74",
@@ -2584,8 +2584,48 @@
       "dependencies": [],
       "code_paths": [],
       "solution": "Keep the same lease until typed pre-effect admission succeeds; never retry begun mutations or Core work; preserve first-read cutoff and cancellation.",
-      "status": "Isolated candidate preparation/review; not yet unit tested",
+      "status": "H/H2/H3 implemented and unit verified; 135 distinct affected controls passed; signed verification pending",
       "completion": "Causal unit regressions and original focused signed check pass without changed media budgets.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S75",
+      "title": "Provider media state-change authorization",
+      "owner": "Root and assigned agent",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-server/src/private_vapi/transport.rs",
+        "crates/connect-store/src/private_provider/media.rs"
+      ],
+      "solution": "Remove idle provider Read and100ms SQL polling; use original runtime snapshot and epoch-fenced actual IO.",
+      "status": "Isolated implementation and causal regression preparation",
+      "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
+      "completion_status": "in-progress"
+    },
+    {
+      "id": "S76",
+      "title": "Established telephone media state-change authorization",
+      "owner": "Root and assigned agent",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-service/src/telephone_replacement/established.rs"
+      ],
+      "solution": "Move unary and mixed telephone/native packet resolution to existing owned snapshot worker, retaining exact physical phase and queued epochs.",
+      "status": "Isolated implementation and causal regression preparation",
+      "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
+      "completion_status": "in-progress"
+    },
+    {
+      "id": "S77",
+      "title": "Scope successful snapshot refresh to affected writers",
+      "owner": "Root and assigned agent",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-store/src/media_authorization.rs"
+      ],
+      "solution": "Permit independently fenced publication during unrelated writes; retain conservative sequence fencing for failed derivations.",
+      "status": "Isolated implementation and causal regression preparation",
+      "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
       "completion_status": "in-progress"
     }
   ],
@@ -16144,5 +16184,6 @@
       "One Linux-only native check remains pending on local ARM Linux.",
       "Historical exact competing SQL holder not identified."
     ]
-  }
+  },
+  "cleanup_h_evidence": "docs/evidence/gate-6/cleanup-batch-h-v212.json"
 }

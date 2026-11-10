@@ -460,6 +460,26 @@ impl Store {
             .map_err(|e| preparation_refused("read-interval", e))?;
         Ok(read)
     }
+    /// Owned control-only resolution for the SAME original reservation. The
+    /// caller supplies its original cutoff/cancellation wait and joins this
+    /// work before beginning. `original_until` only decreases, including when
+    /// first facts resolve but a later admission refuses. This never retries
+    /// SQL statements or any effect.
+    pub fn native_replacement_preparation_attempt_read_with_wait(
+        &self,
+        lease: &NativeReplacementPreparationLease,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<NativeReplacementPreparationRead> {
+        *original_until = (*original_until).min(lease.expires);
+        lease
+            .selection
+            .read_with_wait(self, wait, original_until, |c| {
+                bound(c, self, lease)
+                    .map(|_| ())
+                    .map_err(|e| preparation_refused("control-reservation", e))
+            })
+    }
     pub fn begin_native_replacement_preparation(
         &self,
         lease: &NativeReplacementPreparationLease,
