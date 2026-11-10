@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T14:03:16.793261+00:00",
-  "run_status": "K complete control-path batch: 156/156 affected controls pass (105 Store, 51 Service). Local signed-target build finishing; all 27 focused signed scenarios next. Last completed J signed run remains 22/27; last full matrix remains v209: 0/32 cells, 390/432 checks passed.",
+  "updated": "2026-11-10T14:09:32.807651+00:00",
+  "run_status": "K cleanup batch (83627d65): 156/156 affected controls and 26/27 focused signed scenarios pass, improved from J22/27. All native replacement and telephone scenarios pass. Remaining AI return scenario completes return but fails installation restart with installation-busy, then overflows during panic unwind; lifecycle investigation active. Last full matrix unchanged: v209 0/32 cells, 390/432 checks passed.",
   "blockers": [
     {
       "id": "B01",
@@ -2689,7 +2689,7 @@
         "crates/connect-service/src/canonical_replacement/allocation.rs"
       ],
       "solution": "Combine planning, pure transport validation and once-only begin in one immediate SQL interval under supplied signed proof; retain same captured/uncertain attempt through recording contention.",
-      "status": "Implemented, independently source reviewed and unit verified in K: 156/156 affected controls pass. Signed 27-scenario retest pending; no matrix promotion.",
+      "status": "K156/156 affected controls pass; all3 signed native replacement scenarios pass. Full matrix qualification open.",
       "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
       "completion_status": "in-progress"
     },
@@ -2702,7 +2702,7 @@
         "crates/connect-service/src/telephone_replacement/allocation.rs"
       ],
       "solution": "Audit and repair submission, resources, preparation and commit control boundaries with original bounded waits and typed pre-effect deferral; no arbitrary post-mutation storage retry or packet waits.",
-      "status": "Implemented, independently source reviewed and unit verified in K: 156/156 affected controls pass. Signed 27-scenario retest pending; no matrix promotion.",
+      "status": "K156/156 affected controls pass; all3 signed telephone handoff/cancel/no-answer scenarios pass. Full matrix qualification open.",
       "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
       "completion_status": "in-progress"
     },
@@ -2715,7 +2715,7 @@
         "crates/connect-service/src/canonical_consultation_return.rs"
       ],
       "solution": "Reuse bounded complete initial return resolution and prepare without holding authority while waiting for SQL; preserve same initial phase budget, cancellation and fresh plan checks.",
-      "status": "Implemented, independently source reviewed and unit verified in K: 156/156 affected controls pass. Signed 27-scenario retest pending; no matrix promotion.",
+      "status": "K156/156 affected controls pass; provider return completes. One signed scenario now fails later installation restart; lifecycle investigation active. Full matrix qualification open.",
       "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
       "completion_status": "in-progress"
     }
@@ -5104,10 +5104,10 @@
     "status_url": "../../.local/gate-6/full-matrix-v209/status.html"
   },
   "current_focused_verification": {
-    "passed": 22,
+    "passed": 26,
     "planned": 27,
-    "scope": "J local macOS ARM signed scenarios; separate113/113 affected control and Service regressions pass.",
-    "next": "Batch remaining native allocation/capture, telephone control sequence and initial provider return planning/prepare gaps; no full32 promotion."
+    "scope": "K local macOS ARM signed scenarios; separate156/156 affected controls pass.",
+    "next": "Resolve remaining installation restart lifecycle failure and verify it; full matrix qualification remains separate."
   },
   "current_workplan_tasks": [
     "S71",

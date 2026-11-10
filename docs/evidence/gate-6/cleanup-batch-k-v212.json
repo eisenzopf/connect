@@ -1,9 +1,9 @@
 {
   "format": "connect/gate6-cleanup-batch/1",
   "batch": "v212-K",
-  "updated": "2026-11-10T14:03:16.329592+00:00",
+  "updated": "2026-11-10T14:09:32.807651+00:00",
   "source_base": "bc6f4d4e",
-  "status": "156/156 affected controls pass. Signed-target build finishing; all27 focused signed scenarios next.",
+  "status": "156/156 affected controls and 26/27 focused signed scenarios pass. Remaining scenario completes return, then fails restarting the installation; stack overflow follows panic during unwind. Full matrix qualification remains open.",
   "acceptance_changes": false,
   "changes": [
     "Resolve native allocation, pure host validation and once-only begin under one immediate SQL guard; preserve original attempt on capture errors and historical recording contention.",
@@ -66,5 +66,69 @@
     "These component controls do not qualify matrix cells or prove A/V quality.",
     "Signed reply authority and short activation/control serialization remain intentional; no claim that every lock was removed.",
     "Packet policy remains nonblocking. Actual physical IO still requires current authorization."
-  ]
+  ],
+  "source_revision": "83627d65",
+  "build": {
+    "exit_code": 0,
+    "elapsed_seconds": 374.0167291164398,
+    "log_sha256": "4a6164156186e8990bdd92fac91c75c8877d5af372671fa79b536dfee3d9baaf",
+    "naturally_joined": true
+  },
+  "focused_signed": {
+    "rows": [
+      {
+        "target": "gate6_replacement_video",
+        "exit_code": 0,
+        "elapsed_seconds": 14.85648512840271,
+        "naturally_joined": true,
+        "receipt_sha256": "ec8336d30eb40cfa23003251bc02a6b38d5979b4fe10c595d759b772169491d7",
+        "summary": {
+          "selected": 3,
+          "completed": 3,
+          "passed": 3,
+          "failed": 0
+        }
+      },
+      {
+        "target": "gate6_canonical_webtransport",
+        "exit_code": 0,
+        "elapsed_seconds": 22.697423934936523,
+        "naturally_joined": true,
+        "receipt_sha256": "a6b30b154e5442ad2b1950d7e694ff38598733e41a7e1c5ca8c52577fd8a34ae",
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        }
+      },
+      {
+        "target": "gate6_canonical_runtime",
+        "exit_code": 1,
+        "elapsed_seconds": 230.48132824897766,
+        "naturally_joined": true,
+        "receipt_sha256": "05a2c316fdb706219972ef8d7cb50bd0b4fcd6204cbb5215de895defb0e8c55c",
+        "summary": {
+          "selected": 19,
+          "completed": 19,
+          "passed": 18,
+          "failed": 1
+        }
+      }
+    ]
+  },
+  "focused_signed_summary": {
+    "selected": 27,
+    "passed": 26,
+    "failed": 1,
+    "scope": "local macOS arm64",
+    "driver_naturally_joined": true
+  },
+  "remaining_failure": {
+    "scenario": "production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return",
+    "stage": "restart_followup.rs:94: RunningCanonicalServer::start after shutdown",
+    "error": "installation-busy followed by stack overflow during panic unwind",
+    "log_sha256": "cc38d1df595651f0e784d4343d7ed9601f8158afe589079fee9e69f938f0346d",
+    "classification": "lifecycle investigation pending; not the previous return admission failure"
+  }
 }
