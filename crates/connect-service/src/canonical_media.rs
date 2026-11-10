@@ -21,6 +21,7 @@ pub(crate) mod replacement;
 mod sources;
 #[cfg(feature = "test-support")]
 pub(crate) mod video_preparation_fixture;
+pub(crate) mod weak_identity;
 pub(crate) mod webrtc;
 use crate::{canonical_runtime::current_member, StoreInvocationAuthority};
 use connect_store::{NativeMediaOrigin, NativeMediaRead, PeerConnectionProjection, Store};

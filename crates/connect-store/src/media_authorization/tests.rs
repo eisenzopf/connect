@@ -41,13 +41,21 @@ impl Fixture {
         self.register_for(&self.scope, until)
     }
     fn register_for(&self, scope: &AuthorityScope, until: Instant) -> Handle<Facts> {
+        self.register_hinted_for(scope, &[], until)
+    }
+    fn register_hinted_for(
+        &self,
+        scope: &AuthorityScope,
+        hints: &[AuthorityScope],
+        until: Instant,
+    ) -> Handle<Facts> {
         let manager = self.manager.clone();
         let owner = self.owner.clone();
         let revision = self.revision.clone();
         let refreshes = self.refreshes.clone();
         let scope = scope.clone();
         self.registry
-            .register(move || {
+            .register_with_hints(hints, move || {
                 let guards = manager.try_acquire(std::slice::from_ref(&scope))?;
                 refreshes.fetch_add(1, Ordering::Relaxed);
                 Prepared::new(
@@ -526,4 +534,517 @@ fn immutable_scope_probe_names_reuse_the_published_vector_without_holding_a_fenc
     drop(writer);
     f.registry.invalidate_all();
     assert!(unchanged_names_reused && names_hold_no_fence);
+}
+
+#[test]
+fn missing_publication_ignores_disjoint_cid_writer_but_matching_writer_still_drains_io() {
+    for hinted in [false, true] {
+        let f = Fixture::new();
+        f.registry.availability.enable().unwrap();
+        let a = AuthorityScope::conversation("unrelated-room", AuthorityMode::Read).unwrap();
+        let b = AuthorityScope::conversation("original-room", AuthorityMode::Read).unwrap();
+        let writer_a = f.manager.try_acquire(&[a.write_scope()]).unwrap();
+        let hints = if hinted { vec![b.clone()] } else { Vec::new() };
+        let handle = f.register_hinted_for(&b, &hints, Instant::now() + Duration::from_secs(5));
+        handle.slot.refresh_if_missing(&f.registry);
+        let original = handle.admit();
+        drop(writer_a);
+        let original = original.expect("unrelated CID writer must not pause a missing route");
+        let queued = original.stamp();
+        assert!(original.current());
+        assert_eq!(f.refreshes.load(Ordering::Acquire), 1);
+        // A matching state change still revokes before waiting, and the actual
+        // original IO Read must drain before its file Writer can succeed.
+        let blocked = f.manager.try_acquire(&[b.write_scope()]);
+        let waiting_for_original_io = blocked.is_err();
+        drop(blocked);
+        assert!(!original.current() && handle.admit().is_err());
+        drop(original);
+        let writer_b = f.manager.try_acquire(&[b.write_scope()]).unwrap();
+        let before = f.refreshes.load(Ordering::Acquire);
+        handle.slot.refresh_if_missing(&f.registry);
+        let matching_still_refused = handle.admit().is_err();
+        let matching_not_rederived = f.refreshes.load(Ordering::Acquire) == before;
+        drop(writer_b);
+        handle.slot.refresh_if_missing(&f.registry);
+        let renewed = handle.admit().unwrap();
+        let old_stamp_refused = handle.admit_original(queued).is_err();
+        f.registry.invalidate_all();
+        assert!(waiting_for_original_io && matching_still_refused && matching_not_rederived);
+        assert!(old_stamp_refused && !renewed.current());
+    }
+}
+
+#[test]
+fn successful_fenced_refresh_publishes_across_disjoint_writer_sequence_change() {
+    let f = Fixture::new();
+    let scope = AuthorityScope::conversation("prepared-room", AuthorityMode::Read).unwrap();
+    let other = AuthorityScope::conversation("changed-room", AuthorityMode::Write).unwrap();
+    let manager = f.manager.clone();
+    let owner = f.owner.clone();
+    let captured_scope = scope.clone();
+    let (prepared_tx, prepared_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let release = Mutex::new(release_rx);
+    let handle = f
+        .registry
+        .register_with_hints(&[scope], move || {
+            let guards = manager.try_acquire(std::slice::from_ref(&captured_scope))?;
+            let prepared = Prepared::new(
+                Arc::new(Facts {
+                    owner: owner.clone(),
+                    revision: 7,
+                }),
+                guards,
+                Instant::now() + Duration::from_secs(5),
+            )?;
+            prepared_tx.send(()).unwrap();
+            release
+                .lock()
+                .unwrap()
+                .recv_timeout(Duration::from_secs(2))
+                .unwrap();
+            Ok(prepared)
+        })
+        .unwrap();
+    f.registry.availability.enable().unwrap();
+    let slot = handle.slot.clone();
+    let registry = f.registry.clone();
+    let worker = std::thread::spawn(move || slot.refresh_if_missing(&registry));
+    let prepared = prepared_rx.recv_timeout(Duration::from_secs(1));
+    let before = f.registry.control.lock().unwrap().sequence;
+    let writer = f.manager.try_acquire(&[other]).unwrap();
+    drop(writer);
+    let after = f.registry.control.lock().unwrap().sequence;
+    release_tx.send(()).unwrap();
+    worker.join().unwrap();
+    let published = handle.admit();
+    f.registry.invalidate_all();
+    assert!(prepared.is_ok() && after > before);
+    assert_eq!(published.unwrap().facts().revision, 7);
+}
+
+#[test]
+fn discovered_dependency_writer_prevents_publication_and_drains_prepared_read() {
+    let f = Fixture::new();
+    let old_hint = AuthorityScope::conversation("previous-room", AuthorityMode::Read).unwrap();
+    let dependency = AuthorityScope::conversation("discovered-room", AuthorityMode::Read).unwrap();
+    let manager = f.manager.clone();
+    let owner = f.owner.clone();
+    let actual = dependency.clone();
+    let first = AtomicBool::new(true);
+    let (prepared_tx, prepared_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let release = Mutex::new(release_rx);
+    let handle = f
+        .registry
+        .register_with_hints(&[old_hint], move || {
+            let guards = manager.try_acquire(std::slice::from_ref(&actual))?;
+            let prepared = Prepared::new(
+                Arc::new(Facts {
+                    owner: owner.clone(),
+                    revision: 1,
+                }),
+                guards,
+                Instant::now() + Duration::from_secs(5),
+            )?;
+            if first.swap(false, Ordering::AcqRel) {
+                prepared_tx.send(()).unwrap();
+                release
+                    .lock()
+                    .unwrap()
+                    .recv_timeout(Duration::from_secs(2))
+                    .unwrap();
+            }
+            Ok(prepared)
+        })
+        .unwrap();
+    f.registry.availability.enable().unwrap();
+    let slot = handle.slot.clone();
+    let registry = f.registry.clone();
+    let refresh = std::thread::spawn(move || slot.refresh_if_missing(&registry));
+    let prepared = prepared_rx.recv_timeout(Duration::from_secs(1));
+    let (blocked_tx, blocked_rx) = mpsc::channel();
+    let (acquired_tx, acquired_rx) = mpsc::channel();
+    let (finish_tx, finish_rx) = mpsc::channel();
+    let manager = f.manager.clone();
+    let write = dependency.write_scope();
+    let writer = std::thread::spawn(move || {
+        let guards = crate::authority_fences::with_waited_lock_probe(
+            move || {
+                let _ = blocked_tx.send(());
+            },
+            || manager.acquire(&[write], &AuthorityWait::new(Duration::from_secs(2))),
+        );
+        acquired_tx.send(guards.is_ok()).unwrap();
+        let _ = finish_rx.recv_timeout(Duration::from_secs(2));
+        drop(guards);
+    });
+    let waited_for_exact_read = blocked_rx.recv_timeout(Duration::from_secs(1));
+    let still_waiting = acquired_rx.try_recv().is_err();
+    release_tx.send(()).unwrap();
+    refresh.join().unwrap();
+    let refused = handle.admit().is_err();
+    let acquired_after_read_drop = acquired_rx.recv_timeout(Duration::from_secs(1));
+    // Even an unsafe counterfactual publication must release its original
+    // Read before joining the same actual writer; retain the failed criteria.
+    handle.slot.revoke();
+    let _ = finish_tx.send(());
+    writer.join().unwrap();
+    handle.slot.refresh_if_missing(&f.registry);
+    let current = handle.admit().is_ok();
+    let exact_scope_published = handle
+        .slot
+        .published_scopes()
+        .is_some_and(|scopes| scopes.as_slice() == std::slice::from_ref(&dependency));
+    f.registry.invalidate_all();
+    assert!(prepared.is_ok() && waited_for_exact_read.is_ok() && still_waiting);
+    assert!(refused && matches!(acquired_after_read_drop, Ok(true)));
+    assert!(current && exact_scope_published);
+}
+
+#[test]
+fn external_scope_intent_allows_disjoint_missing_publication_without_local_notice() {
+    let mut f = Fixture::new();
+    let manager = f.manager.clone();
+    // An independent registry receives no Manager before_write notification;
+    // only its real kernel scope probe can observe this writer's exclusion.
+    f.registry = Registry::new(move |scopes| {
+        drop(manager.try_acquire(scopes)?);
+        Ok(())
+    });
+    let denial_hint =
+        AuthorityScope::conversation("unknown-denial-room", AuthorityMode::Read).unwrap();
+    let denied: Handle<Facts> = f
+        .registry
+        .register_with_hints(&[denial_hint], || Err(Error::forbidden()))
+        .unwrap();
+    f.registry.availability.enable().unwrap();
+    denied.slot.refresh_if_missing(&f.registry);
+    let original_denial = denied
+        .observe()
+        .err()
+        .is_some_and(|error| error.code == "forbidden");
+    let a = AuthorityScope::conversation("externally-changed-room", AuthorityMode::Read).unwrap();
+    let b = AuthorityScope::conversation("unrelated-new-room", AuthorityMode::Read).unwrap();
+    let writer = f.manager.try_acquire(&[a.write_scope()]).unwrap();
+    let affected = f.register_hinted_for(
+        &a,
+        std::slice::from_ref(&a),
+        Instant::now() + Duration::from_secs(5),
+    );
+    let mut watcher = f.start();
+    until(|| {
+        f.registry
+            .control
+            .lock()
+            .unwrap()
+            .external_scopes
+            .contains(&a)
+    });
+    let old_denial_invalidated = denied
+        .observe()
+        .err()
+        .is_some_and(|error| error.code == "authority-busy");
+    let no_local_notice = f.registry.control.lock().unwrap().writers.is_empty();
+    let other = f.register_hinted_for(&b, &[b.clone()], Instant::now() + Duration::from_secs(5));
+    let end = Instant::now() + Duration::from_secs(1);
+    let mut current = None;
+    while current.is_none() && Instant::now() < end {
+        current = other.admit().ok();
+        if current.is_none() {
+            std::thread::sleep(Duration::from_millis(1));
+        }
+    }
+    let disjoint_published_during_writer = current.as_ref().is_some_and(Lease::current);
+    let matching_refused = affected.admit().is_err();
+    drop(current);
+    drop(writer);
+    watcher.shutdown().unwrap();
+    assert!(no_local_notice && disjoint_published_during_writer && matching_refused);
+    assert!(original_denial && old_denial_invalidated);
+}
+
+#[test]
+fn definitive_failure_with_unknown_footprint_stays_uncached_across_unrelated_writer() {
+    let f = Fixture::new();
+    let scope = AuthorityScope::conversation("hint-room", AuthorityMode::Read).unwrap();
+    let other = AuthorityScope::conversation("unproven-room", AuthorityMode::Write).unwrap();
+    let (entered_tx, entered_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let release = Mutex::new(release_rx);
+    let first = AtomicBool::new(true);
+    let manager = f.manager.clone();
+    let owner = f.owner.clone();
+    let actual = scope.clone();
+    let handle = f
+        .registry
+        .register_with_hints(&[scope], move || {
+            if first.swap(false, Ordering::AcqRel) {
+                entered_tx.send(()).unwrap();
+                release
+                    .lock()
+                    .unwrap()
+                    .recv_timeout(Duration::from_secs(2))
+                    .unwrap();
+                return Err(Error::forbidden());
+            }
+            let guards = manager.try_acquire(std::slice::from_ref(&actual))?;
+            Prepared::new(
+                Arc::new(Facts {
+                    owner: owner.clone(),
+                    revision: 1,
+                }),
+                guards,
+                Instant::now() + Duration::from_secs(5),
+            )
+        })
+        .unwrap();
+    f.registry.availability.enable().unwrap();
+    let slot = handle.slot.clone();
+    let registry = f.registry.clone();
+    let worker = std::thread::spawn(move || slot.refresh_if_missing(&registry));
+    let entered = entered_rx.recv_timeout(Duration::from_secs(1));
+    let writer = f.manager.try_acquire(&[other]).unwrap();
+    drop(writer);
+    release_tx.send(()).unwrap();
+    worker.join().unwrap();
+    let no_stale_denial = handle
+        .observe()
+        .err()
+        .is_some_and(|e| e.code == "authority-busy")
+        && handle.slot.refusal.load().is_none();
+    handle.slot.refresh_if_missing(&f.registry);
+    let fresh = handle.admit().is_ok();
+    f.registry.invalidate_all();
+    assert!(entered.is_ok() && no_stale_denial && fresh);
+}
+
+#[test]
+fn definitive_missing_route_failure_is_not_cached_while_disjoint_writer_active() {
+    let f = Fixture::new();
+    let scope = AuthorityScope::conversation("missing-room", AuthorityMode::Read).unwrap();
+    let other = AuthorityScope::conversation("writing-room", AuthorityMode::Write).unwrap();
+    let attempts = Arc::new(AtomicUsize::new(0));
+    let calls = attempts.clone();
+    let handle: Handle<Facts> = f
+        .registry
+        .register_with_hints(&[scope], move || {
+            calls.fetch_add(1, Ordering::AcqRel);
+            Err(Error::forbidden())
+        })
+        .unwrap();
+    f.registry.availability.enable().unwrap();
+    let writer = f.manager.try_acquire(&[other]).unwrap();
+    handle.slot.refresh_if_missing(&f.registry);
+    let attempted_during_writer = attempts.load(Ordering::Acquire) == 1;
+    let not_cached = handle.slot.refusal.load().is_none()
+        && handle
+            .observe()
+            .err()
+            .is_some_and(|error| error.code == "authority-busy");
+    drop(writer);
+    handle.slot.refresh_if_missing(&f.registry);
+    let original_outcome_refreshed = attempts.load(Ordering::Acquire) == 2
+        && handle
+            .observe()
+            .err()
+            .is_some_and(|error| error.code == "forbidden");
+    handle.slot.refresh_if_missing(&f.registry);
+    let no_unchanged_sql_poll = attempts.load(Ordering::Acquire) == 2;
+    f.registry.invalidate_all();
+    assert!(
+        attempted_during_writer
+            && not_cached
+            && original_outcome_refreshed
+            && no_unchanged_sql_poll
+    );
+}
+
+#[test]
+fn cached_unknown_footprint_denial_is_cleared_by_disjoint_writer_then_refetched() {
+    let f = Fixture::new();
+    let hint = AuthorityScope::conversation("old-hint-room", AuthorityMode::Read).unwrap();
+    let dependency =
+        AuthorityScope::conversation("newly-allowed-room", AuthorityMode::Read).unwrap();
+    let allowed = Arc::new(AtomicBool::new(false));
+    let grant = allowed.clone();
+    let manager = f.manager.clone();
+    let owner = f.owner.clone();
+    let scopes = vec![hint.clone(), dependency.clone()];
+    let handle = f
+        .registry
+        .register_with_hints(&[hint], move || {
+            if !grant.load(Ordering::Acquire) {
+                return Err(Error::forbidden());
+            }
+            let guards = manager.try_acquire(&scopes)?;
+            Prepared::new(
+                Arc::new(Facts {
+                    owner: owner.clone(),
+                    revision: 1,
+                }),
+                guards,
+                Instant::now() + Duration::from_secs(5),
+            )
+        })
+        .unwrap();
+    f.registry.availability.enable().unwrap();
+    handle.slot.refresh_if_missing(&f.registry);
+    let cached = handle
+        .observe()
+        .err()
+        .is_some_and(|error| error.code == "forbidden");
+    let writer = f.manager.try_acquire(&[dependency.write_scope()]).unwrap();
+    let stale_denial_cleared = handle.slot.refusal.load().is_none()
+        && handle
+            .observe()
+            .err()
+            .is_some_and(|error| error.code == "authority-busy");
+    // A failed projection did not prove the old hint was complete. The actual
+    // writer changes this dependency; a later positive grant fences BOTH scopes.
+    allowed.store(true, Ordering::Release);
+    drop(writer);
+    handle.slot.refresh_if_missing(&f.registry);
+    let fresh = handle.admit().is_ok();
+    f.registry.invalidate_all();
+    assert!(cached && stale_denial_cleared && fresh);
+}
+
+#[test]
+fn known_definitive_failure_waits_for_disjoint_writer_outcome_before_reprojection() {
+    let f = Fixture::new();
+    let hint = AuthorityScope::conversation("denied-room", AuthorityMode::Read).unwrap();
+    let other = AuthorityScope::conversation("pending-room", AuthorityMode::Write).unwrap();
+    let attempts = Arc::new(AtomicUsize::new(0));
+    let calls = attempts.clone();
+    let handle: Handle<Facts> = f
+        .registry
+        .register_with_hints(&[hint], move || {
+            calls.fetch_add(1, Ordering::AcqRel);
+            Err(Error::forbidden())
+        })
+        .unwrap();
+    f.registry.availability.enable().unwrap();
+    handle.slot.refresh_if_missing(&f.registry);
+    let original_denial = handle
+        .observe()
+        .err()
+        .is_some_and(|error| error.code == "forbidden");
+    let writer = f.manager.try_acquire(&[other]).unwrap();
+    for _ in 0..16 {
+        handle.slot.refresh_if_missing(&f.registry);
+    }
+    let only_first_projection = attempts.load(Ordering::Acquire) == 1;
+    let denial_withdrawn = handle
+        .observe()
+        .err()
+        .is_some_and(|error| error.code == "authority-busy");
+    drop(writer);
+    handle.slot.refresh_if_missing(&f.registry);
+    let one_after_original_outcome = attempts.load(Ordering::Acquire) == 2
+        && handle
+            .observe()
+            .err()
+            .is_some_and(|error| error.code == "forbidden");
+    for _ in 0..16 {
+        handle.slot.refresh_if_missing(&f.registry);
+    }
+    let no_unchanged_reprojection = attempts.load(Ordering::Acquire) == 2;
+    f.registry.invalidate_all();
+    assert!(original_denial && denial_withdrawn && only_first_projection);
+    assert!(one_after_original_outcome && no_unchanged_reprojection);
+}
+
+#[test]
+fn native_custody_erasure_keeps_same_allocation_and_last_io_reader() {
+    let f = Fixture::new();
+    let handle = f.register(Instant::now() + Duration::from_secs(5));
+    f.registry.availability.enable().unwrap();
+    handle.slot.refresh_if_missing(&f.registry);
+    let typed = handle.admit().unwrap();
+    let allocation = Arc::as_ptr(&typed.generation).cast::<()>();
+    let weak = Arc::downgrade(&typed.generation);
+    let stamp = typed.stamp();
+    let original_epoch = typed.packet_epoch();
+    let retained = typed.into_custody();
+    assert_eq!(allocation, Arc::as_ptr(&retained.generation).cast::<()>());
+    assert!(retained.stamp() == stamp && retained.current());
+    let last = retained.clone();
+    assert_eq!(allocation, Arc::as_ptr(&last.generation).cast::<()>());
+    drop(handle);
+    assert!(!retained.current() && !original_epoch.current());
+    assert!(f.manager.try_acquire(&[f.scope.write_scope()]).is_err());
+    drop(retained);
+    assert!(weak.upgrade().is_some());
+    assert!(f.manager.try_acquire(&[f.scope.write_scope()]).is_err());
+    drop(last);
+    assert!(weak.upgrade().is_none());
+    assert!(f.manager.try_acquire(&[f.scope.write_scope()]).is_ok());
+}
+
+#[test]
+fn native_custody_erasure_checks_original_facts_and_cannot_borrow_successor() {
+    let f = Fixture::new();
+    let handle = f.register(Instant::now() + Duration::from_secs(5));
+    f.registry.availability.enable().unwrap();
+    handle.slot.refresh_if_missing(&f.registry);
+    let original = handle.admit().unwrap().into_custody();
+    let stamp = original.stamp();
+    let epoch = original.packet_epoch();
+    f.owner.store(false, Ordering::Release);
+    assert!(
+        !original.current(),
+        "custody must check facts, not only epoch"
+    );
+    assert!(
+        epoch.current(),
+        "this refusal is the original facts predicate"
+    );
+    f.owner.store(true, Ordering::Release);
+    assert!(original.current());
+    assert!(f.manager.try_acquire(&[f.scope.write_scope()]).is_err());
+    assert!(!original.current() && !epoch.current());
+    drop(original);
+    let writer = f.manager.try_acquire(&[f.scope.write_scope()]).unwrap();
+    f.revision.store(1, Ordering::Release);
+    drop(writer);
+    handle.slot.refresh_if_missing(&f.registry);
+    let typed = handle.admit().unwrap();
+    assert_eq!(typed.facts().revision, 1);
+    let successor = typed.into_custody();
+    assert!(successor.current() && successor.stamp() != stamp);
+    assert!(!epoch.current());
+    assert!(handle.admit_original(stamp).is_err());
+    drop(successor);
+    drop(handle);
+    assert!(f.manager.try_acquire(&[f.scope.write_scope()]).is_ok());
+}
+
+#[test]
+fn native_custody_erasure_preserves_original_expiry_and_runtime_drop() {
+    let f = Fixture::new();
+    let deadline = Instant::now() + Duration::from_secs(1);
+    let handle = f.register(deadline);
+    f.registry.availability.enable().unwrap();
+    handle.slot.refresh_if_missing(&f.registry);
+    let original = handle.admit().unwrap().into_custody();
+    let epoch = original.packet_epoch();
+    until(|| Instant::now() >= deadline);
+    assert!(!original.current() && !epoch.current());
+    assert!(handle.admit_original(original.stamp()).is_err());
+    drop(original);
+    drop(handle);
+    let handle = f.register(Instant::now() + Duration::from_secs(5));
+    handle.slot.refresh_if_missing(&f.registry);
+    let original = handle.admit().unwrap().into_custody();
+    let epoch = original.packet_epoch();
+    let registry = Arc::downgrade(&f.registry);
+    drop(f.registry);
+    assert!(registry.upgrade().is_none());
+    assert!(!original.current() && !epoch.current());
+    drop(handle);
+    assert!(f.manager.try_acquire(&[f.scope.write_scope()]).is_err());
+    drop(original);
+    assert!(f.manager.try_acquire(&[f.scope.write_scope()]).is_ok());
 }

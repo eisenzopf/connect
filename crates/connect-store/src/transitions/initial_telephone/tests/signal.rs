@@ -351,3 +351,5 @@ fn initial_sip_audience_captured_revision_never_revives_retired_or_overwrites_ne
     let state: (String,u64,Option<String>,Option<String>) = c.query_row("SELECT state,generation,readiness_json,observed_runtime_id FROM connections WHERE id=?1",[origin.connection_id()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();
     assert_eq!(state, ("retired".into(), 2, None, None));
 }
+
+mod snapshots;

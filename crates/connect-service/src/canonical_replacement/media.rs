@@ -1,5 +1,6 @@
 //! Exact provisional Core replacement binding. No ordinary generation-one grant.
 use super::*;
+mod snapshots;
 use crate::canonical_runtime::current_member;
 use connect_store::{NativeReplacementMediaOrigin, NativeReplacementStartRead};
 use rvoip_core::{
@@ -35,6 +36,7 @@ pub(crate) struct TargetPolicy {
     pub data_observer: Option<Arc<crate::canonical_media::data_writes::PendingObserver>>,
     pub(super) readiness: Option<Arc<super::readiness::ReadyGate>>,
     pub(super) receive_diagnostics: super::diagnostics::PrivateReceive,
+    pub(super) scene_snapshots: snapshots::Routes,
 }
 /// Both adapters retain their exact sealed Core resource observation. The enum
 /// only dispatches typed operations; it cannot manufacture readiness or replace
@@ -608,14 +610,17 @@ impl MediaPolicy for TargetPolicy {
 
 struct PrivateReceive {
     owner: MediaOwner,
-    _read: connect_store::NativeReplacementSceneRead,
+    _read: connect_store::NativeReplacementSceneSnapshotLease,
 }
 impl MediaAuthorityLease for PrivateReceive {
     fn authority(&self) -> &MediaOwner {
         &self.owner
     }
     fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
-        chrono::DateTime::from_timestamp(self._read.media().source().expires_at(), 0)
+        chrono::DateTime::from_timestamp(self._read.expires_at(), 0)
+    }
+    fn packet_epoch(&self) -> Option<Arc<dyn PacketEpoch>> {
+        Some(Arc::new(snapshots::Epoch(self._read.packet_epoch())))
     }
 }
 
@@ -764,14 +769,14 @@ impl TargetPolicy {
             // this exact publisher. Generic preparation/commit still captures
             // the full scene; unrelated peers lend no permission to this IO.
             let intent = self.pending.intent();
-            let origins = entries
+            let route_entries = entries
                 .iter()
                 .filter(|(connection, _)| {
                     **connection == intent.source
                         || **connection == intent.retained
                         || **connection == source.connection
                 })
-                .map(|(_, entry)| entry.origin.clone())
+                .map(|(_, entry)| entry.clone())
                 .collect::<Vec<_>>();
             leaf = 4;
             let origin = self.origin.get().ok_or(StreamControlError::NotReady)?;
@@ -788,21 +793,19 @@ impl TargetPolicy {
                 None
             };
             leaf = 5;
-            let result = match supplied_source {
-                Some((entry, held)) => self.base.store.try_native_replacement_scene_read_under(
-                    origin,
-                    &origins,
-                    &entry.origin,
-                    held,
-                ),
-                None => self
-                    .base
-                    .store
-                    .try_native_replacement_scene_read(origin, &origins),
-            };
-            let read = super::diagnostics::private_scene_result(result, &mut store_busy)?;
+            let result = self.scene_snapshots.admit(
+                &self.base.store,
+                origin,
+                &route_entries,
+                supplied_source.map(|(entry, original)| (&entry.origin, original)),
+            );
+            let io = result.map_err(|error| {
+                store_busy = Some(super::diagnostics::PrivateSceneBusy::from_error(&error));
+                snapshots::packet_error(error)
+            })?;
+            let read = io.scene();
             leaf = 6;
-            if !read.current() {
+            if !io.current() {
                 return Err(StreamControlError::Authority);
             }
             leaf = 7;
@@ -826,7 +829,7 @@ impl TargetPolicy {
             leaf = 13;
             let mut owner = activation.current_replacement(owner, &old, &self.pending)?;
             owner.may_route_source = true;
-            Ok(Box::new(PrivateReceive { owner, _read: read }) as Box<dyn MediaAuthorityLease>)
+            Ok(Box::new(PrivateReceive { owner, _read: io }) as Box<dyn MediaAuthorityLease>)
         })();
         // Numeric accounting alone: an Ok still retains its ORIGINAL reader.
         // No formatting, emission, locks or additional authority lookup here.

@@ -1,6 +1,7 @@
 //! Controlled journal captures; physical movement is qualified by production fixtures.
 use super::*;
 mod signal;
+mod snapshots;
 // Ordinary controlled mutation uses actual coordinated scopes and the bound
 // SQL Unit. Extra keys name independent carrier principals; original fixture
 // keys remain included after membership/permission withdrawal. No test grant
@@ -39,6 +40,55 @@ fn fixture_change<'a>(
     let writer = f.store.try_acquire_authority(&scopes).unwrap();
     f.store.connection_with_authority(&writer).unwrap()
 }
+// Match the existing Service pre-reservation contract without replaying a
+// successful begin. Only the exact authority deadline failure is retryable at
+// begin: it occurs before primary SQL acquisition and any phase DML.
+fn begin_fixture_phase(
+    f: &Fixture,
+    resources: &Arc<crate::TelephoneReplacementResourcesCapture>,
+    sources: &[Arc<crate::NativeMediaOrigin>],
+    phase: Step,
+    mut admission_missed: impl FnMut(i64),
+) -> crate::Result<Arc<crate::TelephoneReplacementPhaseAttempt>> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    let mut original_until = i64::MAX;
+    loop {
+        if std::time::Instant::now() >= deadline || crate::now() >= original_until {
+            return Err(crate::Error::new(
+                "authority-busy",
+                "Fixture phase admission deadline",
+            ));
+        }
+        let read = match f
+            .store
+            .try_telephone_replacement_scene_read(resources.clone(), sources)
+        {
+            Ok(read) => read,
+            Err(error) if error.code == "authority-busy" => {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+                continue;
+            }
+            Err(error) => return Err(error),
+        };
+        original_until = original_until.min(read.expires_at());
+        match f
+            .store
+            .begin_telephone_replacement_phase_before(read, phase.clone(), original_until)
+        {
+            Ok(attempt) => return Ok(attempt),
+            Err(error)
+                if error.code == "authority-busy"
+                    && error.message
+                        == "Current authority is busy; retry the same logical operation" =>
+            {
+                admission_missed(original_until);
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
 fn prepared(
     f: &Fixture,
     origin: &NativeReplacementOrigin,
@@ -47,14 +97,7 @@ fn prepared(
 ) -> Arc<crate::TelephoneReplacementResourcesCapture> {
     let resources = captured(f, origin, sources, key);
     for phase in [Step::Attach, Step::Activate, Step::Readiness] {
-        let read = f
-            .store
-            .try_telephone_replacement_scene_read(resources.clone(), sources)
-            .unwrap();
-        let a = f
-            .store
-            .begin_telephone_replacement_phase(read, phase)
-            .unwrap();
+        let a = begin_fixture_phase(f, &resources, sources, phase.clone(), |_| {}).unwrap();
         let read = f
             .store
             .try_telephone_replacement_phase_attempt_read(a.clone())
@@ -1001,4 +1044,57 @@ fn telephone_commit_consumes_planning_read_and_keeps_only_original_short_cut_wri
             .unwrap(),
         recorded
     );
+}
+
+#[test]
+fn fixture_phase_retry_preserves_original_cutoff_and_reserves_once_after_actual_reader_drains() {
+    let (f, origin, sources, _, key) = setup_runtime(true);
+    let resources = captured(&f, &origin, &sources, &key);
+    let original_reader = f
+        .store
+        .try_telephone_replacement_scene_read(resources.clone(), &sources)
+        .unwrap();
+    let before = f.count("telephone_replacement_phases");
+    let (miss_tx, miss_rx) = std::sync::mpsc::channel();
+    let (resume_tx, resume_rx) = std::sync::mpsc::channel();
+    let (missed, untouched, joined) = std::thread::scope(|scope| {
+        let worker_f = &f;
+        let worker_resources = &resources;
+        let worker_sources = &sources;
+        let worker = scope.spawn(move || {
+            let mut first = true;
+            begin_fixture_phase(
+                worker_f,
+                worker_resources,
+                worker_sources,
+                Step::Attach,
+                |cap| {
+                    if first {
+                        first = false;
+                        let _ = miss_tx.send(cap);
+                        let _ = resume_rx.recv_timeout(std::time::Duration::from_secs(2));
+                    }
+                },
+            )
+        });
+        let missed = miss_rx.recv_timeout(std::time::Duration::from_secs(1));
+        let untouched = f.count("telephone_replacement_phases") == before;
+        drop(original_reader);
+        let _ = resume_tx.send(());
+        let joined = worker.join();
+        (missed, untouched, joined)
+    });
+    let attempt = joined.unwrap().unwrap();
+    let first_cutoff = missed.expect("real original Read must force a pre-DML deadline refusal");
+    assert!(untouched);
+    assert_eq!(f.count("telephone_replacement_phases"), before + 1);
+    let current = f
+        .store
+        .try_telephone_replacement_phase_attempt_read(attempt.clone())
+        .unwrap();
+    assert!(current.current() && current.expires_at() <= first_cutoff);
+    drop(current);
+    f.store
+        .record_telephone_replacement_phase(&attempt.uncertain())
+        .unwrap();
 }

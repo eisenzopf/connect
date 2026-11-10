@@ -14,7 +14,10 @@ pub(crate) use authority::{ready, require_for_native};
 mod cache;
 pub(crate) use cache::{ready_until, Cache};
 mod media;
-pub use media::PrivateProviderMediaRead;
+pub use media::{
+    PrivateProviderMediaEpoch, PrivateProviderMediaLease, PrivateProviderMediaRead,
+    PrivateProviderMediaSnapshot,
+};
 mod observations;
 pub(crate) use observations::{recover_one, recovery_disposition};
 

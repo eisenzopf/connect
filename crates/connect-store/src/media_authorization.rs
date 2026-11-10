@@ -167,6 +167,48 @@ impl<T: SnapshotFacts> Lease<T> {
         self.generation.epoch.clone()
     }
 }
+// A materialized NativeMediaRead retains IO custody, never the publication's
+// typed facts. Erasing only this back-edge prevents NativeMediaRead -> Lease ->
+// Generation -> NativeMediaRead from expanding its Send/Sync proof recursively.
+// The trait object owns the SAME existing Generation allocation and Read fences.
+trait GenerationCustody: Send + Sync {
+    fn current(&self) -> bool;
+    fn packet_epoch(&self) -> Epoch;
+}
+impl<T: SnapshotFacts> GenerationCustody for Generation<T> {
+    fn current(&self) -> bool {
+        Generation::current(self)
+    }
+    fn packet_epoch(&self) -> Epoch {
+        self.epoch.clone()
+    }
+}
+#[derive(Clone)]
+pub(crate) struct CustodyLease {
+    stamp: Stamp,
+    generation: Arc<dyn GenerationCustody>,
+}
+impl CustodyLease {
+    pub(crate) fn stamp(&self) -> Stamp {
+        self.stamp
+    }
+    pub(crate) fn current(&self) -> bool {
+        self.generation.current()
+    }
+    pub(crate) fn packet_epoch(&self) -> Epoch {
+        self.generation.packet_epoch()
+    }
+}
+impl<T: SnapshotFacts> Lease<T> {
+    pub(crate) fn into_custody(self) -> CustodyLease {
+        CustodyLease {
+            stamp: self.stamp(),
+            // Safe Arc unsizing: no new allocation, lock, or extra reader.
+            generation: self.generation,
+        }
+    }
+}
+
 struct Refusal {
     error: Error,
     active: AtomicBool,
@@ -174,6 +216,7 @@ struct Refusal {
 struct RefreshAttempt {
     sequence: Option<u64>,
     transient: bool,
+    definitive: bool,
     retry_at: Instant,
     backoff: Duration,
 }
@@ -269,6 +312,7 @@ fn intersects(left: &[AuthorityScope], right: &[AuthorityScope]) -> bool {
 }
 trait ErasedSlot: Send + Sync {
     fn revoke(&self);
+    fn revoke_refusal(&self);
     fn revoke_for(&self, scopes: &[AuthorityScope]);
     fn published_scopes(&self) -> Option<Arc<Vec<AuthorityScope>>>;
     fn refresh_if_missing(&self, registry: &Registry);
@@ -285,6 +329,17 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
         // Only control-plane callers remove publication. A media miss must not
         // unexpectedly become the last cached fence destructor on the hot path.
         if self.publication.swap(None).is_some() || refused.is_some() {
+            if let Ok(mut attempt) = self.attempt.lock() {
+                attempt.sequence = None;
+            }
+        }
+    }
+    fn revoke_refusal(&self) {
+        // Failed projections did not prove a complete fenced footprint. A
+        // state change anywhere invalidates this denial, not healthy disjoint
+        // publications. Its next attempt must not inherit a cached sequence.
+        if let Some(refused) = self.refusal.swap(None) {
+            refused.active.store(false, Ordering::Release);
             if let Ok(mut attempt) = self.attempt.lock() {
                 attempt.sequence = None;
             }
@@ -320,14 +375,30 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
         if !registry.availability.current() {
             return;
         }
-        let sequence = match registry.control.lock() {
-            Ok(state) if state.writers.is_empty() && !state.external_busy => state.sequence,
-            _ => return,
-        };
-        {
+        let sequence = {
+            let Ok(state) = registry.control.lock() else {
+                return;
+            };
+            if state.external_failed
+                || self
+                    .scope_hint
+                    .load_full()
+                    .is_some_and(|hint| state.blocks(&hint))
+            {
+                return;
+            }
+            // Keep the same control -> attempt order as writer invalidation;
+            // never carry an attempt guard into a later control acquisition.
             let Ok(mut attempt) = self.attempt.lock() else {
                 return;
             };
+            // A previous definitive error proved no complete footprint. Wait
+            // for ALL announced mutations to settle before redoing that failed
+            // projection. A genuinely new route can still prove exact success.
+            if attempt.definitive && (!state.writers.is_empty() || state.external_busy()) {
+                return;
+            }
+            let sequence = state.sequence;
             if attempt.sequence == Some(sequence)
                 && (!attempt.transient || Instant::now() < attempt.retry_at)
             {
@@ -338,32 +409,38 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
             }
             attempt.sequence = Some(sequence);
             attempt.transient = false;
-        }
+            sequence
+        };
         // This closure must capture Weak<Store>, use the existing slow guarded
         // projection, and be bounded. Never capture its OwnedWatcher/runtime.
         let prepared = match (self.refresh)() {
             Ok(prepared) => prepared,
             Err(error) => {
-                if matches!(
+                let transient = matches!(
                     error.code.as_str(),
                     "authority-busy" | "storage-unavailable"
-                ) {
-                    if let Ok(mut attempt) = self.attempt.lock() {
+                );
+                if let Ok(mut attempt) = self.attempt.lock() {
+                    attempt.definitive = !transient;
+                    if transient {
                         attempt.transient = true;
                         attempt.retry_at = Instant::now() + attempt.backoff;
                         attempt.backoff = (attempt.backoff * 2).min(Duration::from_millis(250));
                     }
-                } else if let Ok(state) = registry.control.lock() {
-                    if self.handles.load(Ordering::Acquire) > 0
-                        && state.sequence == sequence
-                        && state.writers.is_empty()
-                        && !state.external_busy
-                        && registry.availability.current()
-                    {
-                        self.refusal.store(Some(Arc::new(Refusal {
-                            error,
-                            active: AtomicBool::new(true),
-                        })));
+                }
+                if !transient {
+                    if let Ok(state) = registry.control.lock() {
+                        if self.handles.load(Ordering::Acquire) > 0
+                            && state.sequence == sequence
+                            && state.writers.is_empty()
+                            && !state.external_busy()
+                            && registry.availability.current()
+                        {
+                            self.refusal.store(Some(Arc::new(Refusal {
+                                error,
+                                active: AtomicBool::new(true),
+                            })));
+                        }
                     }
                 }
                 return;
@@ -376,9 +453,7 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
             return;
         };
         if self.handles.load(Ordering::Acquire) == 0
-            || state.sequence != sequence
-            || !state.writers.is_empty()
-            || state.external_busy
+            || state.blocks(&prepared.scopes)
             || !registry.availability.current()
         {
             return;
@@ -389,6 +464,9 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
         else {
             return;
         };
+        if let Ok(mut attempt) = self.attempt.lock() {
+            attempt.definitive = false;
+        }
         self.scope_hint
             .store(Some(Arc::new(prepared.scopes.to_vec())));
         let epoch = Epoch {
@@ -401,7 +479,10 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
             prepared,
             epoch,
         });
-        // The control mutex orders publication against local writer notification.
+        // Prepared retains its complete actual Read fences through publication.
+        // The same control mutex orders this exact-scope check against local
+        // writer notification. A disjoint writer/sequence change cannot make
+        // these fenced facts stale; unknown-footprint failures stay global.
         self.publication.store(Some(next));
         drop(state);
     }
@@ -413,6 +494,7 @@ impl<T: SnapshotFacts> Drop for Slot<T> {
 }
 struct Pending {
     id: u64,
+    scopes: Vec<AuthorityScope>,
 }
 struct Control {
     slots: Vec<Weak<dyn ErasedSlot>>,
@@ -420,7 +502,21 @@ struct Control {
     next_writer: u64,
     sequence: u64,
     refresh_cursor: usize,
-    external_busy: bool,
+    external_scopes: Vec<AuthorityScope>,
+    external_failed: bool,
+}
+impl Control {
+    fn external_busy(&self) -> bool {
+        self.external_failed || !self.external_scopes.is_empty()
+    }
+    fn blocks(&self, scopes: &[AuthorityScope]) -> bool {
+        self.external_failed
+            || intersects(&self.external_scopes, scopes)
+            || self
+                .writers
+                .iter()
+                .any(|writer| intersects(&writer.scopes, scopes))
+    }
 }
 pub(crate) struct Registry {
     control: Mutex<Control>,
@@ -440,7 +536,8 @@ impl Registry {
                 next_writer: 0,
                 sequence: 0,
                 refresh_cursor: 0,
-                external_busy: false,
+                external_scopes: Vec::new(),
+                external_failed: false,
             }),
             changed: Condvar::new(),
             probe: Box::new(probe),
@@ -509,6 +606,7 @@ impl Registry {
             attempt: Mutex::new(RefreshAttempt {
                 sequence: None,
                 transient: false,
+                definitive: false,
                 retry_at: Instant::now(),
                 backoff: Duration::from_millis(1),
             }),
@@ -564,9 +662,10 @@ impl Registry {
         let id = state.next_writer;
         state.slots.retain(|s| s.strong_count() > 0);
         for slot in state.slots.iter().filter_map(Weak::upgrade) {
+            slot.revoke_refusal();
             slot.revoke_for(&scopes);
         }
-        state.writers.push(Pending { id });
+        state.writers.push(Pending { id, scopes });
         drop(state);
         self.changed.notify_all();
         Ok(WriterNotice {
@@ -644,14 +743,25 @@ impl Registry {
                         .flat_map(|scopes| scopes.to_vec())
                         .collect::<Vec<_>>();
                     let blocked = registry.blocked_external_scopes(&scopes);
-                    let external_busy = blocked.as_ref().map_or(true, |scopes| !scopes.is_empty());
                     {
                         let Ok(mut state) = registry.control.lock() else {
                             return;
                         };
-                        if state.external_busy != external_busy {
-                            state.external_busy = external_busy;
+                        let (external_scopes, external_failed) = match &blocked {
+                            Ok(scopes) => (scopes.as_slice(), false),
+                            Err(_) => (&[][..], true),
+                        };
+                        // A scope-set change matters even when both probes are
+                        // busy: an opaque failed derivation may depend on either.
+                        if state.external_scopes.as_slice() != external_scopes
+                            || state.external_failed != external_failed
+                        {
+                            state.external_scopes = external_scopes.to_vec();
+                            state.external_failed = external_failed;
                             state.sequence = state.sequence.saturating_add(1);
+                            for slot in state.slots.iter().filter_map(Weak::upgrade) {
+                                slot.revoke_refusal();
+                            }
                         }
                     }
                     match &blocked {

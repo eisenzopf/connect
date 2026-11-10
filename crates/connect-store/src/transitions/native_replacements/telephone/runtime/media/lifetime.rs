@@ -48,6 +48,10 @@ impl TelephoneMediaOrigin {
     }
 }
 impl TelephoneMediaRead {
+    pub(crate) fn interval(&self) -> &Arc<crate::AuthorityGuardSet> {
+        &self._interval
+    }
+
     pub fn current(&self) -> bool {
         self.owner.current() && crate::now() < self.expires
     }

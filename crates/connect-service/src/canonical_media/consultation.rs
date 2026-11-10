@@ -353,12 +353,12 @@ impl Policy {
         &self,
         session: &str,
     ) -> ControlResult<BTreeMap<ConnectionId, Arc<Connection>>> {
-        // Host continuations call this before entering Core or acquiring Store
-        // readers. Copy the bounded metadata under the short registry lock;
-        // packet lookup contention must not masquerade as revoked authority.
+        // Control and packet callers retain exact incarnations from the last
+        // complete immutable publication. No writer mutex spans this metadata
+        // lookup; existing Store/Core current checks still grant actual IO.
         Ok(self
             .entries
-            .lock()
+            .snapshot()
             .map_err(denied)?
             .values()
             .filter(|v| v.origin.session_id() == session)

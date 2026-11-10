@@ -6,6 +6,7 @@ use std::sync::Arc;
 mod initial_read;
 mod mixed_authority;
 mod receiver_epoch;
+mod scene_snapshot;
 
 fn fixture() -> (
     Fixture,

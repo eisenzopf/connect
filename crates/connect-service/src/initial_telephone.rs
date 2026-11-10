@@ -423,7 +423,8 @@ impl Runner {
             controller: OnceLock::new(),
             codec: OnceLock::new(),
             binding: OnceLock::new(),
-            proof: Mutex::new(None),
+            proof: arc_swap::ArcSwapOption::empty(),
+            snapshots: policy::snapshots::Routes::default(),
             admitted: OnceLock::new(),
             dtmf_registration: OnceLock::new(),
         });

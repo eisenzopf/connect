@@ -139,6 +139,10 @@ impl InitialTelephoneMediaOrigin {
     }
 }
 impl InitialTelephoneMediaRead {
+    pub(crate) fn interval(&self) -> &Arc<AuthorityGuardSet> {
+        &self._interval
+    }
+
     pub fn origin(&self) -> &InitialTelephoneMediaOrigin {
         &self.origin
     }

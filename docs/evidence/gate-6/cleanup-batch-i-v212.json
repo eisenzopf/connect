@@ -1,0 +1,182 @@
+{
+  "format": "connect/gate6-cleanup-batch/1",
+  "updated": "2026-11-10T13:09:49.359869+00:00",
+  "batch": "v212-I4/I5",
+  "source_base": "04298f02",
+  "status": "290 distinct affected controls pass across I4/I5; coherent build passes. Focused signed27 retest next; full32 matrix unchanged.",
+  "acceptance_changes": false,
+  "changes": [
+    "Publish provider, established SIP, initial SIP and private replacement scene authorization through the existing owned state-change watcher; retain original queued epochs and actual IO fences.",
+    "Allow successful independently fenced snapshot publication across unrelated writer changes; preserve conservative invalidation for failed projections.",
+    "Read Connect scene and telephone routing metadata from immutable publications; remove the private scene key allocation and repeated weak-owner upgrades.",
+    "Retain exact native IO generation via safe Arc unsizing without adding allocation or locking.",
+    "Correct fixture control retries to retain the same original receipt, expiry and reservation; semantic and packet assertions remain unchanged."
+  ],
+  "unit_results": [
+    {
+      "batch": "i4",
+      "group": "connect_store",
+      "summary": {
+        "selected": 95,
+        "completed": 95,
+        "passed": 95,
+        "failed": 0
+      },
+      "receipt_sha256": "a6212bc5451ea235edb23f65591d5c83eb70156ec5c9e94fc15cd0b844250314",
+      "binary_sha256": "28ebf1140681920ce8fca3bb74a89f15fac7fc539dff551742a008f743d2b0a1",
+      "source_seal_sha256": "441f995cf04a6d4161692616f06134309550c43ca50d1e7af8260dcfb5254f06"
+    },
+    {
+      "batch": "i4",
+      "group": "store_media_snapshots",
+      "summary": {
+        "selected": 124,
+        "completed": 124,
+        "passed": 123,
+        "failed": 1
+      },
+      "receipt_sha256": "c18a982b7dc55fb63bc600dcd57dd547cd952b610d9189fb8924958024862f69",
+      "binary_sha256": "28ebf1140681920ce8fca3bb74a89f15fac7fc539dff551742a008f743d2b0a1",
+      "source_seal_sha256": "441f995cf04a6d4161692616f06134309550c43ca50d1e7af8260dcfb5254f06"
+    },
+    {
+      "batch": "i4",
+      "group": "connect_service",
+      "summary": {
+        "selected": 50,
+        "completed": 50,
+        "passed": 50,
+        "failed": 0
+      },
+      "receipt_sha256": "44fa598df1eaaa4fd506bbf04fd0c49dfa1cf0d81f5dbc9c8ac46a626f863c38",
+      "binary_sha256": "3e1b7e02fc809a0c58af389d1efb82ddcf9e1901440b61d473b183deaa71384b",
+      "source_seal_sha256": "441f995cf04a6d4161692616f06134309550c43ca50d1e7af8260dcfb5254f06"
+    },
+    {
+      "batch": "i4",
+      "group": "connect_server",
+      "summary": {
+        "selected": 13,
+        "completed": 13,
+        "passed": 13,
+        "failed": 0
+      },
+      "receipt_sha256": "5553c46f17e2409d47563ca1b46cd653725d2869f81b2c3052f5c0787a5c9623",
+      "binary_sha256": "6938d23de992b08b449633870cd203eac266dbfd8c962fa13cbbab13dcb2a810",
+      "source_seal_sha256": "441f995cf04a6d4161692616f06134309550c43ca50d1e7af8260dcfb5254f06"
+    },
+    {
+      "batch": "i4",
+      "group": "connect_client",
+      "summary": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "receipt_sha256": "7395c1fa5120ca71988d41a535c091510b0d6dbb5154eb7265482f05783bc248",
+      "binary_sha256": "d0f77c8826ffec3e99267184a86a386761e902b090e292b3c5f9ee0b94efd891",
+      "source_seal_sha256": "441f995cf04a6d4161692616f06134309550c43ca50d1e7af8260dcfb5254f06"
+    },
+    {
+      "batch": "i4",
+      "group": "codec_fixture_units",
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "receipt_sha256": "191d4d3dbc3f15697db51a4410ea541d844d3c343a0806a41766d734041ec575",
+      "binary_sha256": "0da92e9a88764136a14ba03eb6bafba818d051d129950eb4b9fa0eca172eaea3",
+      "source_seal_sha256": "441f995cf04a6d4161692616f06134309550c43ca50d1e7af8260dcfb5254f06"
+    },
+    {
+      "batch": "i5",
+      "group": "store_completion_followthrough",
+      "summary": {
+        "selected": 3,
+        "completed": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      "receipt_sha256": "57ccf650ac6c2e59b1334f0e84204bdba0caf93917034715069a66416a9e2ba6",
+      "binary_sha256": "d21c35ccbfe9d5d622c28f5b78392e153c0b07485da91074446d90328a685aaa",
+      "source_seal_sha256": "81444a817af64d751b62f958a15b3a32908c0f0c1b7e5e8b6304e1174c65d16c"
+    }
+  ],
+  "distinct_current_controls": {
+    "passed": 290,
+    "failed": 0,
+    "scope": "local macOS arm64; unchanged production source across I4/I5, one corrected test file"
+  },
+  "last_full_matrix": {
+    "run": "v209",
+    "passed_cells": 0,
+    "required_cells": 32,
+    "passed_checks": 390,
+    "required_checks": 432,
+    "failed_checks": 42
+  },
+  "previous_focused": {
+    "batch": "G2",
+    "passed": 19,
+    "failed": 7,
+    "selected": 26
+  },
+  "planned_focused_signed": 27,
+  "limits": [
+    "Component controls do not qualify matrix cells or prove A/V quality.",
+    "The Linux-only native selector remains pending local ARM Linux.",
+    "Upstream SIP physical-route/codec checks still use locks; removing these requires equivalent state-change publication at every relevant writer.",
+    "Control mutation and activation serialization remain intentional."
+  ],
+  "build_result": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "-p",
+      "connect-client",
+      "-p",
+      "connect-store",
+      "-p",
+      "connect-service",
+      "-p",
+      "connect-server",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--test",
+      "gate6_replacement_video",
+      "--test",
+      "gate6_canonical_runtime",
+      "--features",
+      "connect-server/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 10.636913061141968,
+    "log_sha256": "afe02d35d8a5f44707cd90d9ff4ebed523b87c01bddb12a668d66555d668e8e9",
+    "naturally_joined": true
+  },
+  "compiler_scheduling": {
+    "cargo_jobs": 8,
+    "frontend_threads": 4,
+    "scope": [
+      "connect_service",
+      "connect_server",
+      "gate6_canonical_webtransport",
+      "gate6_replacement_video",
+      "gate6_canonical_runtime"
+    ],
+    "wrapper_sha256": "2cfe4ab79b444cc7dc4d7ff2452e647e95e2e2951f63e585b7df1d6956c62ea1",
+    "application_profile_changed": false
+  },
+  "source_seal_sha256": "81444a817af64d751b62f958a15b3a32908c0f0c1b7e5e8b6304e1174c65d16c",
+  "verification_note": "I4 selected289 controls:288 passed, one fixture completion SQL-admission race failed. I5 changed only that test file; corrected test, its negative-phase neighbor and an existing real SQL-contention/once-completion control all pass. No prior failed result overwritten."
+}

@@ -1,5 +1,9 @@
 //! Fresh authority for forwarding to a provider that already owns opaque memory.
 use super::*;
+mod snapshot;
+pub use snapshot::{
+    PrivateProviderMediaEpoch, PrivateProviderMediaLease, PrivateProviderMediaSnapshot,
+};
 
 /// A bounded current interval, not a retained initialization or future grant.
 /// Keep it through the actual provider/native write and drop it before callbacks

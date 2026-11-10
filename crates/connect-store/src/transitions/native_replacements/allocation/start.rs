@@ -789,6 +789,16 @@ pub struct NativeReplacementSceneRead {
     telephone_pairs: std::collections::BTreeMap<String, (bool, bool)>,
 }
 impl NativeReplacementSceneRead {
+    pub(crate) fn snapshot_interval(&self) -> &Arc<AuthorityGuardSet> {
+        &self.media.interval
+    }
+    /// Earliest original predicate cutoff across the complete frozen scene.
+    pub fn expires_at(&self) -> i64 {
+        self.reads
+            .values()
+            .map(crate::NativeMediaRead::expires_at)
+            .fold(self.media.source.expires_at(), i64::min)
+    }
     pub fn media(&self) -> &Arc<NativeReplacementMediaRead> {
         &self.media
     }

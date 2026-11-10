@@ -483,13 +483,10 @@ impl Policy {
             }
             connect_store::NativeReplacementSourceRead::Telephone(phone, _) => {
                 let source = self
-                    .telephone_targets
-                    .lock()
-                    .map_err(|_| deny())?
-                    .get(&ConnectionId::from_string(
+                    .telephone_target(&ConnectionId::from_string(
                         ctx.source_runtime_connection_id.clone(),
                     ))
-                    .and_then(Weak::upgrade)
+                    .map_err(|_| deny())?
                     .ok_or_else(deny)?;
                 source.established_owner(phone).map_err(|_| deny())?
             }

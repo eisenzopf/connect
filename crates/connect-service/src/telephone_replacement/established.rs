@@ -1,10 +1,13 @@
 //! Current established SIP owners and mixed native/telephone packet grants.
 use super::*;
-use connect_store::{TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead};
+use connect_store::{TelephoneMediaOrigin, TelephoneMediaRead, TelephoneMediaSnapshotLease};
+mod snapshots;
 use rvoip_core::{ids::*, relationships::*, staged_streams::*, stream_lifecycle::Medium};
 pub(super) struct Established {
     pub origin: Arc<TelephoneMediaOrigin>,
     pub owner: MediaOwner,
+    proof: Arc<PreparedMediaObservation>,
+    snapshots: snapshots::Routes,
 }
 impl media::Policy {
     /// Actual active replacement binding only; Store named signal authority is
@@ -39,8 +42,20 @@ impl media::Policy {
         {
             return Err(StreamControlError::Authority);
         }
+        let proof = self
+            .proof
+            .try_lock()
+            .map_err(|_| StreamControlError::NotReady)?
+            .clone()
+            .ok_or(StreamControlError::NotReady)?;
+        proof.current(owner.clone())?;
         self.established
-            .set(Arc::new(Established { origin, owner }))
+            .set(Arc::new(Established {
+                origin,
+                owner,
+                proof,
+                snapshots: snapshots::Routes::default(),
+            }))
             .map_err(|_| StreamControlError::Authority)
     }
     pub(crate) fn established_owner(&self, read: &TelephoneMediaRead) -> ControlResult<MediaOwner> {
@@ -121,12 +136,7 @@ impl media::Policy {
         if read.role() == "observer" {
             owner.receive_media.remove(&Medium::Audio);
         }
-        self.proof
-            .try_lock()
-            .map_err(|_| StreamControlError::NotReady)?
-            .as_ref()
-            .ok_or(StreamControlError::NotReady)?
-            .current(owner)
+        established.proof.current(owner)
     }
     pub(crate) fn source_matches(&self, source: &MediaSource) -> ControlResult<()> {
         let b = self.binding.get().ok_or(StreamControlError::NotReady)?;
@@ -189,28 +199,23 @@ impl media::Policy {
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         self.established_scope(scope)?;
         let base = self.base()?;
-        let origin = self
-            .established_origin()
-            .ok_or(StreamControlError::NotReady)?;
         if let MediaPurpose::Receive { source } = scope.purpose {
             let entry = base.entry(&source.connection)?;
-            let read = base
-                .store
-                .try_telephone_native_media_read(origin, entry.origin.clone())
-                .map_err(|_| StreamControlError::Authority)?;
+            let (route, read) = self.snapshot_read(&base.store, Some(&entry))?;
             if !read.permits_telephone_receive() {
                 return Err(StreamControlError::Authority);
             }
-            crate::canonical_media::source_matches(source, &entry, read.native().target())?;
-            let mut owner = self.established_owner(read.telephone())?;
+            crate::canonical_media::source_matches(
+                source,
+                &entry,
+                read.native().ok_or(StreamControlError::Authority)?.target(),
+            )?;
+            let mut owner = self.snapshot_owner(&route, &read)?;
             owner.may_route_source = true;
             return Ok(Box::new(FreshPair { owner, _read: read }));
         }
-        let read = base
-            .store
-            .try_telephone_media_read(origin)
-            .map_err(|_| StreamControlError::Authority)?;
-        let owner = self.established_owner(&read)?;
+        let (route, read) = self.snapshot_read(&base.store, None)?;
+        let owner = self.snapshot_owner(&route, &read)?;
         Ok(Box::new(Fresh { owner, _read: read }))
     }
     pub(crate) fn native_receive(
@@ -220,19 +225,17 @@ impl media::Policy {
         native: &Arc<crate::canonical_media::Connection>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         let base = self.base()?;
-        let origin = self
-            .established_origin()
-            .ok_or(StreamControlError::NotReady)?;
-        let read = base
-            .store
-            .try_telephone_native_media_read(origin, native.origin.clone())
-            .map_err(|_| StreamControlError::Authority)?;
+        let (route, read) = self.snapshot_read(&base.store, Some(native))?;
         if !read.permits_native_receive() {
             return Err(StreamControlError::Authority);
         }
         self.source_matches(source)?;
-        let _source = self.established_owner(read.telephone())?;
-        let owner = native.owner(read.native().target(), scope.principal, true)?;
+        let _source = self.snapshot_owner(&route, &read)?;
+        let owner = native.owner(
+            read.native().ok_or(StreamControlError::Authority)?.target(),
+            scope.principal,
+            true,
+        )?;
         let owner = native
             .activation()?
             .ok_or(StreamControlError::NotReady)?
@@ -242,19 +245,31 @@ impl media::Policy {
 }
 struct Fresh {
     owner: MediaOwner,
-    _read: TelephoneMediaRead,
+    _read: TelephoneMediaSnapshotLease,
 }
 impl MediaAuthorityLease for Fresh {
     fn authority(&self) -> &MediaOwner {
         &self.owner
     }
+    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+        chrono::DateTime::from_timestamp(self._read.telephone().expires_at(), 0)
+    }
+    fn packet_epoch(&self) -> Option<Arc<dyn PacketEpoch>> {
+        Some(Arc::new(snapshots::Epoch(self._read.packet_epoch())))
+    }
 }
 struct FreshPair {
     owner: MediaOwner,
-    _read: TelephoneNativeMediaRead,
+    _read: TelephoneMediaSnapshotLease,
 }
 impl MediaAuthorityLease for FreshPair {
     fn authority(&self) -> &MediaOwner {
         &self.owner
+    }
+    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+        chrono::DateTime::from_timestamp(self._read.telephone().expires_at(), 0)
+    }
+    fn packet_epoch(&self) -> Option<Arc<dyn PacketEpoch>> {
+        Some(Arc::new(snapshots::Epoch(self._read.packet_epoch())))
     }
 }

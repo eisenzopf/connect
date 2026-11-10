@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T11:34:54.665419+00:00",
-  "run_status": "H/H2/H3: all135 distinct affected unit controls passed. Further audit found provider idle Read/100ms SQL refresh, established telephone packet SQL and global missing-route refresh pause. These are being fixed as one additional batch before focused signed retest. G2 remains19/26; last full matrix remains0/32.",
+  "updated": "2026-11-10T13:09:49.359869+00:00",
+  "run_status": "290 distinct affected controls pass across I4/I5; coherent build passes. Focused signed27 retest next; full32 matrix unchanged.",
   "blockers": [
     {
       "id": "B01",
@@ -2598,7 +2598,7 @@
         "crates/connect-store/src/private_provider/media.rs"
       ],
       "solution": "Remove idle provider Read and100ms SQL polling; use original runtime snapshot and epoch-fenced actual IO.",
-      "status": "Isolated implementation and causal regression preparation",
+      "status": "Implemented and unit verified in I4/I5:290 distinct affected controls pass. Focused signed27 followthrough pending; full matrix qualification remains open.",
       "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
       "completion_status": "in-progress"
     },
@@ -2611,7 +2611,7 @@
         "crates/connect-service/src/telephone_replacement/established.rs"
       ],
       "solution": "Move unary and mixed telephone/native packet resolution to existing owned snapshot worker, retaining exact physical phase and queued epochs.",
-      "status": "Isolated implementation and causal regression preparation",
+      "status": "Implemented and unit verified in I4/I5:290 distinct affected controls pass. Focused signed27 followthrough pending; full matrix qualification remains open.",
       "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
       "completion_status": "in-progress"
     },
@@ -2624,8 +2624,34 @@
         "crates/connect-store/src/media_authorization.rs"
       ],
       "solution": "Permit independently fenced publication during unrelated writes; retain conservative sequence fencing for failed derivations.",
-      "status": "Isolated implementation and causal regression preparation",
+      "status": "Implemented and unit verified in I4/I5:290 distinct affected controls pass. Focused signed27 followthrough pending; full matrix qualification remains open.",
       "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
+      "completion_status": "in-progress"
+    },
+    {
+      "id": "S78",
+      "title": "Private replacement scene packet snapshots",
+      "owner": "Root and assigned agent",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-service/src/canonical_replacement/media.rs"
+      ],
+      "solution": "Resolve exact pending scene on shared watcher; retain original source admission and epoch, readiness and physical activation, without packet-side scene SQL.",
+      "status": "Implemented and unit verified in I4/I5:290 distinct affected controls pass. Focused signed27 followthrough pending; full matrix qualification remains open.",
+      "completion": "Actual IO, queued epoch, phase and revocation controls pass; affected signed followthrough pending.",
+      "completion_status": "in-progress"
+    },
+    {
+      "id": "S79",
+      "title": "Initial telephone phase-aware packet snapshots",
+      "owner": "Root and assigned agent",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-service/src/initial_telephone/policy.rs"
+      ],
+      "solution": "Publish exact Applied/Established media facts and purpose on shared watcher; retain quarantined/prepared control boundaries and current phase invalidation.",
+      "status": "Implemented and unit verified in I4/I5:290 distinct affected controls pass. Focused signed27 followthrough pending; full matrix qualification remains open.",
+      "completion": "Actual IO, queued epoch, phase and revocation controls pass; affected signed followthrough pending.",
       "completion_status": "in-progress"
     }
   ],
@@ -5054,7 +5080,12 @@
     "S64",
     "S65",
     "S66",
-    "S67"
+    "S67",
+    "S75",
+    "S76",
+    "S77",
+    "S78",
+    "S79"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -16185,5 +16216,6 @@
       "Historical exact competing SQL holder not identified."
     ]
   },
-  "cleanup_h_evidence": "docs/evidence/gate-6/cleanup-batch-h-v212.json"
+  "cleanup_h_evidence": "docs/evidence/gate-6/cleanup-batch-h-v212.json",
+  "cleanup_i_evidence": "docs/evidence/gate-6/cleanup-batch-i-v212.json"
 }

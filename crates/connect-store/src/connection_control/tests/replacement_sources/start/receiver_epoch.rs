@@ -84,31 +84,36 @@ fn activated(subscribe: bool) -> EpochFixture {
     s
 }
 
+// A failed current projection crossing a clock/version boundary is transient,
+// not evidence of the requested semantic refusal. Retain the same origin and
+// bounded observation budget; never retry a definitive domain result.
+fn receiver_eligibility(s: &EpochFixture) -> crate::Result<crate::NativeReplacementMediaRead> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    loop {
+        let result =
+            s.f.store
+                .try_native_replacement_receiver_epoch_read(&s.origin);
+        match result {
+            Err(error)
+                if error.code == "authority-busy" && std::time::Instant::now() < deadline =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+            other => return other,
+        }
+    }
+}
+
 #[test]
 fn private_receiver_epoch_eligibility_requires_activation_but_not_decoded_ready() {
     let s = prepared(true);
-    assert_eq!(
-        s.f.store
-            .try_native_replacement_receiver_epoch_read(&s.origin)
-            .unwrap_err()
-            .code,
-        "not-ready"
-    );
+    assert_eq!(receiver_eligibility(&s).unwrap_err().code, "not-ready");
     apply(&s, Phase::Attach);
-    assert_eq!(
-        s.f.store
-            .try_native_replacement_receiver_epoch_read(&s.origin)
-            .unwrap_err()
-            .code,
-        "not-ready"
-    );
+    assert_eq!(receiver_eligibility(&s).unwrap_err().code, "not-ready");
     apply(&s, Phase::Activate);
     let before = Store::inspect_snapshot(s.f.store.path()).unwrap();
     let effects = s.f.count("operation_effects");
-    let read =
-        s.f.store
-            .try_native_replacement_receiver_epoch_read(&s.origin)
-            .unwrap();
+    let read = receiver_eligibility(&s).unwrap();
     assert!(read.current());
     assert!(read.target().publication_suspended);
     assert_eq!(read.target().connection.state, "preparing");

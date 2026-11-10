@@ -1,5 +1,6 @@
 //! Initial SIP keeps its own actual ticket, principal and current media facts.
 use super::*;
+pub(super) mod snapshots;
 use crate::{authentication::StoreValidator, canonical_runtime::Runtime};
 use connect_store::{
     InitialTelephoneMediaOrigin, InitialTelephoneMediaRead, InitialTelephoneRead,
@@ -21,7 +22,7 @@ use rvoip_core::{
 use std::{
     any::Any,
     collections::BTreeSet,
-    sync::{Arc, Mutex, OnceLock, Weak},
+    sync::{Arc, OnceLock, Weak},
 };
 use tokio_util::sync::CancellationToken;
 
@@ -117,7 +118,8 @@ pub(crate) struct Leg {
     pub controller: OnceLock<Weak<StreamController>>,
     pub codec: OnceLock<rvoip_core::capability::CodecInfo>,
     pub binding: OnceLock<ReadyMediaBinding>,
-    pub proof: Mutex<Option<Arc<PreparedMediaObservation>>>,
+    pub proof: arc_swap::ArcSwapOption<PreparedMediaObservation>,
+    pub snapshots: snapshots::Routes,
     pub admitted: OnceLock<ParticipantObservation>,
     pub dtmf_registration: OnceLock<String>,
 }
@@ -244,10 +246,7 @@ impl Leg {
             confirmed_generation: None,
         })
     }
-    pub(crate) fn owner(
-        &self,
-        read: &InitialTelephoneMediaRead,
-    ) -> std::result::Result<MediaOwner, StreamControlError> {
+    fn validate_owner_read(&self, read: &InitialTelephoneMediaRead) -> ControlResult<()> {
         self.runtime()?;
         let p = self.prepared.get().ok_or(StreamControlError::NotReady)?;
         let codec = self.codec.get().ok_or(StreamControlError::NotReady)?;
@@ -273,6 +272,18 @@ impl Leg {
         {
             return Err(StreamControlError::Authority);
         }
+        if self.target.principal.is_expired_at(chrono::Utc::now()) {
+            return Err(StreamControlError::Authority);
+        }
+        Ok(())
+    }
+    pub(crate) fn owner(
+        &self,
+        read: &InitialTelephoneMediaRead,
+    ) -> std::result::Result<MediaOwner, StreamControlError> {
+        self.validate_owner_read(read)?;
+        let p = self.prepared.get().ok_or(StreamControlError::NotReady)?;
+        let codec = self.codec.get().ok_or(StreamControlError::NotReady)?;
         let current = member(
             &self.target.principal,
             read.member(),
@@ -327,13 +338,7 @@ impl Leg {
             may_control: true,
             may_route_source: false,
         };
-        if let Some(proof) = self
-            .proof
-            .try_lock()
-            .map_err(|_| StreamControlError::NotReady)?
-            .as_ref()
-            .filter(|p| p.is_committed())
-        {
+        if let Some(proof) = self.proof.load_full().as_ref().filter(|p| p.is_committed()) {
             owner = proof.current(owner)?;
         }
         Ok(owner)
@@ -468,9 +473,7 @@ impl MediaAuthorityLease for Lease {
     ) -> ControlResult<Box<MediaOwner>> {
         let leg = self.leg.upgrade().ok_or(StreamControlError::Cancelled)?;
         let owner = prepared.activate_for_commit(leg.owner(&self.read)?)?;
-        *leg.proof
-            .lock()
-            .map_err(|_| StreamControlError::Authority)? = Some(prepared.clone());
+        leg.proof.store(Some(prepared.clone()));
         Ok(Box::new(owner))
     }
 }
@@ -485,41 +488,13 @@ impl MediaPolicy for Leg {
 
     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         self.scope(scope)?;
-        let runtime = self.runtime()?;
-        let started = std::time::Instant::now();
-        let result = self.current_media_read();
-        tracing::trace!(target: "connect_service::canonical_packet",
-            elapsed_us = started.elapsed().as_micros() as u64,
-            publishing = matches!(scope.purpose, MediaPurpose::Publish),
-            problem = result.as_ref().err().map(|e| e.code.as_str()),
-            "Current initial SIP packet authority");
-        let read = Arc::new(result.map_err(crate::canonical_media::packet_authority_error)?);
-        if read.is_private_admission() && !matches!(scope.purpose, MediaPurpose::Control) {
-            return Err(StreamControlError::Authority);
+        if !matches!(scope.purpose, MediaPurpose::Control) {
+            return self.snapshot_current(scope);
         }
-        if !matches!(scope.purpose, MediaPurpose::Control) && !read.is_connected() {
-            return Err(StreamControlError::NotReady);
-        }
-        if let MediaPurpose::Receive { source } = scope.purpose {
-            let native = runtime.media.entry(&source.connection)?;
-            let pair = runtime
-                .media
-                .store
-                .try_initial_telephone_native_read(self.origin()?, native.origin.clone())
-                .map_err(crate::canonical_media::packet_authority_error)?;
-            if !pair.current()
-                || !pair.phone().is_connected()
-                || !pair.phone().may_receive()
-                || pair.native().target().handoff_preparation
-                || pair.native().target().publication_suspended
-            {
-                return Err(StreamControlError::Authority);
-            }
-            crate::canonical_media::source_matches(source, &native, pair.native().target())?;
-            let mut owner = self.owner(pair.phone())?;
-            owner.may_route_source = true;
-            return Ok(Box::new(PairLease { owner, _read: pair }));
-        }
+        let read = Arc::new(
+            self.current_media_read()
+                .map_err(crate::canonical_media::packet_authority_error)?,
+        );
         let owner = self.owner(&read)?;
         Ok(Box::new(Lease {
             leg: self.self_ref.clone(),
@@ -634,8 +609,7 @@ impl Ready {
             || !self
                 .leg
                 .proof
-                .try_lock()
-                .map_err(|_| Error::storage())?
+                .load_full()
                 .as_ref()
                 .is_some_and(|p| p.is_committed())
         {
@@ -694,20 +668,34 @@ impl Ready {
 }
 struct PairLease {
     owner: MediaOwner,
-    _read: connect_store::InitialTelephoneNativeRead,
+    _read: connect_store::InitialTelephoneMediaSnapshotLease,
 }
 impl MediaAuthorityLease for PairLease {
     fn authority(&self) -> &MediaOwner {
         &self.owner
     }
+    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+        chrono::DateTime::from_timestamp(self._read.phone().expires_at(), 0)
+    }
+    fn packet_epoch(&self) -> Option<Arc<dyn PacketEpoch>> {
+        Some(Arc::new(snapshots::Epoch(self._read.packet_epoch())))
+    }
 }
+
 impl Leg {
     pub(crate) fn validate_participant_source(
         &self,
         source: &MediaParticipantSource,
         read: &InitialTelephoneMediaRead,
     ) -> ControlResult<()> {
-        let owner = self.owner(read)?;
+        self.validate_participant_source_with_owner(source, read, &self.owner(read)?)
+    }
+    fn validate_participant_source_with_owner(
+        &self,
+        source: &MediaParticipantSource,
+        read: &InitialTelephoneMediaRead,
+        owner: &MediaOwner,
+    ) -> ControlResult<()> {
         if source.conversation != *owner.member.conversation()
             || source.session != *owner.presence.session()
             || source.participant != *owner.member.participant()
@@ -731,20 +719,35 @@ impl Leg {
         native: &Arc<crate::canonical_media::Connection>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         let runtime = self.runtime()?;
-        let read = runtime
-            .media
-            .store
-            .try_initial_telephone_native_read(self.origin()?, native.origin.clone())
-            .map_err(|_| StreamControlError::Authority)?;
-        self.validate_participant_source(source, read.phone())?;
+        let (route, read) = self.snapshot_read(&runtime.media.store, Some(native))?;
+        self.validate_participant_source_with_owner(
+            source,
+            read.phone(),
+            &self.snapshot_owner(&route, &read)?,
+        )?;
         if !read.current()
-            || !read.native().permits_subscriptions()
-            || read.native().target().handoff_preparation
-            || read.native().target().publication_suspended
+            || !read
+                .native()
+                .ok_or(StreamControlError::Authority)?
+                .permits_subscriptions()
+            || read
+                .native()
+                .ok_or(StreamControlError::Authority)?
+                .target()
+                .handoff_preparation
+            || read
+                .native()
+                .ok_or(StreamControlError::Authority)?
+                .target()
+                .publication_suspended
         {
             return Err(StreamControlError::Authority);
         }
-        let owner = native.owner(read.native().target(), scope.principal, true)?;
+        let owner = native.owner(
+            read.native().ok_or(StreamControlError::Authority)?.target(),
+            scope.principal,
+            true,
+        )?;
         let owner = native
             .activation()?
             .ok_or(StreamControlError::NotReady)?
@@ -758,6 +761,14 @@ impl Leg {
         &self,
         source: &MediaSource,
         read: &InitialTelephoneMediaRead,
+    ) -> ControlResult<()> {
+        self.physical_source_matches_with_owner(source, read, &self.owner(read)?)
+    }
+    fn physical_source_matches_with_owner(
+        &self,
+        source: &MediaSource,
+        read: &InitialTelephoneMediaRead,
+        _owner: &MediaOwner,
     ) -> ControlResult<()> {
         if source.connection != self.connection() || source.logical_id != Self::desired().logical_id
         {
@@ -779,7 +790,6 @@ impl Leg {
         if !read.is_connected() {
             return Err(StreamControlError::NotReady);
         }
-        let _ = self.owner(read)?;
         Ok(())
     }
     pub(crate) fn native_receive(
@@ -789,35 +799,48 @@ impl Leg {
         native: &Arc<crate::canonical_media::Connection>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         let runtime = self.runtime()?;
-        let started = std::time::Instant::now();
-        let result = runtime
-            .media
-            .store
-            .try_initial_telephone_native_read(self.origin()?, native.origin.clone());
+        let started =
+            tracing::enabled!(target: "connect_service::canonical_packet", tracing::Level::TRACE)
+                .then(std::time::Instant::now);
+        let result = self.snapshot_read(&runtime.media.store, Some(native));
         tracing::trace!(target: "connect_service::canonical_packet",
-            elapsed_us = started.elapsed().as_micros() as u64,
-            problem = result.as_ref().err().map(|e| e.code.as_str()),
+            elapsed_us = started.map(|at| at.elapsed().as_micros() as u64).unwrap_or(0),
+            problem = ?result.as_ref().err(),
             "Current initial SIP to native packet authority");
-        let mut stage = "store-read";
+        let mut stage = "snapshot-read";
         let result = (|| -> ControlResult<Box<dyn MediaAuthorityLease>> {
-            let read = result.map_err(crate::canonical_media::packet_authority_error)?;
+            let (route, read) = result?;
             stage = "pair-current";
             if !read.current()
                 || !read.phone().is_connected()
-                || !read.native().permits_subscriptions()
-                || read.native().target().handoff_preparation
-                || read.native().target().publication_suspended
+                || !read
+                    .native()
+                    .ok_or(StreamControlError::Authority)?
+                    .permits_subscriptions()
+                || read
+                    .native()
+                    .ok_or(StreamControlError::Authority)?
+                    .target()
+                    .handoff_preparation
+                || read
+                    .native()
+                    .ok_or(StreamControlError::Authority)?
+                    .target()
+                    .publication_suspended
             {
                 return Err(StreamControlError::Authority);
             }
             stage = "source-binding";
-            self.physical_source_matches(source, read.phone())?;
-            stage = "sip-owner";
-            let _ = self.owner(read.phone())?;
+            let phone_owner = self.snapshot_owner(&route, &read)?;
+            self.physical_source_matches_with_owner(source, read.phone(), &phone_owner)?;
             stage = "native-activation";
             let activation = native.activation()?.ok_or(StreamControlError::NotReady)?;
             stage = "native-owner";
-            let owner = native.owner(read.native().target(), scope.principal, true)?;
+            let owner = native.owner(
+                read.native().ok_or(StreamControlError::Authority)?.target(),
+                scope.principal,
+                true,
+            )?;
             stage = "native-current";
             let owner = activation.current(owner)?;
             stage = "granted";
@@ -825,7 +848,7 @@ impl Leg {
         })();
         tracing::trace!(target: "connect_service::canonical_packet",
             connection = native.origin.connection_id(),
-            elapsed_us = started.elapsed().as_micros() as u64,
+            elapsed_us = started.map(|at| at.elapsed().as_micros() as u64).unwrap_or(0),
             stage,
             problem = ?result.as_ref().err(),
             "Initial SIP to native packet grant");
@@ -839,23 +862,53 @@ impl Leg {
         self.scope(scope)?;
         let runtime = self.runtime()?;
         let native = runtime.media.entry(&source.connection)?;
-        let read = runtime
-            .media
-            .store
-            .try_initial_telephone_native_read(self.origin()?, native.origin.clone())
-            .map_err(|_| StreamControlError::Authority)?;
+        let (route, read) = self.snapshot_read(&runtime.media.store, Some(&native))?;
         if !read.current()
             || !read.phone().is_connected()
             || !read.phone().may_receive()
-            || read.native().target().handoff_preparation
-            || read.native().target().publication_suspended
+            || read
+                .native()
+                .ok_or(StreamControlError::Authority)?
+                .target()
+                .handoff_preparation
+            || read
+                .native()
+                .ok_or(StreamControlError::Authority)?
+                .target()
+                .publication_suspended
         {
             return Err(StreamControlError::Authority);
         }
-        if source.conversation.as_str() != read.native().target().session.session.conversation_id
-            || source.session.as_str() != read.native().target().session.session.id
-            || source.participant.as_str() != read.native().target().connection.participant_id
-            || source.membership_epoch != read.native().target().connection.membership_epoch
+        if source.conversation.as_str()
+            != read
+                .native()
+                .ok_or(StreamControlError::Authority)?
+                .target()
+                .session
+                .session
+                .conversation_id
+            || source.session.as_str()
+                != read
+                    .native()
+                    .ok_or(StreamControlError::Authority)?
+                    .target()
+                    .session
+                    .session
+                    .id
+            || source.participant.as_str()
+                != read
+                    .native()
+                    .ok_or(StreamControlError::Authority)?
+                    .target()
+                    .connection
+                    .participant_id
+            || source.membership_epoch
+                != read
+                    .native()
+                    .ok_or(StreamControlError::Authority)?
+                    .target()
+                    .connection
+                    .membership_epoch
             || source.medium != Medium::Audio
         {
             return Err(StreamControlError::Authority);
@@ -863,13 +916,17 @@ impl Leg {
         let source_owner = native
             .activation()?
             .ok_or(StreamControlError::NotReady)?
-            .current(native.owner(read.native().target(), &source.principal, false)?)?;
+            .current(native.owner(
+                read.native().ok_or(StreamControlError::Authority)?.target(),
+                &source.principal,
+                false,
+            )?)?;
         if source.identity != *source_owner.member.identity()
             || !source_owner.receive_media.contains(&Medium::Audio)
         {
             return Err(StreamControlError::Authority);
         }
-        let mut owner = self.owner(read.phone())?;
+        let mut owner = self.snapshot_owner(&route, &read)?;
         owner.may_route_source = true;
         Ok(Box::new(PairLease { owner, _read: read }))
     }

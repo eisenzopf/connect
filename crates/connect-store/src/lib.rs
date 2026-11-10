@@ -131,7 +131,8 @@ mod provider_chat_context;
 mod provider_context;
 pub use private_provider::{
     PrivateProviderApplied, PrivateProviderAttempt, PrivateProviderContext, PrivateProviderCreated,
-    PrivateProviderExport, PrivateProviderMediaRead, PrivateProviderRead,
+    PrivateProviderExport, PrivateProviderMediaEpoch, PrivateProviderMediaLease,
+    PrivateProviderMediaRead, PrivateProviderMediaSnapshot, PrivateProviderRead,
 };
 mod provider_dispatch;
 mod provider_reconciliation;
@@ -998,3 +999,22 @@ mod tests {
         }
     }
 }
+
+mod telephone_media_snapshot;
+pub use telephone_media_snapshot::{
+    TelephoneMediaSnapshot, TelephoneMediaSnapshotEpoch, TelephoneMediaSnapshotLease,
+    TelephoneMediaSnapshotStamp,
+};
+
+mod initial_telephone_snapshot;
+pub use initial_telephone_snapshot::{
+    InitialTelephoneMediaSnapshot, InitialTelephoneMediaSnapshotEpoch,
+    InitialTelephoneMediaSnapshotLease, InitialTelephoneMediaSnapshotStamp,
+    InitialTelephonePacketPhase,
+};
+
+mod replacement_scene_snapshot;
+pub use replacement_scene_snapshot::{
+    NativeReplacementSceneSnapshot, NativeReplacementSceneSnapshotEpoch,
+    NativeReplacementSceneSnapshotLease,
+};

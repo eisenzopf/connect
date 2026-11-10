@@ -1,6 +1,7 @@
 //! Controlled provider custody/content probes. These do not call Vapi or claim
 //! actual provider initialization or native audio behavior.
 use super::*;
+mod media_snapshot;
 use crate::{
     NativeConsultationOrigin, NativeMediaOrigin, PrivateProviderApplied, PrivateProviderContext,
 };

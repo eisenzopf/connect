@@ -151,8 +151,8 @@ pub struct NativeMediaRead {
     owner: Arc<InstallationOwnership>,
     expires_at: i64,
     may_subscribe: bool,
-    _live: Option<crate::media_authorization::Lease<NativeMediaRead>>,
-    _source_live: Option<crate::media_authorization::Lease<NativeMediaRead>>,
+    _live: Option<crate::media_authorization::CustodyLease>,
+    _source_live: Option<crate::media_authorization::CustodyLease>,
 }
 impl NativeMediaRead {
     /// Captured at original admission; queued IO must never borrow a newer stamp.
@@ -245,11 +245,11 @@ impl NativeMediaRead {
             && self
                 ._live
                 .as_ref()
-                .is_none_or(crate::media_authorization::Lease::current)
+                .is_none_or(crate::media_authorization::CustodyLease::current)
             && self
                 ._source_live
                 .as_ref()
-                .is_none_or(crate::media_authorization::Lease::current)
+                .is_none_or(crate::media_authorization::CustodyLease::current)
     }
     /// Separate current named permission; Connection creation alone never
     /// authorizes receipt of another publisher's selected media.
@@ -287,7 +287,7 @@ impl NativeMediaSnapshot {
         lease: crate::media_authorization::Lease<NativeMediaRead>,
     ) -> Result<NativeMediaRead> {
         let mut read = lease.facts().clone();
-        read._live = Some(lease);
+        read._live = Some(lease.into_custody());
         if !read.current() {
             return Err(Error::forbidden());
         }

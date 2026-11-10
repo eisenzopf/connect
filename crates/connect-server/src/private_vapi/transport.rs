@@ -469,8 +469,33 @@ struct MediaCounts {
     provider_received: u64,
     provider_marked: u64,
     authority_busy: u64,
-    authority_us: u64,
-    authority_max_us: u64,
+    snapshot_admissions: u64,
+    stale_output: u64,
+}
+fn admit_output(
+    snapshot: &connect_store::PrivateProviderMediaSnapshot,
+    original: Option<&connect_store::PrivateProviderMediaEpoch>,
+    counts: &mut MediaCounts,
+) -> Result<Option<connect_store::PrivateProviderMediaLease>> {
+    let result = match original {
+        Some(epoch) => snapshot.admit_original(epoch),
+        None => snapshot.admit(),
+    };
+    match result {
+        Ok(lease) => {
+            counts.snapshot_admissions += 1;
+            Ok(Some(lease))
+        }
+        Err(error) if error.code == "authority-busy" => {
+            counts.authority_busy += 1;
+            Ok(None)
+        }
+        Err(error) if error.code == "stale-media-epoch" => {
+            counts.stale_output += 1;
+            Ok(None)
+        }
+        Err(error) => Err(error),
+    }
 }
 pub(super) async fn forward(
     store: &Arc<Store>,
@@ -481,38 +506,59 @@ pub(super) async fn forward(
     stop: &CancellationToken,
     capture: &mut Option<crate::agent_observations::Capture>,
 ) -> Result<MediaEnd> {
-    let mut audio = super::audio::AudioQueue::default();
+    let mut audio = super::audio::AuthorizedAudioQueue::default();
+    let snapshot =
+        store.register_private_provider_media_snapshot(context.clone(), receipt.clone())?;
     let mut ticker = tokio::time::interval(Duration::from_millis(20));
     ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-    let mut guard: Option<connect_store::PrivateProviderMediaRead> = None;
-    let mut next_read = tokio::time::Instant::now();
     let mut event_sequence = 0u64;
     let mut counts = MediaCounts::default();
     let mut archive =
         super::transcripts::Archive::new(store.clone(), context.clone(), receipt.clone());
     let result=async {loop {
+        // Metadata only across idle receives. A writer can revoke the cached
+        // publication and drain; no actual provider Read is pinned by select.
+        let incoming_epoch = match snapshot.epoch() {
+            Ok(epoch) => Some(epoch),
+            Err(error) if error.code=="authority-busy" => {counts.authority_busy+=1;None},
+            Err(error) => return Err(error),
+        };
         tokio::select! {biased;
             _=stop.cancelled()=>return Ok(MediaEnd::Stopped),
             _=ticker.tick()=>{
                 counts.ticks+=1;
                 archive.tick().await?;
-                if tokio::time::Instant::now()>=next_read || guard.as_ref().is_none_or(|g|!g.current()){
-                    guard=None;let s=store.clone();let c=context.clone();let p=receipt.clone();
-                    let started=std::time::Instant::now();
-                    match store_call(move||s.try_private_provider_media_read(&c,&p)).await {Ok(g)=>guard=Some(g),Err(e)if e.code=="authority-busy"=>{counts.authority_busy+=1;},Err(e)=>return Err(e)}
-                    let elapsed=started.elapsed().as_micros()as u64;counts.authority_us+=elapsed;counts.authority_max_us=counts.authority_max_us.max(elapsed);
-                    next_read=tokio::time::Instant::now()+Duration::from_millis(100);
+                let queued = audio.frame(tokio::time::Instant::now());
+                let (frame, original) = match queued {
+                    Some((frame, epoch)) => (frame, Some(epoch)),
+                    None => ([0xff;160], None),
+                };
+                if let Some(lease)=admit_output(&snapshot,original.as_ref(),&mut counts)? {
+                    if lease.current() {
+                        native.send_pcmu(&frame).map_err(|_|problem("private-native-ended"))?;
+                        counts.native_sent+=1;
+                    }
+                    // Datagram submission is the synchronous SDK IO boundary.
+                    drop(lease);
                 }
-                if guard.as_ref().is_some_and(|g|g.current()) {let frame=audio.frame(tokio::time::Instant::now());native.send_pcmu(&frame).map_err(|_|problem("private-native-ended"))?;counts.native_sent+=1;}
                 if counts.ticks%50==0{tracing::debug!(target:"connect_server::private_vapi",?counts,"Private provider media counters");}
             },
             packet=native.receive_pcmu()=>{
                 let packet=match packet{Ok(p)=>p,Err(connect_client::ClientError::Timeout)=>continue,Err(_)=>return Err(problem("private-native-ended"))};
                 counts.native_received+=1;if packet.iter().any(|b|!matches!(*b,0xff|0x7f)){counts.native_marked+=1;}
-                if guard.as_ref().is_some_and(|g|g.current()) {tokio::time::timeout(Duration::from_millis(100).min(remaining(guard.as_ref().ok_or_else(Error::forbidden)?.expires_at())),ws.send(Message::Binary(packet.into()))).await.map_err(|_|problem("provider-media-timeout"))?.map_err(|_|problem("provider-media-ended"))?;}
+                if let Some(original)=incoming_epoch.as_ref() {
+                    if let Some(lease)=admit_output(&snapshot,Some(original),&mut counts)? {
+                        if lease.current() {
+                            tokio::time::timeout(Duration::from_millis(100).min(remaining(lease.expires_at())),ws.send(Message::Binary(packet.into()))).await.map_err(|_|problem("provider-media-timeout"))?.map_err(|_|problem("provider-media-ended"))?;
+                        }
+                        drop(lease);
+                    }
+                }
             },
             frame=ws.next()=>match frame{
-                Some(Ok(Message::Binary(bytes)))=>{counts.provider_received+=1;if bytes.iter().any(|b|!matches!(*b,0xff|0x7f)){counts.provider_marked+=1;}audio.push(&bytes,tokio::time::Instant::now());},
+                Some(Ok(Message::Binary(bytes)))=>{counts.provider_received+=1;if bytes.iter().any(|b|!matches!(*b,0xff|0x7f)){counts.provider_marked+=1;}
+                    if let Some(epoch)=incoming_epoch { audio.push(&bytes,tokio::time::Instant::now(),epoch); }
+                },
                 Some(Ok(Message::Text(text)))=>{
                     let decoded=rvoip_vapi::decode_agent_event(&text,receipt.provider_ref()).map_err(|_|problem("provider-event-invalid"))?;
                     if let Some(capture)=capture.as_mut(){capture.observe(&decoded);}
@@ -536,7 +582,9 @@ pub(super) async fn forward(
     if let Some(capture) = capture.as_ref() {
         capture.close();
     }
-    drop(guard);
+    // Close the last publication/queued epochs before historical cleanup.
+    drop(audio);
+    drop(snapshot);
     let archived = archive.finish(stop).await;
     match result {
         Err(e) => Err(e),

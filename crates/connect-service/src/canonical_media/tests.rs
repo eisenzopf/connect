@@ -689,3 +689,92 @@ async fn original_ingress_reads_published_absence_while_all_writers_are_excluded
         Err(StreamControlError::Authority)
     ));
 }
+
+#[test]
+fn telephone_selected_lookup_uses_published_exact_key_under_writer_and_refuses_poison() {
+    let dir = tempfile::tempdir().unwrap();
+    let store =
+        Arc::new(Store::initialize(&dir.path().join("state.sqlite3"), Default::default()).unwrap());
+    let policy = Policy::new(store, 8);
+    let selected = ConnectionId::from_string("selected-telephone".to_owned());
+    let other = ConnectionId::from_string("unrelated-telephone".to_owned());
+    policy
+        .telephone_targets
+        .lock()
+        .unwrap()
+        .insert(selected.clone(), Weak::new());
+    {
+        let _writer = policy.telephone_targets.lock().unwrap();
+        // Same accessor used by the actual replacement-source owner branch.
+        // Expired selected and absent unrelated owners never lend authority;
+        // neither lookup can wait for this actual control publication writer.
+        assert!(policy.telephone_target(&selected).unwrap().is_none());
+        assert!(policy.telephone_target(&other).unwrap().is_none());
+    }
+    let cloned = policy.clone();
+    assert!(std::thread::spawn(move || {
+        let _writer = cloned.telephone_targets.lock().unwrap();
+        panic!("controlled telephone registry poison");
+    })
+    .join()
+    .is_err());
+    for id in [&selected, &other] {
+        assert!(matches!(
+            policy.telephone_target(id),
+            Err(StreamControlError::Authority)
+        ));
+    }
+}
+
+#[test]
+fn scene_entry_lookup_returns_published_absence_while_actual_registry_writer_is_held() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        Store::initialize(
+            &dir.path().join("state.sqlite3"),
+            connect_protocol::Limits::default(),
+        )
+        .unwrap(),
+    );
+    let policy = Policy::new(store, 8);
+    let held = policy.entries.lock().unwrap();
+    let other = policy.clone();
+    let (done, observed) = std::sync::mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        let result = other.scene_entries("missing-original-session");
+        done.send(result.is_ok_and(|entries| entries.is_empty()))
+            .unwrap();
+    });
+    let completed_while_writer = observed.recv_timeout(std::time::Duration::from_secs(1));
+    drop(held);
+    worker.join().unwrap();
+    assert_eq!(completed_while_writer, Ok(true));
+    assert!(policy
+        .scene_entries("missing-original-session")
+        .unwrap()
+        .is_empty());
+}
+
+#[test]
+fn poisoned_scene_entry_publication_refuses_instead_of_serving_old_metadata() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        Store::initialize(
+            &dir.path().join("state.sqlite3"),
+            connect_protocol::Limits::default(),
+        )
+        .unwrap(),
+    );
+    let policy = Policy::new(store, 8);
+    let other = policy.clone();
+    assert!(std::thread::spawn(move || {
+        let _held = other.entries.lock().unwrap();
+        panic!("controlled scene metadata writer poison");
+    })
+    .join()
+    .is_err());
+    assert!(matches!(
+        policy.scene_entries("missing-original-session"),
+        Err(StreamControlError::Authority)
+    ));
+}
