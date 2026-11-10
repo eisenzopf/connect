@@ -2294,6 +2294,7 @@ dependencies = [
 name = "rvoip-core"
 version = "0.3.12"
 dependencies = [
+ "arc-swap",
  "async-trait",
  "base64 0.22.1",
  "bytes",
@@ -2447,6 +2448,7 @@ dependencies = [
 name = "rvoip-uctp"
 version = "0.3.12"
 dependencies = [
+ "arc-swap",
  "async-trait",
  "base64 0.22.1",
  "bytes",
