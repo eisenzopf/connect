@@ -1,0 +1,31 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
+@@ -32,13 +32,13 @@
+         move || !final_current.is_cancelled(),
+     ));
+     reply_authority.note_resource_preparation();
+-    AuthorizedEnvelope {
++    let authorized = AuthorizedEnvelope {
+         envelope: original,
+         principal: AuthenticatedPrincipal {
+             subject: "alice".into(),
+-            tenant: None,
++            tenant: Some("resource-test-tenant".into()),
+             scopes: vec!["control".into()],
+-            issuer: None,
++            issuer: Some("resource-test-issuer".into()),
+             expires_at: Some(chrono::Utc::now() + chrono::Duration::minutes(1)),
+             method: rvoip_auth_core::bearer::AuthenticationMethod::Bearer,
+             assurance: IdentityAssurance::Identified {
+@@ -56,7 +56,10 @@
+         exchange: None,
+         invocation,
+         answer_state: Arc::new(offer_answer::OfferAnswerState::default()),
+-    }
++    };
++    checked_principal(authorized.principal().clone())
++        .expect("resource test fixture must satisfy production authenticated-principal checks");
++    authorized
+ }
+ fn token(
+     a: &AuthorizedEnvelope,

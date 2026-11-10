@@ -2043,7 +2043,7 @@ async fn exercise(mode: u8) {
             bits & 8 != 0
         );
         eprintln!(
-            "original preparation refusal probe: wrong_owner={} missing_owner={} changed_intent={} expired={} initial_capture_busy={}",
+            "original preparation refusal probe: wrong_owner={} missing_owner={} changed_intent={} expired={} exact_published_capture={}",
             bits & 16 != 0,
             bits & 32 != 0,
             bits & 64 != 0,

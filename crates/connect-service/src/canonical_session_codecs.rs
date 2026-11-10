@@ -18,17 +18,20 @@ use rvoip_uctp::v2::{
 };
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, Weak},
+    sync::{Arc, Weak},
     time::Duration,
 };
 use tokio_util::sync::CancellationToken;
+
+mod admission;
+use admission::Slot;
 
 struct Policy {
     runtime: Weak<Runtime>,
     entry: Arc<Connection>,
     target: SessionCodecTarget,
     domain: Arc<()>,
-    attempt: Mutex<Option<NativeStreamLease>>,
+    attempt: Arc<Slot<NativeStreamLease>>,
 }
 #[async_trait]
 impl NativeSessionCodecPolicy for Policy {
@@ -42,14 +45,8 @@ impl NativeSessionCodecPolicy for Policy {
         if runtime.stop.is_cancelled() {
             return Err(DispatchError::Closed);
         }
-        // There is no await while this once-only admission slot is held.
-        let mut attempt = self
-            .attempt
-            .try_lock()
-            .map_err(|_| DispatchError::Capacity)?;
-        if attempt.is_some() {
-            return Err(DispatchError::Authority);
-        }
+        // Claim once without retaining a mutex across Store work or await.
+        let pending = self.attempt.claim()?;
         let source = Arc::new(
             runtime
                 .media
@@ -71,35 +68,49 @@ impl NativeSessionCodecPolicy for Policy {
         let descriptor = grant.descriptor()?;
         drop(grant);
         let source = Arc::try_unwrap(source).map_err(|_| DispatchError::Authority)?;
-        let lease = runtime.media.store.begin_native_session_codec(source, operation, descriptor)
+        let store = runtime.media.store.clone();
+        let original_operation = operation.to_owned();
+        runtime
+            .owned_store_call(move || {
+                // Store the opaque original reservation before returning to a
+                // cancellable receiver. No dropped waiter can lose custody.
+                pending.run(|| {
+                    store.begin_native_session_codec(source, &original_operation, descriptor)
+                })
+            })
+            .await
             .map_err(|error| { tracing::debug!(target:"connect_service::canonical_session_codecs",code=%error.code,"Codec admission deferred"); DispatchError::Authority })?;
-        // Save the exact reservation BEFORE any further fallible admission.
-        // A later refusal records this same original no-effect receipt; it
-        // cannot reserve another child or replay the Core/SIP effect.
-        *attempt = Some(lease);
-        let lease = attempt.as_ref().ok_or(DispatchError::Authority)?;
-        let source = Arc::new(
+        if runtime.stop.is_cancelled() {
+            return Err(DispatchError::Closed);
+        }
+        self.attempt.with_ready(|lease| {
+            let source = Arc::new(
+                runtime
+                    .media
+                    .store
+                    .try_native_session_codec_attempt_read(&self.entry.origin, &self.target, lease)
+                    .map_err(|_| DispatchError::Authority)?,
+            );
+            let grant = runtime.media.codec_grant(
+                self.domain.clone(),
+                self.entry.clone(),
+                scope,
+                source,
+                plan,
+                operation.into(),
+                runtime.stop.child_token(),
+            )?;
             runtime
                 .media
                 .store
-                .try_native_session_codec_attempt_read(&self.entry.origin, &self.target, lease)
-                .map_err(|_| DispatchError::Authority)?,
-        );
-        let grant = runtime.media.codec_grant(
-            self.domain.clone(),
-            self.entry.clone(),
-            scope,
-            source,
-            plan,
-            operation.into(),
-            runtime.stop.child_token(),
-        )?;
-        runtime
-            .media
-            .store
-            .validate_native_session_codec_plan(grant.source.codec()?, lease, &grant.descriptor()?)
-            .map_err(|_| DispatchError::Authority)?;
-        Ok(canonical_media::reconciliation::lease(grant))
+                .validate_native_session_codec_plan(
+                    grant.source.codec()?,
+                    lease,
+                    &grant.descriptor()?,
+                )
+                .map_err(|_| DispatchError::Authority)?;
+            Ok(canonical_media::reconciliation::lease(grant))
+        })
     }
 }
 #[async_trait]
@@ -198,8 +209,18 @@ async fn run(runtime: Weak<Runtime>, store: Arc<Store>, stop: CancellationToken)
             }
         }
     }
-    // Dropping jobs cancels in-flight calls; their admitted durable attempts
-    // remain uncertain and recovery must never resubmit them.
+    // Stop each original execution, then join its pending admission and captured
+    // outcome. Runtime drain retains the same outer deadline; a timeout remains
+    // an incomplete drain, never permission to claim natural closure.
+    stop.cancel();
+    while let Some(result) = jobs.join_next().await {
+        if result.is_err() {
+            if let Some(host) = runtime.upgrade() {
+                host.retirement_failed
+                    .store(true, std::sync::atomic::Ordering::Release);
+            }
+        }
+    }
 }
 enum Captured {
     Success(Arc<NativeStreamCommitted>),
@@ -260,7 +281,7 @@ async fn execute(
                         entry: entry.clone(),
                         target: target.clone(),
                         domain: Arc::new(()),
-                        attempt: Mutex::new(None),
+                        attempt: Arc::new(Slot::default()),
                     });
                     let result = native
                         .execute_native_session_codecs(&id, plan, operation.clone(), policy.clone())
@@ -268,11 +289,9 @@ async fn execute(
                     if let Err(error) = &result {
                         tracing::debug!(target:"connect_service::canonical_session_codecs",?error,"Native codec execution returned");
                     }
-                    let lease = policy
-                        .attempt
-                        .lock()
-                        .unwrap_or_else(|p| p.into_inner())
-                        .take();
+                    // The upstream cancellation/deadline select may have dropped
+                    // authorize while its original blocking admission still ran.
+                    let lease = policy.attempt.take_when_done().await;
                     // Drop policy metadata before recording; engine-owned
                     // readers were released when execution returned.
                     drop(policy);

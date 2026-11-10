@@ -548,6 +548,66 @@ impl AuthenticatedHandler for CanonicalHandler {
                 Err(error) => HandlerReplies::new(vec![problem(&original, error)?]),
             };
         }
+        // Subscription resource preparation consumes the unique original
+        // authorization. Reply correlation alone must not pin its domain reader.
+        if matches!(
+            authorized.envelope().kind(),
+            "stream.subscribe" | "stream.unsubscribe"
+        ) {
+            let original = authorized.envelope().clone();
+            let result = async {
+                crate::canonical_native_streams::intent(&original)?;
+                let credential = self.authorize(&authorized).await?;
+                let physical = self.physical.clone().ok_or_else(Error::forbidden)?;
+                let runtime = self
+                    .service
+                    .canonical_runtime
+                    .get()
+                    .ok_or_else(Error::forbidden)?;
+                runtime
+                    .native_stream(Arc::new(authorized), physical, credential)
+                    .await
+            }
+            .await;
+            return match result {
+                Ok(value) => {
+                    let refusal = if original.kind() == "stream.subscribe"
+                        && value.record.state
+                            == connect_protocol::transitions::OperationState::Failed
+                    {
+                        value
+                            .record
+                            .problem
+                            .as_ref()
+                            .and_then(|p| p["code"].as_str())
+                            .filter(|code| {
+                                matches!(*code, "not-found" | "incompatible-capabilities")
+                            })
+                            .map(|code| Error::new(code, "Subscription selection refused"))
+                    } else {
+                        None
+                    };
+                    let mut payload = json!({"operation_id":value.record.operation_id,"record_id":value.record.record_id,"command_type":value.record.command_type,"expected_revision":value.record.expected_revision,"state":value.record.state,"revision":value.record.revision});
+                    if let Some(result) = value.record.result {
+                        payload["result"] = result;
+                    }
+                    if let Some(problem) = value.record.problem {
+                        payload["problem"] = problem;
+                    }
+                    HandlerReplies::new(vec![
+                        reply(&original, "operation.updated", payload)
+                            .map_err(|_| DispatchError::Closed)?,
+                        if let Some(error) = refusal {
+                            problem(&original, error)?
+                        } else {
+                            reply(&original, "ack", json!({"details":{"reply_complete":true}}))
+                                .map_err(|_| DispatchError::Closed)?
+                        },
+                    ])
+                }
+                Err(error) => HandlerReplies::new(vec![problem(&original, error)?]),
+            };
+        }
         let is_data = matches!(authorized.envelope().payload(), Payload::MessageSend(_))
             && (authorized.envelope().scope(Scope::Session).is_some()
                 || authorized.envelope().scope(Scope::Connection).is_some());

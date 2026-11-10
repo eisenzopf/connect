@@ -1,0 +1,1296 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -417,7 +417,10 @@
+                 }),
+                 events,
+                 #[cfg(feature = "memory-diagnostics")]
+-                _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("core.managed_session_runtime", 0),
++                _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++                    "core.managed_session_runtime",
++                    0,
++                ),
+             }),
+         );
+         Ok(())
+@@ -561,6 +564,46 @@
+         let controller = scene.controller(connection)?;
+         Ok(controller
+             .change_selected_and_subscriptions(
++                expected,
++                selected,
++                replace,
++                scene,
++                change,
++                deadline,
++                cancellation,
++                held,
++            )
++            .await?)
++    }
++    /// Reserve a live subscription candidate; no adapter IO or retained domain grant.
++    pub async fn stage_staged_media_and_subscriptions_with_held(
++        &self,
++        session: &SessionId,
++        connection: &ConnectionId,
++        expected: u64,
++        selected: &[crate::stream_lifecycle::NegotiatedStream],
++        replace: &std::collections::BTreeSet<crate::ids::StreamId>,
++        change: &crate::staged_streams::media_subscriptions::MediaSubscriptionChange,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: Arc<dyn Any + Send + Sync>,
++    ) -> ControlResult<crate::staged_streams::QuarantinedSubscriptionMedia> {
++        let runtime = self.participant_runtime(session)?;
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .clone();
++        {
++            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.ended || !state.routes.contains_key(connection) {
++                return Err(ParticipantTransitionError::Inactive.into());
++            }
++        }
++        let controller = scene.controller(connection)?;
++        Ok(controller
++            .stage_selected_subscriptions_with_held(
+                 expected,
+                 selected,
+                 replace,
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/quarantined.rs
+@@ -0,0 +1,208 @@
++//! Actual live-scene adapter wait, released domain custody and fresh activation.
++//! Existing relationship fixtures are synthetic; no signed transport claim.
++use super::*;
++
++async fn fixture() -> (Scene, u64, Vec<NegotiatedStream>, MediaSubscriptionChange) {
++    let (scene, _) = held_scene_with_source(&[Medium::Audio, Medium::Data], &[Medium::Audio]).await;
++    apply(
++        &scene,
++        MediaSubscriptionChange {
++            selection: None,
++            audio: Some(AudioSubscriptionChange::Subscribe(vec![
++                AudioSubscription::Stream(MediaStreamRef {
++                    connection: scene.f.a.connection.clone(),
++                    logical: desired(Medium::Audio).logical_id,
++                }),
++            ])),
++            direct: None,
++        },
++    )
++    .await
++    .unwrap();
++    let mut selected = scene
++        .f
++        .b
++        .active_bindings()
++        .into_iter()
++        .map(|b| b.negotiated)
++        .collect::<Vec<_>>();
++    let mut data = scene.f.aa.port(Medium::Data).binding().negotiated.clone();
++    data.requested.direction = StreamDirection::Send;
++    selected.push(data);
++    let change = MediaSubscriptionChange {
++        selection: None,
++        audio: None,
++        direct: Some(DirectSubscriptionChange::Subscribe(vec![
++            DirectSubscription::new(
++                &scene.f.a,
++                desired(Medium::Data).logical_id.clone(),
++                desired(Medium::Data).logical_id,
++            ),
++        ])),
++    };
++    let expected = scene.f.b.revision();
++    (scene, expected, selected, change)
++}
++async fn held(
++    scene: &Scene,
++    expected: u64,
++    selected: &[NegotiatedStream],
++    change: &MediaSubscriptionChange,
++    foreign: bool,
++) -> Arc<Held> {
++    Arc::new(Held {
++        domain: scene.f.policy.clone(),
++        guard: Arc::new(scene.f.policy.0.clone().read_owned().await),
++        target: if foreign {
++            scene.f.a.connection.clone()
++        } else {
++            scene.f.b.connection.clone()
++        },
++        expected,
++        change: change.clone(),
++        selected: Some(selected.to_vec()),
++    })
++}
++async fn audio(scene: &Scene, output: &mut mpsc::Receiver<QueuedMedia>, sequence: u32) {
++    scene.publish(Medium::Audio, sequence);
++    scene.scene.tick();
++    assert_audio(outgoing(output).await).await;
++}
++async fn exercise(mode: &str) {
++    let (scene, expected, selected, change) = fixture().await;
++    let old = scene.f.b.active_bindings()[0].clone();
++    let mut audio_output = scene.f.ba.port(Medium::Audio).take_egress().unwrap();
++    audio(&scene, &mut audio_output, 961).await;
++    let calls = scene.f.ba.prepare_calls.load(Ordering::Acquire);
++    let original = held(&scene, expected, &selected, &change, false).await;
++    let candidate = scene
++        .f
++        .b
++        .stage_selected_subscriptions_with_held(
++            expected,
++            &selected,
++            &BTreeSet::new(),
++            scene.scene.clone(),
++            &change,
++            deadline(),
++            CancellationToken::new(),
++            Arc::new(original.clone()),
++        )
++        .await
++        .unwrap();
++    // The caller owns metadata only during prepare too. Do not accidentally
++    // retain this fixture's real domain reader outside the production token.
++    drop(original);
++    assert_eq!(scene.f.ba.prepare_calls.load(Ordering::Acquire), calls);
++    scene.f.ba.mode.store(1, Ordering::Release);
++    let prepare = tokio::spawn(candidate.prepare());
++    tokio::time::timeout(Duration::from_millis(100), scene.f.ba.entered.notified())
++        .await
++        .unwrap();
++    let candidate_port = scene.f.ba.port(Medium::Data);
++    let mut data_output = candidate_port.take_egress().unwrap();
++    assert_eq!(candidate_port.status(), PortStatus::Prepared);
++    assert_eq!(scene.f.b.revision(), expected);
++    assert!(data_output.try_recv().is_err());
++    // The adapter is still inside its actual original prepare. This write
++    // must acquire now, not only after the resource call has returned.
++    let writer = scene.f.policy.0.clone().try_write_owned();
++    let writer_progressed = writer.is_ok();
++    if let Ok(mut writer) = writer {
++        if mode == "withdraw-data" {
++            let target = writer
++                .owners
++                .get_mut(scene.f.b.connection.as_str())
++                .unwrap();
++            target.send_media.remove(&Medium::Data);
++            target.receive_media.remove(&Medium::Data);
++        } else {
++            writer.revoked.insert("unrelated-identity".into());
++        }
++    }
++    // Audio is independently authorized, and its old port remains in service
++    // both during the stalled candidate and after any failed fresh admission.
++    audio(&scene, &mut audio_output, 962).await;
++    assert_eq!(scene.f.ba.prepare_calls.load(Ordering::Acquire), calls + 1);
++    scene.f.ba.release.notify_one();
++    let prepared = prepare.await.unwrap().unwrap();
++    assert!(data_output.try_recv().is_err());
++    assert_eq!(scene.f.b.revision(), expected);
++    let fresh = held(
++        &scene,
++        expected,
++        &selected,
++        &change,
++        mode == "foreign-owner",
++    )
++    .await;
++    let result = prepared.activate_with_held(Arc::new(fresh.clone())).await;
++    drop(fresh);
++    let revision = scene.f.b.revision();
++    let candidate_status = candidate_port.status();
++    assert!(scene
++        .f
++        .b
++        .active_bindings()
++        .iter()
++        .any(|b| b.transport_id == old.transport_id
++            && b.stream_local_id == old.stream_local_id
++            && b.generation == old.generation));
++    if mode == "current" {
++        if result.is_ok() {
++            scene.publish(Medium::Data, 963);
++            scene.scene.tick();
++            outgoing(&mut data_output)
++                .await
++                .deliver(|frame| async move {
++                    assert_eq!(frame.timestamp_rtp, 963);
++                    Ok(())
++                })
++                .await
++                .unwrap();
++            assert!(data_output.try_recv().is_err());
++        }
++    } else {
++        assert!(data_output.try_recv().is_err());
++    }
++    audio(&scene, &mut audio_output, 964).await;
++    let prepares = scene.f.ba.prepare_calls.load(Ordering::Acquire);
++    assert_eq!(scene.f.b.shutdown(deadline()).await, 0);
++    assert_eq!(scene.f.a.shutdown(deadline()).await, 0);
++    assert_eq!(scene.f.ba.outstanding.load(Ordering::Acquire), 0);
++    assert_eq!(scene.f.aa.outstanding.load(Ordering::Acquire), 0);
++    // Defer this exact counterfactual assertion until all original owners join.
++    assert!(
++        writer_progressed,
++        "quarantined live subscription preparation retained the original domain reader"
++    );
++    assert_eq!(
++        prepares,
++        calls + 1,
++        "original adapter.prepare must never repeat"
++    );
++    if mode == "current" {
++        result.unwrap();
++        assert_eq!(revision, expected + 1);
++        assert_eq!(candidate_status, PortStatus::Active);
++    } else {
++        assert!(
++            matches!(result, Err(StreamControlError::Authority)),
++            "fresh original authorization must refuse: {result:?}"
++        );
++        assert_eq!(revision, expected);
++        assert_eq!(candidate_status, PortStatus::Retired);
++    }
++}
++#[tokio::test]
++async fn live_subscription_quarantine_releases_domain_during_actual_prepare_and_activates_once() {
++    exercise("current").await;
++}
++#[tokio::test]
++async fn live_subscription_quarantine_rechecks_withdrawn_new_medium_and_keeps_old_audio() {
++    exercise("withdraw-data").await;
++}
++#[tokio::test]
++async fn live_subscription_quarantine_rejects_foreign_fresh_owner_and_keeps_old_audio() {
++    exercise("foreign-owner").await;
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -2045,3 +2045,6 @@
+ 
+ #[path = "subscriptions/prepared_commit.rs"]
+ mod prepared_commit;
++
++#[path = "subscriptions/quarantined.rs"]
++mod quarantined;
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2066,6 +2066,73 @@
+         owner.finish_change(self.staged).await
+     }
+ }
++/// A live subscription candidate with no retained domain authorization. Existing
++/// ports and routing stay published until fresh authorization commits this plan.
++pub struct QuarantinedSubscriptionMedia {
++    staged: StagedChange,
++    replace: BTreeSet<StreamId>,
++    change: media_subscriptions::MediaSubscriptionChange,
++}
++/// The exact original adapter batch completed once; this owns its rollback path.
++pub struct PreparedSubscriptionMedia {
++    staged: StagedChange,
++    replace: BTreeSet<StreamId>,
++    change: media_subscriptions::MediaSubscriptionChange,
++}
++impl QuarantinedSubscriptionMedia {
++    pub async fn prepare(mut self) -> ControlResult<PreparedSubscriptionMedia> {
++        let s = &mut self.staged;
++        let owner = s.candidate.owner.clone();
++        debug_assert!(s.control.is_none());
++        tokio::select! { biased;
++            _ = s.cancellation.cancelled() => return Err(StreamControlError::Cancelled),
++            _ = owner.shutdown.cancelled() => return Err(StreamControlError::Cancelled),
++            result = tokio::time::timeout_at(s.deadline,
++                owner.adapter.prepare(s.selected.clone(), s.deadline, s.candidate.cancellation.clone())) => {
++                result.map_err(|_| StreamControlError::Deadline)??;
++            }
++        }
++        s.adapter_prepared = true;
++        Ok(PreparedSubscriptionMedia {
++            staged: self.staged,
++            replace: self.replace,
++            change: self.change,
++        })
++    }
++}
++impl PreparedSubscriptionMedia {
++    pub async fn activate_with_held(
++        mut self,
++        held: Arc<dyn Any + Send + Sync>,
++    ) -> ControlResult<()> {
++        let owner = self.staged.candidate.owner.clone();
++        let desired = self
++            .staged
++            .selected
++            .iter()
++            .map(|p| p.port.0.binding.negotiated.requested.clone())
++            .collect::<Vec<_>>();
++        owner.check_credential_snapshot(&self.staged.credential)?;
++        self.staged.control = Some(owner.policy.current_control(
++            &owner.scope(&self.staged.credential.principal, MediaPurpose::Control),
++            &MediaControlIntent::ChangeSubscriptions {
++                expected: self.staged.expected,
++                desired: &desired,
++                replace: &self.replace,
++                change: &self.change,
++            },
++            held.as_ref(),
++        )?);
++        self.staged.control_cancel = self
++            .staged
++            .control
++            .as_ref()
++            .expect("fresh subscription control")
++            .cancellation
++            .clone();
++        owner.finish_change(self.staged).await
++    }
++}
+ impl StreamController {
+     fn notify_selection_change(&self) {
+         if let Some(changed) = self
+@@ -3157,6 +3224,57 @@
+             Some((scene, change)),
+         )
+         .await
++    }
++    /// Stage the exact live resource/routing change without transport IO. The
++    /// caller must release its own planning aliases before preparing this token.
++    /// Fresh activation rechecks the original credential, revision and route plan.
++    pub async fn stage_selected_subscriptions_with_held(
++        self: &Arc<Self>,
++        expected: u64,
++        selected: &[NegotiatedStream],
++        replace: &BTreeSet<StreamId>,
++        scene: Arc<media_scene::GuardedMediaScene>,
++        change: &media_subscriptions::MediaSubscriptionChange,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: Arc<dyn Any + Send + Sync>,
++    ) -> ControlResult<QuarantinedSubscriptionMedia> {
++        let desired = selected
++            .iter()
++            .map(|s| s.requested.clone())
++            .collect::<Vec<_>>();
++        let credential = self.credential_snapshot();
++        let control = self.policy.current_control(
++            &self.scope(&credential.principal, MediaPurpose::Control),
++            &MediaControlIntent::ChangeSubscriptions {
++                expected,
++                desired: &desired,
++                replace,
++                change,
++            },
++            held.as_ref(),
++        )?;
++        let mut staged = self
++            .stage_change(
++                expected,
++                &desired,
++                replace,
++                deadline,
++                cancellation,
++                credential,
++                Some(control),
++                Some(selected),
++                Some((scene, change)),
++            )
++            .await?;
++        staged.control.take();
++        staged.control_cancel = staged.cancellation.clone();
++        drop(held);
++        Ok(QuarantinedSubscriptionMedia {
++            staged,
++            replace: replace.clone(),
++            change: change.clone(),
++        })
+     }
+     async fn change_inner(
+         self: &Arc<Self>,
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -212,13 +212,25 @@
+     }
+ }
+ mod resource_preparation;
++pub use resource_preparation::ResourceActivationAuthority;
+ 
+ // One control-invocation handoff only; never accessed on packet delivery.
+ // The dispatcher owns this slot rather than an unreplaceable domain alias.
+-pub(super) struct ReplyAuthority(Mutex<AuthorityLease>);
++pub(super) struct ReplyAuthority(
++    Mutex<AuthorityLease>,
++    // Sticky only for this control invocation: replacing resource reply rights
++    // with a fresh guard must not bypass resumed step-up publication checks.
++    std::sync::atomic::AtomicBool,
++);
+ impl ReplyAuthority {
+     pub(super) fn new(lease: AuthorityLease) -> Arc<Self> {
+-        Arc::new(Self(Mutex::new(lease)))
++        Arc::new(Self(
++            Mutex::new(lease),
++            std::sync::atomic::AtomicBool::new(false),
++        ))
++    }
++    fn note_resource_preparation(&self) {
++        self.1.store(true, std::sync::atomic::Ordering::Release);
+     }
+     fn retained(&self) -> AuthorityLease {
+         self.0.lock().retained()
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
+@@ -4,8 +4,16 @@
+ 
+ // Not exported or constructible by a peer. This allows only parameter exchange
+ // for the exact initially authorized offer, never conversation payload delivery.
++#[derive(Clone, Copy, PartialEq, Eq)]
++enum PreparationKind {
++    InitialOffer,
++    Subscription,
++}
++
+ #[derive(Clone)]
+ struct ResourcePreparation {
++    kind: PreparationKind,
++    marker: Arc<()>,
+     original: Envelope,
+     participant: String,
+     streams: BTreeSet<String>,
+@@ -54,7 +62,19 @@
+         {
+             return Err(DispatchError::ReplyMismatch);
+         }
+-        if outgoing.kind() == "connection.answer" {
++        if self.kind == PreparationKind::Subscription {
++            let expected = self
++                .original
++                .expected_revision()
++                .ok_or(DispatchError::ReplyMismatch)?;
++            if outgoing.kind() != "connection.offer"
++                || outgoing.scope(Scope::Reply).is_some()
++                || payload["substrate_setup"]["offer_id"] != self.original.id()
++                || payload["substrate_setup"]["revision"].as_u64() != expected.checked_add(1)
++            {
++                return Err(DispatchError::ReplyMismatch);
++            }
++        } else if outgoing.kind() == "connection.answer" {
+             validate_offer_answer(&self.original, outgoing)?;
+         } else if outgoing.scope(Scope::Reply).is_some() {
+             return Err(DispatchError::ReplyMismatch);
+@@ -108,6 +128,8 @@
+         let cancellation = self.invocation.child_token();
+         let current = cancellation.clone();
+         let resource = ResourcePreparation {
++            kind: PreparationKind::InitialOffer,
++            marker: Arc::new(()),
+             original: self.envelope.clone(),
+             participant,
+             streams,
+@@ -119,6 +141,7 @@
+         let mut final_resource = resource.clone();
+         final_resource.cancellation = self.origin.lifetime.child_token();
+         let final_current = final_resource.cancellation.clone();
++        self.reply_authority.note_resource_preparation();
+         self.reply_authority.replace(AuthorityLease::checking(
+             final_resource,
+             deadline,
+@@ -126,6 +149,127 @@
+         ));
+         self._lease = AuthorityLease::checking(resource, deadline, move || !current.is_cancelled());
+         Ok(self)
++    }
++    pub(in crate::v2) fn resource_preparation_cutoff(&self, requested: Instant) -> Instant {
++        requested
++            .min(self.origin.deadline)
++            .min(self._lease.deadline().unwrap_or(requested))
++    }
++    /// Consume a live subscription command after its exact dormant candidate
++    /// has been staged. This keeps only original parameter-exchange rights;
++    /// neither selectors nor a prepared port are a current media/result grant.
++    pub(in crate::v2) fn into_subscription_resource_preparation(
++        mut self,
++        participant: String,
++        streams: BTreeSet<String>,
++        deadline: Instant,
++    ) -> Result<Self, DispatchError> {
++        if !self.supports_native_negotiation()
++            || !matches!(
++                self.envelope.kind(),
++                "stream.subscribe" | "stream.unsubscribe"
++            )
++            || self.envelope.expected_revision().is_none()
++            || participant.is_empty()
++            || streams.len() > 128
++            || streams.iter().any(|id| id.is_empty())
++            || self._lease.authority::<ResourcePreparation>().is_some()
++            || self.envelope.original()["payload"]["by_participant"]
++                .as_str()
++                .is_some_and(|id| id != participant)
++        {
++            return Err(DispatchError::Authority);
++        }
++        let deadline = deadline
++            .min(self.origin.deadline)
++            .min(self._lease.deadline().unwrap_or(deadline));
++        if deadline <= Instant::now() {
++            return Err(DispatchError::Closed);
++        }
++        let cancellation = self.invocation.child_token();
++        let current = cancellation.clone();
++        let resource = ResourcePreparation {
++            kind: PreparationKind::Subscription,
++            marker: Arc::new(()),
++            original: self.envelope.clone(),
++            participant,
++            streams,
++            cancellation,
++            deadline,
++        };
++        let mut final_resource = resource.clone();
++        final_resource.cancellation = self.origin.lifetime.child_token();
++        let final_current = final_resource.cancellation.clone();
++        self.reply_authority.note_resource_preparation();
++        self.reply_authority.replace(AuthorityLease::checking(
++            final_resource,
++            deadline,
++            move || !final_current.is_cancelled(),
++        ));
++        self._lease = AuthorityLease::checking(resource, deadline, move || !current.is_cancelled());
++        Ok(self)
++    }
++    /// Fresh authorization for exactly this already-signed original command.
++    /// This cannot consume another signature, issue a command or resume another
++    /// resource instance. No original application guard was retained in prepare.
++    pub async fn reauthorize_resource_preparation(
++        &self,
++    ) -> Result<Arc<ResourceActivationAuthority>, DispatchError> {
++        let resource = self
++            ._lease
++            .authority::<ResourcePreparation>()
++            .ok_or(DispatchError::Authority)?;
++        if resource.kind != PreparationKind::Subscription || !self._lease.current() {
++            return Err(DispatchError::Authority);
++        }
++        let lease = self
++            .exchange
++            .as_ref()
++            .ok_or(DispatchError::Unsupported)?
++            .reauthorize_original(&self.envelope, resource.deadline, &self.invocation)
++            .await?;
++        if !self._lease.current() || self.origin.lifetime.is_cancelled() {
++            return Err(DispatchError::Closed);
++        }
++        let deadline = lease
++            .deadline()
++            .unwrap_or(resource.deadline)
++            .min(resource.deadline);
++        Ok(Arc::new(ResourceActivationAuthority {
++            marker: resource.marker.clone(),
++            lease,
++            invocation: resource.cancellation.clone(),
++            physical: self.origin.lifetime.child_token(),
++            deadline,
++        }))
++    }
++    /// Install final application reply rights only from this instance's actual
++    /// fresh policy admission. Resource-only preparation never permits results.
++    pub fn install_resource_reply_authority(
++        &self,
++        authority: &Arc<ResourceActivationAuthority>,
++    ) -> Result<(), DispatchError> {
++        let resource = self
++            ._lease
++            .authority::<ResourcePreparation>()
++            .ok_or(DispatchError::Authority)?;
++        if resource.kind != PreparationKind::Subscription
++            || !Arc::ptr_eq(&resource.marker, &authority.marker)
++            || !self._lease.current()
++            || !authority.current()
++        {
++            return Err(DispatchError::Authority);
++        }
++        let current = authority.clone();
++        // Reply custody outlives handler-child cancellation, never the physical
++        // peer, original cutoff or actual current domain proof (same as ordinary
++        // final reply custody). Preserve the typed guard for existing policies.
++        self.reply_authority.replace(AuthorityLease {
++            _guard: authority.lease._guard.clone(),
++            validity: Some(Arc::new(move || current.reply_current())),
++            deadline: Some(authority.deadline),
++        });
++        Ok(())
+     }
+     pub(in crate::v2) fn resource_preparation_lease(
+         &self,
+@@ -140,6 +284,29 @@
+     }
+ }
+ 
++/// Fresh original-command admission, sealed to one resource instance. Application
++/// code may borrow its real typed proof, but cannot substitute an arbitrary lease.
++pub struct ResourceActivationAuthority {
++    marker: Arc<()>,
++    lease: AuthorityLease,
++    invocation: CancellationToken,
++    physical: CancellationToken,
++    deadline: Instant,
++}
++impl ResourceActivationAuthority {
++    fn reply_current(&self) -> bool {
++        !self.physical.is_cancelled() && Instant::now() < self.deadline && self.lease.current()
++    }
++    pub fn current(&self) -> bool {
++        !self.invocation.is_cancelled() && self.reply_current()
++    }
++    pub fn authority<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
++        self.current()
++            .then(|| self.lease.authority::<T>())
++            .flatten()
++    }
++}
++
+ impl AuthorityLease {
+     pub(in crate::v2) fn resource_preparation_reply(
+         &self,
+@@ -176,7 +343,21 @@
+ 
+ impl ReplyAuthority {
+     pub(in crate::v2) fn resource_only(&self) -> bool {
+-        self.0.lock().authority::<ResourcePreparation>().is_some()
++        // Preserve the BOTH-credential/assurance publication recheck after
++        // resource preparation, including when final reply rights were freshly
++        // restored. No original domain guard is retained by this scalar fact.
++        self.1.load(std::sync::atomic::Ordering::Acquire)
++    }
++    pub(in crate::v2) fn into_final_replies(
++        self: Arc<Self>,
++        replies: &[Envelope],
++    ) -> Result<(bool, AuthorityLease), DispatchError> {
++        let resource_only = self.resource_only();
++        let lease = self.for_replies(replies)?;
++        // Release the slot before returning its separately retained reply guard.
++        // The caller drops that guard before BOTH-credential reentry.
++        drop(self);
++        Ok((resource_only, lease))
+     }
+     pub(in crate::v2) fn for_replies(
+         &self,
+@@ -213,3 +394,6 @@
+         Ok(lease.retained())
+     }
+ }
++
++#[cfg(test)]
++mod subscription_tests;
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
+@@ -0,0 +1,324 @@
++//! Sealed activation marker/currentness and final reply custody only.
++use super::*;
++use serde_json::json;
++use std::sync::atomic::{AtomicBool, Ordering};
++fn envelope(kind: &str, payload: serde_json::Value) -> Envelope {
++    Envelope::from_value(json!({"v":2,"type":kind,"id":format!("test_{}",uuid::Uuid::new_v4().simple()),"ts":chrono::Utc::now(),"cid":"conversation","sid":"session","connid":"connection","operation_id":"subscription","expected_revision":0,"payload":payload})).unwrap()
++}
++fn authorized() -> AuthorizedEnvelope {
++    let original = envelope(
++        "stream.subscribe",
++        json!({"by_participant":"part_alice","subscriptions":[{"from_participant":"part_bob","kinds":["audio"]}]}),
++    );
++    let physical = CancellationToken::new();
++    let invocation = physical.child_token();
++    let deadline = Instant::now() + Duration::from_secs(3);
++    let resource = ResourcePreparation {
++        kind: PreparationKind::Subscription,
++        marker: Arc::new(()),
++        original: original.clone(),
++        participant: "part_alice".into(),
++        streams: ["audio".into()].into_iter().collect(),
++        cancellation: invocation.child_token(),
++        deadline,
++    };
++    let mut final_resource = resource.clone();
++    final_resource.cancellation = physical.child_token();
++    let final_current = final_resource.cancellation.clone();
++    let current = resource.cancellation.clone();
++    let reply_authority = ReplyAuthority::new(AuthorityLease::checking(
++        final_resource,
++        deadline,
++        move || !final_current.is_cancelled(),
++    ));
++    reply_authority.note_resource_preparation();
++    AuthorizedEnvelope {
++        envelope: original,
++        principal: AuthenticatedPrincipal {
++            subject: "alice".into(),
++            tenant: None,
++            scopes: vec!["control".into()],
++            issuer: None,
++            expires_at: Some(chrono::Utc::now() + chrono::Duration::minutes(1)),
++            method: rvoip_auth_core::bearer::AuthenticationMethod::Bearer,
++            assurance: IdentityAssurance::Identified {
++                credential_kind: rvoip_core::identity::CredentialKind::Oidc,
++            },
++        },
++        _lease: AuthorityLease::checking(resource, deadline, move || !current.is_cancelled()),
++        reply_authority,
++        origin: RequestOrigin {
++            incarnation: uuid::Uuid::new_v4(),
++            lifetime: physical,
++            deadline,
++        },
++        peer: None,
++        exchange: None,
++        invocation,
++        answer_state: Arc::new(offer_answer::OfferAnswerState::default()),
++    }
++}
++fn token(
++    a: &AuthorizedEnvelope,
++    valid: Arc<AtomicBool>,
++    until: Instant,
++) -> Arc<ResourceActivationAuthority> {
++    let resource = a._lease.authority::<ResourcePreparation>().unwrap();
++    Arc::new(ResourceActivationAuthority {
++        marker: resource.marker.clone(),
++        lease: AuthorityLease::checking(17u64, until, move || valid.load(Ordering::Acquire)),
++        invocation: resource.cancellation.clone(),
++        physical: a.origin.lifetime.child_token(),
++        deadline: until.min(resource.deadline),
++    })
++}
++fn result(a: &AuthorizedEnvelope) -> Envelope {
++    let mut value=envelope("operation.updated",json!({"operation_id":"subscription","record_id":"record","command_type":"stream.subscribe","expected_revision":0,"state":"completed","revision":1,"result":{"stream_revision":1}})).original().clone();
++    value["in_reply_to"] = json!(a.envelope().id());
++    Envelope::from_value(value).unwrap()
++}
++#[test]
++fn resource_subscription_results_require_exact_current_activation_and_final_reply_survives_handler_drop(
++) {
++    let a = authorized();
++    let reply = result(&a);
++    assert_eq!(
++        a.reply_authority.for_replies(&[reply.clone()]).unwrap_err(),
++        DispatchError::ReplyMismatch
++    );
++    let valid = Arc::new(AtomicBool::new(true));
++    let fresh = token(&a, valid.clone(), Instant::now() + Duration::from_secs(2));
++    assert_eq!(fresh.authority::<u64>(), Some(&17));
++    a.install_resource_reply_authority(&fresh).unwrap();
++    // Final fresh application rights must not erase the earlier domain release
++    // fact used by resumed step-up BOTH-credential publication revalidation.
++    assert!(a.reply_authority.resource_only());
++    a.invocation.cancel();
++    assert!(!fresh.current());
++    assert!(
++        a.reply_authority.for_replies(&[reply.clone()]).is_ok(),
++        "final reply retains fresh domain proof beyond handler child only"
++    );
++    valid.store(false, Ordering::Release);
++    assert_eq!(
++        a.reply_authority.for_replies(&[reply]).unwrap_err(),
++        DispatchError::Authority
++    );
++}
++#[test]
++fn resource_subscription_foreign_marker_expired_or_physical_cancel_cannot_install_reply_authority()
++{
++    let a = authorized();
++    let foreign = authorized();
++    let valid = Arc::new(AtomicBool::new(true));
++    let other = token(
++        &foreign,
++        valid.clone(),
++        Instant::now() + Duration::from_secs(1),
++    );
++    assert!(other.current());
++    assert_eq!(
++        a.install_resource_reply_authority(&other),
++        Err(DispatchError::Authority)
++    );
++    let expired = token(&a, valid.clone(), Instant::now() - Duration::from_millis(1));
++    assert_eq!(
++        a.install_resource_reply_authority(&expired),
++        Err(DispatchError::Authority)
++    );
++    let fresh = token(&a, valid, Instant::now() + Duration::from_secs(1));
++    a.origin.lifetime.cancel();
++    assert_eq!(
++        a.install_resource_reply_authority(&fresh),
++        Err(DispatchError::Authority)
++    );
++}
++#[test]
++fn resource_subscription_parameter_scope_revision_and_streams_stay_frozen() {
++    let a = authorized();
++    let resource = a._lease.authority::<ResourcePreparation>().unwrap();
++    let mut offered=envelope("connection.offer",json!({"by_participant":"part_alice","substrate":"quic","capabilities":{},"streams_offered":[{"id":"audio","kind":"audio","direction":"sendrecv","codec_preferences":["pcmu"]}],"substrate_setup":{"kind":"native-prepared/1","revision":1,"offer_id":a.envelope().id(),"streams":[]}})).original().clone();
++    assert!(resource
++        .permits(&Envelope::from_value(offered.clone()).unwrap())
++        .is_ok());
++    for field in ["cid", "sid", "connid", "operation_id"] {
++        let mut bad = offered.clone();
++        bad[field] = json!("foreign");
++        assert!(resource
++            .permits(&Envelope::from_value(bad).unwrap())
++            .is_err());
++    }
++    let mut bad = offered.clone();
++    bad["in_reply_to"] = json!(a.envelope().id());
++    assert!(resource
++        .permits(&Envelope::from_value(bad).unwrap())
++        .is_err());
++    let mut bad = offered.clone();
++    bad["payload"]["streams_offered"][0]["id"] = json!("foreign-stream");
++    assert!(resource
++        .permits(&Envelope::from_value(bad).unwrap())
++        .is_err());
++    let mut bad = offered.clone();
++    bad["payload"]["by_participant"] = json!("foreign-participant");
++    assert!(resource
++        .permits(&Envelope::from_value(bad).unwrap())
++        .is_err());
++    offered["payload"]["substrate_setup"]["revision"] = json!(2);
++    assert!(resource
++        .permits(&Envelope::from_value(offered).unwrap())
++        .is_err());
++}
++
++struct OriginalPolicy {
++    expected: serde_json::Value,
++    grants: Arc<tokio::sync::RwLock<bool>>,
++    calls: std::sync::atomic::AtomicUsize,
++    deadline: Instant,
++}
++#[async_trait::async_trait]
++impl CurrentAuthority for OriginalPolicy {
++    async fn acquire(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        original: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.calls.fetch_add(1, Ordering::AcqRel);
++        if original.original() != &self.expected || principal.subject != "alice" {
++            return Err(DispatchError::Authority);
++        }
++        let guard = self.grants.clone().read_owned().await;
++        if *guard {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::checking(guard, self.deadline, || true))
++    }
++}
++#[tokio::test]
++async fn subscription_conversion_releases_both_original_guards_then_rechecks_same_consumed_command()
++{
++    let mut a = authorized();
++    let grants = Arc::new(tokio::sync::RwLock::new(false));
++    let original = AuthorityLease::holding(grants.clone().read_owned().await);
++    a.reply_authority.replace(original.retained());
++    a.reply_authority.1.store(false, Ordering::Release);
++    assert!(!a.reply_authority.resource_only());
++    a._lease = original;
++    let until = Instant::now() + Duration::from_secs(1);
++    let policy = Arc::new(OriginalPolicy {
++        expected: a.envelope().original().clone(),
++        grants: grants.clone(),
++        calls: std::sync::atomic::AtomicUsize::new(0),
++        deadline: until,
++    });
++    let (context, replay) = crate::v2::auth_peer::exchange::resource_test_context(
++        policy.clone(),
++        a.principal().clone(),
++        a.origin.lifetime.clone(),
++        a.origin.deadline,
++    );
++    replay.consume(a.envelope().id()).unwrap();
++    a.exchange = Some(context);
++    assert!(grants.clone().try_write_owned().is_err());
++    let a = a
++        .into_subscription_resource_preparation(
++            "part_alice".into(),
++            ["audio".into()].into_iter().collect(),
++            Instant::now() + Duration::from_secs(30),
++        )
++        .unwrap();
++    assert!(a
++        .authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
++        .is_none());
++    let writer = grants
++        .clone()
++        .try_write_owned()
++        .expect("both old invocation and final-reply domain aliases must release");
++    drop(writer);
++    let fresh = a.reauthorize_resource_preparation().await.unwrap();
++    assert!(fresh.current());
++    assert!(fresh.deadline <= until);
++    assert!(fresh.deadline <= a.origin.deadline);
++    assert!(fresh
++        .authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
++        .is_some());
++    assert_eq!(policy.calls.load(Ordering::Acquire), 1);
++    assert_eq!(
++        replay.usage().0,
++        1,
++        "fresh current policy must not reconsume original signature or replay command"
++    );
++    assert!(
++        grants.clone().try_write_owned().is_err(),
++        "actual fresh guard retained through activation"
++    );
++    a.install_resource_reply_authority(&fresh).unwrap();
++    // Final fresh application rights must not erase the earlier domain release
++    // fact used by resumed step-up BOTH-credential publication revalidation.
++    assert!(a.reply_authority.resource_only());
++    a.invocation.cancel();
++    assert!(!fresh.current());
++    assert!(a.reply_authority.for_replies(&[result(&a)]).is_ok());
++}
++#[tokio::test]
++async fn subscription_fresh_policy_refusal_never_restores_resource_application_reply() {
++    let mut a = authorized();
++    let grants = Arc::new(tokio::sync::RwLock::new(true));
++    let policy = Arc::new(OriginalPolicy {
++        expected: a.envelope().original().clone(),
++        grants,
++        calls: std::sync::atomic::AtomicUsize::new(0),
++        deadline: Instant::now() + Duration::from_secs(1),
++    });
++    let (context, replay) = crate::v2::auth_peer::exchange::resource_test_context(
++        policy.clone(),
++        a.principal().clone(),
++        a.origin.lifetime.clone(),
++        a.origin.deadline,
++    );
++    replay.consume(a.envelope().id()).unwrap();
++    a.exchange = Some(context);
++    assert!(matches!(
++        a.reauthorize_resource_preparation().await,
++        Err(DispatchError::Authority)
++    ));
++    assert_eq!(policy.calls.load(Ordering::Acquire), 1);
++    assert_eq!(replay.usage().0, 1);
++    assert_eq!(
++        a.reply_authority.for_replies(&[result(&a)]).unwrap_err(),
++        DispatchError::ReplyMismatch
++    );
++}
++
++#[tokio::test]
++async fn resumed_final_slot_is_consumed_before_both_credential_publication_reentry() {
++    let a = authorized();
++    let resource = a._lease.authority::<ResourcePreparation>().unwrap();
++    let grants = Arc::new(tokio::sync::RwLock::new(()));
++    let current = Arc::new(ResourceActivationAuthority {
++        marker: resource.marker.clone(),
++        lease: AuthorityLease::holding(grants.clone().read_owned().await),
++        invocation: resource.cancellation.clone(),
++        physical: a.origin.lifetime.child_token(),
++        deadline: resource.deadline,
++    });
++    a.install_resource_reply_authority(&current).unwrap();
++    let reply = result(&a);
++    let slot = a.reply_authority.clone();
++    drop(current);
++    drop(a); // Original handler has returned, final reply still current.
++    let (requires_both, reply_guard) = slot.into_final_replies(&[reply]).unwrap();
++    assert!(
++        requires_both,
++        "fresh reply rights must preserve earlier resource-release fact"
++    );
++    assert!(
++        grants.clone().try_write_owned().is_err(),
++        "returned reply still owns actual proof"
++    );
++    drop(reply_guard);
++    let writer = grants
++        .clone()
++        .try_write_owned()
++        .expect("consumed final slot must not retain a second domain alias before BOTH refresh");
++    drop(writer);
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -50,6 +50,32 @@
+                 deadline,
+             }),
+         }
++    }
++    // Recheck only the already verified original command. No envelope resend,
++    // signature/replay consumption, parameter IO or fresh credential is implied.
++    pub(in crate::v2) async fn reauthorize_original(
++        &self,
++        original: &Envelope,
++        deadline: Instant,
++        invoked: &CancellationToken,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let deadline = deadline.min(self.reply.deadline);
++        self.reply.active(deadline)?;
++        if invoked.is_cancelled() {
++            return Err(DispatchError::Closed);
++        }
++        // Await the actual original policy future; never detach a possibly
++        // acquired domain guard by racing an outer timeout/drop against it.
++        let lease = self
++            .reply
++            .authority
++            .acquire(&self.reply.principal, original)
++            .await?;
++        self.reply.active(deadline)?;
++        if invoked.is_cancelled() || !lease.current() {
++            return Err(DispatchError::Authority);
++        }
++        Ok(lease.bounded(deadline))
+     }
+     pub(in crate::v2) fn for_origin(&self, lifetime: CancellationToken, deadline: Instant) -> Self {
+         Self {
+@@ -1713,3 +1739,35 @@
+         assert!(domain.try_write().is_ok());
+     }
+ }
++
++// In-crate unit fixture only: sender is deliberately closed so any attempted
++// parameter/network work fails. It does not expose a public authority shortcut.
++#[cfg(test)]
++pub(in crate::v2) fn resource_test_context(
++    authority: Arc<dyn CurrentAuthority>,
++    principal: AuthenticatedPrincipal,
++    lifetime: CancellationToken,
++    deadline: Instant,
++) -> (ExchangeContext, Arc<ReplayFence>) {
++    let (sender, receiver) = mpsc::channel(1);
++    drop(receiver);
++    let replay = Arc::new(ReplayFence::new(4).unwrap());
++    let verifier = Arc::new(Sig9421Verifier::new(Arc::new(
++        rvoip_auth_core::sig9421::StaticKeyResolver::new(),
++    )));
++    (
++        ExchangeContext::new(
++            ExchangeSender {
++                sender,
++                changed: Arc::new(Notify::new()),
++            },
++            authority,
++            verifier,
++            replay.clone(),
++            principal,
++            lifetime,
++            deadline,
++        ),
++        replay,
++    )
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -378,8 +378,10 @@
+         };
+ 
+         let replies = reply.into_envelopes();
+-        let resource_only = reply_authority.resource_only();
+-        let reply_lease = reply_authority.for_replies(&replies)?;
++        // Consume the final slot after handler completion. Its own fresh Read
++        // must leave with reply_lease before a BOTH-credential publication read
++        // can re-enter behind a queued authorization writer.
++        let (resource_only, reply_lease) = reply_authority.into_final_replies(&replies)?;
+         let lease = if resource_only {
+             let publication_deadline = reply_lease
+                 .deadline()
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -22,6 +22,9 @@
+ };
+ use tokio::sync::mpsc;
+ use tokio_util::sync::CancellationToken;
++
++mod subscription_preparation;
++pub use subscription_preparation::{PreparedNativeSubscription, QuarantinedNativeSubscription};
+ 
+ /// One server-accepted TLS transport. It binds at most once to the exact
+ /// authenticated physical resource context, surviving credential refresh.
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native/subscription_preparation.rs
+@@ -0,0 +1,178 @@
++//! Live resource-changing subscription: original stage, authority-free prepare,
++//! then one fresh authorized activation. Existing media stays published meanwhile.
++use super::*;
++use crate::v2::{
++    auth_dispatch::AuthorizedEnvelope,
++    native_negotiation::{NativeNegotiation, NativeOfferError, NegotiationGuard},
++    native_subscriptions::{core_error, NativeSubscriptionOutcome, NativeSubscriptionPlan},
++    Envelope,
++};
++use rvoip_core::{
++    orchestrator::Orchestrator,
++    staged_streams::{PreparedSubscriptionMedia, QuarantinedSubscriptionMedia},
++};
++use std::{any::Any, collections::BTreeSet};
++use tokio::time::Instant;
++
++pub struct QuarantinedNativeSubscription {
++    staged: QuarantinedSubscriptionMedia,
++    broker: Arc<NativeNegotiation>,
++    flow: Arc<crate::native_flow::NativeFlow>,
++    original: Envelope,
++    principal: AuthenticatedPrincipal,
++    peer: Arc<PeerAdmission>,
++    participant: String,
++    plan: NativeSubscriptionPlan,
++    deadline: Instant,
++}
++pub struct PreparedNativeSubscription {
++    prepared: PreparedSubscriptionMedia,
++    guard: NegotiationGuard,
++    flow: Arc<crate::native_flow::NativeFlow>,
++    authorized: Arc<AuthorizedEnvelope>,
++    expected: u64,
++}
++impl CanonicalNativeAdapter {
++    /// Stage the exact already-authorized plan before releasing command/source
++    /// readers. The returned object retains no application authority or command.
++    pub async fn stage_native_subscription_resources(
++        &self,
++        core: &Orchestrator,
++        id: &ConnectionId,
++        a: &Arc<AuthorizedEnvelope>,
++        held: Arc<dyn Any + Send + Sync>,
++        plan: NativeSubscriptionPlan,
++        deadline: Instant,
++    ) -> std::result::Result<QuarantinedNativeSubscription, NativeOfferError> {
++        if !plan.changes_resources()
++            || !matches!(
++                a.envelope().kind(),
++                "stream.subscribe" | "stream.unsubscribe"
++            )
++            || a.envelope().expected_revision() != Some(plan.selection().expected_revision())
++            || !a.supports_native_negotiation()
++        {
++            return Err(NativeOfferError::Scope);
++        }
++        let deadline = a.resource_preparation_cutoff(deadline);
++        if Instant::now() >= deadline {
++            return Err(NativeOfferError::Deadline);
++        }
++        let route = self.data_route(id, a)?;
++        let peer = route.peer.upgrade().ok_or(NativeOfferError::NotReady)?;
++        let (broker, flow) = {
++            let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++            let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++            if installed.controller.revision() != plan.selection().expected_revision() {
++                return Err(NativeOfferError::Conflict);
++            }
++            (
++                installed
++                    .backend
++                    .negotiation
++                    .clone()
++                    .ok_or(NativeOfferError::Unsupported)?,
++                installed.backend.flow.clone(),
++            )
++        };
++        let staged = core
++            .stage_staged_media_and_subscriptions_with_held(
++                &route.session,
++                id,
++                plan.selection().expected_revision(),
++                plan.media().selected(),
++                &BTreeSet::new(),
++                plan.selection().routing(),
++                deadline,
++                a.invocation_cancellation(),
++                held,
++            )
++            .await
++            .map_err(core_error)?;
++        Ok(QuarantinedNativeSubscription {
++            staged,
++            broker,
++            flow,
++            original: a.envelope().clone(),
++            principal: a.principal().clone(),
++            peer,
++            participant: route.member.participant().as_str().into(),
++            plan,
++            deadline,
++        })
++    }
++}
++impl QuarantinedNativeSubscription {
++    /// Consume the UNIQUE original command only after its old invocation/plan
++    /// aliases are released. Resource conversion replaces the outer reply alias
++    /// before broker/adapter preparation can retain this exact command again.
++    pub async fn prepare(
++        self,
++        a: AuthorizedEnvelope,
++    ) -> std::result::Result<PreparedNativeSubscription, NativeOfferError> {
++        if a.envelope().original() != self.original.original()
++            || !rvoip_core::staged_streams::reliable_data::same_credential(
++                a.principal(),
++                &self.principal,
++            )
++            || !a
++                .peer_admission()
++                .is_some_and(|peer| Arc::ptr_eq(peer, &self.peer))
++        {
++            return Err(NativeOfferError::Scope);
++        }
++        let streams = self
++            .plan
++            .media()
++            .selected()
++            .iter()
++            .map(|stream| stream.requested.logical_id.as_str().to_owned())
++            .collect();
++        let a = Arc::new(a.into_subscription_resource_preparation(
++            self.participant,
++            streams,
++            self.deadline,
++        )?);
++        let expected = self.plan.selection().expected_revision();
++        // Begin only AFTER conversion: the broker may retain this Arc for the
++        // entire signed answer, but it contains no Store/application reader.
++        let guard =
++            self.broker
++                .begin_subscriptions(a.clone(), expected, self.plan.media.clone())?;
++        let prepared = self
++            .staged
++            .prepare()
++            .await
++            .map_err(|error| guard.error(error))?;
++        Ok(PreparedNativeSubscription {
++            prepared,
++            guard,
++            flow: self.flow,
++            authorized: a,
++            expected,
++        })
++    }
++}
++impl PreparedNativeSubscription {
++    pub fn authorized(&self) -> Arc<AuthorizedEnvelope> {
++        self.authorized.clone()
++    }
++    /// Only a separately reconstructed current host invocation can activate.
++    /// A signed parameter answer alone never publishes routes or grants IO.
++    pub async fn activate_with_held(
++        self,
++        held: Arc<dyn Any + Send + Sync>,
++    ) -> std::result::Result<NativeSubscriptionOutcome, NativeOfferError> {
++        self.prepared
++            .activate_with_held(held)
++            .await
++            .map_err(|error| self.guard.error(error))?;
++        self.guard.committed();
++        self.flow
++            .confirmed(self.expected + 1, self.authorized.envelope().id());
++        Ok(NativeSubscriptionOutcome {
++            revision: self.expected + 1,
++            resources_changed: true,
++        })
++    }
++}

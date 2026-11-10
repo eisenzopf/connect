@@ -35,6 +35,7 @@ pub(crate) struct StreamInvocation {
     policy: Arc<Policy>,
     connection: Arc<Connection>,
     authorized: Arc<AuthorizedEnvelope>,
+    resumed: Option<Arc<rvoip_uctp::v2::auth_dispatch::ResourceActivationAuthority>>,
     plan: Plan,
     revision: u64,
     target: Arc<NativeMediaRead>,
@@ -43,10 +44,12 @@ pub(crate) struct StreamInvocation {
 }
 impl StreamInvocation {
     fn current(&self) -> ControlResult<()> {
-        let authority = self
-            .authorized
-            .authority::<StoreInvocationAuthority>()
-            .ok_or(StreamControlError::Authority)?;
+        let authority = match &self.resumed {
+            Some(resumed) if resumed.current() => resumed.authority::<StoreInvocationAuthority>(),
+            Some(_) => None,
+            None => self.authorized.authority::<StoreInvocationAuthority>(),
+        }
+        .ok_or(StreamControlError::Authority)?;
         let wire =
             crate::canonical_native_streams::intent(self.authorized.envelope()).map_err(denied)?;
         if !authority.peer_guard().is_some_and(|p| p.current())
@@ -137,8 +140,22 @@ impl Policy {
         lease: &connect_store::NativeStreamLease,
         deadline: tokio::time::Instant,
     ) -> connect_protocol::Result<Arc<StreamInvocation>> {
-        let proof = a
-            .authority::<StoreInvocationAuthority>()
+        self.stream_invocation_with_activation(a, plan, lease, deadline, None)
+    }
+    pub(crate) fn stream_invocation_with_activation(
+        self: &Arc<Self>,
+        a: Arc<AuthorizedEnvelope>,
+        plan: Plan,
+        lease: &connect_store::NativeStreamLease,
+        deadline: tokio::time::Instant,
+        resumed: Option<Arc<rvoip_uctp::v2::auth_dispatch::ResourceActivationAuthority>>,
+    ) -> connect_protocol::Result<Arc<StreamInvocation>> {
+        let authority = match &resumed {
+            Some(resumed) if resumed.current() => resumed.authority::<StoreInvocationAuthority>(),
+            Some(_) => None,
+            None => a.authority::<StoreInvocationAuthority>(),
+        };
+        let proof = authority
             .and_then(|h| h.peer_guard())
             .ok_or_else(connect_protocol::Error::forbidden)?;
         let connection = self
@@ -224,6 +241,7 @@ impl Policy {
             policy: self.clone(),
             connection,
             authorized: a,
+            resumed,
             plan,
             revision: lease.expected_revision(),
             target,
@@ -318,7 +336,8 @@ pub(super) fn check_plan(
             desired,
             replace,
             change,
-        } if *expected == plan.selection().expected_revision()
+        } if plan.changes_resources()
+            && *expected == plan.selection().expected_revision()
             && replace.is_empty()
             && desired
                 .iter()

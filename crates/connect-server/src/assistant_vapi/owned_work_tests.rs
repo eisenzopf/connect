@@ -66,3 +66,24 @@ async fn owned_context_work_cancellation_keeps_original_cleanup_and_result() {
     );
     assert_eq!(drops.load(Ordering::Acquire), 1);
 }
+
+#[test]
+fn original_context_setup_future_is_pointer_sized_at_caller_boundary() {
+    fn returned_size<F: Future>(
+        _factory: impl FnOnce(
+            Arc<Service>,
+            String,
+            AssistantContextRead,
+            AssistantVapiProfile,
+            ProviderSecrets,
+            Option<PublicNativeAudio>,
+        ) -> F,
+    ) -> usize {
+        std::mem::size_of::<F>()
+    }
+    assert_eq!(
+        returned_size(AssistantVapiContextSession::start_owned),
+        std::mem::size_of::<usize>(),
+        "large setup state must not be embedded repeatedly in parent futures"
+    );
+}

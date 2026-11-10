@@ -24,6 +24,11 @@ fn proof(a: &AuthorizedEnvelope) -> Result<&connect_store::PeerAuthorityGuard> {
         .and_then(|a| a.peer_guard())
         .ok_or_else(Error::forbidden)
 }
+fn start_refused(stage: &'static str, error: Error) -> Error {
+    tracing::debug!(target: "connect_service::canonical_replacement", stage, code=%error.code,
+        "Original replacement start refused before resource preparation");
+    error
+}
 impl Runtime {
     pub(crate) async fn start_native_replacement(
         self: &Arc<Self>,
@@ -31,6 +36,8 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: &str,
     ) -> Result<Reply> {
+        tracing::debug!(target: "connect_service::canonical_replacement", stage="start-entry",
+            "Original replacement start entered");
         let roles = self.role_projection.try_lock().map_err(|_| {
             Error::new(
                 "not-ready",
@@ -123,11 +130,15 @@ impl Runtime {
             let read = store_call(move || {
                 store.native_replacement_start_read_with_peer(&receipt, &key, proof(&a)?)
             })
-            .await?;
+            .await
+            .map_err(|error| start_refused("start-read", error))?;
             // Capture exact metadata owners before the once-only start effect.
             // A busy lookup drops this read and refuses before any once-only
             // begin; negotiation and mute have not started yet.
-            let entries = self.media.replacement_preparation_entries(read.source())?;
+            let entries = self
+                .media
+                .replacement_preparation_entries(read.source())
+                .map_err(|error| start_refused("start-entries", error))?;
             (read, entries)
         };
         if crate::canonical_runtime::core_transport(&read.target().endpoint_transport)?
@@ -168,7 +179,8 @@ impl Runtime {
             store_call(move || {
                 store.begin_native_replacement_start_with_read(receipt, &key, proof(&a)?, read)
             })
-            .await?
+            .await
+            .map_err(|error| start_refused("start-begin", error))?
         };
         let participant = read.target().connection.participant_id.clone();
         let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();

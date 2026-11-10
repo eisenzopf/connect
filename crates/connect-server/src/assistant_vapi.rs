@@ -140,85 +140,91 @@ impl AssistantVapiContextSession {
         )
         .await
     }
-    async fn start_owned(
+    fn start_owned(
         service: Arc<Service>,
         operation_id: String,
         selection: AssistantContextRead,
         profile: AssistantVapiProfile,
         secrets: ProviderSecrets,
         mut audio: Option<PublicNativeAudio>,
-    ) -> Result<Self> {
-        let transport = profile.transport();
-        let validation = transport.validate();
-        let svc = service.clone();
-        let timing = profile.context_timing;
-        let context = match async {
-            validation?;
-            blocking(move || svc.prepare_assistant_provider_timed(&operation_id, selection, timing))
+    ) -> std::pin::Pin<Box<impl Future<Output = Result<Self>> + Send>> {
+        // Keep the large setup state out of every caller's async state machine.
+        // The original task, cancellation and cleanup remain in the same flow.
+        Box::pin(async move {
+            let transport = profile.transport();
+            let validation = transport.validate();
+            let svc = service.clone();
+            let timing = profile.context_timing;
+            let context = match async {
+                validation?;
+                blocking(move || {
+                    svc.prepare_assistant_provider_timed(&operation_id, selection, timing)
+                })
                 .await
-        }
-        .await
-        {
-            Ok(context) => context,
-            Err(error) => {
-                if let Some(audio) = audio.take() {
+            }
+            .await
+            {
+                Ok(context) => context,
+                Err(error) => {
+                    if let Some(audio) = audio.take() {
+                        audio.close();
+                        if audio.shutdown().await.is_err() {
+                            return Err(problem_error("public-native-drain-unconfirmed"));
+                        }
+                    }
+                    return Err(error);
+                }
+            };
+            let delivery = context.delivery_id().to_owned();
+            let stop = CancellationToken::new();
+            let token = stop.clone();
+            let (tx, status) = watch::channel(AssistantVapiStatus::Preparing);
+            let (updates, mut requests) = mpsc::channel(8);
+            // No provider submission exists yet. Only the task can clear/set these
+            // facts at the original dispatch/recorded-terminal and actual native
+            // endpoint-drain boundaries. An operation error is a separate outcome.
+            let cleanup = Arc::new(Cleanup {
+                provider: AtomicBool::new(true),
+                native: AtomicBool::new(audio.is_none()),
+            });
+            let completed = cleanup.clone();
+            let task = tokio::spawn(owned_context_work(async move {
+                let mut result = run(
+                    service,
+                    context,
+                    transport,
+                    secrets,
+                    &token,
+                    &tx,
+                    audio.as_mut(),
+                    &mut requests,
+                    &completed.provider,
+                )
+                .await;
+                if let Some(audio) = audio {
                     audio.close();
-                    if audio.shutdown().await.is_err() {
-                        return Err(problem_error("public-native-drain-unconfirmed"));
+                    let drained = audio.shutdown().await.is_ok();
+                    completed.native.store(drained, Ordering::Release);
+                    if !drained && result.is_ok() {
+                        result = Err(Error::new(
+                            "public-native-drain-unconfirmed",
+                            "Public assistant native cleanup remains unconfirmed",
+                        ));
                     }
                 }
-                return Err(error);
-            }
-        };
-        let delivery = context.delivery_id().to_owned();
-        let stop = CancellationToken::new();
-        let token = stop.clone();
-        let (tx, status) = watch::channel(AssistantVapiStatus::Preparing);
-        let (updates, mut requests) = mpsc::channel(8);
-        // No provider submission exists yet. Only the task can clear/set these
-        // facts at the original dispatch/recorded-terminal and actual native
-        // endpoint-drain boundaries. An operation error is a separate outcome.
-        let cleanup = Arc::new(Cleanup {
-            provider: AtomicBool::new(true),
-            native: AtomicBool::new(audio.is_none()),
-        });
-        let completed = cleanup.clone();
-        let task = tokio::spawn(owned_context_work(async move {
-            let mut result = run(
-                service,
-                context,
-                transport,
-                secrets,
-                &token,
-                &tx,
-                audio.as_mut(),
-                &mut requests,
-                &completed.provider,
-            )
-            .await;
-            if let Some(audio) = audio {
-                audio.close();
-                let drained = audio.shutdown().await.is_ok();
-                completed.native.store(drained, Ordering::Release);
-                if !drained && result.is_ok() {
-                    result = Err(Error::new(
-                        "public-native-drain-unconfirmed",
-                        "Public assistant native cleanup remains unconfirmed",
-                    ));
-                }
-            }
-            tx.send_replace(AssistantVapiStatus::Stopped {
-                problem: result.as_ref().err().map(|e| e.code.clone()),
-            });
-            result
-        }));
-        Ok(Self {
-            delivery,
-            cleanup,
-            stop,
-            task: Some(task),
-            status,
-            updates,
+                tx.send_replace(AssistantVapiStatus::Stopped {
+                    problem: result.as_ref().err().map(|e| e.code.clone()),
+                });
+                result
+            }));
+            Ok(Self {
+                delivery,
+                cleanup,
+                stop,
+                task: Some(task),
+                status,
+                updates,
+            })
         })
     }
     pub fn delivery_id(&self) -> &str {

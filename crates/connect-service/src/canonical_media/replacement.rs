@@ -51,12 +51,10 @@ impl Policy {
         if source == retained {
             return Err(Error::forbidden());
         }
-        let registry = self.entries.try_lock().map_err(|error| match error {
-            std::sync::TryLockError::WouldBlock => {
-                Error::new("authority-busy", "Original preparation entries are busy")
-            }
-            std::sync::TryLockError::Poisoned(_) => Error::storage(),
-        })?;
+        // Metadata capture reads the last complete publication. These owners
+        // still require the original current read and exact physical activation
+        // at use; copying them needs no registry writer interval.
+        let registry = self.entries.snapshot().map_err(|_| Error::storage())?;
         let mut entries = BTreeMap::new();
         let retained_entry = registry
             .get(&retained)
@@ -108,7 +106,15 @@ impl ReplacementPreparationInvocation {
         };
         // Each temporary authority result drops before the next observation.
         let before = self.current(&scope).is_ok();
-        let (held, cancelled, wrong_owner, missing_owner, changed_intent, expired, capture_busy) = {
+        let (
+            held,
+            cancelled,
+            wrong_owner,
+            missing_owner,
+            changed_intent,
+            expired,
+            capture_published,
+        ) = {
             let _registry = self.policy.entries.lock().expect("actual media registry");
             let held = self.current(&scope).is_ok();
             let mut invalid = self.clone();
@@ -149,11 +155,18 @@ impl ReplacementPreparationInvocation {
                 self.policy.replacement_preparation_control(&scope, &late),
                 Err(ParticipantControlError::Deadline)
             );
-            let capture_busy = self
+            let capture_published = self
                 .policy
                 .replacement_preparation_entries(&self.read)
-                .err()
-                .is_some_and(|error| error.code == "authority-busy");
+                .is_ok_and(|captured| {
+                    captured.entries.len() == self.entries.entries.len()
+                        && captured.entries.iter().all(|(id, entry)| {
+                            self.entries
+                                .entries
+                                .get(id)
+                                .is_some_and(|original| Arc::ptr_eq(original, entry))
+                        })
+                });
             (
                 held,
                 cancelled,
@@ -161,7 +174,7 @@ impl ReplacementPreparationInvocation {
                 missing_owner,
                 changed_intent,
                 expired,
-                capture_busy,
+                capture_published,
             )
         };
         let after = self.current(&scope).is_ok();
@@ -173,7 +186,7 @@ impl ReplacementPreparationInvocation {
             | (usize::from(missing_owner) << 5)
             | (usize::from(changed_intent) << 6)
             | (usize::from(expired) << 7)
-            | (usize::from(capture_busy) << 8);
+            | (usize::from(capture_published) << 8);
         probe.store(bits, Ordering::Release);
     }
 }

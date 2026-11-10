@@ -2048,6 +2048,18 @@
       "path": "patches/rvoip/gate6-authority-release-and-atomic-media-metadata.patch",
       "sha256": "ea2d997412ff0ae29b32871e8c7b649ca456a9e772d3166319214038c9d1ea1f",
       "source": "G6-058 release original dispatcher reply custody on explicit bounded resource-only preparation; preserve ordinary reply authorization and refresh both credentials on resumed publication. Remove Native/RTC prepared-observation, Core credential and RTC physical owner/allocation read-side mutexes using immutable atomic publication; retain original control serialization, IO fences, lifecycle cleanup and deadlines. Add real signed reply and concurrent publication regressions; runtime verification pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-live-subscription-quarantined-preparation.patch",
+      "sha256": "6bff9668cf8b367ef2d5cf289a7327432102136faf02967fec89c2479ff4b6ab",
+      "source": "G6-058 Connect live resource-changing Subscribe/Unsubscribe: stage exact original Core plan, release original domain/reply authority before bounded parameter and codec preparation, then fresh current same-command authorization and atomic activation. Preserve original physical owner/cutoff/replay identity and historical outcome custody; require current sealed final reply authority and both-credential step-up publication refresh. Add three actual Core IO/writer/revocation controls and six UCTP resource/currentness/guard-drop controls. Generic upstream managed/externally held subscription APIs remain separate; runtime verification pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-live-subscription-authenticated-unit-fixture.patch",
+      "sha256": "f6385f52fc7b24b9a421ff16c2dd6dcd0d20909ac01889b1facea0bb52d38e89",
+      "source": "G6-058 test-only correction: live subscription resource unit fixture must carry tenant and issuer required by existing production checked_principal before fresh same-command authorization. Assert fixture authentication at construction. Preserve production checks, current lease/marker/BOTH publication contract and exact six causal selectors; original E two authentication failures retained, corrected runtime pending."
     }
   ]
 }

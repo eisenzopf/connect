@@ -732,7 +732,7 @@ pub(super) async fn case(
             .try_assistant_context_read(&context_key, "public-consultant", 2, &endpoint_id)
             .is_err());
         println!("actual public assistant context: exact native generation and complete listener audience, pair-only history excluded");
-        public_context::verify(&f, &context_key, &endpoint_id).await;
+        Box::pin(public_context::verify(&f, &context_key, &endpoint_id)).await;
         // Keep the independent observation cohort off the private-call poll frame.
         Box::pin(observation_sources::verify(
             &f,
@@ -748,12 +748,12 @@ pub(super) async fn case(
             let heartbeat = client.keepalive().await.unwrap();
             reply(client, &heartbeat, "ack").await;
         }
-        context_phases::verify(&f, &context_key, &endpoint_id, &cid).await;
+        Box::pin(context_phases::verify(&f, &context_key, &endpoint_id, &cid)).await;
         for client in clients.iter_mut().chain(std::iter::once(&mut public)) {
             let heartbeat = client.keepalive().await.unwrap();
             reply(client, &heartbeat, "ack").await;
         }
-        public_audio::verify(
+        Box::pin(public_audio::verify(
             &f,
             &context_key,
             &endpoint_id,
@@ -763,7 +763,7 @@ pub(super) async fn case(
             th,
             primary_clock,
             &mut primary_sequence,
-        )
+        ))
         .await;
         command.expected_revision = rusqlite::Connection::open(&f.config.database)
             .unwrap()

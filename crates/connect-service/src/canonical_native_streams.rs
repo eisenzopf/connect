@@ -1,4 +1,5 @@
 //! Native controls retain exact wire intent and owned effect custody.
+mod subscription_resources;
 use connect_protocol::{
     native_streams::{Command, Intent},
     Error, Result,
@@ -573,6 +574,34 @@ impl Runtime {
                     break 'captured CapturedStreamOutcome::NoEffect(lease.without_effect(e));
                 }
             };
+            if let Some(Plan::Subscriptions(subscription)) = plan.as_ref() {
+                if subscription.changes_resources() {
+                    // Transfer this same admitted worker and exact attempt. Its
+                    // resource wait must not retain the original planning readers.
+                    let Some(invocation) = invocation else {
+                        break 'captured CapturedStreamOutcome::NoEffect(
+                            lease.without_effect(Error::forbidden()),
+                        );
+                    };
+                    drop(quality_invocation);
+                    drop(advertisement);
+                    self.clone()
+                        .subscription_resource_worker(
+                            a,
+                            physical,
+                            credential,
+                            id,
+                            subscription.clone(),
+                            invocation,
+                            lease,
+                            started,
+                            deadline,
+                            tx,
+                        )
+                        .await;
+                    return;
+                }
+            }
             // Media and quality receipts capture actual returned outcomes. A
             // capability receipt instead captures the verified declaration above;
             // replacement is metadata, committed atomically with its operation.

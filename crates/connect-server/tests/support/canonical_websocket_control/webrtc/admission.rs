@@ -201,7 +201,7 @@ async fn scenario(revoke: bool) {
     // The pinned ICE defaults allow 5s disconnected + 25s failed detection;
     // retain actual custody through that protocol boundary, with 5s test slack.
     let retirement_budget = Duration::from_secs(if revoke { 5 } else { 35 });
-    tokio::time::timeout(retirement_budget, async {
+    let retired = tokio::time::timeout(retirement_budget, async {
         loop {
             if host.available_slots() == 1
                 && host.adapter().route_count() == 0
@@ -213,14 +213,18 @@ async fn scenario(revoke: bool) {
                     == 0
                 && session.read().unwrap().connections.is_empty()
             {
-                break;
+                // Core route removal precedes the original custodian's durable
+                // retirement write. Both must settle within the SAME cutoff.
+                let observed = status(&f);
+                if observed.causal_event_ids.len() >= record.causal_event_ids.len() + 1 {
+                    break observed;
+                }
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
     })
     .await
-    .expect("original RTC, port, controller and live-peer Core quota retire before reuse");
-    let retired = status(&f);
+    .expect("original RTC, port, Core quota and retirement journal settle before reuse");
     same_completed_receipt(&record, &retired);
     assert_eq!(
         retired.causal_event_ids.len(),

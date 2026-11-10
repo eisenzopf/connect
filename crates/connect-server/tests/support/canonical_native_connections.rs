@@ -52,6 +52,8 @@ mod session_codecs;
 mod solo;
 #[path = "canonical_native_connections/step_up.rs"]
 mod step_up;
+#[path = "canonical_native_connections/subscription_quarantine.rs"]
+mod subscription_quarantine;
 use super::*;
 
 // Control-focused cases consume validated asynchronous journal/lifecycle hints.

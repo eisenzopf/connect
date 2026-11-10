@@ -322,7 +322,7 @@ impl Runtime {
         // preparation or create another reservation/effect/Core ticket.
         let expires = lease.expires_at();
         let begin_deadline = tokio::time::Instant::now() + Duration::from_secs(5);
-        let begin_until = std::sync::atomic::AtomicI64::new(expires);
+        let begin_until = Arc::new(std::sync::atomic::AtomicI64::new(expires));
         let begun = preflight::reserved(&self.stop, begin_deadline, || async {
             // A coordinator wait owns no source proof. Every refused iteration
             // drops coordinator/read aliases before the helper's bounded pause.
@@ -332,17 +332,27 @@ impl Runtime {
                 _ = tokio::time::sleep_until(begin_deadline) => return Err(Error::new("authority-busy", "Original replacement begin cutoff expired")),
                 roles = self.role_projection.lock() => roles,
             };
-            let resolved: Result<_> = (|| {
-                let read = self.media.store.native_replacement_preparation_attempt_read(&lease)?;
+            // These current SQL/credential lookups can wait on the primary
+            // connection. Keep that wait off the async executor so packet and
+            // original SQL owners can release their custody. The existing
+            // control-poll registry retains the actual blocking handle.
+            let runtime = self.clone();
+            let resolution_lease = lease.clone();
+            let credential = credential.clone();
+            let plan = plan.clone();
+            let telephone_route = telephone_route.clone();
+            let begin_until_for_resolution = begin_until.clone();
+            let resolved = self.owned_store_call(move || {
+                let read = runtime.media.store.native_replacement_preparation_attempt_read(&resolution_lease)?;
                 // Capture even a Read whose later registry/credential resolution
                 // refuses. Subsequent reads may only shorten this first cutoff.
-                begin_until.fetch_min(read.expires_at(), Ordering::AcqRel);
-                let entries = self.media.replacement_preparation_entries(&read)?;
-                let actor = self.media.store.revalidate(&credential).map_err(|error| {
+                begin_until_for_resolution.fetch_min(read.expires_at(), Ordering::AcqRel);
+                let entries = runtime.media.replacement_preparation_entries(&read)?;
+                let actor = runtime.media.store.revalidate(&credential).map_err(|error| {
                     tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-credential",code=%error.code,"Replacement preparation authority refused");
                     error
                 })?;
-                let principal = StoreValidator::canonical(self.media.store.clone())
+                let principal = StoreValidator::canonical(runtime.media.store.clone())
                     .principal(actor)
                     .map_err(|_| {
                         tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-principal","Replacement preparation authority refused");
@@ -353,12 +363,12 @@ impl Runtime {
                     return Err(Error::forbidden());
                 }
                 let telephone_target = if let Some(route) = &telephone_route {
-                    let old = self
+                    let old = runtime
                         .media
                         .replacement_source_owner_with_entries(&read, &entries)
                         .map_err(|_| Error::forbidden())?;
                     Some(Arc::new(crate::telephone_replacement::authority::target(
-                        self,
+                        &runtime,
                         &read,
                         route,
                         &text(&plan["telephone_route"], "destination")?,
@@ -368,11 +378,23 @@ impl Runtime {
                     None
                 };
                 Ok((read, entries, principal, telephone_target))
-            })();
+            }).await;
             let (read, entries, principal, telephone_target) = match resolved {
                 Ok(value) => value,
                 Err(error) => { drop(roles); return Err(error); }
             };
+            // This new await permits shutdown while resolution is owned by
+            // the blocking pool. Join it, then refuse before durable begin.
+            if self.stop.is_cancelled() {
+                drop(read);
+                drop(roles);
+                return Err(Error::forbidden());
+            }
+            if tokio::time::Instant::now() >= begin_deadline {
+                drop(read);
+                drop(roles);
+                return Err(Error::new("authority-busy", "Original replacement begin cutoff expired"));
+            }
             // Invocation-local scalar only: fresh current reads may shorten,
             // never renew the first actual Read's original absolute cutoff.
             let until = begin_until.fetch_min(read.expires_at(), Ordering::AcqRel)

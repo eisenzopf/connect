@@ -372,12 +372,12 @@ fn fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql() {
     drop(grant);
     writer.execute_batch("ROLLBACK").unwrap();
     assert_eq!(Store::inspect_snapshot(p.f.store.path()).unwrap(), before);
-    // An active current reader must also refuse immediately, without waiting
+    // A reader of the mutated Conversation must refuse immediately, without waiting
     // for that reader while holding the SQL mutex or recording a preparation.
     let grant =
         p.f.store
-            .try_acquire_authority(&[crate::AuthorityScope::identity(
-                &identity,
+            .try_acquire_authority(&[crate::AuthorityScope::conversation(
+                &p.f.cid,
                 crate::AuthorityMode::Read,
             )
             .unwrap()])

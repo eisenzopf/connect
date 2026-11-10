@@ -382,6 +382,50 @@ impl Store {
         Ok(held())
     }
 
+    /// Isolated live-subscription fixture: withdraw only Video from an existing
+    /// endpoint while preserving Audio and every physical identity. The supplied
+    /// real Writer remains pinned to this exact primary SQL unit and transaction.
+    #[cfg(feature = "test-support")]
+    pub fn withdraw_native_endpoint_video_for_test(
+        &self,
+        held: &Arc<crate::AuthorityGuardSet>,
+        connection_id: &str,
+    ) -> Result<()> {
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, held)?;
+        let tx = c
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        let (endpoint, identity, cid, encoded): (String, String, String, String) = tx.query_row(
+            "SELECT e.id,e.identity_id,s.conversation_id,e.capabilities_json FROM connections n JOIN sessions s ON s.id=n.session_id JOIN endpoints e ON e.id=n.endpoint_id WHERE n.id=?1 AND n.state IN ('ready','active') AND e.verification_state='verified'",
+            [connection_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)),
+        ).map_err(|_| Error::forbidden())?;
+        if !self.authority_covers(
+            held,
+            &[
+                crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write)?,
+                crate::AuthorityScope::conversation(&cid, crate::AuthorityMode::Write)?,
+            ],
+        ) {
+            return Err(Error::forbidden());
+        }
+        let mut capabilities: Vec<String> =
+            serde_json::from_str(&encoded).map_err(|_| Error::storage())?;
+        if !capabilities.iter().any(|v| v == "audio") || !capabilities.iter().any(|v| v == "video")
+        {
+            return Err(Error::forbidden());
+        }
+        capabilities.retain(|v| v != "video");
+        let changed = tx.execute(
+            "UPDATE endpoints SET capabilities_json=?2 WHERE id=?1 AND identity_id=?3 AND capabilities_json=?4",
+            rusqlite::params![endpoint, serde_json::to_string(&capabilities).map_err(|_| Error::storage())?, identity, encoded],
+        ).map_err(|_| Error::storage())?;
+        if changed != 1 {
+            return Err(Error::forbidden());
+        }
+        tx.commit().map_err(|_| Error::storage())
+    }
+
     /// Original physical resource custody, never a permission. Invoke from
     /// trusted adapter composition outside all SQL/authority/registry guards.
     pub fn retain_packet_observers(&self) -> Result<crate::PacketObserverScope> {

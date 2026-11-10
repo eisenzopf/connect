@@ -523,3 +523,69 @@ async fn cancelled_original_store_waiter_retains_and_joins_actual_write_acquisit
     );
     assert_eq!(runtime.control_polls.len(), Some(0));
 }
+
+#[tokio::test]
+async fn owned_store_call_yields_current_thread_for_reserved_resolution_sql_release() {
+    let (_directory, store, runtime) = fixture();
+    let identity = store
+        .create_identity("reserved-resolution")
+        .expect("identity");
+    let credential = store
+        .issue(
+            &identity.id,
+            connect_store::Scope::operator(),
+            chrono::Utc::now().timestamp() + 60,
+        )
+        .expect("original credential");
+    let expected = identity.id;
+    let (sql_held, held) = tokio::sync::oneshot::channel();
+    let (release, released) = std::sync::mpsc::channel();
+    let db = store.clone();
+    let owner = tokio::task::spawn_blocking(move || {
+        db.with_primary_sql_held_for_test(|| {
+            let _ = sql_held.send(());
+            // A bounded test fuse, not an admission budget. A synchronous
+            // resolver on the sole async thread strands the original releaser;
+            // the fuse then exits false, so it cannot qualify as async progress.
+            released.recv_timeout(Duration::from_secs(1)).is_ok()
+        })
+    });
+    held.await
+        .expect("actual original primary SQL owner entered");
+    let (resolving, entered) = tokio::sync::oneshot::channel();
+    let release_owner = tokio::spawn(async move {
+        if entered.await.is_err() {
+            return false;
+        }
+        release.send(()).is_ok()
+    });
+    let db = store.clone();
+    let outcome = runtime
+        .owned_store_call(move || {
+            let _ = resolving.send(());
+            // These are the actual ordinary credential/principal methods used by
+            // reserved replacement resolution, including primary SQL admission.
+            let actor = db.revalidate(&credential.id)?;
+            let principal = crate::authentication::StoreValidator::canonical(db)
+                .principal(actor)
+                .map_err(|_| Error::forbidden())?;
+            Ok(principal.subject)
+        })
+        .await;
+    let sent_by_async_owner = release_owner.await.expect("original async releaser joined");
+    let released_by_original_signal = owner
+        .await
+        .expect("original blocking SQL owner joined")
+        .expect("SQL fixture");
+    runtime.stop.cancel();
+    let joined = runtime
+        .drain_control_polls(tokio::time::Instant::now() + Duration::from_secs(1))
+        .await;
+    assert!(joined, "actual original resolver handle naturally joined");
+    assert!(sent_by_async_owner && released_by_original_signal,
+        "reserved resolution parked the current-thread executor and prevented original SQL-owner release");
+    assert_eq!(
+        outcome.expect("original fresh credential resolution"),
+        expected
+    );
+}
