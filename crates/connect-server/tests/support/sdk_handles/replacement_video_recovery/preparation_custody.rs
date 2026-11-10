@@ -299,6 +299,7 @@ pub(super) async fn exercise(
     target_sequence: &mut u16,
     key: &[u8],
     previous: &sdk::VideoReceiveEpoch,
+    old_receiver_epoch: &sdk::VideoReceiveEpoch,
     publisher: &sdk::Client,
     subscriber: &sdk::Client,
     retained_connection: &sdk::Connection,
@@ -349,6 +350,7 @@ pub(super) async fn exercise(
                 14,
                 original,
                 old_receiver,
+                old_receiver_epoch,
             )
             .await
             .expect("actual private decode did not produce original Ready");

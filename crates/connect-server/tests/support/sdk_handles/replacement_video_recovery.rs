@@ -1470,6 +1470,7 @@ async fn exercise(mode: u8) {
             &mut sequence,
             &first,
             &previous_retained_epoch,
+            &previous_target_epoch,
             &publisher,
             &subscriber,
             &target,
@@ -1622,6 +1623,7 @@ async fn exercise(mode: u8) {
             mode,
             &original_preparation,
             &old_recv,
+            &previous_target_epoch,
         )
         .await;
         #[cfg(feature = "test-support")]

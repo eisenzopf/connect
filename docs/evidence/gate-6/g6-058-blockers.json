@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T23:47:33.422525+00:00",
-  "run_status": "Full v214 remains 0/32 cells, 288/432 checks pass. New recovery and SQL fixes pass 85 component checks. Combined signed follow-through: 3/4 preparation checks pass, both cadence checks fail. Investigating deferred fixture draining and remaining preparation authority invalidation; no full32 rerun yet.",
+  "updated": "2026-11-10T23:52:55.643198+00:00",
+  "run_status": "Full v214 remains 0/32 cells, 288/432 checks pass. Recovery and SQL fixes pass85 component checks. Signal revocation now passes with concurrent original-route consumption;3 companion cases require local ARM Linux. Both combined cadence cases still fail. Auditing remaining preparation-only ledger invalidations before the next batch.",
   "blockers": [
     {
       "id": "B01",
@@ -1501,6 +1501,22 @@
       "change": "Release the entire Writer proof on primary SQL mutex refusal before waiting. Reacquire current scopes within the original 250ms budget, before any transaction or mutation.",
       "evidence": "docs/evidence/gate-6/replacement-sql-custody-v215.json",
       "next": "Audit remaining preparation journal Writers and actual public projection dependencies."
+    },
+    {
+      "id": "B184",
+      "title": "Fixture delays original video consumption during private bootstrap",
+      "status": "Signal revocation passed on macOS ARM64; three companion cases stopped at the existing Linux-only guard and require local ARM Linux verification.",
+      "change": "Poll each exact original marker alongside its private counterpart inside the unchanged original timeout. Retain strict Gap, timestamp, bytes and signed-epoch assertions; no detached tasks or deadline extension.",
+      "evidence": "docs/evidence/gate-6/concurrent-original-media-fixture-v215.json",
+      "next": "Run the three named unchanged Linux-only controls on the local ARM VM."
+    },
+    {
+      "id": "B185",
+      "title": "Preparation-only ledger updates may invalidate unrelated public routes",
+      "status": "Source audit in progress. All six routes share one Conversation authority scope; each Writer announcement withdraws positive snapshots. Exact safe exemptions are not yet implemented.",
+      "change": "Audit Begin and positive preparation/allocation/start recording separately. Preserve Writers for real permission, lineage, membership, activation, uncertainty and cancellation changes. Fresh candidate reservation needs a distinct absence/lineage proof.",
+      "evidence": "docs/evidence/gate-6/combined-media-followthrough-v215.json",
+      "next": "Exact old-epoch counterexamples, narrowly bounded transaction permits and negative authorization controls, then combined cadence retest."
     }
   ],
   "workplan_tasks": [
@@ -16914,5 +16930,9 @@
     "public_evidence": "docs/evidence/gate-6/combined-media-followthrough-v215.json",
     "signal_revocation": "Unexpected local video queue loss before deliberate withdrawal. Fixture completes private key/audio/interframe checks before draining original public markers; exact queue drop subtype is not logged. Concurrent original-receiver observation candidate is under review.",
     "cadence": "Both movement rounds complete, but decoded bins fall below required24fps while all sources encode/publish30fps. Reservation and preparation Begin authority dependencies are being audited; no causal owner attribution from interval logs alone."
+  },
+  "v215_concurrent_original_fixture": {
+    "public_evidence": "docs/evidence/gate-6/concurrent-original-media-fixture-v215.json",
+    "status": "Signal revocation passed on macOS ARM64; three companion cases stopped at the existing Linux-only guard and require local ARM Linux verification."
   }
 }

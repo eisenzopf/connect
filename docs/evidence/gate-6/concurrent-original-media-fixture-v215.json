@@ -1,0 +1,25 @@
+{
+  "format": "connect/concurrent-original-media-fixture/1",
+  "updated": "2026-11-10T23:52:55.643198+00:00",
+  "status": "Signal revocation passed on macOS ARM64; three companion cases stopped at the existing Linux-only guard and require local ARM Linux verification.",
+  "root_cause": "The fixture deferred original-route reads until after private decoder and audio checks. The observed Gap occurred before intentional credential withdrawal; exact internal queue drop subtype was not recorded.",
+  "fix": "Poll each exact original marker alongside its private counterpart inside the unchanged original timeout. Retain strict Gap, timestamp, bytes and signed-epoch assertions; no detached tasks or deadline extension.",
+  "receipt_sha256": "3ca3c120d7f90d67c554c08fa00023d58d8c869781f3a22eaf68896fa759eb4a",
+  "raw_summary": {
+    "selected": 4,
+    "completed": 4,
+    "passed": 1,
+    "failed": 3
+  },
+  "qualified_summary": {
+    "passed": 1,
+    "platform_blocked_before_behavior": 3
+  },
+  "source_unchanged": true,
+  "original_groups_absent": true,
+  "pending_linux_tests": [
+    "sdk_handles::replacement_video_recovery::signed_private_readiness_cannot_outlive_its_exact_original_reservation_expiry",
+    "sdk_handles::replacement_video_recovery::signed_private_readiness_rechecks_current_original_operator_revocation",
+    "sdk_handles::replacement_video_recovery::signed_private_readiness_cannot_survive_original_physical_target_cancellation"
+  ]
+}

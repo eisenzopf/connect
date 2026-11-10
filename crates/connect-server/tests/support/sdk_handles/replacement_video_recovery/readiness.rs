@@ -521,6 +521,24 @@ pub(super) async fn activate(
     done
 }
 
+// Read this exact frame on the old SDK route alongside the private route.
+// Both futures stay inside the caller's original cutoff and decoder custody.
+async fn with_original_receive<T>(
+    old: Option<(&sdk::Stream, &sdk::VideoReceiveEpoch)>,
+    index: u32,
+    expected: &[u8],
+    private: impl std::future::Future<Output = T>,
+) -> T {
+    let (value, ()) = tokio::join!(private, async {
+        if let Some((receiver, original_epoch)) = old {
+            let (bytes, epoch) = receive(receiver, index).await;
+            assert_eq!(bytes, expected);
+            assert_eq!(&epoch, original_epoch);
+        }
+    });
+    value
+}
+
 // The source is already running: the candidate receives a genuine interframe
 // first. No private keyframe is encoded until its actual current PLI is received
 // by the retained source. This happens before any target audio is sent and
@@ -541,8 +559,10 @@ pub(super) async fn private_bootstrap(
     mode: u8,
     original: &OriginalPreparation,
     old_receiver: &sdk::Stream,
+    old_receiver_epoch: &sdk::VideoReceiveEpoch,
 ) -> Option<NativeReplacementReady> {
     let cutoff = original_cutoff.min(Instant::now() + Duration::from_secs(8));
+    let old = (mode >= 14).then_some((old_receiver, old_receiver_epoch));
     let preparation = client.native_replacement_readiness().unwrap();
     assert_eq!(preparation.video().unwrap().stream_local_id, incoming);
     io.reset_video_receive_decoder(incoming).unwrap();
@@ -567,7 +587,6 @@ pub(super) async fn private_bootstrap(
             ).await, Err(error) if error.kind == sdk::ErrorKind::Deadline),
                 "a cached source hint cannot qualify private bootstrap");
             let delta = encoder.frame(1, false).await;
-            let delta_before_key = delta.clone();
             assert_eq!(delta[0] & 1, 1);
             publish(source, &delta, 1, sequence).await;
             // Keep the SAME native reader polled even after the delta frame
@@ -578,25 +597,27 @@ pub(super) async fn private_bootstrap(
             let mut history = None;
             let pending_hint = source.receive_video_feedback(options());
             tokio::pin!(pending_hint);
-            loop {
-                tokio::select! {
-                    hint = &mut pending_hint, if first.is_none() => { first = Some(hint.unwrap()); },
-                    packet = io.receive() => {
-                        let packet = packet.unwrap();
-                        if let Some(epoch) = packet.video_epoch {
-                            assert_eq!(u16::from_be_bytes(packet.bytes[2..4].try_into().unwrap()), incoming);
-                            let rtp = NativeVideoPacket::parse(packet.bytes[24..].to_vec()).unwrap();
-                            assert_eq!((rtp.payload_type, rtp.timestamp_rtp, rtp.ssrc), (96, 3000, epoch.ssrc));
-                            assert!(io.is_current_video_receive_epoch(incoming, &epoch).unwrap());
-                            if let Some(old) = &history { assert_eq!(old, &epoch); } else { history = Some(epoch.clone()); }
-                            if let Some(frame) = assembler.push(&rtp).unwrap() {
-                                assert!(captured.replace((frame, epoch, packet.received_at)).is_none());
+            with_original_receive(old, 1, &delta, async {
+                loop {
+                    tokio::select! {
+                        hint = &mut pending_hint, if first.is_none() => { first = Some(hint.unwrap()); },
+                        packet = io.receive() => {
+                            let packet = packet.unwrap();
+                            if let Some(epoch) = packet.video_epoch {
+                                assert_eq!(u16::from_be_bytes(packet.bytes[2..4].try_into().unwrap()), incoming);
+                                let rtp = NativeVideoPacket::parse(packet.bytes[24..].to_vec()).unwrap();
+                                assert_eq!((rtp.payload_type, rtp.timestamp_rtp, rtp.ssrc), (96, 3000, epoch.ssrc));
+                                assert!(io.is_current_video_receive_epoch(incoming, &epoch).unwrap());
+                                if let Some(old) = &history { assert_eq!(old, &epoch); } else { history = Some(epoch.clone()); }
+                                if let Some(frame) = assembler.push(&rtp).unwrap() {
+                                    assert!(captured.replace((frame, epoch, packet.received_at)).is_none());
+                                }
                             }
-                        }
-                    },
+                        },
+                    }
+                    if captured.is_some() && first.is_some() { break; }
                 }
-                if captured.is_some() && first.is_some() { break; }
-            }
+            }).await;
             let (frame, epoch, _) = captured.unwrap();
             let first_hint = first.unwrap();
             assert_eq!(frame.encoded, delta); assert!(!frame.keyframe);
@@ -639,7 +660,8 @@ pub(super) async fn private_bootstrap(
             assert_eq!(key[0] & 1, 0);
             drop(hint);
             publish(source, &key, 2, sequence).await;
-            let (frame, private_epoch, arrived) = video(io, incoming, 2, cutoff).await;
+            let (frame, private_epoch, arrived) =
+                with_original_receive(old, 2, &key, video(io, incoming, 2, cutoff)).await;
             assert_eq!(private_epoch, epoch); assert_eq!(frame.encoded, key); assert!(frame.keyframe);
             decoder.frame(&frame, 2, arrived, cutoff).await;
             assert_eq!(decoder.outputs, 1);
@@ -665,17 +687,11 @@ pub(super) async fn private_bootstrap(
                 // join contract; neither is public activation evidence.
                 let delta = encoder.frame(3, false).await; assert_eq!(delta[0] & 1, 1);
                 publish(source, &delta, 3, sequence).await;
-                let (frame, same, arrived) = video(io, incoming, 3, cutoff).await;
+                let (frame, same, arrived) =
+                    with_original_receive(old, 3, &delta, video(io, incoming, 3, cutoff)).await;
                 assert_eq!(same, private_epoch); assert_eq!(frame.encoded, delta);
                 decoder.frame(&frame, 3, arrived, cutoff).await;
                 assert_eq!(decoder.outputs, 2);
-                // The unchanged old receive route got these same original
-                // markers too. Verify/drain them BEFORE the boundary, so its
-                // later fresh marker4 check cannot accidentally read old RTP.
-                for (index, expected) in [(1, &delta_before_key), (2, &key), (3, &delta)] {
-                    let (bytes, _) = receive(old_receiver, index).await;
-                    assert_eq!(&bytes, expected);
-                }
                 return Some(ready);
             }
             submit(client, &ready, controller, command, root, cutoff).await;
