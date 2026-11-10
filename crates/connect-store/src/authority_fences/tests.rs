@@ -70,6 +70,20 @@ pub(super) fn waiting(store: &Store, scope: &AuthorityScope) {
 }
 
 #[test]
+fn unbounded_fact_cutoff_keeps_original_wait_deadline_and_cancellation() {
+    let original = AuthorityWait::new(Duration::from_secs(1));
+    // A control planner has no first-facts expiry yet. Its sentinel duration
+    // must not overflow Instant or extend the finite admission owner.
+    let unbounded = original.bounded(Duration::MAX);
+    assert_eq!(unbounded.deadline, original.deadline);
+    assert!(unbounded.check().is_ok());
+    let expired = unbounded.bounded(Duration::ZERO);
+    assert_eq!(expired.check().unwrap_err().code, "authority-busy");
+    original.cancel();
+    assert_eq!(unbounded.check().unwrap_err().code, "cancelled");
+}
+
+#[test]
 fn brief_metadata_wait_bounds_local_registry_and_preserves_original_owner() {
     let f = Fixture::new();
     let write = f.scope(AuthorityMode::Write);

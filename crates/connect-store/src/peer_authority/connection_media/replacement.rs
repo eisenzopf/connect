@@ -204,6 +204,18 @@ impl NativeReplacementSelection {
         original_until: &mut i64,
         validate: impl Fn(&Connection) -> Result<()>,
     ) -> Result<NativeReplacementPreparationRead> {
+        self.read_with_wait_then(store, wait, original_until, validate, |_, read| Ok(read))
+    }
+    /// Same complete control interval, with dependent facts resolved before
+    /// releasing its final SQL mutex. Never reacquire SQL under an IO reader.
+    pub(crate) fn read_with_wait_then<T>(
+        &self,
+        store: &Store,
+        wait: &crate::AuthorityWait,
+        original_until: &mut i64,
+        validate: impl Fn(&Connection) -> Result<()>,
+        finish: impl FnOnce(&Connection, NativeReplacementPreparationRead) -> Result<T>,
+    ) -> Result<T> {
         let remaining = std::time::Duration::from_secs(
             (*original_until).saturating_sub(crate::now()).max(0) as u64,
         );
@@ -234,7 +246,9 @@ impl NativeReplacementSelection {
         if !read.current() {
             return Err(Error::forbidden());
         }
-        Ok(read)
+        let result = finish(&c, read)?;
+        wait.check()?;
+        Ok(result)
     }
     pub(crate) fn read_with_connection(
         &self,
@@ -502,11 +516,17 @@ impl Store {
         retained: &Arc<NativeMediaOrigin>,
     ) -> Result<NativeReplacementPreparationRead> {
         let scopes = {
-            let c = self.try_connection()?;
+            let c = self
+                .try_connection()
+                .map_err(|e| preparation_read_refused("try-first-sql", e))?;
             resolve(self, &c, origin, source, retained)?.scopes
         };
-        let held = self.try_acquire_authority(&scopes)?;
-        let c = self.try_connection()?;
+        let held = self
+            .try_acquire_authority(&scopes)
+            .map_err(|e| preparation_read_refused("try-authority", e))?;
+        let c = self
+            .try_connection()
+            .map_err(|e| preparation_read_refused("try-current-sql", e))?;
         let resolved = resolve(self, &c, origin, source, retained)?;
         if !self.authority_covers(&held, &resolved.scopes) || crate::now() >= resolved.expires_at {
             return Err(Error::forbidden());

@@ -66,6 +66,8 @@ impl Runtime {
             lease.expires_at().min(chrono::Utc::now().timestamp() + 5),
         ));
         let cutoff = tokio::time::Instant::now() + Duration::from_secs(5);
+        let admission_wait = connect_store::AuthorityWait::new(Duration::from_secs(5));
+        let _cancel_admission = admission_wait.cancel_on_drop();
         loop {
             if self.stop.is_cancelled() {
                 return Err(Error::forbidden());
@@ -82,14 +84,20 @@ impl Runtime {
             let original = lease.clone();
             let original_until = until.clone();
             let stop = self.stop.clone();
+            let wait = admission_wait.clone();
             // Actual blocking owner is retained and joined. No metadata SQL,
             // validation or five-ms file drain runs on the async media thread.
-            let result = self.owned_store_call(move || {
+            let pending = self.owned_store_call(move || {
                 if stop.is_cancelled() || tokio::time::Instant::now() >= cutoff {
                     return Err(Error::forbidden());
                 }
-                let read = match store.native_consultation_return_attempt_read_before(
-                    &original, original_until.load(Ordering::Acquire)) {
+                let mut captured_until = original_until.load(Ordering::Acquire);
+                let resolved = store.native_consultation_return_attempt_read_with_wait(
+                    &original, &mut captured_until, &wait);
+                // A failed later admission may still have captured an earlier
+                // original expiry. Preserve it across every pre-effect retry.
+                original_until.fetch_min(captured_until, Ordering::AcqRel);
+                let read = match resolved {
                     Ok(read) => read,
                     Err(error) if error.code == "authority-busy" => {
                         tracing::debug!(target: "connect_service::canonical_consultation", stage="return-current", code=%error.code,
@@ -104,9 +112,21 @@ impl Runtime {
                 }
                 // Only Store's typed pre-DML None may loop. SQL/policy/commit
                 // errors after entry return immediately, never replaying begin.
-                store.try_begin_native_consultation_return_before(
-                    original, read, original_until.load(Ordering::Acquire))
-            }).await?;
+                store.try_begin_native_consultation_return_with_wait(
+                    original, read, original_until.load(Ordering::Acquire), &wait)
+            });
+            tokio::pin!(pending);
+            let result = tokio::select! { biased;
+                result = &mut pending => result,
+                _ = self.stop.cancelled() => {
+                    admission_wait.cancel();
+                    pending.await
+                }
+                _ = tokio::time::sleep_until(cutoff) => {
+                    admission_wait.cancel();
+                    pending.await
+                }
+            }?;
             if let Some(started) = result {
                 // Even if stop raced the joined result, retain this exact
                 // attempt: the existing Core/capture path owns its uncertainty.

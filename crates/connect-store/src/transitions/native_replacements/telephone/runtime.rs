@@ -351,10 +351,69 @@ impl Store {
         route_credential: &str,
         configured: &TelephoneReplacementPolicy,
     ) -> Result<TelephoneReplacementRead> {
-        let mut source = prepared.selection.read(self)?;
+        let source = prepared.selection.read(self)?;
         let c = self.try_connection()?;
+        self.telephone_replacement_allocation_read_in(
+            &c,
+            prepared,
+            source,
+            route_credential,
+            configured,
+        )
+    }
+    /// Owned control-only metadata resolution. The first actual source expiry
+    /// caps every wait/retry; complete source and route facts share final SQL.
+    /// No SQL mutex spans file admission and no state-change Writer is held.
+    pub fn telephone_replacement_allocation_read_with_wait(
+        &self,
+        prepared: &NativeReplacementPrepared,
+        route_credential: &str,
+        configured: &TelephoneReplacementPolicy,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<TelephoneReplacementRead> {
+        let route_until = std::cell::Cell::new(i64::MAX);
+        let result = prepared.selection.read_with_wait_then(
+            self,
+            wait,
+            original_until,
+            |c| allocation::current_prepared(self, c, prepared).map(|_| ()),
+            |c, source| {
+                let read = self
+                    .telephone_replacement_allocation_read_in(
+                        c,
+                        prepared,
+                        source,
+                        route_credential,
+                        configured,
+                    )
+                    .map_err(|error| {
+                        tracing::debug!(target: "connect_store::native_replacement_preparation",
+                        stage="control-telephone-route", code=%error.code,
+                        "Replacement telephone allocation control refused");
+                        error
+                    })?;
+                // Retain this cap even if the shared helper's final wait check
+                // refuses after these original route facts were resolved.
+                route_until.set(read.expires_at());
+                Ok(read)
+            },
+        );
+        *original_until = (*original_until).min(route_until.get());
+        let mut read = result?;
+        read.limit(*original_until)?;
+        Ok(read)
+    }
+    fn telephone_replacement_allocation_read_in(
+        &self,
+        c: &Connection,
+        prepared: &NativeReplacementPrepared,
+        mut source: NativeReplacementPreparationRead,
+        route_credential: &str,
+        configured: &TelephoneReplacementPolicy,
+    ) -> Result<TelephoneReplacementRead> {
         let (route_actor, target, descriptor) =
-            facts(self, &c, prepared, &source, route_credential, configured)?;
+            facts(self, c, prepared, &source, route_credential, configured)?;
         source.limit(route_actor.expires_at)?;
         Ok(TelephoneReplacementRead {
             prepared: prepared.clone(),

@@ -1184,3 +1184,5 @@ fn telephone_submission_scope_hints_drain_original_scene_but_preserve_independen
     assert_eq!(f.count("native_replacement_steps"), before.1 + 1);
     drop(carrier);
 }
+
+mod control_read;

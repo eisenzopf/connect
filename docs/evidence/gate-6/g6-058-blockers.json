@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T13:19:05.866049+00:00",
-  "run_status": "Cleanup pushed as2f6097f9:290 distinct affected unit controls pass. Completed focused signed run22/27 pass (native3/3,WebRTC5/5,runtime14/19). Three telephone allocation and two private-provider return cases still fail before control completion; next fixes under root-cause review. Latest full matrix remains v209:0/32 cells,390/432 checks passed.",
+  "updated": "2026-11-10T13:32:31.503728+00:00",
+  "run_status": "J cleanup:113/113 affected unit controls pass, including real SQL/file contention, cancellation, original expiry and once-only effects. Signed-target build finishing; signed27 retest pending. Previous I5 focused run22/27 passed; full matrix remains v209:0/32 cells,390/432 checks passed.",
   "blockers": [
     {
       "id": "B01",
@@ -2653,6 +2653,32 @@
       "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
       "completion": "Actual IO, queued epoch, phase and revocation controls pass; affected signed followthrough pending.",
       "completion_status": "in-progress"
+    },
+    {
+      "id": "S80",
+      "title": "Telephone allocation control admission",
+      "owner": "Root and assigned agent",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-store/src/transitions/native_replacements/telephone/runtime.rs"
+      ],
+      "solution": "Consolidate original allocation source and route validation, wait boundedly for control SQL, retain original cutoff and once-only SIP submission.",
+      "status": "Implemented and independently reviewed; J113/113 affected unit controls pass. Signed runtime retest pending; no matrix promotion.",
+      "completion": "Real primary-SQL contention, original expiry/revocation and once-only allocation controls; then three signed telephone scenarios.",
+      "completion_status": "in-progress"
+    },
+    {
+      "id": "S81",
+      "title": "Native return control admission",
+      "owner": "Root and assigned agent",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-store/src/transitions/native_returns/custody.rs"
+      ],
+      "solution": "Consolidate original return validation; release planning readers before bounded SQL admission, acquire mutation authority immediately under that SQL interval, and preserve once-only effects.",
+      "status": "Implemented and independently reviewed; J113/113 affected unit controls pass. Signed runtime retest pending; no matrix promotion.",
+      "completion": "Real SQL contention and reader-drain controls, original expiry/revocation and no repeated mutation; then two signed provider-return scenarios.",
+      "completion_status": "in-progress"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -5085,7 +5111,9 @@
     "S76",
     "S77",
     "S78",
-    "S79"
+    "S79",
+    "S80",
+    "S81"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -16223,5 +16251,6 @@
     "passed": 22,
     "failed": 5,
     "selected": 27
-  }
+  },
+  "cleanup_j_evidence": "docs/evidence/gate-6/cleanup-batch-j-v212.json"
 }

@@ -319,6 +319,21 @@ impl Store {
         read.limit(lease.expires_at.min(original_until))?;
         Ok(read)
     }
+    /// Owned control admission for the same reserved return. No SQL guard spans
+    /// file admission; original_until decreases even on later refusal.
+    pub fn native_consultation_return_attempt_read_with_wait(
+        &self,
+        lease: &NativeConsultationReturnLease,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<NativeReturnRead> {
+        *original_until = (*original_until).min(lease.expires_at);
+        lease
+            .selection
+            .read_with_wait(self, original_until, wait, |c| {
+                bound(c, self, lease).map(|_| ())
+            })
+    }
     /// A fresh complete selection remains held through the bounded Core call.
     /// SQL permits exactly one transition from prepared to possibly submitted.
     pub fn begin_native_consultation_return(
@@ -335,8 +350,28 @@ impl Store {
     pub fn try_begin_native_consultation_return_before(
         &self,
         lease: Arc<NativeConsultationReturnLease>,
+        read: NativeReturnRead,
+        original_until: i64,
+    ) -> Result<Option<(NativeConsultationReturnAttempt, NativeReturnRead)>> {
+        self.begin_native_consultation_return_admission(lease, read, original_until, None)
+    }
+    /// Wait for primary SQL before obtaining any mutation authority, then use
+    /// only immediate file admission under SQL. No Writer ever parks on SQL.
+    pub fn try_begin_native_consultation_return_with_wait(
+        &self,
+        lease: Arc<NativeConsultationReturnLease>,
+        read: NativeReturnRead,
+        original_until: i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<Option<(NativeConsultationReturnAttempt, NativeReturnRead)>> {
+        self.begin_native_consultation_return_admission(lease, read, original_until, Some(wait))
+    }
+    fn begin_native_consultation_return_admission(
+        &self,
+        lease: Arc<NativeConsultationReturnLease>,
         mut read: NativeReturnRead,
         original_until: i64,
+        control_wait: Option<&crate::AuthorityWait>,
     ) -> Result<Option<(NativeConsultationReturnAttempt, NativeReturnRead)>> {
         read.limit(lease.expires_at.min(original_until))?;
         if !read.current()
@@ -347,22 +382,46 @@ impl Store {
             return Err(Error::forbidden());
         }
         let (selection, routing, until) = read.into_mutation_selection(self)?;
-        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
-        let held = match self.acquire_authority(&routing, &wait) {
-            Ok(held) => held,
-            Err(error) if error.code == "authority-busy" => {
-                return_begin_refused("file-admission", &error);
-                return Ok(None);
-            }
-            Err(error) => return Err(error),
-        };
-        let mut c = match self.try_connection() {
-            Ok(c) => c,
-            Err(error) if error.code == "authority-busy" => {
-                return_begin_refused("primary-sql", &error);
-                return Ok(None);
-            }
-            Err(error) => return Err(error),
+        let (held, mut c) = if let Some(wait) = control_wait {
+            let wait = wait.bounded(std::time::Duration::from_secs(
+                until.saturating_sub(crate::now()).max(0) as u64,
+            ));
+            // No Read/Write survives into this wait: into_mutation_selection
+            // consumed the original current read above.
+            let c = self.try_connection_with_wait(&wait).map_err(|error| {
+                return_begin_refused("control-begin-sql", &error);
+                error
+            })?;
+            wait.check()?;
+            let held = match self.try_acquire_authority(&routing) {
+                Ok(held) => held,
+                Err(error) if error.code == "authority-busy" => {
+                    return_begin_refused("control-begin-file-immediate", &error);
+                    return Ok(None);
+                }
+                Err(error) => return Err(error),
+            };
+            wait.check()?;
+            (held, c)
+        } else {
+            let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+            let held = match self.acquire_authority(&routing, &wait) {
+                Ok(held) => held,
+                Err(error) if error.code == "authority-busy" => {
+                    return_begin_refused("file-admission", &error);
+                    return Ok(None);
+                }
+                Err(error) => return Err(error),
+            };
+            let c = match self.try_connection() {
+                Ok(c) => c,
+                Err(error) if error.code == "authority-busy" => {
+                    return_begin_refused("primary-sql", &error);
+                    return Ok(None);
+                }
+                Err(error) => return Err(error),
+            };
+            (held, c)
         };
         if !self.authority_covers(&held, &selection.scopes(self, &c, true)?) {
             return Err(Error::new(
@@ -397,6 +456,11 @@ impl Store {
         lease.selection.validate_plan(&tx, &lease.plan()?)?;
         if row.record.state != OperationState::Preparing {
             return Err(conflict());
+        }
+        // Last effect-free boundary: cancellation during fresh validation must
+        // not mark the original reservation started. After DML, retain custody.
+        if let Some(wait) = control_wait {
+            wait.check()?;
         }
         let changed=tx.execute("UPDATE native_consultation_returns SET started=1 WHERE operation_record_id=?1 AND started=0",[lease.record_id()]).map_err(|_|Error::storage())?;
         if changed != 1 {

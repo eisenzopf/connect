@@ -163,3 +163,209 @@ fn native_return_prebegin_expiry_withdrawal_and_postmutation_error_never_become_
         assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
     }
 }
+
+#[test]
+fn return_control_read_releases_sql_for_file_wait_then_rechecks_current_original() {
+    use std::{sync::mpsc, time::Duration};
+    for withdraw in [false, true] {
+        let (f, command, key, _, sources) = fixture_full();
+        let (lease, _) = prepared(&f, command, &key, &sources);
+        let owner = f.store.revalidate(&key).unwrap().identity_id;
+        let writer = f
+            .store
+            .acquire_authority(
+                &[crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Write).unwrap()],
+                &crate::AuthorityWait::new(Duration::from_secs(2)),
+            )
+            .unwrap();
+        let cap = lease.expires_at().min(crate::now() + 3);
+        let wait = crate::AuthorityWait::new(Duration::from_secs(2));
+        let (at_file, file_wait) = mpsc::channel();
+        let (done, result) = mpsc::channel();
+        let (observed, early, joined) = std::thread::scope(|scope| {
+            let store = &f.store;
+            let lease = &lease;
+            let worker = scope.spawn(move || {
+                let mut until = cap;
+                let read = crate::authority_fences::with_waited_lock_probe(
+                    move || {
+                        let _ = at_file.send(());
+                    },
+                    || {
+                        store.native_consultation_return_attempt_read_with_wait(
+                            lease, &mut until, &wait,
+                        )
+                    },
+                );
+                let _ = done.send(());
+                (read, until)
+            });
+            let observed = file_wait.recv_timeout(Duration::from_secs(1));
+            if withdraw {
+                let sql = f.store.connection_with_authority(&writer).unwrap();
+                sql.execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&key])
+                    .unwrap();
+                drop(sql);
+                drop(writer);
+                (observed, None, worker.join().unwrap())
+            } else {
+                // First SQL is gone while file admission waits. After file
+                // release, final SQL must wait rather than discard this Read.
+                let sql = f.store.connection().unwrap();
+                drop(writer);
+                let early = result.recv_timeout(Duration::from_millis(30));
+                drop(sql);
+                (observed, Some(early), worker.join().unwrap())
+            }
+        });
+        assert!(observed.is_ok());
+        assert!(joined.1 <= cap);
+        if withdraw {
+            assert_eq!(joined.0.err().unwrap().code, "unauthorized");
+        } else {
+            assert!(early.unwrap().is_err());
+            let read = joined.0.unwrap();
+            assert!(read.current() && read.expires_at() <= cap);
+            drop(read);
+        }
+        let sql = f.store.connection().unwrap();
+        let counts: (bool, u64) = sql.query_row(
+            "SELECT started,(SELECT attempt FROM operation_effects e WHERE e.id=r.effect_id) FROM native_consultation_returns r WHERE operation_record_id=?1",
+            [lease.record_id()], |r| Ok((r.get(0)?, r.get(1)?)),
+        ).unwrap();
+        assert_eq!(counts, (false, 0));
+    }
+}
+
+#[test]
+fn return_control_read_cancelled_sql_wait_returns_without_reservation_or_reader() {
+    use std::{sync::mpsc, time::Duration};
+    let (f, command, key, _, sources) = fixture_full();
+    let (lease, _) = prepared(&f, command, &key, &sources);
+    let wait = crate::AuthorityWait::new(Duration::from_secs(2));
+    let sql = f.store.connection().unwrap();
+    let (started, entered) = mpsc::channel();
+    let joined = std::thread::scope(|scope| {
+        let store = &f.store;
+        let lease = &lease;
+        let worker_wait = wait.clone();
+        let worker = scope.spawn(move || {
+            let mut cap = lease.expires_at();
+            let _ = started.send(());
+            store.native_consultation_return_attempt_read_with_wait(lease, &mut cap, &worker_wait)
+        });
+        let entered = entered.recv_timeout(Duration::from_secs(1));
+        wait.cancel();
+        let result = worker.join().unwrap();
+        (entered, result)
+    });
+    drop(sql);
+    assert!(joined.0.is_ok());
+    assert_eq!(joined.1.err().unwrap().code, "cancelled");
+    let writer = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap()])
+        .unwrap();
+    drop(writer);
+}
+
+#[test]
+fn return_control_begin_waits_for_sql_without_any_authority_then_keeps_one_attempt() {
+    use std::{sync::mpsc, time::Duration};
+    let (f, command, key, _, sources) = fixture_full();
+    let (lease, origin) = prepared(&f, command, &key, &sources);
+    let lease = Arc::new(lease);
+    let read = f
+        .store
+        .native_consultation_return_attempt_read(&lease)
+        .unwrap();
+    let cap = read.expires_at();
+    let sql = f.store.connection().unwrap();
+    let (done, outcome) = mpsc::channel();
+    let (early, no_authority, joined) = std::thread::scope(|scope| {
+        let store = &f.store;
+        let lease = lease.clone();
+        let worker = scope.spawn(move || {
+            let result = store.try_begin_native_consultation_return_with_wait(
+                lease,
+                read,
+                cap,
+                &crate::AuthorityWait::new(Duration::from_secs(2)),
+            );
+            let _ = done.send(());
+            result
+        });
+        let early = outcome.recv_timeout(Duration::from_millis(30));
+        let proof = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::conversation(
+                &f.cid,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()]);
+        let no_authority = proof.is_ok();
+        drop(proof);
+        drop(sql);
+        (early, no_authority, worker.join().unwrap())
+    });
+    let (attempt, control) = joined.unwrap().unwrap();
+    assert!(early.is_err() && no_authority);
+    assert_eq!(attempt.record_id(), origin.record_id());
+    assert_eq!(attempt.plan().unwrap(), lease.plan().unwrap());
+    assert!(control.current() && control.expires_at() <= cap);
+    let sql = f.store.connection().unwrap();
+    let count: u64 = sql.query_row("SELECT count(*) FROM native_consultation_returns WHERE operation_record_id=?1 AND started=1", [lease.record_id()], |r|r.get(0)).unwrap();
+    assert_eq!(count, 1);
+    drop(sql);
+    drop(control);
+    f.store
+        .native_consultation_return_uncertain(&attempt)
+        .unwrap();
+}
+
+#[test]
+fn return_control_begin_never_waits_for_writer_while_holding_sql() {
+    use std::{sync::mpsc, time::Duration};
+    let (f, command, key, _, sources) = fixture_full();
+    let (lease, _) = prepared(&f, command, &key, &sources);
+    let lease = Arc::new(lease);
+    let alias = f
+        .store
+        .native_consultation_return_attempt_read(&lease)
+        .unwrap();
+    let selected = f
+        .store
+        .native_consultation_return_attempt_read(&lease)
+        .unwrap();
+    let cap = selected.expires_at();
+    let (sent, received) = mpsc::channel();
+    let (early, sql_released, joined) = std::thread::scope(|scope| {
+        let store = &f.store;
+        let original = lease.clone();
+        let worker = scope.spawn(move || {
+            let result = store.try_begin_native_consultation_return_with_wait(
+                original,
+                selected,
+                cap,
+                &crate::AuthorityWait::new(Duration::from_secs(2)),
+            );
+            let _ = sent.send(());
+            result
+        });
+        let early = received.recv_timeout(Duration::from_millis(250));
+        let sql = f.store.try_connection();
+        let sql_released = sql.is_ok();
+        drop(sql);
+        drop(alias);
+        (early, sql_released, worker.join().unwrap())
+    });
+    assert!(early.is_ok() && sql_released);
+    assert!(joined.unwrap().is_none());
+    let sql = f.store.connection().unwrap();
+    let state: (bool,u64) = sql.query_row("SELECT started,(SELECT attempt FROM operation_effects e WHERE e.id=r.effect_id) FROM native_consultation_returns r WHERE operation_record_id=?1",[lease.record_id()],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+    assert_eq!(state, (false, 0));
+}

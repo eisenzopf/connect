@@ -1,0 +1,68 @@
+{
+  "format": "connect/gate6-cleanup-batch/1",
+  "batch": "v212-J",
+  "updated": "2026-11-10T13:32:31.129961+00:00",
+  "source_base": "7388ac89",
+  "status": "113/113 affected controls pass; coherent signed-target build in progress, focused signed27 retest pending.",
+  "acceptance_changes": false,
+  "changes": [
+    "Consolidate telephone allocation source/route validation into the same final SQL interval; retain original deadlines and joined cancellation custody.",
+    "Consolidate native-return validation; wait for control SQL without mutation authority, then attempt writer admission immediately under that SQL interval. Preserve once-only mutation, fresh selection and pre-DML cancellation checks.",
+    "Prevent unbounded first-facts expiry from overflowing Instant while narrowing an existing finite authority wait."
+  ],
+  "unit_results": [
+    {
+      "group": "store_control_followthrough",
+      "summary": {
+        "selected": 63,
+        "completed": 63,
+        "passed": 63,
+        "failed": 0
+      },
+      "receipt_sha256": "f5b753635f94e844e19c6cb0f796762cd8b770297d99446b829554a56cd2fe80",
+      "binary_sha256": "c2d409c640502f79fc69426369531b619e25a48d9d76d1b8893cec428da65a85",
+      "source_seal_sha256": "5a9754f4c8bf0626788b9a5942944095751a38cfa1e16318da1ab0bb354b5ac8"
+    },
+    {
+      "group": "connect_service",
+      "summary": {
+        "selected": 50,
+        "completed": 50,
+        "passed": 50,
+        "failed": 0
+      },
+      "receipt_sha256": "fe34c2295846c7de5a099f8a2b2510b88e42c507867cbdb5b9845fb43a08e060",
+      "binary_sha256": "fe13d53391dc1cf5d87b4b264a2f73fb9125da399a97aaa69724aa63da0124f2",
+      "source_seal_sha256": "5a9754f4c8bf0626788b9a5942944095751a38cfa1e16318da1ab0bb354b5ac8"
+    }
+  ],
+  "unit_summary": {
+    "passed": 113,
+    "failed": 0,
+    "selected": 113,
+    "scope": "local macOS arm64"
+  },
+  "independent_review": {
+    "telephone_sha256": "9302ebac3490deb92852935ed6fe3ab6b6597e73705f161514eda61ead3b3fcd",
+    "return_sha256": "9e32736b4bf0586c4e3d89b629d28e98a05c62993c9645b7a38584896b0d667e"
+  },
+  "prior_focused_signed": {
+    "batch": "I5",
+    "passed": 22,
+    "failed": 5,
+    "selected": 27
+  },
+  "last_full_matrix": {
+    "run": "v209",
+    "passed_cells": 0,
+    "required_cells": 32,
+    "passed_checks": 390,
+    "required_checks": 432,
+    "failed_checks": 42
+  },
+  "limits": [
+    "Unit controls do not qualify matrix cells or establish media-quality recovery.",
+    "Precise I5 runtime admission failure attribution remains provisional until the signed retest; slow-SQL trace omits intervals below500 microseconds.",
+    "No packet-path blocking or acceptance-threshold changes introduced."
+  ]
+}

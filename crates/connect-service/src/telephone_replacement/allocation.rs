@@ -90,43 +90,88 @@ impl Runtime {
         // can progress. No allocation/effect/Core/SIP action belongs in retry.
         // First actual source expiry remains the cap across metadata retries.
         let original_cutoff = Arc::new(AtomicI64::new(i64::MAX));
+        let resolution_deadline = root
+            .deadline
+            .min(tokio::time::Instant::now() + std::time::Duration::from_secs(5));
         let resolved = retry_metadata(&self.stop, || {
             let runtime = self.clone();
             let prepared = root.receipt.clone();
             let route = route.clone();
             let original_cutoff = original_cutoff.clone();
-            self.owned_store_call(move || {
-                if chrono::Utc::now().timestamp() >= original_cutoff.load(Ordering::Acquire) {
-                    return allocation_stage("original-resolution-cutoff", Err(Error::forbidden()));
-                }
-                let mut read = allocation_stage(
-                    "planning-read",
-                    runtime.media.store.telephone_replacement_allocation_read(
-                        &prepared,
-                        &route.credential_id,
-                        &route.policy,
-                    ),
-                )?;
-                original_cutoff.fetch_min(read.expires_at(), Ordering::AcqRel);
-                read.limit(original_cutoff.load(Ordering::Acquire))?;
-                let original = allocation_stage(
-                    "source-owner",
-                    runtime
+            let wait = connect_store::AuthorityWait::new(
+                resolution_deadline.saturating_duration_since(tokio::time::Instant::now()),
+            );
+            let root_stop = root.handle.cancellation();
+            let runtime_stop = self.stop.clone();
+            async move {
+                let _cancel_wait = wait.cancel_on_drop();
+                let owned_wait = wait.clone();
+                let worker_root_stop = root_stop.clone();
+                let owner = runtime.clone();
+                let work = owner.owned_store_call(move || {
+                    if chrono::Utc::now().timestamp() >= original_cutoff.load(Ordering::Acquire) {
+                        return allocation_stage(
+                            "original-resolution-cutoff",
+                            Err(Error::forbidden()),
+                        );
+                    }
+                    let mut first_until = original_cutoff.load(Ordering::Acquire);
+                    let result = runtime
                         .media
-                        .replacement_source_owner(read.source())
-                        .map_err(|_| Error::forbidden()),
-                )?;
-                let target = allocation_stage(
-                    "route-target",
-                    authority::allocated_target(&runtime, &read, &route, &original.member),
-                )?;
-                // A late synchronous lookup may join after expiry/cancellation;
-                // it can never authorize a dormant resource or a later begin.
-                if runtime.stop.is_cancelled() || !read.current() {
-                    return allocation_stage("resolved-current", Err(Error::forbidden()));
+                        .store
+                        .telephone_replacement_allocation_read_with_wait(
+                            &prepared,
+                            &route.credential_id,
+                            &route.policy,
+                            &mut first_until,
+                            &owned_wait,
+                        );
+                    // Even a later file/SQL refusal cannot renew facts captured
+                    // by the original first resolution attempt.
+                    original_cutoff.fetch_min(first_until, Ordering::AcqRel);
+                    let mut read = allocation_stage("planning-control-read", result)?;
+                    original_cutoff.fetch_min(read.expires_at(), Ordering::AcqRel);
+                    read.limit(original_cutoff.load(Ordering::Acquire))?;
+                    let original = allocation_stage(
+                        "source-owner",
+                        runtime
+                            .media
+                            .replacement_source_owner(read.source())
+                            .map_err(|_| Error::forbidden()),
+                    )?;
+                    let target = allocation_stage(
+                        "route-target",
+                        authority::allocated_target(&runtime, &read, &route, &original.member),
+                    )?;
+                    // A late synchronous lookup may join after expiry/cancellation;
+                    // it can never authorize a dormant resource or a later begin.
+                    if runtime.stop.is_cancelled()
+                        || worker_root_stop.is_cancelled()
+                        || tokio::time::Instant::now() >= resolution_deadline
+                        || !read.current()
+                    {
+                        return allocation_stage("resolved-current", Err(Error::forbidden()));
+                    }
+                    Ok((read, Arc::new(target)))
+                });
+                tokio::pin!(work);
+                let result = tokio::select! { biased;
+                    _ = runtime_stop.cancelled() => None,
+                    _ = root_stop.cancelled() => None,
+                    _ = tokio::time::sleep_until(resolution_deadline) => None,
+                    result = &mut work => Some(result),
+                };
+                match result {
+                    Some(result) => result,
+                    None => {
+                        wait.cancel();
+                        // Pure resolution has made no attempt or resource.
+                        // Join and drop any late Read from this same owner.
+                        drop(work.await);
+                        Err(Error::forbidden())
+                    }
                 }
-                Ok((read, Arc::new(target)))
-            })
+            }
         })
         .await;
         let (read, target) = allocation_stage("resolution", resolved)?;
@@ -170,22 +215,79 @@ impl Runtime {
         drop(read);
         // PRE-reservation contention has no effect to replay. Re-derive only
         // within the original cutoff; once an attempt returns, leave this loop.
+        let begin_until = Arc::new(AtomicI64::new(begin_cutoff));
         let begun = retry_metadata(&root.handle.cancellation(), || {
             let store = self.media.store.clone();
             let prepared = root.receipt.clone();
             let route = route.clone();
-            store_call(move || {
-                if chrono::Utc::now().timestamp() >= begin_cutoff {
-                    return Err(Error::forbidden());
+            let begin_until = begin_until.clone();
+            let runtime_stop = self.stop.clone();
+            let root_stop = root.handle.cancellation();
+            let original_deadline = root.deadline;
+            let first_cap = begin_until.load(Ordering::Acquire);
+            let wait_deadline = original_deadline.min(
+                tokio::time::Instant::now()
+                    + std::time::Duration::from_secs(
+                        (first_cap - chrono::Utc::now().timestamp()).max(0) as u64,
+                    ),
+            );
+            let wait = connect_store::AuthorityWait::new(
+                wait_deadline.saturating_duration_since(tokio::time::Instant::now()),
+            );
+            async move {
+                let _cancel_wait = wait.cancel_on_drop();
+                let worker_wait = wait.clone();
+                let worker_runtime_stop = runtime_stop.clone();
+                let worker_root_stop = root_stop.clone();
+                let work = self.owned_store_call(move || {
+                    let begin_cutoff = begin_until.load(Ordering::Acquire);
+                    if worker_runtime_stop.is_cancelled()
+                        || worker_root_stop.is_cancelled()
+                        || tokio::time::Instant::now() >= original_deadline
+                        || chrono::Utc::now().timestamp() >= begin_cutoff
+                    {
+                        return Err(Error::forbidden());
+                    }
+                    let mut original_until = begin_cutoff;
+                    let result = store.telephone_replacement_allocation_read_with_wait(
+                        &prepared,
+                        &route.credential_id,
+                        &route.policy,
+                        &mut original_until,
+                        &worker_wait,
+                    );
+                    begin_until.fetch_min(original_until, Ordering::AcqRel);
+                    let read = allocation_stage("begin-control-read", result)?;
+                    // Joining a slow CONTROL read never lends authority to
+                    // begin after the original resource owner has stopped.
+                    if worker_runtime_stop.is_cancelled()
+                        || worker_root_stop.is_cancelled()
+                        || tokio::time::Instant::now() >= original_deadline
+                        || tokio::time::Instant::now() >= wait_deadline
+                    {
+                        return Err(Error::forbidden());
+                    }
+                    store.begin_telephone_replacement_allocation(read)
+                });
+                tokio::pin!(work);
+                let result = tokio::select! { biased;
+                    _ = runtime_stop.cancelled() => None,
+                    _ = root_stop.cancelled() => None,
+                    _ = tokio::time::sleep_until(wait_deadline) => None,
+                    result = &mut work => Some(result),
+                };
+                match result {
+                    Some(result) => result,
+                    None => {
+                        wait.cancel();
+                        // Join the SAME original callback. If durable begin
+                        // already won the race, return its original custody
+                        // so the existing caller records uncertainty; never
+                        // discard an opaque committed attempt on cancellation.
+                        work.await
+                    }
                 }
-                let mut read = store.telephone_replacement_allocation_read(
-                    &prepared,
-                    &route.credential_id,
-                    &route.policy,
-                )?;
-                read.limit(begin_cutoff)?;
-                store.begin_telephone_replacement_allocation(read)
-            })
+            }
         })
         .await;
         let attempt = allocation_stage("allocation-begin", begun)?;

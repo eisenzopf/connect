@@ -6,6 +6,11 @@ use crate::{NativeConsultationReturnOrigin, SipAudienceOrigin, SipAudienceRead};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+fn control_read_refused(stage: &'static str, error: Error) -> Error {
+    tracing::debug!(target: "connect_store::native_return::admission", stage, code=%error.code,
+        "Original native return control read refused");
+    error
+}
 fn phase_error(name: &str, mut error: Error) -> Error {
     error.message = format!("Return {name}: {}", error.message);
     error
@@ -124,6 +129,55 @@ impl NativeReturnRead {
     }
 }
 impl NativeReturnSelection {
+    // Original owned CONTROL resolution only. Both captures use one primary
+    // interval each; SQL is released before file admission. No packet API waits.
+    pub(crate) fn read_with_wait(
+        &self,
+        store: &Store,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+        validate: impl Fn(&Connection) -> Result<()>,
+    ) -> Result<NativeReturnRead> {
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (*original_until).saturating_sub(crate::now()).max(0) as u64,
+        ));
+        let scopes = {
+            let c = store
+                .try_connection_with_wait(&wait)
+                .map_err(|e| control_read_refused("control-first-sql", e))?;
+            validate(&c).map_err(|e| control_read_refused("control-bound", e))?;
+            let selected = store
+                .native_return_selection_in(&c, &self.origin, &self.sources, &self.sips)
+                .map_err(|e| control_read_refused("control-selection", e))?;
+            let (_, scopes, expires) = resolve(store, &c, &selected)
+                .map_err(|e| control_read_refused("control-facts", e))?;
+            // Preserve first facts' cutoff even if a later admission refuses.
+            *original_until = (*original_until).min(expires);
+            scopes
+        };
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (*original_until).saturating_sub(crate::now()).max(0) as u64,
+        ));
+        let held = store
+            .acquire_authority(&scopes, &wait)
+            .map_err(|e| control_read_refused("control-file-read", e))?;
+        let c = store
+            .try_connection_with_wait(&wait)
+            .map_err(|e| control_read_refused("control-current-sql", e))?;
+        validate(&c).map_err(|e| control_read_refused("control-current-bound", e))?;
+        let selected = store
+            .native_return_selection_in(&c, &self.origin, &self.sources, &self.sips)
+            .map_err(|e| control_read_refused("control-current-selection", e))?;
+        let read = store
+            .native_return_read_in(&c, selected, held, *original_until)
+            .map_err(|e| control_read_refused("control-current", e))?;
+        *original_until = (*original_until).min(read.expires_at());
+        wait.check()?;
+        if !read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
+    }
     pub(crate) fn read(&self, store: &Store) -> Result<NativeReturnRead> {
         store.try_native_return_read(&self.origin, &self.sources, &self.sips)
     }
@@ -481,16 +535,9 @@ impl Store {
         sources: &[Arc<NativeMediaOrigin>],
         sips: &[SipAudienceOrigin],
     ) -> Result<NativeReturnRead> {
-        let selection = NativeReturnSelection {
-            origin: origin.clone(),
-            sources: sources.to_vec(),
-            sips: sips.to_vec(),
-            sip_snapshots: {
-                let c = self.try_connection()?;
-                let candidate: String = c.query_row("SELECT connection_id FROM consultation_candidate_bindings WHERE operation_record_id=?1", [origin.consultation_record_id()], |r|r.get(0)).map_err(|_|Error::storage())?;
-                consultation_sip::return_snapshot(self, &c, sips, &candidate)
-                    .map_err(|e| phase_error("SIP snapshot", e))?
-            },
+        let selection = {
+            let c = self.try_connection()?;
+            self.native_return_selection_in(&c, origin, sources, sips)?
         };
         let scopes = {
             let c = self.try_connection()?;
@@ -501,6 +548,23 @@ impl Store {
         let held = self.try_acquire_authority(&scopes)?;
         let c = self.try_connection()?;
         self.native_return_read_in(&c, selection, held, i64::MAX)
+    }
+    fn native_return_selection_in(
+        &self,
+        c: &Connection,
+        origin: &NativeConsultationReturnOrigin,
+        sources: &[Arc<NativeMediaOrigin>],
+        sips: &[SipAudienceOrigin],
+    ) -> Result<NativeReturnSelection> {
+        let candidate: String = c.query_row("SELECT connection_id FROM consultation_candidate_bindings WHERE operation_record_id=?1", [origin.consultation_record_id()], |r|r.get(0)).map_err(|_|Error::storage())?;
+        let sip_snapshots = consultation_sip::return_snapshot(self, c, sips, &candidate)
+            .map_err(|e| phase_error("SIP snapshot", e))?;
+        Ok(NativeReturnSelection {
+            origin: origin.clone(),
+            sources: sources.to_vec(),
+            sips: sips.to_vec(),
+            sip_snapshots,
+        })
     }
     pub(crate) fn native_return_read_in(
         &self,

@@ -131,7 +131,9 @@ impl AuthorityWait {
     /// Narrow the same wait/cancellation owner; never renew its deadline.
     pub(crate) fn bounded(&self, timeout: Duration) -> Self {
         Self {
-            deadline: self.deadline.min(Instant::now() + timeout),
+            deadline: self
+                .deadline
+                .min(Instant::now().checked_add(timeout).unwrap_or(self.deadline)),
             cancelled: self.cancelled.clone(),
             poll_interval: self.poll_interval,
             projection_diagnostic: self.projection_diagnostic,
