@@ -1790,6 +1790,13 @@ pub(super) async fn case(
         assert_eq!(fixture.exports.load(Ordering::SeqCst), 1);
         assert_eq!(fixture.ended.load(Ordering::SeqCst), 1);
         server.abort();
+        // Join this original local provider task before the restart scenario
+        // reports completion; requesting cancellation alone is not cleanup.
+        match server.await {
+            Ok(()) => (),
+            Err(error) if error.is_cancelled() => (),
+            Err(error) => panic!("local provider task failed during cleanup: {error}"),
+        }
         return;
     }
     public.shutdown().await.unwrap();

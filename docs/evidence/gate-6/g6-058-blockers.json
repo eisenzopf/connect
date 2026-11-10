@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T14:09:32.807651+00:00",
-  "run_status": "K cleanup batch (83627d65): 156/156 affected controls and 26/27 focused signed scenarios pass, improved from J22/27. All native replacement and telephone scenarios pass. Remaining AI return scenario completes return but fails installation restart with installation-busy, then overflows during panic unwind; lifecycle investigation active. Last full matrix unchanged: v209 0/32 cells, 390/432 checks passed.",
+  "updated": "2026-11-10T14:19:25.868298+00:00",
+  "run_status": "K cleanup passed156/156 affected controls and26/27 focused signed scenarios (83627d65). A causal old-code regression proves cached lifetime metadata keeps a retired installation locked after actual IO drains. Minimal weak metadata ownership fix and joined mock cleanup are implemented and independently reviewed; L128/128 snapshot/ownership controls pass; local rebuild is active, followed by all27 signed scenarios. Latest full matrix remains v209:0/32 cells,390/432 checks passed.",
   "blockers": [
     {
       "id": "B01",
@@ -2718,6 +2718,24 @@
       "status": "K156/156 affected controls pass; provider return completes. One signed scenario now fails later installation restart; lifecycle investigation active. Full matrix qualification open.",
       "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
       "completion_status": "in-progress"
+    },
+    {
+      "id": "S85",
+      "title": "Release retired installation from cached lifetime metadata",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S82",
+        "S83",
+        "S84"
+      ],
+      "code_paths": [
+        "crates/connect-store/src/peer_authority/connection_media/lifetime_snapshot.rs",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/commit/snapshot_binding.rs"
+      ],
+      "solution": "Make cached lifetime owner weak while preserving exact current owner checks and strong actual IO custody; await original mock server cancellation in signed restart fixture.",
+      "status": "Implemented and independently reviewed. Causal old-code regression fails at metadata-only installation-busy; fixed code passes128/128 snapshot and ownership controls. Signed27 verification pending.",
+      "completion": "Real IO still blocks restart; retained metadata does not after IO drain; old grants and queued epochs remain invalid;128 snapshot/ownership controls and all27 signed scenarios.",
+      "completion_status": "in-progress"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -5155,7 +5173,8 @@
     "S81",
     "S82",
     "S83",
-    "S84"
+    "S84",
+    "S85"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -16295,5 +16314,6 @@
     "selected": 27
   },
   "cleanup_j_evidence": "docs/evidence/gate-6/cleanup-batch-j-v212.json",
-  "cleanup_k_evidence": "docs/evidence/gate-6/cleanup-batch-k-v212.json"
+  "cleanup_k_evidence": "docs/evidence/gate-6/cleanup-batch-k-v212.json",
+  "cleanup_l_evidence": "docs/evidence/gate-6/cleanup-batch-l-v212.json"
 }

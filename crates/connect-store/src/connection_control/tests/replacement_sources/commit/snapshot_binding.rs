@@ -150,3 +150,79 @@ fn original_presence_lifetime_snapshot_observes_without_sql_and_rejects_foreign_
     }
     worker.shutdown().unwrap();
 }
+
+#[test]
+fn retained_lifetime_metadata_releases_retired_installation_only_after_actual_io_drains() {
+    let m = fixture_scoped(true, &["stream.subscribe"]);
+    let source = m.sources[1].clone();
+    let mut f = m.f;
+    // Use the actual server ownership shape: Store and immutable origins borrow
+    // this runtime owner; only admitted SQL/IO may keep it alive after retire.
+    drop(f.packet_scope.take());
+    let owner = f.store.require_runtime_owner().unwrap();
+    let path = f.store.path().to_owned();
+    let runtime_store =
+        Store::open_with_ownership(&path, connect_protocol::Limits::default(), &owner).unwrap();
+    drop(f.store);
+    let store = Arc::new(runtime_store);
+    let _packet_scope = store.retain_packet_observers().unwrap();
+    let metadata = store
+        .try_register_native_connection_lifetime_snapshot(source.clone())
+        .unwrap();
+    let weak_store = Arc::downgrade(&store);
+    let captured_source = source.clone();
+    let media = store
+        .register_native_media_snapshot_for(&source, None, move || {
+            weak_store
+                .upgrade()
+                .ok_or_else(Error::forbidden)?
+                .try_native_media_read(&captured_source, None)
+        })
+        .unwrap();
+    let mut worker = store.start_media_authorization_watcher().unwrap();
+    let until = Instant::now() + Duration::from_secs(2);
+    loop {
+        match metadata.observe_original(&source) {
+            Ok(true) => break,
+            Err(error) if error.code == "authority-busy" && Instant::now() < until => {
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            result => panic!(
+                "actual original lifetime failed to publish: {}",
+                result.is_ok()
+            ),
+        }
+    }
+    let io = current(&media);
+    let queued_epoch = io.packet_epoch().unwrap();
+    assert!(io.current() && queued_epoch.current());
+    // Same successful production watcher shutdown drops cached publications;
+    // the already admitted IO still retains its original Read and owner.
+    worker.shutdown().unwrap();
+    owner.retire();
+    drop(owner);
+    assert!(!io.current() && !queued_epoch.current());
+    assert_eq!(
+        crate::InstallationOwnership::acquire(&path)
+            .unwrap_err()
+            .code,
+        "installation-busy",
+        "genuine admitted IO must retain the retired installation until drain"
+    );
+    drop(io);
+    let next = crate::InstallationOwnership::acquire(&path)
+        .expect("retained lifetime metadata must not pin the retired installation after IO drain");
+    assert_eq!(
+        metadata.observe_original(&source).unwrap_err().code,
+        "forbidden"
+    );
+    assert_eq!(media.admit().err().unwrap().code, "authority-busy");
+    assert_eq!(store.installation_id().unwrap_err().code, "forbidden");
+    let current =
+        Store::open_with_ownership(&path, connect_protocol::Limits::default(), &next).unwrap();
+    assert!(current.installation_id().is_ok());
+    assert!(
+        !queued_epoch.current(),
+        "new runtime must never revive old queued media"
+    );
+}

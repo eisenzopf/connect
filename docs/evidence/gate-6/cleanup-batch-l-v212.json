@@ -1,0 +1,66 @@
+{
+  "format": "connect/gate6-cleanup-batch/1",
+  "batch": "v212-L",
+  "updated": "2026-11-10T14:22:47.617098+00:00",
+  "status": "128/128 snapshot and ownership controls pass. Coherent build active; all27 focused signed scenarios next.",
+  "acceptance_changes": false,
+  "changes": [
+    "Cached native connection-lifetime metadata uses a weak installation owner. Actual published reads and IO retain strong original custody.",
+    "Signed restart fixture awaits its original local provider mock task after cancellation."
+  ],
+  "causal_regression": {
+    "test": "connection_control::tests::replacement_sources::commit::snapshot_binding::retained_lifetime_metadata_releases_retired_installation_only_after_actual_io_drains",
+    "before": {
+      "exit_code": 101,
+      "elapsed_seconds": 11.21861937502399,
+      "log_sha256": "f2e1e10d7806afced3ecc26666c786c5e4ec5a627f4f8284de0372f11e49bed4",
+      "naturally_joined": true
+    },
+    "before_failure": "installation-busy only after genuine IO drops and lifetime metadata remains retained",
+    "invalid_initial_fixture_attempt": "Initial test setup omitted its reopened observer pool scope; failed before reaching causal leaf. Receipt retained privately, excluded from causal evidence.",
+    "after": {
+      "test": "connection_control::tests::replacement_sources::commit::snapshot_binding::retained_lifetime_metadata_releases_retired_installation_only_after_actual_io_drains",
+      "exit_code": 0,
+      "elapsed_seconds": 1.2954621315002441,
+      "passed": 1,
+      "failed": 0,
+      "result_summary_count": 1,
+      "log_sha256": "dde621844a7456aa3e289734b7368f0d82d913a71eadc81896697b307a843f45",
+      "naturally_joined": true,
+      "source_unchanged": true,
+      "ok": true
+    }
+  },
+  "unit_results": {
+    "summary": {
+      "selected": 128,
+      "completed": 128,
+      "passed": 128,
+      "failed": 0
+    },
+    "receipt_sha256": "964f2507f86f68bf6baa979eafe4c486e21ed23dcf5cd183533e0f25e191d5ff",
+    "source_seal_sha256": "3ca1e28cf9002cbd5ce28fd812a8c11cfba930a9bd103bb88eb6d05d38ce901f",
+    "binary_sha256": "141828f9c378c2444dd16b5744cb70b206efeb70108ff2a5f873b68d6b5ba4a1",
+    "scope": "local macOS arm64",
+    "driver_naturally_joined": true
+  },
+  "independent_review_sha256": "1447cfb141a5d319eddb2e1bbf840300da18479f6db0d5d41a4b4dfa24ca87b2",
+  "prior_focused_signed": {
+    "batch": "K",
+    "passed": 26,
+    "failed": 1,
+    "selected": 27
+  },
+  "last_full_matrix": {
+    "run": "v209",
+    "passed_cells": 0,
+    "required_cells": 32,
+    "passed_checks": 390,
+    "required_checks": 432,
+    "failed_checks": 42
+  },
+  "limits": [
+    "Focused component and signed checks do not qualify full matrix cells or decoded A/V quality.",
+    "No forced installation unlock and no weakening of current authorization or real IO custody."
+  ]
+}

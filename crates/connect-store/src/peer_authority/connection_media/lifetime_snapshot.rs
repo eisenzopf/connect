@@ -34,7 +34,9 @@ pub struct NativeConnectionLifetimeStamp(crate::media_authorization::Stamp);
 #[derive(Clone)]
 pub struct NativeConnectionLifetimeSnapshot {
     origin: Arc<NativeMediaOrigin>,
-    owner: Arc<InstallationOwnership>,
+    // Cached scheduling metadata owns no installation custody after retirement.
+    // The revocable LifetimeFacts publication keeps its actual Read/owner.
+    owner: Weak<InstallationOwnership>,
     handle: Handle<LifetimeFacts>,
 }
 struct LifetimeFacts {
@@ -59,11 +61,12 @@ impl NativeConnectionLifetimeSnapshot {
         original: &NativeMediaOrigin,
     ) -> Result<NativeConnectionLifetimeStamp> {
         let current = &self.origin;
-        if !self.owner.current()
+        let owner = self.owner.upgrade().ok_or_else(Error::forbidden)?;
+        if !owner.current()
             || original
                 .owner
                 .upgrade()
-                .is_none_or(|owner| !Arc::ptr_eq(&owner, &self.owner))
+                .is_none_or(|original_owner| !Arc::ptr_eq(&original_owner, &owner))
             || !same_physical_lineage(
                 identity(current),
                 identity(original),
@@ -134,7 +137,7 @@ impl Store {
             })?;
         Ok(NativeConnectionLifetimeSnapshot {
             origin,
-            owner,
+            owner: Arc::downgrade(&owner),
             handle,
         })
     }
