@@ -1,10 +1,10 @@
 {
   "format": "connect/gate6-cleanup-batch/1",
-  "updated": "2026-11-10T11:07:07.399623+00:00",
+  "updated": "2026-11-10T11:15:00.768260+00:00",
   "batch": "v212-G",
   "source_base": "ab551083",
   "source_lock_sha256": "9c8e2357bf778dc0be1f9a0772f329168528a56d3942e012924f9ca9ec0d1b81",
-  "status": "All cleanup controls passed:189 Connect controls plus43 unchanged upstream controls (232 total). Corrected performance regression passed. Focused signed followthrough next; full matrix unchanged.",
+  "status": "All232 cleanup controls passed. Focused G2 completed19/26,7failed; provider initialization and expired status recovery advance, but complete-check count unchanged. Next four concrete failure families under repair.",
   "new_regressions": 7,
   "candidates": [
     {
@@ -150,5 +150,43 @@
     "unchanged_upstream_units": 35,
     "unchanged_upstream_signed": 8,
     "total": 232
+  },
+  "final_coherent_build": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "-p",
+      "connect-client",
+      "-p",
+      "connect-store",
+      "-p",
+      "connect-service",
+      "-p",
+      "connect-server",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--test",
+      "gate6_replacement_video",
+      "--test",
+      "gate6_canonical_runtime",
+      "--features",
+      "connect-server/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 144.27894973754883,
+    "log_sha256": "745ce01611e8044467f14cce5da260936a5180541fc54326129e8185ae776019",
+    "naturally_joined": true
+  },
+  "focused_signed_result": {
+    "passed": 19,
+    "failed": 7,
+    "evidence": "docs/evidence/gate-6/cleanup-batch-g2-signed-v212.json"
   }
 }
