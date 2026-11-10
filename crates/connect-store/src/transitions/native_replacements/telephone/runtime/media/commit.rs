@@ -98,6 +98,34 @@ impl Store {
         Arc<TelephoneReplacementCommitAttempt>,
         TelephoneReplacementSceneRead,
     )> {
+        self.begin_telephone_commit_admission(read, None)?
+            .ok_or_else(|| Error::new("authority-busy", "Telephone commit admission is busy"))
+    }
+    pub fn try_begin_telephone_replacement_commit_with_wait(
+        &self,
+        read: TelephoneReplacementSceneRead,
+        wait: &crate::AuthorityWait,
+    ) -> Result<
+        Option<(
+            Arc<TelephoneReplacementCommitAttempt>,
+            TelephoneReplacementSceneRead,
+        )>,
+    > {
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (read.expires_at()).saturating_sub(crate::now()).max(0) as u64,
+        ));
+        self.begin_telephone_commit_admission(read, Some(&wait))
+    }
+    fn begin_telephone_commit_admission(
+        &self,
+        read: TelephoneReplacementSceneRead,
+        control_wait: Option<&crate::AuthorityWait>,
+    ) -> Result<
+        Option<(
+            Arc<TelephoneReplacementCommitAttempt>,
+            TelephoneReplacementSceneRead,
+        )>,
+    > {
         if !read.current() || !self.authority_covers(&read.media.interval, &[]) {
             return Err(Error::forbidden());
         }
@@ -110,9 +138,7 @@ impl Store {
         drop(read);
         let a = &resources.attempt.origin.submitted.attempt;
         let p = &a.prepared;
-        // A completed reservation replay may refuse without entering another
-        // Writer. This immediate SQL probe grants no IO or current authority.
-        {
+        if control_wait.is_none() {
             let c = self.try_connection()?;
             let exists: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit')", [&p.record], |row| row.get(0)).map_err(|_| Error::storage())?;
             if exists {
@@ -122,9 +148,11 @@ impl Store {
                 ));
             }
         }
-        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
-        let held = self.acquire_authority(&mutation_scopes, &wait)?;
-        let mut c = self.try_connection()?;
+        let Some((held, mut c)) =
+            self.telephone_mutation_admission(control_wait, |_| Ok(mutation_scopes.clone()))?
+        else {
+            return Ok(None);
+        };
         let scopes = self.telephone_replacement_phase_scopes(&c, &resources, &sources, true)?;
         if !self.authority_covers(&held, &scopes) {
             return Err(Error::new(
@@ -133,9 +161,9 @@ impl Store {
             ));
         }
         c.bind_available_mutation_authority(self, &held)?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
+        let Some(tx) = control_admission::begin_transaction(&mut c, control_wait.is_some())? else {
+            return Ok(None);
+        };
         let scopes = self.telephone_replacement_phase_scopes(&tx, &resources, &sources, true)?;
         if !self.authority_covers(&held, &scopes) {
             return Err(Error::forbidden());
@@ -230,6 +258,12 @@ impl Store {
         let expected = crate::provisioning::canonical_json(&snapshot.expected_movement)?;
         let attempt = format!("tcm_{}", uuid::Uuid::new_v4());
         let effect = format!("tre_{}", uuid::Uuid::new_v4());
+        if let Some(wait) = control_wait {
+            wait.check()?;
+            if !read.current() {
+                return Err(Error::forbidden());
+            }
+        }
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,'native-replacement-commit',?1,'none','prepared',?3)",params![effect,p.record,expected]).map_err(|_|Error::storage())?;
         tx.execute("INSERT INTO native_replacement_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,'commit',?2,?3)",params![p.record,attempt,effect]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='commit'",[&p.record]).map_err(|_|Error::storage())?;
@@ -241,7 +275,7 @@ impl Store {
         }
         tx.commit().map_err(|_| Error::storage())?;
         drop(c);
-        Ok((
+        Ok(Some((
             Arc::new(TelephoneReplacementCommitAttempt {
                 resources: resources.clone(),
                 attempt,
@@ -250,7 +284,7 @@ impl Store {
                 snapshot,
             }),
             read,
-        ))
+        )))
     }
     pub fn record_telephone_replacement_committed(
         &self,

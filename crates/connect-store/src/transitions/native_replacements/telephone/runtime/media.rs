@@ -149,15 +149,55 @@ impl Store {
         &self,
         origin: Arc<TelephoneReplacementMediaOrigin>,
     ) -> Result<TelephoneReplacementMediaRead> {
+        self.telephone_replacement_media_read_admission(origin, crate::now() + 5, None)
+    }
+    pub fn telephone_replacement_media_origin_with_wait(
+        &self,
+        submitted: Arc<TelephoneReplacementSubmitted>,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<(
+        Arc<TelephoneReplacementMediaOrigin>,
+        TelephoneReplacementMediaRead,
+    )> {
+        let origin = Arc::new(TelephoneReplacementMediaOrigin { submitted });
+        let read =
+            self.telephone_replacement_media_read_with_wait(origin.clone(), original_until, wait)?;
+        Ok((origin, read))
+    }
+    pub fn telephone_replacement_media_read_with_wait(
+        &self,
+        origin: Arc<TelephoneReplacementMediaOrigin>,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<TelephoneReplacementMediaRead> {
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (*original_until).saturating_sub(crate::now()).max(0) as u64,
+        ));
+        let read = self.telephone_replacement_media_read_admission(
+            origin,
+            (*original_until).min(crate::now() + 5),
+            Some(&wait),
+        )?;
+        *original_until = (*original_until).min(read.expires_at());
+        wait.check()?;
+        Ok(read)
+    }
+    fn telephone_replacement_media_read_admission(
+        &self,
+        origin: Arc<TelephoneReplacementMediaOrigin>,
+        until: i64,
+        control_wait: Option<&crate::AuthorityWait>,
+    ) -> Result<TelephoneReplacementMediaRead> {
         let a = &origin.submitted.attempt;
         let p = &a.prepared;
         // Resolve the complete source/retained/operator/route footprint under
         // the same immediate SQL permit. Never wait under media engine fences.
-        let c = self.try_connection()?;
+        let c = self.telephone_read_sql(control_wait)?;
         local_owner(self, &p.owner, &p.runtime)?;
         let scopes = p.selection.scopes(self, &c, false)?;
         let held = self.try_acquire_authority(&scopes)?;
-        self.telephone_media_read_in(&c, origin.clone(), held, crate::now() + 5)
+        self.telephone_media_read_in(&c, origin.clone(), held, until)
     }
     fn telephone_media_read_in(
         &self,
@@ -341,6 +381,28 @@ impl Store {
         read: TelephoneReplacementMediaRead,
         original_until: i64,
     ) -> Result<Arc<TelephoneReplacementResourcesAttempt>> {
+        self.begin_telephone_resources_admission(read, original_until, None)?
+            .ok_or_else(|| Error::new("authority-busy", "Telephone resources admission is busy"))
+    }
+    pub fn try_begin_telephone_replacement_resources_with_wait(
+        &self,
+        read: TelephoneReplacementMediaRead,
+        original_until: i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<Option<Arc<TelephoneReplacementResourcesAttempt>>> {
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (read.expires_at().min(original_until))
+                .saturating_sub(crate::now())
+                .max(0) as u64,
+        ));
+        self.begin_telephone_resources_admission(read, original_until, Some(&wait))
+    }
+    fn begin_telephone_resources_admission(
+        &self,
+        read: TelephoneReplacementMediaRead,
+        original_until: i64,
+        control_wait: Option<&crate::AuthorityWait>,
+    ) -> Result<Option<Arc<TelephoneReplacementResourcesAttempt>>> {
         if !read.current() {
             return Err(Error::forbidden());
         }
@@ -362,11 +424,14 @@ impl Store {
         }
         drop(read);
         let p = &origin.submitted.attempt.prepared;
-        let (held, mut c) =
-            self.telephone_state_change_sql(|c| p.selection.scopes(self, c, true))?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
+        let Some((held, mut c)) =
+            self.telephone_mutation_admission(control_wait, |c| p.selection.scopes(self, c, true))?
+        else {
+            return Ok(None);
+        };
+        let Some(tx) = control_admission::begin_transaction(&mut c, control_wait.is_some())? else {
+            return Ok(None);
+        };
         let read = self.telephone_media_read_in(&tx, origin.clone(), held.clone(), until)?;
         if read.read.descriptor != original_descriptor
             || read.candidate()? != candidate
@@ -404,6 +469,12 @@ impl Store {
         }
         let attempt = format!("trm_{}", uuid::Uuid::new_v4());
         let effect = format!("tre_{}", uuid::Uuid::new_v4());
+        if let Some(wait) = control_wait {
+            wait.check()?;
+            if !read.current() {
+                return Err(Error::forbidden());
+            }
+        }
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,'telephone-replacement-resources',?3,'none','prepared',?4)",params![effect,p.record,read.call_id(),descriptor]).map_err(|_|Error::storage())?;
         tx.execute("INSERT INTO telephone_replacement_resources(operation_record_id,runtime_epoch,attempt_id,effect_id,descriptor_json) VALUES(?1,?2,?3,?4,?5)",params![p.record,p.runtime,attempt,effect,descriptor]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1",[&effect]).map_err(|_|Error::storage())?;
@@ -416,7 +487,7 @@ impl Store {
         drop(read);
         drop(c);
         drop(held);
-        Ok(Arc::new(TelephoneReplacementResourcesAttempt {
+        Ok(Some(Arc::new(TelephoneReplacementResourcesAttempt {
             origin: origin.clone(),
             attempt,
             effect,
@@ -426,16 +497,35 @@ impl Store {
             accepted,
             offered,
             expires_at,
-        }))
+        })))
     }
     pub fn try_telephone_replacement_resources_attempt_read(
         &self,
         attempt: Arc<TelephoneReplacementResourcesAttempt>,
     ) -> Result<TelephoneReplacementMediaRead> {
+        self.telephone_resources_attempt_read_admission(attempt, None)
+    }
+    pub fn telephone_replacement_resources_attempt_read_with_wait(
+        &self,
+        attempt: Arc<TelephoneReplacementResourcesAttempt>,
+        wait: &crate::AuthorityWait,
+    ) -> Result<TelephoneReplacementMediaRead> {
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (attempt.expires_at).saturating_sub(crate::now()).max(0) as u64,
+        ));
+        let read = self.telephone_resources_attempt_read_admission(attempt, Some(&wait))?;
+        wait.check()?;
+        Ok(read)
+    }
+    fn telephone_resources_attempt_read_admission(
+        &self,
+        attempt: Arc<TelephoneReplacementResourcesAttempt>,
+        control_wait: Option<&crate::AuthorityWait>,
+    ) -> Result<TelephoneReplacementMediaRead> {
         if crate::now() >= attempt.expires_at {
             return Err(Error::forbidden());
         }
-        let c = self.try_connection()?;
+        let c = self.telephone_read_sql(control_wait)?;
         let p = &attempt.origin.submitted.attempt.prepared;
         let scopes = p.selection.scopes(self, &c, false)?;
         let held = self.try_acquire_authority(&scopes)?;

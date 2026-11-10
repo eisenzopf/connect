@@ -147,79 +147,69 @@ impl Runtime {
                 "Original Core preparation capture is not yet recorded",
             ));
         }
-        // Before begin, a temporary metadata refusal has no phase/Core effect.
-        // Do not retain the signed mutation writer through five-second retries.
-        let read = {
+        // Validate the exact physical transport as pure metadata while the
+        // Store retains one primary SQL guard through current plan and begin.
+        // The signed Writer never waits on SQL or retries a durable boundary.
+        let target_key_id = proof(&a)?.key_id().to_owned();
+        let (attempt, read, (actor, endpoint, peer)) = {
             let store = self.media.store.clone();
             let a = a.clone();
             let receipt = saved.receipt.clone();
             let key = credential.to_owned();
+            let transport = physical.binding.transport();
+            let native_media = physical.binding.media().is_some();
+            let webrtc = self.webrtc.get().is_some();
             store_call(move || {
-                store.native_replacement_allocation_read_with_peer(&receipt, &key, proof(&a)?)
-            })
-            .await
-            .map_err(|error| allocation_refused("read", error))?
-        };
-        let rtc = read.source().context().target_transport
-            == connect_protocol::provisioning::EndpointTransport::Webrtc;
-        if if rtc {
-            physical.binding.transport() != rvoip_core::Transport::WebSocket
-                || self.webrtc.get().is_none()
-        } else {
-            physical.binding.media().is_none()
-                || crate::canonical_runtime::core_transport(
-                    &read.source().context().target_transport,
-                )? != physical.binding.transport()
-        } {
-            return Err(Error::new(
-                "unsupported-media-profile",
-                "Replacement target transport differs from the negotiated physical media transport",
-            ));
-        }
-        // Only the preflight read is retried. Durable begin and Core allocation
-        // each execute once, even when recording or the response is lost.
-        let (attempt, read) = {
-            let store = self.media.store.clone();
-            let a = a.clone();
-            let receipt = saved.receipt.clone();
-            let key = credential.to_owned();
-            store_call(move || {
-                store.begin_native_replacement_allocation_with_read(
-                    &receipt,
-                    &key,
-                    proof(&a)?,
-                    read,
+                store.begin_native_replacement_allocation_validated(
+                    &receipt, &key, proof(&a)?, |read| {
+                        let target = &read.source().context().target_transport;
+                        let rtc = *target == connect_protocol::provisioning::EndpointTransport::Webrtc;
+                        if if rtc {
+                            transport != rvoip_core::Transport::WebSocket || !webrtc
+                        } else {
+                            !native_media || crate::canonical_runtime::core_transport(target)? != transport
+                        } {
+                            return Err(Error::new(
+                                "unsupported-media-profile",
+                                "Replacement target transport differs from the negotiated physical media transport",
+                            ));
+                        }
+                        let context = read.source().context();
+                        let actor = current_member(a.principal(), read.target())?;
+                        let identity = IdentityBinding::from_authenticated(
+                            a.principal(), IdentityId::from_string(context.identity_id.clone()),
+                            chrono::Utc::now(),
+                        ).map_err(|_| Error::forbidden())?;
+                        let mut endpoint = EndpointBinding::provision(
+                            identity.clone(), EndpointId::from_string(context.target_endpoint_id.clone()),
+                            DeviceId::from_string(context.target_device_id.clone()),
+                            crate::canonical_runtime::core_transport(&context.target_transport)?,
+                            context.target_address.clone(),
+                        ).map_err(|_| Error::forbidden())?;
+                        endpoint.verify(&identity, "connect-store".into(), chrono::Utc::now())
+                            .map_err(|_| Error::forbidden())?;
+                        let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();
+                        Ok((actor, endpoint, peer))
+                    },
                 )
             })
             .await
-            .map_err(|error| allocation_refused("begin", error))?
+            .map_err(|error| allocation_refused("validated-begin", error))?
         };
-        let context = read.source().context();
-        let actor = current_member(a.principal(), read.target())?;
-        let identity = IdentityBinding::from_authenticated(
-            a.principal(),
-            IdentityId::from_string(context.identity_id.clone()),
-            chrono::Utc::now(),
-        )
-        .map_err(|_| Error::forbidden())?;
-        let mut endpoint = EndpointBinding::provision(
-            identity.clone(),
-            EndpointId::from_string(context.target_endpoint_id.clone()),
-            DeviceId::from_string(context.target_device_id.clone()),
-            crate::canonical_runtime::core_transport(&context.target_transport)?,
-            context.target_address.clone(),
-        )
-        .map_err(|_| Error::forbidden())?;
-        endpoint
-            .verify(&identity, "connect-store".into(), chrono::Utc::now())
-            .map_err(|_| Error::forbidden())?;
-        let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();
-        self.attach(
+        let rtc = read.source().context().target_transport
+            == connect_protocol::provisioning::EndpointTransport::Webrtc;
+        if let Err(error) = self.attach(
             read.target(),
             a.principal(),
             peer.clone(),
             authority.retained(),
-        )?;
+        ) {
+            drop(read);
+            self.record_allocation_uncertain_with_peer(attempt, a.clone())
+                .await
+                .map_err(|error| allocation_refused("capture-uncertain", error))?;
+            return Err(allocation_refused("core-attach", error));
+        }
         let target = TargetLease {
             authority: PeerNativeAuthority {
                 actor,
@@ -229,13 +219,9 @@ impl Runtime {
             _read: read,
         };
         if !target._read.current() {
-            let store = self.media.store.clone();
-            let a = a.clone();
-            store_call(move || {
-                store.native_replacement_allocation_uncertain_with_peer(attempt, proof(&a)?)
-            })
-            .await
-            .map_err(|error| allocation_refused("capture-uncertain", error))?;
+            self.record_allocation_uncertain_with_peer(attempt, a.clone())
+                .await
+                .map_err(|error| allocation_refused("capture-uncertain", error))?;
             return Err(Error::forbidden());
         }
         // One durable begin; never retry either Core allocation or retain.
@@ -253,13 +239,9 @@ impl Runtime {
                     // fresh offer must not silently retry the allocation effect.
                     drop(target);
                     saved.handle.cancel();
-                    let store = self.media.store.clone();
-                    let a = a.clone();
-                    store_call(move || {
-                        store.native_replacement_allocation_uncertain_with_peer(attempt, proof(&a)?)
-                    })
-                    .await
-                    .map_err(|error| allocation_refused("capture-uncertain", error))?;
+                    self.record_allocation_uncertain_with_peer(attempt, a.clone())
+                        .await
+                        .map_err(|error| allocation_refused("capture-uncertain", error))?;
                     return Err(error);
                 }
             }
@@ -289,28 +271,37 @@ impl Runtime {
         drop(target);
         if !valid {
             saved.handle.cancel();
-            let store = self.media.store.clone();
-            let a = a.clone();
-            store_call(move || {
-                store.native_replacement_allocation_uncertain_with_peer(attempt, proof(&a)?)
-            })
-            .await
-            .map_err(|error| allocation_refused("capture-uncertain", error))?;
+            self.record_allocation_uncertain_with_peer(attempt, a.clone())
+                .await
+                .map_err(|error| allocation_refused("capture-uncertain", error))?;
             return Err(Error::new(
                 "reconciliation-required",
                 "Reserved native allocation outcome is uncertain",
             ));
         }
-        let mut observation = observed(&saved.handle, &saved.plan)
-            .map_err(|error| allocation_refused("capture-observation", error))?;
+        let mut observation = match observed(&saved.handle, &saved.plan) {
+            Ok(observation) => observation,
+            Err(error) => {
+                saved.handle.cancel();
+                self.record_allocation_uncertain_with_peer(attempt, a.clone())
+                    .await
+                    .map_err(|error| allocation_refused("capture-uncertain", error))?;
+                return Err(allocation_refused("capture-observation", error));
+            }
+        };
         observation["allocated"] = serde_json::json!(true);
         observation["target_operation_id"] = serde_json::json!(intent.operation_id);
-        observation["target_key_id"] = serde_json::json!(proof(&a)?.key_id());
-        let receipt = Arc::new(
-            attempt
-                .allocated(observation)
-                .map_err(|error| allocation_refused("capture-validation", error))?,
-        );
+        observation["target_key_id"] = serde_json::json!(target_key_id);
+        let receipt = match attempt.allocated(observation) {
+            Ok(receipt) => Arc::new(receipt),
+            Err((attempt, error)) => {
+                saved.handle.cancel();
+                self.record_allocation_uncertain_with_peer(attempt, a.clone())
+                    .await
+                    .map_err(|error| allocation_refused("capture-uncertain", error))?;
+                return Err(allocation_refused("capture-validation", error));
+            }
+        };
         let allocated = Arc::new(AllocatedReplacement {
             receipt,
             physical: Arc::downgrade(&physical),
@@ -320,19 +311,51 @@ impl Runtime {
             started: std::sync::Mutex::new(None),
             failed_start: std::sync::Mutex::new(None),
         });
-        *saved
-            .allocated
-            .lock()
-            .map_err(|_| allocation_refused("capture-owner-registry", Error::storage()))? =
-            Some(allocated.clone());
+        let installed = match saved.allocated.lock() {
+            Ok(mut slot) => {
+                *slot = Some(allocated.clone());
+                true
+            }
+            Err(_) => false,
+        };
+        if !installed {
+            // A valid physical capture already exists. Preserve that actual
+            // historical fact even if registry publication must fail closed.
+            saved.handle.cancel();
+        }
         let record = self
             .record_allocated_replacement_with_peer(&allocated, a.clone())
             .await
             .map_err(|error| allocation_refused("capture", error))?;
+        if !installed {
+            return Err(allocation_refused(
+                "capture-owner-registry",
+                Error::storage(),
+            ));
+        }
         Ok(Reply {
             record,
             answered: false,
         })
+    }
+    async fn record_allocation_uncertain_with_peer(
+        &self,
+        attempt: connect_store::NativeReplacementAllocationAttempt,
+        a: Arc<AuthorizedEnvelope>,
+    ) -> Result<()> {
+        let attempt = Arc::new(attempt);
+        retry_metadata(&self.stop, || {
+            let store = self.media.store.clone();
+            let attempt = attempt.clone();
+            let a = a.clone();
+            // The existing owned call registry retains the actual blocking
+            // handle if its waiter is dropped. Only this original historical
+            // receipt repeats; no Core allocation or transport is replayed.
+            self.owned_store_call(move || {
+                store.native_replacement_allocation_uncertain_with_peer(&attempt, proof(&a)?)
+            })
+        })
+        .await
     }
     async fn record_allocated_replacement_with_peer(
         &self,

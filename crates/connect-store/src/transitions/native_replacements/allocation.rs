@@ -57,12 +57,19 @@ impl NativeReplacementAllocationAttempt {
     }
     /// Capture the actual reserved Core/peer allocation, not answer, resources,
     /// media readiness, endpoint confirmation or movement commit.
-    pub fn allocated(self, observation: serde_json::Value) -> Result<NativeReplacementAllocated> {
+    pub fn allocated(
+        self,
+        observation: serde_json::Value,
+    ) -> std::result::Result<NativeReplacementAllocated, (Self, Error)> {
         if observation != self.expected {
-            return Err(conflict());
+            return Err((self, conflict()));
         }
+        let observation = match crate::provisioning::canonical_json(&observation) {
+            Ok(observation) => observation,
+            Err(error) => return Err((self, error)),
+        };
         Ok(NativeReplacementAllocated {
-            observation: crate::provisioning::canonical_json(&observation)?,
+            observation,
             attempt: self,
         })
     }
@@ -301,9 +308,29 @@ impl Store {
         NativeReplacementAllocationAttempt,
         NativeReplacementAllocationRead,
     )> {
-        let read =
-            self.native_replacement_allocation_read_with_peer(prepared, credential, proof)?;
-        self.begin_native_replacement_allocation_with_read(prepared, credential, proof, read)
+        self.begin_native_replacement_allocation_validated(prepared, credential, proof, |_| Ok(()))
+            .map(|(attempt, read, ())| (attempt, read))
+    }
+    /// Resolve, validate synchronous host metadata, and reserve once under the
+    /// SAME immediate primary SQL custody and already-admitted signed Writer.
+    /// The callback must perform no IO, SQL, waits or authority acquisition.
+    pub fn begin_native_replacement_allocation_validated<T>(
+        &self,
+        prepared: &NativeReplacementPrepared,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+        validate: impl FnOnce(&NativeReplacementAllocationRead) -> Result<T>,
+    ) -> Result<(
+        NativeReplacementAllocationAttempt,
+        NativeReplacementAllocationRead,
+        T,
+    )> {
+        let mut c = self.try_connection()?;
+        let read = self.native_replacement_allocation_read_in(&c, prepared, credential, proof)?;
+        let metadata = validate(&read)?;
+        let (attempt, read) =
+            self.begin_native_replacement_allocation_in(&mut c, prepared, credential, proof, read)?;
+        Ok((attempt, read, metadata))
     }
     /// Mark one possible allocation before invoking Core. Never retry this
     /// boundary; only its preceding metadata-only read is retryable.
@@ -327,6 +354,28 @@ impl Store {
             return Err(Error::forbidden());
         }
         let mut c = self.try_connection()?;
+        self.begin_native_replacement_allocation_in(&mut c, prepared, credential, proof, read)
+    }
+    pub(crate) fn begin_native_replacement_allocation_in(
+        &self,
+        c: &mut crate::installation_ownership::ConnectionGuard<'_>,
+        prepared: &NativeReplacementPrepared,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+        read: NativeReplacementAllocationRead,
+    ) -> Result<(
+        NativeReplacementAllocationAttempt,
+        NativeReplacementAllocationRead,
+    )> {
+        if !read.current() || read.source.selection().origin.record != prepared.record {
+            return Err(Error::forbidden());
+        }
+        if !self.authority_covers(
+            Self::peer_scopes(proof),
+            &Self::peer_scopes(proof).mutation_scopes(),
+        ) {
+            return Err(Error::forbidden());
+        }
         c.bind_available_mutation_authority(self, Self::peer_scopes(proof))?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -378,10 +427,10 @@ impl Store {
     /// a second invocation, including after a controller or runtime changes.
     pub fn native_replacement_allocation_uncertain_with_peer(
         &self,
-        attempt: NativeReplacementAllocationAttempt,
+        attempt: &NativeReplacementAllocationAttempt,
         proof: &PeerAuthorityGuard,
     ) -> Result<()> {
-        self.record_replacement_allocation(&attempt, None, Some(Self::peer_scopes(proof)))
+        self.record_replacement_allocation(attempt, None, Some(Self::peer_scopes(proof)))
             .map(|_| ())
     }
     pub fn native_replacement_allocation_uncertain(
@@ -418,8 +467,12 @@ impl Store {
     ) -> Result<OperationRecord> {
         let prepared = &attempt.prepared;
         local_owner(self, &prepared.owner, &prepared.runtime)?;
+        if let Some(held) = interval {
+            let mut c = self.try_connection()?;
+            return self.record_replacement_allocation_in(&mut c, attempt, observation, held);
+        }
         let held = self.stable_authority_with(
-            interval,
+            None,
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.try_connection()?;
@@ -427,12 +480,27 @@ impl Store {
             },
         )?;
         let mut c = self.try_connection()?;
-        c.bind_available_mutation_authority(self, &held)?;
+        self.record_replacement_allocation_in(&mut c, attempt, observation, &held)
+    }
+    pub(crate) fn record_replacement_allocation_in(
+        &self,
+        c: &mut crate::installation_ownership::ConnectionGuard<'_>,
+        attempt: &NativeReplacementAllocationAttempt,
+        observation: Option<&str>,
+        held: &Arc<crate::AuthorityGuardSet>,
+    ) -> Result<OperationRecord> {
+        let prepared = &attempt.prepared;
+        local_owner(self, &prepared.owner, &prepared.runtime)?;
+        let needed = admission::mutation_row_scopes(&rows::by_record(c, &prepared.record)?)?;
+        if !self.authority_covers(held, &needed) {
+            return Err(Error::forbidden());
+        }
+        c.bind_available_mutation_authority(self, held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = rows::by_record(&tx, &prepared.record)?;
-        admission::require_row(self, &held, &row)?;
+        admission::require_row(self, held, &row)?;
         let old: Option<Option<String>> = tx.query_row("SELECT s.observation_json FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='allocate' JOIN operation_effects e ON e.id=s.effect_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND e.observation_json=?7",params![prepared.record,prepared.runtime,prepared.reservation,prepared.hash,attempt.attempt,attempt.effect,attempt.target],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
         let old = old.ok_or_else(Error::forbidden)?;
         if let Some(observation) = observation {

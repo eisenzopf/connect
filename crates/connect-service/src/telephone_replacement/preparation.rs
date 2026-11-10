@@ -15,26 +15,30 @@ impl Runtime {
         started: &Arc<media::Started>,
         phase: Phase,
     ) -> Result<Invocation> {
-        let read = retry_metadata(&root.handle.cancellation(), || {
-            let sources = self
-                .media
-                .scene_origins(
-                    root.handle
-                        .prepared_binding()
-                        .appearance()
-                        .session()
-                        .as_str(),
+        let admission =
+            admission::Admission::new(root.deadline, root.handle.cancellation(), i64::MAX);
+        let media = self.media.clone();
+        let session = root
+            .handle
+            .prepared_binding()
+            .appearance()
+            .session()
+            .as_str()
+            .to_owned();
+        let capture = started.capture.clone();
+        let read = admission
+            .read(self, move |store, until, wait| {
+                let sources = media
+                    .scene_origins(&session)
+                    .map_err(|_| Error::forbidden())?;
+                store.telephone_replacement_scene_read_with_wait(
+                    capture.clone(),
+                    &sources,
+                    until,
+                    wait,
                 )
-                .map_err(|_| Error::forbidden());
-            let store = self.media.store.clone();
-            let capture = started.capture.clone();
-            async move {
-                let sources = sources?;
-                store_call(move || store.try_telephone_replacement_scene_read(capture, &sources))
-                    .await
-            }
-        })
-        .await?;
+            })
+            .await?;
         let expiry = tokio::time::Instant::now()
             + Duration::from_secs(
                 (read.media().expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,
@@ -61,72 +65,70 @@ impl Runtime {
         Arc<connect_store::TelephoneReplacementPhaseAttempt>,
         Invocation,
     )> {
-        let selected = self.telephone_scene(root, started, phase.clone()).await?;
-        let original_until = selected.read.media().expires_at();
-        drop(selected);
-        let attempt = retry_metadata(&root.handle.cancellation(), || {
-            let sources = self
-                .media
-                .scene_origins(
-                    root.handle
-                        .prepared_binding()
-                        .appearance()
-                        .session()
-                        .as_str(),
+        let admission =
+            admission::Admission::new(root.deadline, root.handle.cancellation(), i64::MAX);
+        let media = self.media.clone();
+        let session = root
+            .handle
+            .prepared_binding()
+            .appearance()
+            .session()
+            .as_str()
+            .to_owned();
+        let capture = started.capture.clone();
+        let attempt = admission
+            .run(self, move |store, until, wait| {
+                let sources = media
+                    .scene_origins(&session)
+                    .map_err(|_| Error::forbidden())?;
+                let read = match store.telephone_replacement_scene_read_with_wait(
+                    capture.clone(),
+                    &sources,
+                    until,
+                    wait,
+                ) {
+                    Ok(read) => read,
+                    Err(error) if error.code == "authority-busy" => return Ok(None),
+                    Err(error) => return Err(error),
+                };
+                store.try_begin_telephone_replacement_phase_with_wait(
+                    read,
+                    step.clone(),
+                    *until,
+                    wait,
                 )
-                .map_err(|_| Error::forbidden());
-            let store = self.media.store.clone();
-            let capture = started.capture.clone();
-            let deadline = root.deadline;
-            let step = step.clone();
-            async move {
-                let sources = sources?;
-                store_call(move || {
-                    if tokio::time::Instant::now() >= deadline
-                        || chrono::Utc::now().timestamp() >= original_until
-                    {
-                        return Err(Error::forbidden());
-                    }
-                    let read = store.try_telephone_replacement_scene_read(capture, &sources)?;
-                    store.begin_telephone_replacement_phase_before(read, step, original_until)
-                })
-                .await
-            }
-        })
-        .await?;
-        let admitted = retry_metadata(&root.handle.cancellation(), || {
-            let store = self.media.store.clone();
-            let attempt = attempt.clone();
-            let deadline = root.deadline;
-            store_call(move || {
-                if tokio::time::Instant::now() >= deadline {
+            })
+            .await?;
+        let original_attempt = attempt.clone();
+        let admitted = admission
+            .read(self, move |store, _, wait| {
+                store.telephone_replacement_phase_attempt_read_with_wait(
+                    original_attempt.clone(),
+                    wait,
+                )
+            })
+            .await
+            .and_then(|read| {
+                if self.stop.is_cancelled()
+                    || root.handle.cancellation().is_cancelled()
+                    || tokio::time::Instant::now() >= root.deadline
+                    || !read.current()
+                {
                     return Err(Error::forbidden());
                 }
-                store.try_telephone_replacement_phase_attempt_read(attempt)
-            })
-        })
-        .await
-        .and_then(|read| {
-            if self.stop.is_cancelled()
-                || root.handle.cancellation().is_cancelled()
-                || tokio::time::Instant::now() >= root.deadline
-                || !read.current()
-            {
-                return Err(Error::forbidden());
-            }
-            let expiry = tokio::time::Instant::now()
-                + Duration::from_secs(
-                    (read.media().expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,
-                );
-            Ok(Invocation {
-                runtime: self.clone(),
-                root: root.clone(),
-                started: started.clone(),
-                read: Arc::new(read),
-                phase,
-                deadline: root.deadline.min(expiry),
-            })
-        });
+                let expiry = tokio::time::Instant::now()
+                    + Duration::from_secs(
+                        (read.media().expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,
+                    );
+                Ok(Invocation {
+                    runtime: self.clone(),
+                    root: root.clone(),
+                    started: started.clone(),
+                    read: Arc::new(read),
+                    phase,
+                    deadline: root.deadline.min(expiry),
+                })
+            });
         match admitted {
             Ok(invocation) => Ok((attempt, invocation)),
             Err(error) => {

@@ -529,6 +529,25 @@ fn resolve(
     Ok((views, AuthorityScope::merged(&scopes)?, expires_at))
 }
 impl Store {
+    /// Original CONTROL planning only. The seed carries no SIP facts/grant:
+    /// read_with_wait rebuilds the exact SIP selection and current scopes in
+    /// its first SQL unit and again under the complete final Read interval.
+    pub fn native_return_planning_read_with_wait(
+        &self,
+        origin: &NativeConsultationReturnOrigin,
+        sources: &[Arc<NativeMediaOrigin>],
+        sips: &[SipAudienceOrigin],
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<NativeReturnRead> {
+        NativeReturnSelection {
+            origin: origin.clone(),
+            sources: sources.to_vec(),
+            sips: sips.to_vec(),
+            sip_snapshots: Vec::new(),
+        }
+        .read_with_wait(self, original_until, wait, |_| Ok(()))
+    }
     pub fn try_native_return_read(
         &self,
         origin: &NativeConsultationReturnOrigin,

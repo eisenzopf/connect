@@ -215,90 +215,37 @@ impl Runtime {
         drop(read);
         // PRE-reservation contention has no effect to replay. Re-derive only
         // within the original cutoff; once an attempt returns, leave this loop.
-        let begin_until = Arc::new(AtomicI64::new(begin_cutoff));
-        let begun = retry_metadata(&root.handle.cancellation(), || {
-            let store = self.media.store.clone();
-            let prepared = root.receipt.clone();
-            let route = route.clone();
-            let begin_until = begin_until.clone();
-            let runtime_stop = self.stop.clone();
-            let root_stop = root.handle.cancellation();
-            let original_deadline = root.deadline;
-            let first_cap = begin_until.load(Ordering::Acquire);
-            let wait_deadline = original_deadline.min(
-                tokio::time::Instant::now()
-                    + std::time::Duration::from_secs(
-                        (first_cap - chrono::Utc::now().timestamp()).max(0) as u64,
-                    ),
-            );
-            let wait = connect_store::AuthorityWait::new(
-                wait_deadline.saturating_duration_since(tokio::time::Instant::now()),
-            );
-            async move {
-                let _cancel_wait = wait.cancel_on_drop();
-                let worker_wait = wait.clone();
-                let worker_runtime_stop = runtime_stop.clone();
-                let worker_root_stop = root_stop.clone();
-                let work = self.owned_store_call(move || {
-                    let begin_cutoff = begin_until.load(Ordering::Acquire);
-                    if worker_runtime_stop.is_cancelled()
-                        || worker_root_stop.is_cancelled()
-                        || tokio::time::Instant::now() >= original_deadline
-                        || chrono::Utc::now().timestamp() >= begin_cutoff
-                    {
-                        return Err(Error::forbidden());
-                    }
-                    let mut original_until = begin_cutoff;
-                    let result = store.telephone_replacement_allocation_read_with_wait(
-                        &prepared,
-                        &route.credential_id,
-                        &route.policy,
-                        &mut original_until,
-                        &worker_wait,
-                    );
-                    begin_until.fetch_min(original_until, Ordering::AcqRel);
-                    let read = allocation_stage("begin-control-read", result)?;
-                    // Joining a slow CONTROL read never lends authority to
-                    // begin after the original resource owner has stopped.
-                    if worker_runtime_stop.is_cancelled()
-                        || worker_root_stop.is_cancelled()
-                        || tokio::time::Instant::now() >= original_deadline
-                        || tokio::time::Instant::now() >= wait_deadline
-                    {
-                        return Err(Error::forbidden());
-                    }
-                    store.begin_telephone_replacement_allocation(read)
-                });
-                tokio::pin!(work);
-                let result = tokio::select! { biased;
-                    _ = runtime_stop.cancelled() => None,
-                    _ = root_stop.cancelled() => None,
-                    _ = tokio::time::sleep_until(wait_deadline) => None,
-                    result = &mut work => Some(result),
+        let admission =
+            admission::Admission::new(root.deadline, root.handle.cancellation(), begin_cutoff);
+        let prepared = root.receipt.clone();
+        let original_route = route.clone();
+        let begun = admission
+            .run(self, move |store, until, wait| {
+                let read = match store.telephone_replacement_allocation_read_with_wait(
+                    &prepared,
+                    &original_route.credential_id,
+                    &original_route.policy,
+                    until,
+                    wait,
+                ) {
+                    Ok(read) => read,
+                    Err(error) if error.code == "authority-busy" => return Ok(None),
+                    Err(error) => return Err(error),
                 };
-                match result {
-                    Some(result) => result,
-                    None => {
-                        wait.cancel();
-                        // Join the SAME original callback. If durable begin
-                        // already won the race, return its original custody
-                        // so the existing caller records uncertainty; never
-                        // discard an opaque committed attempt on cancellation.
-                        work.await
-                    }
-                }
-            }
-        })
-        .await;
+                store.try_begin_telephone_replacement_allocation_with_wait(read, wait)
+            })
+            .await;
         let attempt = allocation_stage("allocation-begin", begun)?;
-        // Custody is returned before a fresh IO interval can contend. Retain
-        // and retry only this original attempt; never repeat begin or Core work.
-        let ready = retry_metadata(&root.handle.cancellation(), || {
-            let store = self.media.store.clone();
-            let attempt = attempt.clone();
-            store_call(move || store.telephone_replacement_allocation_begun_read(attempt))
-        })
-        .await;
+        let original_attempt = attempt.clone();
+        let ready = admission
+            .read(self, move |store, until, wait| {
+                store.telephone_replacement_allocation_begun_read_with_wait(
+                    original_attempt.clone(),
+                    until,
+                    wait,
+                )
+            })
+            .await;
         let read = match allocation_stage("begun-current", ready) {
             Ok(read) => read,
             Err(error) => {
@@ -386,28 +333,25 @@ impl Runtime {
         root: &Arc<PreparedReplacement>,
         leg: &Arc<Allocated>,
     ) -> Result<()> {
-        // No role mutex or current-authority reader survives ringing.
-        let read = retry_metadata(&root.handle.cancellation(), || async {
-            self.media
-                .store
-                .telephone_replacement_submission_read(leg.receipt.clone())
-        })
-        .await?;
-        let begin_cutoff = read.expires_at();
-        drop(read);
-        let attempt = retry_metadata(&root.handle.cancellation(), || {
-            let store = self.media.store.clone();
-            let receipt = leg.receipt.clone();
-            store_call(move || {
-                if chrono::Utc::now().timestamp() >= begin_cutoff {
-                    return Err(Error::forbidden());
-                }
-                let mut read = store.telephone_replacement_submission_read(receipt)?;
-                read.limit(begin_cutoff)?;
-                store.begin_telephone_replacement_submission(read)
+        // One original CONTROL budget, including first Read and typed begin.
+        // No role mutex/current-authority reader survives ringing.
+        let admission =
+            admission::Admission::new(root.deadline, root.handle.cancellation(), i64::MAX);
+        let receipt = leg.receipt.clone();
+        let attempt = admission
+            .run(self, move |store, until, wait| {
+                let read = match store.telephone_replacement_submission_read_with_wait(
+                    receipt.clone(),
+                    until,
+                    wait,
+                ) {
+                    Ok(read) => read,
+                    Err(error) if error.code == "authority-busy" => return Ok(None),
+                    Err(error) => return Err(error),
+                };
+                store.try_begin_telephone_replacement_submission_with_wait(read, wait)
             })
-        })
-        .await?;
+            .await?;
         leg.submission
             .set(attempt.clone())
             .map_err(|_| Error::forbidden())?;
@@ -415,12 +359,16 @@ impl Runtime {
             .attempt
             .set(attempt.clone())
             .map_err(|_| Error::forbidden())?;
-        let ready = retry_metadata(&root.handle.cancellation(), || {
-            let store = self.media.store.clone();
-            let attempt = attempt.clone();
-            store_call(move || store.telephone_replacement_submission_begun_read(attempt))
-        })
-        .await;
+        let original_attempt = attempt.clone();
+        let ready = admission
+            .read(self, move |store, until, wait| {
+                store.telephone_replacement_submission_begun_read_with_wait(
+                    original_attempt.clone(),
+                    until,
+                    wait,
+                )
+            })
+            .await;
         match ready {
             Ok(read) => drop(read),
             Err(error) => {
@@ -437,11 +385,26 @@ impl Runtime {
             target: leg.target.clone(),
             phase: control::Phase::Start(attempt.clone()),
         };
+        // Existing drive offloads individual synchronous polls; Pending releases
+        // its thread. Do not park a blocking worker throughout SIP ringing.
+        let core = self.core.clone();
+        let original = root.handle.clone();
         let result = self
-            .core
-            .start_adapter_device_replacement_with_held(&root.handle, &invocation)
+            .clone()
+            .owned_control_call(async move {
+                Ok(core
+                    .start_adapter_device_replacement_with_held(&original, &invocation)
+                    .await)
+            })
             .await;
-        drop(invocation);
+        let result = match result {
+            Ok(result) => result,
+            Err(_) => {
+                return self
+                    .uncertain_telephone_submission(root, leg, &attempt)
+                    .await
+            }
+        };
         match result {
             Ok(activation) => {
                 let references = activation.external_references();

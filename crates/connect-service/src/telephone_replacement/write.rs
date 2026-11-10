@@ -95,13 +95,9 @@ impl ClientRequestWriteAuthority for InviteAuthority {
             return Err(denied());
         }
         let attempt = self.attempt.get().cloned().ok_or_else(denied)?;
-        let read = crate::canonical_consultation::retry_metadata(&self.cancelled, || {
-            let store = runtime.media.store.clone();
-            let attempt = attempt.clone();
-            async move {
-                tokio::task::spawn_blocking(move || store.telephone_replacement_submission_write_read(attempt))
-                    .await.map_err(|_| Error::storage())?
-            }
+        let admission = admission::Admission::new(self.deadline, self.cancelled.clone(), i64::MAX);
+        let read = admission.read(&runtime, move |store, until, wait| {
+            store.telephone_replacement_submission_write_read_with_wait(attempt.clone(), until, wait)
         }).await.map_err(|error| {
             tracing::debug!(target:"connect_service::telephone_replacement",code=%error.code,"Current INVITE write check refused");
             denied()

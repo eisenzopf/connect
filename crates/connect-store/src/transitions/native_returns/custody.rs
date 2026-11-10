@@ -1,6 +1,15 @@
 //! Exactly one native restoration attempt; captured results only authorize recording.
 use super::*;
 use crate::{NativeReturnRead, NativeReturnSelection};
+/// Only Deferred is a definite pre-reservation admission miss. After any
+/// transaction DML/storage error the caller must retain ordinary uncertainty;
+/// it may not replay planning/prepare as if nothing happened.
+#[derive(Debug)]
+pub enum NativeConsultationReturnPreparation {
+    Deferred(Error),
+    Reserved(NativeConsultationReturnLease),
+    NoWork,
+}
 pub struct NativeConsultationReturnLease {
     selection: NativeReturnSelection,
     attempt: String,
@@ -211,12 +220,11 @@ impl Store {
         crate::installation_ownership::ConnectionGuard<'a>,
     )> {
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
-        let scopes = {
-            let c = self.try_connection_with_wait(&wait)?;
-            self.native_return_mutation_scopes(&c, record, false)?
-        };
-        let held = self.acquire_authority(&scopes, &wait)?;
-        let c = self.try_connection()?;
+        // Historical recording owns no IO reader: wait for SQL first, then
+        // announce/try exact Writes immediately. Never park a Writer on SQL.
+        let c = self.try_connection_with_wait(&wait)?;
+        let scopes = self.native_return_mutation_scopes(&c, record, false)?;
+        let held = self.try_acquire_authority(&scopes)?;
         if !self.authority_covers(
             &held,
             &self.native_return_mutation_scopes(&c, record, false)?,
@@ -235,6 +243,35 @@ impl Store {
         read: NativeReturnRead,
         plan: serde_json::Value,
     ) -> Result<Option<NativeConsultationReturnLease>> {
+        match self.prepare_native_return_admission(read, plan, None)? {
+            NativeConsultationReturnPreparation::Deferred(error) => Err(error),
+            NativeConsultationReturnPreparation::Reserved(lease) => Ok(Some(lease)),
+            NativeConsultationReturnPreparation::NoWork => Ok(None),
+        }
+    }
+    /// Consume all planning Reads before bounded primary SQL admission. Only
+    /// immediate authority admission is allowed under that SQL mutex.
+    pub fn prepare_native_consultation_return_with_wait(
+        &self,
+        mut read: NativeReturnRead,
+        plan: serde_json::Value,
+        original_until: i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<NativeConsultationReturnPreparation> {
+        read.limit(original_until)?;
+        let until = read.expires_at();
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            until.saturating_sub(crate::now()).max(0) as u64,
+        ));
+        self.prepare_native_return_admission(read, plan, Some(&wait))
+    }
+    fn prepare_native_return_admission(
+        &self,
+        read: NativeReturnRead,
+        plan: serde_json::Value,
+        control_wait: Option<&crate::AuthorityWait>,
+    ) -> Result<NativeConsultationReturnPreparation> {
+        let original_until = read.expires_at();
         let selection = read.into_selection()?;
         let (hash, encoded) = digest(&plan)?;
         let selected = crate::provisioning::canonical_json(&selection.snapshot())?;
@@ -245,20 +282,47 @@ impl Store {
         // Couple only immediate admissions, then validate every current fact
         // again in the transaction. The service retries fresh planning reads;
         // no reservation or physical execution has happened on refusal.
-        let mut c = self.try_connection()?;
-        let held = self.try_acquire_authority(&selection.scopes(self, &c, true)?)?;
+        let mut c = match (match control_wait {
+            Some(wait) => self.try_connection_with_wait(wait),
+            None => self.try_connection(),
+        }) {
+            Ok(connection) => connection,
+            Err(error) if error.code == "authority-busy" => {
+                return_begin_refused("prepare-sql", &error);
+                return Ok(NativeConsultationReturnPreparation::Deferred(error));
+            }
+            Err(error) => return Err(error),
+        };
+        let needed = selection.scopes(self, &c, true)?;
+        if let Some(wait) = control_wait {
+            wait.check()?;
+        }
+        let held = match self.try_acquire_authority(&needed) {
+            Ok(held) => held,
+            Err(error) if error.code == "authority-busy" => {
+                return_begin_refused("prepare-file-immediate", &error);
+                return Ok(NativeConsultationReturnPreparation::Deferred(error));
+            }
+            Err(error) => return Err(error),
+        };
         c.bind_available_mutation_authority(self, &held)?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|error| match error.sqlite_error_code() {
-                Some(rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked) => {
-                    Error::new(
-                        "authority-busy",
-                        "Native return reservation metadata is busy",
-                    )
-                }
-                _ => Error::storage(),
-            })?;
+        let tx = match c.transaction_with_behavior(TransactionBehavior::Immediate) {
+            Ok(tx) => tx,
+            Err(error)
+                if matches!(
+                    error.sqlite_error_code(),
+                    Some(rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked)
+                ) =>
+            {
+                let error = Error::new(
+                    "authority-busy",
+                    "Native return reservation metadata is busy",
+                );
+                return_begin_refused("prepare-begin-immediate", &error);
+                return Ok(NativeConsultationReturnPreparation::Deferred(error));
+            }
+            Err(_) => return Err(Error::storage()),
+        };
         if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
             return Err(Error::forbidden());
         }
@@ -267,15 +331,21 @@ impl Store {
         let row = rows::by_record(&tx, &origin.record)?;
         if let Some((attempt,effect,old_plan,old_selection,old_hash,started,runtime,credential,expires))=tx.query_row("SELECT n.attempt_id,n.effect_id,n.plan_json,n.selection_json,n.plan_digest,n.started,n.runtime_epoch,n.credential_id,o.lease_expires_at FROM native_consultation_returns n JOIN operations o ON o.record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND n.attempt_id IS NOT NULL",[&origin.record],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,String>(4)?,r.get::<_,bool>(5)?,r.get::<_,String>(6)?,r.get::<_,String>(7)?,r.get::<_,i64>(8)?))).optional().map_err(|_|Error::storage())? {
             if old_plan!=encoded || old_selection!=selected || old_hash!=hash || credential!=origin.credential{return Err(conflict());}
-            if runtime!=self.runtime_epoch() || started || row.record.state!=OperationState::Preparing || expires<=crate::now(){return Ok(None);}
+            if runtime!=self.runtime_epoch() || started || row.record.state!=OperationState::Preparing || expires<=crate::now(){return Ok(NativeConsultationReturnPreparation::NoWork);}
             tx.commit().map_err(|_|Error::storage())?;
-            return Ok(Some(NativeConsultationReturnLease{selection,attempt,effect,plan:encoded,selection_json:selected,hash,expires_at:expires}));
+            return Ok(NativeConsultationReturnPreparation::Reserved(NativeConsultationReturnLease{selection,attempt,effect,plan:encoded,selection_json:selected,hash,expires_at:expires}));
         }
         if row.record.state != OperationState::Accepted
             || !row.record.effects.is_empty()
             || row.generation >= 9_007_199_254_740_990
         {
             return Err(conflict());
+        }
+        if let Some(wait) = control_wait {
+            wait.check()?;
+        }
+        if crate::now() >= original_until {
+            return Err(Error::forbidden());
         }
         let attempt = format!("nra_{}", uuid::Uuid::new_v4());
         let effect = format!("nre_{}", uuid::Uuid::new_v4());
@@ -288,15 +358,17 @@ impl Store {
         }
         touch(&tx, &origin.record, self)?;
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(Some(NativeConsultationReturnLease {
-            selection,
-            attempt,
-            effect,
-            plan: encoded,
-            selection_json: selected,
-            hash,
-            expires_at: expires,
-        }))
+        Ok(NativeConsultationReturnPreparation::Reserved(
+            NativeConsultationReturnLease {
+                selection,
+                attempt,
+                effect,
+                plan: encoded,
+                selection_json: selected,
+                hash,
+                expires_at: expires,
+            },
+        ))
     }
     pub fn native_consultation_return_attempt_read(
         &self,
@@ -669,38 +741,48 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                let row = rows::by_record(&c, &receipt.record)?;
-                let mut scopes = admission::row_scopes(&row)?;
-                if row.record.state != OperationState::Completed {
-                    scopes.extend(crate::authority_admission::conversation_scopes(
-                        &c,
-                        row.record
-                            .conversation_id
-                            .as_deref()
-                            .ok_or_else(Error::storage)?,
-                        crate::AuthorityMode::Read,
-                    )?);
-                    scopes.extend(self.native_return_mutation_scopes(&c, &receipt.record, true)?);
-                    let context: String = c.query_row("SELECT context_selection_json FROM native_consultation_returns WHERE operation_record_id=?1",[&receipt.record],|r|r.get(0)).map_err(|_|Error::storage())?;
-                    let context: serde_json::Value = serde_json::from_str(&context).map_err(|_|Error::storage())?;
-                    for port in context["private"].as_array().ok_or_else(Error::storage)?.iter().chain(std::iter::once(&context["remote"])) {
-                        if port.get("source_kind").is_some() {
-                            scopes.extend(Store::sip_completion_scopes(port)?);
-                        }
+        let wait = crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT);
+        let mut c = self.try_connection_with_wait(&wait)?;
+        let completion_scopes = |c: &Connection| -> Result<Vec<crate::AuthorityScope>> {
+            let row = rows::by_record(&c, &receipt.record)?;
+            let mut scopes = admission::row_scopes(&row)?;
+            if row.record.state != OperationState::Completed {
+                scopes.extend(crate::authority_admission::conversation_scopes(
+                    &c,
+                    row.record
+                        .conversation_id
+                        .as_deref()
+                        .ok_or_else(Error::storage)?,
+                    crate::AuthorityMode::Read,
+                )?);
+                scopes.extend(self.native_return_mutation_scopes(&c, &receipt.record, true)?);
+                let context: String = c.query_row("SELECT context_selection_json FROM native_consultation_returns WHERE operation_record_id=?1",[&receipt.record],|r|r.get(0)).map_err(|_|Error::storage())?;
+                let context: serde_json::Value =
+                    serde_json::from_str(&context).map_err(|_| Error::storage())?;
+                for port in context["private"]
+                    .as_array()
+                    .ok_or_else(Error::storage)?
+                    .iter()
+                    .chain(std::iter::once(&context["remote"]))
+                {
+                    if port.get("source_kind").is_some() {
+                        scopes.extend(Store::sip_completion_scopes(port)?);
                     }
                 }
-                crate::AuthorityScope::merged(&scopes)
-            },
-        )?;
-        let mut c = self.connection()?;
+            }
+            crate::AuthorityScope::merged(&scopes)
+        };
+        let scopes = completion_scopes(&c)?;
+        let held = self.try_acquire_authority(&scopes)?;
         c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        // Preserve the complete post-admission footprint check, including
+        // current membership and typed SIP completion dependencies.
+        if !self.authority_covers(&held, &completion_scopes(&tx)?) {
+            return Err(Error::forbidden());
+        }
         let row = rows::by_record(&tx, &receipt.record)?;
         admission::require_row(self, &held, &row)?;
         if row.tombstoned {

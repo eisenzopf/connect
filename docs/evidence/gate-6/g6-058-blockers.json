@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T13:41:03.217395+00:00",
-  "run_status": "J completed:113/113 affected controls pass, signed22/27 pass (native2/3,WebRTC5/5,runtime15/19). Telephone allocation now confirms but three submission scenarios fail; provider-close return passes, AI-caller initial return planning and one native allocation still fail. Entire related control sequences audited for next batch. Full matrix remains v209:0/32 cells,390/432 checks passed.",
+  "updated": "2026-11-10T14:03:16.793261+00:00",
+  "run_status": "K complete control-path batch: 156/156 affected controls pass (105 Store, 51 Service). Local signed-target build finishing; all 27 focused signed scenarios next. Last completed J signed run remains 22/27; last full matrix remains v209: 0/32 cells, 390/432 checks passed.",
   "blockers": [
     {
       "id": "B01",
@@ -2689,7 +2689,7 @@
         "crates/connect-service/src/canonical_replacement/allocation.rs"
       ],
       "solution": "Combine planning, pure transport validation and once-only begin in one immediate SQL interval under supplied signed proof; retain same captured/uncertain attempt through recording contention.",
-      "status": "Full-sequence audit complete; implementation and causal regressions in progress.",
+      "status": "Implemented, independently source reviewed and unit verified in K: 156/156 affected controls pass. Signed 27-scenario retest pending; no matrix promotion.",
       "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
       "completion_status": "in-progress"
     },
@@ -2702,7 +2702,7 @@
         "crates/connect-service/src/telephone_replacement/allocation.rs"
       ],
       "solution": "Audit and repair submission, resources, preparation and commit control boundaries with original bounded waits and typed pre-effect deferral; no arbitrary post-mutation storage retry or packet waits.",
-      "status": "Full-sequence audit complete; implementation and causal regressions in progress.",
+      "status": "Implemented, independently source reviewed and unit verified in K: 156/156 affected controls pass. Signed 27-scenario retest pending; no matrix promotion.",
       "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
       "completion_status": "in-progress"
     },
@@ -2715,7 +2715,7 @@
         "crates/connect-service/src/canonical_consultation_return.rs"
       ],
       "solution": "Reuse bounded complete initial return resolution and prepare without holding authority while waiting for SQL; preserve same initial phase budget, cancellation and fresh plan checks.",
-      "status": "Full-sequence audit complete; implementation and causal regressions in progress.",
+      "status": "Implemented, independently source reviewed and unit verified in K: 156/156 affected controls pass. Signed 27-scenario retest pending; no matrix promotion.",
       "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
       "completion_status": "in-progress"
     }
@@ -16294,5 +16294,6 @@
     "failed": 5,
     "selected": 27
   },
-  "cleanup_j_evidence": "docs/evidence/gate-6/cleanup-batch-j-v212.json"
+  "cleanup_j_evidence": "docs/evidence/gate-6/cleanup-batch-j-v212.json",
+  "cleanup_k_evidence": "docs/evidence/gate-6/cleanup-batch-k-v212.json"
 }

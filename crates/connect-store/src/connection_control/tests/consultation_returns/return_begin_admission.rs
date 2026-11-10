@@ -369,3 +369,5 @@ fn return_control_begin_never_waits_for_writer_while_holding_sql() {
     let state: (bool,u64) = sql.query_row("SELECT started,(SELECT attempt FROM operation_effects e WHERE e.id=r.effect_id) FROM native_consultation_returns r WHERE operation_record_id=?1",[lease.record_id()],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
     assert_eq!(state, (false, 0));
 }
+
+mod initial_control;

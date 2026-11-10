@@ -2,6 +2,87 @@ use super::*;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
+#[tokio::test]
+async fn owned_control_result_releases_pending_poll_and_preserves_original_result() {
+    let (_directory, store, runtime) = fixture();
+    let identity = store.create_identity("original-control-result").unwrap();
+    let credential = store
+        .issue(
+            &identity.id,
+            connect_store::Scope::operator(),
+            chrono::Utc::now().timestamp() + 60,
+        )
+        .unwrap();
+    let original = Arc::new(identity.id);
+    let expected = original.clone();
+    let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let observed_calls = calls.clone();
+    let (sql_held, held) = tokio::sync::oneshot::channel();
+    let (release_sql, released) = std::sync::mpsc::channel();
+    let db = store.clone();
+    let sql_owner = tokio::task::spawn_blocking(move || {
+        db.with_primary_sql_held_for_test(|| {
+            let _ = sql_held.send(());
+            released.recv_timeout(Duration::from_secs(2)).is_ok()
+        })
+    });
+    held.await.unwrap();
+    let (resolving, entered) = tokio::sync::oneshot::channel();
+    let (waiting, idle) = tokio::sync::oneshot::channel();
+    let (answer, answered) = tokio::sync::oneshot::channel();
+    let owner = runtime.clone();
+    let control = tokio::spawn(async move {
+        owner
+            .owned_control_call(async move {
+                let _ = resolving.send(());
+                let first = store.credential_metadata(&credential.id)?;
+                calls.fetch_add(1, Ordering::AcqRel);
+                if first.actor.identity_id != *original {
+                    return Err(Error::forbidden());
+                }
+                let _ = waiting.send(());
+                answered.await.map_err(|_| Error::storage())?;
+                let second = store.credential_metadata(&credential.id)?;
+                calls.fetch_add(1, Ordering::AcqRel);
+                if second.actor.identity_id != *original {
+                    return Err(Error::forbidden());
+                }
+                Ok(original)
+            })
+            .await
+    });
+    entered.await.unwrap();
+    // Only the sole async executor can release the real SQL owner. An inline
+    // synchronous poll would prevent this until the fixture fuse expired.
+    let released_by_executor = release_sql.send(()).is_ok();
+    let natural_release = sql_owner.await.unwrap().unwrap();
+    idle.await.unwrap();
+    let pending_released = tokio::time::timeout(Duration::from_secs(1), async {
+        while runtime.control_polls.len() != Some(0) {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .is_ok();
+    // The pending original future must release the single available poll slot,
+    // allowing another control to run without answering or restarting it.
+    let probe = runtime.control_polls.submit(1, || Poll::Ready(()));
+    let probe_completed = match probe {
+        Ok(probe) => matches!(probe.await, Ok(Poll::Ready(()))),
+        Err(_) => false,
+    };
+    let answer_sent = answer.send(()).is_ok();
+    let result = control.await.unwrap();
+    runtime.stop.cancel();
+    let joined = runtime
+        .drain_control_polls(tokio::time::Instant::now() + Duration::from_secs(1))
+        .await;
+    assert!(released_by_executor && natural_release);
+    assert!(pending_released && probe_completed && answer_sent && joined);
+    assert!(Arc::ptr_eq(&result.unwrap(), &expected));
+    assert_eq!(observed_calls.load(Ordering::Acquire), 2);
+}
+
 // A single async worker makes executor exclusion observable without load
 // tuning. The production launcher and real Store mutex/query are used;
 // this is scheduler/custody coverage, not a signed or decoded-media pass.

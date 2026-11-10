@@ -244,10 +244,39 @@ impl Store {
         capture: Arc<TelephoneReplacementResourcesCapture>,
         sources: &[Arc<crate::NativeMediaOrigin>],
     ) -> Result<TelephoneReplacementSceneRead> {
-        let c = self.try_connection()?;
+        self.telephone_scene_read_admission(capture, sources, crate::now() + 5, None)
+    }
+    pub fn telephone_replacement_scene_read_with_wait(
+        &self,
+        capture: Arc<TelephoneReplacementResourcesCapture>,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<TelephoneReplacementSceneRead> {
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (*original_until).saturating_sub(crate::now()).max(0) as u64,
+        ));
+        let read = self.telephone_scene_read_admission(
+            capture,
+            sources,
+            (*original_until).min(crate::now() + 5),
+            Some(&wait),
+        )?;
+        *original_until = (*original_until).min(read.expires_at());
+        wait.check()?;
+        Ok(read)
+    }
+    fn telephone_scene_read_admission(
+        &self,
+        capture: Arc<TelephoneReplacementResourcesCapture>,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        until: i64,
+        control_wait: Option<&crate::AuthorityWait>,
+    ) -> Result<TelephoneReplacementSceneRead> {
+        let c = self.telephone_read_sql(control_wait)?;
         let scopes = self.telephone_replacement_phase_scopes(&c, &capture, sources, false)?;
         let held = self.try_acquire_authority(&scopes)?;
-        self.telephone_scene_read_in(&c, capture, sources, held, crate::now() + 5)
+        self.telephone_scene_read_in(&c, capture, sources, held, until)
     }
     pub(super) fn telephone_scene_read_in(
         &self,
@@ -369,6 +398,30 @@ impl Store {
         phase: TelephoneReplacementPhase,
         original_until: i64,
     ) -> Result<Arc<TelephoneReplacementPhaseAttempt>> {
+        self.begin_telephone_phase_admission(read, phase, original_until, None)?
+            .ok_or_else(|| Error::new("authority-busy", "Telephone phase admission is busy"))
+    }
+    pub fn try_begin_telephone_replacement_phase_with_wait(
+        &self,
+        read: TelephoneReplacementSceneRead,
+        phase: TelephoneReplacementPhase,
+        original_until: i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<Option<Arc<TelephoneReplacementPhaseAttempt>>> {
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (read.expires_at().min(original_until))
+                .saturating_sub(crate::now())
+                .max(0) as u64,
+        ));
+        self.begin_telephone_phase_admission(read, phase, original_until, Some(&wait))
+    }
+    fn begin_telephone_phase_admission(
+        &self,
+        read: TelephoneReplacementSceneRead,
+        phase: TelephoneReplacementPhase,
+        original_until: i64,
+        control_wait: Option<&crate::AuthorityWait>,
+    ) -> Result<Option<Arc<TelephoneReplacementPhaseAttempt>>> {
         if !read.current() || !self.authority_covers(&read.media.interval, &[]) {
             return Err(Error::forbidden());
         }
@@ -390,13 +443,14 @@ impl Store {
         // Do not spend a five-ms file-drain budget repeatedly deriving the
         // O(N²) scene before admission. The copied IDs authorize nothing; a
         // new/moved dependency fails current coverage before any DML.
-        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
-        let held = self.acquire_authority(&mutation_scopes, &wait)?;
-        let mut c = self.try_connection()?;
-        c.bind_available_mutation_authority(self, &held)?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
+        let Some((held, mut c)) =
+            self.telephone_mutation_admission(control_wait, |_| Ok(mutation_scopes.clone()))?
+        else {
+            return Ok(None);
+        };
+        let Some(tx) = control_admission::begin_transaction(&mut c, control_wait.is_some())? else {
+            return Ok(None);
+        };
         let read =
             self.telephone_scene_read_in(&tx, resources.clone(), &sources, held.clone(), until)?;
         if read.revisions != revisions
@@ -449,6 +503,12 @@ impl Store {
         )?;
         let attempt = format!("tpc_{}", uuid::Uuid::new_v4());
         let effect = format!("tpe_{}", uuid::Uuid::new_v4());
+        if let Some(wait) = control_wait {
+            wait.check()?;
+            if !read.current() {
+                return Err(Error::forbidden());
+            }
+        }
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,?3,?1,'none','prepared',?4)",params![effect,p.record,format!("telephone-replacement-{}",phase.name()),expected]).map_err(|_|Error::storage())?;
         tx.execute("INSERT INTO telephone_replacement_phases(operation_record_id,phase,runtime_epoch,attempt_id,effect_id) VALUES(?1,?2,?3,?4,?5)",params![p.record,phase.name(),p.runtime,attempt,effect]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1",[&effect]).map_err(|_|Error::storage())?;
@@ -461,7 +521,7 @@ impl Store {
         drop(read);
         drop(c);
         drop(held);
-        Ok(Arc::new(TelephoneReplacementPhaseAttempt {
+        Ok(Some(Arc::new(TelephoneReplacementPhaseAttempt {
             resources: resources.clone(),
             phase,
             attempt,
@@ -469,16 +529,35 @@ impl Store {
             expected,
             sources,
             expires_at,
-        }))
+        })))
     }
     pub fn try_telephone_replacement_phase_attempt_read(
         &self,
         attempt: Arc<TelephoneReplacementPhaseAttempt>,
     ) -> Result<TelephoneReplacementSceneRead> {
+        self.telephone_phase_attempt_read_admission(attempt, None)
+    }
+    pub fn telephone_replacement_phase_attempt_read_with_wait(
+        &self,
+        attempt: Arc<TelephoneReplacementPhaseAttempt>,
+        wait: &crate::AuthorityWait,
+    ) -> Result<TelephoneReplacementSceneRead> {
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (attempt.expires_at).saturating_sub(crate::now()).max(0) as u64,
+        ));
+        let read = self.telephone_phase_attempt_read_admission(attempt, Some(&wait))?;
+        wait.check()?;
+        Ok(read)
+    }
+    fn telephone_phase_attempt_read_admission(
+        &self,
+        attempt: Arc<TelephoneReplacementPhaseAttempt>,
+        control_wait: Option<&crate::AuthorityWait>,
+    ) -> Result<TelephoneReplacementSceneRead> {
         if crate::now() >= attempt.expires_at {
             return Err(Error::forbidden());
         }
-        let c = self.try_connection()?;
+        let c = self.telephone_read_sql(control_wait)?;
         let p = &attempt.resources.attempt.origin.submitted.attempt.prepared;
         let scopes = self.telephone_replacement_phase_scopes(
             &c,

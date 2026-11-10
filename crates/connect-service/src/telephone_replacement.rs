@@ -1,5 +1,6 @@
 //! Protected host composition for the canonical Core's telephone replacement adapter.
 //! Configuration and retained attempts own metadata; physical IO obtains a fresh read.
+mod admission;
 pub(crate) mod allocation;
 pub(crate) mod authority;
 pub(crate) mod continuation;

@@ -441,18 +441,18 @@ impl Runtime {
         if let Some(previous) = previous {
             return self.record_telephone_resources(&previous).await;
         }
-        let origin = retry_metadata(&root.handle.cancellation(), || async {
-            self.media
-                .store
-                .telephone_replacement_media_origin(submitted.clone())
-        })
-        .await?;
-        let read = retry_metadata(&root.handle.cancellation(), || async {
-            self.media
-                .store
-                .try_telephone_replacement_media_read(origin.clone())
-        })
-        .await?;
+        let admission =
+            admission::Admission::new(root.deadline, root.handle.cancellation(), i64::MAX);
+        let original_submission = submitted.clone();
+        let (origin, read) = admission
+            .read(self, move |store, until, wait| {
+                store.telephone_replacement_media_origin_with_wait(
+                    original_submission.clone(),
+                    until,
+                    wait,
+                )
+            })
+            .await?;
         let codec = leg.context.negotiated_audio_codec().map_err(|_| {
             Error::new(
                 "unsupported-media-profile",
@@ -486,36 +486,34 @@ impl Runtime {
         drop(read);
         // Retry only before reservation. Every fresh admission is clipped to
         // the original interval; begin consumes it before acquiring its Writer.
-        let attempt = retry_metadata(&root.handle.cancellation(), || {
-            let store = self.media.store.clone();
-            let origin = origin.clone();
-            let deadline = root.deadline;
-            store_call(move || {
-                if tokio::time::Instant::now() >= deadline
-                    || chrono::Utc::now().timestamp() >= original_until
-                {
-                    return Err(Error::forbidden());
-                }
-                let read = store.try_telephone_replacement_media_read(origin)?;
-                store.begin_telephone_replacement_resources_before(read, original_until)
-            })
-        })
-        .await?;
-        // Once reserved, all failures remain attached to this exact attempt.
-        // Fresh IO admission never repeats begin or any transport/codec work.
-        let result = async {
-            let read = retry_metadata(&root.handle.cancellation(), || {
-                let store = self.media.store.clone();
-                let attempt = attempt.clone();
-                let deadline = root.deadline;
-                store_call(move || {
-                    if tokio::time::Instant::now() >= deadline {
-                        return Err(Error::forbidden());
-                    }
-                    store.try_telephone_replacement_resources_attempt_read(attempt)
-                })
+        let original_origin = origin.clone();
+        let attempt = admission
+            .run(self, move |store, until, wait| {
+                *until = (*until).min(original_until);
+                let read = match store.telephone_replacement_media_read_with_wait(
+                    original_origin.clone(),
+                    until,
+                    wait,
+                ) {
+                    Ok(read) => read,
+                    Err(error) if error.code == "authority-busy" => return Ok(None),
+                    Err(error) => return Err(error),
+                };
+                store.try_begin_telephone_replacement_resources_with_wait(read, *until, wait)
             })
             .await?;
+        // Once reserved, all failures retain this exact attempt and no begin
+        // or transport/codec operation can be retried.
+        let result = async {
+            let original_attempt = attempt.clone();
+            let read = admission
+                .read(self, move |store, _, wait| {
+                    store.telephone_replacement_resources_attempt_read_with_wait(
+                        original_attempt.clone(),
+                        wait,
+                    )
+                })
+                .await?;
             let i = Arc::new(Invocation {
                 policy: policy.clone(),
                 read: Arc::new(read),

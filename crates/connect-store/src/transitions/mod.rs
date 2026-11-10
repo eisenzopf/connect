@@ -58,6 +58,7 @@ pub use native_consultations::{
 pub use native_returns::{
     NativeConsultationReturnApplied, NativeConsultationReturnAttempt,
     NativeConsultationReturnLease, NativeConsultationReturnOrigin,
+    NativeConsultationReturnPreparation,
 };
 pub(crate) mod native_streams;
 pub(crate) mod received_dtmf;

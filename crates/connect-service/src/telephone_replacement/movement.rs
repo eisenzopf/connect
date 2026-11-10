@@ -25,34 +25,50 @@ impl Runtime {
     ) -> Result<()> {
         let roles = self.role_projection.lock().await;
         let plan=self.core.plan_staged_device_replacement(&root.handle, None).map_err(|error|{tracing::debug!(target:"connect_service::telephone_replacement",?error,"Telephone compound plan refused");Error::forbidden()})?;
-        let i = self
-            .telephone_scene(root, started, Phase::Commit(plan.clone()))
+        let admission =
+            admission::Admission::new(root.deadline, root.handle.cancellation(), i64::MAX);
+        let media = self.media.clone();
+        let session = root
+            .handle
+            .prepared_binding()
+            .appearance()
+            .session()
+            .as_str()
+            .to_owned();
+        let capture = started.capture.clone();
+        let policy = started.policy.clone();
+        let (attempt, read, owner) = admission
+            .run(self, move |store, until, wait| {
+                let sources = media
+                    .scene_origins(&session)
+                    .map_err(|_| Error::forbidden())?;
+                let read = match store.telephone_replacement_scene_read_with_wait(
+                    capture.clone(),
+                    &sources,
+                    until,
+                    wait,
+                ) {
+                    Ok(read) => read,
+                    Err(error) if error.code == "authority-busy" => return Ok(None),
+                    Err(error) => return Err(error),
+                };
+                let owner = policy.owner(read.media()).map_err(|_| Error::forbidden())?;
+                Ok(store
+                    .try_begin_telephone_replacement_commit_with_wait(read, wait)?
+                    .map(|(attempt, read)| (attempt, read, owner)))
+            })
             .await?;
-        let owner = started
-            .policy
-            .owner(i.read.media())
-            .map_err(|_| Error::forbidden())?;
-        let Invocation {
-            runtime,
-            started: invocation_started,
-            read,
-            root: invocation_root,
-            phase,
-            deadline,
-        } = i;
-        // Unique planning custody must leave before the short state-change
-        // Writer is acquired; owner above is immutable Core metadata only.
-        let read = Arc::try_unwrap(read).map_err(|_| Error::forbidden())?;
-        let store = self.media.store.clone();
-        let (attempt, read) =
-            store_call(move || store.begin_telephone_replacement_commit(read)).await?;
+        let expiry = tokio::time::Instant::now()
+            + std::time::Duration::from_secs(
+                (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,
+            );
         let i = Invocation {
-            runtime,
-            started: invocation_started,
+            runtime: self.clone(),
+            root: root.clone(),
+            started: started.clone(),
             read: Arc::new(read),
-            root: invocation_root,
-            phase,
-            deadline,
+            phase: Phase::Commit(plan.clone()),
+            deadline: root.deadline.min(expiry),
         };
         let result = self
             .core

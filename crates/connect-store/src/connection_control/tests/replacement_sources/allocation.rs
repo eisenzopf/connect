@@ -678,10 +678,10 @@ fn replacement_mutation_owner_drop_restores_independent_established_packet_reads
     assert!(current);
 }
 
-pub(super) fn call_while_primary_held(
+pub(super) fn call_while_primary_held<T: Send>(
     f: &Fixture,
-    call: impl FnOnce() -> Result<connect_protocol::transitions::OperationRecord> + Send,
-) -> (bool, Result<connect_protocol::transitions::OperationRecord>) {
+    call: impl FnOnce() -> Result<T> + Send,
+) -> (bool, Result<T>) {
     std::thread::scope(|scope| {
         let sql = f.store.connection().unwrap();
         let (sent, received) = std::sync::mpsc::channel();
@@ -862,4 +862,192 @@ fn replacement_allocation_resolves_source_under_original_sql_custody() {
         .unwrap();
     assert_eq!(f.count("native_replacement_steps"), 2);
     assert_eq!(f.count("connections"), 2);
+}
+
+#[test]
+fn signed_allocation_validated_begin_keeps_primary_sql_and_returns_original_attempt_once() {
+    let (f, _, _, prepared, request) = prepared_target();
+    let proof = f.admit(&request);
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let called = std::cell::Cell::new(false);
+    let c = f.store.connection().unwrap();
+    let refused = f.store.begin_native_replacement_allocation_validated(
+        &prepared,
+        &request.credentials[0],
+        &proof,
+        |_| {
+            called.set(true);
+            Ok(())
+        },
+    );
+    drop(c);
+    assert_eq!(
+        refused
+            .err()
+            .expect("live Writer must never park on SQL")
+            .code,
+        "authority-busy"
+    );
+    assert!(!called.get());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    let (attempt, read, ()) = f
+        .store
+        .begin_native_replacement_allocation_validated(
+            &prepared,
+            &request.credentials[0],
+            &proof,
+            |read| {
+                assert!(read.current());
+                // Test-only lock-state observation performs no SQL or wait. The
+                // exact host metadata callback runs before any guard is released.
+                assert!(matches!(
+                    f.store.connection.try_lock(),
+                    Err(std::sync::TryLockError::WouldBlock)
+                ));
+                called.set(true);
+                Ok(())
+            },
+        )
+        .unwrap();
+    assert!(called.get() && read.current());
+    assert!(read.source().expires_at() <= proof.expires_at());
+    drop(read);
+    assert_eq!(f.count("native_replacement_steps"), 2);
+    assert_eq!(
+        f.store
+            .begin_native_replacement_allocation_validated(
+                &prepared,
+                &request.credentials[0],
+                &proof,
+                |_| Ok(()),
+            )
+            .err()
+            .expect("original allocation is once only")
+            .code,
+        "reconciliation-required"
+    );
+    drop(proof);
+    f.store
+        .native_replacement_allocation_uncertain(attempt)
+        .unwrap();
+    assert_eq!(f.count("native_replacement_steps"), 2);
+    assert_eq!(f.count("connections"), 2);
+}
+
+#[test]
+fn signed_allocation_host_metadata_refusal_is_before_dml_and_preserves_original_begin() {
+    let (f, _, _, prepared, request) = prepared_target();
+    let proof = f.admit(&request);
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let refused = f.store.begin_native_replacement_allocation_validated(
+        &prepared,
+        &request.credentials[0],
+        &proof,
+        |read| {
+            assert!(read.current());
+            Err::<(), _>(Error::new(
+                "unsupported-media-profile",
+                "original host transport refused",
+            ))
+        },
+    );
+    assert_eq!(
+        refused.err().expect("host metadata refused").code,
+        "unsupported-media-profile"
+    );
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
+        .unwrap();
+    drop(read);
+    f.store
+        .native_replacement_allocation_uncertain_with_peer(&attempt, &proof)
+        .unwrap();
+    assert_eq!(f.count("native_replacement_steps"), 2);
+}
+
+#[test]
+fn signed_allocation_uncertain_sql_refusal_retains_same_attempt_and_records_unknown_once() {
+    let (f, _, _, prepared, request) = prepared_target();
+    let proof = f.admit(&request);
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
+        .unwrap();
+    drop(read);
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let (immediate, refused) = call_while_primary_held(&f, || {
+        f.store
+            .native_replacement_allocation_uncertain_with_peer(&attempt, &proof)
+    });
+    assert!(
+        immediate,
+        "historical retry must not wait under signed Writer"
+    );
+    assert_eq!(
+        refused.err().expect("actual primary mutex is held").code,
+        "authority-busy"
+    );
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    // The same opaque attempt survives that refusal. Scope derivation, Unit
+    // binding and historical recording reuse THIS already-owned SQL guard.
+    let record = {
+        let mut c = f.store.connection().unwrap();
+        f.store
+            .record_replacement_allocation_in(&mut c, &attempt, None, Store::peer_scopes(&proof))
+            .unwrap()
+    };
+    assert_eq!(record.state, OperationState::Unknown);
+    let effect = record
+        .effects
+        .iter()
+        .find(|effect| effect.provider == "native-replacement-allocate")
+        .unwrap();
+    assert_eq!(effect.state, EffectState::Unknown);
+    assert_eq!(effect.attempt, 1);
+    f.store
+        .native_replacement_allocation_uncertain_with_peer(&attempt, &proof)
+        .unwrap();
+    assert_eq!(f.count("native_replacement_steps"), 2);
+    assert_eq!(f.count("connections"), 2);
+}
+
+#[test]
+fn signed_allocation_bad_capture_returns_same_attempt_for_original_uncertainty() {
+    let (f, key, command, prepared, request) = prepared_target();
+    let proof = f.admit(&request);
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
+        .unwrap();
+    drop(read);
+    let original_record = attempt.record_id().to_owned();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let (attempt, error) = attempt.allocated(json!({"allocated": false})).unwrap_err();
+    assert_eq!(error.code, "conflict");
+    assert_eq!(attempt.record_id(), original_record);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    f.store
+        .native_replacement_allocation_uncertain_with_peer(&attempt, &proof)
+        .unwrap();
+    drop(proof);
+    let record = f
+        .store
+        .execute_operation_action(
+            &key,
+            connect_protocol::transitions::OperationAction::Get {
+                operation_id: command.operation_id,
+            },
+        )
+        .unwrap();
+    assert_eq!(record.state, OperationState::Unknown);
+    let allocation = record
+        .effects
+        .iter()
+        .find(|e| e.provider == "native-replacement-allocate")
+        .unwrap();
+    assert_eq!(allocation.state, EffectState::Unknown);
+    assert_eq!(allocation.attempt, 1);
+    assert_eq!(f.count("native_replacement_steps"), 2);
 }

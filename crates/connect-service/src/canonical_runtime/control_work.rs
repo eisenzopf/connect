@@ -177,6 +177,24 @@ async fn drive(runtime: Arc<Runtime>, worker: OriginalControl) -> Result<()> {
     }
 }
 impl Runtime {
+    /// Drive one original control future off the async executor, retaining its
+    /// result and actual poll owners. Pending releases the blocking thread;
+    /// network waits never occupy a worker or recreate an effect.
+    pub(crate) async fn owned_control_call<T: Send + 'static>(
+        self: &Arc<Self>,
+        worker: impl Future<Output = Result<T>> + Send + 'static,
+    ) -> Result<T> {
+        let (sent, result) = tokio::sync::oneshot::channel();
+        drive(
+            self.clone(),
+            Box::pin(async move {
+                drop(sent.send(worker.await));
+            }),
+        )
+        .await?;
+        result.await.map_err(|_| Error::storage())?
+    }
+
     /// Retain the actual blocking handle through waiter cancellation using the
     /// existing control-poll custody/drain. A dropped result receiver releases
     /// any returned authority inside the original closure, before it exits.

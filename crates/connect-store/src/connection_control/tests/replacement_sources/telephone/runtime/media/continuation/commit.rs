@@ -1098,3 +1098,5 @@ fn fixture_phase_retry_preserves_original_cutoff_and_reserves_once_after_actual_
         .record_telephone_replacement_phase(&attempt.uncertain())
         .unwrap();
 }
+
+mod control_chain;

@@ -3,6 +3,7 @@
 use super::super::*;
 use crate::{Actor, NativeReplacementPreparationRead};
 use std::sync::Arc;
+mod control_admission;
 mod media;
 pub use media::{
     TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
@@ -447,6 +448,127 @@ impl Store {
         read.allocated = Some(allocated);
         Ok(read)
     }
+    /// Bounded original CONTROL admission; packet and immediate APIs are unchanged.
+    pub fn telephone_replacement_submission_read_with_wait(
+        &self,
+        allocated: Arc<TelephoneReplacementAllocated>,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<TelephoneReplacementRead> {
+        let a = &allocated.attempt;
+        let route_until = std::cell::Cell::new(i64::MAX);
+        let result = a.prepared.selection.read_with_wait_then(
+            self,
+            wait,
+            original_until,
+            |c| allocated_current(self, c, &allocated),
+            |c, source| {
+                let mut read = self.telephone_replacement_allocation_read_in(
+                    c,
+                    &a.prepared,
+                    source,
+                    &a.route_credential,
+                    &a.policy,
+                )?;
+                route_until.set(read.expires_at());
+                if read.descriptor != a.descriptor {
+                    return Err(conflict());
+                }
+                read.phase = Phase::Submit;
+                read.allocated = Some(allocated.clone());
+                Ok(read)
+            },
+        );
+        *original_until = (*original_until).min(route_until.get());
+        let mut read = result?;
+        read.limit(*original_until)?;
+        Ok(read)
+    }
+    /// Fresh same-attempt admission before control or physical IO. The caller
+    /// supplies its original cap; a separately authorized later write may use
+    /// its own interval, exactly as the existing immediate write API does.
+    pub fn telephone_replacement_submission_begun_read_with_wait(
+        &self,
+        attempt: Arc<TelephoneReplacementAttempt>,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<TelephoneReplacementWriteRead> {
+        *original_until = (*original_until).min(attempt.begin_expires_at);
+        self.telephone_replacement_submission_write_read_with_wait(attempt, original_until, wait)
+    }
+    /// Later control/physical writes have their own current interval. They do
+    /// not renew initial begin admission; they retain the exact durable attempt.
+    pub fn telephone_replacement_submission_control_read_with_wait(
+        &self,
+        attempt: Arc<TelephoneReplacementAttempt>,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<TelephoneReplacementWriteRead> {
+        self.telephone_replacement_submission_write_read_with_wait(attempt, original_until, wait)
+    }
+    pub fn telephone_replacement_submission_write_read_with_wait(
+        &self,
+        attempt: Arc<TelephoneReplacementAttempt>,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<TelephoneReplacementWriteRead> {
+        if attempt.phase != Phase::Submit {
+            return Err(Error::forbidden());
+        }
+        self.telephone_begun_control_read(attempt, original_until, wait)
+            .map(|(read, attempt)| TelephoneReplacementWriteRead { read, attempt })
+    }
+    pub fn telephone_replacement_allocation_begun_read_with_wait(
+        &self,
+        attempt: Arc<TelephoneReplacementAttempt>,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<TelephoneReplacementRead> {
+        if attempt.phase != Phase::Allocate {
+            return Err(Error::forbidden());
+        }
+        *original_until = (*original_until).min(attempt.begin_expires_at);
+        self.telephone_begun_control_read(attempt, original_until, wait)
+            .map(|(read, _)| read)
+    }
+    fn telephone_begun_control_read(
+        &self,
+        attempt: Arc<TelephoneReplacementAttempt>,
+        original_until: &mut i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<(TelephoneReplacementRead, Arc<TelephoneReplacementAttempt>)> {
+        let route_until = std::cell::Cell::new(i64::MAX);
+        let result = attempt.prepared.selection.read_with_wait_then(
+            self,
+            wait,
+            original_until,
+            |c| match &attempt.allocated {
+                Some(allocated) => allocated_current(self, c, allocated),
+                None if attempt.phase == Phase::Allocate => {
+                    allocation::current_prepared(self, c, &attempt.prepared).map(|_| ())
+                }
+                None => Err(Error::forbidden()),
+            },
+            |c, source| {
+                let mut read = self.telephone_replacement_allocation_read_in(
+                    c,
+                    &attempt.prepared,
+                    source,
+                    &attempt.route_credential,
+                    &attempt.policy,
+                )?;
+                route_until.set(read.expires_at());
+                read.phase = attempt.phase;
+                read.allocated = attempt.allocated.clone();
+                exact_begun(c, &attempt, &read)?;
+                Ok(read)
+            },
+        );
+        *original_until = (*original_until).min(route_until.get());
+        let mut read = result?;
+        read.limit(*original_until)?;
+        Ok((read, attempt))
+    }
     /// Synchronous Core start pre/post control, called outside Core registry
     /// locks. Ordinary SQL mutex contention may wait here; authority admission
     /// still refuses queued writers. Drop this interval before waiting for SIP.
@@ -574,6 +696,42 @@ impl Store {
         &self,
         read: TelephoneReplacementRead,
     ) -> Result<Arc<TelephoneReplacementAttempt>> {
+        self.begin_telephone_replacement_admission(read, None)?
+            .ok_or_else(|| Error::new("authority-busy", "Telephone begin admission is busy"))
+    }
+    pub fn try_begin_telephone_replacement_allocation_with_wait(
+        &self,
+        read: TelephoneReplacementRead,
+        wait: &crate::AuthorityWait,
+    ) -> Result<Option<Arc<TelephoneReplacementAttempt>>> {
+        if read.phase != Phase::Allocate {
+            return Err(Error::forbidden());
+        }
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            read.expires_at().saturating_sub(crate::now()).max(0) as u64,
+        ));
+        self.begin_telephone_replacement_admission(read, Some(&wait))
+    }
+    /// None is exclusively definite pre-DML admission contention. A caller
+    /// retains the same allocation; errors after transaction entry are terminal.
+    pub fn try_begin_telephone_replacement_submission_with_wait(
+        &self,
+        read: TelephoneReplacementRead,
+        wait: &crate::AuthorityWait,
+    ) -> Result<Option<Arc<TelephoneReplacementAttempt>>> {
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (read.expires_at()).saturating_sub(crate::now()).max(0) as u64,
+        ));
+        if read.phase != Phase::Submit {
+            return Err(Error::forbidden());
+        }
+        self.begin_telephone_replacement_admission(read, Some(&wait))
+    }
+    fn begin_telephone_replacement_admission(
+        &self,
+        read: TelephoneReplacementRead,
+        control_wait: Option<&crate::AuthorityWait>,
+    ) -> Result<Option<Arc<TelephoneReplacementAttempt>>> {
         if !read.current() {
             return Err(Error::forbidden());
         }
@@ -585,20 +743,9 @@ impl Store {
         // Reads; add only the existing mutation's caller/member/CID Writers.
         // Do not spend the five-ms drain budget resolving all source facts
         // before file admission; they are fully rederived below under Writer.
-        let mutation_scopes = {
-            let c = self.try_connection()?;
-            let mut scopes = interval.snapshot_read_scopes()?;
-            scopes.push(crate::AuthorityScope::identity(
-                &read.source.caller().actor.identity_id,
-                crate::AuthorityMode::Write,
-            )?);
-            scopes.extend(crate::authority_admission::conversation_scopes(
-                &c,
-                &read.source.context().conversation_id,
-                crate::AuthorityMode::Write,
-            )?);
-            crate::AuthorityScope::merged(&scopes)?
-        };
+        let routing = interval.snapshot_read_scopes()?;
+        let caller = read.source.caller().actor.identity_id.clone();
+        let conversation = read.source.context().conversation_id.clone();
         let begin_expires_at = read.expires_at();
         let prepared = read.prepared.clone();
         let route_credential = read.route_actor.credential_id.clone();
@@ -607,13 +754,25 @@ impl Store {
         let phase = read.phase;
         let allocated = read.allocated.clone();
         drop(read);
-        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
-        let held = self.acquire_authority(&mutation_scopes, &wait)?;
-        let mut c = self.try_connection()?;
-        c.bind_available_mutation_authority(self, &held)?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
+        let derive = |c: &Connection| {
+            let mut scopes = routing.clone();
+            scopes.push(crate::AuthorityScope::identity(
+                &caller,
+                crate::AuthorityMode::Write,
+            )?);
+            scopes.extend(crate::authority_admission::conversation_scopes(
+                c,
+                &conversation,
+                crate::AuthorityMode::Write,
+            )?);
+            crate::AuthorityScope::merged(&scopes)
+        };
+        let Some((held, mut c)) = self.telephone_mutation_admission(control_wait, derive)? else {
+            return Ok(None);
+        };
+        let Some(tx) = control_admission::begin_transaction(&mut c, control_wait.is_some())? else {
+            return Ok(None);
+        };
         let current = prepared.selection.scopes(self, &tx, true)?;
         if !self.authority_covers(&held, &current) {
             return Err(Error::forbidden());
@@ -660,6 +819,12 @@ impl Store {
         let correlation = allocated
             .as_ref()
             .map_or_else(|| attempt.clone(), |a| a.call_id.clone());
+        if let Some(wait) = control_wait {
+            wait.check()?;
+            if !source.current() {
+                return Err(Error::forbidden());
+            }
+        }
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,?3,?4,'none','prepared',?5)",
             params![effect,prepared.record,phase.provider(),correlation,descriptor]).map_err(|_| Error::storage())?;
         tx.execute("INSERT INTO native_replacement_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,?2,?3,?4)",
@@ -676,7 +841,7 @@ impl Store {
         drop(held);
         // Return original custody before any new Read acquisition. A later
         // busy/error can only retry this attempt, never repeat this transition.
-        Ok(Arc::new(TelephoneReplacementAttempt {
+        Ok(Some(Arc::new(TelephoneReplacementAttempt {
             prepared,
             route_credential,
             policy,
@@ -687,7 +852,7 @@ impl Store {
             expected,
             allocated,
             begin_expires_at,
-        }))
+        })))
     }
     pub fn record_telephone_replacement_allocated(
         &self,

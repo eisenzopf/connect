@@ -4,7 +4,8 @@ use super::*;
 use std::sync::Weak;
 mod custody;
 pub use custody::{
-    NativeConsultationReturnApplied, NativeConsultationReturnAttempt, NativeConsultationReturnLease,
+    NativeConsultationReturnApplied, NativeConsultationReturnAttempt,
+    NativeConsultationReturnLease, NativeConsultationReturnPreparation,
 };
 
 #[derive(Clone)]

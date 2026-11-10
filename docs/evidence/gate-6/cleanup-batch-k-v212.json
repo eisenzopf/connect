@@ -1,0 +1,70 @@
+{
+  "format": "connect/gate6-cleanup-batch/1",
+  "batch": "v212-K",
+  "updated": "2026-11-10T14:03:16.329592+00:00",
+  "source_base": "bc6f4d4e",
+  "status": "156/156 affected controls pass. Signed-target build finishing; all27 focused signed scenarios next.",
+  "acceptance_changes": false,
+  "changes": [
+    "Resolve native allocation, pure host validation and once-only begin under one immediate SQL guard; preserve original attempt on capture errors and historical recording contention.",
+    "Use bounded, owned telephone control admission through allocation, submission, resource preparation, phases and commit. Retry only typed pre-effect deferral; later physical SIP writes retain their independent fresh authorization interval.",
+    "Use bounded initial return planning and preparation, with SQL admission before immediate mutation-authority acquisition. Preserve existing initial/reserved/success-recording budgets and current policy checks.",
+    "Poll the same Core control future through existing owned blocking-poll custody. Pending releases its worker; no thread remains occupied throughout ringing."
+  ],
+  "unit_results": [
+    {
+      "group": "store_control_followthrough",
+      "summary": {
+        "selected": 105,
+        "completed": 105,
+        "passed": 105,
+        "failed": 0
+      },
+      "receipt_sha256": "45e15cc873266dcc9b96a2a6db1b41b56b5655b11e923a092812f81f8f6967f8",
+      "binary_sha256": "037410170b6eab80b096d43264c0acbca1663fc9fc8ab77a42a04906a6381882",
+      "source_seal_sha256": "fd8bd2767779abc23d07f10dcad432dc5e911e7dbc837086d7ade38e18a0ae8d"
+    },
+    {
+      "group": "connect_service",
+      "summary": {
+        "selected": 51,
+        "completed": 51,
+        "passed": 51,
+        "failed": 0
+      },
+      "receipt_sha256": "7ae531725d8b951a5f7494c699e0e411bc15bad842ae24e86843d510ae335daf",
+      "binary_sha256": "fca2579183ffe8bdde81575d2890495ed952856f2fec2ef1f0f237ef235742f4",
+      "source_seal_sha256": "fd8bd2767779abc23d07f10dcad432dc5e911e7dbc837086d7ade38e18a0ae8d"
+    }
+  ],
+  "unit_summary": {
+    "passed": 156,
+    "failed": 0,
+    "selected": 156,
+    "scope": "local macOS arm64"
+  },
+  "independent_reviews": {
+    "native_allocation_sha256": "da942fc632152b91694888fb3eeefc509bba6904570e11057b58e5c96ddbb73c",
+    "telephone_chain_sha256": "116bec65f051e59041fa4badc13ce818171e4b790ff39edacded8a6fad97f8b6",
+    "initial_return_sha256": "1188354e7f9c125e8a37a49a5962bcd0914b532aeccca5b0a9e5a12b842d91a6"
+  },
+  "prior_focused_signed": {
+    "batch": "J",
+    "passed": 22,
+    "failed": 5,
+    "selected": 27
+  },
+  "last_full_matrix": {
+    "run": "v209",
+    "passed_cells": 0,
+    "required_cells": 32,
+    "passed_checks": 390,
+    "required_checks": 432,
+    "failed_checks": 42
+  },
+  "limits": [
+    "These component controls do not qualify matrix cells or prove A/V quality.",
+    "Signed reply authority and short activation/control serialization remain intentional; no claim that every lock was removed.",
+    "Packet policy remains nonblocking. Actual physical IO still requires current authorization."
+  ]
+}

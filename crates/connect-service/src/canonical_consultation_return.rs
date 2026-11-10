@@ -193,28 +193,66 @@ impl Runtime {
         // A refused metadata reservation consumes its planning readers. Retry
         // with current sources and a fresh pure Core plan, never an old lease.
         // Attempt admission and the actual Core change remain outside this loop.
-        let Some((lease, plan)) = retry_metadata(&self.stop, || async {
+        let planning_deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+        let planning_until = Arc::new(AtomicI64::new(chrono::Utc::now().timestamp() + 5));
+        let planning_wait = connect_store::AuthorityWait::new(Duration::from_secs(5));
+        let _cancel_planning = planning_wait.cancel_on_drop();
+        let (lease, plan) = loop {
+            if self.stop.is_cancelled()
+                || tokio::time::Instant::now() >= planning_deadline
+                || chrono::Utc::now().timestamp() >= planning_until.load(Ordering::Acquire)
+            {
+                return Err(Error::new(
+                    "authority-busy",
+                    "Original return planning admission ended",
+                ));
+            }
             let sources = self
                 .media
                 .scene_origins(&command.session_id)
                 .map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-scene",?error,"Native return refused");Error::forbidden()})?;
-            let sips = self.media.scene_sip_origins(&command.session_id).map_err(|_|Error::forbidden())?;
+            let sips = self
+                .media
+                .scene_sip_origins(&command.session_id)
+                .map_err(|_| Error::forbidden())?;
             let store = self.media.store.clone();
             let read_origin = origin.clone();
             let read_sources = sources.clone();
             let read_sips = sips.clone();
-            let read = self.owned_store_call(move || store.try_native_return_read(
-                &read_origin, &read_sources, &read_sips)).await.map_err(|error| {
-                // Emit only these exact constant Store reasons, never arbitrary
-                // error text containing caller or resource details.
-                let reason = match error.message.as_str() {
-                    "Return scope derivation: Native return source set changed"
-                    | "Return current views: Native return source set changed" => error.message.as_str(),
-                    _ => "other-refusal",
-                };
-                tracing::debug!(target:"connect_service::canonical_consultation",stage="return-read",code=%error.code,reason,"Native return planning refused");error
-            })?;
-            if self.stop.is_cancelled() { return Err(Error::forbidden()); }
+            let captured_cap = planning_until.clone();
+            let current_wait = planning_wait.clone();
+            let stop = self.stop.clone();
+            let resolved =
+                joined_return_control(self, &planning_wait, planning_deadline, move || {
+                    if stop.is_cancelled() {
+                        return Err(Error::forbidden());
+                    }
+                    let mut cap = captured_cap.load(Ordering::Acquire);
+                    let result = store.native_return_planning_read_with_wait(
+                        &read_origin,
+                        &read_sources,
+                        &read_sips,
+                        &mut cap,
+                        &current_wait,
+                    );
+                    captured_cap.fetch_min(cap, Ordering::AcqRel);
+                    result
+                })
+                .await;
+            let read = match resolved {
+                Ok(read) => read,
+                Err(error) if error.code == "authority-busy" => {
+                    tracing::debug!(target:"connect_service::canonical_consultation", stage="return-read", code=%error.code,
+                        "Original return planning admission deferred");
+                    return_planning_pause(&self.stop, planning_deadline, &planning_until).await?;
+                    continue;
+                }
+                Err(error) => return Err(error),
+            };
+            planning_until.fetch_min(read.expires_at(), Ordering::AcqRel);
+            if self.stop.is_cancelled() || tokio::time::Instant::now() >= planning_deadline {
+                return Err(Error::forbidden());
+            }
             let revision = self
                 .core
                 .audio_audience_revision(&sid)
@@ -234,14 +272,21 @@ impl Runtime {
             // planning: release every reader and retry fresh metadata rather
             // than reserve a plan against different source incarnations.
             // Store's exact selection/revision checks remain mandatory below.
-            let current = sources.iter().map(|source| source.runtime_connection_id())
+            let current = sources
+                .iter()
+                .map(|source| source.runtime_connection_id())
                 .chain(sips.iter().map(|source| source.runtime_connection_id()))
                 .collect::<BTreeSet<_>>();
-            let planned = plan.expected_receiver_revisions().keys()
-                .map(|id| id.as_str()).collect::<BTreeSet<_>>();
+            let planned = plan
+                .expected_receiver_revisions()
+                .keys()
+                .map(|id| id.as_str())
+                .collect::<BTreeSet<_>>();
             if current != planned {
                 tracing::debug!(target:"connect_service::canonical_consultation",stage="return-scene-pending",code="authority-busy",source_count=current.len(),receiver_count=planned.len(),"Native return planning observations differ");
-                return Err(Error::new("authority-busy", "Native return scene observations are not yet aligned"));
+                drop(read);
+                return_planning_pause(&self.stop, planning_deadline, &planning_until).await?;
+                continue;
             }
             let mut intent = descriptor(&plan)?;
             intent["consultation_record_id"] = serde_json::json!(origin.consultation_record_id());
@@ -254,15 +299,35 @@ impl Runtime {
                     .any(|current| current.as_str() == id.as_str()))
                 .collect::<Vec<_>>());
             let store = self.media.store.clone();
-            let Some(lease) =
-                store_call(move || store.prepare_native_consultation_return(read, intent)).await.map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-prepare",code=%error.code,reason=%error.message,"Native return preparation refused");error})?
-            else {
-                return Ok(None);
-            };
-            Ok(Some((lease, plan)))
-        })
-        .await? else {
-            return Ok(());
+            let original_until = planning_until.load(Ordering::Acquire);
+            let reserve_wait = planning_wait.clone();
+            let stop = self.stop.clone();
+            let reservation =
+                joined_return_control(self, &planning_wait, planning_deadline, move || {
+                    if stop.is_cancelled() || tokio::time::Instant::now() >= planning_deadline {
+                        return Err(Error::forbidden());
+                    }
+                    store.prepare_native_consultation_return_with_wait(
+                        read,
+                        intent,
+                        original_until,
+                        &reserve_wait,
+                    )
+                })
+                .await?;
+            match reservation {
+                connect_store::NativeConsultationReturnPreparation::Deferred(error) => {
+                    tracing::debug!(target:"connect_service::canonical_consultation",stage="return-prepare",code=%error.code,
+                        "Original return reservation deferred before DML");
+                    return_planning_pause(&self.stop, planning_deadline, &planning_until).await?;
+                }
+                connect_store::NativeConsultationReturnPreparation::NoWork => return Ok(()),
+                // Even after a cancellation race this SAME durable reservation
+                // leaves planning exactly once. Begin owns its current refusal.
+                connect_store::NativeConsultationReturnPreparation::Reserved(lease) => {
+                    break (lease, plan)
+                }
+            }
         };
         let (attempt, read) = self.begin_original_return(Arc::new(lease)).await?;
         let remaining = (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
@@ -291,7 +356,9 @@ impl Runtime {
                 settle_return_recording(&self.stop, || {
                     let store = self.media.store.clone();
                     let attempt = attempt.clone();
-                    store_call(move || store.native_consultation_return_uncertain(&attempt))
+                    self.owned_store_call(move || {
+                        store.native_consultation_return_uncertain(&attempt)
+                    })
                 })
                 .await?;
                 return Err(Error::new(
@@ -314,7 +381,7 @@ impl Runtime {
         retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
             let receipt = receipt.clone();
-            store_call(move || store.record_native_consultation_return_applied(&receipt))
+            self.owned_store_call(move || store.record_native_consultation_return_applied(&receipt))
         })
         .await?;
         if carry_failed {
@@ -332,18 +399,26 @@ impl Runtime {
         retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
             let receipt = receipt.clone();
-            store_call(move || store.record_native_consultation_return_applied(&receipt))
+            self.owned_store_call(move || store.record_native_consultation_return_applied(&receipt))
         })
         .await?;
         let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
         loop {
             let store = self.media.store.clone();
             let proof = receipt.clone();
-            if store_call(move || store.complete_native_consultation_return(&proof))
-                .await?
-                .is_some()
+            match self
+                .owned_store_call(move || store.complete_native_consultation_return(&proof))
+                .await
             {
-                return Ok(());
+                Ok(Some(_)) => return Ok(()),
+                Ok(None) => {}
+                // Same retained historical receipt, never another Core restore.
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "authority-busy" | "storage-unavailable" | "capacity-exceeded"
+                    ) => {}
+                Err(error) => return Err(error),
             }
             if tokio::time::Instant::now() >= deadline {
                 return Err(Error::new(
@@ -353,6 +428,41 @@ impl Runtime {
             }
             tokio::select! {_=self.stop.cancelled()=>return Err(Error::forbidden()),_=tokio::time::sleep(Duration::from_millis(20))=>{}}
         }
+    }
+}
+
+// Both current planning and reservation keep one original wait/cancellation
+// owner. Join the SAME callback on stop/expiry; never detach or discard a late
+// Reserved result that already owns durable metadata custody.
+async fn joined_return_control<T: Send + 'static>(
+    runtime: &Runtime,
+    wait: &connect_store::AuthorityWait,
+    deadline: tokio::time::Instant,
+    call: impl FnOnce() -> Result<T> + Send + 'static,
+) -> Result<T> {
+    let pending = runtime.owned_store_call(call);
+    tokio::pin!(pending);
+    tokio::select! { biased;
+        result = &mut pending => result,
+        _ = runtime.stop.cancelled() => { wait.cancel(); pending.await },
+        _ = tokio::time::sleep_until(deadline) => { wait.cancel(); pending.await },
+    }
+}
+async fn return_planning_pause(
+    stop: &tokio_util::sync::CancellationToken,
+    deadline: tokio::time::Instant,
+    until: &AtomicI64,
+) -> Result<()> {
+    if chrono::Utc::now().timestamp() >= until.load(Ordering::Acquire) {
+        return Err(Error::new(
+            "authority-busy",
+            "Original return planning facts expired",
+        ));
+    }
+    tokio::select! { biased;
+        _ = stop.cancelled() => Err(Error::forbidden()),
+        _ = tokio::time::sleep_until(deadline) => Err(Error::new("authority-busy", "Original return planning admission ended")),
+        _ = tokio::time::sleep(Duration::from_millis(20)) => Ok(()),
     }
 }
 

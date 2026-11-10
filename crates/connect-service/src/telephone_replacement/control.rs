@@ -104,11 +104,20 @@ impl ParticipantReplacementLease for Invocation {
             (Phase::Start(attempt), ReplacementPhase::Start) => {
                 // This read is dropped before returning. Core may retain the
                 // control object while waiting for answer; it retains NO reader.
-                let read = self
-                    .runtime
-                    .media
-                    .store
-                    .telephone_replacement_submission_control_read(attempt.clone())
+                if self.runtime.stop.is_cancelled()
+                    || self.root.handle.cancellation().is_cancelled()
+                {
+                    return Err(ParticipantControlError::Authority);
+                }
+                let wait = connect_store::AuthorityWait::new(
+                    self.root
+                        .deadline
+                        .saturating_duration_since(tokio::time::Instant::now())
+                        .min(std::time::Duration::from_secs(5)),
+                );
+                let mut until = chrono::Utc::now().timestamp().saturating_add(5);
+                let read = self.runtime.media.store
+                    .telephone_replacement_submission_control_read_with_wait(attempt.clone(), &mut until, &wait)
                     .map_err(|error| {
                         tracing::debug!(target:"connect_service::telephone_replacement",code=%error.code,"Current telephone start check refused");
                         ParticipantControlError::Authority
