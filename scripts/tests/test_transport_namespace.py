@@ -119,6 +119,32 @@ class NamespaceBoundary(unittest.TestCase):
             with self.subTest(incomplete=selected), self.assertRaises(AssertionError):
                 self.owner.server_command("/owned/connect", "/private/server.toml", dict(self.env, RUST_LOG=selected))
 
+    def test_bounded_datagram_queue_summary_preserves_original_namespace_profiles(self):
+        self.owner.created = True
+        base = "info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug"
+        commit = ",connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug"
+        summary = ",connect_store::authority_summary=debug,connect_service::peer_authority_lifetime=debug"
+        queue = ",quinn_proto::datagram_queue=debug"
+        for suffix in ["", commit, commit + summary]:
+            for retention in ["", ",connect_service::runtime_retention=debug"]:
+                selected = base + retention + suffix + queue
+                with self.subTest(profile=selected):
+                    command = self.owner.server_command("/owned/connect", "/private/server.toml", dict(self.env, RUST_LOG=selected))
+                    self.assertIn("--setenv=RUST_LOG=" + selected, command)
+                    self.assertIn("--property=RuntimeMaxSec=600", command)
+                    self.assertIn("--property=NoNewPrivileges=yes", command)
+                    self.assertNotIn("CONNECT_SDK_HELPER_TIMING", " ".join(command))
+                    self.assertFalse(any("secret" in value or "API_KEY" in value for value in command))
+
+    def test_datagram_summary_does_not_admit_duplicate_or_unbounded_trace_profiles(self):
+        self.owner.created = True
+        base = "info,connect_service::canonical_native=debug,connect_service::canonical_native_data=debug,rvoip_uctp::native_subscription_preflight=debug,rvoip_core::native_catalog=debug"
+        queue = ",quinn_proto::datagram_queue=debug"
+        for suffix in [queue, ",quinn_proto::datagram_queue=trace", ",quinn_proto=trace", ",trace",
+                       ",connect_service::canonical_packet=trace", ",connect_store::sql_custody=trace"]:
+            with self.subTest(suffix=suffix), self.assertRaises(AssertionError):
+                self.owner.server_command("/owned/connect", "/private/server.toml", dict(self.env, RUST_LOG=base + queue + suffix))
+
     def test_names_are_fresh_bounded_kernel_identifiers(self):
         second = NativeNamespace(self.root / ".local/another", self.root, {})
         self.assertNotEqual(self.owner.name, second.name)

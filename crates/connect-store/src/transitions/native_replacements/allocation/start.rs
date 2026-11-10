@@ -240,12 +240,23 @@ impl Store {
         credential: &str,
         proof: &PeerAuthorityGuard,
         read: NativeReplacementStartRead,
-    ) -> Result<(NativeReplacementStartAttempt, NativeReplacementStartRead)> {
+    ) -> Result<(
+        NativeReplacementStartAttempt,
+        NativeReplacementStartRead,
+        Arc<NativeReplacementStartOrigin>,
+    )> {
         let prepared = &allocated.attempt.prepared;
         if !read.current() || read.source.selection().origin.record != prepared.record {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        if !self.authority_covers(
+            Self::peer_scopes(proof),
+            &Self::peer_scopes(proof).mutation_scopes(),
+        ) {
+            return Err(Error::forbidden());
+        }
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, Self::peer_scopes(proof))?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -291,18 +302,19 @@ impl Store {
         if !read.current() {
             return Err(Error::forbidden());
         }
+        let attempt = NativeReplacementStartAttempt {
+            allocated,
+            request: proof.request.clone(),
+            attempt,
+            effect,
+            target,
+            expected,
+        };
+        // Any attribution/current-validation failure rolls back this begin too;
+        // no committed once-only attempt is lost behind a second SQL admission.
+        let origin = webrtc::start_origin(self, &tx, &attempt, &read)?;
         tx.commit().map_err(|_| Error::storage())?;
-        Ok((
-            NativeReplacementStartAttempt {
-                allocated,
-                request: proof.request.clone(),
-                attempt,
-                effect,
-                target,
-                expected,
-            },
-            read,
-        ))
+        Ok((attempt, read, origin))
     }
     pub fn record_native_replacement_started_with_peer(
         &self,
@@ -348,11 +360,12 @@ impl Store {
             interval,
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
-                let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &prepared.record)?)
+                let c = self.try_connection()?;
+                admission::mutation_row_scopes(&rows::by_record(&c, &prepared.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -563,7 +576,7 @@ impl Store {
         let a = &captured.attempt;
         let p = &a.allocated.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
-        let c = self.connection()?;
+        let c = self.try_connection()?;
         self.require_peer_source(&c, proof, credential)?;
         actor_from_connection(&c, credential)?.require("connection.offer")?;
         let PeerCommand::NativeConnectionOffer(intent) = &proof.request.command else {
@@ -628,10 +641,10 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &p.record)?)
+                admission::mutation_row_scopes(&rows::by_record(&c, &p.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -751,6 +764,24 @@ impl Store {
     ) -> Result<NativeReplacementSceneRead> {
         self.native_replacement_scene_read_with_custody(origin, sources, None)
     }
+    /// The live source-generation cut is a mutation. Release the complete
+    /// provisional reader before acquiring its original full Write footprint,
+    /// then rederive every scene fact under that exact writer before Core IO.
+    pub fn try_native_replacement_scene_write(
+        &self,
+        origin: &NativeReplacementMediaOrigin,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+    ) -> Result<NativeReplacementSceneRead> {
+        let provisional = self.try_native_replacement_scene_read(origin, sources)?;
+        let scopes = provisional.media.interval.mutation_scopes();
+        let expiry = provisional.media.source.expires_at();
+        drop(provisional);
+        // Manager announces local snapshot invalidation before admission wait.
+        // No provisional aliases or SQL guard survive to wait on themselves.
+        let wait = crate::authority_admission::passive_projection_wait();
+        let writer = self.acquire_authority(&scopes, &wait)?;
+        self.native_replacement_scene_with_interval(origin, sources, None, Some((&writer, expiry)))
+    }
     /// Full current scene for one exact original source packet. The source
     /// contributes only its live complete file custody and earlier expiry.
     /// Every target/operator/origin/pair/audience fact is rederived unchanged.
@@ -787,6 +818,15 @@ impl Store {
         sources: &[Arc<crate::NativeMediaOrigin>],
         custody: Option<(&Arc<AuthorityGuardSet>, i64, &crate::NativeMediaOrigin)>,
     ) -> Result<NativeReplacementSceneRead> {
+        self.native_replacement_scene_with_interval(origin, sources, custody, None)
+    }
+    fn native_replacement_scene_with_interval(
+        &self,
+        origin: &NativeReplacementMediaOrigin,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        custody: Option<(&Arc<AuthorityGuardSet>, i64, &crate::NativeMediaOrigin)>,
+        mutation: Option<(&Arc<AuthorityGuardSet>, i64)>,
+    ) -> Result<NativeReplacementSceneRead> {
         if matches!(
             origin
                 .started
@@ -798,7 +838,12 @@ impl Store {
                 .source(),
             crate::NativeReplacementSourceOrigin::Native(_)
         ) {
-            return metadata::scene(self, origin, sources, custody);
+            return match mutation {
+                Some(interval) => {
+                    metadata::scene_with_interval(self, origin, sources, custody, Some(interval))
+                }
+                None => metadata::scene(self, origin, sources, custody),
+            };
         }
         let prepared = &origin.started.attempt.allocated.attempt.prepared;
         // Continue on independent current SQL observers, even while command
@@ -940,8 +985,8 @@ impl Store {
                 telephone_pairs,
             })
         };
-        match custody {
-            Some((held, expiry, _)) => {
+        match custody.map(|(held, expiry, _)| (held, expiry)).or(mutation) {
+            Some((held, expiry)) => {
                 self.try_current_packet_projection_under(derive, finish, held, expiry)
             }
             None => self.try_current_packet_projection(derive, finish),

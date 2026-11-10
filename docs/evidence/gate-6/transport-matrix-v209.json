@@ -1,0 +1,1047 @@
+{
+  "format": "connect/full32-public-safe-summary-candidate/1",
+  "observed_unix": 1794259608.879945,
+  "run": "v209",
+  "run_id": "g6-058-fa2702e8f4e742709e5e19ec3b431ff8",
+  "duration_seconds": 8795.331630706787,
+  "source": {
+    "revision": "054cbe2fc08bf388190d3a52b8508d276a156d7d",
+    "workspace_sha256": "df72d7206c946af9c1f41d93154c7023d899cc919c9bc04c7a522d5d78d0acf7",
+    "source_lock_sha256": "9cf2f547a961086d71df192d8e01eed865913d2d55115270b76f024df2cdabc8",
+    "normal_generation": 378,
+    "prepared": {
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab",
+      "rvoip": "ec91ce4381c87b8d8f48332277a4bdcbdb0d501247628f046e2fcee4d5850312"
+    },
+    "shipping_source_json_sha256": "409ae251ade1db62dfa6a60d7b53067ee01292bf21ed6492d558cec81148fb43"
+  },
+  "summary": {
+    "cells": {
+      "passed": 0,
+      "failed": 32,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0,
+      "incomplete": 0
+    },
+    "required_cells": 32,
+    "required_checks": 432,
+    "checks": {
+      "passed": 390,
+      "failed": 42,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0
+    }
+  },
+  "all32_selected_no_filters": true,
+  "all432_requirements_evaluated": true,
+  "qualification_passed": false,
+  "failure_family_cell_counts": {
+    "independently-decoded-duplex-media-and-profile-budgets": 32,
+    "owned-drain-and-resource-reclamation": 8,
+    "device-replacement-and-old-owner-retirement": 2
+  },
+  "original_component_failure_counts": [
+    {
+      "failure_phase": "public-sdk-conversation-control",
+      "failure_kind": "AssertionError",
+      "cells": 8
+    },
+    {
+      "failure_phase": "actual-browser-quality",
+      "failure_kind": null,
+      "cells": 24
+    }
+  ],
+  "failure_count_scope": "Requirement families overlap. All 8 native outer component failures are AssertionError at public-sdk-conversation-control; inner SDK deadline facts are shown only for the inspected original ARM native component, not inferred for the other 7. Detailed media subfamilies cover 3 inspected cells only; 29 others are uninspected, including 22 of 24 browser cells.",
+  "inspected_media_failure_families": {
+    "path": ".local/gate-6/full-matrix-v209-launch/inspected-failure-family-samples.json",
+    "sha256": "8f25fa1634e0da41d7986afa6a28e94eab0814c2c47fcb8a227e2ac4a29033f5",
+    "inspected_cells": 3,
+    "scope": "Only three already-retained ARM local EdDSA components; no subclass extrapolation to other29cells. Families overlap; route-cycle counts are not cell counts. No new archive read/VM/decoder/source mutation.",
+    "cells": [
+      {
+        "cell": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+        "component_sha256": "c750b9ee12d978ec16fa2f76a5991c88c0a5b67bbc0370943bd7a3a42fb9e501",
+        "cycles": [
+          {
+            "cycle": 1,
+            "routes": 6,
+            "audio_failed": 1,
+            "video_failed": 1,
+            "sync_failed": 1,
+            "bad_identity_frames": 1,
+            "duration_shortfall_routes": 0,
+            "sync_envelope_invalid_routes": 0,
+            "route_passed": 3
+          },
+          {
+            "cycle": 2,
+            "routes": 6,
+            "audio_failed": 2,
+            "video_failed": 5,
+            "sync_failed": 0,
+            "bad_identity_frames": 2,
+            "duration_shortfall_routes": 0,
+            "sync_envelope_invalid_routes": 0,
+            "route_passed": 0
+          },
+          {
+            "cycle": 3,
+            "routes": 6,
+            "audio_failed": 3,
+            "video_failed": 1,
+            "sync_failed": 2,
+            "bad_identity_frames": 3,
+            "duration_shortfall_routes": 0,
+            "sync_envelope_invalid_routes": 0,
+            "route_passed": 3
+          }
+        ]
+      },
+      {
+        "cell": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+        "component_sha256": "3afae99e15c241e53fba5e2b0e3fdc55f6fe601de121ff172a2bba1d3ae00746",
+        "cycles": [
+          {
+            "cycle": 1,
+            "routes": 6,
+            "audio_failed": 1,
+            "video_failed": 0,
+            "sync_failed": 1,
+            "bad_identity_frames": 0,
+            "duration_shortfall_routes": 1,
+            "sync_envelope_invalid_routes": 1,
+            "route_passed": 4
+          },
+          {
+            "cycle": 2,
+            "routes": 6,
+            "audio_failed": 5,
+            "video_failed": 0,
+            "sync_failed": 0,
+            "bad_identity_frames": 0,
+            "duration_shortfall_routes": 5,
+            "sync_envelope_invalid_routes": 0,
+            "route_passed": 1
+          },
+          {
+            "cycle": 3,
+            "routes": 6,
+            "audio_failed": 1,
+            "video_failed": 0,
+            "sync_failed": 2,
+            "bad_identity_frames": 0,
+            "duration_shortfall_routes": 1,
+            "sync_envelope_invalid_routes": 2,
+            "route_passed": 4
+          }
+        ]
+      },
+      {
+        "cell": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+        "component_sha256": "a2ba12274727e4a877c5ab47a786762620e3d212fa33ae60cd503748aed446c7",
+        "cycles": [
+          {
+            "cycle": 1,
+            "full_moving_verdict": "original-moving-capture-prerequisite-missing",
+            "control_failure": {
+              "name": "NodeSdkError",
+              "kind": "deadline",
+              "certainty": "read-only",
+              "stage": "final-natural-owner-join"
+            },
+            "moves_completed": 4,
+            "capture_request_present": false,
+            "moving_capture_present": false,
+            "sessions_passed": true,
+            "client_closes_passed": true,
+            "all_helpers_joined": true,
+            "ten_second_idle_passed": true
+          },
+          {
+            "cycle": 2,
+            "full_moving_verdict": "original-moving-capture-prerequisite-missing",
+            "control_failure": {
+              "name": "NodeSdkError",
+              "kind": "deadline",
+              "certainty": "read-only",
+              "stage": "retained-current-end"
+            },
+            "moves_completed": 4,
+            "capture_request_present": false,
+            "moving_capture_present": false,
+            "sessions_passed": false,
+            "client_closes_passed": true,
+            "all_helpers_joined": true,
+            "ten_second_idle_passed": true
+          },
+          {
+            "cycle": 3,
+            "full_moving_verdict": "original-moving-capture-prerequisite-missing",
+            "control_failure": {
+              "name": "NodeSdkError",
+              "kind": "deadline",
+              "certainty": "read-only",
+              "stage": "retained-current-end"
+            },
+            "moves_completed": 4,
+            "capture_request_present": false,
+            "moving_capture_present": false,
+            "sessions_passed": true,
+            "client_closes_passed": true,
+            "all_helpers_joined": true,
+            "ten_second_idle_passed": true
+          }
+        ],
+        "resource_failure": [
+          "cycle-2:original-session-or-helper-work-unjoined"
+        ],
+        "limitation": "Full moving capture prerequisites missing; do not count retired original-only receiver duration/video diagnostics as failed full-route quality."
+      }
+    ]
+  },
+  "closure": {
+    "all_original_host_pids_and_groups_absent": true,
+    "original_worker_exit_codes": {
+      "macos-arm64": 1,
+      "ubuntu24-arm64": 1
+    },
+    "coordinator_joined": true,
+    "coordinator_exit_code": 1,
+    "guest_original_worker_absent": true,
+    "released_ARM_guardians": 16,
+    "released_Mac_remote_original_leases": 8,
+    "kernel_workload_holders_or_waiters": 0,
+    "remaining_guardian_processes": 0,
+    "all_original_copy_transports_natural_joined": true,
+    "original_copy_transport_count": 72,
+    "source_exact_both_hosts": true,
+    "source_guard_released": true,
+    "storage_failures": [],
+    "historical_failed_verdicts_unchanged": true,
+    "retained_archive_count": 32,
+    "retained_archive_total_bytes": 15711978166
+  },
+  "remaining_capacity_bytes": {
+    "internal": 28679200768,
+    "D2": 31682416640,
+    "guest": 60126904320
+  },
+  "receipts": {
+    "natural-closure.json": {
+      "path": ".local/gate-6/full-matrix-v209-launch/natural-closure.json",
+      "sha256": "b9bf9baf49d5d8bf1d7ba5bb302a77fcd310d5dd9a65befb6fd715e4d8429e6d"
+    },
+    "controller-exit.json": {
+      "path": ".local/gate-6/full-matrix-v209-launch/controller-exit.json",
+      "sha256": "3708c13ba838e7bfc944a94c1ce4f821794d2b83994782c41caff97e78d75d26"
+    },
+    "final-ownership-readonly/receipt.json": {
+      "path": ".local/gate-6/full-matrix-v209-launch/final-ownership-readonly/receipt.json",
+      "sha256": "214f3682c885067a6de9b5d3d77ea8c84b8fe0ca27fea47886a17acb57f572b0"
+    },
+    "actual-launch.json": {
+      "path": ".local/gate-6/full-matrix-v209-launch/actual-launch.json",
+      "sha256": "2c92c3fa536a2e318f7a828394e587e4c1163f4a70881552970da16021a85751"
+    },
+    "prelaunch.json": {
+      "path": ".local/gate-6/full-matrix-v209-launch/prelaunch.json",
+      "sha256": "e96796be6e60d31c0479944d277b2056f74b87a8c4c0364db9560ff8144b5764"
+    },
+    "matrix": {
+      "path": ".local/gate-6/full-matrix-v209/matrix.json",
+      "sha256": "082833659351c0b5f7b0d02ce1a30d3f39aa474f63628496fa862510f0599b33"
+    },
+    "source-guard-state": {
+      "path": ".local/gate-6/full-matrix-v209/state.json",
+      "sha256": "add12c3438924639cbf42eaededdd72503d2012997c24fabab82b42809e08e17"
+    },
+    "mac-worker-source-guard": {
+      "path": ".local/gate-6/full-matrix-v209/macos-arm64/state.json",
+      "sha256": "8abd6e41073c6cde5dca0d153cac578f0516555bb418d4415df14c0abcfa9e22"
+    }
+  },
+  "cells": [
+    {
+      "id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "status": "failed",
+      "required_checks": 12,
+      "requirement_status_counts": {
+        "passed": 10,
+        "failed": 2
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "original_component": {
+        "report_sha256": "01ed3ac1870fd5de093021c04e7c58fb9e0792df64aa115285466a5d511713e3",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "retained_archive": {
+        "sha256": "ce88ddafb9220b0bd916c51b46203c30d46a542126afd38188e969b91fbd965c",
+        "bytes": 1001761963,
+        "entries": 1116,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "status": "failed",
+      "required_checks": 12,
+      "requirement_status_counts": {
+        "passed": 9,
+        "failed": 3
+      },
+      "failed_requirements": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "original_component": {
+        "report_sha256": "5872e2e1db0d04d5ce5d6ce13dfcd2e3216c4aebe8c637cf88b6dbba7ea08026",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "retained_archive": {
+        "sha256": "1e460b7391193e7457ef69acd87dccaa2ac04068150f27a7cd06409757419d43",
+        "bytes": 973836108,
+        "entries": 1105,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "ac3056aec2631a5593a039e6a3719f6113dfdac234faef57235dc669c97752c0",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "2c7ce80c9a7df1ef4b57bee323f51f1ca70d4db2228a542448b401674ddd5787",
+        "bytes": 387174110,
+        "entries": 1379,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "e2190bc049906d4957d74d65de43ebdf4a1925dba49d6905aa3b85461be4b115",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "0278cb70185108ffd37f831f41773b889a536bd50381c44885ac41f3f7855c59",
+        "bytes": 390364828,
+        "entries": 1381,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "05456e989be9a403373fa672f14dd41a2f367e83d93687fe16db72476327d324",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "e8095a3816548eee23ec9276ccac3439ff8f4b66638e99bbad53939dab7db53e",
+        "bytes": 390657730,
+        "entries": 1377,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "8106863f87b82c4ca2b60ee1b41d3a0b94d53b4d48dcf03dfd8a3539bdda9cd5",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "c649897a0e544e209ca31f1aeba2efc02cc9947cf2cad25d59fda4f29f8bea94",
+        "bytes": 390856119,
+        "entries": 1380,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "f873f3b1721b805adbdb3d54d8c1b83a9871dc53f8faf409022cee1e24417226",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "893ba186f57b8b16854e3a2297e3c0343262bfe21f822a753842b36bdc221888",
+        "bytes": 412135274,
+        "entries": 934,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "f12a6bab96a05d0f265dd71799667ef46e71853d3e66f9b9f1e77e78405d3278",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "5a89076231885e3f035ff958f119cb219106c0dc46ba2289f845ee72d176ba6c",
+        "bytes": 412636001,
+        "entries": 940,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "status": "failed",
+      "required_checks": 12,
+      "requirement_status_counts": {
+        "passed": 10,
+        "failed": 2
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "original_component": {
+        "report_sha256": "da401fdfc4a315777c5a32347ae78fd37eb4a7cb8438c6b93f43c9c3224cf987",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "retained_archive": {
+        "sha256": "c0831f211f6ddc8bc1a8d27fa10491e86876c50f6578c87b091c42ddbc2ed001",
+        "bytes": 656057190,
+        "entries": 1111,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "status": "failed",
+      "required_checks": 12,
+      "requirement_status_counts": {
+        "passed": 10,
+        "failed": 2
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "original_component": {
+        "report_sha256": "b0665f14851fe7254cc5a9eb9fd5017ddcf06c6455dd819876dda92d4a3f4eca",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "retained_archive": {
+        "sha256": "f5153d58b2c41a1669a2862143222aa6018041b2d4d037e700f035c293873e6e",
+        "bytes": 655253796,
+        "entries": 1109,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "3afec24a3b5faebcc242ba6aa2265bb8273fa4cca5aa4a76ca78af913b31db9b",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "89a7e8b86d5f72ea4d55c4aeb6c5aa69bc21746a8e762de5a43aff5188d2a161",
+        "bytes": 308503233,
+        "entries": 538,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "900d1edf5fcbc02ba57ce4df0ca507aaf8c049c0d7177e9f3d66b83672711646",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "843fd24b693ce144ff065e8104b811c5cf67192627484626afad9840fd55a12a",
+        "bytes": 307904079,
+        "entries": 538,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "55e312c3b3787a80f97bb0271c4f4cb9ab3d34745f7b0ae5bd4ad45caa2aaee3",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "fb57d537242ced708ae43e6e79e410d430fd174be28182f8a7a0387eb459bb84",
+        "bytes": 304592202,
+        "entries": 538,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "d714c9c8029803ad07a8879f6a074a4d32387649fd09e319630ee0bc3133569f",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "653324067d2e7dd8f90fdc8f3cf72ded972d9c7bdeba53c944f48bcb38b4d9a5",
+        "bytes": 303906345,
+        "entries": 538,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "f227ffff55f1d0014e54e45971c1099d42dbf44ea54bef073faa722d31179ad6",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "13a083969c783e79f62304f582a332abd8d01157d0316fdc1e41216aef814a78",
+        "bytes": 302672388,
+        "entries": 519,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "fda72eb14e2b7f5e047ef4dc2959608290c384db28e9e009a887c99dd413ff4a",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "f5f514c7997cfb2ab88cfdae55363f68552d022bad9274598f7cdade8caa28cb",
+        "bytes": 303280201,
+        "entries": 519,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "status": "failed",
+      "required_checks": 12,
+      "requirement_status_counts": {
+        "passed": 10,
+        "failed": 2
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "original_component": {
+        "report_sha256": "a2ba12274727e4a877c5ab47a786762620e3d212fa33ae60cd503748aed446c7",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "retained_archive": {
+        "sha256": "722846322434804148d52ff4a95a99b83761a0477b31b63a4439fbe52229a4df",
+        "bytes": 1022660464,
+        "entries": 1118,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "status": "failed",
+      "required_checks": 12,
+      "requirement_status_counts": {
+        "passed": 10,
+        "failed": 2
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "original_component": {
+        "report_sha256": "f39b6aa1936c1c97364f365d4167461e5d4570d3b6a89ee069847b9507a8892d",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "retained_archive": {
+        "sha256": "3921e56d5b7a8d5330e2588c28b01f40a0331db22526ca6a176262a9b6ccc91f",
+        "bytes": 1022502120,
+        "entries": 1116,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "3afae99e15c241e53fba5e2b0e3fdc55f6fe601de121ff172a2bba1d3ae00746",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "df1ba624b2f06688c043970757bf0b5f09c1c4a1a886f3a4377e32a92966cdd9",
+        "bytes": 343161105,
+        "entries": 1022,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 12,
+        "failed": 2
+      },
+      "failed_requirements": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "f431f03b01b2df35e7b43641491d92647a5812289e9b4f8794b04bbe56280872",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "e82ad3184ff0ea5dea988bf4263bde5d790f0384f5b355f5a3d256826fe75dde",
+        "bytes": 342970103,
+        "entries": 1023,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "c750b9ee12d978ec16fa2f76a5991c88c0a5b67bbc0370943bd7a3a42fb9e501",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "27acf0f433463be50432537d029c74884cad253fdd2ea78beb6c91f5f1fe894a",
+        "bytes": 341423312,
+        "entries": 1025,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "a43e4412431582d22d73c77eaa562e5112621f53e2bd68193f1dde777f51853c",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "9a1a09b5f794f5595c0185de26f76643f169ade1a77a4b286c10fc3f93287c7d",
+        "bytes": 341489576,
+        "entries": 1025,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "5ec53e184b5c44c271526765f08a73b614c2477fe9c1efb7cee263dc200b260e",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "21ec588e085d8a2c09867ea389ff0dbdd2184a356bbc800930b02928054748d7",
+        "bytes": 397966952,
+        "entries": 952,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "4d5f45e24f83f1f768c8dc899fbbdcdff25f9b6910f0201599f7df507cbfc13f",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "a51ce66fa15e65c411aaa95802d156dc2352aae668c16771ddd3de9b85092b6e",
+        "bytes": 397076662,
+        "entries": 944,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "status": "failed",
+      "required_checks": 12,
+      "requirement_status_counts": {
+        "passed": 10,
+        "failed": 2
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "original_component": {
+        "report_sha256": "21a64c21407f472e588a8190bb5cfdba975cb8dcd13db5aa074d82be4574611f",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "retained_archive": {
+        "sha256": "89ac7c6f0553019c2a7969ba15de44ae100afec43f821b401c2b109b360c4963",
+        "bytes": 1022847660,
+        "entries": 1150,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "status": "failed",
+      "required_checks": 12,
+      "requirement_status_counts": {
+        "passed": 10,
+        "failed": 2
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "original_component": {
+        "report_sha256": "4296e0af99031430f41acb59e82a25f78024a90582709030adc49e316e852cc5",
+        "exit_code": 1,
+        "failure_phase": "public-sdk-conversation-control",
+        "failure_kind": "AssertionError"
+      },
+      "retained_archive": {
+        "sha256": "49b7637675202764eecf3495411ea24d8c5079fbe33e8752584af02f75d8c34e",
+        "bytes": 1002609233,
+        "entries": 1133,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "0cc7b9b3d387881ce26aae4a03d6b729ffa69ea1eb01f4f908fc46dc389027a4",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "7c147129cb32a6f08ed1fe2a85ba5eeebfc972017f7f285e487653d7e620de10",
+        "bytes": 323491510,
+        "entries": 1009,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "93ed9ea8daf3c6543e62de542575a9cb31ffbb54fb8a100ee554e4a24f3c3fc4",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "a952709cc44f479255d4ad1a6f0b19d7ee38dea4df615057793fabc414ddcb14",
+        "bytes": 323477466,
+        "entries": 1009,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "782e1d71676106c37a99d72ad7d3afd320064ba1daa2f989bf68bf2719e9ed69",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "e7bf3e6d6b26f76580c3460a4d071460ce92ec57b2004c78ecdff802dc49ae9d",
+        "bytes": 321041008,
+        "entries": 1008,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "0b8be911f09b94899f39e32a4e96ff8679deaa9902b2afe0d1e511e5bd60f785",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "51fb92e8317768cebdac008b2c043b532a6b179f31b483095ca72bd8fd4f2339",
+        "bytes": 320850830,
+        "entries": 1008,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "3c8f46c079760888b0f55f3d7437b95a66eb9cebf74a7b526115ec01bc7b3f87",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "decdfc7407141d032332d0500713b6516f3667830fc458ef8fdb341db2d68e67",
+        "bytes": 342596820,
+        "entries": 740,
+        "verified_before_removal": true
+      }
+    },
+    {
+      "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "status": "failed",
+      "required_checks": 14,
+      "requirement_status_counts": {
+        "passed": 13,
+        "failed": 1
+      },
+      "failed_requirements": [
+        "independently-decoded-duplex-media-and-profile-budgets"
+      ],
+      "original_component": {
+        "report_sha256": "492a70ab25a63fd6f09e28dc10bc1216e7cc0df1dd6ca3142764f9d0fc598ac4",
+        "exit_code": 1,
+        "failure_phase": "actual-browser-quality",
+        "failure_kind": null
+      },
+      "retained_archive": {
+        "sha256": "c444360b937467f0de62516e9d96cb93703ecd6c1b716c956f8014ab05127c40",
+        "bytes": 344221778,
+        "entries": 740,
+        "verified_before_removal": true
+      }
+    }
+  ],
+  "privacy_scope": "No raw media, credentials, private endpoint addresses, operation identities, or raw logs included. Evidence paths are checkout-relative."
+}

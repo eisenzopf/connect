@@ -156,6 +156,75 @@ pub(super) struct StartInvocation {
     pub entries: crate::canonical_media::replacement::ReplacementPreparationEntries,
     pub deadline: tokio::time::Instant,
 }
+/// Dispatch only the exact owned startup invocation. These held references are
+/// metadata, not a grant: TargetPolicy retains its current Store/physical/root,
+/// scope, intent and original-deadline checks for every control admission.
+pub(crate) fn held_start_control(
+    base: &crate::canonical_media::Policy,
+    scope: &MediaScope<'_>,
+    intent: &MediaControlIntent<'_>,
+    held: &(dyn Any + Send + Sync),
+) -> Option<ControlResult<MediaControl>> {
+    let invocation = held.downcast_ref::<StartInvocation>()?;
+    Some(
+        if !std::ptr::eq(base, Arc::as_ptr(&invocation.policy.base)) {
+            Err(StreamControlError::Authority)
+        } else {
+            invocation.policy.current_control(scope, intent, held)
+        },
+    )
+}
+
+#[cfg(feature = "test-support")]
+pub(crate) fn probe_held_start_control_for_test(
+    base: &crate::canonical_media::Policy,
+    scope: &MediaScope<'_>,
+    intent: &MediaControlIntent<'_>,
+    held: &(dyn Any + Send + Sync),
+) -> Option<ControlResult<MediaControl>> {
+    let invocation = held.downcast_ref::<StartInvocation>()?;
+    if !matches!(intent, MediaControlIntent::Change { expected: 0, .. })
+        || !matches!(&invocation.authority, StartAuthority::Resumed { .. })
+    {
+        return None;
+    }
+    let operation = invocation
+        .policy
+        .root
+        .upgrade()?
+        .origin
+        .request()
+        .operation_id
+        .clone();
+    let observed = base.probe_start_dispatch_for_test(&operation, scope.connection, || {
+        let foreign = crate::canonical_media::Policy::new(base.store.clone(), 1);
+        let foreign_refused = matches!(
+            held_start_control(&foreign, scope, intent, held),
+            Some(Err(StreamControlError::Authority))
+        );
+        let mut expired = invocation.clone();
+        expired.deadline = tokio::time::Instant::now() - Duration::from_secs(1);
+        let expired_refused = matches!(
+            held_start_control(base, scope, intent, &expired),
+            Some(Err(StreamControlError::Authority))
+        );
+        // The probe has been consumed. Re-enter the actual shared policy under
+        // all three dispatch registry exclusions, without a second gate effect.
+        let current = base.current_control(scope, intent, held);
+        (foreign_refused, expired_refused, current)
+    })?;
+    // Only this consumed, armed test probe can continue after its deliberately
+    // contended old dispatch. All registry guards have now dropped. Preserve
+    // the failed witness, but reacquire the same current held policy admission
+    // so the original gate and all fixture owners can reach natural cleanup.
+    // This is not a second gate call; no gate effect has occurred at admission.
+    Some(match observed {
+        Err(StreamControlError::NotReady) => held_start_control(base, scope, intent, held)
+            .expect("same original typed startup invocation"),
+        outcome => outcome,
+    })
+}
+
 fn deny<T>(_: T) -> StreamControlError {
     StreamControlError::Authority
 }
@@ -472,7 +541,9 @@ impl MediaPolicy for TargetPolicy {
         }
         let (owner, _) = self.held_owners(i)?;
         #[cfg(feature = "test-support")]
-        let owner = if matches!(intent, MediaControlIntent::Gate { .. }) {
+        let owner = if matches!(intent, MediaControlIntent::Change { expected: 0, .. })
+            && matches!(&i.authority, StartAuthority::Resumed { .. })
+        {
             let operation = self
                 .root
                 .upgrade()
@@ -484,10 +555,7 @@ impl MediaPolicy for TargetPolicy {
             match self
                 .base
                 .probe_held_registry_for_test(&format!("start:{operation}"), || {
-                    let legacy_refused = matches!(
-                        self.owners(i.read.source(), i.read.target()),
-                        Err(StreamControlError::Authority)
-                    );
+                    let published_current = self.owners(i.read.source(), i.read.target()).is_ok();
                     let mut expired = i.clone();
                     expired.deadline = tokio::time::Instant::now() - Duration::from_secs(1);
                     let expired_refused = matches!(
@@ -495,7 +563,7 @@ impl MediaPolicy for TargetPolicy {
                         Err(StreamControlError::Authority)
                     );
                     (
-                        legacy_refused && expired_refused,
+                        published_current && expired_refused,
                         self.held_owners(i).map(|(owner, _)| owner),
                     )
                 }) {

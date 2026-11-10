@@ -272,6 +272,7 @@ pub(crate) struct ConnectionGuard<'a> {
     connection: MutexGuard<'a, rusqlite::Connection>,
     _owner: Option<Arc<InstallationOwnership>>,
     immediate: bool,
+    writer: crate::authority_writer_boundary::Unit,
     // Declared last: tracing happens after SQLite and installation proof drop.
     _timing: Option<SqlCustodyTiming>,
 }
@@ -323,6 +324,7 @@ impl Drop for SqlCustodyTiming {
 }
 impl Drop for ConnectionGuard<'_> {
     fn drop(&mut self) {
+        self.writer.finish(&self.connection);
         if self.immediate {
             // The mutex is still owned. No other Store caller can observe this
             // temporary packet-path setting or restore it during our query.
@@ -330,6 +332,34 @@ impl Drop for ConnectionGuard<'_> {
                 .connection
                 .busy_timeout(std::time::Duration::from_secs(2));
         }
+    }
+}
+impl ConnectionGuard<'_> {
+    /// Pin only actual Writes from an existing proof. A Read stays a Read;
+    /// authority-bearing DML still refuses at its exact row trigger.
+    pub(crate) fn bind_available_mutation_authority(
+        &self,
+        store: &Store,
+        proof: &Arc<crate::AuthorityGuardSet>,
+    ) -> Result<()> {
+        if !store.authority_covers(proof, &[]) {
+            return Err(Error::forbidden());
+        }
+        let writes = proof.held_write_scopes();
+        if writes.is_empty() {
+            return Ok(());
+        }
+        self.bind_mutation_authority(store, proof, &writes)
+    }
+    /// Bind the exact already-acquired Store writer to this SQL unit. Schema
+    /// triggers still check every changed row's actual authority footprint.
+    pub(crate) fn bind_mutation_authority(
+        &self,
+        store: &Store,
+        proof: &Arc<crate::AuthorityGuardSet>,
+        required: &[crate::AuthorityScope],
+    ) -> Result<()> {
+        self.writer.bind(store, proof, required)
     }
 }
 impl Deref for ConnectionGuard<'_> {
@@ -518,6 +548,22 @@ impl Store {
         }
         Ok(())
     }
+    /// A command already owns its exact file proof. Pin its actual exclusive
+    /// scopes to this SQL unit; row triggers reject any uncovered mutation.
+    pub(crate) fn connection_with_authority(
+        &self,
+        proof: &Arc<crate::AuthorityGuardSet>,
+    ) -> Result<ConnectionGuard<'_>> {
+        if !self.authority_covers(proof, &[]) {
+            return Err(Error::forbidden());
+        }
+        let connection = self.connection()?;
+        let writes = proof.held_write_scopes();
+        if !writes.is_empty() {
+            connection.bind_mutation_authority(self, proof, &writes)?;
+        }
+        Ok(connection)
+    }
     #[track_caller]
     pub(crate) fn connection(&self) -> Result<ConnectionGuard<'_>> {
         let owner = self.runtime_ownership.permit(&self.path)?;
@@ -527,7 +573,9 @@ impl Store {
         if let Some(owner) = &owner {
             owner.check(&self.path)?;
         }
+        let writer = self.authority_writer_boundary.enter(&connection)?;
         Ok(ConnectionGuard {
+            writer,
             connection,
             _owner: owner,
             immediate: false,
@@ -553,7 +601,9 @@ impl Store {
         connection
             .busy_timeout(std::time::Duration::ZERO)
             .map_err(|_| Error::storage())?;
+        let writer = self.authority_writer_boundary.enter(&connection)?;
         Ok(ConnectionGuard {
+            writer,
             connection,
             _owner: owner,
             immediate: true,

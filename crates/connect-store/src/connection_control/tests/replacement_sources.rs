@@ -20,7 +20,7 @@ fn endpoint(f: &Fixture, capabilities: Vec<String>, name: &str) -> String {
             &f.admin,
             ProvisioningCommand::Endpoint {
                 operation_id: format!("provision-{name}"),
-                identity_id: identity,
+                identity_id: identity.clone(),
                 device: DeviceSpec {
                     id: format!("device-{name}"),
                     kind: "desktop".into(),
@@ -39,7 +39,14 @@ fn endpoint(f: &Fixture, capabilities: Vec<String>, name: &str) -> String {
     else {
         panic!()
     };
-    f.store.connection().unwrap().execute("UPDATE endpoints SET verification_state='verified',verification_evidence='controlled-fixture',verified_at=?2 WHERE id=?1",params![endpoint_id,crate::now()]).unwrap();
+    let writer = f
+        .store
+        .acquire_authority(
+            &[crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write).unwrap()],
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    f.store.connection_with_authority(&writer).unwrap().execute("UPDATE endpoints SET verification_state='verified',verification_evidence='controlled-fixture',verified_at=?2 WHERE id=?1",params![endpoint_id,crate::now()]).unwrap();
     endpoint_id
 }
 fn fixture_with_sources() -> (

@@ -1,6 +1,7 @@
 // Current retained SDK routes end alongside the final two physical owners.
 // No helper/client closes here; each actual route retains its original scope.
 import assert from "node:assert/strict";
+import { connectionSnapshots } from "./transport_snapshot.mjs";
 const id = value => typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
 async function delay(milliseconds, signal) {
     if (signal.aborted) throw signal.reason;
@@ -11,9 +12,11 @@ async function delay(milliseconds, signal) {
         if (signal.aborted) { signal.removeEventListener("abort", abort); abort(); }
     });
 }
-export async function endRetainedConnections({ routes, ends, conversationId, sessions, startedAt,
+export async function endRetainedConnections({ routes, clients, ends, conversationId, sessions, startedAt,
     signal, persist, now = () => performance.now(), wait = delay }) {
     assert.equal(routes.length, 6); assert.equal(sessions.length, 2);
+    assert.equal(clients.length, 6);
+    assert.ok(clients.every(client => client && typeof client.raw?.read === "function"));
     assert.ok(id(conversationId) && Number.isFinite(startedAt) && startedAt >= 0);
     assert.deepEqual(ends.map(end => end.index).sort((a, b) => a - b), [1, 2, 3, 5]);
     assert.ok(ends.every(end => id(end.operationId)));
@@ -52,7 +55,7 @@ export async function endRetainedConnections({ routes, ends, conversationId, ses
     }
     current();
     assert.ok(now() >= endAt, "original-media-programme-ended-before-current-end");
-    const results = await Promise.allSettled(originals.map(async ({ end, route, intent }) => {
+    const submissions = originals.map(async ({ end, route, intent }) => {
         // Cleanup remains owned even if a sibling consumes the original budget.
         // Deadline/cancellation can forbid mutation, never abandon packet joins.
         await route.stopAndJoin();
@@ -69,33 +72,64 @@ export async function endRetainedConnections({ routes, ends, conversationId, ses
         assert.equal(completed.snapshot.state, "completed");
         assert.equal(completed.value.id, route.connection.id);
         const receiptAt = now(); remaining();
-        for (;;) {
+        return { end, route, reference, receiptAt };
+    });
+    // Group only by the exact SDK used to offer each original Connection.
+    // An identical identity/Device or shared Conversation never merges clients.
+    const groups = new Map();
+    originals.forEach((original, index) => {
+        const client = clients[original.end.index];
+        if (!groups.has(client)) groups.set(client, []);
+        groups.get(client).push(submissions[index]);
+    });
+    const results = await Promise.allSettled([...groups].map(async ([client, work]) => {
+        // Original mutations/waits remain independent and occur exactly once.
+        // A failed sibling is preserved while successful siblings still observe.
+        const ended = await Promise.allSettled(work);
+        const failure = ended.find(value => value.status === "rejected");
+        let pending = ended.filter(value => value.status === "fulfilled").map(value => value.value);
+        const receipts = [];
+        while (pending.length) {
             let snapshot;
-            try { snapshot = await route.connection.refresh({ timeoutMs: remaining() }); }
-            catch (failure) {
-                // This specific call is read-only metadata. Preserve the one
-                // original end mutation; current authorization is rechecked.
+            try {
+                snapshot = await connectionSnapshots(client, conversationId, pending.map(({ route }) => ({
+                    id: route.connection.id, sessionId: sessions[route.sessionIndex].id,
+                })), { timeoutMs: remaining(), signal });
+            } catch (failure) {
                 if (!(failure.problem?.code === 503 && failure.problem?.reason === "storage-unavailable")) throw failure;
             }
+            remaining();
             if (snapshot) {
-                assert.equal(snapshot.id, route.connection.id);
-                assert.ok(Number.isSafeInteger(snapshot.generation) && snapshot.generation >= route.generation);
-                if (snapshot.state === "retired" && snapshot.generation > route.generation) break;
+                const next = [];
+                for (const [index, original] of pending.entries()) {
+                    const { end, route, reference, receiptAt } = original, current = snapshot.connections[index];
+                    assert.equal(current.id, route.connection.id);
+                    assert.equal(current.sessionId, sessions[route.sessionIndex].id);
+                    assert.ok(Number.isSafeInteger(current.generation) && current.generation >= route.generation);
+                    if (current.state !== "retired" || current.generation <= route.generation) { next.push(original);continue; }
+                    const result = { index: end.index, connection_id: route.connection.id, operation_id: end.operationId,
+                        original_reference: reference, mutation_submissions: 1,
+                        end_receipt_ms: receiptAt - endAt, retirement_observed_ms: now() - endAt,
+                        original_cutoff_monotonic_ms: cutoff, limit_ms: 5000, owned_packet_tasks_joined: true };
+                    await persist(end.index, "receipt", result); remaining();receipts.push(result);
+                }
+                pending = next;
             }
-            await wait(Math.min(50, remaining()), signal);
+            if (pending.length) await wait(Math.min(50, remaining()), signal);
         }
-        remaining();
-        const result = { index: end.index, connection_id: route.connection.id, operation_id: end.operationId,
-            original_reference: reference, mutation_submissions: 1,
-            end_receipt_ms: receiptAt - endAt, retirement_observed_ms: now() - endAt,
-            original_cutoff_monotonic_ms: cutoff, limit_ms: 5000, owned_packet_tasks_joined: true };
-        await persist(end.index, "receipt", result); remaining();
-        return result;
+        if (failure) throw failure.reason;
+        return receipts;
     }));
-    // A failed original still owns its siblings until all four are settled.
+    // All group observations are joined before choosing the outcome. Re-await
+    // the already-settled original promises; this performs no new IO or replay.
+    // A later snapshot/cutoff error must not hide an original end/wait failure,
+    // and grouping routes1+5 must not reorder original failures ahead of route2.
+    const originalsSettled = await Promise.allSettled(submissions);
+    const originalFailure = originalsSettled.find(result => result.status === "rejected");
+    if (originalFailure) throw originalFailure.reason;
     const failure = results.find(result => result.status === "rejected");
     if (failure) throw failure.reason;
     return { retained_connections_retired: 4, original_end_mutations: 4,
         shared_sdk_closed: false, original_cutoff_monotonic_ms: cutoff,
-        receipts: results.map(result => result.value) };
+        receipts: results.flatMap(result => result.value).sort((a, b) => a.index - b.index) };
 }

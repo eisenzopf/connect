@@ -309,10 +309,14 @@ impl Store {
         read: &NativeReplacementSceneRead,
     ) -> Result<NativeReplacementCommitAttempt> {
         let p = &origin.started.attempt.allocated.attempt.prepared;
-        if !read.current() || read.media.source.selection().origin.record != p.record {
+        if !read.current()
+            || read.media.source.selection().origin.record != p.record
+            || !self.authority_covers(&read.media.interval, &read.media.interval.mutation_scopes())
+        {
             return Err(Error::forbidden());
         }
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &read.media.interval)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -461,7 +465,9 @@ impl Store {
         local_owner(self, &p.owner, &p.runtime)?;
         let (held, mut c) = self.try_replacement_capture_projection(diagnostics, |c| {
             let row = rows::by_record(c, &p.record)?;
-            let mut scopes = admission::row_scopes(&row)?;
+            // Even a capture without an optional audience advances the live
+            // pending policy phase and must invalidate its exact snapshots.
+            let mut scopes = admission::mutation_row_scopes(&row)?;
             if audience.is_some() {
                 scopes.extend(crate::authority_admission::conversation_scopes(
                     c,

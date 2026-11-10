@@ -9,7 +9,7 @@ use serde_json::json;
 #[cfg(feature = "test-support")]
 mod mixer_writer;
 #[test]
-fn native_data_registry_contention_retries_without_authorizing_a_missing_connection() {
+fn native_data_registry_writer_does_not_block_readers_or_authorize_a_missing_connection() {
     let dir = tempfile::tempdir().unwrap();
     let store = Arc::new(
         Store::initialize(
@@ -21,7 +21,7 @@ fn native_data_registry_contention_retries_without_authorizing_a_missing_connect
     let policy = Policy::new(store, 8);
     let id = ConnectionId::from_string("original-data-source");
     let held = policy.entries.lock().unwrap();
-    assert_eq!(policy.data_entry(&id).err().unwrap().code, "authority-busy");
+    assert_eq!(policy.data_entry(&id).err().unwrap().code, "forbidden");
     drop(held);
     assert_eq!(policy.data_entry(&id).err().unwrap().code, "forbidden");
 }
@@ -55,7 +55,7 @@ fn poisoned_native_data_registry_remains_a_definitive_refusal() {
 }
 
 #[test]
-fn assistant_registry_contention_is_retryable_without_claiming_a_missing_source() {
+fn assistant_registry_writer_does_not_block_published_source_lookup() {
     let dir = tempfile::tempdir().unwrap();
     let store = Arc::new(
         Store::initialize(
@@ -68,7 +68,7 @@ fn assistant_registry_contention_is_retryable_without_claiming_a_missing_source(
     let held = policy.entries.lock().unwrap();
     assert_eq!(
         policy.assistant_source("assistant", 1).err().unwrap().code,
-        "authority-busy"
+        "not-ready"
     );
     drop(held);
     assert_eq!(
@@ -77,57 +77,30 @@ fn assistant_registry_contention_is_retryable_without_claiming_a_missing_source(
     );
 }
 #[test]
-fn native_packet_registry_contention_preserves_retry_without_lending_missing_source_authority() {
+fn native_packet_registry_writers_do_not_block_or_lend_missing_source_authority() {
     let dir = tempfile::tempdir().unwrap();
-    let store = Arc::new(
-        Store::initialize(
-            &dir.path().join("state.sqlite3"),
-            connect_protocol::Limits::default(),
-        )
-        .unwrap(),
-    );
+    let store =
+        Arc::new(Store::initialize(&dir.path().join("state.sqlite3"), Default::default()).unwrap());
     let policy = Policy::new(store, 8);
     let id = ConnectionId::from_string("actual-source".to_owned());
-    {
-        let held = policy.entries.lock().unwrap();
-        assert!(matches!(
-            policy.entry(&id),
-            Err(StreamControlError::NotReady)
-        ));
-        drop(held);
-        assert!(matches!(
-            policy.entry(&id),
-            Err(StreamControlError::Authority)
-        ));
-    }
-    {
-        let held = policy.initial_targets.lock().unwrap();
-        assert!(matches!(
-            policy.initial_target(&id),
-            Err(StreamControlError::NotReady)
-        ));
-        drop(held);
-        assert!(policy.initial_target(&id).unwrap().is_none());
-    }
-    {
-        let held = policy.telephone_targets.lock().unwrap();
-        assert!(matches!(
-            policy.telephone_target(&id),
-            Err(StreamControlError::NotReady)
-        ));
-        drop(held);
-        assert!(policy.telephone_target(&id).unwrap().is_none());
-    }
-    {
-        let held = policy.replacement_targets.lock().unwrap();
-        assert!(matches!(
-            policy.replacement_target(&id),
-            Err(StreamControlError::NotReady)
-        ));
-        drop(held);
-        assert!(policy.replacement_target(&id).unwrap().is_none());
-    }
+    let entries = policy.entries.lock().unwrap();
+    let initial = policy.initial_targets.lock().unwrap();
+    let telephone = policy.telephone_targets.lock().unwrap();
+    let replacement = policy.replacement_targets.lock().unwrap();
+    assert!(matches!(
+        policy.entry(&id),
+        Err(StreamControlError::Authority)
+    ));
+    assert!(policy.initial_target(&id).unwrap().is_none());
+    assert!(policy.telephone_target(&id).unwrap().is_none());
+    assert!(policy.replacement_target(&id).unwrap().is_none());
+    drop((entries, initial, telephone, replacement));
+    assert!(matches!(
+        policy.entry(&id),
+        Err(StreamControlError::Authority)
+    ));
 }
+
 #[test]
 fn native_packet_poisoned_registry_is_authority_failure_rather_than_retry() {
     let dir = tempfile::tempdir().unwrap();
@@ -582,15 +555,14 @@ async fn queued_receive_registry_contention_returns_to_the_async_packet_owner() 
         principal: &principal,
         purpose: MediaPurpose::Receive { source: &source },
     };
-    // Actual leaf-registry contention must return to Core's async retry owner,
-    // without turning sixteen synchronous callbacks into a 160 ms executor
-    // stall. No current permission or packet IO exists in these refusals.
+    // Holding the actual control writer cannot stall readers of the published
+    // map or turn a missing source into permission to deliver media.
     let held = policy.entries.lock().unwrap();
     let began = std::time::Instant::now();
     for _ in 0..16 {
         assert!(matches!(
             policy.current(&scope),
-            Err(StreamControlError::NotReady)
+            Err(StreamControlError::Authority)
         ));
     }
     assert!(
@@ -630,7 +602,7 @@ async fn queued_source_registry_contention_returns_to_the_original_packet_owner(
     for _ in 0..16 {
         assert!(matches!(
             policy.current_queued(&scope),
-            Err(StreamControlError::NotReady)
+            Err(StreamControlError::Authority)
         ));
     }
     assert!(
@@ -638,14 +610,13 @@ async fn queued_source_registry_contention_returns_to_the_original_packet_owner(
         "retained source callbacks occupied the executor instead of returning contention: {:?}",
         began.elapsed()
     );
-    // The fresh-ingress callback still owns its existing short retry. The
-    // distinction is ownership of a retained packet, never different authority.
+    // Fresh ingress also reads the published map without a contention retry.
     let fresh_began = std::time::Instant::now();
     assert!(matches!(
         policy.current(&scope),
-        Err(StreamControlError::NotReady)
+        Err(StreamControlError::Authority)
     ));
-    assert!(fresh_began.elapsed() >= Duration::from_millis(8));
+    assert!(fresh_began.elapsed() < Duration::from_millis(50));
     drop(held);
     tokio::task::yield_now().await;
     assert!(matches!(
@@ -655,7 +626,7 @@ async fn queued_source_registry_contention_returns_to_the_original_packet_owner(
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn original_ingress_distinguishes_actual_registry_exclusion_from_absent_authority() {
+async fn original_ingress_reads_published_absence_while_all_writers_are_excluded() {
     use rvoip_core::ids::ConversationId;
     let dir = tempfile::tempdir().unwrap();
     let store =
@@ -677,7 +648,7 @@ async fn original_ingress_distinguishes_actual_registry_exclusion_from_absent_au
         for _ in 0..16 {
             assert!(matches!(
                 policy.current_original_ingress(&scope),
-                Err(StreamControlError::MetadataBusy)
+                Err(StreamControlError::Authority)
             ));
         }
         assert!(

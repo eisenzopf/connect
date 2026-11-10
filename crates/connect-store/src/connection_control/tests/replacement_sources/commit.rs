@@ -5,6 +5,7 @@ use crate::{NativeMediaOrigin, NativeReplacementMediaOrigin, NativeReplacementSt
 use connect_protocol::transitions::{EffectState, OperationState};
 use std::sync::Arc;
 mod continuation;
+mod writer_boundary;
 struct Movement {
     f: Fixture,
     key: String,
@@ -137,7 +138,7 @@ fn captured_projection_refuses_contention_without_parking_packet_readers() {
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -237,7 +238,7 @@ fn captured_projection_drains_short_packet_readers_without_long_writer_parking()
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -339,7 +340,7 @@ fn pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_r
     let m = fixture_prepared(true, (f, key, command, prepared, request, sources));
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -399,7 +400,7 @@ fn candidate_adoption_successor_recovery_never_reconstructs_old_offer_from_new_m
     let m = fixture_prepared(true, (f, key, command, prepared, request, sources));
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -475,7 +476,7 @@ fn fixture_prepared(
         .store
         .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
         .unwrap();
-    let (attempt, read) = f
+    let (attempt, read, _) = f
         .store
         .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
         .unwrap();
@@ -494,10 +495,13 @@ fn fixture_prepared(
             crate::NativeReplacementMediaPhase::Activate,
             crate::NativeReplacementMediaPhase::Readiness,
         ] {
-            let read = f.store.try_native_replacement_media_read(&origin).unwrap();
+            let read = f
+                .store
+                .try_native_replacement_scene_write(&origin, &sources)
+                .unwrap();
             let attempt = f
                 .store
-                .begin_native_replacement_media_phase(origin.clone(), phase, &read)
+                .begin_native_replacement_media_phase(origin.clone(), phase, read.media())
                 .unwrap();
             let expected = attempt.expected().unwrap();
             let capture = attempt.applied(expected).unwrap();
@@ -548,7 +552,7 @@ fn replacement_commit_requires_actual_private_readiness_and_complete_current_sce
     let m = fixture(false);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let before = (m.f.count("operation_effects"), m.f.count("journal"));
     assert_eq!(
@@ -581,7 +585,7 @@ fn replacement_known_commit_capture_survives_cancel_revocation_and_failed_metada
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -656,7 +660,7 @@ fn replacement_unknown_commit_cannot_be_cancelled_into_candidate_cleanup_or_work
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -730,7 +734,7 @@ fn replacement_commit_capture_refuses_wrong_incarnation_role_confirmation_and_un
         let m = fixture(true);
         let read =
             m.f.store
-                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
                 .unwrap();
         let attempt =
             m.f.store
@@ -773,7 +777,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
         let m = fixture(true);
         let read =
             m.f.store
-                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
                 .unwrap();
         let attempt =
             m.f.store
@@ -981,7 +985,7 @@ fn replacement_established_stream_commands_use_candidate_parent_and_independent_
         let m = fixture_scoped(true, if granted { &["stream.subscribe"] } else { &[] });
         let read =
             m.f.store
-                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
                 .unwrap();
         let attempt =
             m.f.store
@@ -1082,7 +1086,7 @@ fn replacement_actual_absence_cleanup_is_exact_historical_and_idempotent_after_t
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -1176,7 +1180,7 @@ fn replacement_audience_revisions_are_atomic_historical_and_keep_surviving_nativ
     ] {
         let read =
             m.f.store
-                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
                 .unwrap();
         candidate = read.media().target().runtime_connection_id.clone();
         let attempt =
@@ -1234,7 +1238,7 @@ fn replacement_audience_revisions_are_atomic_historical_and_keep_surviving_nativ
     assert_eq!(m.f.count("native_replacement_audiences"), 1);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let revisions = read
         .capture_commit_revisions(BTreeMap::from([(old, 3), (remote, 3), (candidate, 4)]))
@@ -1286,7 +1290,26 @@ fn replacement_audience_revisions_are_atomic_historical_and_keep_surviving_nativ
     let backup = m.f._dir.path().join("audience-revisions.sqlite3");
     let snapshot = m.f.store.backup(&backup).unwrap();
     let copy = rusqlite::Connection::open(&backup).unwrap();
-    copy.execute_batch("DROP TRIGGER native_replacement_audience_immutable;UPDATE native_replacement_audiences SET capture_json='{}' WHERE phase='activate'").unwrap();
+    // Deliberate corruption is restricted to this offline copy. First retain
+    // its real raw-write refusal, then restore both exact guard definitions so
+    // the digest witness reflects changed rows rather than a missing schema.
+    let original_triggers: Vec<String> = copy.prepare(
+        "SELECT sql FROM sqlite_schema WHERE type='trigger' AND name IN ('native_replacement_audience_immutable','connect_writer_native_replacement_audiences_update') ORDER BY name"
+    ).unwrap().query_map([], |row| row.get(0)).unwrap().collect::<rusqlite::Result<_>>().unwrap();
+    assert_eq!(original_triggers.len(), 2);
+    assert!(copy
+        .execute_batch(
+            "UPDATE native_replacement_audiences SET capture_json='{}' WHERE phase='activate'"
+        )
+        .is_err());
+    copy.execute_batch("DROP TRIGGER native_replacement_audience_immutable; DROP TRIGGER connect_writer_native_replacement_audiences_update; UPDATE native_replacement_audiences SET capture_json='{}' WHERE phase='activate'").unwrap();
+    for sql in &original_triggers {
+        copy.execute_batch(sql).unwrap();
+    }
+    let restored_triggers: Vec<String> = copy.prepare(
+        "SELECT sql FROM sqlite_schema WHERE type='trigger' AND name IN ('native_replacement_audience_immutable','connect_writer_native_replacement_audiences_update') ORDER BY name"
+    ).unwrap().query_map([], |row| row.get(0)).unwrap().collect::<rusqlite::Result<_>>().unwrap();
+    assert_eq!(restored_triggers, original_triggers);
     assert_ne!(
         Store::inspect_snapshot(&backup).unwrap().digest,
         snapshot.digest
@@ -1299,7 +1322,7 @@ fn replacement_known_commit_projection_preserves_later_topology_without_replayin
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -1363,7 +1386,7 @@ fn replacement_av_commit_capture_requires_every_original_negotiated_resource_ide
         let m = fixture_prepared(true, (f, key, command, prepared, request, sources));
         let read =
             m.f.store
-                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
                 .unwrap();
         let attempt =
             m.f.store
@@ -1416,3 +1439,5 @@ impl crate::NativeReplacementInstallationGuard for MetadataOnlyInstallationGuard
 mod private_successor;
 
 mod scene_unary;
+
+mod snapshot_binding;

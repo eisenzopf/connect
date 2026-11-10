@@ -152,7 +152,7 @@ Explicit result-retention maintenance requires a closed conversation for at leas
 30 days, a terminal operation older than that window and settled external effects.
 Full intent/results may then be removed; the original digest, ID and scope tombstone
 remain. A matching expired ID returns `gone`; changed intent conflicts. It can
-never execute again silently. The current fresh state is schema 117; the earlier
+never execute again silently. The current fresh state is schema 118; the earlier
 31/32 references above identify historical introduction points. Older candidates
 are refused unchanged and require preservation with their matching binary plus
 explicit new-state provisioning. See the current [operations guide](../operations/README.md).
@@ -166,6 +166,14 @@ permission: admission and execution still validate the current actor, original
 lineage and each surviving physical source. A departed latest successor requires
 its own recorded retirement; an older owner cannot be substituted. No wire/API
 change, migration of existing state or compatibility path is introduced.
+
+Schema 118 enforces coordinated authorization writers at the SQL boundary.
+Authority-bearing mutations must retain the exact Store writer proof through
+commit or rollback. Schema validation precedes enabling immutable media
+authorization snapshots; unregistered SQL writers are refused. Existing state
+requires preservation with its matching binary and explicit fresh provisioning.
+This implementation remains under focused verification; it is not Gate 6
+qualification evidence.
 
 Local evidence distinguishes control/storage fixtures from real media. The crash
 harness exits actual child processes at 27 admission/claim/effect/ready/commit,

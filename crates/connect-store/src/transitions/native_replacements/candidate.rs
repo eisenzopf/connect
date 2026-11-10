@@ -83,6 +83,35 @@ pub(crate) fn retired_original(
 ) -> Result<bool> {
     c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_candidates q JOIN operation_effects e ON e.id=q.retirement_effect_id AND e.operation_record_id=q.operation_record_id AND e.provider='native-candidate-retire' WHERE q.original_record_id=?1 AND e.state='confirmed' AND e.attempt=1 AND json_extract(q.claim_json,'$.core')=?2 AND json_extract(q.claim_json,'$.generation')=?3 AND json_extract(q.claim_json,'$.attempt')=?4 AND json_extract(q.claim_json,'$.effect')=?5 AND json_extract(q.claim_json,'$.runtime')=?6 AND json_extract(e.observation_json,'$.core')=?2 AND json_extract(e.observation_json,'$.generation')=?3 AND json_extract(e.observation_json,'$.retired_generation')=?3+1)",params![record,core,generation,attempt,effect,runtime],|r|r.get(0)).map_err(|_|Error::storage())
 }
+fn mutation_scopes(c: &Connection, records: &[&str]) -> Result<Vec<crate::AuthorityScope>> {
+    let mut scopes = Vec::new();
+    for record in records {
+        scopes.extend(admission::mutation_row_scopes(&rows::by_record(
+            c, record,
+        )?)?);
+    }
+    crate::AuthorityScope::merged(&scopes)
+}
+fn mutation_writer(store: &Store, records: &[&str]) -> Result<Arc<crate::AuthorityGuardSet>> {
+    store.stable_authority(
+        &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+        || {
+            let c = store.try_connection()?;
+            mutation_scopes(&c, records)
+        },
+    )
+}
+fn require_writer(
+    store: &Store,
+    c: &Connection,
+    held: &crate::AuthorityGuardSet,
+    records: &[&str],
+) -> Result<()> {
+    if !store.authority_covers(held, &mutation_scopes(c, records)?) {
+        return Err(Error::forbidden());
+    }
+    Ok(())
+}
 impl Store {
     /// Negative metadata settlement only. A revoked initiator cannot leave a
     /// known pre-ticket failure looking like an active replacement. No result,
@@ -93,7 +122,16 @@ impl Store {
         command: &TransitionCommand,
     ) -> Result<Option<bool>> {
         let owner = self.require_runtime_owner()?;
+        let record: Option<String> = {
+            let c = self.try_connection()?;
+            c.query_row("SELECT q.operation_record_id FROM native_replacement_candidates q JOIN operations parent ON parent.record_id=q.operation_record_id WHERE q.credential_id=?1 AND q.runtime_epoch=?2 AND parent.operation_id=?3 AND q.original_digest=parent.digest", params![credential,self.runtime_epoch(),command.operation_id], |r|r.get(0)).optional().map_err(|_|Error::storage())?
+        };
+        let Some(original_record) = record else {
+            return Ok(None);
+        };
+        let held = mutation_writer(self, &[&original_record])?;
         let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| busy())?;
@@ -101,6 +139,10 @@ impl Store {
         let Some((record, effect)) = claimed else {
             return Ok(None);
         };
+        if record != original_record {
+            return Err(Error::forbidden());
+        }
+        require_writer(self, &tx, &held, &[&record])?;
         let row = rows::by_record(&tx, &record)?;
         if rows::request(&row)?
             != command
@@ -194,10 +236,13 @@ impl Store {
             if source.observe_retired(&original.core, original.generation)? != expected {
                 return Err(Error::forbidden());
             }
+            let held = mutation_writer(self, &[record, &original.record])?;
             let mut c = self.try_connection()?;
+            c.bind_available_mutation_authority(self, &held)?;
             let tx = c
                 .transaction_with_behavior(TransactionBehavior::Immediate)
                 .map_err(|_| busy())?;
+            require_writer(self, &tx, &held, &[record, &original.record])?;
             let retired:Option<u64>=tx.query_row("SELECT v.generation FROM native_replacement_candidates q JOIN connections v ON v.id=q.candidate_connection_id JOIN connection_offers mapping ON mapping.connection_id=v.id JOIN native_offer_operations n ON n.operation_record_id=q.original_record_id JOIN operations original ON original.record_id=n.operation_record_id JOIN operation_effects old_effect ON old_effect.id=n.effect_id WHERE q.operation_record_id=?1 AND q.claim_json=?2 AND q.retirement_effect_id=?3 AND q.runtime_epoch!=?4 AND NOT EXISTS(SELECT 1 FROM native_replacements replacement WHERE replacement.operation_record_id=q.operation_record_id) AND v.id=?5 AND v.state='retired' AND v.observed_runtime_id IS NULL AND v.readiness_json IS NULL AND v.generation>?6 AND mapping.runtime_connection_id=?7 AND n.attempt_id=?8 AND n.effect_id=?9 AND n.attempt_runtime=?10 AND ((original.state IN ('failed','cancelled') AND old_effect.state='failed') OR (original.state='completed' AND old_effect.state='confirmed' AND EXISTS(SELECT 1 FROM native_connection_lifetimes lifetime WHERE lifetime.operation_record_id=original.record_id AND lifetime.retired=1)))",params![record,encoded,effect,self.runtime_epoch(),connection,original.generation,original.core,original.attempt,original.effect,original.runtime],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
             let generation = retired.ok_or_else(Error::forbidden)?;
             let observation = crate::provisioning::canonical_json(
@@ -236,11 +281,18 @@ impl Store {
         attempt: &NativeReplacementCandidateRetirement,
     ) -> Result<()> {
         let claim = &attempt.claim;
+        let records = [
+            &claim.selection.origin.record[..],
+            &claim.original.record[..],
+        ];
+        let held = mutation_writer(self, &records)?;
         let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| busy())?;
         bound(&tx, self, claim)?;
+        require_writer(self, &tx, &held, &records)?;
         tx.execute(
             "UPDATE operation_effects SET state='unknown' WHERE id=?1 AND state='submitting'",
             [&claim.effect],
@@ -253,8 +305,8 @@ impl Store {
         tx.commit().map_err(|_| Error::storage())?;
         Ok(())
     }
-    /// Reserve attribution under shared current source/target readers. Taking a
-    /// conversation writer here would wait behind the pending worker being joined.
+    /// Reserve attribution under fresh current scene exclusion, after consuming
+    /// the provisional reader. No writer survives into the physical join.
     pub fn claim_native_replacement_candidate(
         &self,
         read: NativeReplacementPreparationRead,
@@ -264,14 +316,15 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                selection.scopes(self, &c, false)
+                selection.scopes(self, &c, true)
             },
         )?;
         let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| busy())?;
-        if !self.authority_covers(&held, &selection.scopes(self, &tx, false)?) {
+        if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
             return Err(Error::forbidden());
         }
         let origin = &selection.origin;
@@ -320,12 +373,32 @@ impl Store {
         &self,
         claim: &NativeReplacementCandidate,
     ) -> Result<Option<NativeReplacementCandidateRetirement>> {
-        let read = claim.selection.read(self)?;
+        let expires = claim
+            .selection
+            .origin
+            .request
+            .expires_at
+            .min(claim.selection.physical_expiry())
+            .min(claim.original.expires);
+        let remaining =
+            std::time::Duration::from_secs(expires.saturating_sub(crate::now()).max(0) as u64);
+        let wait = crate::AuthorityWait::new(remaining.min(crate::authority_fences::DEFAULT_WAIT));
+        let held = self.stable_authority(&wait, || {
+            let c = self.try_connection()?;
+            claim.selection.scopes(self, &c, true)
+        })?;
         let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| busy())?;
         bound(&tx, self, claim)?;
+        if !self.authority_covers(&held, &claim.selection.scopes(self, &tx, true)?) {
+            return Err(Error::forbidden());
+        }
+        let read = claim
+            .selection
+            .read_with_connection(self, &tx, held.clone(), expires)?;
         if !read.current() {
             return Err(Error::forbidden());
         }
@@ -377,11 +450,18 @@ impl Store {
             return Err(Error::forbidden());
         }
         let owner = self.require_runtime_owner()?;
+        let records = [
+            &claim.selection.origin.record[..],
+            &claim.original.record[..],
+        ];
+        let held = mutation_writer(self, &records)?;
         let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| busy())?;
         bound(&tx, self, claim)?;
+        require_writer(self, &tx, &held, &records)?;
         let encoded = crate::provisioning::canonical_json(
             &serde_json::json!({"core":claim.original.core,"generation":claim.original.generation,"retired_generation":claim.original.generation+1}),
         )?;

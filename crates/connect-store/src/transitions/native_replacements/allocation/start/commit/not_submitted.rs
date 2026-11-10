@@ -28,7 +28,7 @@ impl Store {
         let p = &a.origin.started.attempt.allocated.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
         let (held, mut c) = self.try_replacement_capture_projection(None, |c| {
-            admission::row_scopes(&rows::by_record(c, &p.record)?)
+            admission::mutation_row_scopes(&rows::by_record(c, &p.record)?)
         })?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)

@@ -18,14 +18,28 @@ async function scenario(mode) {
     const revisions = [1, 1];
     const physicalRetired = new Set();
     const controllers = [{ owner: "existing-original-helper" }, { owner: "existing-controller-helper" }];
-    const connection = (id, generation) => ({ id, async refresh() {
+    const handles = new Map(), finalReads = [];
+    const connection = (id, generation) => { const handle = ({ id, async refresh() {
         if (mode === "retirement-refusal" && physicalRetired.has(id)) throw Object.assign(Error("current metadata refused"), { kind: "authorization", certainty: "read-only" });
         return { id, generation: generation + Number(physicalRetired.has(id)), state: physicalRetired.has(id) ? "retired" : "active", streamRevision: 2 }; },
         streams: { async subscribe(intent, options) {
             subscriptions.push({ intent, options });
             return { async wait() { return { snapshot: { state: "completed" } }; } };
-        } } });
-    const connections = roles.map((role, i) => ({ connection: connection("original-" + i, 1) }));
+        } } });handles.set(id, handle);return handle; };
+    for (const [sid, client] of controllers.entries()) client.raw = { read: async (request, options) => {
+        assert.equal(request.cid, "original-room"); assert.equal(request.type, "conversation.get");
+        assert.ok(options.timeoutMs > 0 && options.timeoutMs <= 5000);
+        finalReads.push({ sid, client, request, options });
+        const items = [];
+        for (const [id, handle] of handles) if (id.startsWith("candidate-" + sid + "-")) {
+            const current = await handle.refresh();
+            items.push({ kind: "connection", data: { connection_id: current.id, session_id: "session-" + sid,
+                state: current.state, generation: current.generation } });
+        }
+        return [{ value: { type: "ack", payload: {} } }, { value: { type: "conversation.snapshot",
+            payload: { revision: 9, cursor: "controller-watermark", has_more: false, items } } }];
+    } };
+    const connections = roles.map((role, i) => ({ connection: connection("original-" + i, 1), client: controllers[Number(i >= 4)] }));
     const dataProfile = ["data", "partial-data", "data-failure", "prepared-video-data"].includes(mode);
     const streamIds = roles.map((_, i) => ({ audio: "audio-" + i, video: "video-" + i,
         ...(dataProfile && !(mode === "partial-data" && i === 5) ? { data: "data-" + i } : {}) }));
@@ -316,6 +330,9 @@ async function scenario(mode) {
         assert.equal(observation.full_timeline_decoded, false);
         assert.equal(observation.task_complete, false);
         assert.equal(retainedJoined, true);
+        assert.equal(finalReads.length, 2);
+        assert.deepEqual(finalReads.map(read => read.sid).sort(), [0, 1]);
+        assert.equal(new Set(finalReads.map(read => read.client)).size, 2);
         assert.equal(observation.current_owner_end.current_connections_ended, 6);
         assert.deepEqual(observation.current_owner_end.physical.map(end => end.index).sort(), [0, 4]);
         assert.ok(currentConnections.every(v => [0, 4].includes(v.sourceIndex) && v.connection.id.endsWith("-1")));

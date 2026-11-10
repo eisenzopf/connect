@@ -12,6 +12,7 @@ memory-diagnostics = ["test-support"]
 test-support = []
 
 [dependencies]
+arc-swap.workspace = true
 ring.workspace = true
 connect-connector-api.workspace = true
 connect-protocol.workspace = true

@@ -21,7 +21,7 @@ impl crate::NativeReplacementInstallationObservation for Installation {
 pub(super) fn captured(m: &Movement) -> crate::NativeReplacementCommitted {
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -205,7 +205,7 @@ fn only_known_current_pending_activation_is_temporary_and_revocation_remains_per
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store

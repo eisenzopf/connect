@@ -594,7 +594,24 @@ fn actual_child_process_revocation_waits_for_parent_delivery_guard_and_admin_ope
         .participants
         .remove(0);
     let tenant = f.store.credential_metadata(&f.user).unwrap().tenant_id;
-    let c = rusqlite::Connection::open(f.store.path()).unwrap();
+    // Fixture state is a real coordinated write, before the delivery reader
+    // and actual child process begin. The later raw connection only observes.
+    let scopes = {
+        let c = f.store.connection().unwrap();
+        let mut scopes = crate::authority_admission::conversation_scopes(
+            &c,
+            &conversation.id,
+            AuthorityMode::Write,
+        )
+        .unwrap();
+        scopes.push(f.scope(AuthorityMode::Write));
+        scopes
+    };
+    let writer = f
+        .store
+        .acquire_authority(&scopes, &AuthorityWait::new(Duration::from_secs(1)))
+        .unwrap();
+    let c = f.store.connection_with_authority(&writer).unwrap();
     c.execute("INSERT INTO sessions(id,conversation_id,initiator_id,participant_id,state,media,created_at,updated_at) VALUES('session',?1,?2,?2,'active','[\"data\"]',1,1)",rusqlite::params![conversation.id,f.identity]).unwrap();
     c.execute(
         "INSERT INTO session_participants VALUES('session',?1,?2,?3,1,'participant','present')",
@@ -602,6 +619,9 @@ fn actual_child_process_revocation_waits_for_parent_delivery_guard_and_admin_ope
     )
     .unwrap();
     c.execute("INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,state,observed_runtime_id,observed_at,readiness_json) VALUES('connection','session',?1,1,?2,?3,?4,3,'active',?5,1,'{}')",rusqlite::params![member.participant_id,f.identity,tenant,endpoint_id,f.store.runtime_epoch()]).unwrap();
+    drop(c);
+    drop(writer);
+    let c = rusqlite::Connection::open(f.store.path()).unwrap();
     let read = f
         .store
         .read_authority(
@@ -833,3 +853,66 @@ mod resource_preparation;
 
 #[cfg(unix)]
 mod identity_wait;
+
+#[test]
+fn cross_process_writer_invalidates_live_snapshot_and_waits_for_original_io() {
+    use crate::media_authorization::{Prepared, SnapshotFacts};
+    struct CurrentOwner;
+    impl SnapshotFacts for CurrentOwner {
+        fn current(&self) -> bool {
+            true
+        }
+    }
+    let f = Fixture::new();
+    let registry = f.store.media_authorization_registry().clone();
+    let weak_store = Arc::downgrade(&f.store);
+    let credential = f.user.clone();
+    let handle = registry
+        .register(move || {
+            let store = weak_store.upgrade().ok_or_else(Error::forbidden)?;
+            let read = store.read_authority(
+                &credential,
+                None,
+                &AuthorityWait::new(Duration::from_millis(5)),
+            )?;
+            Prepared::new(
+                Arc::new(CurrentOwner),
+                read,
+                Instant::now() + Duration::from_secs(10),
+            )
+        })
+        .unwrap();
+    let mut watcher = registry.start_watcher(Duration::from_millis(1)).unwrap();
+    registry.enable_after_writer_boundary().unwrap();
+    let end = Instant::now() + Duration::from_secs(2);
+    let lease = loop {
+        if let Ok(lease) = handle.admit() {
+            break lease;
+        }
+        assert!(Instant::now() < end, "initial snapshot not published");
+        std::thread::sleep(Duration::from_millis(1));
+    };
+    let queued = lease.stamp();
+    let mut child = Process::start(&f, "revoke");
+    child.line("FENCE READY");
+    child.go();
+    waiting(&f.store, &f.scope(AuthorityMode::Write));
+    // No same-process before_write callback can observe this child. Only the
+    // owned off-media admission probe can revoke its original publication.
+    let end = Instant::now() + Duration::from_secs(1);
+    while lease.current() && Instant::now() < end {
+        std::thread::sleep(Duration::from_millis(1));
+    }
+    let revoked_before_commit = !lease.current();
+    let denied_new = handle.admit().is_err();
+    let child_still_waits_for_io = child.child.try_wait().unwrap().is_none();
+    let credential_still_valid = f.store.revalidate(&f.user).is_ok();
+    drop(lease);
+    child.line("FENCE COMMITTED");
+    child.finish();
+    let rejected_revoked_credential = f.store.revalidate(&f.user).is_err();
+    let rejected_old_work = handle.admit_original(queued).is_err();
+    watcher.shutdown().unwrap();
+    assert!(revoked_before_commit && denied_new && child_still_waits_for_io);
+    assert!(credential_still_valid && rejected_revoked_credential && rejected_old_work);
+}

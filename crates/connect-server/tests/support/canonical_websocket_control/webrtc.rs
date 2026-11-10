@@ -431,3 +431,273 @@ async fn current_endpoint_revocation_after_signed_sdp_retires_rtc_and_preserves_
     drop(ws);
     f.server.shutdown().await.unwrap();
 }
+
+// The real SignalingHost and its original Peer worker stay unchanged. This
+// wrapper gates only the original answer observation at the existing Host seam.
+struct QuarantinedAnswerHost {
+    inner: Arc<SignalingHost>,
+    entered: Arc<tokio::sync::Notify>,
+    release: Arc<tokio::sync::Notify>,
+}
+struct QuarantinedAnswerAttempt {
+    inner: Arc<dyn connect_service::canonical_webrtc::Attempt>,
+    entered: Arc<tokio::sync::Notify>,
+    release: Arc<tokio::sync::Notify>,
+}
+impl Host for QuarantinedAnswerHost {
+    fn adapter(&self) -> Arc<rvoip_webrtc::canonical::CanonicalWebRtcAdapter> {
+        self.inner.adapter()
+    }
+    fn reserve_physical(
+        &self,
+        peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
+        physical: tokio_util::sync::CancellationToken,
+    ) -> connect_protocol::Result<Arc<rvoip_webrtc::canonical::WebRtcPhysicalBinding>> {
+        self.inner.reserve_physical(peer, physical)
+    }
+    fn start(
+        &self,
+        preparation: connect_service::canonical_webrtc::Preparation,
+    ) -> Arc<dyn connect_service::canonical_webrtc::Attempt> {
+        Arc::new(QuarantinedAnswerAttempt {
+            inner: self.inner.start(preparation),
+            entered: self.entered.clone(),
+            release: self.release.clone(),
+        })
+    }
+}
+#[async_trait::async_trait]
+impl connect_service::canonical_webrtc::Attempt for QuarantinedAnswerAttempt {
+    fn original_attempt(&self) -> &connect_store::NativeOfferLease {
+        self.inner.original_attempt()
+    }
+    fn release_invocation(&self) {
+        self.inner.release_invocation();
+    }
+    async fn answer(
+        &self,
+        deadline: tokio::time::Instant,
+    ) -> connect_protocol::Result<rvoip_uctp::v2::payloads::ConnectionAnswer> {
+        self.entered.notify_one();
+        tokio::time::timeout_at(deadline, self.release.notified())
+            .await
+            .map_err(|_| {
+                connect_protocol::Error::new("timeout", "Original answer barrier deadline")
+            })?;
+        self.inner.answer(deadline).await
+    }
+    async fn shutdown(&self) -> connect_protocol::Result<()> {
+        self.inner.shutdown().await
+    }
+    async fn closed(&self) -> connect_protocol::Result<()> {
+        self.inner.closed().await
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_wss_quarantined_sdp_answer_progresses_under_real_domain_writer() {
+    use rvoip_core::adapter::ConnectionAdapter;
+    for algorithm in ["EdDSA", "ES256"] {
+        let f = configured(algorithm, 8, None).await;
+        let host = SignalingHost::new(audio_config(), 1).unwrap();
+        let entered = Arc::new(tokio::sync::Notify::new());
+        let release = Arc::new(tokio::sync::Notify::new());
+        f.server
+            .service
+            .install_canonical_webrtc(Arc::new(QuarantinedAnswerHost {
+                inner: host.clone(),
+                entered: entered.clone(),
+                release: release.clone(),
+            }))
+            .unwrap();
+        provision(&f).await;
+        let cid = solo(&f).await;
+        let caller = RvoipPeerConnection::new(&audio_config(), PeerRole::Offerer)
+            .await
+            .unwrap();
+        let sdp = caller.create_offer_and_gather().await.unwrap();
+        let mut ws = Peer::open(&f).await;
+        let original = offer(&cid, &sdp);
+        let id = ws.send(original.clone(), true).await;
+        let mut publisher = None;
+        // No assertion/panic on the exercised negative paths: preserve the
+        // failure, then release and join every original owner below.
+        let outcome: std::result::Result<(), String> = async {
+            tokio::time::timeout(Duration::from_secs(5), entered.notified())
+                .await
+                .map_err(|_| "original SDP answer barrier deadline".to_owned())?;
+            let writer = f.server.store.try_acquire_authority(&[
+                connect_store::AuthorityScope::identity(
+                    &f.client.identity_id,
+                    connect_store::AuthorityMode::Write,
+                )
+                .map_err(|e| format!("identity scope: {e:?}"))?,
+                connect_store::AuthorityScope::conversation(
+                    &cid,
+                    connect_store::AuthorityMode::Write,
+                )
+                .map_err(|e| format!("conversation scope: {e:?}"))?,
+            ]);
+            let released_domain = writer.is_ok();
+            // Keep the real Write through the original backend SDP answer AND
+            // signed WSS response. A deferred reader retry cannot satisfy this.
+            release.notify_one();
+            let answer = tokio::time::timeout(Duration::from_secs(5), async {
+                let text = loop {
+                    match ws.socket.next().await {
+                        Some(Ok(Message::Text(text))) => break text,
+                        Some(Ok(Message::Ping(_) | Message::Pong(_))) => {}
+                        other => return Err(format!("original WSS answer frame: {other:?}")),
+                    }
+                };
+                let answer =
+                    Envelope::parse(text.as_bytes()).map_err(|e| format!("answer parse: {e:?}"))?;
+                ws.verifier
+                    .verify_with_context(answer.original(), &ws.context)
+                    .await
+                    .map_err(|e| format!("answer signature: {e:?}"))?;
+                Ok(answer)
+            })
+            .await
+            .map_err(|_| "original signed answer deadline".to_owned())??;
+            let exact_answer = answer.kind() == "connection.answer"
+                && answer.original()["in_reply_to"] == id
+                && ["cid", "sid", "connid", "operation_id"]
+                    .iter()
+                    .all(|key| answer.original()[*key] == original[*key]);
+            // Final current activation must acquire its own fresh Write. This
+            // test writer must be gone BEFORE DTLS/first-primary can activate.
+            drop(writer);
+            if !exact_answer {
+                return Err(format!("wrong resource answer: {}", answer.kind()));
+            }
+            let sdp = answer.original()["payload"]["substrate_setup"]["sdp"]
+                .as_str()
+                .ok_or_else(|| "resource answer missing SDP".to_owned())?;
+            caller
+                .set_remote_answer(sdp)
+                .await
+                .map_err(|e| format!("remote SDP: {e:?}"))?;
+            caller
+                .wait_connected(Duration::from_secs(5))
+                .await
+                .map_err(|e| format!("DTLS: {e:?}"))?;
+            let session = f
+                .server
+                .service
+                .canonical_session_metadata_for_test("wss-webrtc-session")
+                .map_err(|e| format!("original Session missing: {e:?}"))?;
+            let credential = f
+                .server
+                .store
+                .authenticate(&f.client.credential)
+                .map_err(|e| format!("current credential: {e:?}"))?
+                .credential_id;
+            let record = || {
+                f.server
+                    .store
+                    .execute_operation_action(
+                        &credential,
+                        OperationAction::Get {
+                            operation_id: "wss-webrtc-offer".into(),
+                        },
+                    )
+                    .map_err(|e| format!("original operation: {e:?}"))
+            };
+            if record()?.state != OperationState::Preparing
+                || !session
+                    .read()
+                    .map_err(|e| format!("Core read: {e:?}"))?
+                    .connections
+                    .is_empty()
+            {
+                return Err("DTLS alone published live media before first primary".into());
+            }
+            publisher = Some(admission::publish(&caller));
+            let completed = tokio::time::timeout(Duration::from_secs(5), async {
+                loop {
+                    let value = record()?;
+                    match value.state {
+                        OperationState::Completed => return Ok::<_, String>(value),
+                        OperationState::Failed
+                        | OperationState::Cancelled
+                        | OperationState::Unknown => {
+                            return Err(format!("original activation refused: {:?}", value.state))
+                        }
+                        _ => tokio::time::sleep(Duration::from_millis(10)).await,
+                    }
+                }
+            })
+            .await
+            .map_err(|_| "original first-primary activation deadline".to_owned())??;
+            let core_id = {
+                let state = session
+                    .read()
+                    .map_err(|e| format!("activated Core read: {e:?}"))?;
+                if state.connections.len() != 1 || state.participants.len() != 1 {
+                    return Err("original activation did not publish exactly one owner".into());
+                }
+                state
+                    .connections
+                    .keys()
+                    .next()
+                    .cloned()
+                    .ok_or_else(|| "Core owner absent".to_owned())?
+            };
+            let controller = host
+                .adapter()
+                .staged_controller(&core_id)
+                .ok_or_else(|| "original controller missing".to_owned())?;
+            let bindings = controller.active_bindings();
+            if completed.effects.len() != 1
+                || completed.connection_id.as_deref() != Some("wss-webrtc-connection")
+                || completed.result.as_ref().map(|v| &v["streams"])
+                    != Some(&json!(["original-audio"]))
+                || host.adapter().total_allocations() != 1
+                || controller.revision() != 1
+                || bindings.len() != 1
+                || !bindings[0].source_ready
+                || !bindings[0].sink_ready
+                || bindings[0].negotiated.requested.logical_id.as_str() != "original-audio"
+            {
+                return Err(
+                    "original authorized activation/readiness differed from its exact plan".into(),
+                );
+            }
+            if !released_domain {
+                return Err(
+                    "actual signed RTC SDP preparation retained an original domain reader".into(),
+                );
+            }
+            Ok(())
+        }
+        .await;
+        // Also release on barrier timeout; never leave the real worker parked.
+        release.notify_one();
+        let publisher_joined = if let Some((stop, send)) = publisher {
+            stop.cancel();
+            send.await.map(|sent| sent > 0).unwrap_or(false)
+        } else {
+            true
+        };
+        let wss_closed = ws.socket.close(None).await;
+        drop(ws);
+        let caller_closed = caller.close().await;
+        let retired = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                if host.available_slots() == 1 && host.adapter().route_count() == 0 {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await;
+        // Shutdown joins the existing server/Core/RTC workers even when the
+        // observation above failed; do not assert before this actual owner join.
+        let server_closed = f.server.shutdown().await;
+        assert!(publisher_joined && wss_closed.is_ok() && caller_closed.is_ok()
+            && retired.is_ok() && server_closed.is_ok(),
+            "{algorithm}: cleanup failed; original outcome={outcome:?}, WSS={wss_closed:?}, caller={caller_closed:?}, retirement={retired:?}, server={server_closed:?}");
+        assert!(outcome.is_ok(), "{algorithm}: {outcome:?}");
+    }
+}

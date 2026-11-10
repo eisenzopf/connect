@@ -1,6 +1,6 @@
 //! Controlled resource captures only; actual signed negotiation is a server test.
 use super::*;
-use super::{allocation::prepared_target, custody::cancel};
+use super::{allocation::prepared_target_scene, custody::cancel};
 use connect_protocol::transitions::{EffectState, OperationState};
 use std::sync::Arc;
 mod receiver_epoch;
@@ -12,7 +12,18 @@ fn fixture() -> (
     Arc<crate::NativeReplacementAllocated>,
     crate::PeerAuthorityRequest,
 ) {
-    let (f, key, command, prepared, mut request) = prepared_target();
+    let (f, key, command, captured, request, _) = fixture_scene();
+    (f, key, command, captured, request)
+}
+fn fixture_scene() -> (
+    Fixture,
+    String,
+    TransitionCommand,
+    Arc<crate::NativeReplacementAllocated>,
+    crate::PeerAuthorityRequest,
+    Vec<Arc<crate::NativeMediaOrigin>>,
+) {
+    let (f, key, command, prepared, mut request, sources) = prepared_target_scene();
     let proof = f.admit(&request);
     let (attempt, read) = f
         .store
@@ -21,15 +32,25 @@ fn fixture() -> (
     let expected = attempt.expected_allocation().clone();
     let captured = Arc::new(attempt.allocated(expected).unwrap());
     drop(read);
-    drop(proof);
+    // Reuse the original admitted writer: taking another writer here while
+    // this proof lives would self-exclude instead of recording this capture.
+    assert!(f.store.authority_covers(
+        Store::peer_scopes(&proof),
+        &[crate::AuthorityScope::conversation(
+            &command.conversation_id,
+            crate::AuthorityMode::Write
+        )
+        .unwrap(),]
+    ));
     f.store
-        .record_native_replacement_allocated(&captured)
+        .record_native_replacement_allocated_with_peer(&captured, &proof)
         .unwrap();
+    drop(proof);
     let crate::PeerCommand::NativeConnectionOffer(intent) = &mut request.command else {
         panic!()
     };
     intent.offer["replacement_preparation"]["profile"] = json!("connect-replacement-media-v1");
-    (f, key, command, captured, request)
+    (f, key, command, captured, request, sources)
 }
 #[test]
 fn replacement_start_has_separate_once_only_effect_and_fresh_provisional_generation_two_reads() {
@@ -44,7 +65,7 @@ fn replacement_start_has_separate_once_only_effect_and_fresh_provisional_generat
     assert_eq!(read.source().context().source_generation, 1);
     assert_eq!(read.target().connection.state, "preparing");
     assert!(read.target().publication_suspended);
-    let (attempt, read) = f
+    let (attempt, read, _) = f
         .store
         .begin_native_replacement_start_with_read(
             allocated.clone(),
@@ -224,7 +245,7 @@ fn replacement_start_refuses_changed_parameters_and_unknown_never_repeats() {
                     &proof,
                 )
                 .unwrap();
-            let (attempt, read) = f
+            let (attempt, read, _) = f
                 .store
                 .begin_native_replacement_start_with_read(
                     allocated.clone(),
@@ -262,7 +283,7 @@ fn replacement_start_rejects_ready_assertion_and_cleanup_after_a_possible_commit
             .store
             .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
             .unwrap();
-        let (attempt, read) = f
+        let (attempt, read, _) = f
             .store
             .begin_native_replacement_start_with_read(
                 allocated,
@@ -322,7 +343,7 @@ fn uncertain_native_resource_start_needs_exact_local_retirement_and_cannot_settl
             .store
             .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
             .unwrap();
-        let (attempt, read) = f
+        let (attempt, read, _) = f
             .store
             .begin_native_replacement_start_with_read(
                 allocated.clone(),
@@ -435,26 +456,39 @@ fn resource_fixture() -> (
     Arc<crate::NativeReplacementStarted>,
     Arc<crate::NativeReplacementMediaOrigin>,
 ) {
-    let (f, key, command, allocated, request) = fixture();
+    let (f, key, command, started, origin, _) = resource_fixture_scene();
+    (f, key, command, started, origin)
+}
+fn resource_fixture_scene() -> (
+    Fixture,
+    String,
+    TransitionCommand,
+    Arc<crate::NativeReplacementStarted>,
+    Arc<crate::NativeReplacementMediaOrigin>,
+    Vec<Arc<crate::NativeMediaOrigin>>,
+) {
+    let (f, key, command, allocated, request, sources) = fixture_scene();
     let proof = f.admit(&request);
     let read = f
         .store
         .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
         .unwrap();
-    let (attempt, read) = f
+    let (attempt, read, _) = f
         .store
         .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
         .unwrap();
     let expected = attempt.expected_resources().clone();
     let started = Arc::new(attempt.started(expected).unwrap());
     drop(read);
+    f.store
+        .record_native_replacement_started_with_peer(&started, &proof)
+        .unwrap();
     drop(proof);
-    f.store.record_native_replacement_started(&started).unwrap();
     let origin = f
         .store
         .native_replacement_media_origin(started.clone())
         .unwrap();
-    (f, key, command, started, origin)
+    (f, key, command, started, origin, sources)
 }
 
 #[test]
@@ -550,32 +584,50 @@ fn replacement_media_origin_busy_reread_preserves_started_capture_and_refuses_re
 #[test]
 fn replacement_private_media_phases_are_ordered_once_only_and_capture_without_projection() {
     use crate::NativeReplacementMediaPhase as Phase;
-    let (f, key, command, started, origin) = resource_fixture();
-    let read = f.store.try_native_replacement_media_read(&origin).unwrap();
+    let (f, key, command, started, origin, sources) = resource_fixture_scene();
     let effects = f.count("operation_effects");
+    let packet_read = f.store.try_native_replacement_media_read(&origin).unwrap();
     assert_eq!(
         f.store
-            .begin_native_replacement_media_phase(origin.clone(), Phase::Activate, &read)
+            .begin_native_replacement_media_phase(origin.clone(), Phase::Attach, &packet_read,)
             .unwrap_err()
             .code,
-        "not-ready"
+        "forbidden",
+        "a packet reader must not start a durable phase"
     );
+    drop(packet_read);
     assert_eq!(f.count("operation_effects"), effects);
     assert!(f
         .store
         .try_native_replacement_scene_read(&origin, &[])
         .is_err());
+    let read = f
+        .store
+        .try_native_replacement_scene_write(&origin, &sources)
+        .unwrap();
+    assert_eq!(
+        f.store
+            .begin_native_replacement_media_phase(origin.clone(), Phase::Activate, read.media(),)
+            .unwrap_err()
+            .code,
+        "not-ready",
+        "a real writer must still obey original phase ordering"
+    );
     drop(read);
+    assert_eq!(f.count("operation_effects"), effects);
     let mut captures = Vec::new();
     for phase in [Phase::Attach, Phase::Activate, Phase::Readiness] {
-        let read = f.store.try_native_replacement_media_read(&origin).unwrap();
+        let read = f
+            .store
+            .try_native_replacement_scene_write(&origin, &sources)
+            .unwrap();
         let attempt = f
             .store
-            .begin_native_replacement_media_phase(origin.clone(), phase, &read)
+            .begin_native_replacement_media_phase(origin.clone(), phase, read.media())
             .unwrap();
         assert_eq!(
             f.store
-                .begin_native_replacement_media_phase(origin.clone(), phase, &read)
+                .begin_native_replacement_media_phase(origin.clone(), phase, read.media())
                 .unwrap_err()
                 .code,
             "reconciliation-required"
@@ -607,7 +659,23 @@ fn replacement_private_media_phases_are_ordered_once_only_and_capture_without_pr
     let before = f.store.backup(&backup).unwrap();
     assert_eq!(Store::inspect_snapshot(&backup).unwrap(), before);
     let copy = rusqlite::Connection::open(&backup).unwrap();
-    copy.execute_batch("DROP TRIGGER native_replacement_media_immutable; UPDATE native_replacement_media_steps SET observation_json='{\"isolated_backup_change\":true}' WHERE phase='attach'").unwrap();
+    // This is a deliberately corrupted, isolated backup: ordinary raw writes
+    // must still fail. Remove only this table's UPDATE guard and its immutable
+    // trigger on the copy so inspection can detect an actual content change.
+    // Never install a permissive authority UDF or alter the live Store.
+    let original_triggers: Vec<String> = copy.prepare(
+        "SELECT sql FROM sqlite_schema WHERE type='trigger' AND name IN ('native_replacement_media_immutable','connect_writer_native_replacement_media_steps_update') ORDER BY name"
+    ).unwrap().query_map([], |row| row.get(0)).unwrap().collect::<rusqlite::Result<_>>().unwrap();
+    assert_eq!(original_triggers.len(), 2);
+    assert!(copy.execute_batch("UPDATE native_replacement_media_steps SET observation_json='{\"isolated_backup_change\":true}' WHERE phase='attach'").is_err());
+    copy.execute_batch("DROP TRIGGER native_replacement_media_immutable; DROP TRIGGER connect_writer_native_replacement_media_steps_update; UPDATE native_replacement_media_steps SET observation_json='{\"isolated_backup_change\":true}' WHERE phase='attach'").unwrap();
+    for sql in &original_triggers {
+        copy.execute_batch(sql).unwrap();
+    }
+    let restored_triggers: Vec<String> = copy.prepare(
+        "SELECT sql FROM sqlite_schema WHERE type='trigger' AND name IN ('native_replacement_media_immutable','connect_writer_native_replacement_media_steps_update') ORDER BY name"
+    ).unwrap().query_map([], |row| row.get(0)).unwrap().collect::<rusqlite::Result<_>>().unwrap();
+    assert_eq!(restored_triggers, original_triggers);
     assert_ne!(
         Store::inspect_snapshot(&backup).unwrap().digest,
         before.digest
@@ -641,14 +709,17 @@ fn replacement_private_media_phases_are_ordered_once_only_and_capture_without_pr
 #[test]
 fn uncertain_private_attach_does_not_reexecute_and_exact_native_retirement_settles_only_local_resources(
 ) {
-    let (f, _, _, started, origin) = resource_fixture();
-    let read = f.store.try_native_replacement_media_read(&origin).unwrap();
+    let (f, _, _, started, origin, sources) = resource_fixture_scene();
+    let read = f
+        .store
+        .try_native_replacement_scene_write(&origin, &sources)
+        .unwrap();
     let attempt = f
         .store
         .begin_native_replacement_media_phase(
             origin.clone(),
             crate::NativeReplacementMediaPhase::Attach,
-            &read,
+            read.media(),
         )
         .unwrap();
     drop(read);
@@ -706,7 +777,7 @@ fn replacement_full_scene_read_uses_one_complete_interval_for_target_and_existin
         .store
         .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
         .unwrap();
-    let (attempt, read) = f
+    let (attempt, read, _) = f
         .store
         .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
         .unwrap();
@@ -760,4 +831,128 @@ fn replacement_full_scene_read_uses_one_complete_interval_for_target_and_existin
         .store
         .try_native_replacement_scene_read(&origin, &sources[..1])
         .is_err());
+}
+
+#[test]
+fn replacement_begin_returns_exact_start_origin_without_an_authority_or_sql_alias() {
+    let (f, _, command, allocated, request) = fixture();
+    let proof = f.admit(&request);
+    let read = f
+        .store
+        .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
+        .unwrap();
+    let expires = read.expires_at();
+    let (attempt, read, origin) = f
+        .store
+        .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
+        .unwrap();
+    let original_expiry = origin.expires_at();
+    drop(read);
+    drop(proof);
+    // Keeping this returned provenance alive must neither pin its old writer
+    // nor introduce a hidden reader. Independent writer admission still works.
+    let writer = f.controlled_conversation_writer(0);
+    let sql = f.store.connection_with_authority(&writer).unwrap();
+    let expected_record: String = sql
+        .query_row(
+            "SELECT record_id FROM operations WHERE operation_id=?1",
+            [&command.operation_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(origin.operation_record_id(), expected_record);
+    assert!(original_expiry <= expires);
+    assert_eq!(origin.expires_at(), original_expiry);
+    drop(sql);
+    drop(writer);
+    let fresh = f
+        .store
+        .resume_native_replacement_start_authority(
+            &origin,
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    let current = f
+        .store
+        .native_replacement_start_read_under(&origin, &fresh)
+        .unwrap();
+    assert!(current.current());
+    drop(current);
+    drop(fresh);
+    f.store
+        .native_replacement_start_uncertain(&attempt.uncertain())
+        .unwrap();
+    assert_eq!(
+        f.store
+            .execute_operation_action(
+                &f.admin,
+                OperationAction::Get {
+                    operation_id: command.operation_id
+                },
+            )
+            .unwrap()
+            .effects
+            .len(),
+        3
+    );
+}
+
+#[test]
+fn signed_start_capture_and_replay_do_not_park_writer_on_primary_sql() {
+    let (f, _, _, allocated, request) = fixture();
+    let proof = f.admit(&request);
+    let read = f
+        .store
+        .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
+        .unwrap();
+    let (attempt, read, _) = f
+        .store
+        .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
+        .unwrap();
+    let expected = attempt.expected_resources().clone();
+    let captured = attempt.started(expected).unwrap();
+    drop(read);
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let (record_immediate, blocked_record) = super::allocation::call_while_primary_held(&f, || {
+        f.store
+            .record_native_replacement_started_with_peer(&captured, &proof)
+    });
+    assert!(
+        record_immediate,
+        "start capture parked its live writer on SQL"
+    );
+    assert_eq!(blocked_record.unwrap_err().code, "authority-busy");
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    let record = f
+        .store
+        .record_native_replacement_started_with_peer(&captured, &proof)
+        .unwrap();
+    let stable = Store::inspect_snapshot(f.store.path()).unwrap();
+    let (replay_immediate, blocked_replay) = super::allocation::call_while_primary_held(&f, || {
+        f.store.replay_native_replacement_start_with_peer(
+            &captured,
+            &request.credentials[0],
+            &proof,
+        )
+    });
+    assert!(
+        replay_immediate,
+        "start metadata replay parked its live writer on SQL"
+    );
+    assert_eq!(blocked_replay.unwrap_err().code, "authority-busy");
+    let replay = f
+        .store
+        .replay_native_replacement_start_with_peer(&captured, &request.credentials[0], &proof)
+        .unwrap();
+    assert_eq!(replay.record_id, record.record_id);
+    assert!(replay.result.is_none());
+    assert!(replay.effects.is_empty());
+    assert_eq!(
+        f.store
+            .record_native_replacement_started_with_peer(&captured, &proof)
+            .unwrap(),
+        record
+    );
+    assert_eq!(f.count("native_replacement_steps"), 3);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), stable);
 }

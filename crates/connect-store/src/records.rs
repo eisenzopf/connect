@@ -163,8 +163,28 @@ impl Store {
     pub fn put_record(&self, scope: &RecordScope, bytes: RecordBytes) -> Result<RecordHandle> {
         scope.validate()?;
         bytes.validate()?;
+        // A private native ContextView can include these exact Session records.
+        // Drain that original Conversation publication before the Record writer;
+        // neither SQL nor the storage reservation is held during domain admission.
+        let source = self.stable_authority(&AuthorityWait::new(Duration::from_secs(2)), || {
+            let c = self.connection()?;
+            crate::authority_admission::conversation_scopes(
+                &c,
+                &scope.conversation_id,
+                AuthorityMode::Write,
+            )
+        })?;
         let _held = self.record_reservation(&bytes.uuid, AuthorityMode::Write)?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&source)?;
+        c.bind_available_mutation_authority(self, &_held)?;
+        let current = crate::authority_admission::conversation_scopes(
+            &c,
+            &scope.conversation_id,
+            AuthorityMode::Write,
+        )?;
+        if !self.authority_covers(&source, &current) {
+            return Err(conflict());
+        }
         let tx = c.transaction().map_err(|_| Error::storage())?;
         let handle = put(&tx, scope, &bytes, false)?;
         tx.commit().map_err(|_| Error::storage())?;
@@ -245,7 +265,8 @@ impl Store {
             &AuthorityWait::new(Duration::from_secs(2)),
         )?;
         let _held = self.record_reservation(&id, AuthorityMode::Write)?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&_source)?;
+        c.bind_available_mutation_authority(self, &_held)?;
         let tx = c.transaction().map_err(|_| Error::storage())?;
         let result = mutate_locked(
             &tx,
@@ -479,3 +500,6 @@ fn mutate_locked(
 pub mod mutations;
 pub mod retention;
 pub(crate) mod roles;
+
+#[cfg(test)]
+mod writer_boundary;

@@ -88,7 +88,7 @@ impl Host for SignalingHost {
                 &p.physical,
                 p.binding,
                 p.deadline,
-                ReadContext::new(Some(p.read)),
+                ReadContext::resource(p.source),
                 #[cfg(test)]
                 None,
             ),
@@ -106,11 +106,15 @@ impl Attempt for Owned {
     }
     async fn answer(&self, deadline: Instant) -> Result<ConnectionAnswer> {
         let peer = &self.0;
-        let read = peer.source_read(deadline).await?;
-        let offer = &read.target().offer;
-        validate_offer(offer, self.1)?;
+        let source = peer
+            .initial
+            .resource
+            .as_ref()
+            .ok_or_else(Error::forbidden)?;
+        let original = source.offer()?;
+        validate_offer(&original.offer, self.1)?;
         let answer = peer.answer_sdp(deadline).await?;
-        selected_answer(peer.origin.participant_id(), offer, &answer, self.1)
+        selected_answer(&original.participant_id, &original.offer, &answer, self.1)
     }
     async fn shutdown(&self) -> Result<()> {
         self.0.shutdown().await

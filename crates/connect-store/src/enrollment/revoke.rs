@@ -41,6 +41,7 @@ impl Store {
                 Ok(require(&c, issuer, &row)?.2)
             })?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

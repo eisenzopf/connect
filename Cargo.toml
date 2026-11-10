@@ -24,6 +24,7 @@ connect-connectors = { path = "crates/connect-connectors" }
 connect-mcp = { path = "crates/connect-mcp" }
 rmcp = { version = "=3.5.1", default-features = false, features = ["server", "transport-streamable-http-server"] }
 axum = "0.8"
+arc-swap = "=1.9.2"
 tower-http = { version = "0.6", features = ["cors"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 telnyx = { version = "0.1.0", default-features = false, features = ["messaging", "numbers", "sip", "webhooks", "rustls-ring"] }
@@ -52,7 +53,7 @@ futures-util = "0.3"
 uuid = { version = "1", features = ["v4", "serde"] }
 url = "2.5.8"
 chrono = { version = "0.4", features = ["serde"] }
-rusqlite = { version = "0.32", features = ["bundled", "backup"] }
+rusqlite = { version = "0.32", features = ["bundled", "backup", "functions"] }
 sha2 = "0.10"
 hex = "0.4"
 hmac = "0.12"

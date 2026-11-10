@@ -1,6 +1,6 @@
 //! One RTC replacement owner, from the original signed SDP through adoption.
 //! No originating reader survives ICE/DTLS/RTP waits or the active lifetime.
-mod admission;
+pub(super) mod admission;
 
 use super::*;
 use super::{
@@ -86,35 +86,15 @@ pub(super) struct Source {
     runtime: Weak<Runtime>,
     pub(super) policy: Arc<TargetPolicy>,
     origin: Arc<NativeReplacementStartOrigin>,
-    initial: Mutex<Option<Arc<NativeReplacementStartRead>>>,
+    offer: ReplacementOffer,
     adopted: OnceLock<Arc<connect_store::NativeMediaOrigin>>,
-}
-impl Source {
-    fn start_read(&self, runtime: &Runtime) -> Result<Arc<NativeReplacementStartRead>> {
-        let held = self.initial.lock().map_err(|_| Error::storage())?.clone();
-        match held {
-            Some(read) if read.current() => Ok(read),
-            Some(_) => Err(Error::forbidden()),
-            None => runtime
-                .media
-                .store
-                .try_native_replacement_start_read(&self.origin)
-                .map(Arc::new),
-        }
-    }
 }
 impl ReplacementSource for Source {
     fn offer(&self) -> Result<ReplacementOffer> {
-        let runtime = self.runtime.upgrade().ok_or_else(Error::forbidden)?;
-        let read = self.start_read(&runtime)?;
-        if read.target().endpoint_transport
-            != connect_protocol::provisioning::EndpointTransport::Webrtc
-        {
-            return Err(Error::forbidden());
-        }
+        self.current()?;
         Ok(ReplacementOffer {
-            participant_id: read.target().connection.participant_id.clone(),
-            offer: read.target().offer.clone(),
+            participant_id: self.offer.participant_id.clone(),
+            offer: self.offer.offer.clone(),
         })
     }
     fn current(&self) -> Result<()> {
@@ -123,7 +103,10 @@ impl ReplacementSource for Source {
             return Err(Error::forbidden());
         }
         if let Some(origin) = self.adopted.get() {
-            return if runtime.media.store.try_native_connection_current(origin)? {
+            return if runtime
+                .media
+                .connection_lifetime_current(origin, Some(self.policy.pending.binding()))?
+            {
                 Ok(())
             } else {
                 Err(Error::forbidden())
@@ -147,20 +130,19 @@ impl ReplacementSource for Source {
             if !read.current() {
                 return Err(Error::forbidden());
             }
-        } else {
-            self.start_read(&runtime)?;
+        } else if chrono::Utc::now().timestamp() >= self.origin.expires_at() {
+            return Err(Error::forbidden());
         }
+        // Before private admission only the original resource lifetime applies;
+        // no conversation payload or participant publication is available.
         Ok(())
     }
-    fn release_invocation(&self) {
-        if let Ok(mut held) = self.initial.lock() {
-            held.take();
-        }
-    }
+    fn release_invocation(&self) {}
 }
 #[derive(Default)]
 struct Owned {
     root: Option<Arc<PreparedReplacement>>,
+    quarantined: Option<rvoip_core::staged_streams::QuarantinedInitialMedia>,
     allocated: Option<Arc<AllocatedReplacement>>,
     attempt: Option<NativeReplacementStartAttempt>,
     source: Option<Arc<Source>>,
@@ -204,8 +186,9 @@ impl Runtime {
         let mut owned = Owned::default();
         // The original child already owns one Box. Erase its concrete coroutine
         // shape at this Send-checked boundary without changing poll/drop custody.
+        let handler_finished = a.invocation_cancellation();
         let start: OriginalWorker<'_, Reply> =
-            Box::pin(self.webrtc_replacement_start(&a, &physical, &credential, &mut owned));
+            Box::pin(self.webrtc_replacement_start(a, &physical, &credential, &mut owned));
         let result = start.await;
         if let Err(error) = &result {
             tracing::debug!(target: "connect_service::canonical_replacement",
@@ -216,12 +199,10 @@ impl Runtime {
                 "RTC replacement original signaling refused");
         }
         let succeeded = result.is_ok();
-        let handler_finished = a.invocation_cancellation();
         let _ = tx.send(result);
         if let Some(source) = &owned.source {
             source.release_invocation();
         }
-        drop(a);
         let admitted = if succeeded {
             let deadline = owned.deadline.ok_or_else(Error::forbidden)?;
             let finished = tokio::select! {biased;
@@ -247,6 +228,7 @@ impl Runtime {
         if admitted {
             let source = owned.source.as_ref().ok_or_else(Error::forbidden)?;
             let driver = owned.driver.as_ref().ok_or_else(Error::forbidden)?;
+            let mut reconciled_role = None;
             loop {
                 tokio::select! {biased;
                     _=self.stop.cancelled()=>break,_=physical.lifetime.cancelled()=>break,
@@ -265,8 +247,11 @@ impl Runtime {
                     Err(_) => break,
                 }
                 if source.adopted.get().is_some() {
-                    self.reconcile_connection_role(source.policy.pending.binding().connection())
-                        .await;
+                    self.reconcile_connection_role_generation(
+                        source.policy.pending.binding().connection(),
+                        &mut reconciled_role,
+                    )
+                    .await;
                 }
             }
         }
@@ -405,7 +390,7 @@ impl Runtime {
     }
     async fn webrtc_replacement_start(
         self: &Arc<Self>,
-        a: &Arc<AuthorizedEnvelope>,
+        a: Arc<AuthorizedEnvelope>,
         physical: &Arc<Physical>,
         credential: &str,
         owned: &mut Owned,
@@ -413,7 +398,7 @@ impl Runtime {
         let authority = a
             .authority::<StoreInvocationAuthority>()
             .ok_or_else(Error::forbidden)?;
-        physical.validate(a, authority)?;
+        physical.validate(&a, authority)?;
         let intent = crate::canonical_native::intent(a.envelope())?;
         if physical.binding.transport() != rvoip_core::Transport::WebSocket
             || intent.endpoint_transport()?
@@ -459,7 +444,9 @@ impl Runtime {
                 "RTC replacement SDP was already attempted; observe the original operation",
             ));
         }
-        let (read, entries) = retry_metadata(&self.stop, || async {
+        // Before begin, a temporary metadata refusal has no phase/Core effect.
+        // Do not retain the signed mutation writer through five-second retries.
+        let (read, entries) = {
             let store = self.media.store.clone();
             let receipt = allocated.receipt.clone();
             let key = credential.to_owned();
@@ -469,9 +456,8 @@ impl Runtime {
             })
             .await?;
             let entries = self.media.replacement_preparation_entries(read.source())?;
-            Ok((read, entries))
-        })
-        .await?;
+            (read, entries)
+        };
         let (profile, plan) = crate::canonical_media::offer_plan(
             read.target(),
             &crate::canonical_native::base_profile()?,
@@ -515,7 +501,7 @@ impl Runtime {
             data_observer: None,
             readiness: Some(readiness.clone()),
         });
-        let (attempt, read) = {
+        let (attempt, read, origin) = {
             let store = self.media.store.clone();
             let receipt = allocated.receipt.clone();
             let key = credential.to_owned();
@@ -531,45 +517,16 @@ impl Runtime {
         owned.deadline = Some(deadline);
         owned.intent = Some(intent.clone());
         let read = Arc::new(read);
-        // The once-only start attempt already exists. Temporary primary SQL
-        // exclusion can only repeat this provenance read, never begin/start,
-        // reservation, SDP or driver IO. Keep the same held read and cutoff.
-        let until = deadline.min(Instant::now() + Duration::from_secs(5));
-        let wait =
-            connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
-        let _cancel_origin_wait = wait.cancel_on_drop();
-        let root_cancelled = root.handle.cancellation();
-        let original_attempt = owned.attempt.as_ref().ok_or_else(Error::storage)?;
-        let origin = admission::read_busy(
-            until,
-            &wait,
-            async {
-                tokio::select! { biased;
-                    _ = self.stop.cancelled() => {},
-                    _ = physical.lifetime.cancelled() => {},
-                    _ = root_cancelled.cancelled() => {},
-                }
-            },
-            || {
-                std::future::ready(
-                    self.media
-                        .store
-                        .native_replacement_start_origin(original_attempt, &read),
-                )
-            },
-        )
-        .await
-        .map_err(|error| {
-            tracing::debug!(target: "connect_service::canonical_replacement",
-                operation_record = record, stage = "start-origin", code = %error.code,
-                "RTC replacement original metadata refused");
-            error
-        })?;
+        // Immutable attribution was validated and committed with the original
+        // begin. No primary-SQL retry extends this signed mutation interval.
         let source = Arc::new(Source {
             runtime: Arc::downgrade(self),
             policy: policy.clone(),
             origin,
-            initial: Mutex::new(Some(read.clone())),
+            offer: ReplacementOffer {
+                participant_id: read.target().connection.participant_id.clone(),
+                offer: read.target().offer.clone(),
+            },
             adopted: OnceLock::new(),
         });
         owned.source = Some(source.clone());
@@ -601,9 +558,37 @@ impl Runtime {
             .activation
             .set(Arc::new(Activation::WebRtc(activation)))
             .map_err(|_| Error::forbidden())?;
-        owned.controller = Some(controller);
-        // Only short local metadata preparation retains this invocation; the
-        // physical owner carries immutable provenance and releases it at answer.
+        owned.controller = Some(controller.clone());
+        let source_generation = read.source().context().source_generation;
+        let target_generation = read.target().connection.generation;
+        let participant = read.target().connection.participant_id.clone();
+        owned.quarantined = Some(
+            controller
+                .stage_initial_selected_with_held(
+                    policy.plan.selected(),
+                    deadline,
+                    physical.lifetime.child_token(),
+                    Arc::new(invocation),
+                )
+                .await
+                .map_err(denied)?,
+        );
+        drop(read);
+        let a = Arc::try_unwrap(a)
+            .map_err(|_| Error::new("conflict", "Original RTC invocation is still shared"))?
+            .into_resource_preparation(
+                participant.clone(),
+                policy
+                    .plan
+                    .selected()
+                    .iter()
+                    .map(|s| s.requested.logical_id.as_str().to_owned())
+                    .collect(),
+                deadline,
+            )
+            .map_err(denied)?;
+        // The driver receives immutable original parameters and resource-only
+        // custody. No Store grant survives its SDP/ICE/DTLS work.
         let driver = host.start_replacement(ReplacementPreparation {
             source: source.clone(),
             physical: physical.lifetime.child_token(),
@@ -617,7 +602,14 @@ impl Runtime {
         };
         let mut payload = serde_json::to_value(answer).map_err(|_| Error::storage())?;
         payload["replacement_preparation"] = serde_json::json!({"profile":"connect-replacement-media-v1","operation_record_id":record,"readiness":readiness.challenge()});
-        crate::peer_authority::bind_webrtc_replacement_answer(a, &read, &policy.plan, &payload)?;
+        crate::peer_authority::validate_replacement_resource_answer(
+            &intent,
+            source_generation,
+            target_generation,
+            &participant,
+            &policy.plan,
+            &payload,
+        )?;
         let reply =
             crate::canonical::reply(a.envelope(), "connection.answer", payload).map_err(denied)?;
         a.answer_offer(reply, deadline).await.map_err(denied)?;
@@ -627,6 +619,7 @@ impl Runtime {
         let wait =
             connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
         let _cancel_record_wait = wait.cancel_on_drop();
+        let root_cancelled = root.handle.cancellation();
         let record = admission::read_busy(
             until,
             &wait,
@@ -639,11 +632,17 @@ impl Runtime {
                 }
             },
             || {
-                std::future::ready(proof(a).and_then(|proof| {
-                    self.media
-                        .store
-                        .native_replacement_start_record_with_peer(&source.origin, proof)
-                }))
+                let store = self.media.store.clone();
+                let origin = source.origin.clone();
+                let wait = wait.clone();
+                async move {
+                    store_call(move || {
+                        let proof =
+                            store.resume_native_replacement_start_authority(&origin, &wait)?;
+                        store.native_replacement_start_record_with_peer(&origin, &proof)
+                    })
+                    .await
+                }
             },
         )
         .await
@@ -653,8 +652,6 @@ impl Runtime {
                 "RTC replacement original metadata refused");
             error
         })?;
-        drop(invocation);
-        drop(read);
         Ok(Reply {
             record,
             answered: true,
@@ -687,6 +684,13 @@ impl Runtime {
             _=tokio::time::sleep_until(deadline)=>return Err(Error::new("timeout","RTC replacement resource deadline")),
             result=adapter.wait_initial_media(id,deadline,physical.lifetime.child_token())=>result.map_err(denied)?,
         }
+        let prepared = owned
+            .quarantined
+            .take()
+            .ok_or_else(Error::forbidden)?
+            .prepare()
+            .await
+            .map_err(denied)?;
         let until = deadline.min(Instant::now() + Duration::from_secs(2));
         let wait =
             connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
@@ -711,7 +715,8 @@ impl Runtime {
                 let origin = source.origin.clone();
                 let wait = wait.clone();
                 let (proof, read) = store_call(move || {
-                    let proof = store.resume_webrtc_replacement_start_authority(&origin, &wait)?;
+                    let proof = store
+                        .resume_native_replacement_start_activation_authority(&origin, &wait)?;
                     let read = store.native_replacement_start_read_under(&origin, &proof)?;
                     Ok((Arc::new(proof), Arc::new(read)))
                 })
@@ -758,33 +763,8 @@ impl Runtime {
             entries,
             deadline,
         });
-        controller
-            .change_selected_with_held(
-                0,
-                source.policy.plan.selected(),
-                &BTreeSet::new(),
-                deadline,
-                physical.lifetime.child_token(),
-                invocation.clone(),
-            )
-            .await
-            .map_err(denied)?;
-        let muted = source
-            .policy
-            .plan
-            .selected()
-            .iter()
-            .filter(|s| s.requested.direction != StreamDirection::Send)
-            .map(|s| s.requested.logical_id.clone())
-            .collect();
-        controller
-            .set_media_gate_with_held(
-                1,
-                &muted,
-                StreamGateAction::Mute,
-                deadline,
-                invocation.clone(),
-            )
+        prepared
+            .activate_muted_with_held(invocation.clone())
             .await
             .map_err(denied)?;
         if !read.current()
@@ -829,6 +809,11 @@ impl Runtime {
         self.media
             .store
             .record_native_replacement_started_with_peer(&started.receipt, &proof)?;
+        // The actual activation and capture transaction are complete. Release
+        // every alias of this Write before metadata-only origin retry.
+        drop(invocation);
+        drop(read);
+        drop(proof);
         // The original resources and their immutable capture already exist.
         // Temporary command-SQL exclusion must reobserve only this origin read,
         // never configure/mute, start recording, or the once-only physical IO.
@@ -865,9 +850,6 @@ impl Runtime {
             .origin
             .set(origin)
             .map_err(|_| Error::forbidden())?;
-        drop(invocation);
-        drop(read);
-        drop(proof);
         self.queue_replacement_media(root, started, peer);
         Ok(())
     }

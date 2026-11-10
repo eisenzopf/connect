@@ -69,6 +69,8 @@ impl Store {
             native_reads.insert(
                 source.runtime_connection_id().into(),
                 NativeMediaRead {
+                    _live: None,
+                    _source_live: None,
                     target: view,
                     source: None,
                     _scopes: held.clone(),

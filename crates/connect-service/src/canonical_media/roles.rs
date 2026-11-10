@@ -248,35 +248,66 @@ impl Policy {
         Ok((sources, native, phone))
     }
 }
+/// A failed/busy attempt stays pending; completion records only the originally
+/// observed generation. A racing new publication is therefore retried next tick.
+async fn reconcile_observed_generation<T: Copy + Eq>(
+    completed: &mut Option<T>,
+    observed: T,
+    reconcile: impl std::future::Future<Output = bool>,
+) {
+    if *completed != Some(observed) && reconcile.await {
+        *completed = Some(observed);
+    }
+}
 impl Runtime {
-    pub(crate) async fn reconcile_connection_role(&self, id: &ConnectionId) {
-        let Ok(_serial) = self.role_projection.try_lock() else {
+    pub(crate) async fn reconcile_connection_role_generation(
+        &self,
+        id: &ConnectionId,
+        completed: &mut Option<connect_store::NativeConnectionLifetimeStamp>,
+    ) {
+        let Ok(entry) = self.media.entry(id) else {
             return;
         };
-        if self.media.unchanged_native_role_hint(id, &self.core) {
+        let Ok(observed) = self
+            .media
+            .connection_lifetime_generation(&entry.origin, None)
+        else {
             return;
+        };
+        reconcile_observed_generation(completed, observed, self.try_reconcile_connection_role(id))
+            .await;
+    }
+    pub(crate) async fn reconcile_connection_role(&self, id: &ConnectionId) {
+        let _ = self.try_reconcile_connection_role(id).await;
+    }
+    async fn try_reconcile_connection_role(&self, id: &ConnectionId) -> bool {
+        let Ok(_serial) = self.role_projection.try_lock() else {
+            return false;
+        };
+        if self.media.unchanged_native_role_hint(id, &self.core) {
+            return true;
         }
         // The unchanged-role poll needs only the actual current source's read.
         let probe = if let Ok(entry) = self.media.entry(id) {
             let Ok(read) = self.media.store.try_native_media_read(&entry.origin, None) else {
-                return;
+                return false;
             };
             if !read.current() {
-                return;
+                return false;
             }
             native_facts(read.target())
         } else {
             let Ok(Some(entry)) = self.media.telephone_target(id) else {
-                return;
+                return false;
             };
             let Some(origin) = entry.established_origin() else {
-                return;
+                return false;
             };
             let Ok(read) = self.media.store.try_telephone_media_read(origin) else {
-                return;
+                return false;
             };
             if !read.current() {
-                return;
+                return false;
             }
             phone_facts(&read)
         };
@@ -289,10 +320,10 @@ impl Runtime {
             .flatten()
             == Some(crate::canonical_runtime::participant_role(&probe.role))
         {
-            return;
+            return true;
         }
         let Ok((sources, native, phone)) = self.media.role_sources(&probe) else {
-            return;
+            return false;
         };
         let Ok(read) = self.media.store.try_session_role_media_read(
             &native,
@@ -302,14 +333,14 @@ impl Runtime {
             &probe.participant,
             probe.epoch,
         ) else {
-            return;
+            return false;
         };
         let read = Arc::new(read);
         let Some(first) = sources.first() else {
-            return;
+            return false;
         };
         let Ok(view) = first.facts(&read) else {
-            return;
+            return false;
         };
         let desired = crate::canonical_runtime::participant_role(&view.role);
         if self
@@ -319,10 +350,10 @@ impl Runtime {
             .flatten()
             == Some(desired.clone())
         {
-            return;
+            return true;
         }
         let Ok(revision) = self.core.participant_revision(&sid) else {
-            return;
+            return false;
         };
         let operation = format!(
             "connection-role-{}",
@@ -339,7 +370,7 @@ impl Runtime {
             ))
         );
         let Ok(principal) = first.principal() else {
-            return;
+            return false;
         };
         let mutation = ParticipantMutation {
             operation_id: operation.clone(),
@@ -382,6 +413,67 @@ impl Runtime {
         {
             self.role_projections
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            true
+        } else {
+            false
         }
+    }
+}
+
+#[cfg(test)]
+mod generation_tests {
+    use super::reconcile_observed_generation;
+    use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+    #[tokio::test]
+    async fn role_generation_retries_busy_and_skips_only_successfully_reconciled_state() {
+        let calls = AtomicUsize::new(0);
+        let mut completed = None;
+        reconcile_observed_generation(&mut completed, 1, async {
+            calls.fetch_add(1, Ordering::Relaxed);
+            false // Existing authority/projection busy: same generation stays pending.
+        })
+        .await;
+        assert_eq!(completed, None);
+        reconcile_observed_generation(&mut completed, 1, async {
+            calls.fetch_add(1, Ordering::Relaxed);
+            true // Actual current-role equality or successful fresh-authority projection.
+        })
+        .await;
+        assert_eq!(completed, Some(1));
+        reconcile_observed_generation(&mut completed, 1, async {
+            calls.fetch_add(1, Ordering::Relaxed);
+            panic!("unchanged completed generation must not poll SQL again");
+        })
+        .await;
+        assert_eq!(calls.load(Ordering::Relaxed), 2);
+    }
+    #[tokio::test]
+    async fn role_generation_racing_completion_remains_pending_without_renewed_authority() {
+        let published = AtomicU64::new(1);
+        let mut completed = None;
+        let observed = published.load(Ordering::Acquire);
+        reconcile_observed_generation(&mut completed, observed, async {
+            // A writer invalidates/rebuilds while the original bounded Core
+            // projection is outstanding. Only its captured generation completes.
+            published.store(2, Ordering::Release);
+            tokio::task::yield_now().await;
+            true
+        })
+        .await;
+        assert_eq!(completed, Some(1));
+        let calls = AtomicUsize::new(0);
+        reconcile_observed_generation(&mut completed, published.load(Ordering::Acquire), async {
+            calls.fetch_add(1, Ordering::Relaxed);
+            false
+        })
+        .await;
+        assert_eq!(completed, Some(1));
+        reconcile_observed_generation(&mut completed, published.load(Ordering::Acquire), async {
+            calls.fetch_add(1, Ordering::Relaxed);
+            true
+        })
+        .await;
+        assert_eq!(completed, Some(2));
+        assert_eq!(calls.load(Ordering::Relaxed), 2);
     }
 }

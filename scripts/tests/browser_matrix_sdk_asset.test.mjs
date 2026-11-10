@@ -51,3 +51,16 @@ test('browser fixture serves the actual transition coverage import at its resolv
     const module=await import('../lib/media_transition_coverage.mjs');
     assert.equal(module.TRANSITION_PROFILE,'connect/media-transition-coverage/1');
 });
+
+
+test('RTC boundary diagnostic helper resolves through the actual owned fixture module route',async()=>{
+    const source=await readFile(new URL('../lib/browser_matrix_rtc_observation.mjs',import.meta.url),'utf8');
+    const entry=[...source.matchAll(/\bfrom\s+["']([^"']+)["']/g)].map(value=>value[1])
+        .find(value=>value.endsWith('/browser_matrix_rtc_audio_diagnostics.mjs'));
+    assert.ok(entry);const url=new URL(entry,'https://fixture.invalid/_matrix/browser_matrix_rtc_observation.mjs');
+    const server=await readFile(new URL('../video/browser_matrix_admission.mjs',import.meta.url),'utf8');
+    assert.ok(server.includes("url.pathname==='"+url.pathname+"'"));
+    assert.ok(server.includes("path.join(root,'scripts/lib/browser_matrix_rtc_audio_diagnostics.mjs')"));
+    const module=await import('../lib/browser_matrix_rtc_audio_diagnostics.mjs');
+    assert.equal(module.rtcAudioBoundaryDiagnostics().report().events.length,0);
+});

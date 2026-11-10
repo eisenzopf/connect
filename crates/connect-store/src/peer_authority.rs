@@ -21,14 +21,16 @@ pub use connection_media::{
     AssistantProviderUpdate, AssistantProviderUpdateApplied, AssistantProviderUpdateExport,
     AssistantProviderUpdateRejected, AssistantProviderUpdateStatus, ConsultationMediaOrigin,
     NativeAssistantContextRead, NativeConnectionFlowFact, NativeConnectionFlowObservation,
-    NativeConsultationRead, NativeConsultationSelection, NativeCredentialRefreshApplied,
-    NativeCredentialRefreshAttempt, NativeCredentialRefreshPlan, NativeCredentialRefreshTarget,
-    NativeDataRead, NativeDataWriter, NativeHandoffRead, NativeHandoffSelection, NativeMediaOrigin,
-    NativeMediaRead, NativeReconciliationRead, NativeReplacementActivation,
-    NativeReplacementInstallationGuard, NativeReplacementInstallationObservation,
-    NativeReplacementPreparationRead, NativeReplacementSelection, NativeReplacementSourceOrigin,
-    NativeReplacementSourceRead, NativeReturnRead, NativeReturnSelection, NativeSessionCodecRead,
-    NativeSignalRead, SessionRoleMediaRead, SipAudienceOrigin, SipAudienceRead,
+    NativeConnectionLifetimeSnapshot, NativeConnectionLifetimeStamp, NativeConsultationRead,
+    NativeConsultationSelection, NativeCredentialRefreshApplied, NativeCredentialRefreshAttempt,
+    NativeCredentialRefreshPlan, NativeCredentialRefreshTarget, NativeDataRead, NativeDataWriter,
+    NativeHandoffRead, NativeHandoffSelection, NativeMediaOrigin, NativeMediaRead,
+    NativeMediaSnapshot, NativeMediaSnapshotEpoch, NativeMediaSnapshotStamp,
+    NativeReconciliationRead, NativeReplacementActivation, NativeReplacementInstallationGuard,
+    NativeReplacementInstallationObservation, NativeReplacementPreparationRead,
+    NativeReplacementSelection, NativeReplacementSourceOrigin, NativeReplacementSourceRead,
+    NativeReturnRead, NativeReturnSelection, NativeSessionCodecRead, NativeSignalRead,
+    SessionRoleMediaRead, SipAudienceOrigin, SipAudienceRead,
 };
 pub use native_data::NativeDataProjection;
 pub use native_streams::{NativeIceOrigin, NativeStreamProjection};
@@ -769,16 +771,38 @@ impl Store {
         request: &PeerAuthorityRequest,
         wait: &AuthorityWait,
     ) -> Result<PeerAuthorityGuard> {
+        let mutation = matches!(&request.command, PeerCommand::NativeConnectionOffer(intent)
+            if matches!(intent.offer["replacement_preparation"]["profile"].as_str(),
+                Some("connect-replacement-preparation-v1" | "connect-replacement-media-v1")));
+        self.admit_peer_authority_mode(request, wait, mutation)
+    }
+    pub(crate) fn admit_peer_authority_mode(
+        &self,
+        request: &PeerAuthorityRequest,
+        wait: &AuthorityWait,
+        mutation: bool,
+    ) -> Result<PeerAuthorityGuard> {
         let owner = self.require_runtime_owner()?;
         loop {
             wait.check()?;
             let guard = self.stable_authority(wait, || {
-                checked(self, &*self.connection()?, request).map(|(_, _, scopes, _)| scopes)
+                checked(self, &*self.connection()?, request).map(|(_, _, scopes, _)| {
+                    if mutation {
+                        scopes.iter().map(AuthorityScope::write_scope).collect()
+                    } else {
+                        scopes
+                    }
+                })
             })?;
             let mut c = self.connection()?;
             let tx = c.transaction().map_err(|_| Error::storage())?;
             self.require_runtime_owner()?;
             let (metadata, key, scopes, expires_at) = checked(self, &tx, request)?;
+            let scopes = if mutation {
+                scopes.iter().map(AuthorityScope::write_scope).collect()
+            } else {
+                scopes
+            };
             if !self.authority_covers(&guard, &scopes) {
                 drop(tx);
                 drop(guard);

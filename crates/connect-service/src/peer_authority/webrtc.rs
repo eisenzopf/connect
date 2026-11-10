@@ -47,7 +47,7 @@ pub(crate) fn bind_answer(
     *saved = Some(payload);
     Ok(())
 }
-fn validate(
+pub(crate) fn validate(
     payload: &serde_json::Value,
     plan: &rvoip_uctp::v2::native_negotiation::NativeOfferPlan,
     participant: Option<&str>,
@@ -191,25 +191,13 @@ pub(crate) fn bind_replacement_answer(
     {
         return Err(Error::forbidden());
     }
-    let marker = &payload["replacement_preparation"];
-    let challenge = &marker["readiness"];
-    if marker["profile"] != "connect-replacement-media-v1"
-        || marker["operation_record_id"]
-            != intent.offer["replacement_preparation"]["operation_record_id"]
-        || challenge["source_generation"].as_u64()
-            != Some(read.source().context().source_generation)
-        || challenge["target_generation"].as_u64() != Some(read.target().connection.generation)
-        || challenge["stream_revision"] != 2
-        || challenge["nonce"]
-            .as_str()
-            .is_none_or(|n| n.is_empty() || n.len() > 128)
-    {
-        return Err(Error::forbidden());
-    }
-    validate(
-        payload,
+    validate_replacement_resource_answer(
+        intent,
+        read.source().context().source_generation,
+        read.target().connection.generation,
+        &read.target().connection.participant_id,
         plan,
-        Some(&read.target().connection.participant_id),
+        payload,
     )?;
     let mut saved = grant
         .webrtc_answer
@@ -219,5 +207,33 @@ pub(crate) fn bind_replacement_answer(
         return Err(Error::new("conflict", "WebRTC answer already bound"));
     }
     *saved = Some(payload.clone());
+    Ok(())
+}
+
+/// Pure parameter validation for a quarantined original offer. No domain grant,
+/// packet readiness or activation permission is created by this comparison.
+pub(crate) fn validate_replacement_resource_answer(
+    intent: &connect_protocol::connection_control::OfferIntent,
+    source_generation: u64,
+    target_generation: u64,
+    participant: &str,
+    plan: &rvoip_uctp::v2::native_negotiation::NativeOfferPlan,
+    payload: &serde_json::Value,
+) -> connect_protocol::Result<()> {
+    let marker = &payload["replacement_preparation"];
+    let challenge = &marker["readiness"];
+    if marker["profile"] != "connect-replacement-media-v1"
+        || marker["operation_record_id"]
+            != intent.offer["replacement_preparation"]["operation_record_id"]
+        || challenge["source_generation"].as_u64() != Some(source_generation)
+        || challenge["target_generation"].as_u64() != Some(target_generation)
+        || challenge["stream_revision"] != 2
+        || challenge["nonce"]
+            .as_str()
+            .is_none_or(|n| n.is_empty() || n.len() > 128)
+    {
+        return Err(Error::forbidden());
+    }
+    validate(payload, plan, Some(participant))?;
     Ok(())
 }

@@ -34,14 +34,16 @@ pub struct Preparation {
     pub store: Arc<Store>,
     pub origin: Arc<NativeMediaOrigin>,
     pub attempt: NativeOfferLease,
-    /// Bounded originating invocation custody; release before idle/cleanup.
-    pub read: Arc<NativeMediaRead>,
+    /// Immutable original offer/resource lifetime only. No domain reader may
+    /// cross SDP, ICE or codec preparation; activation reacquires current Write.
+    pub source: Arc<dyn ReplacementSource>,
     pub physical: CancellationToken,
     pub binding: Arc<WebRtcPhysicalBinding>,
     pub deadline: Instant,
 }
 /// Read-only current attribution for one prepared replacement. The service
 /// supplies this from its original Store attempt, never from caller SDP claims.
+#[derive(Clone)]
 pub struct ReplacementOffer {
     pub participant_id: String,
     pub offer: serde_json::Value,
@@ -152,6 +154,42 @@ impl Service {
             .map_err(|_| Error::new("conflict", "WebRTC host already installed"))
     }
 }
+struct InitialResourceSource {
+    offer: ReplacementOffer,
+    origin: Arc<NativeMediaOrigin>,
+    admitted: std::sync::atomic::AtomicBool,
+    binding: rvoip_core::relationships::ConnectionBinding,
+    runtime: std::sync::Weak<Runtime>,
+    physical: CancellationToken,
+    deadline: Instant,
+}
+impl ReplacementSource for InitialResourceSource {
+    fn offer(&self) -> Result<ReplacementOffer> {
+        self.current()?;
+        Ok(self.offer.clone())
+    }
+    fn current(&self) -> Result<()> {
+        let runtime = self.runtime.upgrade().ok_or_else(Error::forbidden)?;
+        if runtime.stop.is_cancelled() || self.physical.is_cancelled() {
+            return Err(Error::forbidden());
+        }
+        if self.admitted.load(std::sync::atomic::Ordering::Acquire) {
+            return if runtime
+                .media
+                .connection_lifetime_current(&self.origin, Some(&self.binding))?
+            {
+                Ok(())
+            } else {
+                Err(Error::forbidden())
+            };
+        }
+        if Instant::now() >= self.deadline {
+            return Err(Error::forbidden());
+        }
+        Ok(())
+    }
+    fn release_invocation(&self) {}
+}
 #[derive(Default)]
 struct Owned {
     lease: Option<NativeOfferLease>,
@@ -164,6 +202,8 @@ struct Owned {
     peer: Option<Arc<rvoip_core::peer_admission::PeerAdmission>>,
     deadline: Option<Instant>,
     correlation: Option<String>,
+    quarantined: Option<rvoip_core::staged_streams::QuarantinedInitialMedia>,
+    resource_source: Option<Arc<InitialResourceSource>>,
 }
 impl Owned {
     fn lease(&self) -> Result<&NativeOfferLease> {
@@ -174,7 +214,24 @@ impl Owned {
             .ok_or_else(Error::storage)
     }
 }
-struct Closed<'a>(&'a Owned);
+// Retirement retains only the original attempt identity after physical close.
+// A quarantined resource plan is single-owner Send state and must not be shared
+// merely to record an already observed retirement.
+struct Retired {
+    lease: Option<NativeOfferLease>,
+    attempt: Option<Arc<dyn Attempt>>,
+    id: Option<ConnectionId>,
+}
+impl Retired {
+    fn lease(&self) -> Result<&NativeOfferLease> {
+        self.attempt
+            .as_ref()
+            .map(|attempt| attempt.original_attempt())
+            .or(self.lease.as_ref())
+            .ok_or_else(Error::storage)
+    }
+}
+struct Closed<'a>(&'a Retired);
 impl NativeOfferRuntimeObservation for Closed<'_> {
     fn observe(&self) -> Result<NativeOfferObservation> {
         let a = self.0.lease()?;
@@ -184,6 +241,11 @@ impl NativeOfferRuntimeObservation for Closed<'_> {
         })
     }
 }
+// Preserve the existing owned Box and lexical await/drop boundary, while
+// checking Send here instead of exposing this whole child coroutine to callers.
+type OriginalWorker<'a, T> =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<T>> + Send + 'a>>;
+
 impl Runtime {
     pub(crate) async fn webrtc_worker(
         self: Arc<Self>,
@@ -193,8 +255,10 @@ impl Runtime {
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
     ) -> Result<()> {
         let mut owned = Owned::default();
-        let outcome = Box::pin(self.webrtc_start(&a, &physical, &credential, &mut owned)).await;
         let handler_finished = a.invocation_cancellation();
+        let start: OriginalWorker<'_, Reply> =
+            Box::pin(self.webrtc_start(a, &physical, &credential, &mut owned));
+        let outcome = start.await;
         let succeeded = outcome.is_ok();
         let _ = tx.send(outcome);
         if let Some(attempt) = &owned.attempt {
@@ -202,8 +266,7 @@ impl Runtime {
         }
         // The dispatcher cancels this child when the original handler returns.
         // Release our Arc and every host read before observing actual resources.
-        drop(a);
-        if let Some(attempt) = &owned.attempt {
+        if let Some(attempt) = owned.attempt.clone() {
             if succeeded {
                 let deadline = owned.deadline.unwrap_or_else(Instant::now);
                 let finished = tokio::select! { biased;
@@ -213,7 +276,10 @@ impl Runtime {
                     _=handler_finished.cancelled()=>true,
                 };
                 if finished {
-                    match Box::pin(self.webrtc_admit(&owned, physical.clone(), &credential)).await {
+                    let mut reconciled_role = None;
+                    let admission: OriginalWorker<'_, admission::Ready> =
+                        Box::pin(self.webrtc_admit(&mut owned, physical.clone(), &credential));
+                    match admission.await {
                         Ok(ready) => loop {
                             tokio::select! { biased;
                                 _=self.stop.cancelled()=>break,
@@ -234,7 +300,8 @@ impl Runtime {
                             // own bounded current read; no offer reader survives
                             // into this idle loop or becomes role authority.
                             if let Some(id) = &owned.id {
-                                self.reconcile_connection_role(id).await;
+                                self.reconcile_connection_role_generation(id, &mut reconciled_role)
+                                    .await;
                             }
                         },
                         Err(e) => {
@@ -243,6 +310,11 @@ impl Runtime {
                     }
                 }
             }
+        }
+        // Release an unactivated plan's original inflight permit before the
+        // adapter drains its controller. Physical owners remain retained below.
+        drop(owned.quarantined.take());
+        if let Some(attempt) = &owned.attempt {
             // The original owner confirms actual RTC close. A missing confirmation
             // cannot produce a durable retirement fact or release its owned capacity.
             if attempt.shutdown().await.is_err() {
@@ -290,7 +362,15 @@ impl Runtime {
         if owned.lease().is_err() {
             return Ok(());
         }
-        let owned = Arc::new(owned);
+        let retired = Retired {
+            lease: owned.lease.take(),
+            attempt: owned.attempt.take(),
+            id: owned.id.take(),
+        };
+        // Physical shutdown and absence were checked above. Drop any remaining
+        // unactivated plan before sharing immutable retirement custody.
+        drop(owned);
+        let owned = Arc::new(retired);
         let mut cleanup_cutoff = None;
         let cleanup_started = Instant::now();
         let mut cleanup_retries = 0_u64;
@@ -365,8 +445,8 @@ impl Runtime {
         Ok(())
     }
     async fn webrtc_start(
-        &self,
-        a: &Arc<AuthorizedEnvelope>,
+        self: &Arc<Self>,
+        a: Arc<AuthorizedEnvelope>,
         physical: &Physical,
         credential: &str,
         owned: &mut Owned,
@@ -380,7 +460,7 @@ impl Runtime {
         let authority = a
             .authority::<StoreInvocationAuthority>()
             .ok_or_else(Error::forbidden)?;
-        physical.validate(a, authority)?;
+        physical.validate(&a, authority)?;
         let proof = authority.peer_guard().ok_or_else(Error::forbidden)?;
         let intent = crate::canonical_native::intent(a.envelope())?;
         if physical.binding.transport() != rvoip_core::Transport::WebSocket
@@ -422,15 +502,18 @@ impl Runtime {
         owned.correlation = Some(a.envelope().id().to_owned());
         // Origin issuance uses the exact current originating invocation fence.
         // Every suspension retains the original lease in the outer worker.
+        // Borrow only the original lease across this wait. Owned also holds a
+        // move-only quarantined candidate; it is not shared across workers.
+        let lease = owned.lease()?;
         let origin = self
-            .native_preflight(a, deadline, || {
+            .native_preflight(&a, deadline, || {
                 self.media
                     .store
-                    .native_media_origin_with_peer(credential, proof, owned.lease()?)
+                    .native_media_origin_with_peer(credential, proof, lease)
             })
             .await?;
         let read = match self
-            .native_preflight(a, deadline, || {
+            .native_preflight(&a, deadline, || {
                 self.media
                     .store
                     .native_media_read_with_peer(&origin, None, proof)
@@ -495,6 +578,7 @@ impl Runtime {
             policy: self.media.clone(),
             connection: entry.clone(),
             authorized: a.clone(),
+            resumed: None,
             read: read.clone(),
             participant_revision: self
                 .core
@@ -521,15 +605,54 @@ impl Runtime {
                 &invocation,
             )
             .map_err(|_| Error::forbidden())?;
-        owned.controller = Some(controller);
+        owned.controller = Some(controller.clone());
         entry
             .set_activation(activation)
             .map_err(|_| Error::forbidden())?;
+        owned.quarantined = Some(
+            controller
+                .stage_initial_selected_with_held(
+                    entry.plan.selected(),
+                    deadline,
+                    physical.lifetime.child_token(),
+                    Arc::new(invocation),
+                )
+                .await
+                .map_err(|_| Error::forbidden())?,
+        );
+        let participant = origin.participant_id().to_owned();
+        let source = Arc::new(InitialResourceSource {
+            offer: ReplacementOffer {
+                participant_id: participant.clone(),
+                offer: read.target().offer.clone(),
+            },
+            origin: origin.clone(),
+            admitted: std::sync::atomic::AtomicBool::new(false),
+            binding: entry.lifetime_binding().map_err(|_| Error::forbidden())?,
+            runtime: Arc::downgrade(self),
+            physical: physical.lifetime.child_token(),
+            deadline,
+        });
+        drop(view);
+        drop(read);
+        let streams = entry
+            .plan
+            .selected()
+            .iter()
+            .map(|s| s.requested.logical_id.as_str().to_owned())
+            .collect();
+        let a = Arc::new(
+            Arc::try_unwrap(a)
+                .map_err(|_| Error::new("conflict", "Original RTC invocation still retained"))?
+                .into_resource_preparation(participant.clone(), streams, deadline)
+                .map_err(|_| Error::forbidden())?,
+        );
+        owned.resource_source = Some(source.clone());
         let attempt = host.start(Preparation {
             store: self.media.store.clone(),
             origin,
             attempt: owned.lease.take().ok_or_else(Error::storage)?,
-            read,
+            source,
             physical: physical.lifetime.child_token(),
             binding,
             deadline,
@@ -542,11 +665,12 @@ impl Runtime {
             _=tokio::time::sleep_until(deadline)=>return Err(Error::new("timeout","WebRTC answer deadline")),
             answer=attempt.answer(deadline)=>answer?,
         };
-        self.native_preflight(a, deadline, || {
-            crate::peer_authority::bind_webrtc_answer(&self.media.store, a, &answer)
-        })
-        .await?;
         let payload = serde_json::to_value(answer).map_err(|_| Error::storage())?;
+        crate::peer_authority::validate_webrtc_resource_answer(
+            &payload,
+            &entry.plan,
+            Some(&participant),
+        )?;
         let envelope = crate::canonical::reply(a.envelope(), "connection.answer", payload)
             .map_err(|_| Error::forbidden())?;
         a.answer_offer(envelope, deadline)

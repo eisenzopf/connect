@@ -1,0 +1,701 @@
+//! State-change publication. SQL and file admission belong only to the owner worker.
+//!
+//! `SnapshotFacts::current` must use only the captured runtime/physical atomics
+//! and original expiry. Publication is disabled until the coordinated-writer
+//! boundary has been installed. Neither a generic metadata memo nor a hint can
+//! enable this module. The runtime must retain and join `OwnedWatcher`.
+use crate::{AuthorityGuardSet, AuthorityScope};
+use arc_swap::ArcSwapOption;
+use connect_protocol::{Error, Result};
+use std::sync::{
+    atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+    Arc, Condvar, Mutex, Weak,
+};
+use std::thread::JoinHandle;
+use std::time::{Duration, Instant};
+
+const MAX_PUBLICATIONS: usize = 4096;
+const MAX_WRITERS: usize = 1024;
+const MAX_REFRESH_PER_TURN: usize = 8;
+static NEXT_SLOT: AtomicU64 = AtomicU64::new(1);
+type Probe = dyn Fn(&[AuthorityScope]) -> Result<()> + Send + Sync;
+type Refresh<T> = dyn Fn() -> Result<Prepared<T>> + Send + Sync;
+
+/// This callback is on media delivery. It must perform no SQL, filesystem,
+/// registry lookup, contended mutex acquisition, or mutable authorization work.
+pub(crate) trait SnapshotFacts: Send + Sync + 'static {
+    fn current(&self) -> bool;
+}
+
+pub(crate) struct Prepared<T: SnapshotFacts> {
+    facts: Arc<T>,
+    scopes: Arc<[AuthorityScope]>,
+    _guards: Arc<AuthorityGuardSet>,
+    until: Instant,
+}
+impl<T: SnapshotFacts> Prepared<T> {
+    pub(crate) fn new(
+        facts: Arc<T>,
+        guards: Arc<AuthorityGuardSet>,
+        until: Instant,
+    ) -> Result<Self> {
+        let scopes = guards.snapshot_read_scopes()?;
+        if scopes.is_empty() || Instant::now() >= until || !facts.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(Self {
+            facts,
+            scopes: scopes.into(),
+            _guards: guards,
+            until,
+        })
+    }
+}
+struct Generation<T: SnapshotFacts> {
+    number: u64,
+    prepared: Prepared<T>,
+    epoch: Epoch,
+}
+impl<T: SnapshotFacts> Generation<T> {
+    fn current(&self) -> bool {
+        self.epoch.current() && self.prepared.facts.current()
+    }
+}
+/// Packet metadata only: retaining this cannot pin any authority Read fence.
+#[derive(Clone)]
+pub(crate) struct Epoch {
+    revoked: Arc<AtomicBool>,
+    registry: Weak<Registry>,
+    until: Instant,
+}
+impl Epoch {
+    pub(crate) fn current(&self) -> bool {
+        !self.revoked.load(Ordering::Acquire)
+            && Instant::now() < self.until
+            && self.registry.upgrade().is_some_and(|registry| {
+                registry.enabled.load(Ordering::Acquire) && !registry.stopped()
+            })
+    }
+    fn revoke(&self) {
+        self.revoked.store(true, Ordering::Release);
+    }
+}
+impl<T: SnapshotFacts> Drop for Generation<T> {
+    fn drop(&mut self) {
+        self.epoch.revoke();
+    }
+}
+/// Private stamp prevents queued work from borrowing a replacement publication,
+/// even when that later publication happens to authorize the same logical pair.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Stamp {
+    slot: u64,
+    generation: u64,
+}
+pub(crate) struct Lease<T: SnapshotFacts> {
+    slot: u64,
+    generation: Arc<Generation<T>>,
+}
+impl<T: SnapshotFacts> Clone for Lease<T> {
+    fn clone(&self) -> Self {
+        Self {
+            slot: self.slot,
+            generation: self.generation.clone(),
+        }
+    }
+}
+impl<T: SnapshotFacts> Lease<T> {
+    pub(crate) fn facts(&self) -> &T {
+        &self.generation.prepared.facts
+    }
+    pub(crate) fn stamp(&self) -> Stamp {
+        Stamp {
+            slot: self.slot,
+            generation: self.generation.number,
+        }
+    }
+    pub(crate) fn current(&self) -> bool {
+        self.generation.current()
+    }
+    pub(crate) fn packet_epoch(&self) -> Epoch {
+        self.generation.epoch.clone()
+    }
+}
+struct Refusal {
+    error: Error,
+    active: AtomicBool,
+}
+struct RefreshAttempt {
+    sequence: Option<u64>,
+    transient: bool,
+    retry_at: Instant,
+    backoff: Duration,
+}
+struct Slot<T: SnapshotFacts> {
+    id: u64,
+    handles: AtomicUsize,
+    generation: AtomicU64,
+    publication: ArcSwapOption<Generation<T>>,
+    refusal: ArcSwapOption<Refusal>,
+    scope_hint: ArcSwapOption<Vec<AuthorityScope>>,
+    attempt: Mutex<RefreshAttempt>,
+    registry: Weak<Registry>,
+    refresh: Box<Refresh<T>>,
+}
+pub(crate) struct Handle<T: SnapshotFacts> {
+    slot: Arc<Slot<T>>,
+}
+impl<T: SnapshotFacts> Clone for Handle<T> {
+    fn clone(&self) -> Self {
+        self.slot.handles.fetch_add(1, Ordering::Relaxed);
+        Self {
+            slot: self.slot.clone(),
+        }
+    }
+}
+impl<T: SnapshotFacts> Drop for Handle<T> {
+    fn drop(&mut self) {
+        // The control worker may temporarily own an erased Slot Arc. The last
+        // application handle must still revoke independently retained packet
+        // metadata now, before that temporary worker ownership disappears.
+        if self.slot.handles.fetch_sub(1, Ordering::AcqRel) == 1 {
+            self.slot.revoke();
+        }
+    }
+}
+impl<T: SnapshotFacts> Handle<T> {
+    /// Fresh admission linearizes before a later invalidation. The retained
+    /// snapshot's resource fences prevent that writer committing until IO joins.
+    pub(crate) fn admit(&self) -> Result<Lease<T>> {
+        self.admit_at(None)
+    }
+    pub(crate) fn admit_original(&self, stamp: Stamp) -> Result<Lease<T>> {
+        self.admit_at(Some(stamp))
+    }
+    /// Lifetime observers need a definitive original refusal, not a fabricated
+    /// retirement on refresh contention. This returns no new IO capability.
+    pub(crate) fn observe(&self) -> Result<Lease<T>> {
+        match self.admit() {
+            Ok(lease) => Ok(lease),
+            Err(error) => {
+                let registry = self.slot.registry.upgrade().ok_or_else(Error::forbidden)?;
+                if !registry.enabled.load(Ordering::Acquire) || registry.stopped() {
+                    return Err(error);
+                }
+                if let Some(refusal) = self.slot.refusal.load_full() {
+                    if refusal.active.load(Ordering::Acquire) {
+                        return Err(refusal.error.clone());
+                    }
+                }
+                Err(error)
+            }
+        }
+    }
+    fn admit_at(&self, stamp: Option<Stamp>) -> Result<Lease<T>> {
+        let registry = self.slot.registry.upgrade().ok_or_else(Error::forbidden)?;
+        if !registry.enabled.load(Ordering::Acquire) || registry.stopped.load(Ordering::Acquire) {
+            return Err(busy());
+        }
+        let generation = self.slot.publication.load_full().ok_or_else(busy)?;
+        if stamp.is_some_and(|s| s.slot != self.slot.id || s.generation != generation.number)
+            || !generation.current()
+        {
+            return Err(busy());
+        }
+        // Invalidation first revokes this exact object. No check-then-clone of
+        // an unowned grant: the Arc already retains its complete Read interval.
+        let lease = Lease {
+            slot: self.slot.id,
+            generation,
+        };
+        if !lease.current() {
+            return Err(busy());
+        }
+        Ok(lease)
+    }
+}
+fn busy() -> Error {
+    Error::new(
+        "authority-busy",
+        "Current media authorization is being refreshed",
+    )
+}
+fn intersects(left: &[AuthorityScope], right: &[AuthorityScope]) -> bool {
+    left.iter()
+        .any(|a| right.iter().any(|b| a.read_scope() == b.read_scope()))
+}
+trait ErasedSlot: Send + Sync {
+    fn revoke(&self);
+    fn revoke_for(&self, scopes: &[AuthorityScope]);
+    fn published_scopes(&self) -> Option<Arc<[AuthorityScope]>>;
+    fn refresh_if_missing(&self, registry: &Registry);
+}
+impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
+    fn revoke(&self) {
+        let refused = self.refusal.swap(None);
+        if let Some(refused) = &refused {
+            refused.active.store(false, Ordering::Release);
+        }
+        if let Some(current) = self.publication.load_full() {
+            current.epoch.revoke();
+        }
+        // Only control-plane callers remove publication. A media miss must not
+        // unexpectedly become the last cached fence destructor on the hot path.
+        if self.publication.swap(None).is_some() || refused.is_some() {
+            if let Ok(mut attempt) = self.attempt.lock() {
+                attempt.sequence = None;
+            }
+        }
+    }
+    fn revoke_for(&self, scopes: &[AuthorityScope]) {
+        let affected = self
+            .scope_hint
+            .load_full()
+            .is_some_and(|hint| intersects(&hint, scopes));
+        if affected {
+            self.revoke();
+        }
+    }
+    fn published_scopes(&self) -> Option<Arc<[AuthorityScope]>> {
+        if let Some(current) = self.publication.load_full() {
+            let valid = current.current();
+            // Do not pin the resource while revoking publication.
+            drop(current);
+            if !valid {
+                self.revoke();
+            }
+        }
+        // Names only, with no file/SQL/authority owner: keep watching an old
+        // scope after withdrawal so a cross-process writer's release can wake
+        // exactly one fresh projection of an otherwise unchanged route.
+        self.scope_hint
+            .load_full()
+            .map(|hint| hint.as_slice().into())
+    }
+    fn refresh_if_missing(&self, registry: &Registry) {
+        if self.handles.load(Ordering::Acquire) == 0 || self.publication.load().is_some() {
+            return;
+        }
+        if !registry.enabled.load(Ordering::Acquire) || registry.stopped.load(Ordering::Acquire) {
+            return;
+        }
+        let sequence = match registry.control.lock() {
+            Ok(state) if state.writers.is_empty() && !state.external_busy => state.sequence,
+            _ => return,
+        };
+        {
+            let Ok(mut attempt) = self.attempt.lock() else {
+                return;
+            };
+            if attempt.sequence == Some(sequence)
+                && (!attempt.transient || Instant::now() < attempt.retry_at)
+            {
+                return;
+            }
+            if attempt.sequence != Some(sequence) {
+                attempt.backoff = Duration::from_millis(1);
+            }
+            attempt.sequence = Some(sequence);
+            attempt.transient = false;
+        }
+        // This closure must capture Weak<Store>, use the existing slow guarded
+        // projection, and be bounded. Never capture its OwnedWatcher/runtime.
+        let prepared = match (self.refresh)() {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                if matches!(
+                    error.code.as_str(),
+                    "authority-busy" | "storage-unavailable"
+                ) {
+                    if let Ok(mut attempt) = self.attempt.lock() {
+                        attempt.transient = true;
+                        attempt.retry_at = Instant::now() + attempt.backoff;
+                        attempt.backoff = (attempt.backoff * 2).min(Duration::from_millis(250));
+                    }
+                } else if let Ok(state) = registry.control.lock() {
+                    if self.handles.load(Ordering::Acquire) > 0
+                        && state.sequence == sequence
+                        && state.writers.is_empty()
+                        && !state.external_busy
+                        && registry.enabled.load(Ordering::Acquire)
+                        && !registry.stopped()
+                    {
+                        self.refusal.store(Some(Arc::new(Refusal {
+                            error,
+                            active: AtomicBool::new(true),
+                        })));
+                    }
+                }
+                return;
+            }
+        };
+        if Instant::now() >= prepared.until || !prepared.facts.current() {
+            return;
+        }
+        let Ok(state) = registry.control.lock() else {
+            return;
+        };
+        if self.handles.load(Ordering::Acquire) == 0
+            || state.sequence != sequence
+            || !state.writers.is_empty()
+            || state.external_busy
+            || !registry.enabled.load(Ordering::Acquire)
+            || registry.stopped.load(Ordering::Acquire)
+        {
+            return;
+        }
+        let Ok(previous) = self
+            .generation
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| n.checked_add(1))
+        else {
+            return;
+        };
+        self.scope_hint
+            .store(Some(Arc::new(prepared.scopes.to_vec())));
+        let epoch = Epoch {
+            registry: self.registry.clone(),
+            revoked: Arc::new(AtomicBool::new(false)),
+            until: prepared.until,
+        };
+        let next = Arc::new(Generation {
+            number: previous + 1,
+            prepared,
+            epoch,
+        });
+        // The control mutex orders publication against local writer notification.
+        self.publication.store(Some(next));
+        drop(state);
+    }
+}
+impl<T: SnapshotFacts> Drop for Slot<T> {
+    fn drop(&mut self) {
+        self.revoke();
+    }
+}
+struct Pending {
+    id: u64,
+}
+struct Control {
+    slots: Vec<Weak<dyn ErasedSlot>>,
+    writers: Vec<Pending>,
+    next_writer: u64,
+    sequence: u64,
+    refresh_cursor: usize,
+    external_busy: bool,
+}
+pub(crate) struct Registry {
+    control: Mutex<Control>,
+    changed: Condvar,
+    probe: Box<Probe>,
+    enabled: AtomicBool,
+    stopped: AtomicBool,
+    watcher_started: AtomicBool,
+}
+impl Registry {
+    pub(crate) fn new(
+        probe: impl Fn(&[AuthorityScope]) -> Result<()> + Send + Sync + 'static,
+    ) -> Arc<Self> {
+        Arc::new(Self {
+            control: Mutex::new(Control {
+                slots: Vec::new(),
+                writers: Vec::new(),
+                next_writer: 0,
+                sequence: 0,
+                refresh_cursor: 0,
+                external_busy: false,
+            }),
+            changed: Condvar::new(),
+            probe: Box::new(probe),
+            enabled: AtomicBool::new(false),
+            stopped: AtomicBool::new(false),
+            watcher_started: AtomicBool::new(false),
+        })
+    }
+    /// Call only after the persistent coordinated-writer boundary is verified.
+    /// Merely registering SQLite functions is not that proof.
+    pub(crate) fn enable_after_writer_boundary(&self) -> Result<()> {
+        if self.stopped.load(Ordering::Acquire) || !self.watcher_started.load(Ordering::Acquire) {
+            return Err(Error::forbidden());
+        }
+        self.enabled.store(true, Ordering::Release);
+        self.changed.notify_all();
+        Ok(())
+    }
+    pub(crate) fn stopped(&self) -> bool {
+        self.stopped.load(Ordering::Acquire)
+    }
+    pub(crate) fn register<T: SnapshotFacts>(
+        self: &Arc<Self>,
+        refresh: impl Fn() -> Result<Prepared<T>> + Send + Sync + 'static,
+    ) -> Result<Handle<T>> {
+        self.register_with_hints(&[], refresh)
+    }
+    pub(crate) fn register_with_hints<T: SnapshotFacts>(
+        self: &Arc<Self>,
+        hints: &[AuthorityScope],
+        refresh: impl Fn() -> Result<Prepared<T>> + Send + Sync + 'static,
+    ) -> Result<Handle<T>> {
+        self.register_impl(hints, refresh, false)
+    }
+    pub(crate) fn try_register_with_hints<T: SnapshotFacts>(
+        self: &Arc<Self>,
+        hints: &[AuthorityScope],
+        refresh: impl Fn() -> Result<Prepared<T>> + Send + Sync + 'static,
+    ) -> Result<Handle<T>> {
+        self.register_impl(hints, refresh, true)
+    }
+    fn register_impl<T: SnapshotFacts>(
+        self: &Arc<Self>,
+        hints: &[AuthorityScope],
+        refresh: impl Fn() -> Result<Prepared<T>> + Send + Sync + 'static,
+        immediate: bool,
+    ) -> Result<Handle<T>> {
+        if self.stopped() {
+            return Err(Error::forbidden());
+        }
+        let hints = AuthorityScope::merged(
+            &hints
+                .iter()
+                .map(AuthorityScope::read_scope)
+                .collect::<Vec<_>>(),
+        )?;
+        let id = NEXT_SLOT
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1))
+            .map_err(|_| Error::storage())?;
+        let slot = Arc::new(Slot {
+            id,
+            handles: AtomicUsize::new(1),
+            generation: AtomicU64::new(0),
+            publication: ArcSwapOption::empty(),
+            refusal: ArcSwapOption::empty(),
+            scope_hint: ArcSwapOption::new((!hints.is_empty()).then(|| Arc::new(hints))),
+            attempt: Mutex::new(RefreshAttempt {
+                sequence: None,
+                transient: false,
+                retry_at: Instant::now(),
+                backoff: Duration::from_millis(1),
+            }),
+            registry: Arc::downgrade(self),
+            refresh: Box::new(refresh),
+        });
+        let erased: Arc<dyn ErasedSlot> = slot.clone();
+        let mut state = if immediate {
+            self.control.try_lock().map_err(|error| match error {
+                std::sync::TryLockError::WouldBlock => busy(),
+                std::sync::TryLockError::Poisoned(_) => Error::storage(),
+            })?
+        } else {
+            self.control.lock().map_err(|_| Error::storage())?
+        };
+        state.slots.retain(|s| s.strong_count() > 0);
+        if state.slots.len() >= MAX_PUBLICATIONS {
+            return Err(Error::new(
+                "capacity-exceeded",
+                "Media snapshot publication capacity exceeded",
+            ));
+        }
+        state.slots.push(Arc::downgrade(&erased));
+        drop(state);
+        self.changed.notify_all();
+        Ok(Handle { slot })
+    }
+    /// Invoke before any local writer waits for file admission; retain returned
+    /// notice until its original full Write interval and SQL outcome have ended.
+    pub(crate) fn before_write(
+        self: &Arc<Self>,
+        scopes: &[AuthorityScope],
+    ) -> Result<WriterNotice> {
+        let mut state = self.control.lock().map_err(|_| Error::storage())?;
+        if state.writers.len() >= MAX_WRITERS {
+            return Err(Error::new(
+                "capacity-exceeded",
+                "Media writer notification capacity exceeded",
+            ));
+        }
+        state.next_writer = state
+            .next_writer
+            .checked_add(1)
+            .ok_or_else(Error::storage)?;
+        state.sequence = state.sequence.checked_add(1).ok_or_else(Error::storage)?;
+        let id = state.next_writer;
+        state.slots.retain(|s| s.strong_count() > 0);
+        for slot in state.slots.iter().filter_map(Weak::upgrade) {
+            slot.revoke_for(scopes);
+        }
+        state.writers.push(Pending { id });
+        drop(state);
+        self.changed.notify_all();
+        Ok(WriterNotice {
+            registry: Arc::downgrade(self),
+            id,
+        })
+    }
+    pub(crate) fn invalidate_all(&self) {
+        self.enabled.store(false, Ordering::Release);
+        if let Ok(mut state) = self.control.lock() {
+            state.sequence = state.sequence.saturating_add(1);
+            for slot in state.slots.iter().filter_map(Weak::upgrade) {
+                slot.revoke();
+            }
+        }
+        self.changed.notify_all();
+    }
+    pub(crate) fn start_watcher(self: &Arc<Self>, interval: Duration) -> Result<OwnedWatcher> {
+        if self.stopped()
+            || self
+                .watcher_started
+                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                .is_err()
+        {
+            return Err(Error::forbidden());
+        }
+        let interval = interval.clamp(Duration::from_millis(1), Duration::from_millis(20));
+        let registry = self.clone();
+        let thread = match std::thread::Builder::new()
+            .name("connect-media-auth".into())
+            .spawn(move || {
+                let _exit = WatcherExit(registry.clone());
+                while !registry.stopped() {
+                    let slots = match registry.control.lock() {
+                        Ok(mut state) => {
+                            state.slots.retain(|s| s.strong_count() > 0);
+                            state
+                                .slots
+                                .iter()
+                                .filter_map(Weak::upgrade)
+                                .collect::<Vec<_>>()
+                        }
+                        Err(_) => {
+                            registry.stopped.store(true, Ordering::Release);
+                            registry.invalidate_all();
+                            return;
+                        }
+                    };
+                    // One off-media fence probe per unique Read scope, before
+                    // any SQL refresh. A busy coordinated cross-process writer
+                    // invalidates publication, then waits only for actual IO.
+                    let scopes = slots
+                        .iter()
+                        .filter_map(|slot| slot.published_scopes())
+                        .flat_map(|scopes| scopes.to_vec())
+                        .collect::<Vec<_>>();
+                    let external_busy = !scopes.is_empty()
+                        && AuthorityScope::merged(&scopes)
+                            .and_then(|scopes| (registry.probe)(&scopes))
+                            .is_err();
+                    {
+                        let Ok(mut state) = registry.control.lock() else {
+                            return;
+                        };
+                        if state.external_busy != external_busy {
+                            state.external_busy = external_busy;
+                            state.sequence = state.sequence.saturating_add(1);
+                        }
+                    }
+                    if external_busy {
+                        for slot in &slots {
+                            slot.revoke();
+                        }
+                    }
+                    // Bound new/invalidated refresh work between writer-intent
+                    // probes. Factories retain their own existing short cutoff;
+                    // no callback may perform an unbounded wait or network IO.
+                    let cursor = match registry.control.lock() {
+                        Ok(mut state) => {
+                            let cursor = state.refresh_cursor;
+                            state.refresh_cursor = cursor.wrapping_add(MAX_REFRESH_PER_TURN);
+                            cursor
+                        }
+                        Err(_) => return,
+                    };
+                    if !slots.is_empty() {
+                        for offset in 0..slots.len().min(MAX_REFRESH_PER_TURN) {
+                            if registry.stopped() {
+                                break;
+                            }
+                            slots[(cursor.wrapping_add(offset)) % slots.len()]
+                                .refresh_if_missing(&registry);
+                        }
+                    }
+                    let Ok(state) = registry.control.lock() else {
+                        registry.stopped.store(true, Ordering::Release);
+                        registry.invalidate_all();
+                        return;
+                    };
+                    if registry.stopped() {
+                        break;
+                    }
+                    if registry.changed.wait_timeout(state, interval).is_err() {
+                        registry.stopped.store(true, Ordering::Release);
+                        registry.invalidate_all();
+                        return;
+                    }
+                }
+            }) {
+            Ok(thread) => thread,
+            Err(_) => {
+                self.watcher_started.store(false, Ordering::Release);
+                return Err(Error::storage());
+            }
+        };
+        Ok(OwnedWatcher {
+            registry: self.clone(),
+            thread: Some(thread),
+        })
+    }
+}
+impl crate::RuntimeRetirementSignal for Registry {
+    fn retire(&self) {
+        self.stopped.store(true, Ordering::Release);
+        self.invalidate_all();
+    }
+}
+struct WatcherExit(Arc<Registry>);
+impl Drop for WatcherExit {
+    fn drop(&mut self) {
+        self.0.stopped.store(true, Ordering::Release);
+        self.0.invalidate_all();
+    }
+}
+/// Separate service-runtime custody prevents Store refresh callbacks from
+/// dropping/joining their own worker when a temporary upgraded Store Arc ends.
+pub struct OwnedWatcher {
+    registry: Arc<Registry>,
+    thread: Option<JoinHandle<()>>,
+}
+impl OwnedWatcher {
+    pub fn shutdown(&mut self) -> Result<()> {
+        self.registry.stopped.store(true, Ordering::Release);
+        self.registry.invalidate_all();
+        self.registry.changed.notify_all();
+        if let Some(thread) = self.thread.take() {
+            thread.join().map_err(|_| Error::storage())?;
+        }
+        Ok(())
+    }
+}
+impl Drop for OwnedWatcher {
+    fn drop(&mut self) {
+        let _ = self.shutdown();
+    }
+}
+pub(crate) struct WriterNotice {
+    registry: Weak<Registry>,
+    id: u64,
+}
+impl Drop for WriterNotice {
+    fn drop(&mut self) {
+        if let Some(registry) = self.registry.upgrade() {
+            if let Ok(mut state) = registry.control.lock() {
+                state.writers.retain(|p| p.id != self.id);
+                state.sequence = state.sequence.saturating_add(1);
+            } else {
+                registry.enabled.store(false, Ordering::Release);
+            }
+            registry.changed.notify_all();
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests;

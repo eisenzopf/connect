@@ -26,6 +26,8 @@ use admission::NativeMediaAdmission;
 pub use consultation_sip::{SipAudienceOrigin, SipAudienceRead};
 mod handoff;
 mod handoff_lifetime;
+mod lifetime_snapshot;
+pub use lifetime_snapshot::{NativeConnectionLifetimeSnapshot, NativeConnectionLifetimeStamp};
 mod replacement;
 pub(crate) use replacement::NativeReplacementPacketFacts;
 mod replacement_activation;
@@ -77,6 +79,14 @@ pub struct NativeMediaOrigin {
     // Erase the private projection layout at the public origin's Send/Sync
     // boundary. The Store alone downcasts it; no caller can install metadata.
     metadata: snapshot::MetadataToken,
+    snapshot_hints: Arc<[AuthorityScope]>,
+}
+fn native_snapshot_hints(conversation: &str, identity: &str) -> Result<Arc<[AuthorityScope]>> {
+    Ok(vec![
+        AuthorityScope::identity(identity, AuthorityMode::Read)?,
+        AuthorityScope::conversation(conversation, AuthorityMode::Read)?,
+    ]
+    .into())
 }
 impl NativeMediaOrigin {
     pub(crate) fn require_runtime(&self, store: &Store) -> Result<()> {
@@ -133,6 +143,7 @@ impl std::fmt::Debug for NativeMediaOrigin {
 }
 /// Keep this actual owned fence through the bounded engine operation/delivery.
 /// The views themselves are facts; copying them does not copy current authority.
+#[derive(Clone)]
 pub struct NativeMediaRead {
     target: PeerConnectionProjection,
     source: Option<PeerConnectionProjection>,
@@ -140,8 +151,82 @@ pub struct NativeMediaRead {
     owner: Arc<InstallationOwnership>,
     expires_at: i64,
     may_subscribe: bool,
+    _live: Option<crate::media_authorization::Lease<NativeMediaRead>>,
+    _source_live: Option<crate::media_authorization::Lease<NativeMediaRead>>,
 }
 impl NativeMediaRead {
+    /// Captured at original admission; queued IO must never borrow a newer stamp.
+    pub fn snapshot_stamp(&self) -> Option<NativeMediaSnapshotStamp> {
+        self._live
+            .as_ref()
+            .map(|lease| NativeMediaSnapshotStamp(lease.stamp()))
+    }
+    /// Queue metadata, not an IO grant; it owns no authority fences.
+    pub fn packet_epoch(&self) -> Option<NativeMediaSnapshotEpoch> {
+        self._live.as_ref().map(|lease| NativeMediaSnapshotEpoch {
+            route: lease.packet_epoch(),
+            source: self._source_live.as_ref().map(|lease| lease.packet_epoch()),
+        })
+    }
+    /// Bind this published pair to the exact original source admission. All
+    /// comparisons are immutable facts/atomic currentness; no SQL or OS calls.
+    pub fn bound_to_original_source(
+        mut self,
+        original: &NativeMediaRead,
+        source: &NativeMediaOrigin,
+    ) -> Result<Self> {
+        let view = &original.target;
+        // Retained source publication is unary; recipient delivery selects a
+        // source projection. Both must name this same original source exactly.
+        let selected = self.source.as_ref().unwrap_or(&self.target);
+        if !self.current()
+            || !original.current()
+            || !Arc::ptr_eq(&self.owner, &original.owner)
+            || !source
+                .owner
+                .upgrade()
+                .is_some_and(|owner| Arc::ptr_eq(&owner, &self.owner))
+            || !self._scopes.covers_original_interval(&original._scopes)
+            || original._source_live.is_some()
+            || view.runtime_connection_id != source.runtime_connection_id
+            || view.connection.connection_id != source.intent.connection_id
+            || view.connection.conversation_id != source.intent.conversation_id
+            || view.connection.session_id != source.intent.session_id
+            || view.connection.participant_id != source.participant_id
+            || view.connection.membership_epoch != source.membership_epoch
+            || view.connection.generation != source.generation
+            || view.connection.endpoint_id != source.endpoint_id
+            || view.device_id != source.binding.device.id
+            || selected.runtime_connection_id != view.runtime_connection_id
+            || selected.connection.connection_id != view.connection.connection_id
+            || selected.connection.conversation_id != view.connection.conversation_id
+            || selected.connection.session_id != view.connection.session_id
+            || selected.connection.participant_id != view.connection.participant_id
+            || selected.connection.membership_epoch != view.connection.membership_epoch
+            || selected.connection.generation != view.connection.generation
+            || selected.connection.endpoint_id != view.connection.endpoint_id
+            || selected.device_id != view.device_id
+        {
+            return Err(Error::forbidden());
+        }
+        // The ordinary fallback may bind only original live IO. It may never
+        // manufacture an atomic epoch for a legacy/re-derived source grant.
+        self._source_live = Some(
+            original
+                ._live
+                .as_ref()
+                .ok_or_else(Error::forbidden)?
+                .clone(),
+        );
+        self.expires_at = self
+            .expires_at
+            .min(original.expires_at)
+            .min(source.expires_at);
+        if !self.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(self)
+    }
     pub(crate) fn interval(&self) -> &Arc<AuthorityGuardSet> {
         &self._scopes
     }
@@ -155,7 +240,16 @@ impl NativeMediaRead {
         self.source.as_ref()
     }
     pub fn current(&self) -> bool {
-        self.owner.current() && crate::now() < self.expires_at
+        self.owner.current()
+            && crate::now() < self.expires_at
+            && self
+                ._live
+                .as_ref()
+                .is_none_or(crate::media_authorization::Lease::current)
+            && self
+                ._source_live
+                .as_ref()
+                .is_none_or(crate::media_authorization::Lease::current)
     }
     /// Separate current named permission; Connection creation alone never
     /// authorizes receipt of another publisher's selected media.
@@ -163,6 +257,125 @@ impl NativeMediaRead {
         self.current() && self.may_subscribe
     }
 }
+/// Immutable live authorization publication. Construction/refresh is trusted
+/// backend work; media admission performs no SQL or file admission.
+#[derive(Clone)]
+pub struct NativeMediaSnapshot {
+    handle: crate::media_authorization::Handle<NativeMediaRead>,
+}
+#[derive(Clone)]
+pub struct NativeMediaSnapshotEpoch {
+    route: crate::media_authorization::Epoch,
+    source: Option<crate::media_authorization::Epoch>,
+}
+impl NativeMediaSnapshotEpoch {
+    pub fn current(&self) -> bool {
+        self.route.current() && self.source.as_ref().is_none_or(|epoch| epoch.current())
+    }
+}
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct NativeMediaSnapshotStamp(crate::media_authorization::Stamp);
+impl NativeMediaSnapshot {
+    pub fn admit(&self) -> Result<NativeMediaRead> {
+        self.materialize(self.handle.admit()?)
+    }
+    pub fn admit_original(&self, stamp: NativeMediaSnapshotStamp) -> Result<NativeMediaRead> {
+        self.materialize(self.handle.admit_original(stamp.0)?)
+    }
+    fn materialize(
+        &self,
+        lease: crate::media_authorization::Lease<NativeMediaRead>,
+    ) -> Result<NativeMediaRead> {
+        let mut read = lease.facts().clone();
+        read._live = Some(lease);
+        if !read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
+    }
+}
+impl crate::media_authorization::SnapshotFacts for NativeMediaRead {
+    fn current(&self) -> bool {
+        // Refresh factories may not recursively retain an older live publication.
+        self._live.is_none()
+            && self._source_live.is_none()
+            && self.owner.current()
+            && crate::now() < self.expires_at
+    }
+}
+impl Store {
+    /// Trusted backend factory; callers capture only Weak<Store> and immutable
+    /// origins/continuation identities, never the runtime's OwnedWatcher.
+    pub fn register_native_media_snapshot(
+        &self,
+        refresh: impl Fn() -> Result<NativeMediaRead> + Send + Sync + 'static,
+    ) -> Result<NativeMediaSnapshot> {
+        self.register_native_media_snapshot_hints(&[], refresh, false)
+    }
+    pub fn register_native_media_snapshot_for(
+        &self,
+        target: &NativeMediaOrigin,
+        source: Option<&NativeMediaOrigin>,
+        refresh: impl Fn() -> Result<NativeMediaRead> + Send + Sync + 'static,
+    ) -> Result<NativeMediaSnapshot> {
+        let mut hints = target.snapshot_hints.to_vec();
+        if let Some(source) = source {
+            hints.extend(source.snapshot_hints.iter().cloned());
+        }
+        self.register_native_media_snapshot_hints(&hints, refresh, false)
+    }
+    /// Immediate route-miss enrollment only. It schedules guarded refresh on
+    /// the owned worker and never calls the factory or waits for its registry.
+    pub fn try_register_native_media_snapshot_for(
+        &self,
+        target: &NativeMediaOrigin,
+        source: Option<&NativeMediaOrigin>,
+        refresh: impl Fn() -> Result<NativeMediaRead> + Send + Sync + 'static,
+    ) -> Result<NativeMediaSnapshot> {
+        let mut hints = target.snapshot_hints.to_vec();
+        if let Some(source) = source {
+            hints.extend(source.snapshot_hints.iter().cloned());
+        }
+        self.register_native_media_snapshot_hints(&hints, refresh, true)
+    }
+    fn register_native_media_snapshot_hints(
+        &self,
+        hints: &[AuthorityScope],
+        refresh: impl Fn() -> Result<NativeMediaRead> + Send + Sync + 'static,
+        immediate: bool,
+    ) -> Result<NativeMediaSnapshot> {
+        let manager = Arc::downgrade(&self.authority);
+        let prepare = move || {
+            let read = refresh()?;
+            if read._live.is_some()
+                || read._source_live.is_some()
+                || !read.current()
+                || !manager
+                    .upgrade()
+                    .is_some_and(|manager| manager.owns(&read._scopes))
+            {
+                return Err(Error::forbidden());
+            }
+            let now = std::time::Instant::now();
+            let expires = chrono::DateTime::from_timestamp(read.expires_at, 0)
+                .ok_or_else(Error::forbidden)?;
+            let remaining = (expires - chrono::Utc::now())
+                .to_std()
+                .map_err(|_| Error::forbidden())?;
+            let until = now.checked_add(remaining).ok_or_else(Error::forbidden)?;
+            let guards = read._scopes.clone();
+            crate::media_authorization::Prepared::new(Arc::new(read), guards, until)
+        };
+        let registry = self.media_authorization_registry();
+        let handle = if immediate {
+            registry.try_register_with_hints(hints, prepare)
+        } else {
+            registry.register_with_hints(hints, prepare)
+        }?;
+        Ok(NativeMediaSnapshot { handle })
+    }
+}
+
 /// Named-signal metadata and current readers. This cannot be used as an RTP
 /// publication/subscription grant or converted into NativeMediaRead.
 pub struct NativeSignalRead(NativeMediaRead);
@@ -486,6 +699,8 @@ impl Store {
             return Err(Error::forbidden());
         }
         Ok(NativeSignalRead(NativeMediaRead {
+            _live: None,
+            _source_live: None,
             target,
             source: None,
             _scopes: interval,
@@ -542,6 +757,8 @@ impl Store {
             return Err(Error::forbidden());
         }
         Ok(NativeSignalRead(NativeMediaRead {
+            _live: None,
+            _source_live: None,
             target: target_view,
             source: source_view,
             _scopes: held,
@@ -650,6 +867,10 @@ impl Store {
             expires_at,
             credential_epoch: 0,
             metadata: snapshot::new_metadata(),
+            snapshot_hints: native_snapshot_hints(
+                &intent.conversation_id,
+                &proof.metadata.actor.identity_id,
+            )?,
         }))
     }
     /// A transient physical-lifetime observation, never a media or signal IO
@@ -854,6 +1075,8 @@ impl Store {
             return Err(Error::forbidden());
         }
         Ok(NativeMediaRead {
+            _live: None,
+            _source_live: None,
             target: target_view,
             source: source_view,
             _scopes: held,
@@ -894,6 +1117,8 @@ impl Store {
             }
             Ok((
                 NativeMediaRead {
+                    _live: None,
+                    _source_live: None,
                     target: target_view,
                     source: source_view,
                     _scopes: proof._scopes.clone(),
@@ -955,6 +1180,8 @@ impl Store {
             return Err(Error::forbidden());
         }
         Ok(NativeMediaRead {
+            _live: None,
+            _source_live: None,
             target: target_view,
             source: source_view,
             _scopes: proof._scopes.clone(),
@@ -1235,6 +1462,8 @@ fn native_scene_reads_with_owner(
             (
                 id,
                 NativeMediaRead {
+                    _live: None,
+                    _source_live: None,
                     target,
                     source,
                     _scopes: held.clone(),

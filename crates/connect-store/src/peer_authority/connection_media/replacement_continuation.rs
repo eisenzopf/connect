@@ -279,6 +279,8 @@ impl Store {
             return Err(Error::forbidden());
         }
         Ok(NativeMediaRead {
+            _live: None,
+            _source_live: None,
             target: target_view,
             source: source_view,
             _scopes: interval,

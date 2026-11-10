@@ -68,7 +68,7 @@ fn private_scene() -> (Movement, String) {
 fn private_capture(m: &Movement, parent: &str) -> crate::NativeReplacementCommitted {
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -208,7 +208,7 @@ fn private_successor_wrong_or_missing_parent_cannot_be_captured_as_public() {
         let (m, _parent) = private_scene();
         let read =
             m.f.store
-                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
                 .unwrap();
         let attempt =
             m.f.store

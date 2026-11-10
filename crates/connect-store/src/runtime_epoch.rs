@@ -15,6 +15,7 @@ impl Store {
         let kind = crate::startup_authority::Kind::ConnectionEpoch;
         let (ids, guard) = self.startup_batch(kind, limit)?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &guard)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

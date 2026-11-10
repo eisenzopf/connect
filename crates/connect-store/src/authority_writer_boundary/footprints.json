@@ -1,0 +1,2570 @@
+{
+  "tables": [
+    {
+      "table": "identities",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT {row}.id AS id",
+          "role": "base"
+        },
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT DISTINCT child.identity_id AS id FROM user_delegations d JOIN credentials child ON child.id=d.credential_id WHERE d.user_identity_id={row}.id",
+          "role": "delegated-subjects"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "credentials",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT {row}.identity_id AS id",
+          "role": "base"
+        },
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT DISTINCT child.identity_id AS id FROM user_delegations d JOIN credentials child ON child.id=d.credential_id WHERE d.issuer_credential_id={row}.id",
+          "role": "delegated-subjects"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "user_delegations",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT identity_id AS id FROM credentials WHERE id={row}.credential_id",
+          "role": "base"
+        },
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT {row}.user_identity_id AS id",
+          "role": "issuer-context"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "devices",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT {row}.identity_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "endpoints",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT {row}.identity_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "peer_signing_keys",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT {row}.identity_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "credential_signing_keys",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT identity_id AS id FROM credentials WHERE id={row}.credential_id",
+          "role": "base"
+        },
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT identity_id AS id FROM peer_signing_keys WHERE key_id={row}.key_id",
+          "role": "key-owner"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "client_enrollments",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT {row}.identity_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "conversations",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "participants",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "sessions",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "session_control",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "main_sessions",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "resource_audiences",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "audience_resources",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "session_participants",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM sessions WHERE id={row}.session_id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "session_presence_capabilities",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM sessions WHERE id={row}.session_id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "connections",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM sessions WHERE id={row}.session_id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "connection_offers",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT s.conversation_id AS id FROM connections c JOIN sessions s ON s.id=c.session_id WHERE c.id={row}.connection_id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "operations",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id WHERE {row}.conversation_id IS NOT NULL",
+          "role": "base"
+        },
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT e.identity_id AS id FROM client_enrollments e WHERE e.tenant_id={row}.tenant_id AND e.issuer_identity_id={row}.owner_id AND e.complete_operation_id={row}.operation_id",
+          "role": "enrolled-subject"
+        },
+        {
+          "kind": "Identity",
+          "id_sql": "SELECT {row}.owner_id AS id WHERE {row}.conversation_id IS NULL",
+          "role": "non-conversation-owner-fallback"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "operation_effects",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "operation_members",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "operation_endpoints",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "operation_control_receipts",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_offer_operations",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_connection_lifetimes",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_replacements",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_replacement_steps",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_replacement_lifetimes",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_consultation_attempts",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_consultation_legs",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "sip_consultation_reservations",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_private_lifetimes",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_consultation_returns",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        },
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.consultation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "private_provider_contexts",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_handoffs",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "initial_telephone_operations",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "initial_telephone_answers",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "initial_telephone_private_acceptances",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        },
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.consultation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "telephone_connection_lifetimes",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "telephone_replacement_commits",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "native_media_credential_bindings",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.parent_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "context_deliveries",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "installation",
+      "scope_queries_for_each_row": [],
+      "must_resolve_base_scope": false
+    },
+    {
+      "table": "journal",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "messages",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "message_attachments",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "message_audiences",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "artifacts",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "artifact_audiences",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "history_shares",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "history_share_items",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "private_content_sources",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "session_records",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "session_record_intents",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT {row}.conversation_id AS id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "receipt_preferences",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM participants WHERE participant_id={row}.participant_id",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
+      "table": "session_record_audiences",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM session_record_intents WHERE uuid={row}.uuid",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    }
+  ],
+  "all_tables": {
+    "agent_observation_contracts": {
+      "columns": [
+        "runtime_epoch",
+        "delivery_id",
+        "memory_kind",
+        "work_json",
+        "requires_activity"
+      ]
+    },
+    "artifact_audiences": {
+      "columns": [
+        "artifact_id",
+        "conversation_id",
+        "participant_id",
+        "membership_epoch"
+      ]
+    },
+    "artifacts": {
+      "columns": [
+        "id",
+        "conversation_id",
+        "owner_id",
+        "name",
+        "media_type",
+        "expected_size",
+        "expected_sha256",
+        "content",
+        "blob_name",
+        "state",
+        "created_at",
+        "finalized_at",
+        "expires_at",
+        "audience_mode",
+        "state_revision"
+      ]
+    },
+    "audience_resources": {
+      "columns": [
+        "kind",
+        "id",
+        "conversation_id",
+        "owner_id"
+      ]
+    },
+    "availability": {
+      "columns": [
+        "identity_id",
+        "state",
+        "preferred_route",
+        "expires_at",
+        "observed_at"
+      ]
+    },
+    "client_enrollments": {
+      "columns": [
+        "id",
+        "tenant_id",
+        "issuer_identity_id",
+        "issuer_credential_id",
+        "identity_id",
+        "device_id",
+        "key_id",
+        "endpoint_id",
+        "approve_operation_id",
+        "complete_operation_id",
+        "request_json",
+        "intent_digest",
+        "challenge_hash",
+        "challenge_expires_at",
+        "credential_expires_at",
+        "state",
+        "attempts",
+        "credential_id",
+        "issued_at"
+      ]
+    },
+    "connection_offers": {
+      "columns": [
+        "connection_id",
+        "runtime_connection_id",
+        "operation_id",
+        "credential_id",
+        "offer_json",
+        "created_at"
+      ]
+    },
+    "connections": {
+      "columns": [
+        "id",
+        "session_id",
+        "participant_id",
+        "membership_epoch",
+        "identity_id",
+        "tenant_id",
+        "endpoint_id",
+        "generation",
+        "replaces",
+        "state",
+        "revision",
+        "observed_runtime_id",
+        "observed_at",
+        "readiness_json"
+      ]
+    },
+    "connector_incoming": {
+      "columns": [
+        "route_id",
+        "mutation_id",
+        "message_json",
+        "message_id"
+      ]
+    },
+    "connector_manifests": {
+      "columns": [
+        "name",
+        "manifest"
+      ]
+    },
+    "connector_observations": {
+      "columns": [
+        "job_id",
+        "projection_json",
+        "receipt_json",
+        "reply_committed"
+      ]
+    },
+    "connector_receipt_events": {
+      "columns": [
+        "job_id",
+        "event_id",
+        "receipt_json"
+      ]
+    },
+    "connector_routes": {
+      "columns": [
+        "id",
+        "identity_id",
+        "credential_id",
+        "conversation_id",
+        "connector",
+        "target",
+        "source",
+        "enabled",
+        "incoming_to_json"
+      ]
+    },
+    "connector_voice_observations": {
+      "columns": [
+        "call_id",
+        "projection_json"
+      ]
+    },
+    "contact_pairings": {
+      "columns": [
+        "id",
+        "owner",
+        "peer",
+        "credential",
+        "challenge_hash",
+        "expires_at",
+        "state",
+        "attempts",
+        "verified_at",
+        "peer_credential"
+      ]
+    },
+    "context_deliveries": {
+      "columns": [
+        "id",
+        "conversation_id",
+        "session_id",
+        "provider",
+        "watermark",
+        "selection_json",
+        "state",
+        "provider_ref",
+        "created_at",
+        "updated_at",
+        "sequence",
+        "owner_id",
+        "state_revision"
+      ]
+    },
+    "conversation_closure_facts": {
+      "columns": [
+        "conversation_id",
+        "reason_code",
+        "reason",
+        "closed_at"
+      ]
+    },
+    "conversations": {
+      "columns": [
+        "id",
+        "closed",
+        "tenant_id",
+        "revision",
+        "policy",
+        "closed_at",
+        "opened_at",
+        "idle_close_secs",
+        "metadata_json",
+        "reason_code",
+        "reason"
+      ]
+    },
+    "credential_signing_keys": {
+      "columns": [
+        "credential_id",
+        "key_id"
+      ]
+    },
+    "credentials": {
+      "columns": [
+        "id",
+        "identity_id",
+        "verifier",
+        "operations",
+        "recipients",
+        "expires_at",
+        "revoked",
+        "issued_at"
+      ]
+    },
+    "devices": {
+      "columns": [
+        "id",
+        "identity_id",
+        "tenant_id",
+        "kind",
+        "platform",
+        "revoked",
+        "revision"
+      ]
+    },
+    "endpoints": {
+      "columns": [
+        "id",
+        "identity_id",
+        "tenant_id",
+        "device_id",
+        "transport",
+        "address",
+        "capabilities_json",
+        "verification_state",
+        "verification_evidence",
+        "verified_at",
+        "revision",
+        "secret_ref",
+        "route_owner_id"
+      ]
+    },
+    "history_share_items": {
+      "columns": [
+        "sharing_id",
+        "conversation_id",
+        "kind",
+        "source_id",
+        "participant_id",
+        "membership_epoch"
+      ]
+    },
+    "history_shares": {
+      "columns": [
+        "id",
+        "conversation_id",
+        "owner_id",
+        "provenance",
+        "active",
+        "created_at",
+        "revoked_by"
+      ]
+    },
+    "identities": {
+      "columns": [
+        "id",
+        "alias",
+        "capabilities",
+        "tenant_id",
+        "kind",
+        "display_name",
+        "revoked",
+        "revision"
+      ]
+    },
+    "identity_subjects": {
+      "columns": [
+        "tenant_id",
+        "issuer",
+        "subject",
+        "identity_id"
+      ]
+    },
+    "incoming_contact_audit": {
+      "columns": [
+        "sequence",
+        "hold_id",
+        "event_type",
+        "actor_identity_id",
+        "actor_credential_id",
+        "operation_id",
+        "created_at"
+      ]
+    },
+    "incoming_contact_deliveries": {
+      "columns": [
+        "resource_id",
+        "hold_id",
+        "candidate_id",
+        "candidate_json",
+        "message_id",
+        "provider_call_id",
+        "outcome_json",
+        "actor_identity_id",
+        "actor_credential_id",
+        "operation_id",
+        "created_at"
+      ]
+    },
+    "incoming_contact_holds": {
+      "columns": [
+        "sequence",
+        "id",
+        "resource_id",
+        "payload_digest",
+        "payload_json",
+        "candidates_json",
+        "reason",
+        "created_at"
+      ]
+    },
+    "incoming_contact_receipts": {
+      "columns": [
+        "namespace",
+        "event_id",
+        "digest",
+        "hold_id"
+      ]
+    },
+    "incoming_contact_rejections": {
+      "columns": [
+        "hold_id",
+        "actor_identity_id",
+        "actor_credential_id",
+        "operation_id",
+        "reason",
+        "created_at"
+      ]
+    },
+    "incoming_contact_resources": {
+      "columns": [
+        "id",
+        "namespace",
+        "kind",
+        "provider",
+        "tenant_id",
+        "owner_id",
+        "provider_id",
+        "payload_digest",
+        "source_json",
+        "created_at"
+      ]
+    },
+    "initial_telephone_answers": {
+      "columns": [
+        "operation_record_id",
+        "observation_json",
+        "codec",
+        "observed_at",
+        "accepted",
+        "acceptance_record_id",
+        "connected_json",
+        "connected_at",
+        "retired_at",
+        "acceptance_kind"
+      ]
+    },
+    "initial_telephone_operations": {
+      "columns": [
+        "operation_record_id",
+        "parent_record_id",
+        "parent_kind",
+        "caller_credential_id",
+        "target_participant_id",
+        "endpoint_id",
+        "source_json",
+        "policy_json",
+        "allocation_started",
+        "attempt_id",
+        "attempt_runtime",
+        "runtime_connection_id",
+        "sip_call_id",
+        "signaling_started",
+        "effect_id"
+      ]
+    },
+    "initial_telephone_private_acceptances": {
+      "columns": [
+        "operation_record_id",
+        "consultation_record_id",
+        "endpoint_credential_id",
+        "endpoint_id",
+        "endpoint_revision",
+        "participant_id",
+        "membership_epoch",
+        "codec",
+        "audience_json",
+        "accepted_at"
+      ]
+    },
+    "initial_telephone_receive_projections": {
+      "columns": [
+        "operation_record_id",
+        "participant_id",
+        "membership_epoch",
+        "before_revision",
+        "after_revision",
+        "observation_json",
+        "recorded_at"
+      ]
+    },
+    "installation": {
+      "columns": [
+        "singleton",
+        "id",
+        "cursor_key"
+      ]
+    },
+    "journal": {
+      "columns": [
+        "sequence",
+        "id",
+        "recipient",
+        "conversation_id",
+        "kind",
+        "message_id",
+        "call_json",
+        "session_json",
+        "artifact_json",
+        "recipient_participant_id",
+        "recipient_epoch",
+        "resource_revision",
+        "operation_record_id",
+        "data_json",
+        "observed_at",
+        "source_json"
+      ]
+    },
+    "journal_context": {
+      "columns": [
+        "singleton",
+        "actor",
+        "operation_id"
+      ]
+    },
+    "journal_retention": {
+      "columns": [
+        "singleton",
+        "floor"
+      ]
+    },
+    "main_sessions": {
+      "columns": [
+        "conversation_id",
+        "session_id"
+      ]
+    },
+    "media_end_intents": {
+      "columns": [
+        "id",
+        "kind",
+        "resource_id",
+        "credential_id",
+        "wire_request_id",
+        "effect_id",
+        "state",
+        "current"
+      ]
+    },
+    "media_start_admissions": {
+      "columns": [
+        "kind",
+        "resource_id"
+      ]
+    },
+    "membership_invitations": {
+      "columns": [
+        "sequence",
+        "id",
+        "conversation_id",
+        "tenant_id",
+        "identity_id",
+        "inviter_id",
+        "kind",
+        "role",
+        "state",
+        "expires_at",
+        "created_at",
+        "joined_epoch"
+      ]
+    },
+    "message_attachments": {
+      "columns": [
+        "message_id",
+        "artifact_id",
+        "conversation_id",
+        "content_type",
+        "size_bytes"
+      ]
+    },
+    "message_audiences": {
+      "columns": [
+        "message_id",
+        "conversation_id",
+        "participant_id",
+        "membership_epoch",
+        "purpose"
+      ]
+    },
+    "message_receipts": {
+      "columns": [
+        "sequence",
+        "message_id",
+        "participant_id",
+        "membership_epoch",
+        "channel",
+        "delivery_id",
+        "kind",
+        "provenance",
+        "observed_at"
+      ]
+    },
+    "messages": {
+      "columns": [
+        "sequence",
+        "id",
+        "conversation_id",
+        "sender",
+        "body",
+        "sender_participant_id",
+        "content_type",
+        "body_encoding",
+        "label",
+        "in_reply_to_msg_id",
+        "accepted_at",
+        "audience_mode"
+      ]
+    },
+    "native_assistant_context_updates": {
+      "columns": [
+        "delivery_id",
+        "instance_delivery_id",
+        "owner_id",
+        "operation_id",
+        "attempt_id",
+        "ordinal",
+        "prepared_expires_at",
+        "export_started",
+        "export_expires_at",
+        "delivered_at",
+        "rejected_at",
+        "uncertain",
+        "problem"
+      ]
+    },
+    "native_assistant_initializations": {
+      "columns": [
+        "delivery_id",
+        "started",
+        "expires_at"
+      ]
+    },
+    "native_assistant_providers": {
+      "columns": [
+        "delivery_id",
+        "owner_id",
+        "operation_id",
+        "context_credential_id",
+        "connection_id",
+        "generation",
+        "runtime_epoch",
+        "endpoint_id",
+        "endpoint_json",
+        "audience_json",
+        "attempt_id",
+        "prepared_expires_at",
+        "creation_started",
+        "creation_expires_at",
+        "provider_ref",
+        "created_at",
+        "export_started",
+        "export_expires_at",
+        "delivered_at",
+        "rejected_at",
+        "problem",
+        "end_started",
+        "end_expires_at",
+        "end_uncertain",
+        "uncertain",
+        "closed_at"
+      ]
+    },
+    "native_connection_flow_facts": {
+      "columns": [
+        "connection_id",
+        "generation",
+        "runtime_epoch",
+        "runtime_connection_id",
+        "conversation_id",
+        "session_id",
+        "participant_id",
+        "membership_epoch",
+        "fact_json"
+      ]
+    },
+    "native_connection_lifetimes": {
+      "columns": [
+        "operation_record_id",
+        "connection_id",
+        "runtime_epoch",
+        "generation",
+        "retired"
+      ]
+    },
+    "native_consultation_attempts": {
+      "columns": [
+        "operation_record_id",
+        "attempt_id",
+        "runtime_epoch",
+        "credential_id",
+        "effect_id",
+        "source_expires_at",
+        "selection_json",
+        "plan_json",
+        "plan_digest",
+        "started",
+        "applied_json",
+        "decoded_audio_observed",
+        "media_failure"
+      ]
+    },
+    "native_consultation_joins": {
+      "columns": [
+        "operation_record_id",
+        "runtime_epoch",
+        "original_digest",
+        "participant_id",
+        "membership_epoch",
+        "delegate_credential_id",
+        "endpoint_id",
+        "endpoint_revision",
+        "base_revision",
+        "effective_revision",
+        "invite_record_id",
+        "accept_record_id",
+        "joined_at"
+      ]
+    },
+    "native_consultation_legs": {
+      "columns": [
+        "connection_id",
+        "operation_record_id",
+        "credential_id",
+        "original_digest",
+        "runtime_epoch",
+        "endpoint_id",
+        "offer_json",
+        "audience_json",
+        "primary_connection_id",
+        "endpoint_revision",
+        "device_id"
+      ]
+    },
+    "native_consultation_returns": {
+      "columns": [
+        "operation_record_id",
+        "consultation_record_id",
+        "credential_id",
+        "runtime_epoch",
+        "original_digest",
+        "context_selection_json",
+        "audience_json",
+        "attempt_id",
+        "effect_id",
+        "plan_json",
+        "selection_json",
+        "plan_digest",
+        "started",
+        "applied_json"
+      ]
+    },
+    "native_data_messages": {
+      "columns": [
+        "operation_record_id",
+        "message_id",
+        "source_stream_revision"
+      ]
+    },
+    "native_data_recipients": {
+      "columns": [
+        "operation_record_id",
+        "participant_id",
+        "identity_id",
+        "membership_epoch",
+        "member_json"
+      ]
+    },
+    "native_data_writes": {
+      "columns": [
+        "operation_record_id",
+        "target_record_id",
+        "runtime_epoch",
+        "disposition",
+        "provenance",
+        "observed_at",
+        "journal_id"
+      ]
+    },
+    "native_dtmf_established_gateways": {
+      "columns": [
+        "operation_record_id",
+        "target_record_id",
+        "registration_id",
+        "target_json",
+        "attempted",
+        "frame_id",
+        "disposition",
+        "provenance",
+        "observed_at",
+        "journal_id"
+      ]
+    },
+    "native_dtmf_gateways": {
+      "columns": [
+        "operation_record_id",
+        "target_record_id",
+        "registration_id",
+        "target_json",
+        "attempted",
+        "frame_id",
+        "disposition",
+        "provenance",
+        "observed_at",
+        "journal_id"
+      ]
+    },
+    "native_dtmf_recipients": {
+      "columns": [
+        "operation_record_id",
+        "target_record_id",
+        "registration_id",
+        "target_json",
+        "attempted",
+        "frame_id",
+        "disposition",
+        "provenance",
+        "observed_at",
+        "journal_id"
+      ]
+    },
+    "native_dtmf_sources": {
+      "columns": [
+        "operation_record_id",
+        "runtime_epoch",
+        "observation_json",
+        "sealed"
+      ]
+    },
+    "native_handoffs": {
+      "columns": [
+        "operation_record_id",
+        "credential_id",
+        "runtime_epoch",
+        "original_digest",
+        "attempt_id",
+        "effect_id",
+        "plan_json",
+        "selection_json",
+        "plan_digest",
+        "started",
+        "applied_json"
+      ]
+    },
+    "native_media_credential_bindings": {
+      "columns": [
+        "id",
+        "parent_record_id",
+        "refresh_id",
+        "runtime_epoch",
+        "epoch",
+        "previous_credential_id",
+        "credential_id",
+        "key_id",
+        "device_id",
+        "source_expires_at",
+        "stream_revision",
+        "snapshot_json",
+        "started",
+        "state",
+        "core_credential_revision",
+        "created_at",
+        "observed_at"
+      ]
+    },
+    "native_offer_operations": {
+      "columns": [
+        "operation_record_id",
+        "preparation_record_id",
+        "credential_id",
+        "key_id",
+        "device_id",
+        "endpoint_id",
+        "participant_id",
+        "membership_epoch",
+        "generation",
+        "resources_json",
+        "source_expires_at",
+        "terminal_reserve",
+        "effect_started",
+        "effect_id",
+        "attempt_id",
+        "attempt_runtime"
+      ]
+    },
+    "native_offer_rejections": {
+      "columns": [
+        "operation_record_id",
+        "preparation_record_id",
+        "credential_id",
+        "key_id",
+        "device_id",
+        "source_expires_at"
+      ]
+    },
+    "native_offer_runtime_admissions": {
+      "columns": [
+        "operation_record_id",
+        "runtime_epoch"
+      ]
+    },
+    "native_private_lifetimes": {
+      "columns": [
+        "operation_record_id",
+        "runtime_epoch",
+        "selection_json",
+        "audience_json",
+        "established_at",
+        "restored_at"
+      ]
+    },
+    "native_replacement_audiences": {
+      "columns": [
+        "operation_record_id",
+        "phase",
+        "effect_id",
+        "runtime_epoch",
+        "capture_json"
+      ]
+    },
+    "native_replacement_candidates": {
+      "columns": [
+        "operation_record_id",
+        "candidate_connection_id",
+        "original_record_id",
+        "credential_id",
+        "runtime_epoch",
+        "original_digest",
+        "retirement_effect_id",
+        "claim_json"
+      ]
+    },
+    "native_replacement_lifetimes": {
+      "columns": [
+        "operation_record_id",
+        "credential_id",
+        "key_id",
+        "device_id",
+        "endpoint_id",
+        "participant_id",
+        "membership_epoch",
+        "generation",
+        "resources_json",
+        "source_expires_at",
+        "attempt_runtime",
+        "attempt_id",
+        "effect_id"
+      ]
+    },
+    "native_replacement_media_steps": {
+      "columns": [
+        "operation_record_id",
+        "phase",
+        "attempt_id",
+        "effect_id",
+        "started",
+        "observation_json"
+      ]
+    },
+    "native_replacement_steps": {
+      "columns": [
+        "operation_record_id",
+        "phase",
+        "attempt_id",
+        "effect_id",
+        "started",
+        "observation_json"
+      ]
+    },
+    "native_replacements": {
+      "columns": [
+        "operation_record_id",
+        "credential_id",
+        "runtime_epoch",
+        "original_digest",
+        "reservation_id",
+        "candidate_connection_id",
+        "candidate_runtime_id",
+        "generation",
+        "plan_json",
+        "selection_json",
+        "plan_digest",
+        "expires_at"
+      ]
+    },
+    "native_stream_operations": {
+      "columns": [
+        "operation_record_id",
+        "parent_record_id",
+        "credential_id",
+        "key_id",
+        "device_id",
+        "participant_id",
+        "membership_epoch",
+        "generation",
+        "resources_json",
+        "source_expires_at",
+        "closed",
+        "effect_started",
+        "effect_id",
+        "attempt_id",
+        "attempt_runtime"
+      ]
+    },
+    "native_stream_snapshots": {
+      "columns": [
+        "connection_id",
+        "generation",
+        "stream_revision",
+        "available",
+        "projection_json"
+      ]
+    },
+    "native_webrtc_ice_operations": {
+      "columns": [
+        "operation_record_id",
+        "parent_record_id",
+        "expected_ice_generation",
+        "previous_remote_offer",
+        "proposed_remote_offer",
+        "previous_local_answer",
+        "answer_sdp",
+        "committed"
+      ]
+    },
+    "native_webrtc_ice_state": {
+      "columns": [
+        "parent_record_id",
+        "connection_id",
+        "connection_generation",
+        "ice_generation",
+        "remote_offer",
+        "last_record_id"
+      ]
+    },
+    "operation_connections": {
+      "columns": [
+        "operation_record_id",
+        "connection_id",
+        "generation"
+      ]
+    },
+    "operation_control_receipts": {
+      "columns": [
+        "operation_record_id",
+        "resources_json",
+        "task_id",
+        "grant_id",
+        "actor_participant_id",
+        "actor_membership_epoch",
+        "actor_authority"
+      ]
+    },
+    "operation_decisions": {
+      "columns": [
+        "operation_record_id",
+        "target_record_id",
+        "action"
+      ]
+    },
+    "operation_effects": {
+      "columns": [
+        "id",
+        "operation_record_id",
+        "provider",
+        "correlation_key",
+        "idempotency_mode",
+        "state",
+        "attempt",
+        "provider_ref",
+        "observation_json",
+        "submission_generation",
+        "compensates_effect_id"
+      ]
+    },
+    "operation_endpoints": {
+      "columns": [
+        "operation_record_id",
+        "endpoint_id",
+        "revision"
+      ]
+    },
+    "operation_evidence": {
+      "columns": [
+        "observation_id",
+        "operation_record_id",
+        "operation_revision",
+        "worker_generation",
+        "outcome",
+        "source_kind",
+        "completion_json"
+      ]
+    },
+    "operation_members": {
+      "columns": [
+        "operation_record_id",
+        "participant_id",
+        "identity_id",
+        "membership_epoch"
+      ]
+    },
+    "operation_observations": {
+      "columns": [
+        "id",
+        "operation_record_id",
+        "source",
+        "source_event_id",
+        "digest",
+        "actor_id",
+        "data_json",
+        "observed_at"
+      ]
+    },
+    "operation_resources": {
+      "columns": [
+        "operation_record_id",
+        "tenant_id",
+        "resource_kind",
+        "resource_id",
+        "fencing_generation"
+      ]
+    },
+    "operations": {
+      "columns": [
+        "record_id",
+        "tenant_id",
+        "owner_id",
+        "operation_id",
+        "digest",
+        "command_type",
+        "conversation_id",
+        "session_id",
+        "connection_id",
+        "expected_revision",
+        "intent_json",
+        "state",
+        "revision",
+        "result_json",
+        "problem_json",
+        "tombstoned",
+        "worker_generation",
+        "lease_owner",
+        "lease_expires_at",
+        "created_at",
+        "updated_at",
+        "expires_at",
+        "ledger_version",
+        "worker_runtime",
+        "worker_cleanup",
+        "cancel_requested"
+      ]
+    },
+    "participants": {
+      "columns": [
+        "conversation_id",
+        "identity_id",
+        "participant_id",
+        "tenant_id",
+        "kind",
+        "role",
+        "membership_epoch",
+        "active",
+        "joined_at",
+        "removed_at",
+        "removal_reason"
+      ]
+    },
+    "peer_signing_keys": {
+      "columns": [
+        "key_id",
+        "identity_id",
+        "tenant_id",
+        "device_id",
+        "algorithm",
+        "public_key",
+        "not_before",
+        "expires_at",
+        "revoked",
+        "revision"
+      ]
+    },
+    "private_content_sources": {
+      "columns": [
+        "kind",
+        "source_id",
+        "conversation_id",
+        "operation_record_id",
+        "connection_id"
+      ]
+    },
+    "private_provider_contexts": {
+      "columns": [
+        "delivery_id",
+        "operation_record_id",
+        "connection_id",
+        "runtime_epoch",
+        "source_digest",
+        "selection_json",
+        "audience_json",
+        "context_credential_id",
+        "delegate_credential_id",
+        "endpoint_id",
+        "endpoint_json",
+        "attempt_id",
+        "started",
+        "creation_expires_at",
+        "uncertain",
+        "provider_ref",
+        "created_at",
+        "export_started",
+        "export_expires_at",
+        "export_uncertain",
+        "delivered_at",
+        "closed_at"
+      ]
+    },
+    "provider_context": {
+      "columns": [
+        "route_id",
+        "chat_id",
+        "authority_policy"
+      ]
+    },
+    "provider_dispatch": {
+      "columns": [
+        "job_id",
+        "state_identity",
+        "runtime_id",
+        "claim_token",
+        "previous_chat_id",
+        "admitted"
+      ]
+    },
+    "provider_events": {
+      "columns": [
+        "id",
+        "digest"
+      ]
+    },
+    "provider_jobs": {
+      "columns": [
+        "sequence",
+        "id",
+        "route_id",
+        "message_id",
+        "credential_id",
+        "state",
+        "provider_id",
+        "sms_decision",
+        "sms_grant_id",
+        "authority_policy",
+        "refusal_code"
+      ]
+    },
+    "provider_message_endpoints": {
+      "columns": [
+        "route_id",
+        "policy_json",
+        "source_json"
+      ]
+    },
+    "provider_session_voice": {
+      "columns": [
+        "id",
+        "invitation_record_id",
+        "caller_credential_id",
+        "target_participant_id",
+        "endpoint_id",
+        "source_json",
+        "policy_json",
+        "projection_json",
+        "revision",
+        "expires_at",
+        "create_started",
+        "create_effect_id",
+        "end_started",
+        "end_effect_id",
+        "attempt_runtime",
+        "end_runtime",
+        "provider_id",
+        "control_url",
+        "ended_reason",
+        "quarantine_json",
+        "quarantined_at",
+        "observed_at",
+        "closed_at",
+        "refusal_code",
+        "direction",
+        "ingress_id"
+      ]
+    },
+    "provider_voice_ingress": {
+      "columns": [
+        "id",
+        "conversation_id",
+        "policy_json",
+        "source_json",
+        "worker_id",
+        "since",
+        "scanned_until"
+      ]
+    },
+    "provider_voice_quarantine_resolutions": {
+      "columns": [
+        "call_id",
+        "quarantine_json",
+        "provider_id",
+        "proof_json",
+        "resolved_at"
+      ]
+    },
+    "receipt_preferences": {
+      "columns": [
+        "participant_id",
+        "membership_epoch",
+        "delivery",
+        "read"
+      ]
+    },
+    "received_dtmf_recipients": {
+      "columns": [
+        "operation_record_id",
+        "target_record_id",
+        "registration_id",
+        "target_json",
+        "attempted",
+        "frame_id",
+        "disposition",
+        "provenance",
+        "observed_at",
+        "journal_id"
+      ]
+    },
+    "received_dtmf_sources": {
+      "columns": [
+        "operation_record_id",
+        "parent_record_id",
+        "parent_kind",
+        "runtime_epoch",
+        "observation_id",
+        "source_kind",
+        "observation_json",
+        "source_json",
+        "sealed",
+        "closed"
+      ]
+    },
+    "record_ready_audiences": {
+      "columns": [
+        "uuid",
+        "identity_id",
+        "participant_id",
+        "membership_epoch"
+      ]
+    },
+    "record_ready_facts": {
+      "columns": [
+        "uuid",
+        "conversation_id",
+        "session_id",
+        "revision"
+      ]
+    },
+    "record_retention_jobs": {
+      "columns": [
+        "operation_id",
+        "uuid",
+        "expected_revision",
+        "expected_json",
+        "cutoff",
+        "decision_json",
+        "state"
+      ]
+    },
+    "record_retention_settings": {
+      "columns": [
+        "singleton",
+        "policy_json"
+      ]
+    },
+    "resource_audiences": {
+      "columns": [
+        "kind",
+        "id",
+        "conversation_id",
+        "participant_id",
+        "membership_epoch"
+      ]
+    },
+    "session_bindings": {
+      "columns": [
+        "session_id",
+        "participant_id",
+        "credential_id",
+        "connection_id",
+        "stream_id",
+        "state",
+        "updated_at",
+        "task_grant_id"
+      ]
+    },
+    "session_codec_batches": {
+      "columns": [
+        "operation_record_id",
+        "policy_operation_id",
+        "manager_credential_id",
+        "policy_revision",
+        "runtime_epoch",
+        "codec_preferences_json",
+        "expires_at"
+      ]
+    },
+    "session_codec_targets": {
+      "columns": [
+        "batch_record_id",
+        "connection_id",
+        "generation",
+        "state",
+        "native_operation_record_id"
+      ]
+    },
+    "session_connected_presence": {
+      "columns": [
+        "session_id",
+        "participant_id",
+        "membership_epoch",
+        "state",
+        "fact_id"
+      ]
+    },
+    "session_control": {
+      "columns": [
+        "session_id",
+        "conversation_id",
+        "creator_participant_id",
+        "creator_membership_epoch",
+        "intent",
+        "capabilities_json",
+        "codec_preferences_json",
+        "codec_policy_operation_id"
+      ]
+    },
+    "session_invitation_cancellations": {
+      "columns": [
+        "source_id",
+        "participant_id",
+        "membership_epoch",
+        "by_participant_id",
+        "by_membership_epoch",
+        "reason_code",
+        "reason",
+        "cancelled_at"
+      ]
+    },
+    "session_invitation_decisions": {
+      "columns": [
+        "source_id",
+        "participant_id",
+        "membership_epoch",
+        "decision_json",
+        "outcome_json",
+        "created_at"
+      ]
+    },
+    "session_invitation_gateway_targets": {
+      "columns": [
+        "source_id",
+        "participant_id",
+        "reference",
+        "binding_json"
+      ]
+    },
+    "session_invitation_slots": {
+      "columns": [
+        "session_id",
+        "participant_id",
+        "membership_epoch",
+        "source_id"
+      ]
+    },
+    "session_invitation_sources": {
+      "columns": [
+        "id",
+        "tenant_id",
+        "owner_id",
+        "operation_id",
+        "conversation_id",
+        "session_id",
+        "from_participant_id",
+        "from_epoch",
+        "medium",
+        "intent",
+        "capabilities_json",
+        "created_at"
+      ]
+    },
+    "session_invitation_targets": {
+      "columns": [
+        "source_id",
+        "participant_id",
+        "identity_id",
+        "membership_epoch"
+      ]
+    },
+    "session_lifecycle_hints": {
+      "columns": [
+        "sequence",
+        "kind",
+        "fact_id",
+        "conversation_id",
+        "session_id"
+      ]
+    },
+    "session_participant_facts": {
+      "columns": [
+        "fact_id",
+        "conversation_id",
+        "session_id",
+        "participant_id",
+        "membership_epoch",
+        "kind",
+        "fact_json",
+        "audience_json"
+      ]
+    },
+    "session_participants": {
+      "columns": [
+        "session_id",
+        "conversation_id",
+        "tenant_id",
+        "participant_id",
+        "membership_epoch",
+        "role",
+        "state"
+      ]
+    },
+    "session_presence_capabilities": {
+      "columns": [
+        "session_id",
+        "participant_id",
+        "membership_epoch",
+        "capabilities_json"
+      ]
+    },
+    "session_reconnect_boundaries": {
+      "columns": [
+        "session_id",
+        "grace_seconds",
+        "lost_at_millis",
+        "deadline_millis"
+      ]
+    },
+    "session_reconnect_policy": {
+      "columns": [
+        "singleton",
+        "grace_seconds"
+      ]
+    },
+    "session_record_audiences": {
+      "columns": [
+        "uuid",
+        "source_group",
+        "participant_id",
+        "membership_epoch"
+      ]
+    },
+    "session_record_intents": {
+      "columns": [
+        "uuid",
+        "session_id",
+        "tenant_id",
+        "conversation_id",
+        "policy",
+        "state",
+        "snapshot_json",
+        "format_version"
+      ]
+    },
+    "session_record_mutation_authority": {
+      "columns": [
+        "uuid",
+        "operation_id",
+        "actor_id",
+        "intent_hash",
+        "authority_json"
+      ]
+    },
+    "session_record_mutations": {
+      "columns": [
+        "uuid",
+        "operation_id",
+        "kind",
+        "fingerprint",
+        "expected_json",
+        "result_json",
+        "at"
+      ]
+    },
+    "session_record_retention": {
+      "columns": [
+        "uuid",
+        "policy_json"
+      ]
+    },
+    "session_records": {
+      "columns": [
+        "uuid",
+        "tenant_id",
+        "conversation_id",
+        "session_id",
+        "location",
+        "revision",
+        "body",
+        "manifest",
+        "body_hash",
+        "manifest_hash",
+        "deleted",
+        "retention_due",
+        "document_expires_at"
+      ]
+    },
+    "session_started_facts": {
+      "columns": [
+        "session_id",
+        "conversation_id",
+        "fact_json",
+        "audience_json"
+      ]
+    },
+    "session_terminal_audiences": {
+      "columns": [
+        "session_id",
+        "identity_id",
+        "participant_id",
+        "membership_epoch"
+      ]
+    },
+    "session_terminal_facts": {
+      "columns": [
+        "session_id",
+        "conversation_id",
+        "journal_kind",
+        "resource_revision",
+        "fact_json"
+      ]
+    },
+    "sessions": {
+      "columns": [
+        "id",
+        "conversation_id",
+        "initiator_id",
+        "participant_id",
+        "state",
+        "media",
+        "created_at",
+        "updated_at",
+        "ended_reason",
+        "topology_revision",
+        "audience_mode",
+        "state_revision",
+        "terminal_reason_code"
+      ]
+    },
+    "sip_consultation_reservations": {
+      "columns": [
+        "connection_id",
+        "operation_record_id",
+        "credential_id",
+        "original_digest",
+        "runtime_epoch",
+        "primary_connection_id",
+        "endpoint_id",
+        "endpoint_revision",
+        "device_id",
+        "participant_id",
+        "membership_epoch",
+        "audience_json",
+        "policy_json"
+      ]
+    },
+    "sip_legs": {
+      "columns": [
+        "sequence",
+        "id",
+        "conversation_id",
+        "session_id",
+        "credential_id",
+        "actor_id",
+        "destination",
+        "state",
+        "connection_id",
+        "ended_reason",
+        "end_requested",
+        "created_at",
+        "updated_at",
+        "state_revision"
+      ]
+    },
+    "sms_authorities": {
+      "columns": [
+        "source",
+        "revision",
+        "digest",
+        "valid_until"
+      ]
+    },
+    "sms_control_events": {
+      "columns": [
+        "id",
+        "phone",
+        "sender",
+        "keyword",
+        "occurred_at",
+        "applied"
+      ]
+    },
+    "sms_controls": {
+      "columns": [
+        "phone",
+        "stopped",
+        "occurred_at",
+        "event_id"
+      ]
+    },
+    "sms_grants": {
+      "columns": [
+        "source",
+        "id",
+        "phone",
+        "sender",
+        "conversation_id",
+        "evidence",
+        "expires_at",
+        "active"
+      ]
+    },
+    "task_bindings": {
+      "columns": [
+        "adapter",
+        "kind",
+        "external_id",
+        "task_id",
+        "registered_by",
+        "created_at"
+      ]
+    },
+    "task_claims": {
+      "columns": [
+        "task_id",
+        "step_id",
+        "worker_id",
+        "revision",
+        "expires_at"
+      ]
+    },
+    "task_effect_authority": {
+      "columns": [
+        "effect_id",
+        "credential_id",
+        "grant_id",
+        "wire_request_id",
+        "result_json",
+        "error_json",
+        "wait_for_reply"
+      ]
+    },
+    "task_effect_links": {
+      "columns": [
+        "effect_id",
+        "kind",
+        "resource_id"
+      ]
+    },
+    "task_effects": {
+      "columns": [
+        "id",
+        "task_id",
+        "step_id",
+        "request_id",
+        "digest",
+        "operation_json",
+        "state",
+        "outcome_json",
+        "reply_to",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "task_events": {
+      "columns": [
+        "sequence",
+        "id",
+        "task_id",
+        "actor_id",
+        "created_at",
+        "data_json"
+      ]
+    },
+    "task_grants": {
+      "columns": [
+        "id",
+        "task_id",
+        "credential_id",
+        "adapter",
+        "binding_kind",
+        "external_id",
+        "operations_json",
+        "expires_at",
+        "nonce",
+        "verifier",
+        "revoked",
+        "issuance_actor",
+        "issuance_request_id",
+        "issuance_digest"
+      ]
+    },
+    "task_replies": {
+      "columns": [
+        "event_id",
+        "task_id",
+        "reply_to",
+        "assigned_by",
+        "consumed"
+      ]
+    },
+    "task_requests": {
+      "columns": [
+        "actor_id",
+        "id",
+        "task_id",
+        "digest",
+        "result_json"
+      ]
+    },
+    "tasks": {
+      "columns": [
+        "id",
+        "owner_id",
+        "credential_id",
+        "conversation_id",
+        "scope_json",
+        "state",
+        "revision",
+        "expires_at",
+        "initiating_event_id",
+        "created_at",
+        "updated_at",
+        "reason",
+        "owner_membership_epoch"
+      ]
+    },
+    "telephone_connection_lifetimes": {
+      "columns": [
+        "operation_record_id",
+        "connection_id",
+        "runtime_epoch",
+        "generation",
+        "retired"
+      ]
+    },
+    "telephone_replacement_commits": {
+      "columns": [
+        "operation_record_id",
+        "runtime_epoch",
+        "attempt_id",
+        "effect_id",
+        "descriptor_json",
+        "observation_json",
+        "audience_json"
+      ]
+    },
+    "telephone_replacement_phases": {
+      "columns": [
+        "operation_record_id",
+        "phase",
+        "runtime_epoch",
+        "attempt_id",
+        "effect_id",
+        "observation_json",
+        "audience_json"
+      ]
+    },
+    "telephone_replacement_resources": {
+      "columns": [
+        "operation_record_id",
+        "runtime_epoch",
+        "attempt_id",
+        "effect_id",
+        "descriptor_json",
+        "observation_json"
+      ]
+    },
+    "tenant_record_readers": {
+      "columns": [
+        "identity_id",
+        "tenant_id",
+        "role",
+        "private_sources",
+        "active",
+        "revision"
+      ]
+    },
+    "tenants": {
+      "columns": [
+        "id",
+        "epoch"
+      ]
+    },
+    "user_delegations": {
+      "columns": [
+        "credential_id",
+        "issuer_credential_id",
+        "user_identity_id",
+        "operation_id",
+        "intent_json",
+        "created_at"
+      ]
+    },
+    "vapi_session_setups": {
+      "columns": [
+        "session_id",
+        "nonce",
+        "binding_json"
+      ]
+    },
+    "voice_calls": {
+      "columns": [
+        "sequence",
+        "id",
+        "conversation_id",
+        "route_id",
+        "credential_id",
+        "destination",
+        "state",
+        "provider_id",
+        "control_url",
+        "ended_reason",
+        "end_requested",
+        "next_poll",
+        "direction",
+        "end_credential_id",
+        "state_revision"
+      ]
+    },
+    "voice_ingress": {
+      "columns": [
+        "route_id",
+        "phone_number_id",
+        "credential_id",
+        "since",
+        "scanned_until"
+      ]
+    },
+    "voice_routes": {
+      "columns": [
+        "id",
+        "conversation_id",
+        "identity_id",
+        "assistant_id",
+        "phone_number_id",
+        "destinations",
+        "enabled"
+      ]
+    }
+  }
+}

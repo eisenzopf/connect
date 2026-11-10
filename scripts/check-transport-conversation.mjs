@@ -300,7 +300,7 @@ try {
                     { id: plan[prefix + "-audio"], kind: "audio", direction: "sendrecv", codecs: { first: "opus", rest: [] } },
                     { id: plan[prefix + "-video"], kind: "video", direction: "sendonly", codecs: { first: "vp8", rest: [] } },
                 ] : [] } }, mutation(prefix + "-offer")));
-            connections.push({ sid, role, prefix, connection });
+            connections.push({ sid, role, prefix, connection, client: clients.get(role) });
             report.native_offers_completed = connections.length;
         }
         assert.equal(connections.length, 6);

@@ -82,6 +82,12 @@ impl Store {
         observation: &dyn NativeOfferRuntimeObservation,
     ) -> Result<OperationRecord> {
         self.validate_native_offer_attempt(credential, lease, proof)?;
+        if !self.authority_covers(
+            Self::peer_scopes(proof),
+            &Self::peer_scopes(proof).mutation_scopes(),
+        ) {
+            return Err(Error::forbidden());
+        }
         let observed = observation.observe()?;
         let NativeOfferObservation::Ready(ready) = &observed else {
             return Err(Error::forbidden());
@@ -103,6 +109,7 @@ impl Store {
             }
         }
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, Self::peer_scopes(proof))?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -296,7 +303,7 @@ impl Store {
         }
         let scopes = {
             let c = connection()?;
-            admission::row_scopes(&bound(&c, lease)?)?
+            admission::mutation_row_scopes(&bound(&c, lease)?)?
         };
         let held = if let Some(wait) = wait {
             self.acquire_authority(&scopes, wait)?
@@ -309,6 +316,7 @@ impl Store {
             )?
         };
         let mut c = connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

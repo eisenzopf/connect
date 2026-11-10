@@ -110,7 +110,10 @@ impl Store {
             .as_object_mut()
             .ok_or_else(Error::storage)?
             .remove("replacement_preparation");
+        let snapshot_hints =
+            native_snapshot_hints(&intent.conversation_id, &target.session.actor.identity_id)?;
         let origin = Arc::new(NativeMediaOrigin {
+            snapshot_hints,
             attempt: NativeMediaAdmission::Replacement {
                 record,
                 attempt,

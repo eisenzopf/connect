@@ -31,16 +31,9 @@ pub(super) fn request_scopes(
     owner: &str,
     request: &TransitionRequest,
 ) -> Result<Vec<AuthorityScope>> {
-    if matches!(request.intent, TransitionIntent::Replace { .. }) {
-        // Endpoint and existing-candidate requests both admit immutable intent
-        // and SQL reservations only. Packet readers can retain their current
-        // authority. Actual graph/binding changes keep their separate write
-        // footprint and opaque native custody.
-        return Ok(vec![
-            AuthorityScope::identity(owner, AuthorityMode::Read)?,
-            AuthorityScope::conversation(&request.conversation_id, AuthorityMode::Read)?,
-        ]);
-    }
+    // Admission records an original state change, including its source/member
+    // metadata. Own the exact writer only for this bounded transaction; resource
+    // and codec preparation starts after this proof is released.
     scopes(owner, Some(&request.conversation_id))
 }
 pub(super) fn row_scopes(row: &rows::Saved) -> Result<Vec<AuthorityScope>> {
@@ -58,6 +51,11 @@ pub(super) fn row_scopes(row: &rows::Saved) -> Result<Vec<AuthorityScope>> {
         }
         return Ok(result);
     }
+    scopes(&row.owner, row.record.conversation_id.as_deref())
+}
+// Cancellation/reconciliation changes current delivery eligibility even when
+// ordinary row reservation and historical observation use only Read scopes.
+pub(super) fn mutation_row_scopes(row: &rows::Saved) -> Result<Vec<AuthorityScope>> {
     scopes(&row.owner, row.record.conversation_id.as_deref())
 }
 pub(super) fn require_row(
@@ -84,7 +82,11 @@ pub(crate) fn transition_admission_scopes(
     if let Some(row) = rows::find(c, &tenant, &actor.identity_id, &request.operation_id)? {
         if row.ledger {
             authority::read(c, actor, &row)?;
-            let mut result = row_scopes(&row)?;
+            let mut result = if replacement_row(&row)? {
+                mutation_row_scopes(&row)?
+            } else {
+                row_scopes(&row)?
+            };
             // Transition replies project their stored operation sources, not a
             // current Conversation snapshot. Do not widen a retained proof to
             // unrelated members after the first receipt is created.
@@ -127,6 +129,25 @@ impl Store {
         required: &[&str],
         held: Option<&Arc<AuthorityGuardSet>>,
     ) -> Result<Arc<AuthorityGuardSet>> {
+        self.transition_operation_authority_mode(credential, operation, required, held, false)
+    }
+    pub(super) fn transition_operation_mutation_authority(
+        &self,
+        credential: &str,
+        operation: &str,
+        required: &[&str],
+        held: Option<&Arc<AuthorityGuardSet>>,
+    ) -> Result<Arc<AuthorityGuardSet>> {
+        self.transition_operation_authority_mode(credential, operation, required, held, true)
+    }
+    pub(super) fn transition_operation_authority_mode(
+        &self,
+        credential: &str,
+        operation: &str,
+        required: &[&str],
+        held: Option<&Arc<AuthorityGuardSet>>,
+        mutation: bool,
+    ) -> Result<Arc<AuthorityGuardSet>> {
         self.stable_authority_with(
             held,
             &AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
@@ -140,7 +161,15 @@ impl Store {
                 let row = rows::find(&c, &tenant, &actor.identity_id, operation)?
                     .ok_or_else(Error::forbidden)?;
                 authority::read(&c, &actor, &row)?;
-                row_scopes(&row)
+                if mutation
+                    || required
+                        .iter()
+                        .any(|scope| matches!(*scope, "operation.cancel" | "operation.reconcile"))
+                {
+                    mutation_row_scopes(&row)
+                } else {
+                    row_scopes(&row)
+                }
             },
         )
     }
@@ -186,7 +215,7 @@ impl Store {
                 let actor = actor_from_connection(&c, credential)?;
                 let row = rows::by_record(&c, record)?;
                 cleanup::authorize(&c, &actor, &row)?;
-                let mut result = row_scopes(&row)?;
+                let mut result = mutation_row_scopes(&row)?;
                 // Repair can belong to another owner and creates the actor's receipt.
                 result.push(AuthorityScope::identity(
                     &actor.identity_id,

@@ -2012,6 +2012,42 @@
       "path": "patches/rvoip/connect-native-data-delivery-diagnostics.patch",
       "sha256": "3301b9909d3e94bbbf7f29f5f41c98fe633a66cf6a3c224c3cd169dc9b768b8a",
       "source": "G6-058 unresolved native Data delivery diagnostic: fixed per-original-operation first/error-class-change cap and terminal local writer disposition from existing evaluated results only. Preserve exact authority/liveness short-circuit evaluations, queue ownership, original retry and publication semantics, recipient refusal and uncertain-submission non-replay. Real signed native retry plus private log-cap regression sources; not a delivery fix or runtime verification. Core one shared admission body exposes a synchronous fixed Internal/Source/Target refusal observer only after local leases drop, preserving the original error and all checks; default callers retain the unchanged wrapper."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-rtc-current-source-keyframe-recovery.patch",
+      "sha256": "41b948b64caf027f4504d8b651a4db7a23bbac7b0f10b3b4713da2b1f2be67e5",
+      "source": "G6-058 current-source keyframe recovery: fresh bounded feedback after unrepaired video NACK and an actual successful source switch. Preserve packet repair lifetimes, primary delivery, generic PLI semantics, source/sequence guards, current authority and shared debounce. Real loopback wire controls prepared; runtime verification pending. Fixed-size decoded-source and captured-target PCM zero-run counters provide diagnostics only; no PCM retained, added locks, behavior or acceptance change."
+    },
+    {
+      "target": "quinn-proto",
+      "path": "patches/quinn-proto/gate6-datagram-queue-drop-diagnostics.patch",
+      "sha256": "311f5060d3e8d0fa571791ecfe134fa58e932f49d95128c46f09b0897bffe8ff",
+      "source": "G6-058 diagnostic-only per-connection datagram queue drop counters with paired creation and terminal summaries. Preserve queue capacities, eviction behavior and protocol RNG. No per-packet logging or new locks. Explicit zero counters require complete terminal coverage; missing coverage remains unknown. Runtime verification pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-quarantined-preparation-and-packet-epochs.patch",
+      "sha256": "8b326a3f6acd6187ecb92c0e1d892f93a477461d5eb12ecf62a4fbc8b64e4d8c",
+      "source": "G6-058: split authenticated initial resource planning from transport/codec IO and fresh single-use activation, with atomic initial mute for replacement candidates. Release domain readers during negotiation; exact original signed resource replies and independent resource cancellation. Immutable queued source/recipient authorization epochs prevent revoke/restore from admitting old packets without retaining idle permission fences; packet custody uses atomic publication instead of shared mutex. Actual Core and signed-native regression sources included; runtime verification pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-packet-epoch-atomic-dependency.patch",
+      "sha256": "58083852389a3c4acb21e74c1b8fa2579d30ad2563512d7f86a8a251448a5bcc",
+      "source": "Declare the existing pinned arc-swap dependency directly for Core packet metadata publication; compiler exposed reliance on a transitive dependency. No protocol or acceptance change."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-atomic-custody-and-flow-followthrough.patch",
+      "sha256": "6a87a049a0d6f8b38dc2ac056f021ab26aac054d6e72867648228d769ea54cd7",
+      "source": "G6-058 remove duplicate readiness/counter lock acquisition at five native RTP callbacks, preserving exact binding and count-only legacy semantics. Update the real queued-writer sibling custody regression to exercise concurrent atomic publication instead of the removed mutex; retain old-source and no-idle-grant assertions. Add actual signed QUIC/WT quality interval control. Runtime verification pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-authority-release-and-atomic-media-metadata.patch",
+      "sha256": "ea2d997412ff0ae29b32871e8c7b649ca456a9e772d3166319214038c9d1ea1f",
+      "source": "G6-058 release original dispatcher reply custody on explicit bounded resource-only preparation; preserve ordinary reply authorization and refresh both credentials on resumed publication. Remove Native/RTC prepared-observation, Core credential and RTC physical owner/allocation read-side mutexes using immutable atomic publication; retain original control serialization, IO fences, lifecycle cleanup and deadlines. Add real signed reply and concurrent publication regressions; runtime verification pending."
     }
   ]
 }

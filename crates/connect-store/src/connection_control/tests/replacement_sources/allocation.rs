@@ -523,7 +523,7 @@ fn replacement_av_target_preserves_video_resources_without_asserting_media_readi
         2
     );
     assert!(read.target().publication_suspended);
-    let (attempt, read) = f
+    let (attempt, read, _) = f
         .store
         .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
         .unwrap();
@@ -587,7 +587,7 @@ fn replacement_av_data_target_preserves_resources_under_the_suspended_original_a
         3
     );
     assert!(read.target().publication_suspended);
-    let (attempt, read) = f
+    let (attempt, read, _) = f
         .store
         .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
         .unwrap();
@@ -654,4 +654,155 @@ fn replacement_target_rejects_non_duplex_audio_unsupported_media_and_unprovision
         assert_eq!(f.count("native_replacement_steps"), 1, "{change}");
         assert_eq!(f.count("connections"), 2, "{change}");
     }
+}
+
+#[test]
+fn replacement_mutation_owner_drop_restores_independent_established_packet_reads() {
+    let (f, _, _, _, request, sources) = prepared_target_scene();
+    let proof = f.admit(&request);
+    let blocked = f
+        .store
+        .try_native_media_read(&sources[0], None)
+        .err()
+        .expect("writer must exclude media reads")
+        .code;
+    drop(proof);
+    let first = f.store.try_native_media_read(&sources[0], None).unwrap();
+    // A second established read must share the original read footprint. This
+    // detects accidentally promoting checked/current/facts packet reads to Write.
+    let second = f.store.try_native_media_read(&sources[0], None).unwrap();
+    let current = first.current() && second.current();
+    drop(second);
+    drop(first);
+    assert_eq!(blocked, "authority-busy");
+    assert!(current);
+}
+
+pub(super) fn call_while_primary_held(
+    f: &Fixture,
+    call: impl FnOnce() -> Result<connect_protocol::transitions::OperationRecord> + Send,
+) -> (bool, Result<connect_protocol::transitions::OperationRecord>) {
+    std::thread::scope(|scope| {
+        let sql = f.store.connection().unwrap();
+        let (sent, received) = std::sync::mpsc::channel();
+        let worker = scope.spawn(move || sent.send(call()).unwrap());
+        let first = received
+            .recv_timeout(std::time::Duration::from_secs(1))
+            .ok();
+        let immediate = first.is_some();
+        drop(sql);
+        let result = first.unwrap_or_else(|| {
+            received
+                .recv_timeout(std::time::Duration::from_secs(3))
+                .unwrap()
+        });
+        worker.join().unwrap();
+        (immediate, result)
+    })
+}
+#[test]
+fn signed_allocation_capture_and_replay_do_not_park_writer_on_primary_sql() {
+    let (f, _, _, prepared, request) = prepared_target();
+    let proof = f.admit(&request);
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
+        .unwrap();
+    let expected = attempt.expected_allocation().clone();
+    let captured = attempt.allocated(expected).unwrap();
+    drop(read);
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let (record_immediate, blocked_record) = call_while_primary_held(&f, || {
+        f.store
+            .record_native_replacement_allocated_with_peer(&captured, &proof)
+    });
+    // All original command threads and SQL owners are joined before assertions.
+    assert!(
+        record_immediate,
+        "captured recording parked its live writer on SQL"
+    );
+    assert_eq!(blocked_record.unwrap_err().code, "authority-busy");
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    let record = f
+        .store
+        .record_native_replacement_allocated_with_peer(&captured, &proof)
+        .unwrap();
+    let stable = Store::inspect_snapshot(f.store.path()).unwrap();
+    let (replay_immediate, blocked_replay) = call_while_primary_held(&f, || {
+        f.store.replay_native_replacement_allocation_with_peer(
+            &captured,
+            &request.credentials[0],
+            &proof,
+        )
+    });
+    assert!(
+        replay_immediate,
+        "metadata replay parked its live writer on SQL"
+    );
+    assert_eq!(blocked_replay.unwrap_err().code, "authority-busy");
+    let replay = f
+        .store
+        .replay_native_replacement_allocation_with_peer(&captured, &request.credentials[0], &proof)
+        .unwrap();
+    assert_eq!(replay.record_id, record.record_id);
+    assert!(replay.result.is_none());
+    assert!(replay.effects.is_empty());
+    assert_eq!(
+        f.store
+            .record_native_replacement_allocated_with_peer(&captured, &proof)
+            .unwrap(),
+        record
+    );
+    assert_eq!(f.count("native_replacement_steps"), 2);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), stable);
+}
+#[test]
+fn signed_allocation_capture_does_not_wait_for_another_sqlite_writer() {
+    let (f, _, _, prepared, request) = prepared_target();
+    let proof = f.admit(&request);
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
+        .unwrap();
+    let expected = attempt.expected_allocation().clone();
+    let captured = attempt.allocated(expected).unwrap();
+    drop(read);
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let external = rusqlite::Connection::open(f.store.path()).unwrap();
+    external.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let (immediate, refused) = std::thread::scope(|scope| {
+        let (sent, received) = std::sync::mpsc::channel();
+        let store = &f.store;
+        let captured = &captured;
+        let proof = &proof;
+        let worker = scope.spawn(move || {
+            sent.send(store.record_native_replacement_allocated_with_peer(captured, proof))
+                .unwrap()
+        });
+        let first = received
+            .recv_timeout(std::time::Duration::from_secs(1))
+            .ok();
+        let immediate = first.is_some();
+        external.execute_batch("ROLLBACK").unwrap();
+        let result = first.unwrap_or_else(|| {
+            received
+                .recv_timeout(std::time::Duration::from_secs(3))
+                .unwrap()
+        });
+        worker.join().unwrap();
+        (immediate, result)
+    });
+    drop(external);
+    assert!(
+        immediate,
+        "captured recording inherited SQLite's blocking timeout"
+    );
+    assert!(refused.is_err());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    let record = f
+        .store
+        .record_native_replacement_allocated_with_peer(&captured, &proof)
+        .unwrap();
+    assert!(record.effects.iter().all(|effect| effect.attempt == 1));
+    assert_eq!(f.count("native_replacement_steps"), 2);
 }

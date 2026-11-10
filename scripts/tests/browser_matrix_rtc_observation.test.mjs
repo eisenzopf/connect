@@ -1,3 +1,5 @@
+import {rtcAudioBoundaryDiagnostics} from '../lib/browser_matrix_rtc_audio_diagnostics.mjs';
+import {DecodedRoute} from '../lib/browser_matrix_observation.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -94,7 +96,7 @@ test('only the actual RTC renderer is tapped and frame metadata stays bound to i
     }
 });
 
-async function warmSourceObservation(run, { own = false } = {}) {
+async function warmSourceObservation(run, { own = false, measurementOrigin = null } = {}) {
   const names = [
     "AudioContext",
     "MediaStreamAudioSourceNode",
@@ -180,6 +182,7 @@ async function warmSourceObservation(run, { own = false } = {}) {
   );
   const original = MediaStreamAudioSourceNode.prototype.connect;
   const observer = browserMatrixRtcObservation(Rtc, {
+    measurementOrigin: () => measurementOrigin,
     audio: (...value) => audio.push(value),
     video() {},
     invalid: (...value) => errors.push(value),
@@ -323,3 +326,80 @@ test('RTC presentation identity uses each real element counter and refuses repea
         }
     }
 });
+
+
+const boundaryClock=Object.freeze({profile:'connect/rtc-decoded-pcm-clock/1',owner:'original',epoch_id:1});
+function boundaryPcm(){
+    const samples=Float32Array.from({length:960},(_,i)=>.1*Math.sin((i+1)*.08));
+    samples.fill(0,192,672);return samples;
+}
+function boundaryInput(samples,context,extra={}){
+    return {owner:'original',clock:boundaryClock,timestamp:20000,at:1200,origin:1000,samples,context,...extra};
+}
+
+test('RTC boundary evidence preserves copied480-zero input and never invents a zero event for a tone',()=>{
+    const diagnostics=rtcAudioBoundaryDiagnostics(),samples=boundaryPcm(),original=samples.slice();
+    const context={sampleRate:48000,currentTime:1.1,baseLatency:.01,outputLatency:.02,
+        getOutputTimestamp(){return {contextTime:1.09,performanceTime:1190};}};
+    diagnostics.observe(boundaryInput(samples,context));
+    assert.deepEqual(samples,original);
+    const report=diagnostics.report(),row=report.events[0];
+    assert.equal(row.exact_zero_run_samples,480);assert.equal(row.exact_zero_run_start_sample,192);
+    assert.equal(row.exact_zero_run_end_sample_exclusive,672);
+    assert.equal(row.exact_zero_start_worklet_us,24000);assert.equal(row.exact_zero_end_worklet_us,34000);
+    assert.equal(row.callback_seconds,.2);assert.equal(row.original_worklet_timestamp_us,20000);
+    assert.equal(row.context.output_timestamp.performance_time_ms,1190);
+    assert.ok(Object.isFrozen(row)&&Object.isFrozen(row.clock)&&Object.isFrozen(row.context.output_timestamp));
+    diagnostics.observe(boundaryInput(Float32Array.from({length:960},(_,i)=>.1*Math.sin(i*.08)),context));
+    assert.equal(diagnostics.report().events.length,1);
+    samples.fill(1);context.currentTime=99;
+    assert.equal(report.events[0].context.current_time_seconds,1.1);
+    assert.equal(Object.values(row).some(value=>ArrayBuffer.isView(value)),false);
+});
+
+test('RTC boundary metadata never reads optional context APIs before measurement or beyond its bound',()=>{
+    const diagnostics=rtcAudioBoundaryDiagnostics();let calls=0;
+    const context={get currentTime(){calls++;throw Error('unavailable');},get baseLatency(){throw Error('unavailable');},
+        outputLatency:NaN,getOutputTimestamp(){calls++;throw Error('unavailable');}};
+    const input=boundaryInput(boundaryPcm(),context);
+    for(const origin of [null,undefined,NaN,2000,-100000])diagnostics.observe({...input,origin});
+    assert.equal(calls,0);assert.equal(diagnostics.report().events.length,0);
+    for(let i=0;i<40;i++)diagnostics.observe({...input,timestamp:i*20000,at:1200+i*20});
+    const report=diagnostics.report();assert.equal(report.events.length,32);assert.equal(report.omitted,8);
+    assert.equal(calls,64,'Two unavailable getters read only for each retained anomaly');
+    assert.ok(report.events.every(row=>row.context.current_time_seconds===null&&row.context.base_latency_seconds===null
+        &&row.context.output_latency_seconds===null&&row.context.output_timestamp===null));
+    assert.throws(()=>report.events.push({}),TypeError);
+    diagnostics.close();diagnostics.observe(input);assert.deepEqual(diagnostics.report(),report);assert.equal(calls,64);
+});
+
+test('RTC worklet input zero evidence does not change the existing decoded quality result',()=>{
+    const route=new DecodedRoute(0,1);route.start(0);
+    const {context,messages,owner}=processor();
+    const input=new Float32Array(1024).fill(.125);input.fill(0,192,672);
+    for(let i=0;i<input.length;i+=128){context.currentFrame=i;owner.process([[input.subarray(i,i+128)]]);}
+    assert.equal(messages.length,1);assert.deepEqual(Array.from(messages[0].samples),Array.from(input.subarray(0,960)));
+    route.audioFrame('original',messages[0].timestamp,1000,messages[0].samples,null,null,boundaryClock);
+    const before=route.report(),diagnostics=rtcAudioBoundaryDiagnostics();
+    diagnostics.observe(boundaryInput(messages[0].samples,{}, {timestamp:messages[0].timestamp,at:1000,origin:0}));
+    assert.equal(diagnostics.report().events[0].exact_zero_run_samples,480);
+    assert.deepEqual(route.report(),before,'Evidence collection cannot add identity, frame credit, or a quality exception');
+});
+
+test('RTC boundary report uses original renderer and survives close without retaining live graph callbacks',()=>
+    warmSourceObservation(async f=>{
+        f.context.sampleRate=48000;f.context.currentTime=3;f.context.baseLatency=.01;
+        await new f.Rtc().render();await Promise.resolve();
+        assert.equal(f.nodes.length,1,'No second diagnostic tap or render graph');
+        const samples=boundaryPcm();
+        f.nodes[0].port.onmessage({data:{type:'pcm',timestamp:120000,samples}});
+        assert.equal(f.audio.length,1);assert.equal(f.audio[0][3],samples,'The original PCM callback remains unchanged');
+        const report=f.observer.report();assert.equal(report.events.length,1);
+        assert.equal(report.events[0].owner,'same-target');assert.equal(report.events[0].clock.owner,'same-target');
+        assert.equal(report.events[0].context.current_time_seconds,3);
+        await f.observer.close();
+        assert.equal(f.nodes[0].port.onmessage,null);assert.equal(f.nodes[0].onprocessorerror,null);
+        assert.ok(!f.source.connections.includes(f.nodes[0]));
+        f.context.currentTime=9;assert.deepEqual(f.observer.report(),report);
+        assert.deepEqual(f.errors,[]);
+    },{measurementOrigin:performance.now()-1000}));

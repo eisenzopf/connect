@@ -154,6 +154,8 @@ impl Store {
         let expires_at = expires.min(policy_expires);
         let result = NativeSessionCodecRead {
             media: NativeMediaRead {
+                _live: None,
+                _source_live: None,
                 target: view,
                 source: None,
                 _scopes: held,

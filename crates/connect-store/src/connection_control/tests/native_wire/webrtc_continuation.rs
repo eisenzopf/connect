@@ -429,3 +429,137 @@ fn webrtc_continuation_wait_does_not_outlive_original_source_budget() {
     drop(writer);
     assert_eq!(f.count("operation_effects"), 1);
 }
+
+fn original_for_activation(
+    transport: EndpointTransport,
+) -> (
+    Fixture,
+    Arc<crate::NativeMediaOrigin>,
+    crate::NativeOfferLease,
+) {
+    let f = Fixture::new();
+    let mut request = if transport == EndpointTransport::Webrtc {
+        web_rtc_request(&f)
+    } else {
+        f.native_request(600)
+    };
+    if transport == EndpointTransport::Webtransport {
+        let crate::PeerCommand::NativeConnectionOffer(intent) = &mut request.command else {
+            panic!()
+        };
+        intent.offer["substrate"] = json!("webtransport");
+    }
+    if transport != EndpointTransport::Quic {
+        let endpoint = extra_endpoint_for_transport(&f, transport.clone());
+        verify_web_rtc(&f, &endpoint);
+    }
+    let proof = f.admit(&request);
+    f.store
+        .prepare_native_offer_with_peer(&f.keys[0], &proof, Some(transport))
+        .unwrap();
+    let (attempt, _) = f
+        .store
+        .begin_native_offer_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .unwrap();
+    let origin = f
+        .store
+        .native_media_origin_with_peer(&f.keys[0], &proof, &attempt)
+        .unwrap();
+    drop(proof);
+    (f, origin, attempt)
+}
+
+#[test]
+fn original_native_activation_takes_write_for_all_three_transports_without_new_attempt_or_expiry() {
+    for transport in [
+        EndpointTransport::Quic,
+        EndpointTransport::Webtransport,
+        EndpointTransport::Webrtc,
+    ] {
+        let (f, origin, attempt) = original_for_activation(transport);
+        let read = f.store.try_native_media_read(&origin, None).unwrap();
+        let blocked = f.store.resume_native_offer_activation_authority(
+            &f.keys[0],
+            &origin,
+            &attempt,
+            &AuthorityWait::new(Duration::from_millis(20)),
+        );
+        let code = blocked.as_ref().err().map(|error| error.code.clone());
+        drop(blocked);
+        drop(read);
+        assert_eq!(
+            code.as_deref(),
+            Some("authority-busy"),
+            "public activation overlapped an original read"
+        );
+        let writer = f
+            .store
+            .resume_native_offer_activation_authority(
+                &f.keys[0],
+                &origin,
+                &attempt,
+                &AuthorityWait::new(Duration::from_secs(1)),
+            )
+            .unwrap();
+        assert!(writer.current() && writer.expires_at() <= attempt.expires_at());
+        let blocked = f.store.try_native_media_read(&origin, None);
+        let code = blocked.as_ref().err().map(|error| error.code.clone());
+        drop(blocked);
+        let current = f
+            .store
+            .native_media_read_with_peer(&origin, None, &writer)
+            .unwrap();
+        assert_eq!(
+            current.target().runtime_connection_id,
+            attempt.runtime_connection_id()
+        );
+        drop(current);
+        drop(writer);
+        assert_eq!(code.as_deref(), Some("authority-busy"));
+        assert_eq!(f.count("native_offer_operations"), 1);
+        assert_eq!(f.count("operation_effects"), 1);
+        assert!(f
+            .store
+            .try_native_media_read(&origin, None)
+            .unwrap()
+            .current());
+    }
+}
+
+#[test]
+fn original_native_ready_publication_rejects_read_before_observing_a_core_result() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    struct NeverObserved(AtomicUsize);
+    impl crate::NativeOfferRuntimeObservation for NeverObserved {
+        fn observe(&self) -> connect_protocol::Result<crate::NativeOfferObservation> {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Err(connect_protocol::Error::forbidden())
+        }
+    }
+    let (f, _, request) = fixture();
+    let (origin, attempt) = begun(&f, &request, None);
+    let read = f
+        .store
+        .resume_webrtc_offer_authority(
+            &f.keys[0],
+            &origin,
+            &attempt,
+            &AuthorityWait::new(Duration::from_secs(1)),
+        )
+        .unwrap();
+    let observed = NeverObserved(AtomicUsize::new(0));
+    let result = f
+        .store
+        .complete_native_offer_with_peer(&f.keys[0], &attempt, &read, &observed);
+    let refused = result.is_err();
+    drop(result);
+    drop(read);
+    assert!(refused);
+    assert_eq!(
+        observed.0.load(Ordering::Relaxed),
+        0,
+        "read-only publication crossed the current activation boundary"
+    );
+    assert_eq!(status(&f).state, OperationState::Preparing);
+}

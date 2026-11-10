@@ -73,11 +73,31 @@ test('raw malformed signed batch never escapes and preserves read versus submitt
  await fixture({mode:'raw-correlation'},async(client)=>await assert.rejects(client.raw.request(client.raw.validate(get()),opts),error('protocol','read-only')));
 });
 test('raw cancellation before submission writes nothing and active uncertainty retains original operation without retry',async()=>{
- await fixture({mode:'partial'},async(client,dir)=>{
+ for(const finish of ['deadline','cancelled'])await fixture({mode:'partial'},async(client,dir)=>{
   const checked=client.raw.validate(mutation());assert.throws(()=>client.raw.request(checked,{...opts,signal:AbortSignal.abort()}),error('cancelled','not-submitted','original-close'));
   assert.equal((await lines(dir,'requests.jsonl')).length,0);
-  const pending=client.raw.request(checked,{timeoutMs:50});await assert.rejects(pending,error('deadline','uncertain','original-close'));
-  assert.throws(()=>client.raw.request(checked,opts),error('configuration','not-submitted','original-close'));assert.equal((await lines(dir,'requests.jsonl')).length,1);
+  // A write to the owned helper's pipe is already uncertain, even before
+  // synthetic Node startup reaches its line reader. Observe the actual request
+  // before awaiting its original deadline or cancelling; a cold50ms timer
+  // cannot prove fixture-side receipt. Neither branch renews its request budget.
+  const abort=new AbortController();let settled=false;
+  const pending=client.raw.request(checked,{...opts,signal:abort.signal}).then(
+   value=>{settled=true;return {value};},failure=>{settled=true;return {failure};});
+  const until=performance.now()+opts.timeoutMs;
+  try{
+   while(!(await lines(dir,'requests.jsonl')).length){
+    assert.equal(settled,false,'Original helper settled before its pending request was observed');
+    assert.ok(performance.now()<until,'Original request observation exceeded its existing fixture budget');
+    await new Promise(resolve=>setTimeout(resolve,5));
+   }
+   const calls=await lines(dir,'requests.jsonl');assert.equal(calls.length,1);
+   assert.equal(calls[0].request.action.envelope.operation_id,'original-close');
+   if(finish==='cancelled')abort.abort();
+   const result=await pending;
+   error(finish,'uncertain','original-close')(result.failure);
+   assert.throws(()=>client.raw.request(checked,opts),error('configuration','not-submitted','original-close'));
+   assert.equal((await lines(dir,'requests.jsonl')).length,1);
+  }finally{abort.abort();await pending;}
  });
 });
 test('local validation subprocess output and time are bounded and original child is joined',async()=>{

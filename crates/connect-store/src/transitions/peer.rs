@@ -118,7 +118,11 @@ pub(crate) fn operation_source_scopes(
                 "Operation source depth exceeded",
             ));
         }
-        sources.extend(admission::row_scopes(&current)?);
+        if matches!(&claim.action, OperationAction::Get { .. }) {
+            sources.extend(admission::row_scopes(&current)?);
+        } else {
+            sources.extend(admission::mutation_row_scopes(&current)?);
+        }
         if let Some(cid) = &current.record.conversation_id {
             sources.extend(crate::authority_admission::conversation_scopes(
                 c,

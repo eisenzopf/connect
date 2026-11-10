@@ -123,7 +123,7 @@ fn denied<T: std::fmt::Debug>(error: T) -> Error {
 impl Runtime {
     pub(super) async fn webrtc_admit(
         self: &Arc<Self>,
-        owned: &Owned,
+        owned: &mut Owned,
         physical: Arc<Physical>,
         credential: &str,
     ) -> Result<Ready> {
@@ -149,6 +149,13 @@ impl Runtime {
             _=tokio::time::sleep_until(deadline)=>return Err(Error::new("timeout","RTC resource deadline")),
             result=adapter.wait_initial_media(id,deadline,physical.lifetime.child_token())=>result.map_err(denied)?,
         }
+        let prepared = owned
+            .quarantined
+            .take()
+            .ok_or_else(Error::forbidden)?
+            .prepare()
+            .await
+            .map_err(denied)?;
         let store = self.media.store.clone();
         let origin = entry.origin.clone();
         let owner = attempt.clone();
@@ -161,45 +168,45 @@ impl Runtime {
         let until = deadline.min(Instant::now() + remaining);
         let wait =
             connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
-        let (proof, read) = tokio::task::spawn_blocking(move || {
-            loop {
-                if Instant::now() >= until {
-                    return Err(Error::new(
-                        "authority-busy",
-                        "RTC original observation metadata is busy",
-                    ));
-                }
-                let observed = (|| {
-                    let proof = store.resume_webrtc_offer_authority(
-                        &credential_for_read,
-                        &origin,
-                        owner.original_attempt(),
-                        &wait,
-                    )?;
-                    let read = store.native_media_read_with_peer(&origin, None, &proof)?;
-                    Ok::<_, Error>((Arc::new(proof), Arc::new(read)))
-                })();
-                match observed {
-                    Err(error) if error.code == "authority-busy" && Instant::now() < until => {
-                        // No control effect has started. Every failed proof/read
-                        // is already dropped before waiting, so a queued writer
-                        // can enter. Reuse the original wait, never renew it or
-                        // reenter a reader retained from the previous attempt.
-                        std::thread::sleep(
-                            Duration::from_millis(5)
-                                .min(until.saturating_duration_since(Instant::now())),
-                        );
+        let (proof, read) = self
+            .owned_store_call(move || {
+                loop {
+                    if Instant::now() >= until {
+                        return Err(Error::new(
+                            "authority-busy",
+                            "RTC original observation metadata is busy",
+                        ));
                     }
-                    result => return result,
+                    let observed = (|| {
+                        let proof = store.resume_native_offer_activation_authority(
+                            &credential_for_read,
+                            &origin,
+                            owner.original_attempt(),
+                            &wait,
+                        )?;
+                        let read = store.native_media_read_with_peer(&origin, None, &proof)?;
+                        Ok::<_, Error>((Arc::new(proof), Arc::new(read)))
+                    })();
+                    match observed {
+                        Err(error) if error.code == "authority-busy" && Instant::now() < until => {
+                            // No control effect has started. Every failed proof/read
+                            // is already dropped before waiting, so a queued writer
+                            // can enter. Reuse the original wait, never renew it or
+                            // reenter a reader retained from the previous attempt.
+                            std::thread::sleep(
+                                Duration::from_millis(5)
+                                    .min(until.saturating_duration_since(Instant::now())),
+                            );
+                        }
+                        result => return result,
+                    }
                 }
-            }
-        })
-        .await
-        .map_err(denied)?
-        .map_err(|error| {
-            tracing::debug!(code=%error.code, "RTC initial authority observation refused");
-            error
-        })?;
+            })
+            .await
+            .map_err(|error| {
+                tracing::debug!(code=%error.code, "RTC initial authority observation refused");
+                error
+            })?;
         if self.stop.is_cancelled() || physical.lifetime.is_cancelled() {
             return Err(Error::forbidden());
         }
@@ -247,31 +254,14 @@ impl Runtime {
             deadline,
         };
         invocation.check(&self.media).map_err(denied)?;
-        controller
-            .change_selected_with_held(
-                0,
-                entry.plan.selected(),
-                &BTreeSet::new(),
-                deadline,
-                invocation.cancel.child_token(),
-                Arc::new(invocation.clone()),
-            )
-            .await
-            .map_err(denied)?;
         if handoff_preparation {
-            controller
-                .set_media_gate_with_held(
-                    1,
-                    &entry
-                        .plan
-                        .selected()
-                        .iter()
-                        .map(|s| s.requested.logical_id.clone())
-                        .collect(),
-                    rvoip_core::stream_lifecycle::StreamGateAction::Mute,
-                    deadline,
-                    Arc::new(invocation.clone()),
-                )
+            prepared
+                .activate_muted_with_held(Arc::new(invocation.clone()))
+                .await
+                .map_err(denied)?;
+        } else {
+            prepared
+                .activate_with_held(Arc::new(invocation.clone()))
                 .await
                 .map_err(denied)?;
         }
@@ -401,6 +391,12 @@ impl Runtime {
         if handoff_preparation {
             self.queue_handoff_preparation(entry, ready.physical.lifetime.clone());
         }
+        owned
+            .resource_source
+            .as_ref()
+            .ok_or_else(Error::forbidden)?
+            .admitted
+            .store(true, std::sync::atomic::Ordering::Release);
         Ok(ready)
     }
 }

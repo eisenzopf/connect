@@ -123,7 +123,11 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     env = fixture_environment()
     env["CARGO_PROFILE_RELEASE_DEBUG"] = "0"
     env.pop("CONNECT_SDK_HELPER_TIMING", None)
-    if native_replacement_metadata_trace:
+    # Bounded control-plane timings are retained for media rehearsals so a
+    # missed observation can distinguish SDK queueing from an active request.
+    # This enables no packet/payload trace and changes no request deadline.
+    sdk_helper_timing_trace = media_workload or native_replacement_metadata_trace
+    if sdk_helper_timing_trace:
         env["CONNECT_SDK_HELPER_TIMING"] = "1"
     if target == "aarch64-apple-darwin":
         env.update(MACOSX_DEPLOYMENT_TARGET="15.0", OPUS_STATIC="1",
@@ -137,7 +141,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
     report["native_replacement_commit_trace_requested"] = native_replacement_commit_trace or native_replacement_metadata_trace
     report["native_authority_summary_requested"] = native_authority_summary
     report["native_packet_policy_trace_requested"] = native_packet_policy_trace
-    report["sdk_helper_timing_trace_requested"] = native_replacement_metadata_trace
+    report["sdk_helper_timing_trace_requested"] = sdk_helper_timing_trace
     report["resource_cycles_requested"] = resource_cycles
     report["host_capture_requested"] = host_capture
     report["requested_native_port"] = native_port
@@ -313,6 +317,9 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                 # Private existing phase/error logs; preserve the original
                 # mutation, current authorization and media/deadline budgets.
                 server_env["RUST_LOG"] += ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug,rvoip_core::replacement_commit=debug,connect_service::peer_authority_lifetime=debug,connect_store::sql_custody=trace"
+            # Creation/terminal queue counters only; normal Quinn packet TRACE stays disabled.
+            if media_workload:
+                server_env["RUST_LOG"] += ",quinn_proto::datagram_queue=debug"
             command = ([str(binary), "serve", "--config", str(config)] if namespace is None else
                 namespace.server_command(binary, config, server_env))
             server = subprocess.Popen(command, cwd=ROOT, env=server_env,

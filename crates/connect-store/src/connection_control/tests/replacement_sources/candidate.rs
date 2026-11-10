@@ -91,8 +91,9 @@ pub(super) fn pending() -> Pending {
         retained_connid: sources[1].connection_id().into(),
         video: None,
     };
-    // The original peer still holds its invocation reader. Admission must not
-    // wait for that reader to finish an unanswered parameter callback.
+    // Production releases the original domain proof when entering independent
+    // quarantined resource preparation. The original offer lease remains owned.
+    drop(proof);
     f.store
         .admit_transition_command(&key, command.clone())
         .unwrap();
@@ -114,7 +115,7 @@ pub(super) fn pending() -> Pending {
         origin,
         sources,
         request,
-        proof: Some(proof),
+        proof: None,
         original,
     }
 }
@@ -415,7 +416,8 @@ fn ordinary_ready_binding_cannot_be_claimed_as_private_replacement_preparation()
     // Controlled ordinary readiness, as in the shared Store source fixture.
     // It supplies no Core ticket and must never be accepted as a private one.
     {
-        let mut c = p.f.store.connection().unwrap();
+        let writer = p.f.controlled_conversation_writer(0);
+        let mut c = p.f.store.connection_with_authority(&writer).unwrap();
         let tx = c.transaction().unwrap();
         tx.execute(
             "UPDATE operation_effects SET state='confirmed' WHERE id=?1",

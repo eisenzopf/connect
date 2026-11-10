@@ -10,6 +10,14 @@ use crate::{
 use connect_protocol::{provisioning::ProvisioningCommand, Error, Result};
 pub(crate) use operations::{operation_scopes, operation_writes_authority};
 use rusqlite::{Connection, OptionalExtension};
+
+// One acquisition budget for immutable replacement metadata. It includes initial
+// SQL admission and fair file admission, not the following transaction duration.
+pub(crate) fn passive_projection_wait() -> AuthorityWait {
+    AuthorityWait::new(std::time::Duration::from_millis(5))
+        .poll_every(std::time::Duration::from_micros(100))
+        .observe_projection()
+}
 use std::{path::Path, sync::Arc};
 impl Store {
     pub(crate) fn authority_manager(path: &Path, c: &Connection) -> Result<Arc<Manager>> {

@@ -12,6 +12,7 @@ memory-diagnostics = ["test-support", "dep:rvoip-infra-common", "rvoip-infra-com
 test-support = ["connect-store/test-support", "rvoip-core/test-support"]
 
 [dependencies]
+arc-swap.workspace = true
 rvoip-infra-common = { path = "../../.deps/rvoip/crates/foundation/infra-common", optional = true }
 connect-protocol.workspace = true
 connect-store.workspace = true

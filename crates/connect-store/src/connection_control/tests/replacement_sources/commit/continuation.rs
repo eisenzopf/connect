@@ -13,7 +13,7 @@ fn exact_started_commit_can_read_current_public_pair_before_journal_projection()
     assert_ne!(m.f.store.runtime_epoch(), m.f.store.transition_runtime);
     let scene =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -140,7 +140,7 @@ fn pending_pair_refuses_foreign_worker_attempt_and_current_authority_loss() {
         let m = fixture_scoped(true, &["stream.subscribe"]);
         let scene =
             m.f.store
-                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
                 .unwrap();
         let attempt =
             m.f.store
@@ -305,7 +305,7 @@ fn pending_receiver_metadata_observes_subscribe_withdrawal_on_the_same_actor() {
     let m = fixture_scoped(true, &["stream.subscribe"]);
     let scene =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -381,7 +381,7 @@ fn pending_continuation_memo_reuses_facts_but_reacquires_current_authority_on_ev
     let m = fixture_scoped(true, &["stream.subscribe"]);
     let scene =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -459,7 +459,7 @@ fn pending_continuation_memo_separates_phase_source_and_observes_external_commit
     let m = fixture_scoped(true, &["stream.subscribe"]);
     let scene =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -627,7 +627,7 @@ fn pending_continuation_positive_memo_keeps_phase_source_and_expiry_across_clock
     let m = fixture_scoped(true, &["stream.subscribe"]);
     let scene =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store

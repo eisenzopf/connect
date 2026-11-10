@@ -198,6 +198,7 @@ impl Store {
     ) -> Result<IssuedCredential> {
         let _authority = self.write_identity_authority(identity_id)?;
         let connection = self.connection()?;
+        connection.bind_available_mutation_authority(self, &_authority)?;
         issue_on_connection(&connection, identity_id, scope, expires_at)
     }
     /// Local administration validates current authority inside the issuance transaction.
@@ -210,6 +211,7 @@ impl Store {
     ) -> Result<IssuedCredential> {
         let _authority = self.write_identity_authority(identity_id)?;
         let mut connection = self.connection()?;
+        connection.bind_available_mutation_authority(self, &_authority)?;
         let tx = connection
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -292,6 +294,7 @@ impl Store {
             },
         )?;
         let mut connection = self.connection()?;
+        connection.bind_available_mutation_authority(self, &_authority)?;
         let tx = connection
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

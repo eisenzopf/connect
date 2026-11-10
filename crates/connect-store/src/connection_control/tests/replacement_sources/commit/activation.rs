@@ -7,7 +7,7 @@ fn reserved_activation_metadata_is_inactive_until_exact_durable_completion_and_r
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -104,7 +104,7 @@ fn uncertain_commit_metadata_cannot_activate_a_route_or_reserve_data() {
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store

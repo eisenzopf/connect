@@ -663,3 +663,89 @@ test('diagnostic source quanta never hide actual duplicate decoded frames wrong 
         if (failure.gap) assert.ok(report.audio.maximum_gap_ms > 220);
     }
 });
+
+
+function provenanceNative(rtp,sequence,{ssrc=7,generation=1}={}) {
+    return {profile:'connect/native-decoded-sequence/1',ssrc,rtpTimestamp:rtp,rtpSequence:sequence,
+        datagramSequences:[sequence+100],identity:{profile:'native-sequence-cursor/1',
+            physical_incarnation:'00000000000000000000000000000001',connection_generation:1,
+            stream_generation:generation},sourceClock:{ntp:'1234',rtpTimestamp:0}};
+}
+function provenanceRoute(){const route=new DecodedRoute(0,1);route.start(0);return route;}
+function provenanceFrame(route,at,rtp,sequence,options={}){
+    const native=provenanceNative(rtp,sequence,options);
+    route.audioFrame(options.owner??'original',sequence*20000,at,tone(660),null,native);
+    return native;
+}
+
+test('audio provenance distinguishes a same-epoch PCM hole from callback batching or callback delay',()=>{
+    const gap=provenanceRoute();
+    provenanceFrame(gap,1000,0,1);provenanceFrame(gap,1001,960,2);provenanceFrame(gap,1001,3840,5);
+    const report=gap.report(),witness=report.audio_provenance_diagnostics.gaps;
+    assert.equal(witness.length,1);assert.equal(witness[0].pcm_step_ms,60);
+    assert.equal(witness[0].previous.callback_seconds,witness[0].current.callback_seconds);
+    assert.equal(witness[0].previous.native_rtp_timestamp,960);
+    assert.equal(witness[0].current.native_rtp_timestamp,3840);
+    assert.equal(witness[0].previous.native_rtp_sequence,2);
+    assert.deepEqual(witness[0].current.native_datagram_sequences,[105]);
+    assert.equal(report.audio.maximum_pcm_sample_gap_ms,60);
+    const delayed=provenanceRoute();
+    provenanceFrame(delayed,1000,0,1);provenanceFrame(delayed,1200,960,2);
+    assert.deepEqual(delayed.report().audio_provenance_diagnostics.gaps,[],
+        'A delayed callback with contiguous original PCM is not a source-position hole');
+});
+
+test('audio provenance never measures a gap across actual SSRC, owner or declared stream epochs',()=>{
+    const route=provenanceRoute();
+    provenanceFrame(route,1000,0,1);provenanceFrame(route,1020,960,2);
+    provenanceFrame(route,1200,900000,3,{ssrc:8});
+    provenanceFrame(route,1400,1900000,4,{ssrc:8,generation:2});
+    provenanceFrame(route,1600,2900000,5,{ssrc:8,generation:2,owner:'target'});
+    assert.deepEqual(route.report().audio_provenance_diagnostics.gaps,[]);
+    provenanceFrame(route,1620,2902880,6,{ssrc:8,generation:2,owner:'target'});
+    const pair=route.report().audio_provenance_diagnostics.gaps[0];
+    assert.equal(pair.previous.owner,'target');assert.equal(pair.current.owner,'target');
+    assert.deepEqual(pair.previous.clock,pair.current.clock);assert.equal(pair.pcm_step_ms,60);
+});
+
+test('audio provenance retains exact included window edges and leaves native quality scores unchanged',()=>{
+    const full=provenanceRoute(),without=provenanceRoute();
+    for(const [i,at]of [980,1000,60980,61000,61020].entries()){
+        const native=provenanceNative(i*960,i+1);
+        full.audioFrame('original',i*20000,at,tone(660),null,native);
+        const bare={...native};delete bare.rtpSequence;delete bare.datagramSequences;
+        without.audioFrame('original',i*20000,at,tone(660),null,bare);
+    }
+    const report=full.report(),edges=report.audio_provenance_diagnostics.window_edges;
+    assert.equal(edges.last_before_start.callback_seconds,.98);
+    assert.equal(edges.first_at_or_after_start.callback_seconds,1);
+    assert.equal(edges.last_before_end.callback_seconds,60.98);
+    assert.equal(edges.first_at_or_after_end.callback_seconds,61);
+    const strip=({audio_provenance_diagnostics,...quality})=>quality;
+    assert.deepEqual(strip(report),strip(without.report()));
+    assert.equal(report.audio.decoded_seconds,.04,'Only original callbacks inside[1,61) earn existing credit');
+    const filtered=full.report(row=>row.seconds!==1);
+    assert.equal(filtered.audio_provenance_diagnostics.window_edges.first_at_or_after_start.callback_seconds,60.98,
+        'Diagnostic window witnesses use the same existing public-membership filter');
+    assert.equal(filtered.audio.decoded_seconds,.02);
+});
+
+test('audio provenance has fixed caps and detached immutable reports survive retirement',()=>{
+    const route=provenanceRoute();let original;
+    for(let i=0;i<40;i++)original=provenanceFrame(route,1000+i*60,i*2880,i+1);
+    const report=route.report(),evidence=report.audio_provenance_diagnostics;
+    assert.equal(evidence.gaps.length,32);assert.equal(evidence.omitted,7);
+    assert.ok(evidence.gaps.every((pair,i)=>pair.current.row_index===i+1));
+    assert.ok(Object.isFrozen(evidence)&&Object.isFrozen(evidence.gaps)&&Object.isFrozen(evidence.window_edges));
+    assert.ok(Object.isFrozen(evidence.gaps[0].previous.clock));
+    assert.throws(()=>evidence.gaps[0].current.native_datagram_sequences.push(99),TypeError);
+    const saved=JSON.stringify(evidence);
+    original.datagramSequences.push(999);original.sourceClock.ntp='5678';
+    assert.equal(JSON.stringify(evidence),saved,'Valid caller metadata changes cannot mutate the detached report');
+    provenanceFrame(route,3500,40*2880,41);route.report();
+    assert.equal(JSON.stringify(evidence),saved,'Later observer activity never mutates returned evidence');
+    route.retireWorkingState();
+    assert.ok(Object.values(route.workingState()).every(value=>value===0));
+    assert.equal(route.audioProvenance,null);
+    assert.equal(JSON.stringify(evidence),saved,'Retirement releases working roots without erasing original reports');
+});

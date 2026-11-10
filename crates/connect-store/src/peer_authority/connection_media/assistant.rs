@@ -289,6 +289,8 @@ impl Store {
             credential: context_credential.into(),
             endpoint_id: provider_endpoint.into(),
             native: NativeMediaRead {
+                _live: None,
+                _source_live: None,
                 target: f.view,
                 source: None,
                 _scopes: held,

@@ -9,12 +9,14 @@ mod consultation_presence;
 mod consultation_reads;
 mod consultation_returns;
 mod consultation_sql_contention;
+mod credential_refresh_writer;
 mod handoff_custody;
 mod handoff_lifetimes;
 mod handoff_preparation;
 mod handoff_reads;
 mod handoff_roles;
 mod handoff_sources;
+mod native_operation_writer;
 mod private_consultation;
 mod private_provider;
 mod replacement_sources;
@@ -36,6 +38,34 @@ struct Fixture {
     cid: String,
 }
 impl Fixture {
+    // Controlled fixture DML is still an actual coordinated mutation. This
+    // supplies no runtime readiness observation and no raw SQL bypass.
+    fn controlled_conversation_writer(
+        &self,
+        actor: usize,
+    ) -> std::sync::Arc<crate::AuthorityGuardSet> {
+        let owner = self
+            .store
+            .revalidate(&self.keys[actor])
+            .unwrap()
+            .identity_id;
+        let mut scopes = {
+            let c = self.store.connection().unwrap();
+            crate::authority_admission::conversation_scopes(
+                &c,
+                &self.cid,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()
+        };
+        scopes.push(crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Write).unwrap());
+        self.store
+            .acquire_authority(
+                &scopes,
+                &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+            )
+            .unwrap()
+    }
     fn new() -> Self {
         Self::with_endpoint_capabilities(vec!["audio".into(), "video".into()])
     }
@@ -112,7 +142,16 @@ impl Fixture {
             };
             // Controlled provisioning evidence only; this fixture deliberately
             // exercises durable intent, not a physical native/media proof.
-            store.connection().unwrap().execute("UPDATE endpoints SET verification_state='verified',verification_evidence='controlled-fixture',verified_at=?2 WHERE id=?1",params![endpoint_id,crate::now()]).unwrap();
+            let writer = store
+                .acquire_authority(
+                    &[
+                        crate::AuthorityScope::identity(identity, crate::AuthorityMode::Write)
+                            .unwrap(),
+                    ],
+                    &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+                )
+                .unwrap();
+            store.connection_with_authority(&writer).unwrap().execute("UPDATE endpoints SET verification_state='verified',verification_evidence='controlled-fixture',verified_at=?2 WHERE id=?1",params![endpoint_id,crate::now()]).unwrap();
             endpoints.push(endpoint_id);
         }
         let Outcome::Conversation(room) = store

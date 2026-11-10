@@ -11,7 +11,7 @@ fn expired() -> Error {
 /// Never wrap allocation, start, SDP, negotiation, mute or recording here.
 /// Each retry must derive fresh authority and exact resource metadata. The
 /// original absolute budget and cancellation owner never change.
-pub(super) async fn read<T, F, Fut, Cancel>(
+pub(crate) async fn read<T, F, Fut, Cancel>(
     until: Instant,
     wait: &AuthorityWait,
     cancelled: Cancel,

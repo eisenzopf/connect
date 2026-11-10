@@ -119,7 +119,8 @@ fn parent_permissions_origin_filtered(
     if data {
         // Controlled source metadata, like the controlled readiness below;
         // no production Session negotiation or native port is claimed here.
-        let c = f.store.connection().unwrap();
+        let writer = f.controlled_conversation_writer(0);
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute(
             r#"UPDATE sessions SET media='["data"]' WHERE id='session'"#,
             [],
@@ -155,10 +156,12 @@ fn parent_permissions_origin_filtered(
         .store
         .native_media_origin_with_peer(&f.keys[0], &proof, &lease)
         .unwrap();
+    drop(proof);
     if completed {
         // State fixture only. This does not construct an engine observation or
         // exercise Store completion, publish media or claim a runtime result.
-        let mut c = f.store.connection().unwrap();
+        let writer = f.controlled_conversation_writer(0);
+        let mut c = f.store.connection_with_authority(&writer).unwrap();
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .unwrap();
@@ -176,7 +179,6 @@ fn parent_permissions_origin_filtered(
         tx.execute("INSERT INTO native_connection_lifetimes(operation_record_id,connection_id,runtime_epoch,generation) VALUES(?1,?2,?3,?4)",params![lease.record_id(),lease.connection_id(),f.store.runtime_epoch(),lease.generation()]).unwrap();
         tx.commit().unwrap();
     }
-    drop(proof);
     let record = lease.record_id().to_owned();
     let PeerCommand::NativeConnectionOffer(offer) = &request.command else {
         panic!()

@@ -98,9 +98,11 @@ try{
             else if(url.pathname==='/_matrix/sources.mjs')file=path.join(root,'scripts/lib/browser_matrix_sources.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_pipeline.mjs')file=path.join(root,'scripts/lib/browser_matrix_pipeline.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_stages.mjs')file=path.join(root,'scripts/lib/browser_matrix_stages.mjs');
+            else if(url.pathname==='/_matrix/browser_matrix_webtransport_statistics.mjs')file=path.join(root,'scripts/lib/browser_matrix_webtransport_statistics.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_pcm.mjs')file=path.join(root,'scripts/lib/browser_matrix_pcm.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_audio_input.mjs')file=path.join(root,'scripts/lib/browser_matrix_audio_input.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_rtc_observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_rtc_observation.mjs');
+            else if(url.pathname==='/_matrix/browser_matrix_rtc_audio_diagnostics.mjs')file=path.join(root,'scripts/lib/browser_matrix_rtc_audio_diagnostics.mjs');
             else if(url.pathname==='/_matrix/media_transition_coverage.mjs')file=path.join(root,'scripts/lib/media_transition_coverage.mjs');
             else if(url.pathname==='/_matrix/observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_observation.mjs');
             else if(url.pathname==='/video/audio_envelope.mjs')file=path.join(root,'scripts/video/audio_envelope.mjs');
@@ -237,6 +239,8 @@ try{
             return window.matrixJournal({...event,cycle_index:cycle.index,workload_id:cycle.workload_id});
         };
         const actors={};window.matrixActors=actors;let state={},sources,keepalive,observer,selectionEnrollment,cleanupMoves;
+        const {browserMatrixWebTransportStatistics}=await import('/_matrix/browser_matrix_webtransport_statistics.mjs');
+        const webTransportStatistics=selected==='webtransport'&&spec.stage==='quality'?browserMatrixWebTransportStatistics():null;
         const {browserMatrixRetiredReferences}=await import('/_matrix/retired-references.mjs');
         const retiredReferences=browserMatrixRetiredReferences({actors,state});
         const selection={},currentAuthority={};
@@ -256,9 +260,10 @@ try{
                         notBefore:configuration.server.notBefore,expiresAt:configuration.server.expiresAt},
                     serverCertificateHashes:[{algorithm:'sha-256',value:pin.slice()}]};
                 if(name==='participant-1')selectionEnrollment=enrollment;
-                const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:configuration.identityId,
+                const connect=()=>BrowserSdkClient.connect({tenantId:'tnt_default',identityId:configuration.identityId,
                     deviceId:configuration.device.id,endpoints:spec.endpoints,preferredTransport:selected,allowFallback:false,
                     timeoutMs:8000,attemptTimeoutMs:3000,nativeVideoFeedback:true,media:spec.rtcConfiguration,resolveEnrollment:async()=>enrollment});
+                const client=await (webTransportStatistics?webTransportStatistics.capture(name,connect):connect());
                 actors[name]={identityId:configuration.identityId,deviceId:configuration.device.id,endpointId:configuration.endpointId,client};
             }
             if(spec.stage!=='admission')keepalive=browserMatrixKeepalive(actors);
@@ -268,7 +273,7 @@ try{
                 const {browserMatrixObservation}=await import('/_matrix/observation.mjs');
                 const {BrowserMediaRenderer}=await import('/sdk/browser_media_renderer.js');
                 observer=browserMatrixObservation(BrowserMediaRenderer,plan,selected==='webtransport'?BrowserMediaPeer:null,
-                    selected==='wss-webrtc'?BrowserRtcConnection:null);
+                    selected==='wss-webrtc'?BrowserRtcConnection:null,{webTransportStatistics});
             }
             state=await browserMatrixAdmission({actors,plan,state,selectedTransport:selected,journal:event=>journal(event),
                 startMedia:input=>sources.start(input),
@@ -394,10 +399,11 @@ try{
                 programme:programmeReport,...(programmeReport.decoded_media?{decoded_media:programmeReport.decoded_media}:{}),
                 keepalive:keepalive?.observation(),selection,current_authority:currentAuthority,
                 idle_resources:failedIdle,original_cleanup_errors:cleanupErrors,original_client_closes:closes.map(value=>value.status)};
-        } finally {
+        } finally {try{
             const closed=await closeBrowserMatrixProgramme({keepalive,observer,sources,report:programmeReport,previousFailure:failureHandled});
             cleanupMoves?.release();
-            await finishBrowserMatrixRetirement({hooks:retirementHooks,closed,reported:diagnosticHooksReported,previousFailure:failureHandled});}
+            await finishBrowserMatrixRetirement({hooks:retirementHooks,closed,reported:diagnosticHooksReported,previousFailure:failureHandled});
+        }finally{await webTransportStatistics?.close();}}
         })();
         value.original_cycle_budget={started_ms:cycleStarted,deadline_ms:cycleDeadline,finished_ms:performance.now(),budget_ms:210000};
         value.passed&&=value.original_cycle_budget.finished_ms<cycleDeadline;

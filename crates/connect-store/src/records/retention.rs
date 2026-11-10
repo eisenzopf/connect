@@ -228,6 +228,7 @@ impl Store {
             .acquire(&scopes, &AuthorityWait::new(Duration::from_secs(2)))?;
         let _held = self.record_reservation(&uuid, AuthorityMode::Write)?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &_source)?;
         let tx = c.transaction().map_err(|_| Error::storage())?;
         let current = crate::authority_admission::conversation_scopes(
             &tx,

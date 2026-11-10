@@ -45,8 +45,9 @@ impl Policy {
 impl Connection {
     pub(crate) fn preparation(&self) -> ControlResult<Arc<AudioEndpointPreparation>> {
         self.preparation
-            .try_lock()
+            .snapshot()
             .map_err(denied)?
+            .as_ref()
             .clone()
             .ok_or(StreamControlError::NotReady)
     }

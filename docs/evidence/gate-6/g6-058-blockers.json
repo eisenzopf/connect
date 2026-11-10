@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-09",
-  "run_status": "Full v208 completed on 0e37d42e with 0 passed, 26 failed and 6 blocked cells; requirements310 passed,38 failed,84 blocked. All original owners closed with unchanged tested source. The six Mac remote browser cells were skipped by typed nested remote archive custody validation; historical verdicts stay unchanged. Initial integrated batch passes Rust27, Node70 and Python29 (126/126). Supplemental SDK readiness26, movement21, Store2+7 retained controls and signed lifecycle2 pass58/58. Both old-condition comparisons retain exact raw failures and final source/owners are restored/closed. Initial126/126 remains a separate overlapping component scope. B148 owned lifecycle attachment, B149 prepared version statements, B150 identical Ready replay across private same-route audio SSRC change and B151 completed movement retention are integrated. Data diagnostics are not a delivery fix. Actual media quality, first-outbound WT contention, original parent/observer deadlines and bounded retirement progress remain unresolved. No cell is qualified; G6-054 stays deferred and G6-098 sustained growth stays separate.",
+  "updated": "2026-11-10T00:56:51.977437+00:00",
+  "run_status": "Full v209 completed on 054cbe2f: all 32 cells ran; 0 passed, 32 failed and 0 blocked. All 432 requirements were evaluated: 390 passed and 42 failed. Failures overlap across 32 media, 8 resource and 2 replacement requirements. Original processes, leases and source guards closed naturally. The next reviewed batch is integrated for focused regression verification; no new matrix pass is claimed.",
   "blockers": [
     {
       "id": "B01",
@@ -1245,6 +1245,110 @@
       "change": "Retain the original completed movement receipt when a separate Session observer or later programme phase fails. Keep original parent/workload/cleanup failure and require current-authorized retirement evidence.",
       "evidence": "Isolated whole movement21/21 passes; old omission fails the same missing-receipt regression. Integrated movement21/21 passes within Node47. This corrects evidence retention without counting a child-ready receipt as a completed handoff or hiding an original timeout.",
       "next": "Real programme and media deadlines still apply. Preserve original failed v208 reports and distinguish completed movement evidence from successful programme/cleanup."
+    },
+    {
+      "id": "B152",
+      "title": "Fair admission for moved connection retirement",
+      "status": "INTEGRATED; causal and regression verification pending",
+      "change": "Use existing shared five-millisecond fair authority admission pattern, followed by immediate SQL acquisition, fresh scope validation and unchanged retirement transaction",
+      "evidence": "First ARM native EdDSA cycle1 physical4 end operation completed in T62 second; exact connection retirement journal is at least 1.237 seconds after T67 cutoff",
+      "next": "Continuous overlapping short readers: old immediate writer fails to progress; bounded fair writer completes under unchanged scopes; Long held reader: bounded refusal and no leaked partial guards; SQL contention after authority acquisition: immediate refusal, no authority held across SQL wait; Existing absence, historical, generation, current authorization and original cleanup regression tests"
+    },
+    {
+      "id": "B153",
+      "title": "Repeated full snapshots in final retirement observation",
+      "status": "INTEGRATED; focused regression verification pending",
+      "change": "Read one fresh authorized conversation snapshot per exact original SDK owner for final retained retirement observation; use the existing owned raw read without spawning a synchronous validator. Preserve separate end operations, generation and Session checks, original errors, owned joins and absolute T67 cutoff.",
+      "evidence": "First ARM native EdDSA cycle3 retained1 and retained5 retired in T62 second but original observer receipts missed T67. Both retained routes share participant2 SDK",
+      "next": "Full snapshot/current-end/movement and Node raw suites; fresh rounds, owner isolation, original-error precedence, late reads and unchanged cleanup."
+    },
+    {
+      "id": "B154",
+      "title": "Locate WebTransport audio gaps",
+      "status": "OPEN; bounded diagnostics integrated, causal media result pending",
+      "change": "Inspect closed server terminal audio counters and exact gap context; add bounded before/after packet and clock diagnostics if the archived evidence cannot locate loss",
+      "evidence": "First ARM Chrome WebTransport cell: all18 video routes pass; seven audio duration failures and three envelope validity failures. Measured A/V skew within limits. Three same-epoch60ms PCM steps; two same-Session callbacks2.5ms apart",
+      "next": "Source-clock and fallback-slot recovery with two rounds in one mixer tick; Original PCM retained under temporary authority contention without deadline renewal; Bounded gap and window-boundary diagnostics preserve existing quality verdicts and ownership checks"
+    },
+    {
+      "id": "B155",
+      "title": "Reuse the actual Mac peer build target",
+      "status": "READY; apply correct peer target at next shipping prebuild",
+      "change": "Align next shipping peer prebuild with actual matrix target directory and verify executable provenance before launch",
+      "evidence": "Shipping prebuild used root target/release; actual Mac matrix peer uses examples/rust-sdk-journey/target/release. Same features/profile and dependencies, separate target directory caused initial rebuild",
+      "next": "Integrate and verify the reviewed batch; retain actual failed matrix results."
+    },
+    {
+      "id": "B156",
+      "title": "Locate WebRTC zero audio and residual synchronization failures",
+      "status": "OPEN; bounded diagnostics integrated, causal media result pending",
+      "change": "Audit actual WebRTC video NACK/keyframe recovery and pacing; Audit renderer/audio-output configuration and identify bounded evidence distinguishing WebAudio FIFO loss from decoder loss",
+      "evidence": "ARMlocalChromeWSS EdDSA c750b9ee: audio coverage/gap budgets all18 pass; six routes contain one unidentified PCM frame, five with exactly480 zeros. Seven video routes/eight bins below requiredFPS; five bins correlate with actual freezeCount and17\u201323 dropped frames,641\u2013750ms. Three sync failures: one cadence calibration, two measuredp95 above120ms.",
+      "next": "Integrate and verify the reviewed batch; retain actual failed matrix results."
+    },
+    {
+      "id": "B157",
+      "title": "Request a keyframe when an established receiver changes publisher",
+      "status": "INTEGRATED; causal and regression verification pending",
+      "change": "After the first successful delivery from a different exact source on an established egress, request a fresh keyframe through existing bounded feedback admission and shared debounce. Preserve ordinary media delivery and all current-source checks.",
+      "evidence": "Replacement video preroll copies old publishers into the new receiver. New publication is muted until commit. Surviving receivers switch to the new publisher without a source-change keyframe request; target RTP sequence remains contiguous.",
+      "next": "Actual Core and loopback SRTCP: new-source delta with no incoming PLI/NACK triggers request to exact new source; Initial/unchanged source does not repeatedly request; Superseded, revoked or changed-generation source cannot receive old request; No-feedback transition survives until an eligible current route exists; Old implementation fails positive wire control; final implementation passes with original owners joined"
+    },
+    {
+      "id": "B158",
+      "title": "Unrepairable current-source video NACK has no fresh recovery hint",
+      "status": "INTEGRATED; causal and regression verification pending",
+      "change": "Request a current-source keyframe after original packet repair is unavailable; use existing feedback authorization and debounce, retaining no expired media.",
+      "evidence": "Source audit confirms missing recovery after expired, absent or exhausted original repair. Three sampled RTC freeze windows have NACK growth; exact historical causation remains unproved.",
+      "next": "Same final regression tests must fail under old behavior and pass under the fix; current cached repair, stale source, revocation and cancellation controls must pass."
+    },
+    {
+      "id": "B159",
+      "title": "Bounded QUIC diagnostics rejected by the local Linux namespace profile",
+      "status": "INTEGRATED; namespace13/13 verified",
+      "change": "Allow one exact datagram queue-summary directive through existing strict profiles, reject broad or duplicate tracing, and preserve non-media fixture logging defaults.",
+      "evidence": "Complete namespace unittest file passes13/13 including2 new command-boundary controls. No VM or media qualification inferred.",
+      "next": "Use the corrected profile in subsequent local ARM media verification."
+    },
+    {
+      "id": "B160",
+      "title": "Private replacement startup mute can be refused by unrelated registry contention",
+      "status": "OPEN; narrow held-invocation fix in source review",
+      "change": "Dispatch the exact held startup policy before unrelated metadata registries, preserving all current authorization, scope, generation, original deadline and single-effect checks.",
+      "evidence": "ARM WT ES256 cycle2 source0 return: original operation failed native-target-stopped; initial-mute NotReady follows metadata-mutex-busy and precedes attach. Exact historical busy caller is not recorded. A distinct source-level dispatch dependency is confirmed.",
+      "next": "Actual held-registry gate-dispatch causal regression plus foreign/current/expired controls; no whole-start replay."
+    },
+    {
+      "id": "B161",
+      "title": "Native replacement completion observation misses its original8-second fence",
+      "status": "OPEN; precise delay attribution unresolved",
+      "change": "Identify and remove the actual control delay without extending the original completion budget or replaying the operation.",
+      "evidence": "Mac native ES256 cycle3 source4 reached physical decoded readiness and durable completed/ready, but original8-second completion wait timed out. Capture209.8ms; activation1546.4ms with53 early-SQL derive refusals and4 authority-wait refusals. The1618ms Data-unmute guard ended89.8ms BEFORE capture; it did not overlap activation. Tested code already had5ms bounded initial SQL admission. Actual SQL holder is not identified.",
+      "next": "Trace exact primary SQL holder during failed activation; do not blame the non-overlapping Data-unmute interval or lengthen deadlines without evidence."
+    },
+    {
+      "id": "B162",
+      "title": "State-change authorization has not replaced per-delivery SQL/fence checks",
+      "status": "STORE65/65 and SERVICE15/15 PASS; transport qualification pending",
+      "change": "Publish immutable live authorization on state changes; delivery uses atomic revocation/generation and original expiry. Preserve cross-process writer/IO drain ordering and reject uncoordinated authorization writes.",
+      "evidence": "Latest Store65/65 includes all writer-boundary, snapshot/lifetime, same-generation role stamp, cross-process invalidation/drain and original replacement controls. All five prior failures fixed: coordinated test setup, exact offline backup corruption and required installation projection before Completed. Three nonparking controls and effect-free planning regression pass. Service immutable publication, lifetime race, generation reconciliation and original worker custody all pass (15/15).",
+      "next": "Verify actual signed transports and complete local Mac/ARM Linux matrix."
+    },
+    {
+      "id": "B163",
+      "title": "Quarantined transport and codec preparation retains domain authority",
+      "status": "SIGNED NATIVE15/15 PASS; Core6 passed; actual RTC verification pending",
+      "change": "Prepare bounded transport/codecs independently of live conversation authorization; consume exact prepared candidate at a fresh authorized activation boundary, initially muted.",
+      "evidence": "Original two reader-release failures now pass unchanged in full15 signed answer suite on source-lock384. Four actual native startup/flow and two prepared-publication controls also pass. Resource-only scope refusals and original ordinary reply custody preserved.",
+      "next": "Verify actual signed RTC preparation under domain writer, denial/cancellation cleanup, and complete Service integration before matrix qualification."
+    },
+    {
+      "id": "B164",
+      "title": "Read-side media mutex contention",
+      "status": "UPSTREAM and SERVICE READ-SIDE CHECKS PASS; transport qualification pending",
+      "change": "Publish routing and connection metadata immutably; retain synchronization on state-change writers and one-time ownership transitions. Remove steady-path SQL/file/mutex admission and retries where replaced.",
+      "evidence": "Source-lock384 upstream108/108: Core52, RTC20, stack8, native28. Held-publication controls verify current/owner metadata reads do not wait for preparation writer. Replacement begin now returns immutable original provenance in the same transaction; RTC releases completed activation aliases before metadata retry. Store exact-origin no-hidden-authority test passes. Service15/15 pass, including publication readers progressing under held writer and changed-generation-only role reconciliation. Store primary-mutex and SQLite-writer exclusion controls pass without parking original capture.",
+      "next": "Actual signed and full matrix verification. Retain serialized state changes, original signed reply custody, codec/mixer state and IO drain fences; no whole-path lock-free claim."
     }
   ],
   "workplan_tasks": [
@@ -1929,6 +2033,149 @@
       "status": "INTEGRATED; LOGICAL MOVEMENT21/21 VERIFIED. Real media unverified.",
       "completion": "Real programme and media deadlines still apply. Preserve original failed v208 reports and distinguish completed movement evidence from successful programme/cleanup.",
       "completion_status": "verified-component-only"
+    },
+    {
+      "id": "S39",
+      "title": "Fair admission for moved connection retirement",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Use existing shared five-millisecond fair authority admission pattern, followed by immediate SQL acquisition, fresh scope validation and unchanged retirement transaction",
+      "status": "INTEGRATED; causal and regression verification pending",
+      "completion": "Continuous overlapping short readers: old immediate writer fails to progress; bounded fair writer completes under unchanged scopes; Long held reader: bounded refusal and no leaked partial guards; SQL contention after authority acquisition: immediate refusal, no authority held across SQL wait; Existing absence, historical, generation, current authorization and original cleanup regression tests",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S40",
+      "title": "Repeated full snapshots in final retirement observation",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Read one fresh authorized conversation snapshot per exact original SDK owner for final retained retirement observation; use the existing owned raw read without spawning a synchronous validator. Preserve separate end operations, generation and Session checks, original errors, owned joins and absolute T67 cutoff.",
+      "status": "INTEGRATED; focused regression verification pending",
+      "completion": "Full snapshot/current-end/movement and Node raw suites; fresh rounds, owner isolation, original-error precedence, late reads and unchanged cleanup.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S41",
+      "title": "Locate WebTransport audio gaps",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Inspect closed server terminal audio counters and exact gap context; add bounded before/after packet and clock diagnostics if the archived evidence cannot locate loss",
+      "status": "OPEN; bounded diagnostics integrated, causal media result pending",
+      "completion": "Source-clock and fallback-slot recovery with two rounds in one mixer tick; Original PCM retained under temporary authority contention without deadline renewal; Bounded gap and window-boundary diagnostics preserve existing quality verdicts and ownership checks",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S42",
+      "title": "Reuse the actual Mac peer build target",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Align next shipping peer prebuild with actual matrix target directory and verify executable provenance before launch",
+      "status": "READY; apply correct peer target at next shipping prebuild",
+      "completion": "Integrate and verify the reviewed batch; retain actual failed matrix results.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S43",
+      "title": "Locate WebRTC zero audio and residual synchronization failures",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Audit actual WebRTC video NACK/keyframe recovery and pacing; Audit renderer/audio-output configuration and identify bounded evidence distinguishing WebAudio FIFO loss from decoder loss",
+      "status": "OPEN; bounded diagnostics integrated, causal media result pending",
+      "completion": "Integrate and verify the reviewed batch; retain actual failed matrix results.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S44",
+      "title": "Request a keyframe when an established receiver changes publisher",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "After the first successful delivery from a different exact source on an established egress, request a fresh keyframe through existing bounded feedback admission and shared debounce. Preserve ordinary media delivery and all current-source checks.",
+      "status": "INTEGRATED; causal and regression verification pending",
+      "completion": "Actual Core and loopback SRTCP: new-source delta with no incoming PLI/NACK triggers request to exact new source; Initial/unchanged source does not repeatedly request; Superseded, revoked or changed-generation source cannot receive old request; No-feedback transition survives until an eligible current route exists; Old implementation fails positive wire control; final implementation passes with original owners joined",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S45",
+      "title": "Unrepairable current-source video NACK has no fresh recovery hint",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Request a current-source keyframe after original packet repair is unavailable; use existing feedback authorization and debounce, retaining no expired media.",
+      "status": "INTEGRATED; causal and regression verification pending",
+      "completion": "Same final regression tests must fail under old behavior and pass under the fix; current cached repair, stale source, revocation and cancellation controls must pass.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S46",
+      "title": "Bounded QUIC diagnostics rejected by the local Linux namespace profile",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Allow one exact datagram queue-summary directive through existing strict profiles, reject broad or duplicate tracing, and preserve non-media fixture logging defaults.",
+      "status": "INTEGRATED; namespace13/13 verified",
+      "completion": "Use the corrected profile in subsequent local ARM media verification.",
+      "completion_status": "component-verified"
+    },
+    {
+      "id": "S47",
+      "title": "Private replacement startup mute can be refused by unrelated registry contention",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Dispatch the exact held startup policy before unrelated metadata registries, preserving all current authorization, scope, generation, original deadline and single-effect checks.",
+      "status": "OPEN; narrow held-invocation fix in source review",
+      "completion": "Actual held-registry gate-dispatch causal regression plus foreign/current/expired controls; no whole-start replay.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S48",
+      "title": "Native replacement completion observation misses its original8-second fence",
+      "owner": "Root and local implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Identify and remove the actual control delay without extending the original completion budget or replaying the operation.",
+      "status": "OPEN; precise delay attribution unresolved",
+      "completion": "SQL-before-derive53 refusals and file-admission4 refusals observed; Data unmute ended89.8ms before capture and did not overlap. Actual SQL holder remains unknown.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S49",
+      "title": "State-change authorization has not replaced per-delivery SQL/fence checks",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Publish immutable live authorization on state changes; delivery uses atomic revocation/generation and original expiry. Preserve cross-process writer/IO drain ordering and reject uncoordinated authorization writes.",
+      "status": "BOUNDARY7 PASS; enabled caller fixes integrated for retest",
+      "completion": "Verify complete enabled Store and Service lifecycle; snapshot worker starts only after exact schema validation.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S50",
+      "title": "Quarantined transport and codec preparation retains domain authority",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Prepare bounded transport/codecs independently of live conversation authorization; consume exact prepared candidate at a fresh authorized activation boundary, initially muted.",
+      "status": "SIGNED NATIVE15/15 PASS; original reader-release defect fixed; actual RTC pending",
+      "completion": "Detach resource-only exchange proof throughout original handler/worker/broker ownership, reacquire original command authority once for activation, and verify cancellation/denial cleanup and old-media continuity.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S51",
+      "title": "Read-side media mutex contention",
+      "owner": "Root and parallel implementation/review agents",
+      "dependencies": [],
+      "code_paths": [],
+      "solution": "Publish routing and connection metadata immutably; retain synchronization on state-change writers and one-time ownership transitions. Remove steady-path SQL/file/mutex admission and retries where replaced.",
+      "status": "CORE packet14 and native-flow7 passed; activation/credential snapshot candidates reviewed",
+      "completion": "Verify metadata reads during control publication, actual positive lifecycle, stale-generation refusal, and control-side commit ordering.",
+      "completion_status": "verification-pending"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -4310,27 +4557,30 @@
     "post_verification_changes": "Progress documentation and its renderer only; library, upstream patch, lock and test bytes unchanged."
   },
   "latest_full_run": {
-    "evidence_key": "completed_v208_actual",
-    "label": "v208",
-    "status_url": "../../.local/gate-6/full-matrix-v208/status.html"
+    "evidence_key": "completed_v209_actual",
+    "label": "v209",
+    "status_url": "../../.local/gate-6/full-matrix-v209/status.html"
   },
   "current_focused_verification": {
-    "passed": 58,
-    "planned": 58,
-    "scope": "Supplemental final additions: integrated whole readiness26, movement21, Store2+7 retained controls and signed lifecycle2 all pass58/58. Initial frozen batch Rust27+Node70+Python29 passed126/126 separately. Whole retained suites overlap; do not sum these as a new distinct historical coverage total.",
-    "next": "Both old-condition controls fail at exact causal witnesses and final source is restored; all original verification groups naturally joined. Commit/push, exact normal378 ARM sync and default shipping, then freshly funded full32 remain pending. Real media is unverified."
+    "passed": 200,
+    "planned": null,
+    "scope": "Upstream108/108, Store65/65, Service15/15 and Quinn12/12 passed. Actual signed transport and full matrix qualification remain pending.",
+    "next": "Commit tested batch; verify actual signed RTC/native preparation and rerun complete local transport matrix."
   },
   "current_workplan_tasks": [
-    "S29",
-    "S30",
-    "S31",
-    "S32",
-    "S33",
-    "S34",
-    "S35",
-    "S36",
-    "S37",
-    "S38"
+    "S39",
+    "S40",
+    "S41",
+    "S42",
+    "S43",
+    "S44",
+    "S45",
+    "S46",
+    "S47",
+    "S48",
+    "S49",
+    "S50",
+    "S51"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -4346,8 +4596,8 @@
     "qualification_note": "The Store comparison checker expected five full captures for two credentials, but measured eleven. Its strict failed receipt is preserved. Source review accounts for six admission captures, four execution checks and one output capture; the fixed path passes with one. No test or historical verdict was rewritten. Restored checks do not inflate the 83 distinct focused passes."
   },
   "next_full_run_status": {
-    "url": "../../.local/gate-6/full-matrix-v208/status.html",
-    "label": "Closed v208 reports; further full media testing remains pending"
+    "url": "../../.local/gate-6/v209-next-batch-plan.html",
+    "label": "Current fix batch and unresolved media causes"
   },
   "completed_v208_actual": {
     "source_revision": "0e37d42e07bfe9f20ff9dc4d5d985db08d7c3005",
@@ -4528,5 +4778,1065 @@
       "sha256": "01dde8a70172808fb510dae72a66b0441a14c6fd0db5af192887256f9fad3407",
       "bounds": "All12 Core targets adopted in each of the two analyzed native cells; remaining original8s parent completion budgets and Session observer/retained-end read fences are separate from lifecycle attachment. Child-ready near cutoff is not a completed public handoff; exact queued/RPC split unproved."
     }
+  },
+  "completed_v209_actual": {
+    "source_revision": "054cbe2fc08bf388190d3a52b8508d276a156d7d",
+    "run_id": "g6-058-fa2702e8f4e742709e5e19ec3b431ff8",
+    "summary": {
+      "cells": {
+        "passed": 0,
+        "failed": 32,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 390,
+        "failed": 42,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "matrix_sha256": "082833659351c0b5f7b0d02ce1a30d3f39aa474f63628496fa862510f0599b33",
+    "closure_receipt_sha256": "b9bf9baf49d5d8bf1d7ba5bb302a77fcd310d5dd9a65befb6fd715e4d8429e6d",
+    "public_evidence": "docs/evidence/gate-6/transport-matrix-v209.json",
+    "public_evidence_sha256": "7b5a95218c073bcd9902e7d95413bec4aa7e3b62492a06adf46397dc79fe117a",
+    "source_release": "Original owners closed naturally; tested source unchanged on both hosts.",
+    "failure_family_cell_counts": {
+      "independently-decoded-duplex-media-and-profile-budgets": 32,
+      "owned-drain-and-resource-reclamation": 8,
+      "device-replacement-and-old-owner-retirement": 2
+    }
+  },
+  "v210_integrated_candidate_batch": {
+    "manifest": ".local/gate-6/v210-reviewed-batch-v5/manifest.json",
+    "files": 39,
+    "upstream_patches": 2,
+    "source_lock_patch_count": 380,
+    "status": "Integrated; old-condition comparisons then final affected checks pending",
+    "acceptance_changes": false,
+    "local_only": true
+  },
+  "v210_script_verification": {
+    "scope": "Affected Node coverage across original full15-file run and corrected full2-file run; not a fresh202-case rerun",
+    "original": {
+      "executed": 202,
+      "passed": 200,
+      "failed": 2,
+      "receipt": ".local/gate-6/v210-node-focused-final/natural-closure-and-actual-counts.json"
+    },
+    "corrected_affected_files": {
+      "executed": 40,
+      "passed": 40,
+      "failed": 0,
+      "receipt": ".local/gate-6/v210-node-two-file-final/receipt.json",
+      "receipt_sha256": "f85af5a47db73c0923791454c280243624266e970f0a1ebcf7b1af15955538b8"
+    },
+    "unchanged_other_cases": 162,
+    "all202_cases_have_passing_affected_source_evidence": true,
+    "changed_javascript_typescript_sources": [
+      "scripts/tests/browser_matrix_observation.test.mjs",
+      "sdk/tests/node_raw.test.mjs"
+    ],
+    "python_namespace": {
+      "passed": 13,
+      "failed": 0,
+      "log_sha256": "2f7b850c977121d8774a5cdcc47ed550746f0edb17a5b087b7ace1ccd82a6307"
+    },
+    "matrix_qualified": false
+  },
+  "v210_old_condition_controls": {
+    "expected_failures": 3,
+    "all_original_groups_joined": true,
+    "source_unchanged": true,
+    "receipt": ".local/gate-6/v210-batch-verification/old-controls-completed.json",
+    "sha256": "19392bce53759a12bb55f48dcadb67f140de2866f8e4157c840786906fce9354"
+  },
+  "v211_snapshot_component_evidence": {
+    "passed": 11,
+    "failed": 0,
+    "receipt": ".local/gate-6/v210-batch-verification/v211-snapshot-focused-result.json",
+    "matrix_qualified": false
+  },
+  "v211_core_component_evidence": {
+    "passed": 38,
+    "failed": 0,
+    "receipt": ".local/gate-6/v210-batch-verification/v211-core-focused-result.json",
+    "matrix_qualified": false
+  },
+  "v211_native_resource_exchange": {
+    "passed": 11,
+    "failed": 2,
+    "total": 13,
+    "log": ".local/gate-6/v210-batch-verification/v211-native-resource-exchange-tests.log",
+    "matrix_qualified": false,
+    "root_cause": "auth_peer step_up retains an outer final-reply AuthorityLease alias that resource conversion does not release; normal and replacement resource-release controls both expose it."
+  },
+  "v211_native_flow_component_evidence": {
+    "passed": 7,
+    "failed": 0,
+    "log": ".local/gate-6/v210-batch-verification/v211-native-flow-quality-tests.log",
+    "scope": "Combined native RTP readiness/counters; no full matrix qualification"
+  },
+  "v211_writer_boundary_component_evidence": {
+    "boundary_tests_passed": 7,
+    "enabled_followthrough": [
+      {
+        "selector": "records::writer_boundary::",
+        "exit_code": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-enabled-0.log",
+        "passed": 1,
+        "failed": 0,
+        "sha256": "440c744f00935fb318c6ce6e97b62c6e8e513c70d0e99698ce86407e70a74663"
+      },
+      {
+        "selector": "media_authorization::tests::",
+        "exit_code": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-enabled-1.log",
+        "passed": 7,
+        "failed": 0,
+        "sha256": "c01ed61136efd28cfa827d7abec7e6aaf11c8f3d515b54809de07aca1b000a69"
+      },
+      {
+        "selector": "connection_control::tests::replacement_sources::commit::snapshot_binding::",
+        "exit_code": 101,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-enabled-2.log",
+        "passed": 0,
+        "failed": 3,
+        "sha256": "8a5d98874ef69dd181ee435d3946ac7e09dafcea4c09fcaea32f12ddb53a2b5c"
+      },
+      {
+        "selector": "connection_control::tests::credential_refresh_writer::",
+        "exit_code": 101,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-enabled-3.log",
+        "passed": 0,
+        "failed": 1,
+        "sha256": "8a096a0fe6235ddd0eda5a2e5839ff4ea65f07fef25b6d5d934b2c7e1bdb02b5"
+      },
+      {
+        "selector": "connection_control::tests::native_operation_writer::",
+        "exit_code": 101,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-enabled-4.log",
+        "passed": 1,
+        "failed": 1,
+        "sha256": "f21e2d6e2015c14f6d68e711dcb4da35b7d5a0a463400fc72eaa31e903aaddb9"
+      },
+      {
+        "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::",
+        "exit_code": 101,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-enabled-5.log",
+        "passed": 0,
+        "failed": 3,
+        "sha256": "926c4fd7b509e00420f5c4138a94679fddf794b4543a4cd9b65f45533b9c6497"
+      }
+    ],
+    "scope": "Schema118 exact writer enforcement and enabled Store followthrough; remaining failures under repair"
+  },
+  "v211_service_compile_attempt": {
+    "status": "errors-reported-compile-interrupted",
+    "tests_run": 0,
+    "log": ".local/gate-6/v210-batch-verification/v211-service-compile.log",
+    "reason": "QuarantinedInitialMedia is Send but not Sync; RTC shared whole preparation owner during retirement. Fixed with original lease/attempt/id retirement owner, releasing unactivated inflight plan before physical shutdown. No unsafe Sync or added mutex."
+  },
+  "v211_uctp_384_verified": {
+    "source_lock_sha256": "7b6d7cf3ad6ce66e2f86c37f7150a0b64f6c49a42b2c553580f69dfb21e6a156",
+    "passed": 28,
+    "failed": 0,
+    "groups": [
+      {
+        "selector": "v2::native_negotiation::activation::publication_tests::",
+        "exit_code": 0,
+        "passed": 2,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-uctp-384-tests-0.log",
+        "sha256": "8bb6618d37422c558e98c2219b7165dc4d6b73172f9a96a55023ef8ff48f1dbd"
+      },
+      {
+        "selector": "offer_answers::",
+        "exit_code": 0,
+        "passed": 15,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-uctp-384-tests-1.log",
+        "sha256": "8417755715a888d4a87ca67a3090fa233c4a4a172587da12cfbbc0557b2a6087"
+      },
+      {
+        "selector": "peer_native::canonical_media::native_offers::bootstrap::",
+        "exit_code": 0,
+        "passed": 4,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-uctp-384-tests-2.log",
+        "sha256": "f75a5938f55dff91a8f00a4d3cbfc7677376ca2c84df81f047799542c7e8e464"
+      },
+      {
+        "selector": "peer_native::canonical_media::native_offers::quality::",
+        "exit_code": 0,
+        "passed": 7,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-uctp-384-tests-3.log",
+        "sha256": "499d978ef7bb12acb2c983cd7b16fb0fa702d9992ba1ae5d7bc3d44d288adbe4"
+      }
+    ],
+    "scope": "Mac ARM local synthetic signed QUIC/WT and publication controls; no full matrix qualification"
+  },
+  "v211_store_followthrough_attempt": {
+    "passed": 19,
+    "failed": 7,
+    "groups": [
+      {
+        "selector": "authority_writer_boundary::tests::",
+        "exit_code": 101,
+        "passed": 7,
+        "failed": 1,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-followthrough-0.log",
+        "sha256": "16391fa4403c4a9ae62bdf1694b98898aefca54d613d6dd9066eace5c50d62ae"
+      },
+      {
+        "selector": "records::writer_boundary::",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-followthrough-1.log",
+        "sha256": "57b869bb00b03692c9151d2ba22dbec2d00575546bf756781a43582ee65500d8"
+      },
+      {
+        "selector": "media_authorization::tests::",
+        "exit_code": 0,
+        "passed": 7,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-followthrough-2.log",
+        "sha256": "fc4ae0a5e91431b5f66df770ac67f3ad7476e4ed54554d9c3bdad0577138a421"
+      },
+      {
+        "selector": "connection_control::tests::replacement_sources::commit::snapshot_binding::",
+        "exit_code": 101,
+        "passed": 0,
+        "failed": 3,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-followthrough-3.log",
+        "sha256": "dd86a6ed3c4ac3455618977193d7c5f218def9ec1938636b3dfb2ccec43b6ae7"
+      },
+      {
+        "selector": "connection_control::tests::credential_refresh_writer::",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-followthrough-4.log",
+        "sha256": "132f3257fe81c15aeee24fc30d63580a25a01239e560c3f9889d5da990a383b6"
+      },
+      {
+        "selector": "connection_control::tests::native_operation_writer::",
+        "exit_code": 0,
+        "passed": 2,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-followthrough-5.log",
+        "sha256": "261248b4ab005f1b6a377150a21a65e9458ea256708cb41a1072c6b04da4fad2"
+      },
+      {
+        "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::",
+        "exit_code": 101,
+        "passed": 0,
+        "failed": 3,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-followthrough-6.log",
+        "sha256": "cefdd43fb953d95d8af881855f57840852f2cbf4e174bbf69f56f3331861cb18"
+      },
+      {
+        "selector": "authority_fences::tests::cross_process_writer_invalidates_live_snapshot_and_waits_for_original_io",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-store-followthrough-7.log",
+        "sha256": "0781281e5e5b957a91d996d0f054af568964dfc9e63171d44fe420fe9f63b74b"
+      }
+    ],
+    "next": "Begin replacement writer and observation fixture fixes integrated; adjacent recorder chain and lifetime polling followthrough in progress."
+  },
+  "v211_lock_removal_scope": {
+    "implemented": [
+      "Service routing/connection metadata atomic snapshots",
+      "Core queued packet immutable epoch and atomic active-IO metadata",
+      "Native RTP readiness/counters combined into one state lock",
+      "Native/RTC prepared observation atomic reads",
+      "Core credential principal/revision atomic reads",
+      "RTC once-only physical owner and atomic allocation observation"
+    ],
+    "in_progress": [
+      "Replace production background lifetime SQL polling with existing state-change Registry handles",
+      "Complete exact writer admission/binding across replacement mutation chain"
+    ],
+    "retained": [
+      "State-change writer serialization and SQL connection ownership",
+      "Core IO/drain fences, codec/mixer and bounded queue ownership",
+      "RTC Backend port DashMap shard synchronization"
+    ],
+    "not_claimed": "Whole media path lock-free, full32 qualification, or proof all historical stalls share one cause."
+  },
+  "v211_core_rtc_384_verified": {
+    "passed": 80,
+    "failed": 0,
+    "core": 52,
+    "webrtc": 20,
+    "stack": 8,
+    "source_lock_sha256": "7b6d7cf3ad6ce66e2f86c37f7150a0b64f6c49a42b2c553580f69dfb21e6a156",
+    "groups": [
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::guarded_audio::observations::pcm_tests::terminal_pcm_summaries_emit_explicit_zeros_and_keep_source_target_counts_separate",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-0.log",
+        "sha256": "2d1a40be0c030e25538397857d2b84a7015e0f40d24a84aefb678523012ea775"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::guarded_audio::observations::pcm_tests::zero_run_counters_use_mix_rate_and_do_not_cross_quantum_boundaries_or_modify_pcm",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-1.log",
+        "sha256": "11ebe3217a81977d91c49f10b4ad7d4752415637f9ecf0529be478b070b88074"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::authenticated_membership_view_preserves_lifecycle_and_rejects_new_owner_or_inactive_member",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-2.log",
+        "sha256": "b41f295f2bd6cf007d1af7133e220d5e2a29da1c816c52c2892f43090870057b"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_expiry_during_target_policy_callback_never_polls_local_send",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-3.log",
+        "sha256": "c88e2c0f322ded7d540782ac70c230b4423239d8074ababe2287bdf30fb70cbd"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_rebind_cancel_deadline_and_future_drop_restore_original_delivery",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-4.log",
+        "sha256": "ad0811a23243e5045b928478ad9b3ff6fa05c8e2f418dd4b328d94afec0b3e1c"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_rebind_does_not_lend_new_expiry_to_pending_old_control",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-5.log",
+        "sha256": "8336bc92b6381192bc18a63275ecdee26db2e711d8596cc0c9917aa0f808681d"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_rebind_drains_retired_port_send_without_reactivating_or_refunding_it",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-6.log",
+        "sha256": "d9c36979562da47e012642e0fd603fda06195befa642b600eeca6497a405cf01"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_rebind_final_current_facts_and_callback_cancellation_precede_commit",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-7.log",
+        "sha256": "0f97e27723559665aa466250ef64529b4fd4e65e29e68bb6c9f831341d287f1d"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_rebind_held_writer_progress_preserves_ids_history_and_decoded_audio_after_old_expiry",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-8.log",
+        "sha256": "7bdbaa20936cb633f42ecc83762071440cce654e4bcfc9104c23798932d61887"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_rebind_preserves_pause_end_and_cleanup_without_refunding_opens",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-9.log",
+        "sha256": "f1c8466abccaafb6fc08cb70a4b13f1a64c6e9e1f97870284139b944f9c40f00"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_rebind_task_expiry_bounds_drain_without_changing_original_credential",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-10.log",
+        "sha256": "38d32356a5ec2865ac2f094a808c9b5c54542afe8c0f713a192df78534c55918"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_rebind_terminal_route_or_shutdown_cannot_be_resurrected",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-11.log",
+        "sha256": "f2cb0c1e635f5d0adf1968a0f51d2776d1feba6f6d9d25bb27dddf3adea956e1"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_rebind_unknown_foreign_changed_proof_and_revisions_fail_without_effects",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-12.log",
+        "sha256": "d2783e7e3f60d3453aba4ae1a054d8d1b0212c29dfae6da2203056e1fd087649"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_rebind_waits_for_actual_admitted_send_and_fences_older_queued_media",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-13.log",
+        "sha256": "97dcd20e3603b0c4d9fb95b5d6e1e4a7fa3c66c4278041a26ac11a1dbd6c416e"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::credential_send_uses_original_credential_or_task_expiry_during_local_send",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-14.log",
+        "sha256": "56e9aa17dfab7448c5adf08ac5c757df4f5b7c345ab0713edb9891243ebfd985"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::credential_rebind_tests::original_credential_snapshot_and_binding_read_do_not_wait_for_control_publication",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-15.log",
+        "sha256": "cce3372941abc7270e4e3d24f034a25e74d67b770a01b9149cac5b4e5771f68c"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::direct_subscriptions::feedback_epochs_follow_exact_video_selection_and_physical_generations_not_data_controls",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-16.log",
+        "sha256": "6139d2e17f5e1bfd22c277a16f0e130f1aa4788382fc7d54078de30b7ed9d2b5"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::direct_subscriptions::feedback_reacquires_both_current_authorities_without_retaining_or_retiming_media",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-17.log",
+        "sha256": "bfb2f8c791198b6a0ddd8490d42f83cdd583b4761fb0c0e17e3e07f916376bfe"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::direct_subscriptions::fresh_rtc_feedback_destroys_pending_io_before_current_guards_on_cutoff_or_cancel",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-18.log",
+        "sha256": "f4c295a993081915c7db0e4ef8b7ee3ae6d2dd05b6f44389ba148dbd6c4e2097"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::direct_subscriptions::fresh_rtc_feedback_does_not_spend_or_renew_original_video_repairs",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-19.log",
+        "sha256": "18e62cb7016cdbe905d0b5ef39b4b040b65689357dc85de89259d1370d9e1e8b"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::direct_subscriptions::fresh_rtc_feedback_keeps_current_authority_selection_and_physical_generation",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-20.log",
+        "sha256": "b168665264ce74b9b1332944ca3398d22322ba8be59ea76b1a695f370b7a35ca"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::direct_subscriptions::rtc_feedback_metadata_exclusion_does_not_discard_valid_primary_video",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-21.log",
+        "sha256": "ac01cda6a4c05f8d64bbfcc11aaaa704d1b7dbb054f09d04000d6316961717e4"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::guarded_mixer::packet_context::concurrent_fresh_child_cannot_hide_older_live_packet_custody_behind_a_queued_writer",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-22.log",
+        "sha256": "116694b93d1bf885b5d6c728552d0218ccc4b32ddeed18575d79464bd55b44e5"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::guarded_mixer::packet_context::guarded_mixer_and_egress_use_only_their_active_source_packet_context",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-23.log",
+        "sha256": "6718056d81e9955b2973ad76a0a8ce88d796c92766515ff85b1c3991bced4602"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::guarded_mixer::packet_context::guarded_packet_context_keeps_no_queued_reader_and_cannot_borrow_recipient_permission",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-24.log",
+        "sha256": "a8014668b21cdcc2d301b99fe232835adb4bd0189eaa43a40b232bb3a647ade6"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_checks_each_recipient_and_preserves_other_authorized_sends",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-25.log",
+        "sha256": "a3aed1decf8cf540c7e3f7adc0fb174ce121038c59248623b730aa547b0654e3"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_never_extends_original_age_for_later_recipients",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-26.log",
+        "sha256": "da948b108eba450fe7f862be3a87af262ad64257c70baf41239baffa28eeaee9"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_rejects_other_original_packets_before_any_io",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-27.log",
+        "sha256": "db33fb4f930aee35c9112af435913329e07a408bf776d8b33db5bf7642ce890e"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_returns_busy_metadata_but_consumes_a_submitted_transport_error",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-28.log",
+        "sha256": "c0814edb035a5175159ba05fe97d43c9dcd273f90e5cbf74644de1e8662952a7"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_reuses_only_live_original_source_and_releases_before_waiting_writer",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-29.log",
+        "sha256": "78824a5b0985b6187e5c34a90545ec921ad72cdae2848b96dd6324bb076e8af0"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::guarded_mixer::packet_context::same_original_packet_shares_only_active_custody_and_never_a_different_packet",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-30.log",
+        "sha256": "854a1ab96125b6a4526bf571505353be91ef7b96e8c1a814cdbd4d0ac3b58d5e"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::guarded_mixer::packet_context::same_packet_live_custody_preserves_current_recipient_and_original_age",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-31.log",
+        "sha256": "4584bcb3f7b5c0fbcb28d66925e2bc71d7368600574f58284ae911f27e25ff20"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::packet_epochs::queued_audio_recipient_epoch_is_not_renewed_after_revocation_and_restoration",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-32.log",
+        "sha256": "21f38933b027bf2f10082625d5b46599f727068ca85d9c16c3f1a7d07a19c9a4"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::packet_epochs::queued_audio_source_epoch_is_not_renewed_after_revocation_and_restoration",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-33.log",
+        "sha256": "d8aa7de874a969ccec44211e65e3b2f72ac3769f0d495d6c03bbf80704a97dd1"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::packet_epochs::queued_video_recipient_epoch_is_not_renewed_after_revocation_and_restoration",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-34.log",
+        "sha256": "11f66aa4515c7fc517ce5ef3a4009d766af16d3b36fea480ce206191a08a19eb"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::packet_epochs::queued_video_source_epoch_is_not_renewed_after_revocation_and_restoration",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-35.log",
+        "sha256": "66c4350c0590d034189b8777e06e02a76a5067e89f6b818d3d003dac1afde784"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::quarantined_initial::cancellation_during_original_adapter_wait_aborts_candidate_and_keeps_old_media",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-36.log",
+        "sha256": "27362f57b624ba3527627559f93d573bb4050f2155eb5792c28550ec08ea939f"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::quarantined_initial::completed_handler_cancellation_does_not_cancel_original_resource_owner",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-37.log",
+        "sha256": "c74f2bbcf411a31d2e04a1ae77bb4b8bffa7c048a77c4d946069064633ade3ac"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::quarantined_initial::fresh_foreign_owner_and_original_cutoff_cannot_promote_prepared_resources",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-38.log",
+        "sha256": "892711336b1ec02573912c38297bcb56e0b27a6180fb7c180b438b23ee2801f6"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::quarantined_initial::ordinary_resources_activate_once_unmuted_only_after_fresh_authority",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-39.log",
+        "sha256": "ee464900dce6e3ebc74c8d859423cbf542667c966b06b1002e76c5dfaa181863"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::quarantined_initial::resource_preparation_releases_planning_grant_before_io_and_activates_once_muted",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-40.log",
+        "sha256": "4a34ca1fe2b677bf3b2944145deb38c60d8603976c1e52494b3435df383ae695"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::quarantined_initial::revoke_during_quarantine_refuses_fresh_activation_without_repeating_io_or_old_retirement",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-41.log",
+        "sha256": "aa389dc344a181c30796811d6bf347233abde78ede023fcd49bfb25309463a7d"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::video_repair::cancelled_repair_future_destroys_io_before_releasing_current_policy",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-42.log",
+        "sha256": "abd97fc64e885003a35673892068a4004bc81e2edb0d9dc9dab3a88e87238eec"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::video_repair::concurrent_repair_requests_share_one_atomic_attempt_budget",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-43.log",
+        "sha256": "05cd0cd396b62c4f843aba3029a4ba1ac878df6650073b96fc6fb2e1a80edb2d"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::video_repair::expired_failed_and_unsupported_originals_never_issue_repair_authority",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-44.log",
+        "sha256": "f4e8f020353abe083d3766f8093dd02ef6bb9c09a8120c7d3a31468c8c3bdc7e"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::video_repair::original_video_pending_io_keeps_original_age",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-45.log",
+        "sha256": "9d2202574cdd7280dac9c462e050b1a781cda26f8a62750e8f68e017877d2159"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::video_repair::repair_obeys_new_shorter_source_and_recipient_grants_without_idle_readers",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-46.log",
+        "sha256": "38286869df77e1279934d5c07e81527b38cb69e95dca6e6ec6d0defdc65ccdb3"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::video_repair::repair_video_pending_io_keeps_original_age",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-47.log",
+        "sha256": "8d3d1ce4a761830939ca11d2f73e3aa481bf6902d13da14c5354f3c240544dbf"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::video_repair::retained_video_rechecks_current_source_target_audience_and_media_grants",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-48.log",
+        "sha256": "b4fdf694e2c3ca11db5253032af0a06914b01df923ee53a23e33f39462c57ad3"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::video_repair::source_and_target_pause_resume_invalidate_old_video_repair",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-49.log",
+        "sha256": "f4a3c3cf6d2f1c81bdfc4902a59013c3736392149df5ae9532666f9fab4f4206"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::video_repair::successful_video_and_screen_repair_preserve_exact_original_and_bound_attempts",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-50.log",
+        "sha256": "c6ef01fdeaafa55ebf94c4310795be5294ad33f54de3d06b9e5292c49df5ef2f"
+      },
+      {
+        "package": "rvoip_core",
+        "selector": "staged_streams::tests::video_repair::unsubscribe_and_reselection_cannot_restore_an_old_video_repair_ticket",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_core-384-51.log",
+        "sha256": "271c531148f1664187ea9fb2a95555bec65adc0959e45f4422a17250f1d19bd2"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "canonical::cleanup_tests::absent_route_rejoins_original_close_failure_without_retry_or_success",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-0.log",
+        "sha256": "7858eaf62fa9fa5c7a094f0134b51577c99868620b74393948d6a9d8eb621d1a"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "canonical::cleanup_tests::original_owner_and_readiness_metadata_do_not_wait_for_allocation_start_custody",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-1.log",
+        "sha256": "b03af9cf99711257ac42d87589ad57583b080fad13acfc79e5f6feaecd6b3b39"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "canonical::cleanup_tests::same_adapter_same_id_different_binding_cannot_close_current_route",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-2.log",
+        "sha256": "b4b9b3a8a41c2c0cbef6ea2dd5683f641043cef19be1309a10e16eedb56b5042"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "canonical::cleanup_tests::wrong_original_connection_refuses_without_cancelling_or_closing_owner",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-3.log",
+        "sha256": "3f8c8b86f69a11caed692d1cdb304ec42a21aeb07d5e30db04749b38c936b759"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "canonical::media::original_ingress_tests::actual_rtc_current_does_not_wait_for_preparation_publication_and_poison_refuses",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-4.log",
+        "sha256": "359d151d87b25a34506155e03f24a1c660857a13426e265a6fbb5656ac42a177"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "canonical::media::picture_repair_rate_tests::unrepaired_nack_and_pli_share_original_debounce_and_cancellation",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-5.log",
+        "sha256": "c4863ffec4ecab67545443b7ee092eedcd47319faf67e9fa5c668004e6d6711f"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::clock_tests::native_pending_and_retired_clock_provenance_are_distinct_after_translation",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-6.log",
+        "sha256": "f793bcf3b1171438223a2fe55205494044bdd4ec20f9a95da292d462bcb309a2"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::picture_tests::current_cached_nack_repair_does_not_request_a_keyframe",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-7.log",
+        "sha256": "d1858b1d6bb92bb6c9def7196ceaf6ab1984ecddcbcf6d7648831456fe68e319"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::picture_tests::expired_original_nack_requests_fresh_source_pli_without_replaying_media",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-8.log",
+        "sha256": "db243c25a292858cb904c5c1a8f8af36313be91c26013fd4e61e637171aa7053"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::picture_tests::nack_identity_cannot_select_foreign_or_previous_source_and_rechecks_authority",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-9.log",
+        "sha256": "52de3db4d632c8c3f44b5c16c449c24d57f73e2ebfef7265026bb386b559bda9"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::picture_tests::rtc_picture_hint_after_four_busy_admissions_uses_fresh_current_authority",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-10.log",
+        "sha256": "15e862c6da566d500410a8c9d85dc4d8afa4356cfee5df725438b8ab6b172fea"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::picture_tests::rtc_picture_hint_after_last_media_expiry_does_not_replay_the_old_packet",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-11.log",
+        "sha256": "50da34b735fbe8fa302887ce4532176aa5280fcb473d6fbd02f99d492f574152"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::picture_tests::rtc_picture_hint_earlier_grant_expiry_drops_pending_io_without_reentry",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-12.log",
+        "sha256": "402d9d55623e1b1529b015c3cf9bccfa7774dc9529920c947878b00dfff2d06c"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::picture_tests::rtc_picture_hint_refuses_revoked_wrong_route_and_current_generation_changes",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-13.log",
+        "sha256": "8f340012b8d366d72ee11cbf885f3534b41dafe2979aab68c2c38540677ef6a1"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::picture_tests::source_switch_delta_requests_one_fresh_keyframe_without_receiver_feedback",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-14.log",
+        "sha256": "83125d06bbed8a94a3663f85f79cd8b155d275da4e4c809440611aa6ee020cb6"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::picture_tests::source_switch_hint_refuses_superseded_revoked_and_closed_sources",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-15.log",
+        "sha256": "4e6a7dac8022f37cda5e0d4fbc9c1149408ab8735ed0fe34c6d1ed0021874e62"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::picture_tests::source_switch_waits_for_optional_feedback_and_preserves_ordinary_pli_metadata",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-16.log",
+        "sha256": "8fce6247ad7fff6ded33469a41e0ab1de12da7aa8f6ee7203455de525eefc1de"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::tests::mapping_preserves_fragment_ticks_loss_gaps_wrap_and_refuses_duplicates",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-17.log",
+        "sha256": "1265ab0afdee1c7806104480204ce3e09d96aca38240901490c8942844957fc4"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "media::core_video::tests::source_generation_or_ssrc_handoff_keeps_target_timeline_and_same_clock_offset",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-18.log",
+        "sha256": "a0e03243d760d7ab6733eb4fbceaa40efdd41571ef3703e1d919897cb768d11e"
+      },
+      {
+        "package": "rvoip_webrtc",
+        "selector": "peer::handler::repair_request_tests::unavailable_repair_notifications_are_bounded_deduplicated_and_foreign_ssrc_refused",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc-384-19.log",
+        "sha256": "08496d76a3d585326f38126164b01fd6cf660c102b1672dbe8b614de20fb160b"
+      },
+      {
+        "package": "rvoip_webrtc_stack",
+        "selector": "peer_connection::driver::outbound_rtx_tests::outbound_rtx_encrypted_clock_registry",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc_stack-384-0.log",
+        "sha256": "0a4d3184e6de9774e430b732ab460a0a1ac808508a53b02ea31fd9016b2ce73f"
+      },
+      {
+        "package": "rvoip_webrtc_stack",
+        "selector": "peer_connection::driver::outbound_rtx_tests::outbound_rtx_encrypted_declined_repair_uses_primary_fallback",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc_stack-384-1.log",
+        "sha256": "a77d6f2bd2d036e38af3ac982f2060ff7a0f7c3bdd1d561258ba9819135e8d08"
+      },
+      {
+        "package": "rvoip_webrtc_stack",
+        "selector": "peer_connection::driver::outbound_rtx_tests::outbound_rtx_encrypted_default_registry",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc_stack-384-2.log",
+        "sha256": "9b87cc3e006205b924a38a297f50ec44decda6d752a6120ad757592b856a3424"
+      },
+      {
+        "package": "rvoip_webrtc_stack",
+        "selector": "peer_connection::driver::outbound_rtx_tests::outbound_rtx_encrypted_non_rtx_fallback",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc_stack-384-3.log",
+        "sha256": "6deae9802273f5eed617957f4f98890111bd8e7b202640e55a4720ca90e36532"
+      },
+      {
+        "package": "rvoip_webrtc_stack",
+        "selector": "peer_connection::driver::owned_video::tests::ambiguous_sender_collision_never_guesses_and_expiry_releases_producers",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc_stack-384-4.log",
+        "sha256": "31c1dbec954120dcb8998d1594fca458bd784296af12c836d9451b0c92a35c1c"
+      },
+      {
+        "package": "rvoip_webrtc_stack",
+        "selector": "peer_connection::driver::owned_video::tests::four_refused_attempts_do_not_renew_original_expiry",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc_stack-384-5.log",
+        "sha256": "5059abcb5529e7d27f3dc5172ed3f553e838d704ae0fa1db28f0e138eea0290a"
+      },
+      {
+        "package": "rvoip_webrtc_stack",
+        "selector": "peer_connection::driver::owned_video::tests::packet_byte_bounds_evict_oldest_and_replace_without_accounting_leaks",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc_stack-384-6.log",
+        "sha256": "b8455c9cd2642b38cd9d73890f3da61d4e20ba8e068e8a885696d5ce9428d904"
+      },
+      {
+        "package": "rvoip_webrtc_stack",
+        "selector": "peer_connection::driver::owned_video::tests::retained_fact_checks_header_extensions_marker_ssrc_and_payload",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "log": ".local/gate-6/v210-batch-verification/v211-rvoip_webrtc_stack-384-7.log",
+        "sha256": "1b1b8979db99f41066a0fb21803e3882b0b02c6caeaa5edd102bec634dca6b49"
+      }
+    ],
+    "harness_correction": "Old plan used media::core_video::tests for the native clock test; actual inventory is clock_tests. Original52 completed Core cases were preserved; corrected runner continued remaining28, no skipped or duplicated cases."
+  },
+  "v211_store_writer_lifetime_attempt": {
+    "passed": 56,
+    "failed": 5,
+    "receipt": ".local/gate-6/v210-batch-verification/v211-store-final-results.json",
+    "sha256": "219ba9829381f3e2fba7a1ca5fa7b9dee915f9c179491c7665dbabd9b8cc3b13",
+    "scope": "Current Store snapshot/lifetime/role stamp, original replacement provenance, exact writer phases and capture controls; 61 selected, no ignored. Five failures being diagnosed; no full matrix launched.",
+    "failures": [
+      "authority_fences::tests::actual_child_process_revocation_waits_for_parent_delivery_guard_and_admin_open_preserves_runtime",
+      "connection_control::tests::replacement_sources::commit::replacement_audience_revisions_are_atomic_historical_and_keep_surviving_native_controls_current",
+      "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_refuses_wrong_absence_and_unexplained_local_fences_without_changes",
+      "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_write_drains_old_readers_then_rederives_and_commits_once",
+      "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_observes_current_authority_and_original_root"
+    ]
+  },
+  "v211_store_state_change_verified": {
+    "passed": 65,
+    "failed": 0,
+    "receipt": ".local/gate-6/v210-batch-verification/v211-store-followthrough-final-results.json",
+    "sha256": "d5ed06fa5acdd927bbc6d37ca3a7bb9a2c0d3065f54a1b8c9d8915bf2bea8bc3",
+    "scope": "All selected Store state-change, lifetime, exact writer, replacement once-only/projection, original provenance and primary/SQLite nonparking checks; zero skipped. Prior five failures corrected without changing acceptance."
+  },
+  "v211_service_state_change_verified": {
+    "passed": 15,
+    "failed": 0,
+    "receipt_sha256": "12debf237d2953f4648eb704a37c4a5458112ebd8cf32b19cb8816f8186c3f0f",
+    "evidence": "docs/evidence/gate-6/state-change-components-v211.json",
+    "scope": "Immutable map publication2, lifetime/selected-owner race2, native route2, role generation2 and owned control/cancellation/drain7; natural test completion."
+  },
+  "v211_quinn_verified": {
+    "passed": 12,
+    "failed": 0,
+    "receipt_sha256": "c496b7f5d1d9b8dcbf179d29d31b1bc02aaa8390b422d94965686a652e4cb1b2",
+    "scope": "Standalone locked/offline default features: datagram send/receive, bounded overflow/metadata and terminal drop/queue diagnostics.",
+    "evidence": "docs/evidence/gate-6/state-change-components-v211.json"
   }
 }

@@ -1,4 +1,5 @@
 //! Actual signed target negotiation, exact replacement resources and initial mute.
+use super::allocation::AllocatedReplacement;
 use super::media::{StartInvocation, TargetPolicy};
 use super::*;
 use crate::{canonical_native::Reply, canonical_runtime::Physical, StoreInvocationAuthority};
@@ -30,7 +31,12 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: &str,
     ) -> Result<Reply> {
-        let roles = self.role_projection.lock().await;
+        let roles = self.role_projection.try_lock().map_err(|_| {
+            Error::new(
+                "not-ready",
+                "Replacement scene coordinator is busy before original effect",
+            )
+        })?;
         let authority = a
             .authority::<StoreInvocationAuthority>()
             .ok_or_else(Error::forbidden)?;
@@ -84,6 +90,8 @@ impl Runtime {
                     "Replacement media start differs from its original intent",
                 ));
             }
+            // Exact historical replay performs no new Core scene mutation.
+            drop(roles);
             self.record_started_replacement_with_peer(&previous, a.clone())
                 .await?;
             let store = self.media.store.clone();
@@ -105,7 +113,9 @@ impl Runtime {
                 "Original native allocation capture is not yet recorded",
             ));
         }
-        let (read, entries) = retry_metadata(&self.stop, || async {
+        // Before begin, a temporary metadata refusal has no phase/Core effect.
+        // Do not retain the signed mutation writer through five-second retries.
+        let (read, entries) = {
             let store = self.media.store.clone();
             let a = a.clone();
             let receipt = allocated.receipt.clone();
@@ -115,12 +125,11 @@ impl Runtime {
             })
             .await?;
             // Capture exact metadata owners before the once-only start effect.
-            // A busy lookup drops this read and retries within the original
-            // metadata budget; negotiation and mute have not started yet.
+            // A busy lookup drops this read and refuses before any once-only
+            // begin; negotiation and mute have not started yet.
             let entries = self.media.replacement_preparation_entries(read.source())?;
-            Ok((read, entries))
-        })
-        .await?;
+            (read, entries)
+        };
         if crate::canonical_runtime::core_transport(&read.target().endpoint_transport)?
             != physical.binding.transport()
         {
@@ -151,7 +160,7 @@ impl Runtime {
             // as the lifetime of the original preparation.
             super::readiness::ReadyGate::new_native(&read, &plan, saved.deadline, mapped.as_ref())?;
         let challenge = gate.native_challenge(record)?;
-        let (attempt, read) = {
+        let (attempt, read, start_origin) = {
             let store = self.media.store.clone();
             let a = a.clone();
             let receipt = allocated.receipt.clone();
@@ -161,6 +170,8 @@ impl Runtime {
             })
             .await?
         };
+        let participant = read.target().connection.participant_id.clone();
+        let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();
         let read = Arc::new(read);
         let id = saved.handle.intent().replacement.clone();
         let scope = StagedRtpScope {
@@ -206,17 +217,26 @@ impl Runtime {
             policy.receive_diagnostics.install_io(native.media_counters(&id));
             let activation=native.native_media_activation(&id,&a).map_err(|_|Error::forbidden())?;
             policy.activation.set(Arc::new(super::media::Activation::Native(activation.clone()))).map_err(|_|Error::forbidden())?;
-            // The exact current Store read and peer invocation retain authority
-            // while this dormant target answers its signed offer. No role is
-            // changed by that network wait; the actual movement reacquires the
-            // coordinator and current scene before its single commit.
+            // Reserve the exact dormant ports under a short planning read,
+            // then discard every domain grant before polling adapter IO.
+            let candidate = controller.stage_initial_selected_with_held(
+                policy.plan.selected(), deadline, a.invocation_cancellation(), invocation.clone(),
+            ).await.map_err(|_| Error::forbidden())?;
+            drop(invocation);
             drop(roles);
-            tracing::debug!(target:"connect_service::canonical_replacement",stage="negotiate","Replacement resource start");
-            let outcome=native.negotiate_native_offer(&id,a.clone(),invocation.clone(),deadline,Some(challenge)).await.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement native negotiation refused");Error::forbidden()})?;
-            tracing::debug!(target:"connect_service::canonical_replacement",stage="mute","Replacement resource start");
-            native.mute_native_media_for_private_admission(&id,&a,invocation.clone(),deadline).await.map_err(|error| {
-                tracing::debug!(target:"connect_service::canonical_replacement", stage="initial-mute", ?error, "Replacement resource start refused");
-                Error::forbidden()
+            let a = Arc::try_unwrap(a).map_err(|_| Error::new("conflict", "Original replacement invocation is still shared"))?
+                .into_resource_preparation(participant,
+                    policy.plan.selected().iter().map(|s| s.requested.logical_id.as_str().to_owned()).collect(), deadline)
+                .map_err(|_| Error::forbidden())?;
+            let a = Arc::new(a);
+            tracing::debug!(target:"connect_service::canonical_replacement",stage="quarantined-negotiate","Replacement resource start");
+            let prepared = native.prepare_quarantined_native_offer(&id, a.clone(), candidate, Some(challenge))
+                .await.map_err(|error| { tracing::debug!(target:"connect_service::canonical_replacement",?error,"Replacement resource preparation refused"); Error::forbidden() })?;
+            let invocation = self.fresh_replacement_start_invocation(
+                &start_origin, &policy, &peer, &physical, &allocated, deadline,
+            ).await?;
+            let outcome = prepared.activate_muted(invocation.clone()).await.map_err(|error| {
+                tracing::debug!(target:"connect_service::canonical_replacement",?error,"Replacement initial activation refused"); Error::forbidden()
             })?;
             let current = invocation.read.current();
             let confirmed = activation.confirmed_generation();
@@ -236,7 +256,6 @@ impl Runtime {
             })?;
             Ok((controller,observation,resource_streams,lifecycle))
         }.await;
-        drop(invocation);
         let (controller, observation, resource_streams, lifecycle) = match result {
             Ok(value) => value,
             Err(error) => {
@@ -247,11 +266,7 @@ impl Runtime {
                     .map_err(|_| Error::storage())? = Some(uncertain.clone());
                 saved.handle.cancel();
                 let store = self.media.store.clone();
-                let a = a.clone();
-                store_call(move || {
-                    store.native_replacement_start_uncertain_with_peer(&uncertain, proof(&a)?)
-                })
-                .await?;
+                store_call(move || store.native_replacement_start_uncertain(&uncertain)).await?;
                 return Err(error);
             }
         };
@@ -269,9 +284,7 @@ impl Runtime {
             preparation: OnceLock::new(),
         });
         *allocated.started.lock().map_err(|_| Error::storage())? = Some(started.clone());
-        let record = self
-            .record_started_replacement_with_peer(&started, a.clone())
-            .await?;
+        let record = self.record_started_replacement(&started).await?;
         tracing::debug!(target:"connect_service::canonical_replacement",stage="origin","Replacement resource start");
         let origin = retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
@@ -284,16 +297,61 @@ impl Runtime {
             .origin
             .set(origin)
             .map_err(|_| Error::forbidden())?;
-        self.queue_replacement_media(
-            saved,
-            started,
-            a.peer_admission().ok_or_else(Error::forbidden)?.clone(),
-        );
+        self.queue_replacement_media(saved, started, peer);
         tracing::debug!(target:"connect_service::canonical_replacement",stage="complete","Replacement resource start");
         Ok(Reply {
             record,
             answered: true,
         })
+    }
+    pub(super) async fn fresh_replacement_start_invocation(
+        self: &Arc<Self>,
+        origin: &Arc<connect_store::NativeReplacementStartOrigin>,
+        policy: &Arc<TargetPolicy>,
+        peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
+        physical: &Arc<Physical>,
+        allocated: &Arc<AllocatedReplacement>,
+        deadline: tokio::time::Instant,
+    ) -> Result<Arc<StartInvocation>> {
+        let until = deadline.min(tokio::time::Instant::now() + Duration::from_secs(2));
+        let wait = connect_store::AuthorityWait::new(
+            until.saturating_duration_since(tokio::time::Instant::now()),
+        );
+        let _cancel_wait = wait.cancel_on_drop();
+        let root = policy.root.upgrade().ok_or_else(Error::forbidden)?;
+        let cancelled = root.handle.cancellation();
+        let (proof, read, entries) = super::webrtc::admission::read(until, &wait, async {
+            tokio::select! { _=self.stop.cancelled()=>{}, _=physical.lifetime.cancelled()=>{}, _=cancelled.cancelled()=>{} }
+        }, || async {
+            let store = self.media.store.clone(); let origin = origin.clone(); let wait = wait.clone();
+            let (proof, read) = store_call(move || {
+                let proof = store.resume_native_replacement_start_activation_authority(&origin, &wait)?;
+                let read = store.native_replacement_start_read_under(&origin, &proof)?;
+                Ok((Arc::new(proof), Arc::new(read)))
+            }).await?;
+            if allocated.physical.upgrade().is_none_or(|p| !Arc::ptr_eq(&p, physical)) ||
+                physical.lifetime.is_cancelled() {
+                return Err(Error::forbidden());
+            }
+            let entries = self.media.replacement_preparation_entries(read.source())?;
+            let (_, plan) = crate::canonical_media::offer_plan(read.target(),
+                &crate::canonical_native::base_profile()?, &policy.principal).map_err(|_| Error::forbidden())?;
+            if plan.selected() != policy.plan.selected() || plan.rejected() != policy.plan.rejected() {
+                return Err(Error::forbidden());
+            }
+            Ok((proof, read, entries))
+        }).await?;
+        Ok(Arc::new(StartInvocation {
+            policy: policy.clone(),
+            authority: super::media::StartAuthority::Resumed {
+                proof,
+                peer: peer.clone(),
+                cancel: physical.lifetime.child_token(),
+            },
+            read,
+            entries,
+            deadline,
+        }))
     }
     pub(super) async fn record_started_replacement_with_peer(
         &self,

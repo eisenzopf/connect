@@ -8,7 +8,7 @@ import {envelope} from '../typescript/dist/uctp_wire.js';
 // Signed control and codec-callback ownership model only; no browser media pass.
 const root=()=>({recordId:'record',operationId:'original-move',conversationId:'room',sessionId:'session',sourceConnectionId:'old',retainedConnectionId:'remote',targetConnectionId:'replacement_record',endpointId:'endpoint',deviceId:'device'});
 const input=()=>({conversationId:'room',sessionId:'session',connectionId:'replacement_record',operationId:'original-move',audio:'audio',video:'camera',receiveVideo:'incoming-camera',nativeVideoFeedback:true});
-async function fixture(run,{mode,generation=2}={}) {
+async function fixture(run,{mode,generation=2,callbacks={},outerSequenceOffset=0}={}) {
  const names=['AudioEncoder','AudioDecoder','AudioData','EncodedAudioChunk','VideoEncoder','VideoDecoder','VideoFrame','EncodedVideoChunk'];
  const originals=names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]);
  class Frame {constructor(value){Object.assign(this,value);this.sampleRate=48000;this.numberOfChannels=1;this.numberOfFrames=960;this.displayWidth=640;this.displayHeight=360;}close(){}}
@@ -52,10 +52,10 @@ async function fixture(run,{mode,generation=2}={}) {
   async send(type,payload,scope){sent.push({type,payload:structuredClone(payload),scope:{...scope}});},
   async operationStatus(){return {operation_id:'server-reconcile',state:'completed'};},
  };
- const peer=new BrowserMediaPeer(client);
+ const peer=new BrowserMediaPeer(client,callbacks);
  const decoded=()=>{
   const epoch='a'.repeat(32);for(const fn of events)fn(envelope('stream.epoch',{profile:'rtcp-pli-epoch/1',strm_id:'incoming-camera',stream_local_id:3,original_operation:'original-move',original_offer:'media-request',incarnation:'b'.repeat(32),stream_generation:1,connection_generation:generation,revision:1,direction:'receiver',epoch,ssrc:8,first_sequence:1,first_timestamp:3000},{cid:'room',sid:'session',connid:'replacement_record'}));
-  const packet=(audio,seq)=>{const offset=audio?8:24,payload=audio?[1]:[0x10,0,1,2],wire=new Uint8Array(offset+12+payload.length),v=new DataView(wire.buffer);wire[0]=1;wire[1]=audio?0:1;v.setUint16(2,audio?1:3);v.setUint32(4,seq);if(!audio)wire.set(Buffer.from(epoch,'hex'),8);wire[offset]=0x80;wire[offset+1]=(audio?111:96)|128;v.setUint16(offset+2,seq);v.setUint32(offset+4,audio?seq*960:3000);v.setUint32(offset+8,audio?7:8);wire.set(payload,offset+12);return wire;};
+  const packet=(audio,seq)=>{const offset=audio?8:24,payload=audio?[1]:[0x10,0,1,2],wire=new Uint8Array(offset+12+payload.length),v=new DataView(wire.buffer);wire[0]=1;wire[1]=audio?0:1;v.setUint16(2,audio?1:3);v.setUint32(4,seq+outerSequenceOffset);if(!audio)wire.set(Buffer.from(epoch,'hex'),8);wire[offset]=0x80;wire[offset+1]=(audio?111:96)|128;v.setUint16(offset+2,seq);v.setUint32(offset+4,audio?seq*960:3000);v.setUint32(offset+8,audio?7:8);wire.set(payload,offset+12);return wire;};
   for(let i=1;i<=3;i++)reader.enqueue(packet(true,i));reader.enqueue(packet(false,1));
  };
  try {await run({peer,client,sent,decoded,failPhysical(){reader.error(new ConnectError('transport','Original datagram transport failed'));},reconcile(){const payload=structuredClone(parameters);payload.substrate_setup.revision=7;payload.substrate_setup.offer_id='server-request';delete payload.replacement_preparation;for(const fn of events)fn(envelope('connection.offer',payload,{cid:'room',sid:'session',connid:'replacement_record',operation_id:'server-reconcile'}));}});}
@@ -114,3 +114,19 @@ test('native queued reconciliation cannot retire an unresolved original ready ow
  await new Promise(resolve=>setTimeout(resolve,5));
  assert.equal(peer.replacementMayHaveCommitted(connection.id),true);assert.equal(peer.diagnostics.activeBindings,3);assert.equal(client.closed,false);
 },{mode:'uncertain'}));
+
+
+test('native decoded audio provenance keeps original RTP sequence distinct from outer datagram sequence',async()=>{
+ const audio=[],video=[];
+ await fixture(async({peer,decoded})=>{
+  const begun=peer.beginReplacementConnection(input(),root(),{timeoutMs:500});
+  await begun.prepared;decoded();await begun.completed;
+  assert.deepEqual(audio.map(row=>row.rtpSequence),[1,2,3]);
+  assert.deepEqual(audio.map(row=>row.datagramSequences),[[91],[92],[93]]);
+  assert.deepEqual(audio.map(row=>row.rtpTimestamp),[960,1920,2880]);
+  assert.ok(audio.every(row=>Object.isFrozen(row)&&Object.isFrozen(row.datagramSequences)));
+  assert.ok(video.length>0);assert.ok(video.every(row=>row.rtpSequence===undefined),
+   'An assembled video frame must not invent one audio packet sequence');
+ },{outerSequenceOffset:90,callbacks:{audio(_binding,_frame,observation){audio.push(observation);},
+  video(_binding,_frame,observation){video.push(observation);}}});
+});

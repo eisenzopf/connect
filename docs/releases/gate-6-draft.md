@@ -1,7 +1,7 @@
 # Gate 6 breaking-change draft
 
 This is an unpublished pre-alpha handoff draft, not a release announcement.
-The current candidate uses `connect/2`, schema **117**, and the frozen package
+The current candidate uses `connect/2`, schema **118**, and the frozen package
 names/version recorded in the [SDK candidate evidence](../evidence/gate-6/sdk-candidates-verified.json).
 The generic CLI result wrapper is `connect-control/1`; native signing and trusted
 provisioning retain their separately declared `connect/2` profiles.

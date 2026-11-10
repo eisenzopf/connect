@@ -1,0 +1,318 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs
+@@ -369,24 +369,7 @@
+ 
+ #[tokio::test]
+ async fn concurrent_fresh_child_cannot_hide_older_live_packet_custody_behind_a_queued_writer() {
+-    let armed = Arc::new(AtomicBool::new(false));
+-    let (release_tx, release_rx) = std::sync::mpsc::channel();
+-    let (released_tx, released_rx) = std::sync::mpsc::channel();
+-    let released = std::sync::Mutex::new(released_rx);
+-    let hook: Arc<dyn Fn() + Send + Sync> = Arc::new({
+-        let armed = armed.clone();
+-        move || {
+-            if armed.swap(false, Ordering::AcqRel) {
+-                release_tx.send(()).unwrap();
+-                released
+-                    .lock()
+-                    .unwrap()
+-                    .recv_timeout(Duration::from_secs(1))
+-                    .unwrap();
+-            }
+-        }
+-    });
+-    let (s, fence, _) = weak_scene_with_hook(Some(hook)).await;
++    let (s, fence, _) = weak_scene().await;
+     let mut bob = s.port(1).take_egress().unwrap();
+     let mut carol = s.port(2).take_egress().unwrap();
+     let mut dave = s.port(3).take_egress().unwrap();
+@@ -401,25 +384,30 @@
+         .as_mut()
+         .poll(&mut std::task::Context::from_waker(std::task::Waker::noop()))
+         .is_pending());
+-    // Force just the source lookup to miss its busy metadata slot. Fresh source
+-    // admission releases this lock before publishing the child's weak context.
+-    let slot = custody.0.clone();
++    // The atomic metadata slot has no busy-mutex fallback. Publish a genuinely
++    // fresh policy child concurrently and prove it cannot replace older IO.
++    let controller = s.controllers[0].clone();
++    let slot = custody.clone();
+     let (ready_tx, ready_rx) = std::sync::mpsc::channel();
++    let (release_tx, release_rx) = std::sync::mpsc::channel();
+     let worker = std::thread::spawn(move || {
+-        let locked = slot.lock().unwrap();
++        let credential = controller.credential_snapshot();
++        let scope = controller.scope(&credential.principal, MediaPurpose::Publish);
++        let fresh = controller.policy.current(&scope).unwrap();
++        let oldest = slot.active().unwrap();
++        for _ in 0..32 {
++            slot.observe(fresh.as_ref());
++        }
++        assert!(Arc::ptr_eq(&oldest, &slot.active().unwrap()));
++        drop(oldest);
+         ready_tx.send(()).unwrap();
+         release_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+-        drop(locked);
+-        released_tx.send(()).unwrap();
++        drop(fresh);
+     });
+     ready_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+-    armed.store(true, Ordering::Release);
+     let child = same.admit_queued_media().unwrap();
++    release_tx.send(()).unwrap();
+     worker.join().unwrap();
+-    assert!(
+-        !armed.load(Ordering::Acquire),
+-        "fresh-admission race was not exercised"
+-    );
+     drop(child);
+     assert!(
+         custody.active().is_some(),
+--- a/crates/uctp/rvoip-uctp/src/native_flow.rs
++++ b/crates/uctp/rvoip-uctp/src/native_flow.rs
+@@ -204,6 +204,25 @@
+         self.record(port, false);
+     }
+     fn record(&self, port: &AdapterMediaPort, received: bool) {
++        self.record_observation(port, received, true, None);
++    }
++    /// Count-only fallback after an ingress path has already recorded readiness.
++    pub(crate) fn record_rtp(&self, port: &AdapterMediaPort, received: bool, bytes: usize) {
++        self.record_observation(port, received, false, Some(bytes));
++    }
++    /// One coherent observed IO event: readiness and quality counters share the
++    /// same exact binding and interval, with one metadata acquisition. This is
++    /// an observation only; it grants no packet IO or publication authority.
++    pub(crate) fn record_rtp_io(&self, port: &AdapterMediaPort, received: bool, bytes: usize) {
++        self.record_observation(port, received, true, Some(bytes));
++    }
++    fn record_observation(
++        &self,
++        port: &AdapterMediaPort,
++        received: bool,
++        readiness: bool,
++        bytes: Option<usize>,
++    ) {
+         if !self.current() || port.status() != PortStatus::Active {
+             return;
+         }
+@@ -219,31 +238,23 @@
+         } else {
+             &mut p.sent
+         };
+-        let changed = !*value;
+-        *value = true;
++        let changed = readiness && !*value;
++        if readiness {
++            *value = true;
++        }
++        if let Some(bytes) = bytes {
++            let count = if received {
++                &mut p.packets_received
++            } else {
++                &mut p.packets_sent
++            };
++            *count = count.saturating_add(1);
++            p.bytes = p.bytes.saturating_add(bytes as u64);
++        }
+         drop(s);
+         if changed {
+             self.changed.notify_waiters();
+         }
+-    }
+-    pub(crate) fn record_rtp(&self, port: &AdapterMediaPort, received: bool, bytes: usize) {
+-        if !self.current() || port.status() != PortStatus::Active {
+-            return;
+-        }
+-        let mut s = self.state.lock().unwrap_or_else(|p| p.into_inner());
+-        let Some(p) = s.ports.get_mut(&port.binding().transport_id) else {
+-            return;
+-        };
+-        if !crate::staged_media::same_binding(&p.binding, port.binding()) {
+-            return;
+-        }
+-        let count = if received {
+-            &mut p.packets_received
+-        } else {
+-            &mut p.packets_sent
+-        };
+-        *count = count.saturating_add(1);
+-        p.bytes = p.bytes.saturating_add(bytes as u64);
+     }
+     pub(crate) fn configure_quality(&self, expected: u64, interval: Duration) -> bool {
+         let mut s = self.state.lock().unwrap_or_else(|p| p.into_inner());
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -180,7 +180,10 @@
+ pub(crate) fn data_stream(port: AdapterMediaPort) -> Arc<dyn MediaStream> {
+     Arc::new(RoutedStream {
+         #[cfg(feature = "memory-diagnostics")]
+-        _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.routed_stream", 0),
++        _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++            "native.routed_stream",
++            0,
++        ),
+         port,
+         codec: CodecInfo {
+             name: "reliable-ordered-data".into(),
+@@ -438,8 +441,7 @@
+             Ok(()) => {
+                 self.counters.accepted.fetch_add(1, Ordering::AcqRel);
+                 if let (Some(flow), Some(port)) = (&self.flow, self.port.upgrade()) {
+-                    flow.received(&port);
+-                    flow.record_rtp(&port, true, datagram_bytes);
++                    flow.record_rtp_io(&port, true, datagram_bytes);
+                 }
+                 Ok(())
+             }
+@@ -506,8 +508,7 @@
+                 }
+                 if let (Some(flow), Some(port)) = (&self.ingress.flow, self.ingress.port.upgrade())
+                 {
+-                    flow.received(&port);
+-                    flow.record_rtp(&port, true, self.bytes);
++                    flow.record_rtp_io(&port, true, self.bytes);
+                 }
+                 Some(true)
+             }
+@@ -571,8 +572,7 @@
+             Ok(None) => {
+                 self.counters.accepted.fetch_add(1, Ordering::AcqRel);
+                 if let (Some(flow), Some(port)) = (&self.flow, self.port.upgrade()) {
+-                    flow.received(&port);
+-                    flow.record_rtp(&port, true, datagram_bytes);
++                    flow.record_rtp_io(&port, true, datagram_bytes);
+                 }
+                 Ok(None)
+             }
+@@ -1320,7 +1320,10 @@
+             };
+             let stream: Arc<dyn MediaStream> = Arc::new(RoutedStream {
+                 #[cfg(feature = "memory-diagnostics")]
+-                _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.routed_stream", 0),
++                _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++                    "native.routed_stream",
++                    0,
++                ),
+                 port: port.clone(),
+                 codec: descriptor,
+             });
+@@ -1413,7 +1416,10 @@
+             let task = tokio::spawn(async move {
+                 let mut packetizer = Some(Packetizer {
+                     #[cfg(feature = "memory-diagnostics")]
+-                    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
++                    _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++                        "native.packetizer",
++                        0,
++                    ),
+                     cursor,
+                     feedback_epoch: None,
+                     outer: 0,
+@@ -1494,8 +1500,7 @@
+                                     |bytes| {
+                                         counters.local_sends.fetch_add(1, Ordering::AcqRel);
+                                         if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
+-                                            flow.sent(&port);
+-                                            flow.record_rtp(&port, false, bytes);
++                                            flow.record_rtp_io(&port, false, bytes);
+                                         }
+                                     },
+                                 );
+@@ -1660,7 +1665,10 @@
+         };
+         let mut packetizer = Packetizer {
+             #[cfg(feature = "memory-diagnostics")]
+-            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++                "native.packetizer",
++                0,
++            ),
+             cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+@@ -1738,7 +1746,10 @@
+         let transport = Prefix(Mutex::new(Vec::new()));
+         let mut packetizer = Packetizer {
+             #[cfg(feature = "memory-diagnostics")]
+-            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++                "native.packetizer",
++                0,
++            ),
+             cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+@@ -1840,7 +1851,10 @@
+         };
+         let mut packetizer = Packetizer {
+             #[cfg(feature = "memory-diagnostics")]
+-            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++                "native.packetizer",
++                0,
++            ),
+             cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+@@ -2039,7 +2053,10 @@
+         };
+         let packetizer = Packetizer {
+             #[cfg(feature = "memory-diagnostics")]
+-            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
++            _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++                "native.packetizer",
++                0,
++            ),
+             cursor: None,
+             feedback_epoch: None,
+             outer: 0,
+--- a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
+@@ -113,8 +113,7 @@
+                                 if let (Some(flow), Some(port)) =
+                                     (&route.flow, route.port.upgrade())
+                                 {
+-                                    flow.sent(&port);
+-                                    flow.record_rtp(&port, false, bytes);
++                                    flow.record_rtp_io(&port, false, bytes);
+                                 }
+                             },
+                         )
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/quality.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/quality.rs
+@@ -380,3 +380,34 @@
+     ready_opened(&s.f, &mut s.wire, handle).await;
+     s.wire.server.shutdown().await.unwrap();
+ }
++
++#[tokio::test]
++async fn combined_native_rtp_observation_counts_each_acceptance_once_across_quality_reset() {
++    for kind in ["quic", "wt"] {
++        let (mut s, handle, mut input) = prepare(kind).await;
++        gate_reply(&mut s, tune(300), "ack").await;
++        // Readiness has already been proved by the original accepted packet.
++        // Subsequent IO must count once, without requiring another ready event.
++        for (sequence, count) in [(2_u16, 3_u64), (5, 2)] {
++            let mut expected_bytes = 0_u64;
++            for offset in 0..count {
++                let frame = audio_sequence(handle, sequence + offset as u16);
++                expected_bytes += frame.len() as u64;
++                send(&s.wire, frame);
++                let _original = packet(&mut input).await;
++            }
++            let report = quality(&mut s.wire).await;
++            s.f.verify_server(&report).await;
++            let payload = &report.original()["payload"];
++            let stream = &payload["streams"][0];
++            assert_eq!(payload["streams"].as_array().unwrap().len(), 1);
++            assert_eq!(stream["packets_received"], count);
++            assert_eq!(stream["packets_sent"], 0);
++            assert_eq!(
++                stream["bitrate_bps"],
++                expected_bytes * 8000 / payload["interval_ms"].as_u64().unwrap()
++            );
++        }
++        s.wire.server.shutdown().await.unwrap();
++    }
++}

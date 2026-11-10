@@ -142,6 +142,12 @@ impl Service {
     }
     /// Install the canonical Core/QUIC composition before accepting peers.
     pub fn install_canonical_runtime(&self) -> Result<()> {
+        if self.canonical_runtime.get().is_some() {
+            return Err(Error::new(
+                "conflict",
+                "Canonical runtime is already installed",
+            ));
+        }
         let runtime = canonical_runtime::Runtime::new(self.store.clone())?;
         self.canonical_runtime
             .set(runtime.clone())
@@ -431,6 +437,18 @@ impl Service {
             .media
             .arm_held_registry_probe_for_test(&format!("start:{operation}"))
     }
+    /// Compare actual original initial-mute dispatch under target-registry exclusion.
+    #[cfg(feature = "test-support")]
+    pub fn arm_canonical_start_dispatch_probe_for_test(
+        &self,
+        operation: &str,
+    ) -> Result<Arc<std::sync::atomic::AtomicUsize>> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .arm_held_registry_probe_for_test(&format!("start-dispatch:{operation}"))
+    }
     /// Actual coordinator metadata only; this exposes no media or control grant.
     #[cfg(feature = "test-support")]
     pub fn with_canonical_media_registry_for_test(&self, hold: impl FnOnce()) -> Result<()> {
@@ -505,6 +523,19 @@ impl Service {
         if let Some(runtime) = self.canonical_runtime.get() {
             runtime.stop.cancel();
             let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(3);
+            // Stop publication and join the independently owned watcher before
+            // reporting cleanup. This mutex is taken only during teardown.
+            let watcher = runtime
+                .media_authorization_watcher
+                .lock()
+                .unwrap_or_else(|poison| {
+                    incomplete = true;
+                    poison.into_inner()
+                })
+                .take();
+            if let Some(mut watcher) = watcher {
+                incomplete |= watcher.shutdown().is_err();
+            }
             self.store.uninstall_session_codec_coordinator();
             let worker = runtime
                 .session_codec_worker

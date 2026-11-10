@@ -29,9 +29,11 @@ pub use enrollment::{EnrollmentCredentialBinding, OwnedEnrollment};
 mod identity;
 pub use credential_issuance::IssuedScopedCredential;
 mod installation_ownership;
+mod media_authorization;
 pub use installation_ownership::{
     InstallationOwnership, ProviderWorkerOwnership, RuntimeRetirementSignal,
 };
+pub use media_authorization::OwnedWatcher as MediaAuthorizationWatcher;
 mod media_end;
 mod membership;
 mod messages;
@@ -90,6 +92,7 @@ pub use transitions::{
 };
 mod authority_admission;
 mod authority_fences;
+mod authority_writer_boundary;
 mod packet_observation;
 pub use packet_observation::PacketObserverScope;
 mod peer_authority;
@@ -107,19 +110,20 @@ pub use peer_authority::{
     AssistantProviderUpdate, AssistantProviderUpdateApplied, AssistantProviderUpdateExport,
     AssistantProviderUpdateRejected, AssistantProviderUpdateStatus, ConsultationMediaOrigin,
     NativeAssistantContextRead, NativeConnectionFlowFact, NativeConnectionFlowObservation,
-    NativeConsultationRead, NativeConsultationSelection, NativeCredentialRefreshApplied,
-    NativeCredentialRefreshAttempt, NativeCredentialRefreshPlan, NativeCredentialRefreshTarget,
-    NativeDataProjection, NativeDataRead, NativeDataWriter, NativeHandoffRead,
-    NativeHandoffSelection, NativeIceOrigin, NativeMediaOrigin, NativeMediaRead,
-    NativeReconciliationRead, NativeReplacementActivation, NativeReplacementInstallationGuard,
-    NativeReplacementInstallationObservation, NativeReplacementPreparationRead,
-    NativeReplacementSelection, NativeReplacementSourceOrigin, NativeReplacementSourceRead,
-    NativeReturnRead, NativeReturnSelection, NativeSessionCodecRead, NativeSignalRead,
-    NativeStreamProjection, PeerAuthorityGuard, PeerAuthorityRequest, PeerCommand,
-    PeerConnectionProjection, PeerConversationCommand, PeerDataCommand, PeerDeviceClaim,
-    PeerOperationClaim, PeerReadReceiptCommand, PeerSessionProjection, PeerSubscriptionCommand,
-    PeerSubscriptionRead, PeerSubscriptionSource, SessionRoleMediaRead, SipAudienceOrigin,
-    SipAudienceRead,
+    NativeConnectionLifetimeSnapshot, NativeConnectionLifetimeStamp, NativeConsultationRead,
+    NativeConsultationSelection, NativeCredentialRefreshApplied, NativeCredentialRefreshAttempt,
+    NativeCredentialRefreshPlan, NativeCredentialRefreshTarget, NativeDataProjection,
+    NativeDataRead, NativeDataWriter, NativeHandoffRead, NativeHandoffSelection, NativeIceOrigin,
+    NativeMediaOrigin, NativeMediaRead, NativeMediaSnapshot, NativeMediaSnapshotEpoch,
+    NativeMediaSnapshotStamp, NativeReconciliationRead, NativeReplacementActivation,
+    NativeReplacementInstallationGuard, NativeReplacementInstallationObservation,
+    NativeReplacementPreparationRead, NativeReplacementSelection, NativeReplacementSourceOrigin,
+    NativeReplacementSourceRead, NativeReturnRead, NativeReturnSelection, NativeSessionCodecRead,
+    NativeSignalRead, NativeStreamProjection, PeerAuthorityGuard, PeerAuthorityRequest,
+    PeerCommand, PeerConnectionProjection, PeerConversationCommand, PeerDataCommand,
+    PeerDeviceClaim, PeerOperationClaim, PeerReadReceiptCommand, PeerSessionProjection,
+    PeerSubscriptionCommand, PeerSubscriptionRead, PeerSubscriptionSource, SessionRoleMediaRead,
+    SipAudienceOrigin, SipAudienceRead,
 };
 pub use user_delegation::{IssuedUserDelegation, UserAuthorization};
 mod private_provider;
@@ -195,7 +199,7 @@ pub use tasks::{
     TaskObservationBinding, VapiSessionContext,
 };
 pub(crate) mod native_stream_projection;
-pub const SCHEMA_VERSION: u32 = 117;
+pub const SCHEMA_VERSION: u32 = 118;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 // Compiled operation/source SQL only; never a row, transaction or grant cache.
 const OPERATION_SQL_CACHE_CAPACITY: usize = 32;
@@ -212,6 +216,7 @@ pub struct Store {
     private_initial_telephone_origins:
         Mutex<std::collections::BTreeMap<String, std::sync::Arc<InitialTelephoneMediaOrigin>>>,
     authority: std::sync::Arc<authority_fences::Manager>,
+    media_authorization: std::sync::Arc<media_authorization::Registry>,
     runtime_ownership: installation_ownership::Binding,
     link_epoch: String,
     events: events::Runtime,
@@ -222,6 +227,7 @@ pub struct Store {
     private_provider_cache: private_provider::Cache,
     record_context_projector:
         std::sync::OnceLock<std::sync::Arc<dyn records::RecordContextProjector>>,
+    authority_writer_boundary: std::sync::Arc<authority_writer_boundary::State>,
     connection: Mutex<Connection>,
     // Bounded read-only WAL observers; never command transactions or grants.
     packet_connections: packet_observation::Observers,
@@ -231,6 +237,29 @@ pub struct Store {
     blob_directory: PathBuf,
 }
 impl Store {
+    pub(crate) fn media_authorization_registry(
+        &self,
+    ) -> &std::sync::Arc<media_authorization::Registry> {
+        &self.media_authorization
+    }
+    /// The service runtime owns this separate worker and must shutdown/join it.
+    /// Starting it does not enable routing before the writer boundary is proven.
+    pub fn start_media_authorization_watcher(
+        &self,
+    ) -> connect_protocol::Result<MediaAuthorizationWatcher> {
+        {
+            let connection = self.connection()?;
+            authority_writer_boundary::schema::validate(&connection)?;
+            self.authority_writer_boundary.require_healthy()?;
+        }
+        let signal: std::sync::Arc<dyn RuntimeRetirementSignal> = self.media_authorization.clone();
+        self.register_runtime_retirement(&signal)?;
+        let watcher = self
+            .media_authorization
+            .start_watcher(std::time::Duration::from_millis(1))?;
+        self.media_authorization.enable_after_writer_boundary()?;
+        Ok(watcher)
+    }
     /// Create a new database. Refuses to reuse an existing path.
     pub fn initialize(path: &Path, limits: Limits) -> Result<Self> {
         limits.validate()?;
@@ -575,12 +604,22 @@ impl Store {
             "../migrations/117_private_successor_return_binding.sql"
         ))
         .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/118_coordinated_authority_writers.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        authority_writer_boundary::schema::install(&tx)?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;
+        let media_authorization = authority.media_snapshot_registry()?;
         let runtime_epoch = runtime_ownership.epoch(path)?;
+        let authority_writer_boundary = authority_writer_boundary::State::new(&media_authorization);
+        authority_writer_boundary.register(&connection)?;
+        authority_writer_boundary::schema::validate(&connection)?;
         let store = Self {
             authority,
+            media_authorization,
             runtime_ownership,
             link_epoch: uuid::Uuid::new_v4().to_string(),
             events: Default::default(),
@@ -594,6 +633,7 @@ impl Store {
             session_ready_origins: Default::default(),
             private_initial_telephone_origins: Default::default(),
             initial_telephone_gateways: Default::default(),
+            authority_writer_boundary,
             connection: Mutex::new(connection),
             packet_connections: packet_observation::Observers::new(path)?,
             session_readers: session_observation::Readers::open(path)?,
@@ -670,9 +710,14 @@ impl Store {
         Self::configure(&connection)?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;
+        let media_authorization = authority.media_snapshot_registry()?;
         let runtime_epoch = runtime_ownership.epoch(path)?;
+        let authority_writer_boundary = authority_writer_boundary::State::new(&media_authorization);
+        authority_writer_boundary.register(&connection)?;
+        authority_writer_boundary::schema::validate(&connection)?;
         let store = Self {
             authority,
+            media_authorization,
             runtime_ownership,
             link_epoch: uuid::Uuid::new_v4().to_string(),
             events: Default::default(),
@@ -686,6 +731,7 @@ impl Store {
             session_ready_origins: Default::default(),
             private_initial_telephone_origins: Default::default(),
             initial_telephone_gateways: Default::default(),
+            authority_writer_boundary,
             connection: Mutex::new(connection),
             packet_connections: packet_observation::Observers::new(path)?,
             session_readers: session_observation::Readers::open(path)?,

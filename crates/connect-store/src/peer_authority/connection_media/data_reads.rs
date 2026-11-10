@@ -229,6 +229,8 @@ impl Store {
         }
         let owner = current_owner(self, target)?;
         let media = NativeMediaRead {
+            _live: None,
+            _source_live: None,
             target: target_view,
             source: source_view,
             _scopes: held,

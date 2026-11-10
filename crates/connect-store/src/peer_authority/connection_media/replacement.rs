@@ -495,6 +495,8 @@ fn make_read(
     }
     let owner = store.require_runtime_owner()?;
     let make = |target, may_subscribe| NativeMediaRead {
+        _live: None,
+        _source_live: None,
         target,
         source: None,
         _scopes: held.clone(),
@@ -555,6 +557,8 @@ fn make_native_read_with_owner(
     owner: Arc<crate::installation_ownership::InstallationOwnership>,
 ) -> Result<NativeReplacementPreparationRead> {
     let make = |target, may_subscribe| NativeMediaRead {
+        _live: None,
+        _source_live: None,
         target,
         source: None,
         _scopes: held.clone(),

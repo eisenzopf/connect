@@ -24,13 +24,25 @@ mod signaling;
 pub use signaling::SignalingHost;
 struct ReadContext {
     initial: Mutex<Option<Arc<NativeMediaRead>>>,
+    resource: Option<Arc<dyn connect_service::canonical_webrtc::ReplacementSource>>,
     #[cfg(test)]
     busy_reads: std::sync::atomic::AtomicUsize,
 }
 impl ReadContext {
+    fn resource(
+        source: Arc<dyn connect_service::canonical_webrtc::ReplacementSource>,
+    ) -> Arc<Self> {
+        Arc::new(Self {
+            initial: Mutex::new(None),
+            resource: Some(source),
+            #[cfg(test)]
+            busy_reads: std::sync::atomic::AtomicUsize::new(0),
+        })
+    }
     fn new(initial: Option<Arc<NativeMediaRead>>) -> Arc<Self> {
         Arc::new(Self {
             initial: Mutex::new(initial),
+            resource: None,
             #[cfg(test)]
             busy_reads: std::sync::atomic::AtomicUsize::new(0),
         })
@@ -247,6 +259,16 @@ fn original_sdp(
     origin: &NativeMediaOrigin,
     initial: &InitialRead,
 ) -> Result<String> {
+    if let Some(resource) = &initial.resource {
+        let original = resource.offer()?;
+        if original.participant_id != origin.participant_id()
+            || original.offer["substrate"] != "websocket+webrtc"
+            || original.offer["substrate_setup"]["kind"] != "websocket+webrtc"
+        {
+            return Err(Error::forbidden());
+        }
+        return validate_original_sdp(&original.offer);
+    }
     let read = source_read(store, origin, initial)?;
     let target = read.target();
     let offer = &target.offer;
@@ -257,6 +279,9 @@ fn original_sdp(
     {
         return Err(Error::forbidden());
     }
+    validate_original_sdp(offer)
+}
+fn validate_original_sdp(offer: &serde_json::Value) -> Result<String> {
     let sdp = offer["substrate_setup"]["sdp"]
         .as_str()
         .ok_or_else(Error::forbidden)?;
@@ -387,7 +412,11 @@ async fn worker(
                 _=peer.wait_failed()=>return Err(engine_error()),
                 _=interval.tick()=>{
                     // No domain reader is retained across this idle wait.
-                    match store.try_native_connection_current(&origin) {
+                    let current = match &initial.resource {
+                        Some(resource) => resource.current().map(|_| true),
+                        None => store.try_native_connection_current(&origin),
+                    };
+                    match current {
                         Ok(true)=>{
                             if handoff_deferred {
                                 tracing::debug!(connection=origin.connection_id(),"RTC original lifetime observation resumed after handoff attribution");

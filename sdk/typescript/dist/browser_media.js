@@ -875,6 +875,7 @@ export class BrowserMediaPeer {
                         ]),
                         ssrc: packet.ssrc,
                         rtpTimestamp: packet.timestamp,
+                        rtpSequence: packet.sequence,
                         ...(timing.sourceNtp
                             ? {
                                 sourceNtp: timing.sourceNtp,

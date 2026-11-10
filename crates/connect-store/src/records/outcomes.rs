@@ -101,6 +101,7 @@ impl Store {
             .acquire(&needed, &AuthorityWait::new(Duration::from_secs(2)))?;
         let _held = self.record_reservation(uuid, AuthorityMode::Write)?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c.transaction().map_err(|_| Error::storage())?;
         let Some(intent) = intent(&tx, uuid)? else {
             return Ok(false);

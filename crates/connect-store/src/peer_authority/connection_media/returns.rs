@@ -495,6 +495,8 @@ impl Store {
                 (
                     key,
                     Arc::new(NativeMediaRead {
+                        _live: None,
+                        _source_live: None,
                         target,
                         source,
                         _scopes: held.clone(),

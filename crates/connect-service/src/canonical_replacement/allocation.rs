@@ -64,7 +64,12 @@ impl Runtime {
             .cloned()
             .filter(|saved| saved.recorded.load(Ordering::Acquire))
             .ok_or_else(|| Error::new("not-ready", "Original preparation is not recorded"))?;
-        let _roles = self.role_projection.lock().await;
+        let _roles = self.role_projection.try_lock().map_err(|_| {
+            Error::new(
+                "not-ready",
+                "Replacement scene coordinator is busy before original effect",
+            )
+        })?;
         physical.validate(&a, authority)?;
         let previous = {
             saved
@@ -85,6 +90,8 @@ impl Runtime {
                     "Replacement target belongs to another signed physical allocation",
                 ));
             }
+            // This is only exact captured metadata replay, not a Core scene cut.
+            drop(_roles);
             self.record_allocated_replacement_with_peer(&previous, a.clone())
                 .await?;
             let store = self.media.store.clone();
@@ -106,7 +113,9 @@ impl Runtime {
                 "Original Core preparation capture is not yet recorded",
             ));
         }
-        let read = retry_metadata(&self.stop, || {
+        // Before begin, a temporary metadata refusal has no phase/Core effect.
+        // Do not retain the signed mutation writer through five-second retries.
+        let read = {
             let store = self.media.store.clone();
             let a = a.clone();
             let receipt = saved.receipt.clone();
@@ -114,8 +123,8 @@ impl Runtime {
             store_call(move || {
                 store.native_replacement_allocation_read_with_peer(&receipt, &key, proof(&a)?)
             })
-        })
-        .await?;
+            .await?
+        };
         let rtc = read.source().context().target_transport
             == connect_protocol::provisioning::EndpointTransport::Webrtc;
         if if rtc {

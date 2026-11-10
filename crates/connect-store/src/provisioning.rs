@@ -189,6 +189,7 @@ impl Store {
         command.normalize()?;
         let _authority = self.provisioning_authority(credential_id, &command, held)?;
         let mut connection = self.connection()?;
+        connection.bind_available_mutation_authority(self, &_authority)?;
         let tx = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

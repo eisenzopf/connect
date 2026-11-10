@@ -71,8 +71,10 @@ def main():
             + ' failed and ' + esc(checks["blocked"]) + ' blocked.')
         focused = data.get("current_focused_verification")
         if focused:
-            overview += (' Focused follow-through checks: '
-                + esc(focused["passed"]) + ' of ' + esc(focused["planned"])
+            count = esc(focused["passed"])
+            if focused.get("planned") is not None:
+                count += ' of ' + esc(focused["planned"])
+            overview += (' Focused follow-through checks: ' + count
                 + ' passed. ' + esc(focused["next"])
                 + ' These checks do not qualify matrix cells.')
         next_run = data.get("next_full_run_status")

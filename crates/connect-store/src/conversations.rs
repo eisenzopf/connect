@@ -170,6 +170,9 @@ impl Store {
             None
         };
         let mut connection = self.connection()?;
+        if let Some(authority) = &_authority {
+            connection.bind_available_mutation_authority(self, authority)?;
+        }
         let tx = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

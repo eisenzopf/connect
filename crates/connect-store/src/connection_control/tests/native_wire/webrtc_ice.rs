@@ -48,7 +48,9 @@ fn fixture_offer(original: &str) -> (Fixture, PeerAuthorityRequest, String) {
     let record = parent.record_id().to_owned();
     // This is controlled source metadata, matching the existing native stream
     // custody fixtures. No runtime readiness or completion method is claimed.
-    let mut c = f.store.connection().unwrap();
+    drop(proof);
+    let writer = f.controlled_conversation_writer(0);
+    let mut c = f.store.connection_with_authority(&writer).unwrap();
     let tx = c
         .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
         .unwrap();
@@ -66,7 +68,7 @@ fn fixture_offer(original: &str) -> (Fixture, PeerAuthorityRequest, String) {
     tx.execute("INSERT INTO native_connection_lifetimes(operation_record_id,connection_id,runtime_epoch,generation) VALUES(?1,?2,?3,?4)",params![parent.record_id(),parent.connection_id(),f.store.runtime_epoch(),parent.generation()]).unwrap();
     tx.commit().unwrap();
     drop(c);
-    drop(proof);
+    drop(writer);
     let PeerCommand::NativeConnectionOffer(wire) = &request.command else {
         panic!()
     };
@@ -398,7 +400,7 @@ fn backup_digest_covers_private_original_negotiation_bytes() {
     let directory = tempfile::tempdir().unwrap();
     let backup = directory.path().join("ice-backup.sqlite3");
     let saved = f.store.backup(&backup).unwrap();
-    assert_eq!(saved.schema, 117);
+    assert_eq!(saved.schema, crate::SCHEMA_VERSION);
     assert_eq!(saved, Store::inspect_snapshot(&backup).unwrap());
     let c = Connection::open(&backup).unwrap();
     c.execute("DROP TRIGGER native_webrtc_ice_operation_immutable", [])

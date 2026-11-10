@@ -194,13 +194,23 @@ pub(super) fn scene(
     sources: &[Arc<crate::NativeMediaOrigin>],
     custody: Option<(&Arc<AuthorityGuardSet>, i64, &crate::NativeMediaOrigin)>,
 ) -> Result<NativeReplacementSceneRead> {
-    scene_with_final_hook(store, origin, sources, custody, || {})
+    scene_with_final_hook(store, origin, sources, custody, None, || {})
+}
+pub(super) fn scene_with_interval(
+    store: &Store,
+    origin: &NativeReplacementMediaOrigin,
+    sources: &[Arc<crate::NativeMediaOrigin>],
+    custody: Option<(&Arc<AuthorityGuardSet>, i64, &crate::NativeMediaOrigin)>,
+    mutation: Option<(&Arc<AuthorityGuardSet>, i64)>,
+) -> Result<NativeReplacementSceneRead> {
+    scene_with_final_hook(store, origin, sources, custody, mutation, || {})
 }
 fn scene_with_final_hook(
     store: &Store,
     origin: &NativeReplacementMediaOrigin,
     sources: &[Arc<crate::NativeMediaOrigin>],
     custody: Option<(&Arc<AuthorityGuardSet>, i64, &crate::NativeMediaOrigin)>,
+    mutation: Option<(&Arc<AuthorityGuardSet>, i64)>,
     before_return: impl FnOnce(),
 ) -> Result<NativeReplacementSceneRead> {
     let checked = store.checked_runtime_owner()?;
@@ -265,7 +275,7 @@ fn scene_with_final_hook(
                 telephone_pairs: std::collections::BTreeMap::new(),
             })
         },
-        custody.map(|(held, expiry, _)| (held, expiry)),
+        custody.map(|(held, expiry, _)| (held, expiry)).or(mutation),
     )?;
     before_return();
     checked.revalidate()?;
@@ -312,6 +322,6 @@ impl Store {
         sources: &[Arc<crate::NativeMediaOrigin>],
         before_return: impl FnOnce(),
     ) -> Result<NativeReplacementSceneRead> {
-        scene_with_final_hook(self, origin, sources, None, before_return)
+        scene_with_final_hook(self, origin, sources, None, None, before_return)
     }
 }

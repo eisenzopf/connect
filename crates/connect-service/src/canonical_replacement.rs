@@ -4,7 +4,9 @@ mod capture_recording;
 pub(crate) mod continuation;
 mod diagnostics;
 mod media;
-pub(crate) use media::{Activation, TargetPolicy};
+#[cfg(feature = "test-support")]
+pub(crate) use media::probe_held_start_control_for_test;
+pub(crate) use media::{held_start_control, Activation, TargetPolicy};
 mod movement;
 mod preflight;
 mod preparation;
@@ -315,6 +317,10 @@ impl Runtime {
         };
         let lease = Arc::new(lease);
         let plan = lease.plan()?;
+        // Serialize the scene before taking any input Read/fresh begin Write.
+        // No domain writer waits behind this async coordinator, and no transport
+        // or codec preparation runs while the scene interval is owned.
+        let roles = self.role_projection.lock().await;
         let resolved: Result<_> = async {
             let (read, entries) = retry_metadata(&self.stop, || async {
                 let read = self.media.store.native_replacement_preparation_attempt_read(&lease)?;
@@ -359,6 +365,7 @@ impl Runtime {
         let (read, entries, principal, telephone_target) = match resolved {
             Ok(value) => value,
             Err(error) => {
+                drop(roles);
                 self.abort_unstarted_replacement(lease.clone(), &error.code)
                     .await;
                 return Err(error);
@@ -372,6 +379,7 @@ impl Runtime {
         let (attempt, read) = match result {
             Ok(value) => value,
             Err(error) => {
+                drop(roles);
                 self.abort_unstarted_replacement(lease, &error.code).await;
                 return Err(error);
             }
@@ -392,7 +400,6 @@ impl Runtime {
         invocation.probe_registry_for_test(&command.operation_id);
         // Begin is never retried. Core owns only a capacity/binding ticket here;
         // all allocation/target IO phases remain independently default-denied.
-        let roles = self.role_projection.lock().await;
         let actual = self.core.prepare_staged_device_replacement_with_held(
             &sid,
             principal.clone(),

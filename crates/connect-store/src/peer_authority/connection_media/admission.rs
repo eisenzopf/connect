@@ -113,7 +113,16 @@ impl Store {
             generation,
         };
         attempt.current(c, self)?;
+        let snapshot_hints = native_snapshot_hints(
+            &intent.conversation_id,
+            &crate::identity::actor_from_connection(
+                c,
+                binding.credentials.last().ok_or_else(Error::forbidden)?,
+            )?
+            .identity_id,
+        )?;
         Ok(Arc::new(NativeMediaOrigin {
+            snapshot_hints,
             attempt,
             owner: Arc::downgrade(&self.require_runtime_owner()?),
             binding,
@@ -192,20 +201,23 @@ impl Store {
             return Err(Error::forbidden());
         }
         // Physical retirement already happened; project only its exact absence.
-        // Never reserve a writer while a current command/packet reader drains,
-        // or keep that writer while waiting for the primary SQL connection.
-        // The original cleanup owner retries a miss. Continuous readers can
-        // defer this passive record until a gap; a miss is never settlement.
-        // Authority-changing writers keep their normal reserved-gate priority.
+        // Share capture projection's five-millisecond acquisition budget: release
+        // initial SQL before briefly reserving file admission so short overlapping
+        // readers can drain. A longer reader still defers this original owner.
+        // Reacquire SQL immediately below; never park an acquired writer behind
+        // another SQL owner. This budget excludes the transaction's duration and
+        // provides no general original-cutoff progress guarantee for long readers.
+        let wait = crate::authority_admission::passive_projection_wait();
         let scopes = {
-            let c = self.try_connection()?;
+            let c = self.try_connection_with_wait(&wait)?;
             crate::authority_admission::conversation_scopes(&c, conversation, AuthorityMode::Write)?
         };
-        let admission = self.try_acquire_authority(&scopes);
+        let admission = self.acquire_authority(&scopes, &wait);
         #[cfg(test)]
         crate::authority_admission::observe_passive_admission(admission.is_ok());
         let held = admission?;
         let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let current = crate::authority_admission::conversation_scopes(
             &c,
             conversation,

@@ -253,15 +253,14 @@ impl Store {
     ) -> Result<Option<NativeReplacementPreparationLease>> {
         validate_request(&request)?;
         let selection = read.into_selection()?;
-        // Drop the input interval before fresh admission, so a queued real
-        // authorization writer cannot be bypassed. Immutable reservation
-        // metadata shares current source readers instead of queuing an
-        // Identity/Conversation writer that would close packet admission.
-        // SQL serializes the exact once-only reservation/effect below. Actual
-        // graph/binding changes retain their separate broader write footprint.
+        // into_selection consumes/drops every input Read interval before fresh
+        // ordered Write admission. Candidate linkage participates in private
+        // floor facts even before Core commit; never upgrade a retained reader.
+        // This writer ends at the reservation transaction, before transport or
+        // codec preparation, and does not grant candidate IO.
         let scopes = {
             let c = self.try_connection()?;
-            selection.scopes(self, &c, false)?
+            selection.scopes(self, &c, true)?
         };
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(250));
         let held = self
@@ -272,9 +271,8 @@ impl Store {
             })?;
         // Reacquire SQL only after file admission, then resolve every current
         // scope/fact again before the once-only durable reservation below.
-        // Retain this original read interval while another short metadata unit
-        // releases SQL. Both admission and SQL use the original bounded wait;
-        // no deadline or IO is renewed and packet readers may still enter.
+        // Both admission and SQL use the same original bounded wait; no
+        // deadline, physical preparation or IO is repeated.
         let mut c = loop {
             wait.check()?;
             match self.try_connection() {
@@ -285,13 +283,14 @@ impl Store {
                 Err(error) => return Err(error),
             }
         };
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| {
                 tracing::debug!(target:"connect_store::native_candidate",stage="reservation-transaction",sqlite_code=?error.sqlite_error_code(),"Replacement metadata deferred");
                 Error::new("authority-busy", "Replacement reservation metadata is busy")
             })?;
-        if !self.authority_covers(&held, &selection.scopes(self, &tx, false)?) {
+        if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
             return Err(Error::forbidden());
         }
         let origin = &selection.origin;
@@ -414,7 +413,27 @@ impl Store {
         {
             return Err(preparation_refused("begin-selection", Error::forbidden()));
         }
-        let mut c = self.connection()?;
+        let expires = read.expires_at();
+        // Consume every original Read before acquiring the mutation writer. The
+        // returned writer-backed read is control-only: callers drop it after
+        // synchronous Core capacity preparation, before transport/codec IO.
+        let selection = read.into_selection()?;
+        let scopes = {
+            let c = self.try_connection()?;
+            selection.scopes(self, &c, true)?
+        };
+        let remaining =
+            std::time::Duration::from_secs(expires.saturating_sub(crate::now()).max(0) as u64);
+        let wait = crate::AuthorityWait::new(remaining.min(std::time::Duration::from_millis(250)));
+        let held = self.acquire_authority(&scopes, &wait)?;
+        let mut c = self.try_connection_with_wait(&wait)?;
+        c.bind_available_mutation_authority(self, &held)?;
+        // All fallible current selection/expiry reconstruction is BEFORE the
+        // once-only started mutation, so refusal cannot discard an attempt.
+        let read = selection.read_with_connection(self, &c, held.clone(), expires)?;
+        if !self.authority_covers(&held, &selection.scopes(self, &c, true)?) {
+            return Err(Error::forbidden());
+        }
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -504,10 +523,10 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, lease.record_id())?)
+                admission::mutation_row_scopes(&rows::by_record(&c, lease.record_id())?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -544,10 +563,10 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &origin.record)?)
+                admission::mutation_row_scopes(&rows::by_record(&c, &origin.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -587,10 +606,10 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &receipt.record)?)
+                admission::mutation_row_scopes(&rows::by_record(&c, &receipt.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -669,13 +688,13 @@ impl Store {
         if let Some(settled) = self.fail_candidate_before_preparation(credential, &command)? {
             return Ok(settled);
         }
-        let held = self.transition_operation_authority(
+        let held = self.transition_operation_mutation_authority(
             credential,
             &command.operation_id,
             &["connection.replace"],
             None,
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -726,10 +745,10 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &receipt.record)?)
+                admission::mutation_row_scopes(&rows::by_record(&c, &receipt.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

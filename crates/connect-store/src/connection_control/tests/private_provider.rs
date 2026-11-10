@@ -1336,7 +1336,9 @@ fn ready_named(f: &Fixture, actor: usize, name: &str) -> Arc<NativeMediaOrigin> 
         .store
         .native_media_origin_with_peer(&f.keys[actor], &proof, &lease)
         .unwrap();
-    let mut c = f.store.connection().unwrap();
+    drop(proof);
+    let writer = f.controlled_conversation_writer(actor);
+    let mut c = f.store.connection_with_authority(&writer).unwrap();
     let tx = c.transaction().unwrap();
     tx.execute(
         "UPDATE operation_effects SET state='confirmed' WHERE id=?1",

@@ -8,6 +8,7 @@ import { startPhysicalReplacementTarget } from "./transport_replacement_target.m
 import { liveVideoProgram } from "./transport_live_video_program.mjs";
 import { operationFailure } from "./transport_failure.mjs";
 import { endRetainedConnections } from "./transport_current_end.mjs";
+import { connectionSnapshots } from "./transport_snapshot.mjs";
 import { exchangeMovementData } from "./transport_movement_data.mjs";
 import { setTimeout as sleep } from "node:timers/promises";
 import { MOVE_START_OFFSETS_MS, MOVES_PER_SESSION, TOTAL_MOVES, MOVEMENT_PROFILE, MOVEMENT_PROFILE_SHA256 } from "./transport_movement_profile.mjs";
@@ -148,10 +149,19 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
             };
             let retired;
             for (;;) {
-                try { retired = await owner.connection.refresh({ timeoutMs: remaining() }); }
+                try {
+                    // The final handle was created by this exact controller.
+                    // Read fresh metadata; never borrow another credential's view.
+                    const sid = workload.routes[sourceIndex].sessionIndex;
+                    const snapshot = await connectionSnapshots(controllers[sid], conversationId,
+                        [{ id: owner.connection.id, sessionId: sessions[sid].id }],
+                        { timeoutMs: remaining(), signal: stop.signal });
+                    retired = snapshot.connections[0];
+                }
                 catch (failure) {
                     if (!(failure.problem?.code === 503 && failure.problem?.reason === "storage-unavailable")) throw failure;
                 }
+                remaining();
                 if (retired) {
                     assert.equal(retired.id, owner.connection.id);
                     if (retired.state === "retired" && retired.generation > generation) break;
@@ -272,7 +282,7 @@ export async function deviceMovementWorkload({ workload, controllers, conversati
         return { sourceIndex, connection: current };
     }
     try {
-        const retained = () => endRetained({ routes: workload.routes,
+        const retained = () => endRetained({ routes: workload.routes, clients: connections.map(item => item.client),
             ends: currentEnds.filter(end => !sources.includes(end.index)), conversationId, sessions,
             startedAt: workload.startedAt, signal: stop.signal, now,
             persist: (index, kind, value) => save(join(directory, "retained-" + index + "-" + kind + ".json"), value),

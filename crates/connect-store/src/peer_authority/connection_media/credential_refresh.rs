@@ -57,6 +57,10 @@ pub struct NativeCredentialRefreshAttempt {
     runtime: String,
     refresh: String,
     rows: Vec<Reserved>,
+    // Reuse only the actual original writer. A deferred historical recorder
+    // reacquires this same immutable footprint without borrowing expired permission.
+    writer: Weak<AuthorityGuardSet>,
+    write_scopes: Vec<AuthorityScope>,
 }
 pub struct NativeCredentialRefreshApplied(NativeCredentialRefreshAttempt);
 macro_rules! redacted {
@@ -107,6 +111,22 @@ pub(super) fn require_epoch(
         _ => Err(Error::forbidden()),
     }
 }
+fn recording_writer(
+    store: &Store,
+    attempt: &NativeCredentialRefreshAttempt,
+) -> Result<Arc<AuthorityGuardSet>> {
+    if let Some(original) = attempt.writer.upgrade() {
+        if !store.authority_covers(&original, &attempt.write_scopes) {
+            return Err(Error::forbidden());
+        }
+        return Ok(original);
+    }
+    store.acquire_authority(
+        &attempt.write_scopes,
+        &AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+    )
+}
+
 fn derive(
     store: &Store,
     c: &Connection,
@@ -239,11 +259,17 @@ impl Store {
         let held = self.stable_authority(wait, || {
             let c = self.connection()?;
             wait.check()?;
-            derive(self, &c, binding, &originals).map(|(_, _, s, _, _)| s)
+            derive(self, &c, binding, &originals).map(|(_, _, scopes, _, _)| {
+                scopes.iter().map(AuthorityScope::write_scope).collect()
+            })
         })?;
         let c = self.connection()?;
         wait.check()?;
         let (metadata, key, scopes, expires_at, views) = derive(self, &c, binding, &originals)?;
+        let scopes = scopes
+            .iter()
+            .map(AuthorityScope::write_scope)
+            .collect::<Vec<_>>();
         if !self.authority_covers(&held, &scopes) || expires_at <= crate::now() {
             return Err(Error::forbidden());
         }
@@ -314,11 +340,16 @@ impl Store {
             .map(|t| t.original.clone())
             .collect::<Vec<_>>();
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &proof._scopes)?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let (_, _, scopes, _, _) = derive(self, &tx, &plan.binding, &origins)?;
-        if !self.authority_covers(&proof._scopes, &scopes) {
+        let write_scopes = scopes
+            .iter()
+            .map(AuthorityScope::write_scope)
+            .collect::<Vec<_>>();
+        if !self.authority_covers(&proof._scopes, &write_scopes) {
             return Err(Error::forbidden());
         }
         let mut rows = Vec::new();
@@ -374,6 +405,8 @@ impl Store {
             runtime: plan.runtime.clone(),
             refresh: refresh.into(),
             rows,
+            writer: Arc::downgrade(&proof._scopes),
+            write_scopes,
         })
     }
     pub fn begin_native_credential_refresh(
@@ -402,12 +435,20 @@ impl Store {
             .map(|t| t.original.clone())
             .collect::<Vec<_>>();
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &proof._scopes)?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let (_, _, scopes, _, _) = derive(self, &tx, &plan.binding, &origins)?;
         if proof.request.credentials != plan.binding.credentials
-            || !self.authority_covers(&proof._scopes, &scopes)
+            || !self.authority_covers(
+                &proof._scopes,
+                &scopes
+                    .iter()
+                    .map(AuthorityScope::write_scope)
+                    .collect::<Vec<_>>(),
+            )
+            || !self.authority_covers(&proof._scopes, &attempt.write_scopes)
         {
             return Err(Error::forbidden());
         }
@@ -438,7 +479,9 @@ impl Store {
     ) -> Result<()> {
         let a = &receipt.0;
         owner(self, &a.owner, &a.runtime)?;
+        let _writer = recording_writer(self, a)?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &_writer)?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -468,7 +511,9 @@ impl Store {
         uncertain: bool,
     ) -> Result<()> {
         owner(self, &a.owner, &a.runtime)?;
+        let _writer = recording_writer(self, a)?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &_writer)?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -497,24 +542,53 @@ impl Store {
             ));
         }
         self.require_runtime_owner()?;
+        let selected = {
+            let c = self.connection()?;
+            let mut query = c.prepare("SELECT n.id,o.owner_id,o.conversation_id FROM native_media_credential_bindings n JOIN operations o ON o.record_id=n.parent_record_id WHERE n.runtime_epoch!=?1 AND n.state='prepared' ORDER BY n.id LIMIT ?2").map_err(|_| Error::storage())?;
+            let rows = query
+                .query_map(params![self.runtime_epoch(), limit], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                    ))
+                })
+                .map_err(|_| Error::storage())?
+                .collect::<rusqlite::Result<Vec<_>>>()
+                .map_err(|_| Error::storage())?;
+            rows
+        };
+        if selected.is_empty() {
+            return Ok(0);
+        }
+        let mut scopes = Vec::new();
+        for (_, identity, conversation) in &selected {
+            scopes.push(AuthorityScope::identity(identity, AuthorityMode::Write)?);
+            if let Some(conversation) = conversation {
+                scopes.push(AuthorityScope::conversation(
+                    conversation,
+                    AuthorityMode::Write,
+                )?);
+            }
+        }
+        let _writer = self.acquire_authority(
+            &AuthorityScope::merged(&scopes)?,
+            &AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+        )?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &_writer)?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let mut q=tx.prepare("SELECT id FROM native_media_credential_bindings WHERE runtime_epoch!=?1 AND state='prepared' ORDER BY id LIMIT ?2").map_err(|_|Error::storage())?;
-        let ids = q
-            .query_map(params![self.runtime_epoch(), limit], |r| {
-                r.get::<_, String>(0)
-            })
-            .map_err(|_| Error::storage())?
-            .collect::<rusqlite::Result<Vec<_>>>()
-            .map_err(|_| Error::storage())?;
-        drop(q);
-        for id in &ids {
-            tx.execute("UPDATE native_media_credential_bindings SET state=CASE WHEN started=1 THEN 'uncertain' ELSE 'refused' END,observed_at=?2 WHERE id=?1",params![id,crate::now()]).map_err(|_|Error::storage())?;
+        let mut count = 0;
+        for (id, identity, conversation) in &selected {
+            // Recheck the exact selected ownership and still-foreign epoch under
+            // this writer before changing a recovery row. A new row waits for a
+            // later bounded page; it cannot borrow this footprint.
+            count += tx.execute("UPDATE native_media_credential_bindings SET state=CASE WHEN started=1 THEN 'uncertain' ELSE 'refused' END,observed_at=?2 WHERE id=?1 AND runtime_epoch!=?3 AND state='prepared' AND EXISTS(SELECT 1 FROM operations o WHERE o.record_id=native_media_credential_bindings.parent_record_id AND o.owner_id=?4 AND o.conversation_id IS ?5)",params![id,crate::now(),self.runtime_epoch(),identity,conversation]).map_err(|_| Error::storage())?;
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(ids.len())
+        Ok(count)
     }
 }
 fn refresh_identifier(value: &str) -> Result<()> {

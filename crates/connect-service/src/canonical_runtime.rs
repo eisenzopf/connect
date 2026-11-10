@@ -37,6 +37,8 @@ pub struct CanonicalRuntimeSnapshot {
     pub replacement_preparations: usize,
 }
 pub(crate) struct Runtime {
+    // Lifecycle custody only; media readers never take this mutex.
+    pub(crate) media_authorization_watcher: Mutex<Option<connect_store::MediaAuthorizationWatcher>>,
     pub(crate) webrtc: std::sync::OnceLock<Arc<dyn crate::canonical_webrtc::Host>>,
     pub(crate) routes: std::sync::OnceLock<Arc<rvoip_uctp::v2::reachability::ReachabilityRegistry>>,
     pub(crate) invitation_jobs: Mutex<std::collections::BTreeSet<String>>,
@@ -293,7 +295,9 @@ impl Runtime {
         let retirement: Arc<dyn connect_store::RuntimeRetirementSignal> =
             Arc::new(Retirement(stop.clone()));
         store.register_runtime_retirement(&retirement)?;
+        let media_authorization_watcher = store.start_media_authorization_watcher()?;
         Ok(Arc::new(Self {
+            media_authorization_watcher: Mutex::new(Some(media_authorization_watcher)),
             webrtc: Default::default(),
             routes: Default::default(),
             invitation_jobs: Mutex::new(Default::default()),
@@ -713,6 +717,14 @@ pub(crate) fn participant_role(value: &str) -> ParticipantRole {
 impl Drop for Runtime {
     fn drop(&mut self) {
         self.stop.cancel();
+        if let Some(mut watcher) = self
+            .media_authorization_watcher
+            .get_mut()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take()
+        {
+            let _ = watcher.shutdown();
+        }
         if let Ok(worker) = self.session_codec_worker.get_mut() {
             if let Some(worker) = worker.take() {
                 self.media.store.uninstall_session_codec_coordinator();

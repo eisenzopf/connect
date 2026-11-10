@@ -1,4 +1,4 @@
-//! Fresh, bounded attribution for one RTC replacement start across SDP delivery.
+//! Fresh, bounded attribution for one replacement start across SDP delivery.
 //! This contains no authority interval and cannot allocate or repeat the effect.
 use super::*;
 
@@ -45,7 +45,10 @@ fn facts(
         || descriptor["key_id"] != origin.request.key_id
         || descriptor["public_key"] != serde_json::json!(key.public_key)
         || descriptor["device_id"] != key.device_id
-        || descriptor["intent"]["offer"]["substrate"] != "websocket+webrtc"
+        || !matches!(
+            descriptor["intent"]["offer"]["substrate"].as_str(),
+            Some("quic" | "webtransport" | "websocket+webrtc")
+        )
     {
         return Err(Error::forbidden());
     }
@@ -65,34 +68,41 @@ fn facts(
         expiry.min(origin.expires_at),
     ))
 }
-impl Store {
-    /// Issue a provenance-only continuation while the once-only start reader is
-    /// still current. It preserves the original expiry and immutable signed SDP.
-    pub fn native_replacement_start_origin(
-        &self,
-        attempt: &NativeReplacementStartAttempt,
-        read: &NativeReplacementStartRead,
-    ) -> Result<Arc<NativeReplacementStartOrigin>> {
-        if !read.current()
-            || read.target.endpoint_transport
-                != connect_protocol::provisioning::EndpointTransport::Webrtc
-            || read.source.selection().origin.record != attempt.allocated.attempt.prepared.record
-            || crate::provisioning::canonical_json(&read.descriptor)? != attempt.target
-        {
-            return Err(Error::forbidden());
-        }
-        let origin = Arc::new(NativeReplacementStartOrigin {
-            allocated: attempt.allocated.clone(),
-            request: attempt.request.clone(),
-            attempt: attempt.attempt.clone(),
-            effect: attempt.effect.clone(),
-            target: attempt.target.clone(),
-            expires_at: read.expires_at(),
-        });
-        let c = self.try_connection()?;
-        facts(self, &c, &origin)?;
-        Ok(origin)
+// Construct and validate exact immutable provenance in the SAME once-only
+// begin transaction. This contains no authority interval and commits atomically
+// with the original attempt; callers never poll primary SQL while holding Write
+// merely to recover its attribution.
+pub(super) fn start_origin(
+    store: &Store,
+    c: &Connection,
+    attempt: &NativeReplacementStartAttempt,
+    read: &NativeReplacementStartRead,
+) -> Result<Arc<NativeReplacementStartOrigin>> {
+    if !read.current()
+        || !matches!(
+            read.target.endpoint_transport,
+            connect_protocol::provisioning::EndpointTransport::Quic
+                | connect_protocol::provisioning::EndpointTransport::Webtransport
+                | connect_protocol::provisioning::EndpointTransport::Webrtc
+        )
+        || read.source.selection().origin.record != attempt.allocated.attempt.prepared.record
+        || crate::provisioning::canonical_json(&read.descriptor)? != attempt.target
+    {
+        return Err(Error::forbidden());
     }
+    let origin = Arc::new(NativeReplacementStartOrigin {
+        allocated: attempt.allocated.clone(),
+        request: attempt.request.clone(),
+        attempt: attempt.attempt.clone(),
+        effect: attempt.effect.clone(),
+        target: attempt.target.clone(),
+        expires_at: read.expires_at(),
+    });
+    facts(store, c, &origin)?;
+    Ok(origin)
+}
+
+impl Store {
     pub fn try_native_replacement_start_read(
         &self,
         origin: &NativeReplacementStartOrigin,
@@ -122,16 +132,34 @@ impl Store {
     }
     /// Re-admit only the original signed intent. This neither begins a new
     /// effect nor extends the original target lifetime after its handler exits.
-    pub fn resume_webrtc_replacement_start_authority(
+    pub fn resume_native_replacement_start_authority(
         &self,
         origin: &NativeReplacementStartOrigin,
         wait: &crate::AuthorityWait,
+    ) -> Result<PeerAuthorityGuard> {
+        self.resume_native_replacement_start_mode(origin, wait, false)
+    }
+    /// Fresh current mutation exclusion after independent transport/codecs.
+    /// Same original start, expiry and validators; no effect or media replay.
+    pub fn resume_native_replacement_start_activation_authority(
+        &self,
+        origin: &NativeReplacementStartOrigin,
+        wait: &crate::AuthorityWait,
+    ) -> Result<PeerAuthorityGuard> {
+        self.resume_native_replacement_start_mode(origin, wait, true)
+    }
+    fn resume_native_replacement_start_mode(
+        &self,
+        origin: &NativeReplacementStartOrigin,
+        wait: &crate::AuthorityWait,
+        mutation: bool,
     ) -> Result<PeerAuthorityGuard> {
         let expiry = origin.expires_at;
         let remaining = chrono::DateTime::from_timestamp(expiry, 0)
             .and_then(|expiry| (expiry - chrono::Utc::now()).to_std().ok())
             .ok_or_else(Error::forbidden)?;
-        let mut proof = self.admit_peer_authority(&origin.request, &wait.bounded(remaining))?;
+        let mut proof =
+            self.admit_peer_authority_mode(&origin.request, &wait.bounded(remaining), mutation)?;
         proof.limit_expiry(expiry)?;
         self.native_replacement_start_read_under(origin, &proof)?;
         Ok(proof)

@@ -203,7 +203,17 @@ impl Runtime {
             .get()
             .cloned()
             .ok_or_else(Error::forbidden)?;
-        let read = store_call(move || store.try_native_replacement_scene_read(&origin, &sources)).await.map_err(|error| {tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,detail=%error.message,"Replacement scene read deferred");error})?;
+        let mutation = matches!(
+            &phase,
+            Phase::Attach | Phase::Activate(_) | Phase::Signal(_) | Phase::Commit(_)
+        );
+        let read = store_call(move || {
+            if mutation {
+                store.try_native_replacement_scene_write(&origin, &sources)
+            } else {
+                store.try_native_replacement_scene_read(&origin, &sources)
+            }
+        }).await.map_err(|error| {tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,detail=%error.message,"Replacement scene read deferred");error})?;
         let deadline = tokio::time::Instant::now()
             + Duration::from_secs(
                 (read.media().source().expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,

@@ -7,7 +7,7 @@ fn pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup(
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store
@@ -196,7 +196,7 @@ fn pre_core_cleanup_exception_never_settles_unknown_or_confirmed_movement() {
         let m = fixture(true);
         let read =
             m.f.store
-                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
                 .unwrap();
         let attempt =
             m.f.store
@@ -238,7 +238,7 @@ fn live_negative_capture_resolves_unknown_metadata_without_crossing_runtime_owne
     let m = fixture(true);
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store

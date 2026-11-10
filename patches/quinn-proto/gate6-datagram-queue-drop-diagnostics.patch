@@ -1,0 +1,226 @@
+--- a/src/connection/datagrams.rs
++++ b/src/connection/datagrams.rs
+@@ -100,6 +100,14 @@
+         self.conn.datagrams.recv()
+     }
+ 
++    #[cfg(test)]
++    pub(crate) fn queue_drop_counts(&self) -> [u64; 6] {
++        let state = &self.conn.datagrams;
++        [state.outgoing_overflow_packets, state.outgoing_overflow_payload_bytes,
++         state.incoming_overflow_packets, state.incoming_overflow_payload_bytes,
++         state.outgoing_mtu_packets, state.outgoing_mtu_payload_bytes]
++    }
++
+     /// Bytes available in the outgoing datagram buffer
+     ///
+     /// When greater than zero, [`send`](Self::send)ing a datagram of at most this size is
+@@ -118,9 +126,34 @@
+     pub(super) incoming: DatagramBuffer,
+     pub(super) outgoing: DatagramBuffer,
+     pub(super) send_blocked: bool,
++    outgoing_overflow_packets: u64,
++    outgoing_overflow_payload_bytes: u64,
++    incoming_overflow_packets: u64,
++    incoming_overflow_payload_bytes: u64,
++    outgoing_mtu_packets: u64,
++    outgoing_mtu_payload_bytes: u64,
++    diagnostic_tag: Option<u64>,
++    diagnostic_server_side: bool,
+ }
+ 
+ impl DatagramState {
++    pub(super) fn new(initial_cid: crate::ConnectionId, server_side: bool) -> Self {
++        use std::hash::{Hash, Hasher};
++        // A correlation hint only, never an authorization or ownership key.
++        // Hash existing metadata without consuming the protocol RNG or logging
++        // a CID, address, packet content or credential.
++        let mut hasher = std::collections::hash_map::DefaultHasher::new();
++        (initial_cid, server_side).hash(&mut hasher);
++        let tag = hasher.finish();
++        debug!(target: "quinn_proto::datagram_queue",
++            connection_tag = tag, server_side,
++            "QUIC datagram queue created");
++        let mut state = Self::default();
++        state.diagnostic_tag = Some(tag);
++        state.diagnostic_server_side = server_side;
++        state
++    }
++
+     pub(super) fn received(
+         &mut self,
+         datagram: Datagram,
+@@ -144,7 +177,11 @@
+         let was_empty = self.incoming.is_empty();
+         while self.incoming.memory_used() + size_with_overhead > window {
+             debug!("dropping stale datagram");
+-            self.recv();
++            if let Some(dropped) = self.recv() {
++                self.incoming_overflow_packets = self.incoming_overflow_packets.saturating_add(1);
++                self.incoming_overflow_payload_bytes = self.incoming_overflow_payload_bytes
++                    .saturating_add(u64::try_from(dropped.len()).unwrap_or(u64::MAX));
++            }
+         }
+ 
+         self.incoming.push_back(datagram);
+@@ -156,6 +193,9 @@
+             let Some(prev) = self.outgoing.pop_front() else {
+                 break;
+             };
++            self.outgoing_overflow_packets = self.outgoing_overflow_packets.saturating_add(1);
++            self.outgoing_overflow_payload_bytes = self.outgoing_overflow_payload_bytes
++                .saturating_add(u64::try_from(prev.data.len()).unwrap_or(u64::MAX));
+             trace!(len = prev.data.len(), "dropping outgoing datagram");
+         }
+     }
+@@ -190,6 +230,9 @@
+                     max_payload
+                 );
+                 self.outgoing.payload_bytes -= datagram.data.len();
++                self.outgoing_mtu_packets = self.outgoing_mtu_packets.saturating_add(1);
++                self.outgoing_mtu_payload_bytes = self.outgoing_mtu_payload_bytes
++                    .saturating_add(u64::try_from(datagram.data.len()).unwrap_or(u64::MAX));
+                 dropped_any = true;
+             }
+             result
+@@ -225,6 +268,29 @@
+     }
+ }
+ 
++// Actual state destruction is the terminal observation. Missing summaries
++// (forced process exit, leaked state or incomplete capture) remain unknown.
++// Pending teardown queues are not overflow/loss verdicts.
++impl Drop for DatagramState {
++    fn drop(&mut self) {
++        let Some(connection_tag) = self.diagnostic_tag else { return; };
++        debug!(target: "quinn_proto::datagram_queue",
++            connection_tag,
++            server_side = self.diagnostic_server_side,
++            outgoing_overflow_packets = self.outgoing_overflow_packets,
++            outgoing_overflow_payload_bytes = self.outgoing_overflow_payload_bytes,
++            incoming_overflow_packets = self.incoming_overflow_packets,
++            incoming_overflow_payload_bytes = self.incoming_overflow_payload_bytes,
++            outgoing_mtu_packets = self.outgoing_mtu_packets,
++            outgoing_mtu_payload_bytes = self.outgoing_mtu_payload_bytes,
++            teardown_unsent_datagrams = self.outgoing.queue.len(),
++            teardown_unsent_payload_bytes = self.outgoing.payload_bytes,
++            teardown_unread_datagrams = self.incoming.queue.len(),
++            teardown_unread_payload_bytes = self.incoming.payload_bytes,
++            "QUIC datagram queue retired");
++    }
++}
++
+ #[derive(Default)]
+ pub(super) struct DatagramBuffer {
+     queue: VecDeque<Datagram>,
+@@ -280,6 +346,8 @@
+         assert_eq!(state.outgoing.queue.len(), 1);
+         assert_eq!(state.outgoing.queue[0].data.len(), 2);
+         assert_eq!(state.outgoing.payload_bytes, 2);
++        assert_eq!(state.outgoing_overflow_packets, 1);
++        assert_eq!(state.outgoing_overflow_payload_bytes, 7);
+     }
+ 
+     #[test]
+@@ -310,6 +378,8 @@
+         assert!(state.has_send_buffer_space(0, window));
+         state.outgoing.push_back(Datagram { data: Bytes::new() });
+         assert_eq!(state.outgoing.memory_used(), window);
++        assert_eq!(state.outgoing_overflow_packets, 1);
++        assert_eq!(state.outgoing_overflow_payload_bytes, 0);
+     }
+ 
+     #[test]
+@@ -332,6 +402,50 @@
+         assert_eq!(state.outgoing.queue.len(), 1);
+         assert_eq!(state.outgoing.queue[0].data.len(), 10);
+         assert_eq!(state.outgoing.payload_bytes, 10);
++        assert_eq!(state.outgoing_mtu_packets, 1);
++        assert_eq!(state.outgoing_mtu_payload_bytes, 11);
++        assert_eq!(state.outgoing_overflow_packets, 0);
++        assert_eq!(state.incoming_overflow_packets, 0);
++    }
++
++    #[test]
++    fn terminal_summary_includes_zero_drops_and_distinct_pending_teardown_queues() {
++        use std::io::Write;
++        use std::sync::{Arc, Mutex};
++        #[derive(Clone)]
++        struct Log(Arc<Mutex<Vec<u8>>>);
++        impl Write for Log {
++            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
++                self.0.lock().unwrap().extend_from_slice(bytes);
++                Ok(bytes.len())
++            }
++            fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
++        }
++        let bytes = Arc::new(Mutex::new(Vec::new()));
++        let output = bytes.clone();
++        let subscriber = tracing_subscriber::fmt()
++            .with_max_level(tracing::Level::DEBUG)
++            .with_ansi(false).without_time()
++            .with_writer(move || Log(output.clone())).finish();
++        tracing::subscriber::with_default(subscriber, || {
++            let mut state = DatagramState::new(crate::ConnectionId::new(b"fixture"), true);
++            state.outgoing.push_back(Datagram { data: Bytes::from_static(b"abc") });
++            state.incoming.push_back(Datagram { data: Bytes::from_static(b"de") });
++            // Moving queue items by the normal API remains legal with Drop.
++            let pending = state.outgoing.pop_front().unwrap();
++            state.outgoing.push_back(pending);
++        });
++        let log = String::from_utf8(bytes.lock().unwrap().clone()).unwrap();
++        assert_eq!(log.matches("QUIC datagram queue created").count(), 1);
++        assert_eq!(log.matches("QUIC datagram queue retired").count(), 1);
++        for field in ["outgoing_overflow_packets=0", "outgoing_overflow_payload_bytes=0",
++            "incoming_overflow_packets=0", "incoming_overflow_payload_bytes=0",
++            "outgoing_mtu_packets=0", "outgoing_mtu_payload_bytes=0",
++            "teardown_unsent_datagrams=1", "teardown_unsent_payload_bytes=3",
++            "teardown_unread_datagrams=1", "teardown_unread_payload_bytes=2"] {
++            assert!(log.contains(field), "missing terminal field {field}");
++        }
++        assert!(!log.contains("fixture"), "raw diagnostic CID leaked");
+     }
+ }
+ 
+--- a/src/connection/mod.rs
++++ b/src/connection/mod.rs
+@@ -357,7 +357,7 @@
+                 config.receive_window,
+                 config.stream_receive_window,
+             ),
+-            datagrams: DatagramState::default(),
++            datagrams: DatagramState::new(init_cid, side.is_server()),
+             config,
+             rem_cids: CidQueue::new(rem_cid),
+             rng,
+--- a/src/tests/mod.rs
++++ b/src/tests/mod.rs
+@@ -2348,6 +2348,9 @@
+     pair.drive();
+     assert_eq!(pair.server_datagrams(server_ch).recv().unwrap(), DATA1);
+     assert_matches!(pair.server_datagrams(server_ch).recv(), None);
++    assert_eq!(pair.client_datagrams(client_ch).queue_drop_counts(), [0; 6]);
++    assert_eq!(pair.server_datagrams(server_ch).queue_drop_counts(),
++        [0, 0, 1, DATA1.len() as u64, 0, 0]);
+ }
+ 
+ #[test]
+@@ -2389,6 +2392,9 @@
+         );
+     }
+     assert_matches!(pair.server_datagrams(server_ch).recv(), None);
++    assert_eq!(pair.client_datagrams(client_ch).queue_drop_counts(),
++        [8, 8 * LEN as u64, 0, 0, 0, 0]);
++    assert_eq!(pair.server_datagrams(server_ch).queue_drop_counts(), [0; 6]);
+ }
+ 
+ #[test]
+@@ -2522,6 +2528,8 @@
+     pair.drive();
+     assert_eq!(pair.server_datagrams(server_ch).recv(), Some(data));
+     assert_matches!(pair.server_datagrams(server_ch).recv(), None);
++    assert_eq!(pair.client_datagrams(client_ch).queue_drop_counts(), [0; 6]);
++    assert_eq!(pair.server_datagrams(server_ch).queue_drop_counts(), [0; 6]);
+ }
+ 
+ #[test]

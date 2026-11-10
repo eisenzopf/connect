@@ -67,7 +67,7 @@ fn successor_retires_established_replacement_without_rewriting_receipt_or_revivi
         };
         let read =
             m.f.store
-                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
                 .unwrap();
         let attempt =
             m.f.store

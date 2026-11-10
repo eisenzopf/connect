@@ -1,0 +1,1647 @@
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -7686,6 +7686,7 @@
+ name = "rvoip-uctp"
+ version = "0.3.12"
+ dependencies = [
++ "arc-swap",
+  "async-trait",
+  "base64 0.22.1",
+  "bytes",
+@@ -7852,6 +7853,7 @@
+ name = "rvoip-webrtc"
+ version = "0.3.12"
+ dependencies = [
++ "arc-swap",
+  "async-trait",
+  "axum",
+  "axum-server 0.7.3",
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1926,7 +1926,7 @@
+     conversation: ConversationId,
+     session: SessionId,
+     connection: ConnectionId,
+-    credential: Mutex<CredentialSnapshot>,
++    credential: credential_publication::CredentialPublication,
+     origin_member: Membership,
+     origin_endpoint: EndpointBinding,
+     origin_binding: ConnectionBinding,
+@@ -2228,7 +2228,7 @@
+             conversation,
+             session,
+             connection,
+-            credential: Mutex::new(CredentialSnapshot {
++            credential: credential_publication::CredentialPublication::new(CredentialSnapshot {
+                 principal: Arc::new(principal),
+                 revision: 1,
+             }),
+@@ -4305,6 +4305,7 @@
+ #[cfg(test)]
+ mod tests;
+ 
++mod credential_publication;
+ mod credential_rebind;
+ 
+ mod audio_consumer;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/credential_publication.rs
+@@ -0,0 +1,69 @@
++//! Exact credential metadata publication. Packet readers retain one immutable
++//! principal/revision pair; existing control writers retain the same mutex and
++//! publish before releasing it. This metadata is never an authority lease.
++use super::CredentialSnapshot;
++use arc_swap::ArcSwap;
++use std::{
++    ops::{Deref, DerefMut},
++    sync::{Arc, LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLockResult},
++};
++
++pub(super) struct CredentialPublication {
++    published: ArcSwap<CredentialSnapshot>,
++    writer: Mutex<CredentialSnapshot>,
++}
++impl CredentialPublication {
++    pub(super) fn new(value: CredentialSnapshot) -> Self {
++        Self {
++            published: ArcSwap::from_pointee(value.clone()),
++            writer: Mutex::new(value),
++        }
++    }
++    pub(super) fn snapshot(&self) -> CredentialSnapshot {
++        self.published.load_full().as_ref().clone()
++    }
++    fn guard<'a>(&'a self, value: MutexGuard<'a, CredentialSnapshot>) -> CredentialWrite<'a> {
++        CredentialWrite { owner: self, value }
++    }
++    pub(super) fn lock(&self) -> LockResult<CredentialWrite<'_>> {
++        self.writer
++            .lock()
++            .map(|value| self.guard(value))
++            .map_err(|error| PoisonError::new(self.guard(error.into_inner())))
++    }
++    pub(super) fn try_lock(&self) -> TryLockResult<CredentialWrite<'_>> {
++        self.writer
++            .try_lock()
++            .map(|value| self.guard(value))
++            .map_err(|error| match error {
++                TryLockError::WouldBlock => TryLockError::WouldBlock,
++                TryLockError::Poisoned(error) => {
++                    TryLockError::Poisoned(PoisonError::new(self.guard(error.into_inner())))
++                }
++            })
++    }
++}
++pub(super) struct CredentialWrite<'a> {
++    owner: &'a CredentialPublication,
++    value: MutexGuard<'a, CredentialSnapshot>,
++}
++impl Deref for CredentialWrite<'_> {
++    type Target = CredentialSnapshot;
++    fn deref(&self) -> &CredentialSnapshot {
++        &self.value
++    }
++}
++impl DerefMut for CredentialWrite<'_> {
++    fn deref_mut(&mut self) -> &mut CredentialSnapshot {
++        &mut self.value
++    }
++}
++impl Drop for CredentialWrite<'_> {
++    fn drop(&mut self) {
++        // Preserve the original Mutex recovery behavior: the complete retained
++        // principal/revision value becomes visible even when a caller unwinds.
++        // No permission is minted here; every actual use retains its original
++        // policy/currentness, expiry and delivery-ticket checks.
++        self.owner.published.store(Arc::new(self.value.clone()));
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/credential_rebind.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/credential_rebind.rs
+@@ -2,10 +2,7 @@
+ 
+ impl StreamController {
+     pub(super) fn credential_snapshot(&self) -> CredentialSnapshot {
+-        self.credential
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .clone()
++        self.credential.snapshot()
+     }
+     pub(super) fn check_credential_snapshot(
+         &self,
+--- a/crates/foundation/rvoip-core/src/staged_streams/credential_rebind_tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/credential_rebind_tests.rs
+@@ -822,3 +822,41 @@
+     assert_eq!(source.status(), PortStatus::Retired);
+     assert!(source.try_publish(&frame(&source, 320)).is_err());
+ }
++
++#[test]
++fn original_credential_snapshot_and_binding_read_do_not_wait_for_control_publication() {
++    let (f, _) = setup(principal("alice"));
++    let old = f.a.credential_snapshot();
++    let owner = f.policy.0.try_read().unwrap().owners["alice"].clone();
++    let mut writer = f.a.credential.lock().unwrap();
++    let mut next = old.principal.as_ref().clone();
++    next.scopes.push("fresh-credential-metadata".into());
++    *writer = CredentialSnapshot {
++        principal: Arc::new(next),
++        revision: old.revision + 1,
++    };
++    let original = f.a.clone();
++    let (tx, rx) = std::sync::mpsc::channel();
++    let worker = std::thread::spawn(move || {
++        let captured = original.credential_snapshot();
++        let bound = original.is_bound_to(&owner.member, &owner.endpoint);
++        tx.send((captured, bound)).unwrap();
++    });
++    let before_release = rx.recv_timeout(std::time::Duration::from_secs(1));
++    // Always release and join the actual owner before evaluating the witness.
++    drop(writer);
++    worker.join().unwrap();
++    let (captured, bound) = before_release
++        .expect("ordinary credential/binding read must finish while control publication is held");
++    assert!(bound);
++    assert_eq!(captured.revision, old.revision);
++    assert!(Arc::ptr_eq(&captured.principal, &old.principal));
++    let current = f.a.credential_snapshot();
++    assert_eq!(current.revision, old.revision + 1);
++    assert!(!Arc::ptr_eq(&current.principal, &old.principal));
++    assert!(
++        f.a.check_credential_snapshot(&old).is_err(),
++        "old queued credential metadata must not borrow the new publication"
++    );
++    assert!(f.a.check_credential_snapshot(&current).is_ok());
++}
+--- a/crates/uctp/rvoip-uctp/Cargo.toml
++++ b/crates/uctp/rvoip-uctp/Cargo.toml
+@@ -19,6 +19,7 @@
+ dev-dangerous = []
+ 
+ [dependencies]
++arc-swap = "=1.9.2"
+ rvoip-infra-common = { workspace = true, optional = true }
+ # Workspace internal
+ rvoip-core.workspace = true
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -134,6 +134,10 @@
+     pub fn deadline(&self) -> Option<Instant> {
+         self.deadline
+     }
++    pub(super) fn bounded(mut self, deadline: Instant) -> Self {
++        self.deadline = Some(self.deadline.map_or(deadline, |old| old.min(deadline)));
++        self
++    }
+ }
+ impl fmt::Debug for AuthorityLease {
+     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+@@ -209,10 +213,27 @@
+ }
+ mod resource_preparation;
+ 
++// One control-invocation handoff only; never accessed on packet delivery.
++// The dispatcher owns this slot rather than an unreplaceable domain alias.
++pub(super) struct ReplyAuthority(Mutex<AuthorityLease>);
++impl ReplyAuthority {
++    pub(super) fn new(lease: AuthorityLease) -> Arc<Self> {
++        Arc::new(Self(Mutex::new(lease)))
++    }
++    fn retained(&self) -> AuthorityLease {
++        self.0.lock().retained()
++    }
++    fn replace(&self, lease: AuthorityLease) {
++        let previous = std::mem::replace(&mut *self.0.lock(), lease);
++        drop(previous);
++    }
++}
++
+ pub struct AuthorizedEnvelope {
+     envelope: Envelope,
+     principal: AuthenticatedPrincipal,
+     _lease: AuthorityLease,
++    reply_authority: Arc<ReplyAuthority>,
+     origin: RequestOrigin,
+     peer: Option<Arc<rvoip_core::peer_admission::PeerAdmission>>,
+     exchange: Option<super::auth_peer::exchange::ExchangeContext>,
+@@ -259,6 +280,9 @@
+     }
+     pub(super) fn retain_authority(&self) -> AuthorityLease {
+         self._lease.retained()
++    }
++    pub(super) fn reply_authority(&self) -> Arc<ReplyAuthority> {
++        self.reply_authority.clone()
+     }
+     /// Trusted handler access to the current owned lease's typed authority.
+     /// The view is borrowed from this invocation; it is not a future grant.
+@@ -775,6 +799,7 @@
+             peer: self.peer.clone(),
+             envelope,
+             principal: self.principal.clone(),
++            reply_authority: ReplyAuthority::new(lease.retained()),
+             _lease: lease,
+             origin: RequestOrigin {
+                 incarnation: self.incarnation,
+@@ -845,7 +870,7 @@
+         &self,
+         held: HeldRequest,
+         previous: &Self,
+-        lease: AuthorityLease,
++        reply_authority: Arc<ReplyAuthority>,
+         handler: &dyn AuthenticatedHandler,
+         requested: Instant,
+     ) -> Result<HandlerReplies, DispatchError> {
+@@ -875,7 +900,8 @@
+             peer: self.peer.clone(),
+             envelope: held.envelope,
+             principal: self.principal.clone(),
+-            _lease: lease,
++            _lease: reply_authority.retained(),
++            reply_authority,
+             origin: RequestOrigin {
+                 incarnation: self.incarnation,
+                 lifetime: self.lifetime.clone(),
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
+@@ -4,6 +4,7 @@
+ 
+ // Not exported or constructible by a peer. This allows only parameter exchange
+ // for the exact initially authorized offer, never conversation payload delivery.
++#[derive(Clone)]
+ struct ResourcePreparation {
+     original: Envelope,
+     participant: String,
+@@ -113,6 +114,16 @@
+             cancellation,
+             deadline,
+         };
++        // Final replies outlive the handler child, never the original physical
++        // peer or cutoff. This carries only exact answer/error resource rights.
++        let mut final_resource = resource.clone();
++        final_resource.cancellation = self.origin.lifetime.child_token();
++        let final_current = final_resource.cancellation.clone();
++        self.reply_authority.replace(AuthorityLease::checking(
++            final_resource,
++            deadline,
++            move || !final_current.is_cancelled(),
++        ));
+         self._lease = AuthorityLease::checking(resource, deadline, move || !current.is_cancelled());
+         Ok(self)
+     }
+@@ -162,3 +173,43 @@
+         })
+     }
+ }
++
++impl ReplyAuthority {
++    pub(in crate::v2) fn resource_only(&self) -> bool {
++        self.0.lock().authority::<ResourcePreparation>().is_some()
++    }
++    pub(in crate::v2) fn for_replies(
++        &self,
++        replies: &[Envelope],
++    ) -> Result<AuthorityLease, DispatchError> {
++        let lease = self.0.lock();
++        if !lease.current() {
++            return Err(DispatchError::Authority);
++        }
++        if let Some(resource) = lease.authority::<ResourcePreparation>() {
++            for reply in replies {
++                if reply.kind() == "connection.answer" {
++                    resource.permits(reply)?;
++                } else if reply.kind() == "error"
++                    && reply.scope(Scope::Reply) == Some(resource.original.id())
++                    && [
++                        Scope::Conversation,
++                        Scope::Session,
++                        Scope::Connection,
++                        Scope::Operation,
++                    ]
++                    .iter()
++                    .all(|scope| {
++                        resource.original.scope(*scope).is_some()
++                            && resource.original.scope(*scope) == reply.scope(*scope)
++                    })
++                {
++                    // Only a scoped refusal, never another application result.
++                } else {
++                    return Err(DispatchError::ReplyMismatch);
++                }
++            }
++        }
++        Ok(lease.retained())
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -164,7 +164,7 @@
+         // One current owned guard spans handler effects and reply delivery.
+         // Releasing it and rereading policy would allow a queued writer to
+         // revoke between an authorized commit and its correlated response.
+-        let lease = authorized.retain_authority();
++        let reply_authority = authorized.reply_authority();
+         match binding
+             .dispatch
+             .dispatch_authorized(authorized, handler, deadline)
+@@ -175,8 +175,10 @@
+                 if batch.envelopes().is_empty() {
+                     return Ok(output(Vec::new(), None));
+                 }
+-                let replies = batch
+-                    .into_envelopes()
++                let replies = batch.into_envelopes();
++                // Check before handler_reply normalizes any asserted scopes.
++                let lease = reply_authority.for_replies(&replies)?;
++                let replies = replies
+                     .into_iter()
+                     .map(|reply| self.handler_reply(reply, envelope))
+                     .collect::<Result<Vec<_>, _>>()?;
+@@ -184,6 +186,7 @@
+                 Ok(output(replies, Some(lease)))
+             }
+             DispatchOutcome::Handled(reply) => {
++                let lease = reply_authority.for_replies(std::slice::from_ref(&reply))?;
+                 let reply = self.handler_reply(reply, envelope)?;
+                 Ok(output(vec![reply], Some(lease)))
+             }
+@@ -359,6 +362,7 @@
+         }
+         failure.execution_started = true;
+         let candidate_lifetime = next.authority_lifetime.clone();
++        let reply_authority = ReplyAuthority::new(lease);
+         let reply = tokio::select! {
+             biased;
+             _ = candidate_lifetime.retired() => return Err(DispatchError::Authority),
+@@ -367,14 +371,51 @@
+             .execute_held(
+                 pending.held,
+                 &binding.dispatch,
+-                lease.retained(),
++                reply_authority.clone(),
+                 handler,
+                 deadline,
+             ) => result?,
+         };
+ 
+-        let replies = reply
+-            .into_envelopes()
++        let replies = reply.into_envelopes();
++        let resource_only = reply_authority.resource_only();
++        let reply_lease = reply_authority.for_replies(&replies)?;
++        let lease = if resource_only {
++            let publication_deadline = reply_lease
++                .deadline()
++                .map_or(deadline, |old| old.min(deadline));
++            // Recheck BOTH credential bindings for authentication publication.
++            // Never replay step_up_media, the handler or resource preparation.
++            drop(reply_lease);
++            let current = tokio::select! { biased;
++                _ = self.lifetime.cancelled() => return Err(DispatchError::Closed),
++                _ = candidate_lifetime.retired() => return Err(DispatchError::Authority),
++                _ = tokio::time::sleep_until(publication_deadline) => return Err(DispatchError::Closed),
++                result = self.config.authority.refresh(
++                    &binding.credential, &next.credential, &next.device,
++                    &next.identity, &response,
++                ) => result?,
++            };
++            if !current.current()
++                || self
++                    .config
++                    .authority
++                    .assurance_requirement(
++                        &next.credential,
++                        &next.device,
++                        &next.identity,
++                        &blocked,
++                    )?
++                    .as_ref()
++                    != Some(&pending.requirement)
++            {
++                return Err(DispatchError::Authority);
++            }
++            current.bounded(publication_deadline)
++        } else {
++            reply_lease
++        };
++        let replies = replies
+             .into_iter()
+             .map(|reply| self.handler_reply(reply, &blocked))
+             .collect::<Result<Vec<_>, _>>()?;
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+@@ -6,7 +6,10 @@
+     controller: Weak<StreamController>,
+     broker: Weak<NativeNegotiation>,
+     source: String,
+-    prepared: Mutex<Option<Arc<PreparedMediaObservation>>>,
++    prepared: arc_swap::ArcSwapOption<PreparedMediaObservation>,
++    // Only preparation/publication state changes serialize here. Ordinary
++    // current readers retain an immutable observation without this mutex.
++    publication: Mutex<()>,
+ }
+ impl std::fmt::Debug for NativeMediaActivation {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+@@ -23,7 +26,8 @@
+             controller: Arc::downgrade(controller),
+             broker: Arc::downgrade(broker),
+             source: source.into(),
+-            prepared: Mutex::new(None),
++            prepared: arc_swap::ArcSwapOption::empty(),
++            publication: Mutex::new(()),
+         })
+     }
+     /// Called only from the original control lease's control_prepared hook.
+@@ -85,18 +89,17 @@
+             return Err(StreamControlError::NotReady);
+         }
+         let owner = activate()?;
+-        *self.prepared.lock().unwrap_or_else(|p| p.into_inner()) = Some(prepared.clone());
++        let _publication = self
++            .publication
++            .lock()
++            .map_err(|_| StreamControlError::Authority)?;
++        self.prepared.store(Some(prepared.clone()));
+         Ok(owner)
+     }
+     /// Merge only a committed resource observation with newly derived authority.
+     /// No original invocation/reader is retained in this idle handle.
+     pub fn current(&self, current: MediaOwner) -> ControlResult<MediaOwner> {
+-        self.prepared
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .as_ref()
+-            .ok_or(StreamControlError::NotReady)?
+-            .current(current)
++        self.current_prepared()?.current(current)
+     }
+     /// Before movement commits, fresh host authority must still prove the
+     /// original source and exact prepared replacement lineage. No old host
+@@ -107,21 +110,30 @@
+         source: &MediaOwner,
+         pending: &rvoip_core::participant_transitions::PreparedParticipantReplacement,
+     ) -> ControlResult<MediaOwner> {
+-        self.prepared
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .as_ref()
+-            .ok_or(StreamControlError::NotReady)?
++        self.current_prepared()?
+             .current_replacement_resources(current, source, pending)
++    }
++    /// Retain the complete immutable preparation without a control-side lock.
++    /// A poisoned publication cannot lend even previously published metadata.
++    fn current_prepared(&self) -> ControlResult<Arc<PreparedMediaObservation>> {
++        if self.publication.is_poisoned() {
++            return Err(StreamControlError::Authority);
++        }
++        let prepared = self.prepared.load_full();
++        if self.publication.is_poisoned() {
++            return Err(StreamControlError::Authority);
++        }
++        prepared.ok_or(StreamControlError::NotReady)
+     }
+     /// Nonblocking current resource observation for host publication metadata.
+     /// Busy metadata is retryable; missing, aborted or cancelled resources have
+     /// no confirmed generation. This returns no current permission or IO lease.
+     pub fn try_confirmed_generation(&self) -> ControlResult<Option<u64>> {
+-        let prepared = self.prepared.try_lock().map_err(|error| match error {
++        let _publication = self.publication.try_lock().map_err(|error| match error {
+             std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
+             std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
+         })?;
++        let prepared = self.prepared.load_full();
+         Ok(prepared.as_ref().and_then(|p| p.committed_generation()))
+     }
+     /// Keep the exact signed preparation and Core installed resources stable
+@@ -131,21 +143,19 @@
+         generation: u64,
+         publish: impl FnOnce() -> R,
+     ) -> ControlResult<R> {
+-        let prepared = self.prepared.try_lock().map_err(|error| match error {
++        let _publication = self.publication.try_lock().map_err(|error| match error {
+             std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
+             std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
+         })?;
++        let prepared = self.prepared.load_full();
+         prepared
+             .as_ref()
+             .ok_or(StreamControlError::NotReady)?
+             .try_publish_installed(generation, publish)
+     }
+     pub fn confirmed_generation(&self) -> Option<u64> {
+-        self.prepared
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .as_ref()?
+-            .committed_generation()
++        let _publication = self.publication.lock().ok()?;
++        self.prepared.load_full().as_ref()?.committed_generation()
+     }
+ }
+ 
+@@ -192,10 +202,11 @@
+             controller: Weak::new(),
+             broker: Weak::new(),
+             source: "controlled-publication-observation".into(),
+-            prepared: Mutex::new(None),
++            prepared: arc_swap::ArcSwapOption::empty(),
++            publication: Mutex::new(()),
+         });
+         assert_eq!(activation.try_confirmed_generation().unwrap(), None);
+-        let held = activation.prepared.lock().unwrap();
++        let held = activation.publication.lock().unwrap();
+         let began = std::time::Instant::now();
+         for _ in 0..16 {
+             assert!(matches!(
+@@ -204,11 +215,19 @@
+             ));
+         }
+         assert!(began.elapsed() < std::time::Duration::from_millis(50));
++        let invoked = std::sync::atomic::AtomicBool::new(false);
++        assert!(matches!(
++            activation.try_publish_installed(1, || {
++                invoked.store(true, std::sync::atomic::Ordering::Release);
++            }),
++            Err(StreamControlError::NotReady)
++        ));
++        assert!(!invoked.load(std::sync::atomic::Ordering::Acquire));
+         drop(held);
+         assert_eq!(activation.try_confirmed_generation().unwrap(), None);
+         let other = activation.clone();
+         assert!(std::thread::spawn(move || {
+-            let _held = other.prepared.lock().unwrap();
++            let _held = other.publication.lock().unwrap();
+             panic!("controlled activation metadata poison");
+         })
+         .join()
+@@ -218,4 +237,100 @@
+             Err(StreamControlError::Authority)
+         ));
+     }
+-}
++    fn current_owner() -> MediaOwner {
++        use rvoip_core::{
++            identity::{AuthenticatedPrincipal, AuthenticationMethod, IdentityAssurance},
++            participant::{ParticipantKind, ParticipantRole},
++            relationships::{
++                ConnectionBinding, EndpointBinding, IdentityBinding, Membership, SessionAppearance,
++            },
++            Transport,
++        };
++        let principal = AuthenticatedPrincipal {
++            subject: "activation-current".into(),
++            tenant: Some("tenant".into()),
++            scopes: vec![],
++            issuer: Some("fixture".into()),
++            expires_at: Some(chrono::Utc::now() + chrono::Duration::minutes(1)),
++            method: AuthenticationMethod::Bearer,
++            assurance: IdentityAssurance::Anonymous,
++        };
++        let identity =
++            IdentityBinding::from_authenticated(&principal, IdentityId::new(), chrono::Utc::now())
++                .unwrap();
++        let member = Membership::admit(
++            identity.clone(),
++            ConversationId::new(),
++            ParticipantId::new(),
++            ParticipantKind::Human,
++            ParticipantRole::Agent,
++        )
++        .unwrap();
++        let presence = SessionAppearance::admit(&member, SessionId::new(), None).unwrap();
++        let mut endpoint = EndpointBinding::provision(
++            identity.clone(),
++            EndpointId::new(),
++            DeviceId::new(),
++            Transport::WebRtc,
++            "fixture-address".into(),
++        )
++        .unwrap();
++        endpoint
++            .verify(&identity, "fixture-evidence".into(), chrono::Utc::now())
++            .unwrap();
++        let connection =
++            ConnectionBinding::prepare(&member, &presence, &endpoint, ConnectionId::new()).unwrap();
++        let capabilities = || EndpointMediaCapabilities {
++            send: vec![],
++            receive: vec![],
++            max_streams: 1,
++            renegotiation: false,
++        };
++        MediaOwner {
++            actor: member.clone(),
++            member,
++            presence,
++            endpoint,
++            connection,
++            may_control: true,
++            send_media: Default::default(),
++            receive_media: Default::default(),
++            local: capabilities(),
++            remote: capabilities(),
++            may_route_source: false,
++        }
++    }
++    #[test]
++    fn actual_current_does_not_wait_for_preparation_publication_and_poison_refuses() {
++        let activation = Arc::new(NativeMediaActivation {
++            controller: Weak::new(),
++            broker: Weak::new(),
++            source: "concurrent-current".into(),
++            prepared: arc_swap::ArcSwapOption::empty(),
++            publication: Mutex::new(()),
++        });
++        let publication = activation.publication.lock().unwrap();
++        let (tx, rx) = std::sync::mpsc::channel();
++        let original = activation.clone();
++        let worker = std::thread::spawn(move || {
++            tx.send(original.current(current_owner()).map(|_| ()))
++                .unwrap();
++        });
++        let before_release = rx.recv_timeout(std::time::Duration::from_secs(1));
++        // Always release and join the original before asserting a counterfactual.
++        drop(publication);
++        worker.join().unwrap();
++        assert!(matches!(before_release, Ok(Err(StreamControlError::NotReady))), "the actual current callback must refuse missing preparation while publication is still held");
++        let original = activation.clone();
++        assert!(std::thread::spawn(move || {
++            let _publication = original.publication.lock().unwrap();
++            panic!("controlled preparation publication poison");
++        })
++        .join()
++        .is_err());
++        assert!(matches!(
++            activation.current(current_owner()),
++            Err(StreamControlError::Authority)
++        ));
++    }
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/offer_answers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/offer_answers.rs
+@@ -145,6 +145,10 @@
+ enum Mode {
+     Resource,
+     ResourceWrongScopes,
++    ResourceFinal,
++    ResourceForeignFinal,
++    ResourceApplication,
++    ResourceError,
+     Normal,
+     WrongScopes,
+     Concurrent,
+@@ -244,7 +248,15 @@
+             }
+             return HandlerReplies::new(vec![Envelope::from_value(v)?]);
+         }
+-        let a = if matches!(self.mode, Mode::Resource | Mode::ResourceWrongScopes) {
++        let a = if matches!(
++            self.mode,
++            Mode::Resource
++                | Mode::ResourceWrongScopes
++                | Mode::ResourceFinal
++                | Mode::ResourceForeignFinal
++                | Mode::ResourceApplication
++                | Mode::ResourceError
++        ) {
+             let a = a.into_resource_preparation(
+                 "part_alice".into(),
+                 ["audio".to_owned()].into_iter().collect(),
+@@ -265,6 +277,29 @@
+         }
+         if self.hold.load(Ordering::Acquire) {
+             self.release.notified().await;
++        }
++        if matches!(
++            self.mode,
++            Mode::ResourceFinal
++                | Mode::ResourceForeignFinal
++                | Mode::ResourceApplication
++                | Mode::ResourceError
++        ) {
++            let mut final_reply = answered(&a, false).original().clone();
++            match self.mode {
++                Mode::ResourceForeignFinal => final_reply["cid"] = json!("foreign"),
++                Mode::ResourceApplication => {
++                    final_reply["type"] = json!("ack");
++                    final_reply["payload"] = json!({});
++                }
++                Mode::ResourceError => {
++                    final_reply["type"] = json!("error");
++                    final_reply["payload"] =
++                        json!({"code":409,"category":"resource","reason":"fixture_refused"});
++                }
++                _ => {}
++            }
++            return HandlerReplies::new(vec![Envelope::from_value(final_reply)?]);
+         }
+         if matches!(self.mode, Mode::WrongScopes | Mode::ResourceWrongScopes) {
+             for field in [
+@@ -758,3 +793,122 @@
+     assert_eq!(policy.approvals.load(Ordering::Acquire), 0);
+     wire.server.shutdown().await.unwrap();
+ }
++
++#[tokio::test]
++async fn resource_final_reply_is_exact_answer_or_scoped_error_without_original_domain_alias() {
++    for (mode, expected) in [
++        (Mode::ResourceFinal, "connection.answer"),
++        (Mode::ResourceError, "error"),
++        (Mode::ResourceForeignFinal, "error"),
++        (Mode::ResourceApplication, "error"),
++    ] {
++        let (f, policy, handler) = setup(mode);
++        handler.hold.store(true, Ordering::Release);
++        let mut wire = open("quic", &f, handler.clone(), None).await;
++        let original = offered();
++        wire.send(f.sign(original.clone())).await;
++        handler.entered.notified().await;
++        let released = policy
++            .grants
++            .clone()
++            .try_write_owned()
++            .map(|mut writer| {
++                writer.deny = true;
++            })
++            .is_ok();
++        handler.hold.store(false, Ordering::Release);
++        handler.release.notify_one();
++        let reply = wire.read().await;
++        f.verify_server(&reply).await;
++        let kind = reply.kind().to_owned();
++        let exact = reply.scope(Scope::Reply) == original["id"].as_str()
++            && reply.scope(Scope::Conversation) == original["cid"].as_str();
++        let scoped_refusal = !matches!(mode, Mode::ResourceError)
++            || reply.original()["payload"]["reason"] == "fixture_refused";
++        wire.server.shutdown().await.unwrap();
++        assert!(
++            released,
++            "resource final-reply slot retained the original domain reader"
++        );
++        assert_eq!(kind, expected);
++        assert!(exact && scoped_refusal);
++        assert_eq!(policy.approvals.load(Ordering::Acquire), 0);
++        assert_eq!(
++            handler.written.load(Ordering::Acquire),
++            0,
++            "final answer is not a second ongoing write"
++        );
++    }
++}
++
++#[tokio::test]
++async fn resumed_resource_offer_releases_domain_then_revalidates_both_credentials_before_publication(
++) {
++    for revoke_previous in [false, true] {
++        let (f, policy, handler) = setup(Mode::Resource);
++        policy.require_user.store(true, Ordering::Release);
++        handler.hold.store(true, Ordering::Release);
++        let mut wire = open("quic", &f, handler.clone(), None).await;
++        let original = offered();
++        wire.send(f.sign(original.clone())).await;
++        let challenge = wire.read().await;
++        assert_eq!(challenge.kind(), "identity.step-up-request");
++        let mut response = envelope(
++            "identity.step-up-response",
++            json!({"method":"bearer","credential":"user"}),
++        );
++        response["in_reply_to"] = json!(challenge.id());
++        for key in ["cid", "sid", "connid", "operation_id"] {
++            response[key] = original[key].clone();
++        }
++        wire.send(f.sign(response)).await;
++        handler.entered.notified().await;
++        let released_domain = policy
++            .grants
++            .clone()
++            .try_write_owned()
++            .map(|mut writer| {
++                writer.deny = true;
++            })
++            .is_ok();
++        let released_credentials = policy
++            .base
++            .revoked
++            .clone()
++            .try_write_owned()
++            .map(|mut writer| {
++                if revoke_previous {
++                    writer.insert("old".into());
++                }
++            })
++            .is_ok();
++        handler.hold.store(false, Ordering::Release);
++        handler.release.notify_one();
++        let answer = wire.read().await;
++        f.verify_server(&answer).await;
++        let first = wire.read().await;
++        let second = wire.read().await;
++        let first_kind = first.kind().to_owned();
++        let second_kind = second.kind().to_owned();
++        wire.server.shutdown().await.unwrap();
++        assert!(
++            released_domain && released_credentials,
++            "resumed resource conversion retained domain or credential readers"
++        );
++        assert_eq!(answer.kind(), "connection.answer");
++        if revoke_previous {
++            assert_eq!(
++                (first_kind.as_str(), second_kind.as_str()),
++                ("error", "error"),
++                "withdrawn previous credential cannot publish successor binding"
++            );
++        } else {
++            assert_eq!(
++                (first_kind.as_str(), second_kind.as_str()),
++                ("auth.session", "identity.assurance-changed")
++            );
++        }
++        assert_eq!(handler.written.load(Ordering::Acquire), 1);
++        assert_eq!(policy.approvals.load(Ordering::Acquire), 0);
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc/Cargo.toml
++++ b/crates/webrtc/rvoip-webrtc/Cargo.toml
+@@ -62,6 +62,7 @@
+ ]
+ 
+ [dependencies]
++arc-swap = "=1.9.2"
+ rvoip-infra-common = { workspace = true, optional = true }
+ rvoip-core.workspace = true
+ rvoip-sip-core.workspace = true
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -1,14 +1,15 @@
+ //! Core-reserved canonical WebRTC resources. Dormant allocation is distinct
+ //! from SDP/DTLS, staged media readiness and participant admission.
+ use crate::{
++    peer::{PeerRole, RvoipPeerConnection},
+     WebRtcConfig,
+-    peer::{PeerRole, RvoipPeerConnection},
+ };
++mod allocation_publication;
+ mod media;
+ use dashmap::DashMap;
+ use futures::{
++    future::{BoxFuture, Shared},
+     FutureExt,
+-    future::{BoxFuture, Shared},
+ };
+ pub use media::RtcMediaActivation;
+ use rvoip_core::{
+@@ -30,8 +31,8 @@
+ };
+ use std::any::Any;
+ use std::sync::{
++    atomic::{AtomicUsize, Ordering},
+     Arc, Mutex, OnceLock, Weak,
+-    atomic::{AtomicUsize, Ordering},
+ };
+ use tokio::sync::mpsc;
+ use tokio_util::sync::CancellationToken;
+@@ -55,8 +56,8 @@
+     capacity: Arc<Mutex<Option<tokio::sync::OwnedSemaphorePermit>>>,
+     accepted_peer: Weak<PeerAdmission>,
+     lifetime: CancellationToken,
+-    owner: Mutex<Option<Owner>>,
+-    allocation: Mutex<Option<Allocation>>,
++    owner: OnceLock<Owner>,
++    allocation: allocation_publication::AllocationPublication,
+     completion: OnceLock<Completion>,
+     terminal: Mutex<Option<TerminalDeliveryReceipt>>,
+ }
+@@ -66,8 +67,8 @@
+             capacity: Arc::new(Mutex::new(None)),
+             accepted_peer: Arc::downgrade(peer),
+             lifetime: physical.child_token(),
+-            owner: Mutex::new(None),
+-            allocation: Mutex::new(None),
++            owner: OnceLock::new(),
++            allocation: allocation_publication::AllocationPublication::new(),
+             completion: OnceLock::new(),
+             terminal: Mutex::new(None),
+         })
+@@ -85,8 +86,7 @@
+     }
+     pub(crate) fn rtc_current(&self) -> bool {
+         self.allocation
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
++            .snapshot()
+             .as_ref()
+             .and_then(|f| f.peek())
+             .is_some_and(|r| r.as_ref().is_ok_and(|p| p.core_transport_current()))
+@@ -110,50 +110,35 @@
+         {
+             return Err(RvoipError::AdmissionRejected("WebRTC physical peer closed"));
+         }
+-        let mut owner = self.owner.lock().unwrap_or_else(|p| p.into_inner());
+-        if owner.is_some() {
+-            return Err(RvoipError::AdmissionRejected(
+-                "WebRTC physical binding already reserved",
+-            ));
+-        }
+-        *owner = Some(Owner {
+-            adapter: Arc::downgrade(adapter),
+-            peer: Arc::downgrade(peer),
+-            connection: id.clone(),
+-            cancel,
+-        });
+-        Ok(())
++        self.owner
++            .set(Owner {
++                adapter: Arc::downgrade(adapter),
++                peer: Arc::downgrade(peer),
++                connection: id.clone(),
++                cancel,
++            })
++            .map_err(|_| RvoipError::AdmissionRejected("WebRTC physical binding already reserved"))
+     }
+     fn current(&self, peer: &Arc<PeerAdmission>, id: &ConnectionId) -> bool {
+         !self.lifetime.is_cancelled()
+             && !peer.is_closed()
+-            && self
+-                .owner
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
+-                .as_ref()
+-                .is_some_and(|o| {
+-                    o.connection == *id
+-                        && !o.cancel.is_cancelled()
+-                        && Weak::ptr_eq(&o.peer, &Arc::downgrade(peer))
+-                })
++            && self.owner.get().is_some_and(|o| {
++                o.connection == *id
++                    && !o.cancel.is_cancelled()
++                    && Weak::ptr_eq(&o.peer, &Arc::downgrade(peer))
++            })
+     }
+     fn owner_current(&self) -> bool {
+         !self.lifetime.is_cancelled()
+-            && self
+-                .owner
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
+-                .as_ref()
+-                .is_some_and(|o| {
+-                    !o.cancel.is_cancelled() && o.peer.upgrade().is_some_and(|p| !p.is_closed())
+-                })
++            && self.owner.get().is_some_and(|o| {
++                !o.cancel.is_cancelled() && o.peer.upgrade().is_some_and(|p| !p.is_closed())
++            })
+     }
+     /// Starts at most once, only AFTER the Core callback reserved this context.
+     /// The original spawned allocation lives outside any result observation.
+     pub fn start_peer(&self, config: WebRtcConfig, role: PeerRole) -> Result<()> {
+         let mut slot = self.allocation.lock().unwrap_or_else(|p| p.into_inner());
+-        let owner = self.owner.lock().unwrap_or_else(|p| p.into_inner());
++        let owner = self.owner.get();
+         if self.lifetime.is_cancelled()
+             || owner.as_ref().is_none_or(|o| {
+                 o.cancel.is_cancelled() || o.peer.upgrade().is_none_or(|p| p.is_closed())
+@@ -267,12 +252,7 @@
+         if self.completion.get().is_some() {
+             return;
+         }
+-        if let Some(allocation) = self
+-            .allocation
+-            .get_mut()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .take()
+-        {
++        if let Some(allocation) = self.allocation.take_mut() {
+             if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+                 let capacity = self.capacity.clone();
+                 runtime.spawn(async move {
+@@ -379,15 +359,9 @@
+         original: &Arc<WebRtcPhysicalBinding>,
+         reason: EndReason,
+     ) -> Result<()> {
+-        let bound_to_original_adapter = original
+-            .owner
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .as_ref()
+-            .is_some_and(|owner| {
+-                owner.connection == id
+-                    && Weak::ptr_eq(&owner.adapter, &Arc::downgrade(&self.identity))
+-            });
++        let bound_to_original_adapter = original.owner.get().is_some_and(|owner| {
++            owner.connection == id && Weak::ptr_eq(&owner.adapter, &Arc::downgrade(&self.identity))
++        });
+         if !bound_to_original_adapter {
+             return Err(RvoipError::AdmissionRejected(
+                 "Original WebRTC cleanup binding differs",
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/allocation_publication.rs
+@@ -0,0 +1,68 @@
++//! One original allocation future. Construction/cleanup keep the same owner
++//! mutex; ordinary readiness only peeks a published handle to that exact future.
++use super::Allocation;
++use arc_swap::ArcSwapOption;
++use std::{
++    ops::{Deref, DerefMut},
++    sync::{Arc, LockResult, Mutex, MutexGuard, PoisonError},
++};
++pub(super) struct AllocationPublication {
++    published: ArcSwapOption<Allocation>,
++    original: Mutex<Option<Allocation>>,
++}
++impl AllocationPublication {
++    pub(super) fn new() -> Self {
++        Self {
++            published: ArcSwapOption::empty(),
++            original: Mutex::new(None),
++        }
++    }
++    pub(super) fn snapshot(&self) -> Option<Arc<Allocation>> {
++        self.published.load_full()
++    }
++    pub(super) fn lock(&self) -> LockResult<AllocationWrite<'_>> {
++        self.original
++            .lock()
++            .map(|value| AllocationWrite { owner: self, value })
++            .map_err(|error| {
++                PoisonError::new(AllocationWrite {
++                    owner: self,
++                    value: error.into_inner(),
++                })
++            })
++    }
++    /// Only the physical binding's final Drop can move its original future.
++    /// Cancellation has already happened; the actual cleanup task owns this
++    /// same future afterward, never a new allocation or inferred receipt.
++    pub(super) fn take_mut(&mut self) -> Option<Allocation> {
++        self.published.store(None);
++        self.original
++            .get_mut()
++            .unwrap_or_else(|p| p.into_inner())
++            .take()
++    }
++}
++pub(super) struct AllocationWrite<'a> {
++    owner: &'a AllocationPublication,
++    value: MutexGuard<'a, Option<Allocation>>,
++}
++impl Deref for AllocationWrite<'_> {
++    type Target = Option<Allocation>;
++    fn deref(&self) -> &Self::Target {
++        &self.value
++    }
++}
++impl DerefMut for AllocationWrite<'_> {
++    fn deref_mut(&mut self) -> &mut Self::Target {
++        &mut self.value
++    }
++}
++impl Drop for AllocationWrite<'_> {
++    fn drop(&mut self) {
++        // Publish while still holding the original start/cleanup mutex. Shared
++        // clones retain the same spawned task/result; none restarts or polls IO.
++        self.owner
++            .published
++            .store(self.value.as_ref().map(|value| Arc::new(value.clone())));
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/cleanup_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/cleanup_tests.rs
+@@ -244,3 +244,43 @@
+     ));
+     assert!(binding.terminal.lock().unwrap().is_none());
+ }
++
++#[tokio::test]
++async fn original_owner_and_readiness_metadata_do_not_wait_for_allocation_start_custody() {
++    let adapter = CanonicalWebRtcAdapter::new();
++    let id = ConnectionId::new();
++    let (owner, binding) = bound_original(&adapter, &id);
++    let original_start = binding.allocation.lock().unwrap();
++    let original = binding.clone();
++    let peer = owner.peer();
++    let captured_id = id.clone();
++    let (tx, rx) = std::sync::mpsc::channel();
++    let worker = std::thread::spawn(move || {
++        tx.send((
++            original.current(&peer, &captured_id),
++            original.owner_current(),
++            original.rtc_current(),
++        ))
++        .unwrap();
++    });
++    let before_release = rx.recv_timeout(std::time::Duration::from_secs(1));
++    let duplicate = binding.bind(
++        &owner.peer(),
++        &id,
++        CancellationToken::new(),
++        &adapter.identity,
++    );
++    // Always release and join original owners before asserting the witness.
++    drop(original_start);
++    worker.join().unwrap();
++    assert!(matches!(before_release, Ok((true, true, false))), "actual original owner must remain current while readiness truthfully refuses the missing allocation without waiting for its start mutex");
++    assert!(
++        duplicate.is_err(),
++        "immutable original binding must never be replaced"
++    );
++    binding.lifetime.cancel();
++    assert!(!binding.current(&owner.peer(), &id));
++    assert!(!binding.owner_current());
++    binding.shutdown().await.unwrap();
++    assert!(binding.actual_close_confirmed());
++}
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -208,7 +208,11 @@
+                         clean = false;
+                     }
+                 }
+-                if clean { Ok(()) } else { Err(()) }
++                if clean {
++                    Ok(())
++                } else {
++                    Err(())
++                }
+             });
+             async move { task.await.unwrap_or(Err(())) }
+                 .boxed()
+@@ -629,11 +633,7 @@
+             .downcast::<Reservation>()
+             .map_err(|_| StreamControlError::Authority)?;
+         {
+-            let owner = self
+-                .physical
+-                .owner
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner());
++            let owner = self.physical.owner.get();
+             if allocation.id != b.stream_local_id
+                 || !owner
+                     .as_ref()
+@@ -1122,7 +1122,8 @@
+     picture_next: &tokio::sync::Mutex<tokio::time::Instant>,
+     stop: &CancellationToken,
+ ) -> bool {
+-    let mut next = tokio::select! {biased; _=stop.cancelled()=>return false, next=picture_next.lock()=>next};
++    let mut next =
++        tokio::select! {biased; _=stop.cancelled()=>return false, next=picture_next.lock()=>next};
+     tokio::select! {biased; _=stop.cancelled()=>return false, _=tokio::time::sleep_until(*next)=>{}}
+     *next = tokio::time::Instant::now() + Duration::from_millis(250);
+     true
+@@ -1160,61 +1161,65 @@
+         let until = tokio::time::Instant::now() + Duration::from_millis(100);
+         loop {
+             let routes = routes.clone();
+-            let forward = pictures.forward_for_request(until, request.as_ref(), move |origin, ssrc| async move {
+-                let routes = routes.upgrade().ok_or(StreamControlError::Cancelled)?;
+-                let route = routes
+-                    .get(&origin.connection)
+-                    .map(|entry| entry.value().clone())
+-                    .ok_or(StreamControlError::NotReady)?;
+-                let backend = route
+-                    .installation
+-                    .try_lock()
+-                    .map_err(|_| StreamControlError::NotReady)?
+-                    .as_ref()
+-                    .map(|installation| installation.backend.clone())
+-                    .ok_or(StreamControlError::NotReady)?;
+-                if !backend.current() || route.cancel.is_cancelled() {
+-                    return Err(StreamControlError::Cancelled);
+-                }
+-                let io = backend
+-                    .ports
+-                    .get(&origin.transport)
+-                    .map(|entry| entry.value().clone())
+-                    .ok_or(StreamControlError::NotReady)?;
+-                let current = || {
+-                    backend.current()
+-                        && !route.cancel.is_cancelled()
+-                        && routes
+-                            .get(&origin.connection)
+-                            .is_some_and(|entry| Arc::ptr_eq(entry.value(), &route))
+-                        && io.binding.transport_id == origin.transport
+-                        && io.binding.negotiated.requested.logical_id == origin.logical
+-                        && io.binding.generation == origin.generation
+-                        && io.binding.source_ready
+-                        && io.health.ready.load(Ordering::Acquire)
+-                        && !io.health.stop.is_cancelled()
+-                        && io
+-                            .port
+-                            .upgrade()
+-                            .is_some_and(|port| port.status() == PortStatus::Active)
+-                };
+-                if !current() {
+-                    return Err(StreamControlError::NotReady);
+-                }
+-                let peer = backend
+-                    .physical
+-                    .peer(tokio::time::Instant::now() + Duration::from_millis(100))
+-                    .await
+-                    .map_err(|_| StreamControlError::NotReady)?;
+-                if !current() {
+-                    return Err(StreamControlError::NotReady);
+-                }
+-                // This queues only PLI on the exact original DTLS peer. Subsequent
+-                // source media still needs its ordinary fresh guarded delivery.
+-                peer.request_picture_for_source(ssrc)
+-                    .await
+-                    .map_err(|_| StreamControlError::NotReady)
+-            });
++            let forward = pictures.forward_for_request(
++                until,
++                request.as_ref(),
++                move |origin, ssrc| async move {
++                    let routes = routes.upgrade().ok_or(StreamControlError::Cancelled)?;
++                    let route = routes
++                        .get(&origin.connection)
++                        .map(|entry| entry.value().clone())
++                        .ok_or(StreamControlError::NotReady)?;
++                    let backend = route
++                        .installation
++                        .try_lock()
++                        .map_err(|_| StreamControlError::NotReady)?
++                        .as_ref()
++                        .map(|installation| installation.backend.clone())
++                        .ok_or(StreamControlError::NotReady)?;
++                    if !backend.current() || route.cancel.is_cancelled() {
++                        return Err(StreamControlError::Cancelled);
++                    }
++                    let io = backend
++                        .ports
++                        .get(&origin.transport)
++                        .map(|entry| entry.value().clone())
++                        .ok_or(StreamControlError::NotReady)?;
++                    let current = || {
++                        backend.current()
++                            && !route.cancel.is_cancelled()
++                            && routes
++                                .get(&origin.connection)
++                                .is_some_and(|entry| Arc::ptr_eq(entry.value(), &route))
++                            && io.binding.transport_id == origin.transport
++                            && io.binding.negotiated.requested.logical_id == origin.logical
++                            && io.binding.generation == origin.generation
++                            && io.binding.source_ready
++                            && io.health.ready.load(Ordering::Acquire)
++                            && !io.health.stop.is_cancelled()
++                            && io
++                                .port
++                                .upgrade()
++                                .is_some_and(|port| port.status() == PortStatus::Active)
++                    };
++                    if !current() {
++                        return Err(StreamControlError::NotReady);
++                    }
++                    let peer = backend
++                        .physical
++                        .peer(tokio::time::Instant::now() + Duration::from_millis(100))
++                        .await
++                        .map_err(|_| StreamControlError::NotReady)?;
++                    if !current() {
++                        return Err(StreamControlError::NotReady);
++                    }
++                    // This queues only PLI on the exact original DTLS peer. Subsequent
++                    // source media still needs its ordinary fresh guarded delivery.
++                    peer.request_picture_for_source(ssrc)
++                        .await
++                        .map_err(|_| StreamControlError::NotReady)
++                },
++            );
+             let attempt = tokio::select! {biased; _=stop.cancelled()=>return Ok(()), result=tokio::time::timeout_at(until, forward)=>result};
+             match attempt {
+                 Ok(PictureAttempt::Invoked) | Err(_) => break,
+@@ -1269,21 +1274,36 @@
+ pub struct RtcMediaActivation {
+     controller: Weak<StreamController>,
+     backend: Weak<Backend>,
+-    prepared: Mutex<Option<Arc<PreparedMediaObservation>>>,
++    prepared: arc_swap::ArcSwapOption<PreparedMediaObservation>,
++    // Only preparation/publication state changes serialize here. Ordinary
++    // current readers retain an immutable observation without this mutex.
++    publication: Mutex<()>,
+ }
+ impl RtcMediaActivation {
+     pub(super) fn new(controller: &Arc<StreamController>, backend: &Arc<Backend>) -> Arc<Self> {
+         Arc::new(Self {
+             controller: Arc::downgrade(controller),
+             backend: Arc::downgrade(backend),
+-            prepared: Mutex::new(None),
++            prepared: arc_swap::ArcSwapOption::empty(),
++            publication: Mutex::new(()),
+         })
+     }
++    fn current_prepared(&self) -> ControlResult<Arc<PreparedMediaObservation>> {
++        if self.publication.is_poisoned() {
++            return Err(StreamControlError::Authority);
++        }
++        let prepared = self.prepared.load_full();
++        if self.publication.is_poisoned() {
++            return Err(StreamControlError::Authority);
++        }
++        prepared.ok_or(StreamControlError::NotReady)
++    }
+     pub fn try_confirmed_generation(&self) -> ControlResult<Option<u64>> {
+-        let prepared = self.prepared.try_lock().map_err(|error| match error {
++        let _publication = self.publication.try_lock().map_err(|error| match error {
+             std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
+             std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
+         })?;
++        let prepared = self.prepared.load_full();
+         Ok(prepared.as_ref().and_then(|p| p.committed_generation()))
+     }
+     pub fn try_publish_installed<R>(
+@@ -1291,10 +1311,11 @@
+         generation: u64,
+         publish: impl FnOnce() -> R,
+     ) -> ControlResult<R> {
+-        let prepared = self.prepared.try_lock().map_err(|error| match error {
++        let _publication = self.publication.try_lock().map_err(|error| match error {
+             std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
+             std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
+         })?;
++        let prepared = self.prepared.load_full();
+         prepared
+             .as_ref()
+             .ok_or(StreamControlError::NotReady)?
+@@ -1319,7 +1340,11 @@
+             return Err(StreamControlError::NotReady);
+         }
+         let owner = prepared.activate_for_commit(current)?;
+-        *self.prepared.lock().unwrap_or_else(|p| p.into_inner()) = Some(prepared.clone());
++        let _publication = self
++            .publication
++            .lock()
++            .map_err(|_| StreamControlError::Authority)?;
++        self.prepared.store(Some(prepared.clone()));
+         Ok(owner)
+     }
+     fn prepare_replacement(
+@@ -1343,7 +1368,11 @@
+         // The replacement proof validates source, target and generation. An
+         // ordinary generation-one activation cannot authorize this candidate.
+         let owner = prepared.activate_replacement_resources(current, source, pending)?;
+-        *self.prepared.lock().unwrap_or_else(|p| p.into_inner()) = Some(prepared.clone());
++        let _publication = self
++            .publication
++            .lock()
++            .map_err(|_| StreamControlError::Authority)?;
++        self.prepared.store(Some(prepared.clone()));
+         Ok(owner)
+     }
+     fn current_replacement(
+@@ -1356,12 +1385,7 @@
+             .backend
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+-        let prepared = self
+-            .prepared
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .clone()
+-            .ok_or(StreamControlError::NotReady)?;
++        let prepared = self.current_prepared()?;
+         if !backend.confirms(prepared.bindings()) {
+             return Err(StreamControlError::NotReady);
+         }
+@@ -1372,23 +1396,15 @@
+             .backend
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+-        let prepared = self
+-            .prepared
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .clone()
+-            .ok_or(StreamControlError::NotReady)?;
++        let prepared = self.current_prepared()?;
+         if !backend.confirms(prepared.bindings()) {
+             return Err(StreamControlError::NotReady);
+         }
+         prepared.current(current)
+     }
+     fn confirmed_generation(&self) -> Option<u64> {
+-        self.prepared
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .as_ref()?
+-            .committed_generation()
++        let _publication = self.publication.lock().ok()?;
++        self.prepared.load_full().as_ref()?.committed_generation()
+     }
+ }
+ 
+@@ -1447,44 +1463,34 @@
+         let logical = Medium::Screen;
+         assert_eq!(rtp_medium(logical).unwrap(), Medium::Video);
+         assert_eq!(logical, Medium::Screen);
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, StreamDirection::Both),
+-                (logical, StreamDirection::Both)
+-            ])
+-            .is_ok()
+-        );
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, StreamDirection::Both),
+-                (Medium::Video, StreamDirection::Both)
+-            ])
+-            .is_ok()
+-        );
++        assert!(validate_rtp_slots([
++            (Medium::Audio, StreamDirection::Both),
++            (logical, StreamDirection::Both)
++        ])
++        .is_ok());
++        assert!(validate_rtp_slots([
++            (Medium::Audio, StreamDirection::Both),
++            (Medium::Video, StreamDirection::Both)
++        ])
++        .is_ok());
+     }
+     #[test]
+     fn a_single_video_rtp_slot_cannot_admit_camera_and_screen_or_data() {
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Video, StreamDirection::Both),
+-                (Medium::Screen, StreamDirection::Both)
+-            ])
+-            .is_err()
+-        );
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Screen, StreamDirection::Both),
+-                (Medium::Screen, StreamDirection::Both)
+-            ])
+-            .is_err()
+-        );
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, StreamDirection::Both),
+-                (Medium::Data, StreamDirection::Both)
+-            ])
+-            .is_err()
+-        );
++        assert!(validate_rtp_slots([
++            (Medium::Video, StreamDirection::Both),
++            (Medium::Screen, StreamDirection::Both)
++        ])
++        .is_err());
++        assert!(validate_rtp_slots([
++            (Medium::Screen, StreamDirection::Both),
++            (Medium::Screen, StreamDirection::Both)
++        ])
++        .is_err());
++        assert!(validate_rtp_slots([
++            (Medium::Audio, StreamDirection::Both),
++            (Medium::Data, StreamDirection::Both)
++        ])
++        .is_err());
+         assert!(rtp_medium(Medium::Data).is_err());
+     }
+ 
+@@ -1492,14 +1498,12 @@
+     fn replacement_video_halves_share_one_physical_slot_without_duplicate_direction() {
+         use StreamDirection::{Both, Receive, Send};
+         for (first, second) in [(Receive, Send), (Send, Receive)] {
+-            assert!(
+-                validate_rtp_slots([
+-                    (Medium::Audio, Both),
+-                    (Medium::Video, first),
+-                    (Medium::Video, second),
+-                ])
+-                .is_ok()
+-            );
++            assert!(validate_rtp_slots([
++                (Medium::Audio, Both),
++                (Medium::Video, first),
++                (Medium::Video, second),
++            ])
++            .is_ok());
+         }
+         for first in [Receive, Send, Both] {
+             for second in [Receive, Send, Both] {
+@@ -1517,32 +1521,26 @@
+     #[test]
+     fn directional_profile_does_not_alias_camera_screen_or_split_audio() {
+         use StreamDirection::{Both, Receive, Send};
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, Both),
+-                (Medium::Video, Receive),
+-                (Medium::Screen, Send),
+-            ])
+-            .is_err()
+-        );
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, Both),
+-                (Medium::Screen, Receive),
+-                (Medium::Video, Send),
+-            ])
+-            .is_err()
+-        );
++        assert!(validate_rtp_slots([
++            (Medium::Audio, Both),
++            (Medium::Video, Receive),
++            (Medium::Screen, Send),
++        ])
++        .is_err());
++        assert!(validate_rtp_slots([
++            (Medium::Audio, Both),
++            (Medium::Screen, Receive),
++            (Medium::Video, Send),
++        ])
++        .is_err());
+         assert!(validate_rtp_slots([(Medium::Audio, Receive), (Medium::Audio, Send),]).is_err());
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, Both),
+-                (Medium::Video, Receive),
+-                (Medium::Video, Send),
+-                (Medium::Video, Send),
+-            ])
+-            .is_err()
+-        );
++        assert!(validate_rtp_slots([
++            (Medium::Audio, Both),
++            (Medium::Video, Receive),
++            (Medium::Video, Send),
++            (Medium::Video, Send),
++        ])
++        .is_err());
+     }
+ 
+     #[test]
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+@@ -698,3 +698,70 @@
+             .expect("original stop retained authority"),
+     );
+ }
++
++#[test]
++fn actual_rtc_current_does_not_wait_for_preparation_publication_and_poison_refuses() {
++    use rvoip_core::peer_admission::PeerAdmissionOwner;
++    let physical_lifetime = CancellationToken::new();
++    let mut accepted = principal("publication");
++    accepted.assurance = IdentityAssurance::Identified {
++        credential_kind: rvoip_core::identity::CredentialKind::Oidc,
++    };
++    let peer_owner = PeerAdmissionOwner::new(
++        &accepted,
++        IdentityId::new(),
++        DeviceId::new(),
++        physical_lifetime.child_token(),
++        Default::default(),
++    )
++    .unwrap();
++    let physical = WebRtcPhysicalBinding::new(&peer_owner.peer(), physical_lifetime.child_token());
++    let backend = Backend::new(
++        ConnectionId::new(),
++        physical,
++        physical_lifetime.child_token(),
++        Weak::new(),
++    );
++    let activation = Arc::new(RtcMediaActivation {
++        controller: Weak::new(),
++        backend: Arc::downgrade(&backend),
++        prepared: arc_swap::ArcSwapOption::empty(),
++        publication: Mutex::new(()),
++    });
++    let publication = activation.publication.lock().unwrap();
++    let (tx, rx) = std::sync::mpsc::channel();
++    let original = activation.clone();
++    let worker = std::thread::spawn(move || {
++        tx.send(original.current(owner("publication")).map(|_| ()))
++            .unwrap();
++    });
++    let before_release = rx.recv_timeout(Duration::from_secs(1));
++    let invoked = AtomicBool::new(false);
++    let publication_result = activation.try_publish_installed(1, || {
++        invoked.store(true, std::sync::atomic::Ordering::Release);
++    });
++    // Always release/join before asserting; no detached fixture owner remains.
++    drop(publication);
++    worker.join().unwrap();
++    assert!(matches!(before_release, Ok(Err(StreamControlError::NotReady))), "actual RTC current must refuse missing preparation while control publication is still held");
++    assert!(matches!(
++        publication_result,
++        Err(StreamControlError::NotReady)
++    ));
++    assert!(!invoked.load(std::sync::atomic::Ordering::Acquire));
++    let original = activation.clone();
++    assert!(std::thread::spawn(move || {
++        let _publication = original.publication.lock().unwrap();
++        panic!("controlled RTC publication poison");
++    })
++    .join()
++    .is_err());
++    assert!(matches!(
++        activation.current(owner("publication")),
++        Err(StreamControlError::Authority)
++    ));
++    drop(activation);
++    drop(backend);
++    drop(peer_owner);
++    physical_lifetime.cancel();
++}

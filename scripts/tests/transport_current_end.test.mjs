@@ -5,6 +5,9 @@ function scenario(mode = "normal") {
     let clock = 0;
     const controller = new AbortController(), saved = [], stops = [], sends = [], waits = [], reads = [];
     const uncertain = Object.assign(Error("original end uncertain"), { certainty: "uncertain" });
+    const originalRefused = Object.assign(Error("original end forbidden"), { kind: "authorization", certainty: "refused" });
+    const laterOriginal = Object.assign(Error("later original end forbidden"), { kind: "authorization", certainty: "refused" });
+    const observationFailure = Object.assign(Error("later snapshot unavailable"), { kind: "deadline", certainty: "read-only" });
     const routes = Array.from({ length: 6 }, (_, index) => ({ generation: 1, sessionIndex: index < 4 ? 0 : 1,
         async stopAndJoin() { stops.push(index); if (mode === "stop-at-cutoff") clock = 67000; },
         connection: { id: "connection-" + index,
@@ -14,6 +17,9 @@ function scenario(mode = "normal") {
                 assert.equal(options.operationId, "end-" + index); sends.push(index);
                 assert.equal(saved.filter(v => v.kind === "intent").length, 4);
                 if (mode === "unknown" && index === 1) throw uncertain;
+                if (["original-then-snapshot-failure", "original-then-cutoff"].includes(mode) && index === 1) throw originalRefused;
+                if (mode === "ordered-original-failures" && index === 2) throw originalRefused;
+                if (mode === "ordered-original-failures" && index === 5) throw laterOriginal;
                 return { referenceJson: () => ({ operation_id: options.operationId, command: "connection.end",
                     scope: Object.assign(Object.create(null), { conversation_id: "room", session_id: "session-" + (index < 4 ? 0 : 1), connection_id: "connection-" + index }) }),
                     async wait(options) { waits.push(index); assert.ok(options.timeoutMs <= 5000);
@@ -23,17 +29,41 @@ function scenario(mode = "normal") {
             },
             async refresh(options) {
                 reads.push(index); assert.ok(options.timeoutMs <= 5000);
-                if (mode === "read-503" && reads.filter(v => v === index).length === 1)
-                    throw { problem: { code: 503, reason: "storage-unavailable" } };
                 if (mode === "auth-refusal" && index === 1) throw { problem: { code: 403, reason: "forbidden" } };
-                return { id: "connection-" + index, state: "retired", generation: 2 };
+                return { id: "connection-" + index, state: mode === "staggered" && index === 5 && reads.filter(v => v === index).length === 1 ? "ready" : "retired", generation: 2 };
             } } }));
-    const args = { routes, ends: [1, 2, 3, 5].map(index => ({ index, operationId: "end-" + index })),
+    if (mode === "regressing-generation") for (const index of [1, 2, 3, 5]) routes[index].generation = 2;
+    const batches = [], roleOwners = new Map();
+    const roles = ["one", "two", "three", "four", "one", "two"];
+    const clients = roles.map(role => {
+        if (!roleOwners.has(role)) roleOwners.set(role, { identityId: "same-identity-does-not-merge-credentials", raw: { read: async (request, options) => {
+            const indices = [1, 2, 3, 5].filter(index => roles[index] === role);
+            batches.push({ client: roleOwners.get(role), indices: [...indices], request, options });
+            if (mode === "read-503" && batches.filter(batch => batch.client === roleOwners.get(role)).length === 1) {
+                reads.push(...indices);throw { problem: { code: 503, reason: "storage-unavailable" } };
+            }
+            if (mode === "original-then-snapshot-failure" && role === "two") throw observationFailure;
+            const items = [];
+            // Actual snapshot extraction/validation executes in production helper.
+            for (const index of indices) {
+                const current = await routes[index].connection.refresh(options);
+                items.push({ kind: "connection", data: { connection_id: current.id,
+                    session_id: "session-" + routes[index].sessionIndex, state: current.state, generation: current.generation } });
+            }
+            if (mode === "late-read" || (mode === "original-then-cutoff" && role === "two")) clock = 67000;
+            if (mode === "wrong-session") items[0].data.session_id = "foreign-session";
+            if (mode === "regressing-generation") items[0].data.generation = 1;
+            return [{ value: { type: "ack", payload: {} } }, { value: { type: "conversation.snapshot",
+                payload: { revision: 9, cursor: "original-watermark", has_more: false, items } } }];
+        } } });
+        return roleOwners.get(role);
+    });
+    const args = { routes, clients, ends: [1, 2, 3, 5].map(index => ({ index, operationId: "end-" + index })),
         conversationId: "room", sessions: [{ id: "session-0" }, { id: "session-1" }], startedAt: 0,
         signal: controller.signal, now: () => clock,
         async wait(ms) { if (mode === "cancel-before-end") { controller.abort(uncertain); throw uncertain; } clock += ms; },
         async persist(index, kind, value) { saved.push({ index, kind, value }); } };
-    return { args, saved, stops, sends, waits, reads, uncertain, controller };
+    return { args, saved, stops, sends, waits, reads, batches, uncertain, originalRefused, laterOriginal, observationFailure, controller };
 }
 test("four retained current owners end after original media; moved0/4 and shared SDK are untouched", async () => {
     const s = scenario(), result = await endRetainedConnections(s.args);
@@ -105,4 +135,68 @@ test("wrong route set and duplicated original end keys refuse before custody or 
         const s = scenario(); change(s); await assert.rejects(endRetainedConnections(s.args));
         assert.equal(s.saved.length, 0); assert.equal(s.sends.length, 0);
     }
+});
+
+
+test("two original routes share one fresh snapshot only for the exact SDK object and Conversation", async () => {
+    const s = scenario(), result = await endRetainedConnections(s.args);
+    assert.equal(result.receipts.length, 4);
+    assert.equal(s.batches.length, 3, "four per-handle refreshes must collapse to three authorized owner reads");
+    assert.equal(s.args.clients[1], s.args.clients[5]);
+    assert.deepEqual(s.batches.find(batch => batch.client === s.args.clients[1]).indices, [1, 5]);
+    assert.equal(new Set(s.batches.map(batch => batch.client)).size, 3);
+    assert.equal(new Set(s.batches.map(batch => batch.client.identityId)).size, 1,
+        "equal identity strings must not merge distinct credential owners");
+    assert.ok(s.batches.every(batch => batch.request.cid === "room" && batch.request.type === "conversation.get"));
+    assert.equal(s.sends.length, 4); assert.equal(s.waits.length, 4);
+});
+
+test("a later observation is a new authorized read and cannot reuse an earlier retired sibling", async () => {
+    const s = scenario("staggered"), result = await endRetainedConnections(s.args);
+    const ownerReads = s.batches.filter(batch => batch.client === s.args.clients[1]);
+    assert.equal(ownerReads.length, 2);
+    assert.notEqual(ownerReads[0].request.id, ownerReads[1].request.id);
+    assert.ok(ownerReads[1].options.timeoutMs < ownerReads[0].options.timeoutMs);
+    assert.deepEqual(result.receipts.map(receipt => receipt.index), [1, 2, 3, 5]);
+    assert.equal(s.saved.filter(value => value.kind === "receipt" && value.index === 1).length, 1);
+    assert.equal(s.saved.filter(value => value.kind === "receipt" && value.index === 5).length, 1);
+    assert.equal(s.sends.length, 4);
+});
+
+test("a successful snapshot arriving after the original global cutoff cannot record a retirement", async () => {
+    const s = scenario("late-read");
+    await assert.rejects(endRetainedConnections(s.args), /original-current-end-cutoff/);
+    assert.equal(s.stops.length, 4); assert.equal(s.sends.length, 4); assert.equal(s.waits.length, 4);
+    assert.equal(s.saved.filter(value => value.kind === "receipt").length, 0);
+});
+
+test("fresh grouped metadata cannot substitute a foreign Session or regress the admitted generation", async () => {
+    for (const mode of ["wrong-session", "regressing-generation"]) {
+        const s = scenario(mode);
+        await assert.rejects(endRetainedConnections(s.args));
+        assert.equal(s.stops.length, 4); assert.equal(s.sends.length, 4);
+        assert.equal(s.saved.filter(value => value.kind === "receipt").length, 0);
+    }
+});
+
+
+test("an original end refusal survives a later same-owner snapshot or cutoff failure after all groups settle", async () => {
+    for (const mode of ["original-then-snapshot-failure", "original-then-cutoff"]) {
+        const s = scenario(mode);
+        await assert.rejects(endRetainedConnections(s.args), error => error === s.originalRefused);
+        assert.deepEqual(s.stops, [1, 2, 3, 5]); assert.deepEqual(s.sends, [1, 2, 3, 5]);
+        assert.deepEqual(s.waits, [2, 3, 5]);
+        assert.ok(s.batches.some(batch => batch.client === s.args.clients[5]),
+            "successful original sibling must still attempt current observation");
+        if (mode === "original-then-snapshot-failure") {
+            assert.deepEqual(s.saved.filter(value => value.kind === "receipt").map(value => value.index).sort(), [2, 3]);
+        }
+    }
+});
+
+test("grouping routes1 and5 never reorders original end failures before route2", async () => {
+    const s = scenario("ordered-original-failures");
+    await assert.rejects(endRetainedConnections(s.args), error => error === s.originalRefused && error !== s.laterOriginal);
+    assert.deepEqual(s.sends, [1, 2, 3, 5]); assert.deepEqual(s.waits, [1, 3]);
+    assert.deepEqual(s.saved.filter(value => value.kind === "receipt").map(value => value.index).sort(), [1, 3]);
 });

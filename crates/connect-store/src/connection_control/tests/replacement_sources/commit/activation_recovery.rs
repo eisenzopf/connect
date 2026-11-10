@@ -23,7 +23,7 @@ impl crate::NativeOfferRecoveryObservation for Recovery {
 fn capture(m: &Movement) -> crate::NativeReplacementCommitted {
     let read =
         m.f.store
-            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
             .unwrap();
     let attempt =
         m.f.store

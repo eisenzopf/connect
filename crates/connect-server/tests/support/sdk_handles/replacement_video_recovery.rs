@@ -549,6 +549,14 @@ async fn signed_replacement_initial_mute_retains_current_owners_under_registry_c
         .await
         .unwrap();
 }
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_replacement_initial_mute_dispatch_uses_exact_held_target_under_registry_contention()
+{
+    tokio::time::timeout(Duration::from_secs(90), exercise(25))
+        .await
+        .unwrap();
+}
 #[tokio::test]
 async fn signed_replacement_original_registration_outlives_its_preparation_cutoff() {
     // Same cap as every actual signed replacement case; do not renew either
@@ -1085,7 +1093,7 @@ async fn exercise(mode: u8) {
     eprintln!("production replacement phase: initial-codec-history");
     let mut encoder = Encoder::open(
         f.temp.path(),
-        matches!(mode, 18 | 19 | 20 | 21 | 22 | 23 | 24),
+        matches!(mode, 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25),
     )
     .await;
     let first = encoder.frame(0, true).await;
@@ -1198,6 +1206,17 @@ async fn exercise(mode: u8) {
             f.server
                 .service
                 .arm_canonical_start_registry_probe_for_test(&command.operation_id)
+                .unwrap(),
+        )
+    } else {
+        None
+    };
+    #[cfg(feature = "test-support")]
+    let start_dispatch_probe = if mode == 25 {
+        Some(
+            f.server
+                .service
+                .arm_canonical_start_dispatch_probe_for_test(&command.operation_id)
                 .unwrap(),
         )
     } else {
@@ -1953,8 +1972,13 @@ async fn exercise(mode: u8) {
         assert_eq!(
             probe.load(std::sync::atomic::Ordering::Acquire),
             2,
-            "initial mute: contended registry refuses the old lookup, exact held owners succeed, expired authority remains refused"
+            "fresh prepared activation: published and exact held owners remain usable under writer exclusion; expired authority remains refused"
         );
+    }
+    #[cfg(feature = "test-support")]
+    if let Some(probe) = start_dispatch_probe {
+        assert_eq!(probe.load(std::sync::atomic::Ordering::Acquire), 2,
+            "original prepared activation must dispatch the fresh exact held target despite all packet registry writers busy, while foreign and expired invocations stay refused");
     }
     #[cfg(feature = "test-support")]
     if let Some(probe) = preparation_registry_probe {

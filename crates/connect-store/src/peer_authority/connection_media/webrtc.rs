@@ -11,10 +11,38 @@ impl Store {
         attempt: &crate::NativeOfferLease,
         wait: &AuthorityWait,
     ) -> Result<PeerAuthorityGuard> {
+        self.resume_original_offer_authority(credential, origin, attempt, wait, false)
+    }
+    /// One fresh current mutation interval after quarantined transport/codec
+    /// preparation. Callers release every earlier reader before this boundary
+    /// and retain this exact writer through Core activation and Store completion.
+    pub fn resume_native_offer_activation_authority(
+        &self,
+        credential: &str,
+        origin: &NativeMediaOrigin,
+        attempt: &crate::NativeOfferLease,
+        wait: &AuthorityWait,
+    ) -> Result<PeerAuthorityGuard> {
+        self.resume_original_offer_authority(credential, origin, attempt, wait, true)
+    }
+    fn resume_original_offer_authority(
+        &self,
+        credential: &str,
+        origin: &NativeMediaOrigin,
+        attempt: &crate::NativeOfferLease,
+        wait: &AuthorityWait,
+        mutation: bool,
+    ) -> Result<PeerAuthorityGuard> {
         current_owner(self, origin)?;
+        let transport = origin.intent.endpoint_transport()?;
         if !matches!(&origin.attempt, NativeMediaAdmission::Offer(_))
-            || origin.intent.endpoint_transport()?
-                != connect_protocol::provisioning::EndpointTransport::Webrtc
+            || (!mutation && transport != connect_protocol::provisioning::EndpointTransport::Webrtc)
+            || !matches!(
+                transport,
+                connect_protocol::provisioning::EndpointTransport::Quic
+                    | connect_protocol::provisioning::EndpointTransport::Webtransport
+                    | connect_protocol::provisioning::EndpointTransport::Webrtc
+            )
             || origin.binding.credentials.last().map(String::as_str) != Some(credential)
             || origin.offer_record_id() != attempt.record_id()
             || origin.connection_id() != attempt.connection_id()
@@ -39,7 +67,7 @@ impl Store {
         let wait = wait.bounded(remaining);
         let mut request = origin.binding.clone();
         request.command = PeerCommand::NativeConnectionOffer(origin.intent.clone());
-        let mut proof = self.admit_peer_authority(&request, &wait)?;
+        let mut proof = self.admit_peer_authority_mode(&request, &wait, mutation)?;
         proof.limit_expiry(expires_at)?;
         self.validate_native_offer_attempt(credential, attempt, &proof)?;
         if proof.key.public_key != origin.public_key
@@ -54,7 +82,7 @@ impl Store {
         let read = self.native_media_read_with_peer(origin, None, &proof)?;
         let view = read.target();
         if !read.current()
-            || view.endpoint_transport != connect_protocol::provisioning::EndpointTransport::Webrtc
+            || view.endpoint_transport != transport
             || view.connection.endpoint_id != origin.endpoint_id
             || view.connection.participant_id != origin.participant_id
             || view.connection.membership_epoch != origin.membership_epoch

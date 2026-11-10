@@ -499,6 +499,55 @@ impl AuthenticatedHandler for CanonicalHandler {
                 HandlerReplies::new(vec![result, complete])
             };
         }
+        // This lane transfers the unique signed invocation to the resource
+        // worker. The handler retains only reply correlation/completion, never
+        // a second Arc that would pin the original domain reader over SDP/IO.
+        if authorized.envelope().kind() == "connection.offer"
+            && (authorized.envelope().original()["payload"]
+                .get("replacement_preparation")
+                .is_none()
+                || authorized.envelope().original()["payload"]["replacement_preparation"]
+                    ["profile"]
+                    == "connect-replacement-media-v1")
+        {
+            let original = authorized.envelope().clone();
+            let completion = authorized.offer_completion();
+            let result = async {
+                crate::canonical_native::intent(&original)?;
+                let credential = self.authorize(&authorized).await?;
+                let physical = self.physical.clone().ok_or_else(Error::forbidden)?;
+                let runtime = self
+                    .service
+                    .canonical_runtime
+                    .get()
+                    .ok_or_else(Error::forbidden)?;
+                runtime
+                    .native_offer(Arc::new(authorized), physical, credential)
+                    .await
+            }
+            .await;
+            return match result {
+                Ok(value) if value.answered => completion.finish_answered_offer(),
+                Ok(value) => {
+                    // Replay was freshly authorized by the original worker; it
+                    // performs no transport preparation or mutation resubmission.
+                    let mut payload = json!({"operation_id":value.record.operation_id,"record_id":value.record.record_id,"command_type":value.record.command_type,"expected_revision":value.record.expected_revision,"state":value.record.state,"revision":value.record.revision});
+                    if let Some(result) = value.record.result {
+                        payload["result"] = result;
+                    }
+                    if let Some(problem) = value.record.problem {
+                        payload["problem"] = problem;
+                    }
+                    HandlerReplies::new(vec![
+                        reply(&original, "operation.updated", payload)
+                            .map_err(|_| DispatchError::Closed)?,
+                        reply(&original, "ack", json!({"details":{"reply_complete":true}}))
+                            .map_err(|_| DispatchError::Closed)?,
+                    ])
+                }
+                Err(error) => HandlerReplies::new(vec![problem(&original, error)?]),
+            };
+        }
         let is_data = matches!(authorized.envelope().payload(), Payload::MessageSend(_))
             && (authorized.envelope().scope(Scope::Session).is_some()
                 || authorized.envelope().scope(Scope::Connection).is_some());

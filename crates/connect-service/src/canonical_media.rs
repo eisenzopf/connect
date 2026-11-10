@@ -6,8 +6,12 @@ pub(crate) mod data;
 pub(crate) mod data_writes;
 pub(crate) mod handoff;
 pub(crate) mod ice;
+mod lifetime;
+mod native_snapshots;
 mod packet_metadata;
 mod packets;
+mod published;
+use published::Published;
 pub(crate) mod preparation;
 pub(crate) mod public_continuation;
 #[cfg(feature = "test-support")]
@@ -60,21 +64,23 @@ pub(crate) struct Connection {
     pub plan: NativeOfferPlan,
     // Peer support established by the initial offer and actual later commits.
     // Declarations alone never remove rights from an existing usable binding.
-    negotiated_remote: Mutex<EndpointMediaCapabilities>,
-    activation: Mutex<Option<Arc<dyn MediaActivation>>>,
-    binding: Mutex<Option<ConnectionBinding>>,
-    preparation: Mutex<
+    snapshots: Published<native_snapshots::Routes>,
+    lifetime: Published<Option<connect_store::NativeConnectionLifetimeSnapshot>>,
+    negotiated_remote: Published<EndpointMediaCapabilities>,
+    activation: Published<Option<Arc<dyn MediaActivation>>>,
+    binding: Published<Option<ConnectionBinding>>,
+    preparation: Published<
         Option<Arc<rvoip_core::staged_streams::endpoint_preparation::AudioEndpointPreparation>>,
     >,
 }
 pub(crate) struct Policy {
     pub store: Arc<Store>,
-    entries: Mutex<BTreeMap<ConnectionId, Arc<Connection>>>,
+    entries: Published<BTreeMap<ConnectionId, Arc<Connection>>>,
     replacement_targets:
-        Mutex<BTreeMap<ConnectionId, Weak<crate::canonical_replacement::TargetPolicy>>>,
+        Published<BTreeMap<ConnectionId, Weak<crate::canonical_replacement::TargetPolicy>>>,
     telephone_targets:
-        Mutex<BTreeMap<ConnectionId, Weak<crate::telephone_replacement::media::Policy>>>,
-    initial_targets: Mutex<BTreeMap<ConnectionId, Weak<crate::initial_telephone::policy::Leg>>>,
+        Published<BTreeMap<ConnectionId, Weak<crate::telephone_replacement::media::Policy>>>,
+    initial_targets: Published<BTreeMap<ConnectionId, Weak<crate::initial_telephone::policy::Leg>>>,
     capacity: usize,
     #[cfg(feature = "test-support")]
     video_preparation_probes: Mutex<BTreeMap<String, Weak<video_preparation_fixture::Probe>>>,
@@ -98,6 +104,9 @@ pub(crate) struct Invocation {
     pub policy: Arc<Policy>,
     pub connection: Arc<Connection>,
     pub authorized: Arc<AuthorizedEnvelope>,
+    // Fresh activation proof after the unique signed resource exchange releases
+    // its original reader. Never installed in packet ports or idle workers.
+    pub resumed: Option<Arc<connect_store::PeerAuthorityGuard>>,
     // The original owned source readers freeze authorization through this
     // bounded invocation. Engine callbacks must never reacquire SQL or grants.
     pub read: Arc<NativeMediaRead>,
@@ -305,12 +314,10 @@ impl Connection {
         }
     }
     pub(crate) fn activation(&self) -> ControlResult<Option<Arc<dyn MediaActivation>>> {
-        // Holders only clone this metadata or check the first assignment; no
-        // Store, Core callback or IO runs under the leaf lock. Wait for that
-        // short exclusion instead of mistaking another lookup for withdrawal.
-        // The lock is released before callers derive current media authority.
-        Ok(self.activation.lock().map_err(denied)?.clone())
+        // Immutable metadata publication is independent of control-side writes.
+        Ok(self.activation.snapshot().map_err(denied)?.as_ref().clone())
     }
+
     pub fn set_activation(&self, value: Arc<dyn MediaActivation>) -> ControlResult<()> {
         let mut activation = self.activation.lock().map_err(denied)?;
         if activation
@@ -371,31 +378,20 @@ impl Connection {
             )),
         )
         .map_err(denied)?;
-        let connection = {
-            // This mutex contains only relationship values. Every production holder
-            // performs pure comparisons/clones/assignment and releases it before
-            // entering Core, Store or IO. Wait for that leaf metadata instead of
-            // turning a concurrent read into withdrawn authority.
-            let mut saved = self
-                .binding
-                .lock()
-                .map_err(|_| StreamControlError::Authority)?;
+        let saved = self.binding.snapshot().map_err(denied)?;
+        let connection = if let Some(binding) = saved.as_ref() {
+            binding.clone()
+        } else {
+            // Initial binding publication is a state change. Established media
+            // never enters this writer; later generations adopt their actual
+            // Core binding before publication.
+            if view.connection.generation != 1 {
+                return Err(StreamControlError::Authority);
+            }
+            let mut saved = self.binding.try_lock().map_err(metadata_contention)?;
             if let Some(binding) = saved.as_ref() {
-                binding
-                    .require_current(&member, &presence)
-                    .map_err(|error| {tracing::debug!(target:"connect_service::canonical_native",?error,"Native binding current check refused");denied(error)})?;
-                if binding.endpoint() != endpoint.endpoint()
-                    || binding.device() != endpoint.device()
-                    || binding.generation() != view.connection.generation
-                {
-                    return Err(StreamControlError::Authority);
-                }
                 binding.clone()
             } else {
-                // Later generations must adopt the actual Core incarnation.
-                if view.connection.generation != 1 {
-                    return Err(StreamControlError::Authority);
-                }
                 let binding = ConnectionBinding::prepare(
                     &member,
                     &presence,
@@ -407,11 +403,20 @@ impl Connection {
                 binding
             }
         };
+        connection
+            .require_current(&member, &presence)
+            .map_err(denied)?;
+        if connection.endpoint() != endpoint.endpoint()
+            || connection.device() != endpoint.device()
+            || connection.generation() != view.connection.generation
+        {
+            return Err(StreamControlError::Authority);
+        }
         let local = filtered(view, self.profile.engine_capabilities());
         let remote = match negotiation {
             Some(remote) => filtered(view, remote),
             None => {
-                let remote = self.negotiated_remote.lock().map_err(denied)?;
+                let remote = self.negotiated_remote.snapshot().map_err(denied)?;
                 filtered(view, &remote)
             }
         };
@@ -525,6 +530,60 @@ impl Policy {
         );
         Some(current)
     }
+    /// Exercise the original initial-mute dispatch while all packet target
+    /// registries are genuinely excluded. The once-only gate itself is not
+    /// replayed; only its original synchronous policy admission is entered.
+    #[cfg(feature = "test-support")]
+    pub(crate) fn probe_start_dispatch_for_test(
+        &self,
+        operation: &str,
+        connection: &ConnectionId,
+        probe: impl FnOnce() -> (bool, bool, ControlResult<MediaControl>),
+    ) -> Option<ControlResult<MediaControl>> {
+        use std::sync::atomic::Ordering;
+        let state = self
+            .held_registry_probes
+            .lock()
+            .ok()?
+            .remove(&format!("start-dispatch:{operation}"))?;
+        state.store(1, Ordering::Release);
+        let _initial = self
+            .initial_targets
+            .lock()
+            .expect("original initial registry");
+        let _telephone = self
+            .telephone_targets
+            .lock()
+            .expect("original telephone registry");
+        let _replacement = self
+            .replacement_targets
+            .lock()
+            .expect("original replacement registry");
+        let original_lookups_busy = self.initial_targets.try_lock().is_err()
+            && self.telephone_targets.try_lock().is_err()
+            && self.replacement_targets.try_lock().is_err();
+        let published_lookups_current = self.initial_target(connection).is_ok()
+            && self.telephone_target(connection).is_ok()
+            && self
+                .replacement_target(connection)
+                .is_ok_and(|target| target.is_some());
+        let (foreign_refused, expired_refused, current) = probe();
+        eprintln!("original start dispatch: lookups_busy={original_lookups_busy} foreign_refused={foreign_refused} expired_refused={expired_refused} held_ok={}", current.is_ok());
+        state.store(
+            if original_lookups_busy
+                && published_lookups_current
+                && foreign_refused
+                && expired_refused
+                && current.is_ok()
+            {
+                2
+            } else {
+                3
+            },
+            Ordering::Release,
+        );
+        Some(current)
+    }
     /// Exercise actual post-publication attachment with this original registry
     /// excluded. No mock grant, media packet or replacement attempt is created.
     #[cfg(feature = "test-support")]
@@ -545,10 +604,10 @@ impl Policy {
             return Some(Err(connect_protocol::Error::forbidden()));
         };
         let original_installed = registry.contains_key(id);
-        let old_lookup_busy = matches!(self.entry(id), Err(StreamControlError::NotReady));
+        let writer_busy_and_readable = self.entries.try_lock().is_err() && self.entry(id).is_ok();
         let result = activate();
         state.store(
-            if original_installed && old_lookup_busy && result.is_ok() {
+            if original_installed && writer_busy_and_readable && result.is_ok() {
                 2
             } else {
                 3
@@ -684,8 +743,8 @@ impl Policy {
     ) -> ControlResult<Option<Arc<crate::initial_telephone::policy::Leg>>> {
         Ok(self
             .initial_targets
-            .try_lock()
-            .map_err(metadata_contention)?
+            .snapshot()
+            .map_err(denied)?
             .get(id)
             .and_then(Weak::upgrade))
     }
@@ -721,8 +780,8 @@ impl Policy {
     ) -> ControlResult<Option<Arc<crate::telephone_replacement::media::Policy>>> {
         Ok(self
             .telephone_targets
-            .try_lock()
-            .map_err(metadata_contention)?
+            .snapshot()
+            .map_err(denied)?
             .get(id)
             .and_then(Weak::upgrade))
     }
@@ -758,8 +817,8 @@ impl Policy {
     ) -> ControlResult<Option<Arc<crate::canonical_replacement::TargetPolicy>>> {
         Ok(self
             .replacement_targets
-            .try_lock()
-            .map_err(metadata_contention)?
+            .snapshot()
+            .map_err(denied)?
             .get(id)
             .and_then(Weak::upgrade)
             // Dispatch state only; the ordinary path still takes fresh Store
@@ -774,10 +833,10 @@ impl Policy {
     pub fn new(store: Arc<Store>, capacity: usize) -> Arc<Self> {
         Arc::new(Self {
             store,
-            entries: Mutex::new(BTreeMap::new()),
-            replacement_targets: Mutex::new(BTreeMap::new()),
-            telephone_targets: Mutex::new(BTreeMap::new()),
-            initial_targets: Mutex::new(BTreeMap::new()),
+            entries: Published::new(BTreeMap::new()),
+            replacement_targets: Published::new(BTreeMap::new()),
+            telephone_targets: Published::new(BTreeMap::new()),
+            initial_targets: Published::new(BTreeMap::new()),
             capacity,
             #[cfg(feature = "test-support")]
             replacement_projection_pauses: Default::default(),
@@ -830,23 +889,32 @@ impl Policy {
         if entries.len() >= self.capacity {
             return Err(StreamControlError::Authority);
         }
-        let negotiated_remote = Mutex::new(plan.remote_capabilities().clone());
+        let negotiated_remote = Published::new(plan.remote_capabilities().clone());
         let connection = Arc::new(Connection {
             domain: Arc::downgrade(self),
             origin,
             principal,
             profile,
             plan,
+            snapshots: Default::default(),
+            lifetime: Default::default(),
             negotiated_remote,
-            activation: Mutex::new(None),
-            binding: Mutex::new(None),
-            preparation: Mutex::new(None),
+            activation: Published::new(None),
+            binding: Published::new(None),
+            preparation: Published::new(None),
         });
+        connection
+            .prepare_snapshot_route(&self.store, None)
+            .map_err(packet_authority_error)?;
         entries.insert(id, connection.clone());
         Ok(connection)
     }
     pub(crate) fn origin(&self, id: &ConnectionId) -> Option<Arc<NativeMediaOrigin>> {
-        self.entries.lock().ok()?.get(id).map(|e| e.origin.clone())
+        self.entries
+            .snapshot()
+            .ok()?
+            .get(id)
+            .map(|e| e.origin.clone())
     }
     /// Resource-bearing entries and Weak target registries, never permissions.
     /// Each try_lock releases before another registry or serialization is entered.
@@ -886,12 +954,10 @@ impl Policy {
         public_id: &str,
         generation: u64,
     ) -> connect_protocol::Result<Arc<Connection>> {
-        let entries = self.entries.try_lock().map_err(|error| match error {
-            std::sync::TryLockError::WouldBlock => {
-                connect_protocol::Error::new("authority-busy", "Assistant native registry is busy")
-            }
-            std::sync::TryLockError::Poisoned(_) => connect_protocol::Error::storage(),
-        })?;
+        let entries = self
+            .entries
+            .snapshot()
+            .map_err(|_| connect_protocol::Error::storage())?;
         let mut candidates = entries.values().filter(|entry| {
             entry.origin.connection_id() == public_id && entry.origin.generation() == generation
         });
@@ -905,8 +971,8 @@ impl Policy {
     }
     pub(crate) fn entry(&self, id: &ConnectionId) -> ControlResult<Arc<Connection>> {
         self.entries
-            .try_lock()
-            .map_err(metadata_contention)?
+            .snapshot()
+            .map_err(denied)?
             .get(id)
             .cloned()
             .ok_or(StreamControlError::Authority)
@@ -968,8 +1034,13 @@ impl Policy {
         source: Option<&NativeMediaOrigin>,
     ) -> ControlResult<Arc<NativeMediaRead>> {
         let a = &i.authorized;
-        let authority = a
-            .authority::<StoreInvocationAuthority>()
+        let proof = i
+            .resumed
+            .as_deref()
+            .or_else(|| {
+                a.authority::<StoreInvocationAuthority>()
+                    .and_then(|a| a.peer_guard())
+            })
             .ok_or(StreamControlError::Authority)?;
         if !i
             .connection
@@ -985,10 +1056,7 @@ impl Policy {
         {
             return Err(StreamControlError::Authority);
         }
-        if source.is_some()
-            || !authority.peer_guard().is_some_and(|proof| proof.current())
-            || !i.read.current()
-        {
+        if source.is_some() || !proof.current() || !i.read.current() {
             return Err(StreamControlError::Authority);
         }
         // Original source authorization is held by these exact readers. A
@@ -1031,6 +1099,13 @@ impl Fresh {
         self
     }
 }
+// Queue metadata only. The Fresh lease still retains the actual IO fences.
+struct PacketEpoch(connect_store::NativeMediaSnapshotEpoch);
+impl rvoip_core::staged_streams::PacketEpoch for PacketEpoch {
+    fn current(&self) -> bool {
+        self.0.current()
+    }
+}
 impl MediaAuthorityLease for Fresh {
     fn authority(&self) -> &MediaOwner {
         &self.owner
@@ -1040,6 +1115,11 @@ impl MediaAuthorityLease for Fresh {
             chrono::DateTime::from_timestamp(self._read.expires_at(), 0)
                 .unwrap_or(chrono::DateTime::<chrono::Utc>::MIN_UTC),
         )
+    }
+    fn packet_epoch(&self) -> Option<Arc<dyn rvoip_core::staged_streams::PacketEpoch>> {
+        self._read.packet_epoch().map(|epoch| {
+            Arc::new(PacketEpoch(epoch)) as Arc<dyn rvoip_core::staged_streams::PacketEpoch>
+        })
     }
     fn packet_context(&self) -> Option<&(dyn Any + Send + Sync)> {
         Some(&self.weak)
@@ -1216,6 +1296,19 @@ impl MediaPolicy for Policy {
         intent: &MediaControlIntent<'_>,
         held: &(dyn Any + Send + Sync),
     ) -> ControlResult<MediaControl> {
+        #[cfg(feature = "test-support")]
+        if let Some(result) = crate::canonical_replacement::probe_held_start_control_for_test(
+            self, scope, intent, held,
+        ) {
+            return result;
+        }
+        // Startup owns its exact target policy too. Do not consult unrelated
+        // packet-routing registries before its unchanged current authority.
+        if let Some(result) =
+            crate::canonical_replacement::held_start_control(self, scope, intent, held)
+        {
+            return result;
+        }
         // A held replacement already owns exact scene entries and current
         // Store custody. Unrelated packet-registry contention is not a changed
         // command grant; dispatch the sealed invocation before packet routing.

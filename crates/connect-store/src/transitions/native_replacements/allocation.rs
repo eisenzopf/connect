@@ -302,7 +302,14 @@ impl Store {
         if !read.current() || read.source.selection().origin.record != prepared.record {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        if !self.authority_covers(
+            Self::peer_scopes(proof),
+            &Self::peer_scopes(proof).mutation_scopes(),
+        ) {
+            return Err(Error::forbidden());
+        }
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, Self::peer_scopes(proof))?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -397,11 +404,12 @@ impl Store {
             interval,
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
-                let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &prepared.record)?)
+                let c = self.try_connection()?;
+                admission::mutation_row_scopes(&rows::by_record(&c, &prepared.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -459,7 +467,7 @@ impl Store {
         let attempt = &captured.attempt;
         let prepared = &attempt.prepared;
         local_owner(self, &prepared.owner, &prepared.runtime)?;
-        let c = self.connection()?;
+        let c = self.try_connection()?;
         self.require_peer_source(&c, proof, credential)?;
         let actor = actor_from_connection(&c, credential)?;
         actor.require("connection.offer")?;
@@ -511,10 +519,10 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &prepared.record)?)
+                admission::mutation_row_scopes(&rows::by_record(&c, &prepared.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

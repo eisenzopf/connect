@@ -55,6 +55,13 @@ impl AuthorityScope {
             mode: AuthorityMode::Read,
         }
     }
+    pub(crate) fn write_scope(&self) -> Self {
+        Self {
+            kind: self.kind,
+            id: self.id.clone(),
+            mode: AuthorityMode::Write,
+        }
+    }
     pub(crate) fn merged(scopes: &[Self]) -> Result<Vec<Self>> {
         let mut ordered = BTreeMap::new();
         for scope in scopes {
@@ -222,6 +229,8 @@ pub struct AuthorityGuardSet {
     // Report only after the original file guards have been released. Disabled
     // in normal operation; this owns no resource, permission or extra reader.
     _timing: Option<AuthorityTiming>,
+    // Ends notification only after original resource guards have released.
+    _media_writer: Option<crate::media_authorization::WriterNotice>,
 }
 struct AuthorityTiming {
     started: Instant,
@@ -257,6 +266,57 @@ impl Drop for AuthorityTiming {
     }
 }
 impl AuthorityGuardSet {
+    pub(crate) fn snapshot_read_scopes(&self) -> Result<Vec<AuthorityScope>> {
+        if self
+            .scopes
+            .values()
+            .any(|mode| *mode != AuthorityMode::Read)
+        {
+            return Err(Error::forbidden());
+        }
+        Ok(self
+            .scopes
+            .iter()
+            .map(|((kind, id), mode)| AuthorityScope {
+                kind: *kind,
+                id: id.clone(),
+                mode: *mode,
+            })
+            .collect())
+    }
+    pub(crate) fn covers_original_interval(&self, original: &Self) -> bool {
+        Arc::ptr_eq(&self.manager, &original.manager)
+            && original.scopes.iter().all(|(key, mode)| {
+                self.scopes
+                    .get(key)
+                    .is_some_and(|current| *current >= *mode)
+            })
+    }
+    /// Actual exclusive scopes already held by this proof, never an upgrade.
+    pub(crate) fn held_write_scopes(&self) -> Vec<AuthorityScope> {
+        self.scopes
+            .iter()
+            .filter_map(|((kind, id), mode)| {
+                (*mode == AuthorityMode::Write).then(|| AuthorityScope {
+                    kind: *kind,
+                    id: id.clone(),
+                    mode: AuthorityMode::Write,
+                })
+            })
+            .collect()
+    }
+    /// Complete original footprint converted for a fresh mutation admission.
+    /// This returns scopes only; it neither upgrades nor retains this reader.
+    pub(crate) fn mutation_scopes(&self) -> Vec<AuthorityScope> {
+        self.scopes
+            .keys()
+            .map(|(kind, id)| AuthorityScope {
+                kind: *kind,
+                id: id.clone(),
+                mode: AuthorityMode::Write,
+            })
+            .collect()
+    }
     /// Validate reuse without reacquiring a fair reader behind a queued writer.
     pub fn covers(&self, scopes: &[AuthorityScope]) -> bool {
         scopes.iter().all(|scope| {
@@ -280,6 +340,7 @@ pub(crate) struct Manager {
     secret: Vec<u8>,
     fingerprint: (u64, u64, u32),
     state_identity: String,
+    media_snapshots: Mutex<Weak<crate::media_authorization::Registry>>,
     // Bounded namespace metadata only: never a file, lock, reader or grant.
     names: Mutex<BTreeMap<(Kind, String), String>>,
     readers: RwLock<BTreeMap<String, Weak<LockFile>>>,
@@ -292,6 +353,25 @@ pub(crate) struct Manager {
     admission_attempts: std::sync::atomic::AtomicU64,
 }
 impl Manager {
+    pub(crate) fn media_snapshot_registry(
+        self: &Arc<Self>,
+    ) -> Result<Arc<crate::media_authorization::Registry>> {
+        let mut saved = self.media_snapshots.lock().map_err(|_| Error::storage())?;
+        if let Some(registry) = saved.upgrade().filter(|registry| !registry.stopped()) {
+            return Ok(registry);
+        }
+        // The manager never strongly owns the registry. Its probe holds only
+        // a weak manager, avoiding a manager/worker/snapshot ownership cycle.
+        let manager = Arc::downgrade(self);
+        let registry = crate::media_authorization::Registry::new(move |scopes| {
+            let manager = manager.upgrade().ok_or_else(Error::forbidden)?;
+            let probe = manager.try_acquire(scopes)?;
+            drop(probe);
+            Ok(())
+        });
+        *saved = Arc::downgrade(&registry);
+        Ok(registry)
+    }
     pub(crate) fn open(path: &Path, secret: &str) -> Result<Arc<Self>> {
         static MANAGERS: OnceLock<Mutex<BTreeMap<String, Weak<Manager>>>> = OnceLock::new();
         let database = fs::canonicalize(path).map_err(|_| Error::storage())?;
@@ -334,6 +414,7 @@ impl Manager {
         let manager = Arc::new(Self {
             database,
             state_identity: name.clone(),
+            media_snapshots: Mutex::new(Weak::new()),
             directory: directory.clone(),
             secret: secret.as_bytes().to_vec(),
             fingerprint,
@@ -407,6 +488,26 @@ impl Manager {
                 .or_insert(scope.mode);
         }
         diagnostic.total = ordered.len();
+        // Notify before any scope acquisition can wait behind a cached media
+        // resource. The notice also excludes publication until this exact
+        // writer's original resource guards and SQL outcome have ended.
+        let writes = scopes
+            .iter()
+            .filter(|scope| scope.mode == AuthorityMode::Write)
+            .cloned()
+            .collect::<Vec<_>>();
+        let media_writer = if writes.is_empty() {
+            None
+        } else {
+            let registry = self
+                .media_snapshots
+                .lock()
+                .map_err(|_| Error::storage())?
+                .upgrade();
+            registry
+                .map(|registry| registry.before_write(&writes))
+                .transpose()?
+        };
         let mut held = Vec::with_capacity(ordered.len());
         for (key, mode) in &ordered {
             diagnostic.scope(key.0, *mode);
@@ -454,6 +555,7 @@ impl Manager {
             scopes: ordered,
             _held: held,
             _timing: AuthorityTiming::capture(wait.is_some()),
+            _media_writer: media_writer,
         }))
     }
     // The caller owns this scope's shared admission description. A writer
@@ -823,7 +925,11 @@ fn lock(file: &File, wait: &AuthorityWait) -> Result<()> {
         wait.check()?;
         match FileExt::try_lock_exclusive(file) {
             Ok(()) => return Ok(()),
-            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => wait.pause()?,
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                #[cfg(test)]
+                observe_waited_lock();
+                wait.pause()?;
+            }
             Err(_) => return Err(Error::new("authority-unavailable", "Authority lock failed")),
         }
     }
@@ -905,4 +1011,37 @@ mod tests;
 #[cfg(test)]
 pub(crate) fn test_wait_for_writer(store: &crate::Store, scope: &AuthorityScope) {
     tests::waiting(store, scope);
+}
+
+// Observe only a real WouldBlock in the waited file-lock path. This test-only
+// notification grants no authority and does not run for immediate try-locks.
+#[cfg(test)]
+thread_local! {
+    static WAITED_LOCK_PROBE: std::cell::RefCell<Option<Box<dyn FnOnce()>>> =
+        std::cell::RefCell::new(None);
+}
+#[cfg(test)]
+fn observe_waited_lock() {
+    let probe = WAITED_LOCK_PROBE.with(|slot| slot.borrow_mut().take());
+    if let Some(probe) = probe {
+        probe();
+    }
+}
+#[cfg(test)]
+pub(crate) fn with_waited_lock_probe<T>(
+    probe: impl FnOnce() + 'static,
+    call: impl FnOnce() -> T,
+) -> T {
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            WAITED_LOCK_PROBE.with(|slot| slot.borrow_mut().take());
+        }
+    }
+    WAITED_LOCK_PROBE.with(|slot| {
+        assert!(slot.borrow().is_none(), "nested waited-lock probe");
+        *slot.borrow_mut() = Some(Box::new(probe));
+    });
+    let _reset = Reset;
+    call()
 }

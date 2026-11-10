@@ -552,11 +552,16 @@ impl super::Policy {
             principal: target.principal.clone(),
             profile: target.profile.clone(),
             plan: target.plan.clone(),
-            negotiated_remote: std::sync::Mutex::new(target.plan.remote_capabilities().clone()),
-            activation: std::sync::Mutex::new(Some(activation)),
-            binding: std::sync::Mutex::new(Some(binding)),
+            snapshots: Default::default(),
+            lifetime: Default::default(),
+            negotiated_remote: super::Published::new(target.plan.remote_capabilities().clone()),
+            activation: super::Published::new(Some(activation)),
+            binding: super::Published::new(Some(binding)),
             preparation: Default::default(),
         });
+        entry
+            .prepare_snapshot_route(&self.store, None)
+            .map_err(super::packet_authority_error)?;
         let continuation = super::public_continuation::Continuation::new(
             target.root.clone(),
             metadata.clone(),
@@ -784,12 +789,14 @@ struct InstalledEntry<'a> {
     native: &'a crate::canonical_replacement::Activation,
     generation: u64,
     continuation: &'a super::public_continuation::Continuation,
-    _activation: std::sync::MutexGuard<'a, Option<Arc<dyn MediaActivation>>>,
-    _binding: std::sync::MutexGuard<'a, Option<rvoip_core::relationships::ConnectionBinding>>,
+    _activation: super::published::Write<'a, Option<Arc<dyn MediaActivation>>>,
+    _binding: super::published::Write<'a, Option<rvoip_core::relationships::ConnectionBinding>>,
 
-    _entries:
-        std::sync::MutexGuard<'a, std::collections::BTreeMap<ConnectionId, Arc<super::Connection>>>,
-    _provisional: std::sync::MutexGuard<
+    _entries: super::published::Write<
+        'a,
+        std::collections::BTreeMap<ConnectionId, Arc<super::Connection>>,
+    >,
+    _provisional: super::published::Write<
         'a,
         std::collections::BTreeMap<
             ConnectionId,

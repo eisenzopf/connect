@@ -102,6 +102,7 @@ impl Store {
         }
         let authority = self.transition_operation_authority(credential, target, &[scope], held)?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -355,6 +356,7 @@ impl Store {
         let kind = admission::BatchKind::Purge;
         let (ids, authority) = self.transition_batch_authority(kind, limit)?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

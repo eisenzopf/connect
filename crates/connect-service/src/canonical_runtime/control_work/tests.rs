@@ -407,3 +407,119 @@ async fn periodic_custodian_joins_completed_controls_without_new_submission_or_c
             .await
     );
 }
+
+#[tokio::test]
+async fn original_store_call_keeps_typed_writer_until_caller_releases_it() {
+    let (_directory, store, runtime) = fixture();
+    let identity = store
+        .create_identity("owned-store-value")
+        .expect("identity");
+    let write =
+        connect_store::AuthorityScope::identity(&identity.id, connect_store::AuthorityMode::Write)
+            .unwrap();
+    let read =
+        connect_store::AuthorityScope::identity(&identity.id, connect_store::AuthorityMode::Read)
+            .unwrap();
+    let actual = store.clone();
+    let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let observed = calls.clone();
+    let writer = runtime
+        .owned_store_call(move || {
+            observed.fetch_add(1, Ordering::AcqRel);
+            actual.acquire_authority(
+                &[write],
+                &connect_store::AuthorityWait::new(Duration::from_secs(1)),
+            )
+        })
+        .await
+        .expect("same original typed writer");
+    let excluded = store.try_acquire_authority(&[read.clone()]).is_err();
+    drop(writer);
+    let released = store.try_acquire_authority(&[read]).is_ok();
+    let joined = runtime
+        .drain_control_polls(tokio::time::Instant::now() + Duration::from_secs(2))
+        .await;
+    assert!(excluded && released && joined);
+    assert_eq!(calls.load(Ordering::Acquire), 1);
+    assert_eq!(runtime.control_polls.len(), Some(0));
+}
+
+#[tokio::test]
+async fn cancelled_original_store_waiter_retains_and_joins_actual_write_acquisition() {
+    let (_directory, store, runtime) = fixture();
+    let identity = store
+        .create_identity("owned-store-cancel")
+        .expect("identity");
+    let read =
+        connect_store::AuthorityScope::identity(&identity.id, connect_store::AuthorityMode::Read)
+            .unwrap();
+    let write =
+        connect_store::AuthorityScope::identity(&identity.id, connect_store::AuthorityMode::Write)
+            .unwrap();
+    let reader = store
+        .try_acquire_authority(&[read.clone()])
+        .expect("original reader");
+    let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
+    let (acquired_tx, acquired_rx) = tokio::sync::oneshot::channel();
+    let (release_tx, release_rx) = std::sync::mpsc::sync_channel(1);
+    let actual = store.clone();
+    let owner = runtime.clone();
+    let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let observed = calls.clone();
+    let parent = tokio::spawn(async move {
+        owner
+            .owned_store_call(move || {
+                observed.fetch_add(1, Ordering::AcqRel);
+                let _ = entered_tx.send(());
+                let writer = actual.acquire_authority(
+                    &[write],
+                    &connect_store::AuthorityWait::new(Duration::from_secs(2)),
+                )?;
+                let _ = acquired_tx.send(());
+                // Bounded independent release, so every test outcome permits the
+                // same original closure to exit and release its real file writer.
+                let _ = release_rx.recv_timeout(Duration::from_secs(2));
+                Ok(writer)
+            })
+            .await
+    });
+    tokio::time::timeout(Duration::from_secs(2), entered_rx)
+        .await
+        .expect("original call entered")
+        .expect("entry signal");
+    parent.abort();
+    let cancelled = parent.await.is_err_and(|error| error.is_cancelled());
+    let retained_after_parent = runtime.control_polls.len() == Some(1);
+    drop(reader);
+    let acquired = tokio::time::timeout(Duration::from_secs(2), acquired_rx)
+        .await
+        .is_ok_and(|result| result.is_ok());
+    let actual_writer_held = store.try_acquire_authority(&[read.clone()]).is_err();
+    let drain = runtime.drain_control_polls(tokio::time::Instant::now() + Duration::from_secs(2));
+    tokio::pin!(drain);
+    let premature = tokio::select! {
+        result = &mut drain => Some(result),
+        _ = tokio::time::sleep(Duration::from_millis(10)) => None,
+    };
+    let _ = release_tx.send(());
+    let joined = match premature {
+        Some(value) => value,
+        None => drain.await,
+    };
+    let no_late_writer = store.try_acquire_authority(&[read]).is_ok();
+    assert!(cancelled && retained_after_parent && acquired && actual_writer_held);
+    assert!(
+        premature.is_none(),
+        "drain abandoned the original blocking acquisition"
+    );
+    assert!(
+        joined && no_late_writer,
+        "returned Write must drop before original closure joins"
+    );
+    assert_eq!(
+        calls.load(Ordering::Acquire),
+        1,
+        "no authority acquisition replay"
+    );
+    assert_eq!(runtime.control_polls.len(), Some(0));
+}

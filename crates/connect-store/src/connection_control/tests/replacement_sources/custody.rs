@@ -911,7 +911,7 @@ fn replacement_reserved_candidate_refuses_ordinary_native_preparation_before_and
 }
 
 #[test]
-fn reservation_metadata_can_coexist_with_live_packet_authority() {
+fn reservation_writer_drains_original_packet_reads_and_does_not_pin_later_media() {
     let (f, key, command, origin, sources) = setup();
     let live_packet = f.store.try_native_media_read(&sources[0], None).unwrap();
     let input = f
@@ -922,29 +922,31 @@ fn reservation_metadata_can_coexist_with_live_packet_authority() {
             &sources[1],
         )
         .unwrap();
-    let connections = f.count("connections");
-    // This reservation changes only original operation metadata. It must not
-    // require retiring an otherwise current packet reader to make progress.
-    let lease = f
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let refusal = f
         .store
         .prepare_native_replacement(input, request())
-        .unwrap()
-        .unwrap();
-    assert!(live_packet.current());
-    assert!(f
-        .store
-        .try_native_media_read(&sources[0], None)
-        .unwrap()
-        .current());
-    assert!(f
-        .store
-        .try_native_media_read(&sources[1], None)
-        .unwrap()
-        .current());
+        .unwrap_err()
+        .code;
+    let old_current = live_packet.current();
+    drop(live_packet);
+    assert_eq!(refusal, "authority-busy");
+    assert!(old_current);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+
+    let lease = prepare(&f, &origin, &sources);
+    let packet = f.store.try_native_media_read(&sources[0], None).unwrap();
+    let sibling = f.store.try_native_media_read(&sources[1], None).unwrap();
+    let current = packet.current() && sibling.current();
+    drop(sibling);
+    drop(packet);
+    assert!(
+        current,
+        "state-change writer escaped its bounded reservation"
+    );
     let duplicate = prepare(&f, &origin, &sources);
     assert_eq!(duplicate.plan().unwrap(), lease.plan().unwrap());
     assert_eq!(duplicate.expires_at(), lease.expires_at());
-    assert_eq!(f.count("connections"), connections);
     assert_eq!(f.count("native_replacements"), 1);
     let record = status(&f, &key, &command);
     assert_eq!(record.state, OperationState::Preparing);

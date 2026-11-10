@@ -1,3 +1,4 @@
+import {rtcAudioBoundaryDiagnostics} from './browser_matrix_rtc_audio_diagnostics.mjs';
 // A passive tap on the real RTC render graph. The processor only copies input
 // PCM; it never generates a tone, repairs a gap or infers content from counters.
 export const rtcDecodedAudioWorklet = `
@@ -33,7 +34,8 @@ registerProcessor('matrix-rtc-decoded-pcm',MatrixRtcDecodedPcm);
 /** Capture the SDK render owner's actual decoded PCM and painted video. An
  * internal preparation/readiness sink is excluded: it is not inside render().
  * The caller still owns render handles and closes/joins their AudioContexts. */
-export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
+export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measurementOrigin=()=>null}) {
+    const audioBoundaries=rtcAudioBoundaryDiagnostics();
     const render=Rtc.prototype.render,capture=Rtc.prototype.capture;
     const sourcePrototype=MediaStreamAudioSourceNode.prototype;
     const sourceConnect=sourcePrototype.connect;
@@ -68,7 +70,13 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
                     if(!(value.samples instanceof Float32Array)||value.samples.length!==960||!Number.isFinite(value.timestamp)){
                         invalid(connectionId,'Invalid decoded RTC PCM observation');return;
                     }
-                    audio(connectionId,value.timestamp,performance.now(),value.samples,owned.clock);
+                    const at=performance.now();
+                    audio(connectionId,value.timestamp,at,value.samples,owned.clock);
+                    // The original parent measurement and public-owner selection
+                    // decide whether diagnostics may inspect this existing frame.
+                    let origin=null;try{origin=measurementOrigin(connectionId);}catch{}
+                    audioBoundaries.observe({owner:connectionId,clock:owned.clock,
+                        timestamp:value.timestamp,at,origin,samples:value.samples,context:owned.context});
                 }else if(value?.type==='error')invalid(connectionId,value.reason);
             };
             node.onprocessorerror=()=>{if(!closed)invalid(connectionId,'Decoded RTC PCM processor failed');};
@@ -141,12 +149,13 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid}) {
         return result;
     };
     return {
+        report(){return audioBoundaries.report();},
         attach(connectionId,canvas){
             if(closed||canvases.has(canvas)||canvases.size>=10)throw Error('Bounded original RTC render owners');
             canvases.set(canvas,connectionId);
         },
         async close(){
-            if(closed)return;closed=true;
+            if(closed)return;closed=true;audioBoundaries.close();
             Rtc.prototype.render=render;
             if(sourceConnectDescriptor)Object.defineProperty(sourcePrototype,'connect',sourceConnectDescriptor);
             else delete sourcePrototype.connect;

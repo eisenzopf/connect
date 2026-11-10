@@ -72,7 +72,10 @@ impl Store {
         if !read.current() || read.source.selection().origin.record != p.record {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        if !self.authority_covers(&read.interval, &read.interval.mutation_scopes()) {
+            return Err(Error::forbidden());
+        }
+        let mut c = self.connection_with_authority(&read.interval)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -137,7 +140,7 @@ impl Store {
         local_owner(self, &p.owner, &p.runtime)?;
         let (held, mut c) = self.try_replacement_capture_projection(None, |c| {
             let row = rows::by_record(c, &p.record)?;
-            let mut scopes = admission::row_scopes(&row)?;
+            let mut scopes = admission::mutation_row_scopes(&row)?;
             if captured.audience.is_some() {
                 scopes.extend(crate::authority_admission::conversation_scopes(
                     c,

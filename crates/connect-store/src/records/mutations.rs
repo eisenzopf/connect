@@ -264,6 +264,7 @@ impl Store {
         })?;
         let _record = self.record_reservation(&request.uuid, AuthorityMode::Write)?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c.transaction().map_err(|_| Error::storage())?;
         let actor = actor_from_connection(&tx, credential)?;
         let scope = admission(&tx, &actor, request)?;

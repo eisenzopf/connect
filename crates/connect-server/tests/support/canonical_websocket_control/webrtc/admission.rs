@@ -4,7 +4,9 @@ use super::*;
 use rvoip_core::adapter::ConnectionAdapter;
 use tokio_util::sync::CancellationToken;
 
-fn publish(peer: &Arc<RvoipPeerConnection>) -> (CancellationToken, tokio::task::JoinHandle<u64>) {
+pub(super) fn publish(
+    peer: &Arc<RvoipPeerConnection>,
+) -> (CancellationToken, tokio::task::JoinHandle<u64>) {
     let track = peer.local_audio_track().unwrap();
     let ssrc = peer.local_audio_ssrc().unwrap();
     let stop = CancellationToken::new();

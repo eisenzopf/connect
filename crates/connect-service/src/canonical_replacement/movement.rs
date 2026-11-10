@@ -488,6 +488,7 @@ impl Runtime {
 
     async fn watch_moved_replacement(&self, origin: Arc<connect_store::NativeMediaOrigin>) {
         let id = ConnectionId::from_string(origin.runtime_connection_id());
+        let mut reconciled_role = None;
         loop {
             tokio::time::sleep(Duration::from_millis(100)).await;
             if self.stop.is_cancelled() || !self.native_connection_live(&id) {
@@ -496,13 +497,14 @@ impl Runtime {
             let Some(current) = self.media.origin(&id) else {
                 break;
             };
-            match self.media.store.try_native_connection_current(&current) {
+            match self.media.connection_lifetime_current(&current, None) {
                 Ok(true) => (),
                 Ok(_) => break,
                 Err(e) if matches!(e.code.as_str(), "forbidden" | "unauthorized") => break,
                 Err(_) => continue,
             }
-            self.reconcile_connection_role(&id).await;
+            self.reconcile_connection_role_generation(&id, &mut reconciled_role)
+                .await;
         }
         self.retire_moved_replacement(origin).await;
     }

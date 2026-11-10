@@ -200,41 +200,19 @@ impl Policy {
         if let (Some(held), Some((descriptor, source))) = (held.as_deref(), source.as_ref()) {
             source_matches(descriptor, source, held.target())?;
         }
-        let result = packet_read_until(until, || {
-            if target_continuation.is_some() || source_continuation.is_some() {
-                return self.store.try_native_replacement_continuation_media_read(
-                    &entry.origin,
-                    target_continuation
-                        .as_ref()
-                        .map(|current| current.metadata.as_ref()),
-                    source.as_ref().map(|(_, source)| {
-                        (
-                            source.origin.as_ref(),
-                            source_continuation
-                                .as_ref()
-                                .map(|current| current.metadata.as_ref()),
-                        )
-                    }),
-                    held.as_deref(),
-                );
+        let result = (|| {
+            if held.is_some() && source.is_none() && !matches!(scope.purpose, MediaPurpose::Publish)
+            {
+                return Err(connect_protocol::Error::forbidden());
             }
-            match (held.as_deref(), source.as_ref()) {
-                (Some(held), Some((_, source))) => {
-                    // The opaque context must be this actual source binding, not
-                    // another grant that happens to cover the same Conversation.
-                    self.store
-                        .try_native_media_read_under(&entry.origin, &source.origin, held)
-                }
-                (Some(held), None) if matches!(scope.purpose, MediaPurpose::Publish) => self
-                    .store
-                    .try_native_media_source_read_under(&entry.origin, held),
-                (Some(_), None) => return Err(connect_protocol::Error::forbidden()),
-                (None, _) => self.store.try_native_media_read(
-                    &entry.origin,
-                    source.as_ref().map(|(_, entry)| entry.origin.as_ref()),
-                ),
-            }
-        });
+            entry.snapshot_read_for(
+                &self.store,
+                source.as_ref().map(|(_, source)| source),
+                held.as_deref(),
+                target_continuation.as_ref(),
+                source_continuation.as_ref(),
+            )
+        })();
         tracing::trace!(target: "connect_service::canonical_packet",
             connection = entry.origin.connection_id(),
             elapsed_us = started.elapsed().as_micros() as u64,

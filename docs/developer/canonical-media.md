@@ -211,3 +211,49 @@ also need monotonic ordering and an exact first admitted/submitted packet bounda
 a numeric epoch or SSRC alone cannot classify packets across a reselection.
 Then wire receiver feedback and publisher requests to the existing live source
 workers and prove fresh-frame timing. No integrated media qualification is claimed.
+
+## G6-058 state-change authorization update
+
+The current implementation replaces per-delivery SQL/fence admission for ordinary
+native and committed replacement-continuation packets with Store-owned immutable
+route snapshots. A dedicated runtime-owned worker derives facts after state
+changes. Packet callbacks read published metadata, original expiry and revocation
+state; the actual I/O lease retains the exact authorization interval until that
+I/O finishes. A queued packet retains only an immutable revocation epoch and
+cannot borrow authority from a later revoke/restore cycle.
+
+Routing maps and connection metadata use atomic publication. State-change writers
+remain serialized; a first-binding miss refuses contention immediately. The
+worker is stopped and joined during runtime drain. A route miss schedules bounded
+preparation and refuses admission until a real snapshot exists. Initial setup
+may defer effect-free busy enrollment without replaying transport negotiation.
+
+Schema 118 installs and validates the persistent coordinated SQL writer boundary
+before enabling snapshot publication. Eight boundary checks, nine snapshot checks, four snapshot-binding checks, the
+record-write invalidation/drain check and the second-process writer/drain check
+passed in the enabled Store build. The selected Store batch passed all 65
+checks, including held-SQL and SQLite-writer contention controls. Service publication, lifetime/generation and control-worker checks also pass
+(15/15). Signed transport and full-matrix verification remain pending; the blocker
+ledger records each attempt separately.
+
+Per-stream codec and mixer state still needs exclusive ownership. This change
+removes shared authorization and routing contention; it does not claim all media
+processing is lock-free or establish that contention caused every observed stall.
+
+
+The contention work is split by ownership:
+
+| Path | Change | Remaining synchronization |
+| --- | --- | --- |
+| Established authorization reads | Load an immutable route snapshot and check its original expiry/revocation epoch | Owned refresh worker and state-change writers coordinate outside delivery |
+| Service routing/connection metadata | Atomic publication replaces read-side mutex acquisition | Writers serialize complete publications |
+| Queued packet custody | Atomic weak active-I/O reference and immutable epoch replace the custody mutex | Actual in-flight I/O retains its original authority interval |
+| Native RTP observations | Update readiness and counters in one state acquisition | Counter/quality interval state remains serialized |
+| Initial native/RTC preparation | Prepare resources without domain authority; acquire fresh authority for activation | Signed native answer controls pass; actual RTC verification remains pending |
+| Activation observation lookup | Native and RTC read immutable published snapshots; held-writer controls pass | Control publication remains ordered with Core installation |
+| Core credential lookup | Atomically publish the credential pair, preserving original writer API | Credential changes serialize and drain original tickets |
+| Connection lifetime and role polling | Read the published lifetime generation; reconcile only a changed generation or a pending failed attempt | Refresh uses real current authority; no lifetime stamp grants media rights |
+| Replacement startup provenance | Return immutable origin with the original begin transaction | Once-only mutation remains serialized; no second SQL retry holds that writer |
+
+These changes do not relax revocation, original deadlines, or generation checks.
+No complete G6-058 cell pass is inferred from these component tests.

@@ -1,5 +1,6 @@
 //! Exact historical replacement cleanup after public Session generation fencing.
 use super::*;
+mod fair_admission;
 
 struct Gone(String, u64);
 impl crate::NativeOfferRuntimeObservation for Gone {
@@ -339,18 +340,19 @@ fn replacement_cleanup_refuses_wrong_absence_and_unexplained_local_fences_withou
 
         // Controlled invalid states test the refusal branch. The success case
         // above reaches the fenced state through the public Session command.
-        m.f.store
-            .connection()
-            .unwrap()
-            .execute(
-                "UPDATE connections SET state='retiring',generation=?2,
+        let writer = m.f.controlled_conversation_writer(0);
+        let sql = m.f.store.connection_with_authority(&writer).unwrap();
+        sql.execute(
+            "UPDATE connections SET state='retiring',generation=?2,
              observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1",
-                params![
-                    origin.connection_id(),
-                    origin.generation() + if terminal_session { 2 } else { 1 },
-                ],
-            )
-            .unwrap();
+            params![
+                origin.connection_id(),
+                origin.generation() + if terminal_session { 2 } else { 1 },
+            ],
+        )
+        .unwrap();
+        drop(sql);
+        drop(writer);
         let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
         assert_eq!(
             m.f.store

@@ -323,6 +323,15 @@ impl Runtime {
             }
             return Box::pin(self.webrtc_worker(a, physical, credential, tx)).await;
         }
+        if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
+            == "connect-replacement-media-v1"
+        {
+            let outcome = self
+                .start_native_replacement(a, physical, &credential)
+                .await;
+            let _ = tx.send(outcome);
+            return Ok(());
+        }
         let native = match self.native_adapter(physical.binding.transport()) {
             Ok(native) => native,
             Err(error) => {
@@ -332,9 +341,10 @@ impl Runtime {
         };
         let mut lease = None;
         let mut stage = "source";
+        let invocation_stop = a.invocation_cancellation();
         let outcome = {
-            let negotiation = Box::pin(self.native_start(
-                a.clone(),
+            let mut negotiation = Box::pin(self.native_start(
+                a,
                 physical.clone(),
                 &credential,
                 &mut lease,
@@ -343,8 +353,14 @@ impl Runtime {
             if let Some(cancel) = &cancellation {
                 tokio::select! {
                     biased;
-                    _ = cancel.cancelled() => Err(Error::new("cancelled", "Native offer worker was cancelled")),
-                    result = negotiation => result,
+                    _ = cancel.cancelled() => {
+                        invocation_stop.cancel();
+                        // Retain and join the original preparation/Store call;
+                        // cancellation cannot detach a late activation grant.
+                        let _ = negotiation.await;
+                        Err(Error::new("cancelled", "Native offer worker was cancelled"))
+                    },
+                    result = &mut negotiation => result,
                 }
             } else {
                 negotiation.await
@@ -357,12 +373,11 @@ impl Runtime {
         let succeeded = outcome.is_ok();
         let _ = tx.send(outcome);
         // No idle original command/reader survives negotiation or durable commit.
-        drop(a);
         let Some(lease) = lease else { return Ok(()) };
-        let lease = Arc::new(lease);
         let id = ConnectionId::from_string(lease.runtime_connection_id().to_owned());
         let mut cleanup_cutoff = None;
         if succeeded {
+            let mut reconciled_role = None;
             loop {
                 tokio::time::sleep(Duration::from_millis(100)).await;
                 let stopped = self.stop.is_cancelled();
@@ -382,7 +397,7 @@ impl Runtime {
                     tracing::debug!(connection = %id, "Native custodian lost media origin");
                     break;
                 };
-                match self.media.store.try_native_connection_current(&origin) {
+                match self.media.connection_lifetime_current(&origin, None) {
                     Ok(true) => (),
                     Ok(_) => {
                         tracing::debug!(connection = %id, "Native custodian observed noncurrent source");
@@ -398,7 +413,8 @@ impl Runtime {
                     // ended; retain custody until definite retirement or EOF.
                     Err(_) => (),
                 }
-                self.reconcile_connection_role(&id).await;
+                self.reconcile_connection_role_generation(&id, &mut reconciled_role)
+                    .await;
             }
         }
         // Actual end is scoped to this Core route. An unconfirmed drain keeps
@@ -534,7 +550,7 @@ impl Runtime {
         a: Arc<AuthorizedEnvelope>,
         physical: Arc<Physical>,
         credential: &str,
-        lease_slot: &mut Option<NativeOfferLease>,
+        lease_slot: &mut Option<Arc<NativeOfferLease>>,
         stage: &mut &'static str,
     ) -> Result<Reply> {
         if a.envelope().original()["payload"]
@@ -614,7 +630,7 @@ impl Runtime {
                 answered: false,
             });
         };
-        *lease_slot = Some(lease);
+        *lease_slot = Some(Arc::new(lease));
         let lease = lease_slot.as_ref().ok_or_else(Error::storage)?;
         let remaining = (lease.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
         let deadline = Instant::now() + Duration::from_secs(remaining);
@@ -676,6 +692,7 @@ impl Runtime {
             policy: self.media.clone(),
             connection: entry.clone(),
             authorized: a.clone(),
+            resumed: None,
             read: read.clone(),
             participant_revision: self.core.participant_revision(&sid).map_err(denied)?,
         });
@@ -714,16 +731,92 @@ impl Runtime {
             .map_err(denied)?;
         let activation = native.native_media_activation(&id, &a).map_err(denied)?;
         entry.set_activation(activation.clone()).map_err(denied)?;
-        *stage = "negotiate";
-        let outcome = native
-            .negotiate_native_offer(&id, a.clone(), invocation.clone(), deadline, None)
+        *stage = "stage-resources";
+        let quarantined = controller
+            .stage_initial_selected_with_held(
+                entry.plan.selected(),
+                deadline,
+                a.invocation_cancellation(),
+                invocation.clone(),
+            )
             .await
-            .map_err(|error| {
-                tracing::debug!(?error, "Native engine negotiation failed");
-                denied(error)
-            })?;
-        *stage = "confirmed-source";
-        let current = self.native_source_read(&entry.origin, &a, deadline).await?;
+            .map_err(denied)?;
+        drop(invocation);
+        drop(view);
+        drop(read);
+        let participant = entry.origin.participant_id().to_owned();
+        let streams = entry
+            .plan
+            .selected()
+            .iter()
+            .map(|s| s.requested.logical_id.as_str().to_owned())
+            .collect();
+        let a = Arc::new(
+            Arc::try_unwrap(a)
+                .map_err(|_| Error::new("conflict", "Original resource invocation still retained"))?
+                .into_resource_preparation(participant, streams, deadline)
+                .map_err(denied)?,
+        );
+        *stage = "prepare-resources";
+        let prepared = native
+            .prepare_quarantined_native_offer(&id, a.clone(), quarantined, None)
+            .await
+            .map_err(denied)?;
+        // No signed/Store reader survived the network exchange. This fresh Write
+        // proof spans the one current activation and its original durable commit.
+        *stage = "authorize-activation";
+        let store = self.media.store.clone();
+        let origin = entry.origin.clone();
+        let original_attempt = lease.clone();
+        let credential_for_read = credential.to_owned();
+        let until = deadline.min(Instant::now() + Duration::from_secs(2));
+        let cancel = a.invocation_cancellation();
+        let wait =
+            connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
+        let (activation_proof, current) = self
+            .owned_store_call(move || loop {
+                if Instant::now() >= until || cancel.is_cancelled() {
+                    return Err(Error::forbidden());
+                }
+                let result = (|| {
+                    let proof = store.resume_native_offer_activation_authority(
+                        &credential_for_read,
+                        &origin,
+                        &original_attempt,
+                        &wait,
+                    )?;
+                    let read = store.native_media_read_with_peer(&origin, None, &proof)?;
+                    Ok::<_, Error>((Arc::new(proof), Arc::new(read)))
+                })();
+                match result {
+                    Err(error) if error.code == "authority-busy" && Instant::now() < until => {
+                        std::thread::sleep(
+                            Duration::from_millis(5)
+                                .min(until.saturating_duration_since(Instant::now())),
+                        )
+                    }
+                    result => return result,
+                }
+            })
+            .await?;
+        if Instant::now() >= deadline
+            || physical.lifetime.is_cancelled()
+            || a.invocation_cancellation().is_cancelled()
+        {
+            return Err(Error::forbidden());
+        }
+        let current_plan =
+            crate::canonical_media::offer_plan(current.target(), &base, a.principal())
+                .map_err(denied)?
+                .1;
+        if current_plan.selected() != entry.plan.selected()
+            || current_plan.rejected() != entry.plan.rejected()
+        {
+            return Err(Error::new(
+                "conflict",
+                "Original resource plan is no longer current",
+            ));
+        }
         let role = current.target().presence_role.clone();
         let private = current.target().private_consultation.clone();
         let handoff_preparation = current.target().handoff_preparation;
@@ -733,13 +826,21 @@ impl Runtime {
         } else {
             lease.operation_id()
         };
-        if isolated {
-            *stage = "isolated-mute";
-            native
-                .mute_native_media_for_private_admission(&id, &a, invocation.clone(), deadline)
-                .await
-                .map_err(denied)?;
+        let invocation = Arc::new(Invocation {
+            policy: self.media.clone(),
+            connection: entry.clone(),
+            authorized: a.clone(),
+            resumed: Some(activation_proof.clone()),
+            read: current.clone(),
+            participant_revision: self.core.participant_revision(&sid).map_err(denied)?,
+        });
+        *stage = "activate-resources";
+        let outcome = if isolated {
+            prepared.activate_muted(invocation.clone()).await
+        } else {
+            prepared.activate(invocation.clone()).await
         }
+        .map_err(denied)?;
         // This private revision is computed at admission, not held across the
         // remote exchange. A conflicting concurrent admission can retry only
         // before the controller records/commits this stable mutation ID.
@@ -833,7 +934,7 @@ impl Runtime {
             match self.media.store.complete_native_offer_with_peer(
                 credential,
                 lease,
-                proof(&a)?,
+                &activation_proof,
                 &evidence,
             ) {
                 Ok(record) => break record,
@@ -847,6 +948,9 @@ impl Runtime {
                 Err(error) => return Err(error),
             }
         };
+        drop(invocation);
+        drop(current);
+        drop(activation_proof);
         if handoff_preparation {
             self.queue_handoff_preparation(entry.clone(), evidence.physical.lifetime.clone());
         }

@@ -113,17 +113,30 @@ impl Policy {
         {
             return Err(StreamControlError::Authority);
         }
-        Ok(Arc::new(Connection {
+        let next = Arc::new(Connection {
             domain: Arc::downgrade(self),
             origin,
             principal,
             profile: old.profile.clone(),
             plan: old.plan.clone(),
-            negotiated_remote: Mutex::new(old.negotiated_remote.lock().map_err(denied)?.clone()),
-            activation: Mutex::new(old.activation.lock().map_err(denied)?.clone()),
-            binding: Mutex::new(old.binding.lock().map_err(denied)?.clone()),
-            preparation: Mutex::new(old.preparation.lock().map_err(denied)?.clone()),
-        }))
+            snapshots: Default::default(),
+            lifetime: Default::default(),
+            negotiated_remote: Published::new(
+                old.negotiated_remote
+                    .snapshot()
+                    .map_err(denied)?
+                    .as_ref()
+                    .clone(),
+            ),
+            activation: Published::new(old.activation.snapshot().map_err(denied)?.as_ref().clone()),
+            binding: Published::new(old.binding.snapshot().map_err(denied)?.as_ref().clone()),
+            preparation: Published::new(
+                old.preparation.snapshot().map_err(denied)?.as_ref().clone(),
+            ),
+        });
+        next.prepare_snapshot_route(&self.store, None)
+            .map_err(packet_authority_error)?;
+        Ok(next)
     }
     /// Swap only the checked original incarnations. Old Arcs retain old origins;
     /// queued work never acquires successor credentials by registry lookup.

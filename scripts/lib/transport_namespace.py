@@ -123,8 +123,10 @@ class NativeNamespace:
             # events too. Validate that one exact directive without permitting
             # arbitrary extra packet, SQL, account or global trace selectors.
             retention = ",connect_service::runtime_retention=debug"
+            queue_summary = ",quinn_proto::datagram_queue=debug"
             assert env["RUST_LOG"].count(retention) <= 1
-            profile = env["RUST_LOG"].replace(retention, "")
+            assert env["RUST_LOG"].count(queue_summary) <= 1
+            profile = env["RUST_LOG"].replace(retention, "").replace(queue_summary, "")
             summary = ",connect_store::authority_summary=debug,connect_service::peer_authority_lifetime=debug"
             assert profile in {base, commit, commit + summary, base + ",connect_service::canonical_replacement=debug,connect_service::replacement_phase_trace=debug,connect_store::authority_lifetime=debug"}
             selected["RUST_LOG"] = env["RUST_LOG"]

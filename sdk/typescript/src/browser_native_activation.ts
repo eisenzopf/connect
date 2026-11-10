@@ -25,6 +25,8 @@ export interface NativeDecodedObservation {
     readonly datagramSequences: readonly number[];
     readonly ssrc: number;
     readonly rtpTimestamp: number;
+    /** Original audio RTP header sequence; absent for assembled video frames. */
+    readonly rtpSequence?: number;
     readonly videoEpoch?: string;
     readonly sourceNtp?: string;
     readonly sourceClock?: Readonly<{ ntp: string; rtpTimestamp: number }>;

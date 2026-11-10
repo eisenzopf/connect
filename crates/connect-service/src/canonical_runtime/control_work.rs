@@ -177,6 +177,29 @@ async fn drive(runtime: Arc<Runtime>, worker: OriginalControl) -> Result<()> {
     }
 }
 impl Runtime {
+    /// Retain the actual blocking handle through waiter cancellation using the
+    /// existing control-poll custody/drain. A dropped result receiver releases
+    /// any returned authority inside the original closure, before it exits.
+    pub(crate) async fn owned_store_call<T: Send + 'static>(
+        &self,
+        call: impl FnOnce() -> Result<T> + Send + 'static,
+    ) -> Result<T> {
+        let (sent, result) = tokio::sync::oneshot::channel();
+        let original = self.control_polls.submit(
+            self.media.store.limits().connections.saturating_mul(2),
+            move || {
+                let value = call();
+                // Sending to a cancelled waiter returns the value; drop it
+                // here rather than retaining a late Write in the registry.
+                drop(sent.send(value));
+                Poll::Ready(())
+            },
+        )?;
+        match original.await? {
+            Poll::Ready(()) => result.await.map_err(|_| Error::storage())?,
+            Poll::Pending => Err(Error::storage()),
+        }
+    }
     pub(crate) fn spawn_native_control(
         self: &Arc<Self>,
         worker: impl Future<Output = ()> + Send + 'static,

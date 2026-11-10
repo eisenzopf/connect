@@ -40,7 +40,7 @@ fn prepared(subscribe: bool) -> EpochFixture {
         .store
         .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
         .unwrap();
-    let (attempt, read) = f
+    let (attempt, read, _) = f
         .store
         .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
         .unwrap();
@@ -63,11 +63,11 @@ fn prepared(subscribe: bool) -> EpochFixture {
 fn apply(s: &EpochFixture, phase: Phase) {
     let read =
         s.f.store
-            .try_native_replacement_media_read(&s.origin)
+            .try_native_replacement_scene_write(&s.origin, &s.sources)
             .unwrap();
     let attempt =
         s.f.store
-            .begin_native_replacement_media_phase(s.origin.clone(), phase, &read)
+            .begin_native_replacement_media_phase(s.origin.clone(), phase, read.media())
             .unwrap();
     let expected = attempt.expected().unwrap();
     let captured = attempt.applied(expected).unwrap();
@@ -161,7 +161,10 @@ fn private_receiver_epoch_eligibility_observes_current_authority_and_original_ro
         if change == "cancel" {
             cancel(&s.f, &s.key, &s.command);
         } else {
-            let c = s.f.store.connection().unwrap();
+            // Revoke/narrow actual current state under its coordinated writer;
+            // release both SQL and proof before checking receiver eligibility.
+            let writer = s.f.controlled_conversation_writer(0);
+            let c = s.f.store.connection_with_authority(&writer).unwrap();
             match change {
                 "target-credential" => {
                     c.execute(
@@ -239,7 +242,7 @@ fn private_receiver_epoch_eligibility_ends_when_the_same_movement_commit_starts(
         .current());
     let scene =
         s.f.store
-            .try_native_replacement_scene_read(&s.origin, &s.sources)
+            .try_native_replacement_scene_write(&s.origin, &s.sources)
             .unwrap();
     let _attempt =
         s.f.store
