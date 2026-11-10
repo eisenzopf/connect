@@ -1,9 +1,9 @@
 {
   "format": "connect/gate6-cleanup-batch/1",
-  "updated": "2026-11-10T13:09:49.359869+00:00",
+  "updated": "2026-11-10T13:19:05.862591+00:00",
   "batch": "v212-I4/I5",
   "source_base": "04298f02",
-  "status": "290 distinct affected controls pass across I4/I5; coherent build passes. Focused signed27 retest next; full32 matrix unchanged.",
+  "status": "290 distinct affected controls pass; focused signed followthrough22/27 pass,5 fail before telephone allocation or native return completion. Full32 matrix remains v209,0/32 qualified.",
   "acceptance_changes": false,
   "changes": [
     "Publish provider, established SIP, initial SIP and private replacement scene authorization through the existing owned state-change watcher; retain original queued epochs and actual IO fences.",
@@ -178,5 +178,65 @@
     "application_profile_changed": false
   },
   "source_seal_sha256": "81444a817af64d751b62f958a15b3a32908c0f0c1b7e5e8b6304e1174c65d16c",
-  "verification_note": "I4 selected289 controls:288 passed, one fixture completion SQL-admission race failed. I5 changed only that test file; corrected test, its negative-phase neighbor and an existing real SQL-contention/once-completion control all pass. No prior failed result overwritten."
+  "verification_note": "I4 selected289 controls:288 passed, one fixture completion SQL-admission race failed. I5 changed only that test file; corrected test, its negative-phase neighbor and an existing real SQL-contention/once-completion control all pass. No prior failed result overwritten.",
+  "focused_signed": {
+    "source_commit": "2f6097f9",
+    "passed": 22,
+    "failed": 5,
+    "selected": 27,
+    "rows": [
+      {
+        "target": "gate6_replacement_video",
+        "exit_code": 0,
+        "elapsed_seconds": 25.30312180519104,
+        "naturally_joined": true,
+        "receipt_sha256": "a4fc8cd66361403265c1d77268802a8534e690803cfa56ecd445f0e15be7bf93",
+        "summary": {
+          "selected": 3,
+          "completed": 3,
+          "passed": 3,
+          "failed": 0
+        }
+      },
+      {
+        "target": "gate6_canonical_webtransport",
+        "exit_code": 0,
+        "elapsed_seconds": 34.224050998687744,
+        "naturally_joined": true,
+        "receipt_sha256": "dcabee2592131bda73f3ba0eab58913ae5cc596cc8682ffcd4ba7c8c1683b672",
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        }
+      },
+      {
+        "target": "gate6_canonical_runtime",
+        "exit_code": 1,
+        "elapsed_seconds": 285.02341890335083,
+        "naturally_joined": true,
+        "receipt_sha256": "965035458354ec77bb4a9eee1b02c8391e5e7f820ff86aab895491215e3f720f",
+        "summary": {
+          "selected": 19,
+          "completed": 19,
+          "passed": 14,
+          "failed": 5
+        }
+      }
+    ],
+    "receipt_sha256": "1127118ad01f4d29fc1087f110ddfa6cf4943c3d75dfa3a50cac414b5cf8bd85",
+    "failure_groups": [
+      {
+        "scope": "telephone allocation",
+        "failed": 3,
+        "observation": "Original native preparation confirms; telephone allocation does not reach SIP wire. Repeated current-read admission defers until original cutoff."
+      },
+      {
+        "scope": "private provider return",
+        "failed": 2,
+        "observation": "Return remains Preparing/attempt0; current-read admission repeatedly defers before begin. Actual return/control custody under investigation."
+      }
+    ]
+  }
 }

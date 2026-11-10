@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T13:09:49.359869+00:00",
-  "run_status": "290 distinct affected controls pass across I4/I5; coherent build passes. Focused signed27 retest next; full32 matrix unchanged.",
+  "updated": "2026-11-10T13:19:05.866049+00:00",
+  "run_status": "Cleanup pushed as2f6097f9:290 distinct affected unit controls pass. Completed focused signed run22/27 pass (native3/3,WebRTC5/5,runtime14/19). Three telephone allocation and two private-provider return cases still fail before control completion; next fixes under root-cause review. Latest full matrix remains v209:0/32 cells,390/432 checks passed.",
   "blockers": [
     {
       "id": "B01",
@@ -2598,7 +2598,7 @@
         "crates/connect-store/src/private_provider/media.rs"
       ],
       "solution": "Remove idle provider Read and100ms SQL polling; use original runtime snapshot and epoch-fenced actual IO.",
-      "status": "Implemented and unit verified in I4/I5:290 distinct affected controls pass. Focused signed27 followthrough pending; full matrix qualification remains open.",
+      "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
       "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
       "completion_status": "in-progress"
     },
@@ -2611,7 +2611,7 @@
         "crates/connect-service/src/telephone_replacement/established.rs"
       ],
       "solution": "Move unary and mixed telephone/native packet resolution to existing owned snapshot worker, retaining exact physical phase and queued epochs.",
-      "status": "Implemented and unit verified in I4/I5:290 distinct affected controls pass. Focused signed27 followthrough pending; full matrix qualification remains open.",
+      "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
       "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
       "completion_status": "in-progress"
     },
@@ -2624,7 +2624,7 @@
         "crates/connect-store/src/media_authorization.rs"
       ],
       "solution": "Permit independently fenced publication during unrelated writes; retain conservative sequence fencing for failed derivations.",
-      "status": "Implemented and unit verified in I4/I5:290 distinct affected controls pass. Focused signed27 followthrough pending; full matrix qualification remains open.",
+      "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
       "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
       "completion_status": "in-progress"
     },
@@ -2637,7 +2637,7 @@
         "crates/connect-service/src/canonical_replacement/media.rs"
       ],
       "solution": "Resolve exact pending scene on shared watcher; retain original source admission and epoch, readiness and physical activation, without packet-side scene SQL.",
-      "status": "Implemented and unit verified in I4/I5:290 distinct affected controls pass. Focused signed27 followthrough pending; full matrix qualification remains open.",
+      "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
       "completion": "Actual IO, queued epoch, phase and revocation controls pass; affected signed followthrough pending.",
       "completion_status": "in-progress"
     },
@@ -2650,7 +2650,7 @@
         "crates/connect-service/src/initial_telephone/policy.rs"
       ],
       "solution": "Publish exact Applied/Established media facts and purpose on shared watcher; retain quarantined/prepared control boundaries and current phase invalidation.",
-      "status": "Implemented and unit verified in I4/I5:290 distinct affected controls pass. Focused signed27 followthrough pending; full matrix qualification remains open.",
+      "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
       "completion": "Actual IO, queued epoch, phase and revocation controls pass; affected signed followthrough pending.",
       "completion_status": "in-progress"
     }
@@ -5039,10 +5039,10 @@
     "status_url": "../../.local/gate-6/full-matrix-v209/status.html"
   },
   "current_focused_verification": {
-    "passed": 124,
-    "planned": 124,
-    "scope": "E2 units124/124; separate upstream33/33. Focused signed16/27, including1 platform misroute, remain separate from cell acceptance.",
-    "next": "Batch next fixes for native pre-begin SQL admission, telephone allocation offload, immutable-endpoint fixture violation and remaining runtime causes; no full32 promotion."
+    "passed": 22,
+    "planned": 27,
+    "scope": "I5 local macOS ARM focused signed scenarios; separate290 affected unit controls pass.",
+    "next": "Investigating three telephone allocation and two native-return admission failures; full32 qualification unchanged."
   },
   "current_workplan_tasks": [
     "S71",
@@ -16217,5 +16217,11 @@
     ]
   },
   "cleanup_h_evidence": "docs/evidence/gate-6/cleanup-batch-h-v212.json",
-  "cleanup_i_evidence": "docs/evidence/gate-6/cleanup-batch-i-v212.json"
+  "cleanup_i_evidence": "docs/evidence/gate-6/cleanup-batch-i-v212.json",
+  "v212_final_signed_cleanup_i5": {
+    "evidence": "docs/evidence/gate-6/cleanup-batch-i-v212.json",
+    "passed": 22,
+    "failed": 5,
+    "selected": 27
+  }
 }
