@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T23:40:27.084761+00:00",
-  "run_status": "Full v214 remains 0/32 cells, 288/432 checks pass. Recovery batch: 22 Rust and 55 browser controls pass. SQL custody: both old publication-stall regressions reproduced; all 8 fixed Store controls pass. Combined signed cadence retest is next.",
+  "updated": "2026-11-10T23:47:33.422525+00:00",
+  "run_status": "Full v214 remains 0/32 cells, 288/432 checks pass. New recovery and SQL fixes pass 85 component checks. Combined signed follow-through: 3/4 preparation checks pass, both cadence checks fail. Investigating deferred fixture draining and remaining preparation authority invalidation; no full32 rerun yet.",
   "blockers": [
     {
       "id": "B01",
@@ -1492,15 +1492,15 @@
       "status": "Implemented; 22 Rust and 55 browser component checks pass. Old SDK, representative and browser counterexamples reproduced.",
       "change": "Acknowledge only the exact accepted recovery keyframe, retire superseded same-SSRC partials, and retain a separate bounded recovery watermark. Preserve newer partial age, other SSRCs, original loss fences, signed generations and duplicate rejection. Browser acknowledgement follows ordering and successful decoder submission.",
       "evidence": "docs/evidence/gate-6/video-keyframe-recovery-v215.json",
-      "next": "Combined signed cadence retest after SQL custody fix; then all 32 matrix cells."
+      "next": "Both combined cadence cases still fail; initial loss remains unresolved despite recovery component passes."
     },
     {
       "id": "B183",
       "title": "Replacement preparation holds authority Writer while waiting for primary SQL",
-      "status": "Both old regressions reproduced; all eight fixed Store controls pass. Combined signed cadence and full matrix pending.",
+      "status": "Both old publication-stall regressions reproduced; all8 fixed Store controls pass. Combined cadence still fails; SQL wait fix alone is insufficient.",
       "change": "Release the entire Writer proof on primary SQL mutex refusal before waiting. Reacquire current scopes within the original 250ms budget, before any transaction or mutation.",
       "evidence": "docs/evidence/gate-6/replacement-sql-custody-v215.json",
-      "next": "Combined signed preparation and six-source cadence retest, then full32 qualification."
+      "next": "Audit remaining preparation journal Writers and actual public projection dependencies."
     }
   ],
   "workplan_tasks": [
@@ -16909,5 +16909,10 @@
   "v215_replacement_sql_custody": {
     "public_evidence": "docs/evidence/gate-6/replacement-sql-custody-v215.json",
     "status": "Both old regressions reproduced; all eight fixed Store controls pass. Combined signed cadence and full matrix pending."
+  },
+  "v215_combined_media_followthrough": {
+    "public_evidence": "docs/evidence/gate-6/combined-media-followthrough-v215.json",
+    "signal_revocation": "Unexpected local video queue loss before deliberate withdrawal. Fixture completes private key/audio/interframe checks before draining original public markers; exact queue drop subtype is not logged. Concurrent original-receiver observation candidate is under review.",
+    "cadence": "Both movement rounds complete, but decoded bins fall below required24fps while all sources encode/publish30fps. Reservation and preparation Begin authority dependencies are being audited; no causal owner attribution from interval logs alone."
   }
 }

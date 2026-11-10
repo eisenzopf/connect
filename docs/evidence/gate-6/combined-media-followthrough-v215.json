@@ -1,0 +1,36 @@
+{
+  "format": "connect/combined-media-followthrough/1",
+  "updated": "2026-11-10T23:47:33.422525+00:00",
+  "commit": "2455106109f5c1136ac9f5f9d65fae499b732df3",
+  "summary": "3 of 4 signed preparation controls pass; both cadence controls fail. No new full matrix run.",
+  "checks": {
+    "preparation": {
+      "receipt_sha256": "82283d95e8a830fc8c07d38724eb607e23cf4f666da24b063da9f2a735d026c2",
+      "summary": {
+        "selected": 4,
+        "completed": 4,
+        "passed": 3,
+        "failed": 1
+      },
+      "source_sha256": "d7a1aed71425bb945fc336e9f21821e5a5981eb5f4e86f938a95d07a1e3a0066",
+      "all_original_groups_absent": true,
+      "source_unchanged": true
+    },
+    "cadence": {
+      "receipt_sha256": "d9d59454e665f29bd41c80ff034ef04979aee6209664dec53425b5e372ad33e2",
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "source_sha256": "d7a1aed71425bb945fc336e9f21821e5a5981eb5f4e86f938a95d07a1e3a0066",
+      "all_original_groups_absent": true,
+      "source_unchanged": true
+    }
+  },
+  "remaining": {
+    "signal_revocation": "Unexpected local video queue loss before deliberate withdrawal. Fixture completes private key/audio/interframe checks before draining original public markers; exact queue drop subtype is not logged. Concurrent original-receiver observation candidate is under review.",
+    "cadence": "Both movement rounds complete, but decoded bins fall below required24fps while all sources encode/publish30fps. Reservation and preparation Begin authority dependencies are being audited; no causal owner attribution from interval logs alone."
+  }
+}
