@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T14:19:25.868298+00:00",
-  "run_status": "K cleanup passed156/156 affected controls and26/27 focused signed scenarios (83627d65). A causal old-code regression proves cached lifetime metadata keeps a retired installation locked after actual IO drains. Minimal weak metadata ownership fix and joined mock cleanup are implemented and independently reviewed; L128/128 snapshot/ownership controls pass; local rebuild is active, followed by all27 signed scenarios. Latest full matrix remains v209:0/32 cells,390/432 checks passed.",
+  "updated": "2026-11-10T14:39:50.703026+00:00",
+  "run_status": "Cleanup followthrough is verified on a950a5ee: L128/128 snapshot/ownership controls and27/27 focused signed scenarios pass (native3/3,WebRTC5/5,runtime19/19). Prior K156/156 affected control tests passed. The final signed restart failure is cleared by weak lifetime metadata ownership, with a causal old-code failure and fixed-code pass preserving strong real IO ownership. No acceptance change. Latest full32 matrix remains v209:0/32 cells,390/432 checks passed; fresh matrix qualification is still required.",
   "blockers": [
     {
       "id": "B01",
@@ -1313,10 +1313,10 @@
     {
       "id": "B160",
       "title": "Private replacement startup mute can be refused by unrelated registry contention",
-      "status": "OPEN; narrow held-invocation fix in source review",
+      "status": "Original held-target startup mute passes in final native3/3; L27/27 signed checks pass.",
       "change": "Dispatch the exact held startup policy before unrelated metadata registries, preserving all current authorization, scope, generation, original deadline and single-effect checks.",
-      "evidence": "ARM WT ES256 cycle2 source0 return: original operation failed native-target-stopped; initial-mute NotReady follows metadata-mutex-busy and precedes attach. Exact historical busy caller is not recorded. A distinct source-level dispatch dependency is confirmed.",
-      "next": "Actual held-registry gate-dispatch causal regression plus foreign/current/expired controls; no whole-start replay."
+      "evidence": "ARM WT ES256 cycle2 source0 return: original operation failed native-target-stopped; initial-mute NotReady follows metadata-mutex-busy and precedes attach. Exact historical busy caller is not recorded. A distinct source-level dispatch dependency is confirmed. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     },
     {
       "id": "B161",
@@ -1329,82 +1329,82 @@
     {
       "id": "B162",
       "title": "State-change authorization has not replaced per-delivery SQL/fence checks",
-      "status": "SCOPED STORE/SERVICE AND SIGNED CHECKS PASS; full transport qualification pending",
+      "status": "State-change publication and hot-path controls pass: L128/128 and prior K156/156; final signed27/27 pass. Full transport qualification pending.",
       "change": "Publish immutable live authorization on state changes; delivery uses atomic revocation/generation and original expiry. Preserve cross-process writer/IO drain ordering and reject uncoordinated authorization writes.",
-      "evidence": "Latest Store65/65 includes all writer-boundary, snapshot/lifetime, same-generation role stamp, cross-process invalidation/drain and original replacement controls. All five prior failures fixed: coordinated test setup, exact offline backup corruption and required installation projection before Completed. Three nonparking controls and effect-free planning regression pass. Service immutable publication, lifetime race, generation reconciliation and original worker custody all pass (15/15). Batch3 source23bab0e7 now verifies Service30/30, native2/2 and RTC5/5 with natural joins; this is a scoped synthetic selection.",
-      "next": "Verify actual signed transports and complete local Mac/ARM Linux matrix."
+      "evidence": "Latest Store65/65 includes all writer-boundary, snapshot/lifetime, same-generation role stamp, cross-process invalidation/drain and original replacement controls. All five prior failures fixed: coordinated test setup, exact offline backup corruption and required installation projection before Completed. Three nonparking controls and effect-free planning regression pass. Service immutable publication, lifetime race, generation reconciliation and original worker custody all pass (15/15). Batch3 source23bab0e7 now verifies Service30/30, native2/2 and RTC5/5 with natural joins; this is a scoped synthetic selection. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     },
     {
       "id": "B163",
       "title": "Quarantined transport and codec preparation retains domain authority",
-      "status": "C signed RTC5/5 and native1/2; complete transport matrix open",
+      "status": "Quarantined preparation/activation controls and signed RTC5/5 plus live-subscription cases pass; final signed27/27. Complete matrix open.",
       "change": "Prepare bounded transport/codecs independently of live conversation authorization; consume exact prepared candidate at a fresh authorized activation boundary, initially muted.",
-      "evidence": "Original two reader-release failures now pass unchanged in full15 signed answer suite on source-lock384. Four actual native startup/flow and two prepared-publication controls also pass. Resource-only scope refusals and original ordinary reply custody preserved. Current batch3 RTC5/5 includes signed quarantine under actual domain writer, original-scope answer/RTC join, withdrawal, EdDSA and ES256 duplex/ICE/current-authority controls. All original selected commands joined naturally. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b.",
-      "next": "Retain scoped evidence and verify actual complete local Mac/ARM Linux32-cell workload after full Store repair."
+      "evidence": "Original two reader-release failures now pass unchanged in full15 signed answer suite on source-lock384. Four actual native startup/flow and two prepared-publication controls also pass. Resource-only scope refusals and original ordinary reply custody preserved. Current batch3 RTC5/5 includes signed quarantine under actual domain writer, original-scope answer/RTC join, withdrawal, EdDSA and ES256 duplex/ICE/current-authority controls. All original selected commands joined naturally. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     },
     {
       "id": "B164",
       "title": "Read-side media mutex contention",
-      "status": "UPSTREAM and SERVICE READ-SIDE CHECKS PASS; transport qualification pending",
+      "status": "Read-side cleanup controls pass; final signed27/27 pass. Full transport performance and quality qualification pending.",
       "change": "Publish routing and connection metadata immutably; retain synchronization on state-change writers and one-time ownership transitions. Remove steady-path SQL/file/mutex admission and retries where replaced.",
-      "evidence": "Source-lock384 upstream108/108: Core52, RTC20, stack8, native28. Held-publication controls verify current/owner metadata reads do not wait for preparation writer. Replacement begin now returns immutable original provenance in the same transaction; RTC releases completed activation aliases before metadata retry. Store exact-origin no-hidden-authority test passes. Service15/15 pass, including publication readers progressing under held writer and changed-generation-only role reconciliation. Store primary-mutex and SQLite-writer exclusion controls pass without parking original capture.",
-      "next": "Actual signed and full matrix verification. Retain serialized state changes, original signed reply custody, codec/mixer state and IO drain fences; no whole-path lock-free claim."
+      "evidence": "Source-lock384 upstream108/108: Core52, RTC20, stack8, native28. Held-publication controls verify current/owner metadata reads do not wait for preparation writer. Replacement begin now returns immutable original provenance in the same transaction; RTC releases completed activation aliases before metadata retry. Store exact-origin no-hidden-authority test passes. Service15/15 pass, including publication readers progressing under held writer and changed-generation-only role reconciliation. Store primary-mutex and SQLite-writer exclusion controls pass without parking original capture. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     },
     {
       "id": "B165",
       "title": "Unnecessary packet allocations and broad cross-process invalidation",
-      "status": "Cleanup units retained; C signed15/23 with current failures open",
+      "status": "Affected allocation/invalidation controls and final signed27/27 pass; full matrix qualification pending.",
       "change": "Use fixed two-publication custody, allocation-free source keys with exact Weak owner validation, direct immutable registry lookups and tracing-enabled timing. Use shared atomic registry availability on packet admission/epochs and scope-local cross-process busy invalidation; retain global hard-fault refusal and shared Conversation dependencies.",
-      "evidence": "Current-source70/70 Store and27/27 Service tests pass. Covers exact cross-process disjoint scope isolation, revoked/expired packet refusal, hard-fault withdrawal, fixed publication lifetime/drop order, source owner/generation/epoch, trace filters, immutable registry reads and retained replacement/credential lifecycle controls. Initial invalid fixture alias corrected before the final passing rerun. Evidence:docs/evidence/gate-6/hotpath-cleanup-v212.json. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b.",
-      "next": "Complete broader Store writer repair and current source verification before fresh shipping/full32; earlier cleanup and new batch3 source selections remain separately recorded."
+      "evidence": "Current-source70/70 Store and27/27 Service tests pass. Covers exact cross-process disjoint scope isolation, revoked/expired packet refusal, hard-fault withdrawal, fixed publication lifetime/drop order, source owner/generation/epoch, trace filters, immutable registry reads and retained replacement/credential lifecycle controls. Initial invalid fixture alias corrected before the final passing rerun. Evidence:docs/evidence/gate-6/hotpath-cleanup-v212.json. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     },
     {
       "id": "B166",
       "title": "Native subscription journal mutation lacks coordinated writer",
-      "status": "C Data00/01 pass; shared original-end waiter integrated for later Data02 failure, unverified",
+      "status": "All3 signed data route/replay/storage-recovery scenarios pass in L; full matrix qualification pending.",
       "change": "Classify only proven original-operation namespace birth, keeping later readiness changes under exact historical Write custody. Retain immutable media outcomes in the original worker, release command Read aliases, then record under a short writer; never hold Conversation Write across codec/media IO.",
-      "evidence": "Schema119 exact original native-operation namespace rules and actual historical outcome writers integrated.13/13 new native/message tests pass, including every native command family start, once-only effect, Read-release recording, post-revocation refusal and exact transaction/Unit isolation. Same-worker Service outcomes integrated; compilation and signed checks pending. Evidence:docs/evidence/gate-6/store-writer-followthrough-v212.json. Current Service30/30 focused checks pass, including3 new captured-outcome custody controls. Evidence:docs/evidence/gate-6/service-outcome-followthrough-v212.json. Batch3 exact formerly failing native controls now pass2/2; RTC suite passes5/5. All original commands naturally joined on source23bab0e7. The earlier initial503 attempt remains preserved in signed-transport-followthrough-v212.json. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Verification-b Data completion assumptions have an integrated same-original-operation waiter (manifest bc17c740); no production Data delivery fix or later physical pass claimed. See signed-blocker-fixes-v212.json. Current c new reserved-begin Store causal and Service retry helpers pass; selected Store footprint failure remains and signed-c reruns await Server build. No live replacement-progress pass inferred. C Data02 progresses through message capture/storage but later shared connection.end sees Preparing; D fixture manifest27665657 observes same original end and ACK under original8s, without another termination.",
-      "next": "Complete wider Store regression repair and verify full decoded workload; no matrix cell is qualified by these synthetic controls."
+      "evidence": "Schema119 exact original native-operation namespace rules and actual historical outcome writers integrated.13/13 new native/message tests pass, including every native command family start, once-only effect, Read-release recording, post-revocation refusal and exact transaction/Unit isolation. Same-worker Service outcomes integrated; compilation and signed checks pending. Evidence:docs/evidence/gate-6/store-writer-followthrough-v212.json. Current Service30/30 focused checks pass, including3 new captured-outcome custody controls. Evidence:docs/evidence/gate-6/service-outcome-followthrough-v212.json. Batch3 exact formerly failing native controls now pass2/2; RTC suite passes5/5. All original commands naturally joined on source23bab0e7. The earlier initial503 attempt remains preserved in signed-transport-followthrough-v212.json. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Verification-b Data completion assumptions have an integrated same-original-operation waiter (manifest bc17c740); no production Data delivery fix or later physical pass claimed. See signed-blocker-fixes-v212.json. Current c new reserved-begin Store causal and Service retry helpers pass; selected Store footprint failure remains and signed-c reruns await Server build. No live replacement-progress pass inferred. C Data02 progresses through message capture/storage but later shared connection.end sees Preparing; D fixture manifest27665657 observes same original end and ACK under original8s, without another termination. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     },
     {
       "id": "B167",
       "title": "Full Store regression coverage for coordinated SQL writers",
-      "status": "D2 Store70/71, Service37/37, Server6/6; signed15/23; full matrix open",
+      "status": "Affected K156/156 and L128/128 controls pass; final signed27/27 pass. These scoped checks are not a claim of running the entire Store suite.",
       "change": "Finite short writer/attempt-custody repairs and ordinary fixture changes are integrated. Retain original attempts and deadlines; no writer across provider/media IO. Current subscription fixtures now wait on the same original operation rather than treating acceptance as completion; fresh private_vapi fixture uses initialization.",
-      "evidence": "Full Store baseline487pass/1034fail/4ignored remains unchanged. Batch4 actual frozen Store image: causal28pass/5fail of33, affected47pass/23fail of70, retained195pass/199fail of394; all selected test commands naturally joined with0 ignored. Cohorts overlap. Three retained roots account for144/199 failures: telephone mixed-scope binding65, private initial telephone Writer binding41, initial telephone allocation Writer binding38. Reviewed followthrough is integrated for those roots, later assistant recorders, reconnect/provider ordinary fixtures, provider claim/resolution, and narrow causal-fixture corrections; none inherits a pass from source review. Evidence:docs/evidence/gate-6/store-writer-batch4-v212.json. Batch5 union deduplicated415:270pass/145fail, all naturally joined.61 prior retained failures now pass; no prior passing test regressed. The invalid enrolled-delegation fixture was split into a supported human-consent positive and enrollment-delegation negative. Actual later consultation/SIP mutation boundaries remain. Evidence:docs/evidence/gate-6/store-writer-batch5-v212.json. Batch7 deduplicated429:340pass/89fail, all naturally joined; evidence:docs/evidence/gate-6/store-writer-batch7-v212.json. Complete batch7 inventory1575:1092pass/479fail/4ignored. Evidence:docs/evidence/gate-6/store-full-followthrough-v212.json. Batch8:679/731; batch9a focused followthrough:162/162 pass, all natural joins. Evidence:docs/evidence/gate-6/store-writer-batch9-v212.json. Final coherent cleanup units: Store766/766 and Service32/32 pass; verification-a retains those exact executable bytes. Server2/4, native replacement0/2, WebTransport5/5 and runtime0/16 completed with natural joins. Runtime16 stops at the same subscription setup assertion; private_vapi2 fails fresh Store initialization before callback. Evidence:docs/evidence/gate-6/signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Verification-c same frozen source: SDK5/5, Service37/37, Store44/51; new reserved-begin Store causal and2 Service retry/cutoff helpers pass. Exact7 Store failures reclassified as6 fixture ownership gaps and1 real Identity overcontention. Preserve original positive held-Identity-reader expectation. Three unit sessions naturally joined; Server build active. Mixed reservation/start candidates3871ac97/a0ce4787 are private source-reviewed only. See signed-blocker-fixes-v212.json#completed_units_c. D2 checkpoint: D2 exact frozen build passes. Selected Store70/71 has one obsolete Identity-reader exclusion fixture; retain the failed verdict pending E actual-CID fixture. Service37/37 and Server6/6 pass; Client5/5 retained only on exact unchanged executable. Signed driver16/24 =production15/23 plus cleanup helper1; native1/2, RTC4/5, runtime11/17 includes helper. Both provider children exit-6 and are joined/reaped, not successful natural exits. Evidence:signed-cleanup-v212.json#verification_d2.",
-      "next": "Verify integrated D six genuine fixture fixes and real Identity-overcontention fixes, preserving original positive/negative controls. Keep C51 source-bound failures, all earlier full Store inventories and v209 matrix history."
+      "evidence": "Full Store baseline487pass/1034fail/4ignored remains unchanged. Batch4 actual frozen Store image: causal28pass/5fail of33, affected47pass/23fail of70, retained195pass/199fail of394; all selected test commands naturally joined with0 ignored. Cohorts overlap. Three retained roots account for144/199 failures: telephone mixed-scope binding65, private initial telephone Writer binding41, initial telephone allocation Writer binding38. Reviewed followthrough is integrated for those roots, later assistant recorders, reconnect/provider ordinary fixtures, provider claim/resolution, and narrow causal-fixture corrections; none inherits a pass from source review. Evidence:docs/evidence/gate-6/store-writer-batch4-v212.json. Batch5 union deduplicated415:270pass/145fail, all naturally joined.61 prior retained failures now pass; no prior passing test regressed. The invalid enrolled-delegation fixture was split into a supported human-consent positive and enrollment-delegation negative. Actual later consultation/SIP mutation boundaries remain. Evidence:docs/evidence/gate-6/store-writer-batch5-v212.json. Batch7 deduplicated429:340pass/89fail, all naturally joined; evidence:docs/evidence/gate-6/store-writer-batch7-v212.json. Complete batch7 inventory1575:1092pass/479fail/4ignored. Evidence:docs/evidence/gate-6/store-full-followthrough-v212.json. Batch8:679/731; batch9a focused followthrough:162/162 pass, all natural joins. Evidence:docs/evidence/gate-6/store-writer-batch9-v212.json. Final coherent cleanup units: Store766/766 and Service32/32 pass; verification-a retains those exact executable bytes. Server2/4, native replacement0/2, WebTransport5/5 and runtime0/16 completed with natural joins. Runtime16 stops at the same subscription setup assertion; private_vapi2 fails fresh Store initialization before callback. Evidence:docs/evidence/gate-6/signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Verification-c same frozen source: SDK5/5, Service37/37, Store44/51; new reserved-begin Store causal and2 Service retry/cutoff helpers pass. Exact7 Store failures reclassified as6 fixture ownership gaps and1 real Identity overcontention. Preserve original positive held-Identity-reader expectation. Three unit sessions naturally joined; Server build active. Mixed reservation/start candidates3871ac97/a0ce4787 are private source-reviewed only. See signed-blocker-fixes-v212.json#completed_units_c. D2 checkpoint: D2 exact frozen build passes. Selected Store70/71 has one obsolete Identity-reader exclusion fixture; retain the failed verdict pending E actual-CID fixture. Service37/37 and Server6/6 pass; Client5/5 retained only on exact unchanged executable. Signed driver16/24 =production15/23 plus cleanup helper1; native1/2, RTC4/5, runtime11/17 includes helper. Both provider children exit-6 and are joined/reaped, not successful natural exits. Evidence:signed-cleanup-v212.json#verification_d2. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     },
     {
       "id": "B168",
       "title": "Reserved replacement preparation loses its pre-begin continuation",
-      "status": "D2 bounded controls pass; actual native/telephone progress still fails",
+      "status": "All3 signed native replacement and3 telephone scenarios pass in L; original-attempt and bounded-admission controls pass. Full matrix open.",
       "change": "Retry only fresh current resolution and atomic not-yet-begun admission for the SAME opaque lease in the same worker. Release per-attempt Read/coordinator before pause; first Read expiry only shortens; once-only Core call stays after successful begin.",
-      "evidence": "Telephone verification-b retains original root Preparing revision1 with effect Prepared attempt0; native preparation also defers with authority-busy; source commits reservation before begin and exits without saved runtime preparation. Exact historical busy stage/holder unproved. Candidate8405022a/patch0cec9ee5 independently source-reviewed. See signed-blocker-fixes-v212.json. C new actual same-reservation control passes; complete Service37/37 includes new bounded retry controls. Signed telephone/native progress remains separate; D exact-scope changes still unverified. D2 checkpoint: D2 retains native initial-mute error and telephone Get storage refusal/callback forbidden before IO; no exact holder attribution or progress success inferred from units. Reviewed E fixture/entry cleanup remains unverified.",
-      "next": "Run actual retained-Read/same-lease Store control, Service bounded retry/cancel controls, then original signed native and telephone scopes. No operation/Core replay or deadline renewal."
+      "evidence": "Telephone verification-b retains original root Preparing revision1 with effect Prepared attempt0; native preparation also defers with authority-busy; source commits reservation before begin and exits without saved runtime preparation. Exact historical busy stage/holder unproved. Candidate8405022a/patch0cec9ee5 independently source-reviewed. See signed-blocker-fixes-v212.json. C new actual same-reservation control passes; complete Service37/37 includes new bounded retry controls. Signed telephone/native progress remains separate; D exact-scope changes still unverified. D2 checkpoint: D2 retains native initial-mute error and telephone Get storage refusal/callback forbidden before IO; no exact holder attribution or progress success inferred from units. Reviewed E fixture/entry cleanup remains unverified. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     },
     {
       "id": "B169",
       "title": "Public-audio SDK assumes immediate subscription completion",
-      "status": "D2 unchanged Client5/5 retained; provider stack failure remains",
+      "status": "Final AI provider scenario completes subscription, return and restart; L27/27 signed pass. Retained SDK controls remain scoped evidence.",
       "change": "Drain each original reply ACK, then issue only read-only Get for the same original record/operation with exact scopes and monotonic revision. Update local handle/revision only after validated Completed result AND final ACK; original outer deadline/close-on-error retained.",
-      "evidence": "Verification-b actual public-audio SDK failure and source audit identify immediate Completed requirement. Frozen SDK source a34cef61; controlled signed SDK candidate af335246 retains preparation-independent scope and original timeout. See signed-blocker-fixes-v212.json. C verifies all3 receipt predicates and both controlled signed SDK cases. Current public-AI primary stack overflow occurs in production context spawn after SDK progression; no full provider or decoded-media qualification. D2 checkpoint: D2 retains exact C Client executable and five passing controls without rerun. Public-AI still aborts; controlled SDK receipt correctness does not qualify complete provider flow.",
-      "next": "Retain SDK controls; verify D production context stack boundary and actual signed public/provider workload. No new handles before original Completed and final ACK."
+      "evidence": "Verification-b actual public-audio SDK failure and source audit identify immediate Completed requirement. Frozen SDK source a34cef61; controlled signed SDK candidate af335246 retains preparation-independent scope and original timeout. See signed-blocker-fixes-v212.json. C verifies all3 receipt predicates and both controlled signed SDK cases. Current public-AI primary stack overflow occurs in production context spawn after SDK progression; no full provider or decoded-media qualification. D2 checkpoint: D2 retains exact C Client executable and five passing controls without rerun. Public-AI still aborts; controlled SDK receipt correctness does not qualify complete provider flow. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     },
     {
       "id": "B170",
       "title": "Operation-local writes unnecessarily exclude Identity readers",
-      "status": "D2 narrowed-writer causal controls pass; codec runtime admission still fails",
+      "status": "All3 signed Session-codec scenarios pass in L; narrowed-writer causal controls retained. Full matrix open.",
       "change": "Keep all current Identity Read facts; acquire exact root Conversation Write and only actual conditional enrollment-subject writes for replacement reservation/begin, initial media Start and Session-codec child reservation. Recheck current policy and persisted scope in the transaction. Final activation and unrelated graph authority unchanged.",
-      "evidence": "C original Identity-only reader reservation positive fails. Actual ledger mutation footprints require CID Write, not every room Identity Writer. Six other Store failures are genuine fixture gaps. C codec logs49 pre-effect admission deferrals; exact historical holder/substage not proven. D manifests3871ac97/a0ce4787/5a88f55f independently reviewed, not yet executed. See signed-blocker-fixes-v212.json. D2 checkpoint: D2 mixed-scope causal controls pass and original Identity-reader coexistence stays required. Sole Store failure is an obsolete fixture expecting that unrelated reader to exclude reservation; actual CID-reader correction is E only. Codec bad-confirmation still times out before offer after49 busy deferrals; actual holder unproved. New owned offload is integrated only in E working source and untested.",
-      "next": "Original Identity-reader coexistence, same-CID exclusion, revocation/current policy, original attempt/deadline and signed native/telephone/codec tests must pass; never change a positive to normalize oversized scope."
+      "evidence": "C original Identity-only reader reservation positive fails. Actual ledger mutation footprints require CID Write, not every room Identity Writer. Six other Store failures are genuine fixture gaps. C codec logs49 pre-effect admission deferrals; exact historical holder/substage not proven. D manifests3871ac97/a0ce4787/5a88f55f independently reviewed, not yet executed. See signed-blocker-fixes-v212.json. D2 checkpoint: D2 mixed-scope causal controls pass and original Identity-reader coexistence stays required. Sole Store failure is an obsolete fixture expecting that unrelated reader to exclude reservation; actual CID-reader correction is E only. Codec bad-confirmation still times out before offer after49 busy deferrals; actual holder unproved. New owned offload is integrated only in E working source and untested. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     },
     {
       "id": "B171",
       "title": "Production public-context startup overflows task-construction stack",
-      "status": "D2 Server6/6 includes owned-work controls; actual public-AI still aborts",
+      "status": "Final signed AI startup, return and restart completes (L27/27). The observed K restart ownership failure is fixed; secondary panic-unwind overflow is not independently qualified.",
       "change": "Explicitly pin/box the original owned context task before Tokio generic spawn receives its argument, preserving task body, cancellation, cleanup, result and original JoinHandle. No stack-size increase.",
-      "evidence": "C public-AI aborts without preceding fixture panic; actual crash/disassembly identifies start_owned+2724 at spawn. Compiled worker future54784 bytes passes by value before Tokio internal boxing. D e57a823d/fa217874 has byte-identical worker body and2 unexecuted size/poll/cancel/join controls. This primary failure differs from historical B unwind overflow. D2 checkpoint: Both new owned-work size/poll/cancel/join controls pass within Server6/6, but D2 actual primary public-AI child still stack-overflows and exits-6. Provider-close initializer fails before return then overflows during unwind; preserve distinct stages. No full stack issue closure inferred.",
-      "next": "Old concrete-future size positive must fail, final controls pass, then same signed public-AI test must complete; boxing review alone is not proof the observed stack failure is removed."
+      "evidence": "C public-AI aborts without preceding fixture panic; actual crash/disassembly identifies start_owned+2724 at spawn. Compiled worker future54784 bytes passes by value before Tokio internal boxing. D e57a823d/fa217874 has byte-identical worker body and2 unexecuted size/poll/cancel/join controls. This primary failure differs from historical B unwind overflow. D2 checkpoint: Both new owned-work size/poll/cancel/join controls pass within Server6/6, but D2 actual primary public-AI child still stack-overflows and exits-6. Provider-close initializer fails before return then overflows during unwind; preserve distinct stages. No full stack issue closure inferred. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
+      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
     }
   ],
   "workplan_tasks": [
@@ -2598,9 +2598,9 @@
         "crates/connect-store/src/private_provider/media.rs"
       ],
       "solution": "Remove idle provider Read and100ms SQL polling; use original runtime snapshot and epoch-fenced actual IO.",
-      "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S76",
@@ -2611,9 +2611,9 @@
         "crates/connect-service/src/telephone_replacement/established.rs"
       ],
       "solution": "Move unary and mixed telephone/native packet resolution to existing owned snapshot worker, retaining exact physical phase and queued epochs.",
-      "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S77",
@@ -2624,9 +2624,9 @@
         "crates/connect-store/src/media_authorization.rs"
       ],
       "solution": "Permit independently fenced publication during unrelated writes; retain conservative sequence fencing for failed derivations.",
-      "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Causal unit controls and affected signed scenarios pass without relaxed media limits.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S78",
@@ -2637,9 +2637,9 @@
         "crates/connect-service/src/canonical_replacement/media.rs"
       ],
       "solution": "Resolve exact pending scene on shared watcher; retain original source admission and epoch, readiness and physical activation, without packet-side scene SQL.",
-      "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Actual IO, queued epoch, phase and revocation controls pass; affected signed followthrough pending.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S79",
@@ -2650,9 +2650,9 @@
         "crates/connect-service/src/initial_telephone/policy.rs"
       ],
       "solution": "Publish exact Applied/Established media facts and purpose on shared watcher; retain quarantined/prepared control boundaries and current phase invalidation.",
-      "status": "Implemented and unit verified:290 affected controls pass. Focused signed22/27 pass; three telephone allocation and two private-provider return cases remain unresolved. Full matrix qualification open.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Actual IO, queued epoch, phase and revocation controls pass; affected signed followthrough pending.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S80",
@@ -2663,9 +2663,9 @@
         "crates/connect-store/src/transitions/native_replacements/telephone/runtime.rs"
       ],
       "solution": "Consolidate original allocation source and route validation, wait boundedly for control SQL, retain original cutoff and once-only SIP submission.",
-      "status": "J unit controls pass; signed telephone allocation confirms in allthree scenarios. Subsequent submission failures tracked S83; full-cell qualification open.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Real primary-SQL contention, original expiry/revocation and once-only allocation controls; then three signed telephone scenarios.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S81",
@@ -2676,9 +2676,9 @@
         "crates/connect-store/src/transitions/native_returns/custody.rs"
       ],
       "solution": "Consolidate original return validation; release planning readers before bounded SQL admission, acquire mutation authority immediately under that SQL interval, and preserve once-only effects.",
-      "status": "J unit controls pass; signed provider-close return now passes. Other provider scenario fails earlier initial planning, tracked S84; full-cell qualification open.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Real SQL contention and reader-drain controls, original expiry/revocation and no repeated mutation; then two signed provider-return scenarios.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S82",
@@ -2689,9 +2689,9 @@
         "crates/connect-service/src/canonical_replacement/allocation.rs"
       ],
       "solution": "Combine planning, pure transport validation and once-only begin in one immediate SQL interval under supplied signed proof; retain same captured/uncertain attempt through recording contention.",
-      "status": "K156/156 affected controls pass; all3 signed native replacement scenarios pass. Full matrix qualification open.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S83",
@@ -2702,9 +2702,9 @@
         "crates/connect-service/src/telephone_replacement/allocation.rs"
       ],
       "solution": "Audit and repair submission, resources, preparation and commit control boundaries with original bounded waits and typed pre-effect deferral; no arbitrary post-mutation storage retry or packet waits.",
-      "status": "K156/156 affected controls pass; all3 signed telephone handoff/cancel/no-answer scenarios pass. Full matrix qualification open.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S84",
@@ -2715,9 +2715,9 @@
         "crates/connect-service/src/canonical_consultation_return.rs"
       ],
       "solution": "Reuse bounded complete initial return resolution and prepare without holding authority while waiting for SQL; preserve same initial phase budget, cancellation and fresh plan checks.",
-      "status": "K156/156 affected controls pass; provider return completes. One signed scenario now fails later installation restart; lifecycle investigation active. Full matrix qualification open.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S85",
@@ -2733,9 +2733,9 @@
         "crates/connect-store/src/connection_control/tests/replacement_sources/commit/snapshot_binding.rs"
       ],
       "solution": "Make cached lifetime owner weak while preserving exact current owner checks and strong actual IO custody; await original mock server cancellation in signed restart fixture.",
-      "status": "Implemented and independently reviewed. Causal old-code regression fails at metadata-only installation-busy; fixed code passes128/128 snapshot and ownership controls. Signed27 verification pending.",
+      "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Real IO still blocks restart; retained metadata does not after IO drain; old grants and queued epochs remain invalid;128 snapshot/ownership controls and all27 signed scenarios.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -5122,10 +5122,10 @@
     "status_url": "../../.local/gate-6/full-matrix-v209/status.html"
   },
   "current_focused_verification": {
-    "passed": 26,
+    "passed": 27,
     "planned": 27,
-    "scope": "K local macOS ARM signed scenarios; separate156/156 affected controls pass.",
-    "next": "Resolve remaining installation restart lifecycle failure and verify it; full matrix qualification remains separate."
+    "scope": "L local macOS ARM signed scenarios;128/128 snapshot/ownership controls pass; prior K156/156 affected controls pass.",
+    "next": "Cleanup is component- and focused-runtime-verified. Fresh full32 qualification on local Mac/ARM Linux remains required."
   },
   "current_workplan_tasks": [
     "S71",
