@@ -17,7 +17,7 @@ CYCLE_POLICY = dict(profile="connect/matrix-idle-ownership/1", idle_seconds=10,
 GIB = 1024 * 1024 * 1024
 SERVER_SOURCE_INPUTS = {
     "crates/connect-server/src/main.rs": "acd9b8a3eb7e80342e38d08055e2dd3cb6018b6cc9ed2b6223cae5d3e6dd0a58",
-    "Cargo.lock": "e9e8e6143b6fa2d40efa95532ecabeb41b1712ad54f98a3d930f7e093a5a3c0f"}
+    "Cargo.lock": "6dd46da199fbfedf09ff02c5e2fd8b771bae3979fb6c5ea6e2dafdb5eff3d0de"}
 SERVER_RUNTIME_CONFIGURATION = dict(
     format="connect/matrix-server-runtime-capacity/1",
     runtime="tokio", version="1.53.2", builder="tokio::main-default-multi-thread",

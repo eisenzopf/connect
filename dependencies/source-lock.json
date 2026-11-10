@@ -2078,6 +2078,11 @@
       "path": "patches/rvoip/gate6-selected-quarantine-fixture-policy-domain.patch",
       "sha256": "d98120dff5eab0ce7d0140eb4b7ae56ecd93631701ec2503a3d350698607ca3e",
       "source": "G6-058 test-only correction: shared selected-codec fixture must install the identical policy object on both still-idle endpoints before opening Audio and Video, as existing Core routing requires. Preserve original identities, principals, adapters and handle registry; omit unrelated direct Video subscription. Keep all five real writer, fresh-format withdrawal, cancellation, deadline, rollback and decoded-audio assertions unchanged. Original F five setup failures retained; corrected runtime pending."
+    },
+    {
+      "path": "patches/rvoip/connect-replacement-allocation-coordination.patch",
+      "sha256": "fcb31f61f13242f088de3f5b0c5d0edb1981becb261b0dc04f608a07d27665ea",
+      "source": "Release the exact original allocation command domain custody before coordinator wait; reauthorize same signed command before once-only allocation"
     }
   ]
 }

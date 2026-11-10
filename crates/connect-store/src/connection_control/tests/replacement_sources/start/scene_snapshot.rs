@@ -253,3 +253,154 @@ fn private_scene_revoked_original_source_remains_refused_and_epoch_expires_at_ea
     drop(source);
     watcher.shutdown().unwrap();
 }
+
+#[test]
+fn original_attach_journal_writer_is_released_before_fresh_complete_read_and_old_source_io() {
+    let (f, _, _, _, origin, sources) = resource_fixture_scene();
+    let store = Arc::new(f.store);
+    let mut watcher = store.start_media_authorization_watcher().unwrap();
+    let source = source_snapshot(&store, &sources[0]);
+    let original = source_admitted(&source);
+    let old_epoch = original.packet_epoch().unwrap();
+    drop(original);
+    let writer = store
+        .try_native_replacement_scene_write(&origin, &sources)
+        .unwrap();
+    let cutoff = writer.media().source().expires_at();
+    let attempt = store
+        .begin_native_replacement_media_phase(
+            origin.clone(),
+            crate::NativeReplacementMediaPhase::Attach,
+            writer.media(),
+        )
+        .unwrap();
+    assert!(
+        !old_epoch.current(),
+        "the journal writer really withdrew the old publication"
+    );
+    drop(writer);
+    let read = store
+        .try_native_replacement_scene_read(&origin, &sources)
+        .unwrap();
+    let fresh = source_admitted(&source);
+    for _ in 0..100 {
+        let next = source.admit().unwrap();
+        assert!(read.current() && next.current() && fresh.current());
+        assert!(
+            !old_epoch.current(),
+            "fresh admission never revives queued old metadata"
+        );
+    }
+    // Effect recording is NOT downgraded to Read authority. The exact once-only
+    // original SQL attempt still exists; another begin cannot issue an effect.
+    assert_eq!(
+        store
+            .begin_native_replacement_media_phase(
+                origin.clone(),
+                crate::NativeReplacementMediaPhase::Attach,
+                read.media()
+            )
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    let sql = store.connection().unwrap();
+    let before: (i64, String, String) = sql.query_row(
+        "SELECT count(*),min(attempt_id),min(effect_id) FROM native_replacement_media_steps WHERE phase='attach'",
+        [], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+    assert_eq!(before.0, 1);
+    assert!(
+        crate::now() < cutoff,
+        "same original short capture still bounds this control"
+    );
+    drop(sql);
+    drop(fresh);
+    drop(read);
+    // No Core adapter effect is executed in this Store control. Its original
+    // unresolved attempt is recorded conservatively, never fabricated applied.
+    store
+        .record_native_replacement_media_phase(&attempt.uncertain())
+        .unwrap();
+    let sql = store.connection().unwrap();
+    let after: (i64, String, String) = sql.query_row(
+        "SELECT count(*),min(attempt_id),min(effect_id) FROM native_replacement_media_steps WHERE phase='attach'",
+        [], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+    assert_eq!(before, after);
+    drop(sql);
+    drop(source_admitted(&source));
+    drop(source);
+    watcher.shutdown().unwrap();
+}
+
+#[test]
+fn cancellation_between_original_attach_reservation_and_fresh_read_refuses_without_new_effect() {
+    let (f, key, command, _, origin, sources) = resource_fixture_scene();
+    let writer = f
+        .store
+        .try_native_replacement_scene_write(&origin, &sources)
+        .unwrap();
+    let attempt = f
+        .store
+        .begin_native_replacement_media_phase(
+            origin.clone(),
+            crate::NativeReplacementMediaPhase::Attach,
+            writer.media(),
+        )
+        .unwrap();
+    drop(writer);
+    cancel(&f, &key, &command);
+    assert!(f
+        .store
+        .try_native_replacement_scene_read(&origin, &sources)
+        .is_err());
+    let before = f.count("native_replacement_media_steps");
+    f.store
+        .record_native_replacement_media_phase(&attempt.uncertain())
+        .unwrap();
+    assert_eq!(before, 1);
+    assert_eq!(f.count("native_replacement_media_steps"), before);
+    assert!(f
+        .store
+        .try_native_replacement_scene_read(&origin, &sources)
+        .is_err());
+    assert!(
+        f.store.try_native_media_read(&sources[0], None).is_ok(),
+        "cancelling the unpublished replacement does not end its original source"
+    );
+}
+
+#[test]
+fn credential_revocation_after_attach_begin_is_checked_by_new_complete_read() {
+    let (f, _, _, _, origin, sources) = resource_fixture_scene();
+    let writer = f
+        .store
+        .try_native_replacement_scene_write(&origin, &sources)
+        .unwrap();
+    let attempt = f
+        .store
+        .begin_native_replacement_media_phase(
+            origin.clone(),
+            crate::NativeReplacementMediaPhase::Attach,
+            writer.media(),
+        )
+        .unwrap();
+    drop(writer);
+    let admin = f.store.revalidate(&f.admin).unwrap();
+    f.store.revoke(&admin, &f.keys[0]).unwrap();
+    let error = f
+        .store
+        .try_native_replacement_scene_read(&origin, &sources)
+        .err()
+        .unwrap();
+    assert!(matches!(error.code.as_str(), "unauthorized" | "forbidden"));
+    let effects = f.count("operation_effects");
+    f.store
+        .record_native_replacement_media_phase(&attempt.uncertain())
+        .unwrap();
+    assert_eq!(f.count("operation_effects"), effects);
+    assert!(f
+        .store
+        .try_native_replacement_scene_read(&origin, &sources)
+        .is_err());
+}

@@ -98,6 +98,8 @@ mod packet_observation;
 pub use packet_observation::PacketObserverScope;
 mod peer_authority;
 mod peer_credentials;
+#[cfg(feature = "test-support")]
+pub use peer_authority::read_wait::PeerReadWaitProbe;
 mod session_observation;
 mod user_delegation;
 pub use authority_fences::{
@@ -210,6 +212,8 @@ mod session_gateways;
 pub use session_gateways::InitialTelephoneGateways;
 
 pub struct Store {
+    #[cfg(feature = "test-support")]
+    peer_read_waits: std::sync::Arc<peer_authority::read_wait::Registry>,
     initial_telephone_gateways: Mutex<std::sync::Weak<InitialTelephoneGateways>>,
     session_codec_coordinator: std::sync::atomic::AtomicBool,
     session_ready_origins:
@@ -632,6 +636,8 @@ impl Store {
         authority_writer_boundary.register(&connection)?;
         authority_writer_boundary::schema::validate(&connection)?;
         let store = Self {
+            #[cfg(feature = "test-support")]
+            peer_read_waits: Default::default(),
             authority,
             media_authorization,
             runtime_ownership,
@@ -730,6 +736,8 @@ impl Store {
         authority_writer_boundary.register(&connection)?;
         authority_writer_boundary::schema::validate(&connection)?;
         let store = Self {
+            #[cfg(feature = "test-support")]
+            peer_read_waits: Default::default(),
             authority,
             media_authorization,
             runtime_ownership,

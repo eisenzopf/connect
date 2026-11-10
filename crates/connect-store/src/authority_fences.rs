@@ -118,6 +118,23 @@ pub struct AuthorityWait {
     cancelled: Arc<AtomicBool>,
     poll_interval: Duration,
     projection_diagnostic: bool,
+    #[cfg(feature = "test-support")]
+    read_wait_signal: Option<Arc<ReadWaitSignal>>,
+}
+#[cfg(feature = "test-support")]
+pub(crate) struct ReadWaitSignal(std::sync::Mutex<Option<std::sync::mpsc::Sender<()>>>);
+#[cfg(feature = "test-support")]
+impl ReadWaitSignal {
+    pub(crate) fn new(signal: std::sync::mpsc::Sender<()>) -> Self {
+        Self(std::sync::Mutex::new(Some(signal)))
+    }
+    fn notify(&self) {
+        if let Ok(mut signal) = self.0.lock() {
+            if let Some(signal) = signal.take() {
+                let _ = signal.send(());
+            }
+        }
+    }
 }
 impl AuthorityWait {
     pub fn new(timeout: Duration) -> Self {
@@ -126,7 +143,15 @@ impl AuthorityWait {
             cancelled: Arc::new(AtomicBool::new(false)),
             poll_interval: Duration::from_millis(2),
             projection_diagnostic: false,
+            #[cfg(feature = "test-support")]
+            read_wait_signal: None,
         }
+    }
+    #[cfg(feature = "test-support")]
+    pub(crate) fn with_read_wait_signal(&self, signal: Arc<ReadWaitSignal>) -> Self {
+        let mut wait = self.clone();
+        wait.read_wait_signal = Some(signal);
+        wait
     }
     /// Narrow the same wait/cancellation owner; never renew its deadline.
     pub(crate) fn bounded(&self, timeout: Duration) -> Self {
@@ -137,6 +162,8 @@ impl AuthorityWait {
             cancelled: self.cancelled.clone(),
             poll_interval: self.poll_interval,
             projection_diagnostic: self.projection_diagnostic,
+            #[cfg(feature = "test-support")]
+            read_wait_signal: self.read_wait_signal.clone(),
         }
     }
     /// A short metadata drain needs finer polling than an ordinary command.
@@ -906,6 +933,10 @@ fn lock_admission(file: &File, mode: AuthorityMode, wait: Option<&AuthorityWait>
                 Some(wait) => {
                     #[cfg(test)]
                     observe_waited_lock();
+                    #[cfg(feature = "test-support")]
+                    if let Some(signal) = &wait.read_wait_signal {
+                        signal.notify();
+                    }
                     wait.pause()?;
                 }
                 None => return Err(authority_busy()),

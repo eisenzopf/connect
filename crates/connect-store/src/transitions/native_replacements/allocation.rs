@@ -325,12 +325,42 @@ impl Store {
         NativeReplacementAllocationRead,
         T,
     )> {
-        let mut c = self.try_connection()?;
+        self.try_begin_native_replacement_allocation_validated(
+            prepared, credential, proof, validate,
+        )?
+        .ok_or_else(|| Error::new("authority-busy", "Current state is busy"))
+    }
+    /// None proves ONLY that the first primary SQL mutex was occupied: no
+    /// current-plan read, host callback, transaction or allocation effect ran.
+    /// Drop original authority and reacquire it before retrying this boundary.
+    /// Every later error, including SQLite begin/write/commit, is returned as
+    /// Err and is never classified as a safe allocation retry.
+    pub fn try_begin_native_replacement_allocation_validated<T>(
+        &self,
+        prepared: &NativeReplacementPrepared,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+        validate: impl FnOnce(&NativeReplacementAllocationRead) -> Result<T>,
+    ) -> Result<
+        Option<(
+            NativeReplacementAllocationAttempt,
+            NativeReplacementAllocationRead,
+            T,
+        )>,
+    > {
+        let mut c = match self.try_connection() {
+            Err(error)
+                if error.code == "authority-busy" && error.message == "Current state is busy" =>
+            {
+                return Ok(None)
+            }
+            result => result?,
+        };
         let read = self.native_replacement_allocation_read_in(&c, prepared, credential, proof)?;
         let metadata = validate(&read)?;
         let (attempt, read) =
             self.begin_native_replacement_allocation_in(&mut c, prepared, credential, proof, read)?;
-        Ok((attempt, read, metadata))
+        Ok(Some((attempt, read, metadata)))
     }
     /// Mark one possible allocation before invoking Core. Never retry this
     /// boundary; only its preceding metadata-only read is retryable.

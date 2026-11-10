@@ -13,6 +13,8 @@ mod packets;
 mod published;
 use published::Published;
 pub(crate) mod preparation;
+#[cfg(feature = "test-support")]
+pub(crate) mod preparation_custody_fixture;
 pub(crate) mod public_continuation;
 #[cfg(feature = "test-support")]
 mod publication_fixture;
@@ -85,6 +87,8 @@ pub(crate) struct Policy {
     capacity: usize,
     #[cfg(feature = "test-support")]
     video_preparation_probes: Mutex<BTreeMap<String, Weak<video_preparation_fixture::Probe>>>,
+    #[cfg(feature = "test-support")]
+    preparation_custody_probes: Mutex<BTreeMap<String, Weak<preparation_custody_fixture::Probe>>>,
     #[cfg(feature = "test-support")]
     replacement_projection_pauses: Mutex<BTreeMap<String, Arc<continuation_fixture::Pause>>>,
     #[cfg(feature = "test-support")]
@@ -847,6 +851,8 @@ impl Policy {
             held_registry_probes: Default::default(),
             #[cfg(feature = "test-support")]
             video_preparation_probes: Default::default(),
+            #[cfg(feature = "test-support")]
+            preparation_custody_probes: Default::default(),
             #[cfg(feature = "test-support")]
             preparation_registry_probes: Default::default(),
             #[cfg(feature = "test-support")]

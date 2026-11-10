@@ -1048,3 +1048,174 @@ fn native_custody_erasure_preserves_original_expiry_and_runtime_drop() {
     drop(original);
     assert!(f.manager.try_acquire(&[f.scope.write_scope()]).is_ok());
 }
+
+#[test]
+fn missing_publication_backlog_remains_ready_after_one_bounded_refresh_turn() {
+    let f = Fixture::new();
+    let handles = (0..MAX_REFRESH_PER_TURN + 1)
+        .map(|_| f.register(Instant::now() + Duration::from_secs(10)))
+        .collect::<Vec<_>>();
+    // Module-local model of the independently verified boundary; factories
+    // below still acquire the actual Manager read fences for every generation.
+    f.registry.availability.enable().unwrap();
+    for handle in handles.iter().take(MAX_REFRESH_PER_TURN) {
+        handle.slot.refresh_if_missing(&f.registry);
+    }
+    assert_eq!(f.refreshes.load(Ordering::Relaxed), MAX_REFRESH_PER_TURN);
+    assert!(handles[..MAX_REFRESH_PER_TURN]
+        .iter()
+        .all(|h| h.admit().is_ok()));
+    assert!(handles[MAX_REFRESH_PER_TURN].admit().is_err());
+    {
+        let state = f.registry.control.lock().unwrap();
+        assert!(
+            state
+                .slots
+                .iter()
+                .filter_map(Weak::upgrade)
+                .any(|slot| slot.refresh_ready(&state)),
+            "a real pending factory must prevent the unconditional idle sleep"
+        );
+    }
+    handles[MAX_REFRESH_PER_TURN]
+        .slot
+        .refresh_if_missing(&f.registry);
+    let state = f.registry.control.lock().unwrap();
+    assert!(handles.iter().all(|h| h.admit().is_ok()));
+    assert!(
+        !state
+            .slots
+            .iter()
+            .filter_map(Weak::upgrade)
+            .any(|slot| slot.refresh_ready(&state)),
+        "healthy publications must not make the worker spin"
+    );
+}
+
+#[test]
+fn registration_during_refresh_is_ready_even_without_a_writer_sequence_change() {
+    let f = Fixture::new();
+    let handles = (0..MAX_REFRESH_PER_TURN)
+        .map(|_| f.register(Instant::now() + Duration::from_secs(10)))
+        .collect::<Vec<_>>();
+    f.registry.availability.enable().unwrap();
+    let sequence = f.registry.control.lock().unwrap().sequence;
+    for h in &handles {
+        h.slot.refresh_if_missing(&f.registry);
+    }
+    // This is the same registry call that may run while the original worker is
+    // outside control, in a bounded factory. Its notify need not be retained by
+    // a Condvar, so the pending-slot predicate must carry the wake condition.
+    let new = f.register(Instant::now() + Duration::from_secs(10));
+    let state = f.registry.control.lock().unwrap();
+    assert_eq!(state.sequence, sequence);
+    assert!(new.admit().is_err());
+    assert!(new.slot.refresh_ready(&state));
+    assert!(handles.iter().all(|h| !h.slot.refresh_ready(&state)));
+    drop(state);
+    new.slot.refresh_if_missing(&f.registry);
+    assert!(new.admit().is_ok());
+}
+
+#[test]
+fn withdrawn_publication_does_not_spin_or_borrow_old_epoch_during_original_writer() {
+    let f = Fixture::new();
+    let handle = f.register(Instant::now() + Duration::from_secs(10));
+    f.registry.availability.enable().unwrap();
+    handle.slot.refresh_if_missing(&f.registry);
+    let old = handle.admit().unwrap().stamp();
+    let write = f.scope.write_scope();
+    let writer = f.manager.try_acquire(&[write]).unwrap();
+    assert!(handle.admit().is_err());
+    assert!(handle.admit_original(old).is_err());
+    let before = f.refreshes.load(Ordering::Relaxed);
+    {
+        let state = f.registry.control.lock().unwrap();
+        assert!(
+            !handle.slot.refresh_ready(&state),
+            "live writer is not eligible work"
+        );
+    }
+    handle.slot.refresh_if_missing(&f.registry);
+    assert_eq!(f.refreshes.load(Ordering::Relaxed), before);
+    drop(writer);
+    {
+        let state = f.registry.control.lock().unwrap();
+        assert!(handle.slot.refresh_ready(&state));
+    }
+    handle.slot.refresh_if_missing(&f.registry);
+    let fresh = handle.admit().unwrap();
+    assert_ne!(fresh.stamp().generation, old.generation);
+    assert!(handle.admit_original(old).is_err());
+}
+
+#[test]
+fn deferred_or_definitive_refusal_keeps_original_wait_instead_of_busy_spinning() {
+    let f = Fixture::new();
+    let handle = f.register(Instant::now() + Duration::from_secs(10));
+    f.registry.availability.enable().unwrap();
+    let sequence = f.registry.control.lock().unwrap().sequence;
+    {
+        let mut attempt = handle.slot.attempt.lock().unwrap();
+        attempt.sequence = Some(sequence);
+        attempt.transient = true;
+        // Deterministic scheduling state only, never a grant/packet deadline.
+        attempt.retry_at = Instant::now() + Duration::from_secs(1);
+    }
+    let state = f.registry.control.lock().unwrap();
+    assert!(!handle.slot.refresh_ready(&state));
+    drop(state);
+    {
+        let mut attempt = handle.slot.attempt.lock().unwrap();
+        attempt.transient = false;
+        attempt.definitive = true;
+    }
+    let state = f.registry.control.lock().unwrap();
+    assert!(!handle.slot.refresh_ready(&state));
+    drop(state);
+    f.owner.store(false, Ordering::Release);
+    handle.slot.refresh_if_missing(&f.registry);
+    assert!(handle.admit().is_err());
+}
+
+#[test]
+fn original_worker_probes_and_refreshes_next_batch_without_an_intervening_idle_wait() {
+    let f = Fixture::new();
+    let waits = Arc::new(Mutex::new(Vec::new()));
+    let mut handles = Vec::new();
+    for _ in 0..MAX_REFRESH_PER_TURN + 1 {
+        let manager = f.manager.clone();
+        let scope = f.scope.clone();
+        let owner = f.owner.clone();
+        let registry = Arc::downgrade(&f.registry);
+        let waits = waits.clone();
+        handles.push(
+            f.registry
+                .register(move || {
+                    let registry = registry.upgrade().unwrap();
+                    let observed = registry.original_idle_waits.load(Ordering::Relaxed);
+                    let guards = manager.try_acquire(std::slice::from_ref(&scope))?;
+                    let prepared = Prepared::new(
+                        Arc::new(Facts {
+                            owner: owner.clone(),
+                            revision: 0,
+                        }),
+                        guards,
+                        Instant::now() + Duration::from_secs(10),
+                    )?;
+                    waits.lock().unwrap().push(observed);
+                    Ok(prepared)
+                })
+                .unwrap(),
+        );
+    }
+    let mut watcher = f.start();
+    until(|| handles.iter().all(|h| h.admit().is_ok()));
+    watcher.shutdown().unwrap();
+    let waits = waits.lock().unwrap();
+    assert_eq!(waits.len(), MAX_REFRESH_PER_TURN + 1);
+    assert!(
+        waits.iter().all(|n| *n == waits[0]),
+        "actual original worker inserted an idle wait between eligible batches: {waits:?}"
+    );
+}

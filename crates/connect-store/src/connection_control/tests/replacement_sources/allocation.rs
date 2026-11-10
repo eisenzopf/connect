@@ -871,7 +871,7 @@ fn signed_allocation_validated_begin_keeps_primary_sql_and_returns_original_atte
     let before = Store::inspect_snapshot(f.store.path()).unwrap();
     let called = std::cell::Cell::new(false);
     let c = f.store.connection().unwrap();
-    let refused = f.store.begin_native_replacement_allocation_validated(
+    let refused = f.store.try_begin_native_replacement_allocation_validated(
         &prepared,
         &request.credentials[0],
         &proof,
@@ -881,12 +881,9 @@ fn signed_allocation_validated_begin_keeps_primary_sql_and_returns_original_atte
         },
     );
     drop(c);
-    assert_eq!(
-        refused
-            .err()
-            .expect("live Writer must never park on SQL")
-            .code,
-        "authority-busy"
+    assert!(
+        refused.expect("entry deferral is not an error").is_none(),
+        "only the first primary mutex refusal may defer the original begin"
     );
     assert!(!called.get());
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
@@ -939,7 +936,7 @@ fn signed_allocation_host_metadata_refusal_is_before_dml_and_preserves_original_
     let (f, _, _, prepared, request) = prepared_target();
     let proof = f.admit(&request);
     let before = Store::inspect_snapshot(f.store.path()).unwrap();
-    let refused = f.store.begin_native_replacement_allocation_validated(
+    let refused = f.store.try_begin_native_replacement_allocation_validated(
         &prepared,
         &request.credentials[0],
         &proof,
@@ -1050,4 +1047,33 @@ fn signed_allocation_bad_capture_returns_same_attempt_for_original_uncertainty()
     assert_eq!(allocation.state, EffectState::Unknown);
     assert_eq!(allocation.attempt, 1);
     assert_eq!(f.count("native_replacement_steps"), 2);
+}
+
+#[test]
+fn signed_allocation_sqlite_begin_failure_never_becomes_entry_deferral() {
+    let (f, _, _, prepared, request) = prepared_target();
+    let proof = f.admit(&request);
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let external = rusqlite::Connection::open(f.store.path()).unwrap();
+    external.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let called = std::cell::Cell::new(false);
+    let refused = f.store.try_begin_native_replacement_allocation_validated(
+        &prepared,
+        &request.credentials[0],
+        &proof,
+        |_| {
+            called.set(true);
+            Ok(())
+        },
+    );
+    // The primary mutex was available and the actual callback ran. SQLite's
+    // later transaction refusal is terminal to this caller, never safe None.
+    external.execute_batch("ROLLBACK").unwrap();
+    assert!(called.get());
+    assert_eq!(
+        refused.err().expect("SQLite refusal must remain Err").code,
+        "storage-unavailable"
+    );
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    assert_eq!(f.count("native_replacement_steps"), 1);
 }

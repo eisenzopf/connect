@@ -65,9 +65,35 @@ def runtime_spec(args, linux):
                   else str(args.chrome or "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"))
         playwright = str(ROOT / "scripts/video/observer-tools/node_modules/playwright/index.mjs")
         puppeteer = str(retained / "browser-bidi-tools/node_modules/puppeteer-core/lib/puppeteer/puppeteer-core.js")
-    expected = "Mozilla Firefox 158.0.1" if browser == "firefox" else (
-        "Google Chrome for Testing 156.0.8078.4" if linux else "Google Chrome 156.0.8078.80")
+    contract = json.loads((ROOT / "contracts/gate6-transport-matrix.json").read_text())
+    client_platform = "ubuntu24-arm64" if linux else "macos-arm64"
+    version = contract["expected_browsers_by_client_platform"][client_platform][browser]
+    product = "Mozilla Firefox" if browser == "firefox" else (
+        "Google Chrome for Testing" if linux else "Google Chrome")
+    expected = product + " " + version
     return dict(browserBinary=binary, playwrightModule=playwright, puppeteerModule=puppeteer, expectedBrowserVersion=expected)
+
+
+def read_browser_observation(browser_output, exit_code, command, browser_log):
+    """A missing result must not replace the already joined owner's failure."""
+    path = browser_output / "browser-observation.json"
+    try:
+        return json.loads(path.read_text())
+    except FileNotFoundError:
+        if exit_code == 0:
+            raise
+        error = subprocess.CalledProcessError(exit_code, command)
+        try:
+            # Private diagnostic only. Bound the tail; do not load an arbitrary
+            # original browser log into memory or a public verdict field.
+            with browser_log.open("rb") as source:
+                source.seek(0, os.SEEK_END)
+                source.seek(max(0, source.tell() - 8192))
+                tail = source.read(8192).decode("utf8", errors="replace")
+            error.add_note("Original joined browser log (last 8192 bytes):\n" + tail)
+        except OSError as log_error:
+            error.add_note("Original browser log unavailable: " + type(log_error).__name__)
+        raise error from None
 
 
 def port(kind):
@@ -446,10 +472,12 @@ def main():
         if remote is not None:
             report["remote_client_owner"] = remote.close()
             report["browser_owner_joined"] = remote_browser_owner_joined(report["remote_client_owner"])
-            if args.stage == "quality":
-                report["packet_capture"] = json.loads((browser_output / "browser-capture-observation.json").read_text())
         browser_owner = None
-        report["browser_observation"] = json.loads((browser_output / "browser-observation.json").read_text())
+        report["browser_observation"] = read_browser_observation(
+            browser_output, report["browser_exit_code"], command_args,
+            browser_output / "guest-job.log" if remote is not None else private / "browser.log")
+        if remote is not None and args.stage == "quality":
+            report["packet_capture"] = json.loads((browser_output / "browser-capture-observation.json").read_text())
         report["browser_observation_sha256"] = digest(browser_output / "browser-observation.json")
         report["runtime_versions"] = dict(passed=report["browser_observation"].get("browser") == client_runtime["expectedBrowserVersion"],
             browser=report["browser_observation"].get("browser"), node=report["browser_observation"].get("client_runtime", {}).get("node"),

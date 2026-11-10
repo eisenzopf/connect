@@ -38,12 +38,10 @@ impl Runtime {
     ) -> Result<Reply> {
         tracing::debug!(target: "connect_service::canonical_replacement", stage="start-entry",
             "Original replacement start entered");
-        let roles = self.role_projection.try_lock().map_err(|_| {
-            Error::new(
-                "not-ready",
-                "Replacement scene coordinator is busy before original effect",
-            )
-        })?;
+        // These first checks and exact historical replay publish no Core
+        // owner/effect. The actual begin below already releases both original
+        // authority aliases, then reacquires current authority and coordinator
+        // custody before validating and starting the once-only effect.
         let authority = a
             .authority::<StoreInvocationAuthority>()
             .ok_or_else(Error::forbidden)?;
@@ -98,7 +96,6 @@ impl Runtime {
                 ));
             }
             // Exact historical replay performs no new Core scene mutation.
-            drop(roles);
             self.record_started_replacement_with_peer(&previous, a.clone())
                 .await?;
             let store = self.media.store.clone();
@@ -120,10 +117,9 @@ impl Runtime {
                 "Original native allocation capture is not yet recorded",
             ));
         }
-        // This phase has no start effect. Release the role coordinator before
-        // waiting on metadata; the existing begin path reacquires it and checks
-        // the exact current target/plan again before the once-only mutation.
-        drop(roles);
+        // This phase has no start effect. The existing begin path obtains
+        // coordinator custody and checks the exact current target/plan again
+        // before the once-only mutation.
         let root_cancel = saved.handle.cancellation();
         let invocation_cancel = a.invocation_cancellation();
         let read_until = saved.deadline.min(

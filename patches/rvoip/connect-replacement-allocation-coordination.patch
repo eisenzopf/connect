@@ -1,0 +1,162 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
+@@ -8,6 +8,7 @@
+ enum PreparationKind {
+     InitialOffer,
+     Subscription,
++    ReplacementAllocation,
+ }
+ 
+ #[derive(Clone)]
+@@ -24,6 +25,11 @@
+     fn permits(&self, outgoing: &Envelope) -> Result<(), DispatchError> {
+         if self.cancellation.is_cancelled() || Instant::now() >= self.deadline {
+             return Err(DispatchError::Closed);
++        }
++        if self.kind == PreparationKind::ReplacementAllocation {
++            // This is only a same-original coordinator wait, never a parameter
++            // exchange, media grant or application-result permission.
++            return Err(DispatchError::Unsupported);
+         }
+         for scope in [
+             Scope::Conversation,
+@@ -83,6 +89,70 @@
+     }
+ }
+ impl AuthorizedEnvelope {
++    /// Consume the unique original replacement-allocation offer before a
++    /// coordinator wait. Drops both original application guards and retains no
++    /// exchange/media permission. Only a fresh admission of this exact signed
++    /// command can restore its application and final-result authority.
++    pub fn into_replacement_allocation_wait(
++        mut self,
++        requested: Instant,
++    ) -> Result<(Self, Instant), DispatchError> {
++        if !self.supports_native_negotiation()
++            || self.envelope.kind() != "connection.offer"
++            || self.envelope.original()["payload"]["replacement_preparation"]["profile"]
++                != "connect-replacement-preparation-v1"
++            || self.envelope.original()["payload"]["replacement_preparation"]["operation_record_id"]
++                .as_str().is_none_or(str::is_empty)
++            || self._lease.authority::<ResourcePreparation>().is_some()
++        {
++            return Err(DispatchError::Authority);
++        }
++        let deadline = self.resource_preparation_cutoff(requested);
++        if deadline <= Instant::now() { return Err(DispatchError::Closed); }
++        let cancellation = self.invocation.child_token();
++        let resource = ResourcePreparation {
++            kind: PreparationKind::ReplacementAllocation,
++            marker: Arc::new(()), original: self.envelope.clone(),
++            participant: String::new(), streams: BTreeSet::new(),
++            cancellation, deadline,
++        };
++        let mut reply = resource.clone();
++        reply.cancellation = self.origin.lifetime.child_token();
++        let reply_current = reply.cancellation.clone();
++        let current = resource.cancellation.clone();
++        self.reply_authority.note_resource_preparation();
++        self.reply_authority.replace(AuthorityLease::checking(reply, deadline,
++            move || !reply_current.is_cancelled()));
++        self._lease = AuthorityLease::checking(resource, deadline,
++            move || !current.is_cancelled());
++        Ok((self, deadline))
++    }
++    /// Resume only the same privately sealed allocation wait. The actual fresh
++    /// policy proof, never the wait marker, authorizes the original effect and
++    /// reply. Neither the command identity nor its original deadline changes.
++    pub fn resume_replacement_allocation(
++        mut self,
++        authority: Arc<ResourceActivationAuthority>,
++    ) -> Result<Self, DispatchError> {
++        let resource = self._lease.authority::<ResourcePreparation>()
++            .ok_or(DispatchError::Authority)?;
++        if resource.kind != PreparationKind::ReplacementAllocation
++            || !self.resource_activation_current(&authority)
++        { return Err(DispatchError::Authority); }
++        let reply_current = authority.clone();
++        self.reply_authority.replace(AuthorityLease {
++            _guard: authority.lease._guard.clone(),
++            validity: Some(Arc::new(move || reply_current.reply_current())),
++            deadline: Some(authority.deadline),
++        });
++        let current = authority.clone();
++        self._lease = AuthorityLease {
++            _guard: authority.lease._guard.clone(),
++            validity: Some(Arc::new(move || current.current())),
++            deadline: Some(authority.deadline),
++        };
++        Ok(self)
++    }
+     /// Consume the unique original invocation after dormant resource planning.
+     /// Only its resource bounds, physical cancellation, answer identity and
+     /// signed exchange remain. Typed application authority becomes unavailable.
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
+@@ -475,3 +475,66 @@
+     assert!(!fresh.current());
+     assert_eq!(replay.usage().0, 1);
+ }
++
++
++fn allocation_original() -> AuthorizedEnvelope {
++    let mut a=initial_authorized();
++    let mut original=a.envelope.original().clone();
++    original["payload"]["replacement_preparation"]["profile"]=json!("connect-replacement-preparation-v1");
++    a.envelope=Envelope::from_value(original).unwrap();
++    a
++}
++async fn allocation_with_policy() -> (AuthorizedEnvelope, Arc<OriginalPolicy>, Arc<tokio::sync::RwLock<bool>>, Arc<crate::v2::replay::ReplayFence>) {
++    let mut a=allocation_original();
++    let grants=Arc::new(tokio::sync::RwLock::new(false));
++    let original=AuthorityLease::checking(grants.clone().read_owned().await,a.origin.deadline,||true);
++    a.reply_authority.replace(original.retained());a._lease=original;
++    let policy=Arc::new(OriginalPolicy{expected:a.envelope.original().clone(),grants:grants.clone(),calls:std::sync::atomic::AtomicUsize::new(0),deadline:a.origin.deadline});
++    let(context,replay)=crate::v2::auth_peer::exchange::resource_test_context(policy.clone(),a.principal.clone(),a.origin.lifetime.clone(),a.origin.deadline);
++    replay.consume(a.envelope.id()).unwrap();a.exchange=Some(context);
++    (a,policy,grants,replay)
++}
++#[tokio::test]
++async fn allocation_coordinator_wait_releases_both_guards_and_restores_only_same_fresh_original() {
++    let(a,policy,grants,replay)=allocation_with_policy().await;
++    let original=a.envelope.original().clone();let origin=a.origin.deadline;
++    let(a,until)=a.into_replacement_allocation_wait(Instant::now()+Duration::from_secs(30)).unwrap();
++    assert_eq!(until,origin);assert!(a.authority::<tokio::sync::OwnedRwLockReadGuard<bool>>().is_none());
++    drop(grants.clone().try_write_owned().expect("both original and final-reply guards must be gone during coordinator wait"));
++    assert!(a._lease.authority::<ResourcePreparation>().unwrap().permits(a.envelope()).is_err());
++    assert!(a.reply_authority.for_replies(&[result(&a)]).is_err());
++    let fresh=a.reauthorize_resource_preparation().await.unwrap();
++    let a=a.resume_replacement_allocation(fresh).unwrap();
++    assert_eq!(a.envelope.original(),&original);assert_eq!(a.origin.deadline,origin);
++    assert!(a.authority::<tokio::sync::OwnedRwLockReadGuard<bool>>().is_some());
++    assert_eq!(policy.calls.load(Ordering::Acquire),1);assert_eq!(replay.usage().0,1);
++    let reply=result(&a);assert!(a.reply_authority.for_replies(&[reply.clone()]).is_ok());
++    a.invocation.cancel();assert!(a.reply_authority.for_replies(&[reply.clone()]).is_ok());
++    a.origin.lifetime.cancel();assert_eq!(a.reply_authority.for_replies(&[reply]).unwrap_err(),DispatchError::Authority);
++}
++#[tokio::test]
++async fn allocation_coordinator_wait_recaptures_revocation_without_replaying_or_extending_cutoff() {
++    let(a,policy,grants,replay)=allocation_with_policy().await;
++    let(a,until)=a.into_replacement_allocation_wait(Instant::now()+Duration::from_secs(30)).unwrap();
++    {let mut writer=grants.clone().try_write_owned().expect("no provisional domain aliases while waiting");*writer=true;}
++    assert!(matches!(a.reauthorize_resource_preparation().await,Err(DispatchError::Authority)));
++    assert_eq!(policy.calls.load(Ordering::Acquire),1);assert_eq!(replay.usage().0,1);
++    assert_eq!(a._lease.deadline(),Some(until));
++    assert!(a.reply_authority.for_replies(&[result(&a)]).is_err());
++}
++#[tokio::test]
++async fn allocation_resume_rejects_foreign_fresh_proof_expiry_and_original_cancellation() {
++    let(a,_,_,_)=allocation_with_policy().await;
++    let(a,_)=a.into_replacement_allocation_wait(Instant::now()+Duration::from_secs(30)).unwrap();
++    let(b,_,_,_)=allocation_with_policy().await;
++    let(b,_)=b.into_replacement_allocation_wait(Instant::now()+Duration::from_secs(30)).unwrap();
++    let foreign=b.reauthorize_resource_preparation().await.unwrap();
++    assert!(matches!(a.resume_replacement_allocation(foreign),Err(DispatchError::Authority)));
++    for cancel in [false,true] {
++        let(a,_,_,_)=allocation_with_policy().await;
++        let(mut a,_)=a.into_replacement_allocation_wait(Instant::now()+Duration::from_secs(30)).unwrap();
++        let fresh=a.reauthorize_resource_preparation().await.unwrap();
++        if cancel {a.origin.lifetime.cancel();} else {a._lease.deadline=Some(Instant::now()-Duration::from_millis(1));}
++        assert!(matches!(a.resume_replacement_allocation(fresh),Err(DispatchError::Authority)));
++    }
++}

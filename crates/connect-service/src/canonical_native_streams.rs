@@ -309,6 +309,12 @@ impl Runtime {
             }
             Ok(_) => (),
             Err(e) => {
+                crate::peer_authority::observe_unavailable(
+                    "native-stream-worker",
+                    a.envelope().payload().kind(),
+                    "replay-read",
+                    &e,
+                );
                 let _ = tx.send(Err(e));
                 return;
             }
@@ -335,6 +341,12 @@ impl Runtime {
             Ok(())
         })();
         if let Err(error) = physical_source {
+            crate::peer_authority::observe_unavailable(
+                "native-stream-worker",
+                a.envelope().payload().kind(),
+                "physical-source",
+                &error,
+            );
             let _ = tx.send(Err(error));
             return;
         }
@@ -347,6 +359,12 @@ impl Runtime {
         let accepted = match admission {
             Ok(record) => record,
             Err(e) => {
+                crate::peer_authority::observe_unavailable(
+                    "native-stream-worker",
+                    a.envelope().payload().kind(),
+                    "accept",
+                    &e,
+                );
                 let _ = tx.send(Err(e));
                 return;
             }
@@ -506,6 +524,12 @@ impl Runtime {
                     return;
                 }
                 Err(e) => {
+                    crate::peer_authority::observe_unavailable(
+                        "native-stream-worker",
+                        a.envelope().payload().kind(),
+                        "begin",
+                        &e,
+                    );
                     let _ = tx.send(Err(e));
                     return;
                 }

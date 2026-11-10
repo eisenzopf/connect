@@ -48,6 +48,8 @@ pub(crate) struct Grant {
 mod credential_refresh;
 mod invitations;
 mod lifetime;
+mod unavailable;
+pub(crate) use unavailable::observe as observe_unavailable;
 mod native_data;
 pub(crate) use native_data::{bind as bind_native_data, invocation as native_data_invocation};
 mod native_streams;
@@ -423,6 +425,7 @@ impl StorePeerAuthority {
             return Err(DispatchError::Authority);
         }
         let invocation_id = e.id().to_owned();
+        let command = e.payload().kind();
         let policy = self.id.clone();
         let mut timing = lifetime::CommandTiming::start(
             e.payload().kind(),
@@ -435,7 +438,10 @@ impl StorePeerAuthority {
         let lease = tokio::task::spawn_blocking(move || {
             let mut proof = store
                 .admit_peer_authority(&request, &wait)
-                .map_err(store_error)?;
+                .map_err(|error| {
+                    observe_unavailable("peer-policy", command, "store-admit", &error);
+                    store_error(error)
+                })?;
             let mut bindings = credentials
                 .iter()
                 .map(|c| {

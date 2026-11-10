@@ -321,6 +321,22 @@ impl Service {
             .replacement_continuation_refusal_for_test(record)
     }
 
+    /// Hold the actual scene coordinator from the caller's bounded test
+    /// future. No task, application proof or grant is created by this hook.
+    #[cfg(feature = "test-support")]
+    pub async fn with_canonical_replacement_coordinator_for_test<F, P, T>(
+        &self,
+        hold: F,
+    ) -> Result<T>
+    where
+        F: FnOnce() -> P,
+        P: std::future::Future<Output = T>,
+    {
+        let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
+        let _roles = runtime.role_projection.lock().await;
+        Ok(hold().await)
+    }
+
     /// Pause one original worker after actual movement and release of its
     /// current media readers, before metadata capture. Test support only.
     #[cfg(feature = "test-support")]
@@ -424,6 +440,20 @@ impl Service {
             .ok_or_else(Error::forbidden)?
             .media
             .arm_video_preparation_probe_for_test(operation)
+    }
+    /// Pause one actual Attach/Signal invocation, scoped to the original signed
+    /// operation. Test support only; dropping the handle releases its owner.
+    #[cfg(feature = "test-support")]
+    pub fn arm_canonical_preparation_custody_probe_for_test(
+        &self,
+        operation: &str,
+        phase: canonical_media_projection_fixture::PreparationCustodyPhase,
+    ) -> Result<canonical_media_projection_fixture::PreparationCustodyProbe> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .arm_preparation_custody_probe_for_test(operation, phase)
     }
     /// Compare original replacement-start authority under registry exclusion.
     #[cfg(feature = "test-support")]
@@ -1108,5 +1138,8 @@ pub use canonical_records::http::CanonicalHttpRecordResponse;
 #[cfg(feature = "test-support")]
 pub mod canonical_media_projection_fixture {
     pub use crate::canonical_media::continuation_fixture::ReplacementProjectionPause;
+    pub use crate::canonical_media::preparation_custody_fixture::{
+        PreparationCustodyObservation, PreparationCustodyPhase, PreparationCustodyProbe,
+    };
     pub use crate::canonical_media::video_preparation_fixture::VideoPreparationProbe;
 }

@@ -3,6 +3,9 @@ use super::*;
 use sdk::{Direction, Medium, StreamSelector};
 use std::process::Stdio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+#[cfg(feature = "test-support")]
+#[path = "replacement_video_recovery/preparation_custody.rs"]
+mod preparation_custody;
 #[path = "replacement_video_recovery/readiness.rs"]
 mod readiness;
 #[path = "../canonical_native_connections/consultation/groups/replacement/decoded_readiness/audio.rs"]
@@ -1102,7 +1105,10 @@ async fn exercise(mode: u8) {
     eprintln!("production replacement phase: initial-codec-history");
     let mut encoder = Encoder::open(
         f.temp.path(),
-        matches!(mode, 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25),
+        matches!(
+            mode,
+            18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29
+        ),
     )
     .await;
     let first = encoder.frame(0, true).await;
@@ -1256,6 +1262,23 @@ async fn exercise(mode: u8) {
                     "{prefix}:{}",
                     command.operation_id
                 ))
+                .unwrap(),
+        )
+    } else {
+        None
+    };
+    #[cfg(feature = "test-support")]
+    let preparation_custody_probe = if (26..=29).contains(&mode) {
+        use connect_service::canonical_media_projection_fixture::PreparationCustodyPhase;
+        let phase = if matches!(mode, 26 | 28) {
+            PreparationCustodyPhase::Attach
+        } else {
+            PreparationCustodyPhase::Signal
+        };
+        Some(
+            f.server
+                .service
+                .arm_canonical_preparation_custody_probe_for_test(&command.operation_id, phase)
                 .unwrap(),
         )
     } else {
@@ -1421,9 +1444,67 @@ async fn exercise(mode: u8) {
         return;
     }
     eprintln!("production replacement phase: replacement-resource-capture");
-    phase(&f, &mut controller, &command, 5).await;
+    if !(26..=29).contains(&mode) {
+        phase(&f, &mut controller, &command, 5).await;
+    }
     let mut io = replacement.claim_native_video_datagrams().unwrap();
     let mut sequence = 0u16;
+    #[cfg(feature = "test-support")]
+    if let Some(probe) = preparation_custody_probe {
+        let observed = preparation_custody::exercise(
+            &f,
+            mode,
+            &probe,
+            &mut controller,
+            &command,
+            &root,
+            &mut replacement,
+            &mut io,
+            &mut encoder,
+            &old_send,
+            &retained_recv,
+            &retained_send,
+            &old_recv,
+            &mut original_sequence,
+            &mut retained_sequence,
+            &mut sequence,
+            &first,
+            &previous_retained_epoch,
+            &publisher,
+            &subscriber,
+            &target,
+            voice,
+            incoming,
+            camera,
+            &original_preparation,
+        )
+        .await;
+        // All original owners join before the old-condition assertion. The
+        // probe also releases on failure; no test-owned detached reservation.
+        drop(probe);
+        encoder.close().await;
+        let target_closed = replacement.shutdown().await;
+        drop(io);
+        let publisher_closed = publisher.close(options()).await;
+        let subscriber_closed = subscriber.close(options()).await;
+        let server_closed = f.server.shutdown().await;
+        target_closed.unwrap();
+        publisher_closed.unwrap();
+        subscriber_closed.unwrap();
+        server_closed.unwrap();
+        if observed.is_ok() {
+            preparation_custody::assert_settled(
+                &f.config.database,
+                &original_preparation.record_id,
+                mode,
+            );
+        }
+        assert!(
+            observed.is_ok(),
+            "actual replacement phase custody failed: {observed:?}"
+        );
+        return;
+    }
     #[cfg(feature = "test-support")]
     if mode == 19 {
         let probe = receiver_epoch_registry_probe.as_ref().unwrap();
@@ -2064,6 +2145,27 @@ async fn exercise(mode: u8) {
     eprintln!(
         "production replacement: signed generation2, transferred both original video selections, real receiver feedback and fresh libvpx keys independently decoded at original RTP12000 and18000; one-use raw publisher hint; owned peers and encoder joined; no full transport cell qualified"
     );
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_attach_read_custody_preserves_original_route_during_actual_core_boundary() {
+    exercise(26).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_signal_read_custody_preserves_original_route_during_actual_core_boundary() {
+    exercise(27).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_attach_read_custody_revocation_cuts_original_epoch_and_drains_real_io() {
+    exercise(28).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_signal_read_custody_revocation_cuts_original_epoch_and_drains_real_io() {
+    exercise(29).await;
 }
 
 #[cfg(feature = "memory-diagnostics")]

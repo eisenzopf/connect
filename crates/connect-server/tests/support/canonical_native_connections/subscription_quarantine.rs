@@ -347,3 +347,6 @@ async fn scenario(withdraw_video: bool) {
         "actual domain writer or current session acceptance mutation failed during original resource wait: {writer:?}"
     );
 }
+
+#[path = "subscription_quarantine/overlap.rs"]
+mod overlap;

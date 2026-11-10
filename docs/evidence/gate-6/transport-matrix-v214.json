@@ -1,0 +1,121 @@
+{
+  "format": "connect/full32-public-safe-summary/1",
+  "updated": "2026-11-10T20:31:30.963440+00:00",
+  "run": "v214",
+  "source": {
+    "revision": "2cbcf155884576d1dcadc0435e02f7e6b9744d5b",
+    "workspace_sha256": "a3c845c0a5deebdae7cdf595e9adf2a75f6fa37a4b24eca9bfb7af80e83fc5bd",
+    "source_lock_sha256": "9c8e2357bf778dc0be1f9a0772f329168528a56d3942e012924f9ca9ec0d1b81",
+    "normal_generation": 389
+  },
+  "summary": {
+    "cells": {
+      "passed": 0,
+      "failed": 32,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0,
+      "incomplete": 0
+    },
+    "required_cells": 32,
+    "required_checks": 432,
+    "checks": {
+      "passed": 288,
+      "failed": 100,
+      "blocked": 44,
+      "not-run": 0,
+      "running": 0
+    }
+  },
+  "all32_selected_no_filters": true,
+  "all432_requirements_evaluated": true,
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false,
+  "evidence": {
+    "matrix_sha256": "fb6c4e61d07e11f58501859d4c53c2f588af84d0ec8828b8e88b565bf86a4c17",
+    "original_closure_binding_sha256": "1a5b578d21e1856622aab334540a49d778fea2996f547469ea589ab8ff2fe2f1",
+    "controller_exit_sha256": "cfc8b121d917727368771ea03b57368691e0096c4aa5ee9e9c29c1f39b074a05",
+    "all_original_owners_joined": true,
+    "source_guard_released": true,
+    "source_clean_before_integration": true
+  },
+  "requirement_failure_cell_counts": {
+    "device-replacement-and-old-owner-retirement": 27,
+    "independently-decoded-duplex-media-and-profile-budgets": 28,
+    "owned-drain-and-resource-reclamation": 32,
+    "declared-concurrent-workload": 5,
+    "identified-candidate-client-server-versions": 4,
+    "actual-private-packet-capture": 4
+  },
+  "requirement_blocked_cell_counts": {
+    "normal-tls-and-current-device-key-authority": 4,
+    "selected-transport-and-authenticated-discovery": 4,
+    "one-service-contract-and-original-operation-recovery": 4,
+    "participant-add-update-remove-and-current-audiences": 4,
+    "session-upgrade-and-current-capability-refusal": 4,
+    "device-replacement-and-old-owner-retirement": 4,
+    "declared-concurrent-workload": 4,
+    "independently-decoded-duplex-media-and-profile-budgets": 4,
+    "current-revocation-expiry-and-conflicting-operation-refusals": 4,
+    "wt-unavailable-selects-documented-wss-fallback-with-reason": 4,
+    "neither-path-usable-refuses-without-mutation-resubmission": 4
+  },
+  "requirement_count_scope": "Families overlap. Counts are requirement outcomes, not independently attributed root causes. Blocked requirements do not pass.",
+  "host_requirement_totals": {
+    "macos-arm64": {
+      "passed": 122,
+      "failed": 50,
+      "blocked": 44
+    },
+    "ubuntu24-arm64": {
+      "passed": 166,
+      "failed": 50
+    }
+  },
+  "observed_failure_families": [
+    {
+      "family": "native-original-control-settlement",
+      "observation": "Reached native movement cycles abort the post-commit control helper because it requires immediate completion. The public service permits a pending original receipt and settles the same capture after reply authority is released.",
+      "causal_limit": "The rejected wire payload was not retained; Preparing is a source-supported inference, not a directly captured payload. Downstream missing movement/media evidence is not an observed resource leak."
+    },
+    {
+      "family": "mac-local-chrome-runtime-contract",
+      "observation": "Four local Mac Chrome cells reject the approved installed version using a stale runtime expectation; the parent missing-observation error masks the original version refusal.",
+      "affected_cells": 4,
+      "causal_limit": "No browser version, acceptance threshold or original result has been changed."
+    },
+    {
+      "family": "runtime-capacity-source-binding",
+      "observation": "The capacity producer rejects a stale reviewed dependency-lock digest. The proposed correction preserves the verified runtime configuration and resource budgets.",
+      "causal_limit": "All 32 reclamation checks failed; this metadata leaf does not establish actual resource overage or qualify cleanup."
+    },
+    {
+      "family": "preparation-coordination-and-media-publication",
+      "observation": "A retained original allocation fails the role-coordinator try-lock before its effect begins. Separate source audits identify Attach/Signal writer custody across read-only Core work and avoidable publication backlog sleeps.",
+      "causal_limit": "These reviewed changes have not been compiled or runtime-tested; movement-window quality causation remains partly unproved."
+    },
+    {
+      "family": "503-control-admission-origin",
+      "observation": "Some native subscription setup and one inspected browser concurrent-initial-offer setup return authority_unavailable. Initial admission and handler errors share that public mapping.",
+      "causal_limit": "The exact inner origin remains unresolved. New static-stage diagnostics and six real signed overlap controls are pending; no mutation resubmission or stale authorization is proposed."
+    },
+    {
+      "family": "browser-media-quality",
+      "observation": "Actual browser workload cells retain movement and independently decoded media-budget failures.",
+      "causal_limit": "The native helper and contract corrections do not qualify browser media. Current-authority refresh/refusal evidence and original quality thresholds remain required."
+    }
+  ],
+  "history": {
+    "previous_full_run": "v209",
+    "previous_summary": {
+      "cells_passed": 0,
+      "required_cells": 32,
+      "checks_passed": 390,
+      "checks_failed": 42
+    },
+    "comparison_limit": "Different coherent source freezes and failures. Earlier focused passes and requirement counts do not qualify any current cell."
+  },
+  "next": "Verify the integrated reviewed batch on its new source seal, including old-behavior counterfactual and exact signed overlap tests; then run a fresh complete matrix. G6-058 remains open.",
+  "sanitization": "No credentials, operation or participant identifiers, addresses, raw logs, packet payloads or private filesystem paths are included."
+}

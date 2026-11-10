@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T14:39:50.703026+00:00",
-  "run_status": "Cleanup followthrough is verified on a950a5ee: L128/128 snapshot/ownership controls and27/27 focused signed scenarios pass (native3/3,WebRTC5/5,runtime19/19). Prior K156/156 affected control tests passed. The final signed restart failure is cleared by weak lifetime metadata ownership, with a causal old-code failure and fixed-code pass preserving strong real IO ownership. No acceptance change. Latest full32 matrix remains v209:0/32 cells,390/432 checks passed; fresh matrix qualification is still required.",
+  "updated": "2026-11-10T21:39:29.278086+00:00",
+  "run_status": "Full v214 closed:0/32 cells,288/432 checks pass,100 fail,44 blocked,0 not-run. Followthrough fixes now pass setup/allocation controls; remaining actual failures are decoded cadence and first postcommit frame. No new full run active.",
   "blockers": [
     {
       "id": "B01",
@@ -1331,32 +1331,32 @@
       "title": "State-change authorization has not replaced per-delivery SQL/fence checks",
       "status": "State-change publication and hot-path controls pass: L128/128 and prior K156/156; final signed27/27 pass. Full transport qualification pending.",
       "change": "Publish immutable live authorization on state changes; delivery uses atomic revocation/generation and original expiry. Preserve cross-process writer/IO drain ordering and reject uncoordinated authorization writes.",
-      "evidence": "Latest Store65/65 includes all writer-boundary, snapshot/lifetime, same-generation role stamp, cross-process invalidation/drain and original replacement controls. All five prior failures fixed: coordinated test setup, exact offline backup corruption and required installation projection before Completed. Three nonparking controls and effect-free planning regression pass. Service immutable publication, lifetime race, generation reconciliation and original worker custody all pass (15/15). Batch3 source23bab0e7 now verifies Service30/30, native2/2 and RTC5/5 with natural joins; this is a scoped synthetic selection. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
-      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
+      "evidence": "Latest Store65/65 includes all writer-boundary, snapshot/lifetime, same-generation role stamp, cross-process invalidation/drain and original replacement controls. All five prior failures fixed: coordinated test setup, exact offline backup corruption and required installation projection before Completed. Three nonparking controls and effect-free planning regression pass. Service immutable publication, lifetime race, generation reconciliation and original worker custody all pass (15/15). Batch3 source23bab0e7 now verifies Service30/30, native2/2 and RTC5/5 with natural joins; this is a scoped synthetic selection. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained. Full v214 follow-through: 0/32 cells qualified (288 passed/100 failed/44 blocked checks); earlier focused passes do not qualify this source. See docs/evidence/gate-6/transport-matrix-v214.json.",
+      "next": "Run the integrated reviewed v215 batch, including actual preparation/overlap counterfactuals; resolve observed matrix media/control failures before fresh full32 qualification."
     },
     {
       "id": "B163",
       "title": "Quarantined transport and codec preparation retains domain authority",
       "status": "Quarantined preparation/activation controls and signed RTC5/5 plus live-subscription cases pass; final signed27/27. Complete matrix open.",
       "change": "Prepare bounded transport/codecs independently of live conversation authorization; consume exact prepared candidate at a fresh authorized activation boundary, initially muted.",
-      "evidence": "Original two reader-release failures now pass unchanged in full15 signed answer suite on source-lock384. Four actual native startup/flow and two prepared-publication controls also pass. Resource-only scope refusals and original ordinary reply custody preserved. Current batch3 RTC5/5 includes signed quarantine under actual domain writer, original-scope answer/RTC join, withdrawal, EdDSA and ES256 duplex/ICE/current-authority controls. All original selected commands joined naturally. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
-      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
+      "evidence": "Original two reader-release failures now pass unchanged in full15 signed answer suite on source-lock384. Four actual native startup/flow and two prepared-publication controls also pass. Resource-only scope refusals and original ordinary reply custody preserved. Current batch3 RTC5/5 includes signed quarantine under actual domain writer, original-scope answer/RTC join, withdrawal, EdDSA and ES256 duplex/ICE/current-authority controls. All original selected commands joined naturally. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained. Full v214 follow-through: 0/32 cells qualified (288 passed/100 failed/44 blocked checks); earlier focused passes do not qualify this source. See docs/evidence/gate-6/transport-matrix-v214.json.",
+      "next": "Run the integrated reviewed v215 batch, including actual preparation/overlap counterfactuals; resolve observed matrix media/control failures before fresh full32 qualification."
     },
     {
       "id": "B164",
       "title": "Read-side media mutex contention",
       "status": "Read-side cleanup controls pass; final signed27/27 pass. Full transport performance and quality qualification pending.",
       "change": "Publish routing and connection metadata immutably; retain synchronization on state-change writers and one-time ownership transitions. Remove steady-path SQL/file/mutex admission and retries where replaced.",
-      "evidence": "Source-lock384 upstream108/108: Core52, RTC20, stack8, native28. Held-publication controls verify current/owner metadata reads do not wait for preparation writer. Replacement begin now returns immutable original provenance in the same transaction; RTC releases completed activation aliases before metadata retry. Store exact-origin no-hidden-authority test passes. Service15/15 pass, including publication readers progressing under held writer and changed-generation-only role reconciliation. Store primary-mutex and SQLite-writer exclusion controls pass without parking original capture. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
-      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
+      "evidence": "Source-lock384 upstream108/108: Core52, RTC20, stack8, native28. Held-publication controls verify current/owner metadata reads do not wait for preparation writer. Replacement begin now returns immutable original provenance in the same transaction; RTC releases completed activation aliases before metadata retry. Store exact-origin no-hidden-authority test passes. Service15/15 pass, including publication readers progressing under held writer and changed-generation-only role reconciliation. Store primary-mutex and SQLite-writer exclusion controls pass without parking original capture. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained. Full v214 follow-through: 0/32 cells qualified (288 passed/100 failed/44 blocked checks); earlier focused passes do not qualify this source. See docs/evidence/gate-6/transport-matrix-v214.json.",
+      "next": "Run the integrated reviewed v215 batch, including actual preparation/overlap counterfactuals; resolve observed matrix media/control failures before fresh full32 qualification."
     },
     {
       "id": "B165",
       "title": "Unnecessary packet allocations and broad cross-process invalidation",
       "status": "Affected allocation/invalidation controls and final signed27/27 pass; full matrix qualification pending.",
       "change": "Use fixed two-publication custody, allocation-free source keys with exact Weak owner validation, direct immutable registry lookups and tracing-enabled timing. Use shared atomic registry availability on packet admission/epochs and scope-local cross-process busy invalidation; retain global hard-fault refusal and shared Conversation dependencies.",
-      "evidence": "Current-source70/70 Store and27/27 Service tests pass. Covers exact cross-process disjoint scope isolation, revoked/expired packet refusal, hard-fault withdrawal, fixed publication lifetime/drop order, source owner/generation/epoch, trace filters, immutable registry reads and retained replacement/credential lifecycle controls. Initial invalid fixture alias corrected before the final passing rerun. Evidence:docs/evidence/gate-6/hotpath-cleanup-v212.json. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
-      "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
+      "evidence": "Current-source70/70 Store and27/27 Service tests pass. Covers exact cross-process disjoint scope isolation, revoked/expired packet refusal, hard-fault withdrawal, fixed publication lifetime/drop order, source owner/generation/epoch, trace filters, immutable registry reads and retained replacement/credential lifecycle controls. Initial invalid fixture alias corrected before the final passing rerun. Evidence:docs/evidence/gate-6/hotpath-cleanup-v212.json. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained. Full v214 follow-through: 0/32 cells qualified (288 passed/100 failed/44 blocked checks); earlier focused passes do not qualify this source. See docs/evidence/gate-6/transport-matrix-v214.json.",
+      "next": "Run the integrated reviewed v215 batch, including actual preparation/overlap counterfactuals; resolve observed matrix media/control failures before fresh full32 qualification."
     },
     {
       "id": "B166",
@@ -1405,6 +1405,78 @@
       "change": "Explicitly pin/box the original owned context task before Tokio generic spawn receives its argument, preserving task body, cancellation, cleanup, result and original JoinHandle. No stack-size increase.",
       "evidence": "C public-AI aborts without preceding fixture panic; actual crash/disassembly identifies start_owned+2724 at spawn. Compiled worker future54784 bytes passes by value before Tokio internal boxing. D e57a823d/fa217874 has byte-identical worker body and2 unexecuted size/poll/cancel/join controls. This primary failure differs from historical B unwind overflow. D2 checkpoint: Both new owned-work size/poll/cancel/join controls pass within Server6/6, but D2 actual primary public-AI child still stack-overflows and exits-6. Provider-close initializer fails before return then overflows during unwind; preserve distinct stages. No full stack issue closure inferred. Final cleanup followthrough: docs/evidence/gate-6/cleanup-batch-l-v212.json; source a950a5ee, all27 signed scenarios pass. Original historical failures retained.",
       "next": "Fresh full32 transport-matrix qualification; focused passes do not qualify cells."
+    },
+    {
+      "id": "B172",
+      "title": "Native peer rejects pending original post-commit control receipts",
+      "status": "All10 distinct independent-peer controls pass after correcting a stale result-schema assertion; fresh matrix workload pending.",
+      "change": "Same-original public SDK settlement with terminal-state and immutable receipt checks.",
+      "evidence": "Inspected completed native targets report the original control did not complete; pending wire state is inferred from protocol/source, not directly saved. Missing downstream media and movement proof stays failed. Public evidence: docs/evidence/gate-6/transport-matrix-v214.json; docs/evidence/gate-6/post-v214-reviewed-batch.json.",
+      "next": "Resolve remaining media failures before fresh full32 qualification; see post-v214-reviewed-batch.json."
+    },
+    {
+      "id": "B173",
+      "title": "Mac Chrome runtime expectation disagrees with approved contract",
+      "status": "Integrated; Python browser/capacity suite 29/29 passed; affected Mac Chrome matrix cells await rerun.",
+      "change": "Read the approved per-platform pin and retain the original version error.",
+      "evidence": "Four Mac-local Chrome cells fail their stale version expectation; missing browser observation masks the original child error. Version and capture checks fail; downstream requirements remain blocked. Public evidence: docs/evidence/gate-6/transport-matrix-v214.json; docs/evidence/gate-6/post-v214-reviewed-batch.json. Combined Python browser/capacity unit suite passed29/29 with original process naturally joined; component evidence only.",
+      "next": "Execute the listed v215 targeted controls with original owners joined; then fresh full32 qualification."
+    },
+    {
+      "id": "B174",
+      "title": "Capacity producer rejects stale reviewed dependency-lock binding",
+      "status": "Integrated; Python browser/capacity suite 29/29 passed; runtime reclamation qualification remains open.",
+      "change": "Update the deliberately reviewed dependency-lock digest while preserving verified runtime defaults and all resource budgets.",
+      "evidence": "All 32 reclamation requirements fail; the source-binding leaf alone is not evidence of resource overage or successful reclamation. Public evidence: docs/evidence/gate-6/transport-matrix-v214.json; docs/evidence/gate-6/post-v214-reviewed-batch.json. Combined Python browser/capacity unit suite passed29/29 with original process naturally joined; no resource pass inferred.",
+      "next": "Execute the listed v215 targeted controls with original owners joined; then fresh full32 qualification."
+    },
+    {
+      "id": "B175",
+      "title": "Attach and Signal retain journal Writer through read-only Core work",
+      "status": "Old-Write causal counterexamples reproduced. Fixed Attach continuity and both current-revocation controls pass; Signal continuity still loses a postcommit frame.",
+      "change": "Release Write and coordinator aliases, freshly authorize complete Read custody for the original Core phase, then acquire Write for exact original recording. Activate/Commit retain coordinated Write.",
+      "evidence": "Source-level exclusion mechanism identified; movement-window quality causation requires old-behavior counterfactual and real signed continuity/revocation evidence. Public evidence: docs/evidence/gate-6/transport-matrix-v214.json; docs/evidence/gate-6/post-v214-reviewed-batch.json. Produced Store custody controls pass within54/54; this does not exercise the actual Service preparation variant or its old-Write counterfactual.",
+      "next": "Resolve remaining media failures before fresh full32 qualification; see post-v214-reviewed-batch.json."
+    },
+    {
+      "id": "B176",
+      "title": "Shared 503 mapping hides concurrent control admission origin",
+      "status": "All8 distinct signed overlap/withdrawal/initial-offer controls pass across retained receipts, including both six-peer initial-offer cases. Other original503 causes are not presumed identical.",
+      "change": "Preserve same request/deadline/response and distinguish initial admission from handler stages; test six actual concurrent offers plus subscription overlap and semantic withdrawal.",
+      "evidence": "Original setup failures include native subscriptions and an inspected browser six-offer setup. They share public authority_unavailable, which does not establish the same inner cause. Public evidence: docs/evidence/gate-6/transport-matrix-v214.json; docs/evidence/gate-6/post-v214-reviewed-batch.json.",
+      "next": "Resolve remaining media failures before fresh full32 qualification; see post-v214-reviewed-batch.json."
+    },
+    {
+      "id": "B177",
+      "title": "Allocation coordinator contention rejects effect-free original command",
+      "status": "All11 upstream resource controls and five Store allocation controls pass. Both signed representatives now complete both handoff rounds; final cadence still fails.",
+      "change": "Release domain proof while waiting, freshly authorize original signed command under its original cutoff, and begin once; remove redundant pre-effect start gate.",
+      "evidence": "A completed WebTransport component identifies preflight-role not-ready before the allocation effect. Other 400 failures are not automatically attributed to this leaf. Public evidence: docs/evidence/gate-6/transport-matrix-v214.json; docs/evidence/gate-6/post-v214-reviewed-batch.json.",
+      "next": "Resolve remaining media failures before fresh full32 qualification; see post-v214-reviewed-batch.json."
+    },
+    {
+      "id": "B178",
+      "title": "Eligible publication backlog sleeps between bounded batches",
+      "status": "Store publication controls pass; representative decoded cadence still fails after both handoff rounds complete.",
+      "change": "Continue the same owned worker while eligible missing publications remain, retaining exact scope/currentness/expiry and refusal backoff.",
+      "evidence": "Avoidable idle waits are source-proven. Their contribution to actual movement-window quality gaps is not yet measured. Public evidence: docs/evidence/gate-6/transport-matrix-v214.json; docs/evidence/gate-6/post-v214-reviewed-batch.json. Actual linked Store controls passed54/54 with naturally joined/absent groups. No Service or full-matrix pass inferred.",
+      "next": "Resolve remaining media failures before fresh full32 qualification; see post-v214-reviewed-batch.json."
+    },
+    {
+      "id": "B179",
+      "title": "Decoded cadence still falls during completed replacement preparation",
+      "status": "Both representative tests complete two rounds, then fail24fps bins. Baseline bins3/7 retain20\u201321/14\u201316 frames while each source publishes30.",
+      "change": "Investigating journal-only authority invalidation; not yet established as the causal loss. Actual Core Activate spans are1.142\u20131.844ms, excluding a long Core activation wait as the demonstrated cause.",
+      "evidence": "Actual local signed focused receipts in docs/evidence/gate-6/post-v214-reviewed-batch.json; full v214 remains0/32.",
+      "next": "Audit exact journal DML/authorization dependencies and preserve current revocation, uncertainty and routing-change barriers."
+    },
+    {
+      "id": "B180",
+      "title": "First public target frame can disappear before Core fan-out",
+      "status": "Latest Signal positive and same-binary diagnostic fail receiving timestamp3000 after original handoff completion.",
+      "change": "Source admission and Core ingress succeed; no fanout/egress increment. Narrowed to scene routing or current forwarding authorization, before SDK receive.",
+      "evidence": "Actual local signed focused receipts in docs/evidence/gate-6/post-v214-reviewed-batch.json; full v214 remains0/32.",
+      "next": "Use retained policy trace to identify the first refusal/drop; add only the missing bounded diagnostic if necessary, then fix and test the exact path."
     }
   ],
   "workplan_tasks": [
@@ -2736,6 +2808,151 @@
       "status": "Implemented and focused-runtime-verified: final L27/27 signed scenarios pass; L128/128 snapshot/ownership and prior K156/156 affected controls pass. Full matrix qualification remains open.",
       "completion": "Real IO still blocks restart; retained metadata does not after IO drain; old grants and queued epochs remain invalid;128 snapshot/ownership controls and all27 signed scenarios.",
       "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S86",
+      "title": "Native same-original control settlement",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S85"
+      ],
+      "code_paths": [],
+      "solution": "One mutation, original pending receipt ACK, same-ID Get until terminal and final ACK; preserve immutable binding and original cutoff.",
+      "status": "All10 distinct independent-peer controls pass after correcting a stale result-schema assertion; fresh matrix workload pending.",
+      "completion": "Four exchange controls plus retained public-audio neighbors and the failed native matrix workload.",
+      "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S87",
+      "title": "Approved browser runtime expectation",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S85"
+      ],
+      "code_paths": [],
+      "solution": "Use the approved client-platform contract pin and preserve the original browser error when observation is missing.",
+      "status": "Integrated; component controls passed within the combined 29/29 Python suite; fresh matrix runtime pending.",
+      "completion": "Five browser-runtime controls, then the four affected Mac Chrome cells.",
+      "completion_status": "component-verified-matrix-pending"
+    },
+    {
+      "id": "S88",
+      "title": "Reviewed runtime capacity source binding",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S85"
+      ],
+      "code_paths": [],
+      "solution": "Refresh only the reviewed dependency-lock source pin after verifying unchanged main, Tokio runtime builder and capacity.",
+      "status": "Integrated; component controls passed within the combined 29/29 Python suite; fresh matrix runtime pending.",
+      "completion": "Actual repository producer binding and stale/missing-source negatives; native/browser resource fixtures retain all budgets.",
+      "completion_status": "component-verified-matrix-pending"
+    },
+    {
+      "id": "S89",
+      "title": "Publication worker work conservation",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S85"
+      ],
+      "code_paths": [],
+      "solution": "Drain eligible missing-publication backlog without an idle sleep between eight-item batches; retain writer, scope, expiry and refusal backoff checks.",
+      "status": "Store publication controls pass; representative decoded cadence still fails after both handoff rounds complete.",
+      "completion": "Five actual worker/fence/backoff/registration controls; original movement-window decoded-media checks remain required.",
+      "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S90",
+      "title": "Exact unavailable-control origin diagnostics",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S85"
+      ],
+      "code_paths": [],
+      "solution": "Static labels distinguish initial authority admission from handler replay/source/accept/begin stages; preserve the same response, request and cutoff, with no added SQL or retry.",
+      "status": "Actual signed traces identify primary-SQL entry contention; typed pre-effect deferral integrated and five Store regressions pass.",
+      "completion": "Actual concurrent signed originals must retain admission-vs-handler origin evidence.",
+      "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S91",
+      "title": "Attach and Signal read custody",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S85"
+      ],
+      "code_paths": [],
+      "solution": "Release durable journal Writers and coordinator aliases before fresh current Read-only Core work, then reacquire exact Write custody for recording; Activate and Commit remain coordinated Writers.",
+      "status": "Old-Write causal counterexamples reproduced. Fixed Attach continuity and both current-revocation controls pass; Signal continuity still loses a postcommit frame.",
+      "completion": "Three real Store custody/revocation/cancel controls and two Service cutoff/stop controls; current authorization and original attempt identity remain mandatory.",
+      "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S92",
+      "title": "Actual preparation custody counterfactual",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S85"
+      ],
+      "code_paths": [],
+      "solution": "Pause original Attach/Signal at the actual Service-to-Core boundary using test-only bounded hooks, preserving the original worker and all cleanup ownership.",
+      "status": "Both expected old-Write failures verified; latest fixed signed suite3/4 passes. Exact missing postcommit frame remains under diagnosis.",
+      "completion": "Run old-Write counterfactual before four fixed signed continuity/revocation controls; do not call source review a pass.",
+      "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S93",
+      "title": "Original allocation coordinator continuation",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S85"
+      ],
+      "code_paths": [],
+      "solution": "Remove the redundant effect-free start gate. Release original domain proof while waiting for allocation coordination, freshly authorize the exact same signed command under its unchanged cutoff, then begin once.",
+      "status": "All11 upstream resource controls and five Store allocation controls pass. Both signed representatives now complete both handoff rounds; final cadence still fails.",
+      "completion": "Three upstream custody/currentness controls plus actual signed parallel original allocation; recorded upstream patch and source-lock successor 390.",
+      "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S94",
+      "title": "Signed concurrent setup and subscription overlap v3",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S85"
+      ],
+      "code_paths": [],
+      "solution": "Six original handshakes, real request-scoped Read-WouldBlock rendezvous, current Video withdrawal, both original Audio routes and same-ID settlement; no client mutation retries.",
+      "status": "All8 distinct signed overlap/withdrawal/initial-offer controls pass across retained receipts, including both six-peer initial-offer cases.",
+      "completion": "Six signed cases: two subscription-overlap, two withdrawal, two six-concurrent-initial-offer cases; strict semantic negatives exclude 503, unrelated errors and timeouts.",
+      "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S95",
+      "title": "Resolve preparation-time decoded cadence loss",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S91",
+        "S93"
+      ],
+      "code_paths": [],
+      "solution": "Audit exact journal DML/authorization dependencies and preserve current revocation, uncertainty and routing-change barriers.",
+      "status": "Root cause investigation; no speculative fix claimed.",
+      "completion": "Focused regression preserves current authority/cleanup and passes actual media delivery, then all32 cells.",
+      "completion_status": "in-progress"
+    },
+    {
+      "id": "S96",
+      "title": "Resolve first public frame loss",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S91",
+        "S93"
+      ],
+      "code_paths": [],
+      "solution": "Use retained policy trace to identify the first refusal/drop; add only the missing bounded diagnostic if necessary, then fix and test the exact path.",
+      "status": "Root cause investigation; no speculative fix claimed.",
+      "completion": "Focused regression preserves current authority/cleanup and passes actual media delivery, then all32 cells.",
+      "completion_status": "in-progress"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -5117,17 +5334,26 @@
     "post_verification_changes": "Progress documentation and its renderer only; library, upstream patch, lock and test bytes unchanged."
   },
   "latest_full_run": {
-    "evidence_key": "completed_v209_actual",
-    "label": "v209",
-    "status_url": "../../.local/gate-6/full-matrix-v209/status.html"
+    "evidence_key": "completed_v214_actual",
+    "label": "v214",
+    "status_url": "../evidence/gate-6/transport-matrix-v214.json"
   },
   "current_focused_verification": {
-    "passed": 27,
-    "planned": 27,
-    "scope": "L local macOS ARM signed scenarios;128/128 snapshot/ownership controls pass; prior K156/156 affected controls pass.",
-    "next": "Cleanup is component- and focused-runtime-verified. Fresh full32 qualification on local Mac/ARM Linux remains required."
+    "passed": 139,
+    "planned": 142,
+    "scope": "Latest applicable result per distinct focused test across preserved source-specific receipts: 110/113 Rust pass, 3 fail; Python29/29 pass separately. Composite evidence is not a single coherent final build or a matrix-cell pass.",
+    "next": "Resolve three remaining focused media failures before full32. Setup/allocation completion is not media-quality acceptance."
   },
   "current_workplan_tasks": [
+    "S86",
+    "S87",
+    "S88",
+    "S89",
+    "S90",
+    "S91",
+    "S92",
+    "S93",
+    "S94",
     "S71",
     "S72",
     "S73",
@@ -5174,7 +5400,9 @@
     "S82",
     "S83",
     "S84",
-    "S85"
+    "S85",
+    "S95",
+    "S96"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -5190,8 +5418,8 @@
     "qualification_note": "The Store comparison checker expected five full captures for two credentials, but measured eleven. Its strict failed receipt is preserved. Source review accounts for six admission captures, four execution checks and one output capture; the fixed path passes with one. No test or historical verdict was rewritten. Restored checks do not inflate the 83 distinct focused passes."
   },
   "next_full_run_status": {
-    "url": "../../.local/gate-6/v209-next-batch-plan.html",
-    "label": "Current fix batch and unresolved media causes"
+    "url": "../evidence/gate-6/post-v214-reviewed-batch.json",
+    "label": "Integrated v215 batch: source reviewed, build and tests pending"
   },
   "completed_v208_actual": {
     "source_revision": "0e37d42e07bfe9f20ff9dc4d5d985db08d7c3005",
@@ -16315,5 +16543,302 @@
   },
   "cleanup_j_evidence": "docs/evidence/gate-6/cleanup-batch-j-v212.json",
   "cleanup_k_evidence": "docs/evidence/gate-6/cleanup-batch-k-v212.json",
-  "cleanup_l_evidence": "docs/evidence/gate-6/cleanup-batch-l-v212.json"
+  "cleanup_l_evidence": "docs/evidence/gate-6/cleanup-batch-l-v212.json",
+  "completed_v214_actual": {
+    "source_revision": "2cbcf155884576d1dcadc0435e02f7e6b9744d5b",
+    "summary": {
+      "cells": {
+        "passed": 0,
+        "failed": 32,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 288,
+        "failed": 100,
+        "blocked": 44,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "matrix_sha256": "fb6c4e61d07e11f58501859d4c53c2f588af84d0ec8828b8e88b565bf86a4c17",
+    "closure_receipt_sha256": "1a5b578d21e1856622aab334540a49d778fea2996f547469ea589ab8ff2fe2f1",
+    "public_evidence": "docs/evidence/gate-6/transport-matrix-v214.json",
+    "public_evidence_sha256": "55853d3620e515cbcade1705099c7470424a2a420d0e8f8f41df47ae3279eb04",
+    "source_release": "All original controller and worker owners joined; source guard released with clean tested source before integration.",
+    "failure_family_cell_counts": {
+      "device-replacement-and-old-owner-retirement": 27,
+      "independently-decoded-duplex-media-and-profile-budgets": 28,
+      "owned-drain-and-resource-reclamation": 32,
+      "declared-concurrent-workload": 5,
+      "identified-candidate-client-server-versions": 4,
+      "actual-private-packet-capture": 4
+    },
+    "blocked_requirement_family_cell_counts": {
+      "normal-tls-and-current-device-key-authority": 4,
+      "selected-transport-and-authenticated-discovery": 4,
+      "one-service-contract-and-original-operation-recovery": 4,
+      "participant-add-update-remove-and-current-audiences": 4,
+      "session-upgrade-and-current-capability-refusal": 4,
+      "device-replacement-and-old-owner-retirement": 4,
+      "declared-concurrent-workload": 4,
+      "independently-decoded-duplex-media-and-profile-budgets": 4,
+      "current-revocation-expiry-and-conflicting-operation-refusals": 4,
+      "wt-unavailable-selects-documented-wss-fallback-with-reason": 4,
+      "neither-path-usable-refuses-without-mutation-resubmission": 4
+    }
+  },
+  "post_v214_reviewed_batch": {
+    "public_evidence": "docs/evidence/gate-6/post-v214-reviewed-batch.json",
+    "public_evidence_sha256": "7a82570bb66d3a6ceecfc2b09d4a02ce9b70b99ac05f274dc185a68fe1a9c4bc",
+    "status": "Nine source-reviewed candidate sets integrated after v214 closure. Python29/29, produced Store54/54 and retained Client5/5 controls passed. Umbrella build success, Service preparation counterfactual and signed/runtime qualification remain unclaimed and pending.",
+    "next_normal_generation": 390,
+    "candidate_count": 9,
+    "tests_run": true,
+    "python_passed": 29,
+    "produced_store_passed": 54,
+    "retained_client_passed": 5,
+    "umbrella_build_success_claimed": false,
+    "service_preparation_variant_exercised": false,
+    "service_or_signed_passes_claimed": false
+  },
+  "v215_produced_artifact_controls": {
+    "scope": "Produced linked Store/Client lib-test artifacts only, identified by actual compiler-artifact JSON. The still-owned umbrella Cargo build is not claimed successful; neither old-versus-fixed Service preparation behavior nor signed runtime is exercised.",
+    "store": {
+      "passed": 54,
+      "failed": 0,
+      "target": "connect_store",
+      "features": [
+        "test-support"
+      ],
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "result_receipt_sha256": "4d0dc5361ef6ac7fb655a3bdbc00d0986bf8aea1b89fade631d5dd16ede711ac",
+      "binary_sha256": "99d900003fe5d8e6b42b0c45f7e9e8d9d0c802e91b1fd0a6db86492c0915a9d5",
+      "emitted_artifact_sha256": "9c839bd0b5a1d81d47a11af0d2c4f6544191cf83d8c09defbd8510e1ae68dd90"
+    },
+    "client": {
+      "passed": 5,
+      "failed": 0,
+      "target": "connect_client",
+      "features": [
+        "test-support"
+      ],
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "result_receipt_sha256": "a59213acef396ec3c34304a977e047b1c965845d6fd212454d50d4a7a6d08384",
+      "binary_sha256": "b49418c522d747ef7dad8b896116f7561986b7ce67946895a2df2f575f845273",
+      "emitted_artifact_sha256": "52e59dccb61007cd6f25b2cf37f32edfb9c4aa788afdfb0380108d915b01b91a"
+    },
+    "source_seal_sha256": "e1cd8f03f3c6d8f2a7bae915fd38e41026c19f41742ccebf50c8dcd2cc0f79f6",
+    "summary_receipt_sha256": "0021121bd78a39df157da10582e52e7875c58fd1d4cd42e9ccb0c05f408daec5",
+    "original_owner_closure_sha256": "02fbfa49d784aa6afa57eebb8d647d398f0c45e2702b6b8945d04d1ee98b7451",
+    "all_original_groups_naturally_joined_and_absent": true,
+    "source_and_binaries_unchanged": true,
+    "umbrella_build_success_claimed": false,
+    "service_preparation_variant_exercised": false,
+    "service_qualification": false,
+    "signed_qualification": false
+  },
+  "v215_preparation_counterexamples": {
+    "expected_old_condition_failures": 2,
+    "actual_expected_failures": 2,
+    "functional_passes_claimed": 0,
+    "scope": "Actual signed Attach and Signal tests both rejected exclusive Conversation Write across the Core boundary; originals joined and groups absent. Fixed variant restored; positive and revocation controls pending.",
+    "receipt_sha256": "0d620653db4052c19ca413708968fd3dcc18f07bfe95c73cf42e9391395e3285",
+    "restoration_receipt_sha256": "1a9cb13dbab324786fa4c7003f5d54524a36b637fdf9391764a0b627ec24ec8f"
+  },
+  "v215_focused_actual": {
+    "groups": [
+      {
+        "group": "fixed-restored-fixed_prep",
+        "summary": {
+          "selected": 4,
+          "completed": 4,
+          "passed": 3,
+          "failed": 1
+        },
+        "receipt_sha256": "15e87ca54f91dbd72db0a82d94014e8dc778f81f0fa39ae94eb22eae2ffcbe76",
+        "failed_tests": [
+          "sdk_handles::replacement_video_recovery::signed_signal_read_custody_revocation_cuts_original_epoch_and_drains_real_io"
+        ]
+      },
+      {
+        "group": "fixed-restored-fixed_overlap",
+        "summary": {
+          "selected": 8,
+          "completed": 8,
+          "passed": 6,
+          "failed": 2
+        },
+        "receipt_sha256": "38e3fb4c4db63201b2d359a88c07d00d921cf64dff07aa9c8fdc4a033994faf6",
+        "failed_tests": [
+          "canonical_native_connections::subscription_quarantine::overlap::initial_offers::signed_six_concurrent_eddsa_initial_offers_keep_original_preparation_and_activation",
+          "canonical_native_connections::subscription_quarantine::overlap::initial_offers::signed_six_concurrent_es256_initial_offers_keep_original_preparation_and_activation"
+        ]
+      },
+      {
+        "group": "fixed-restored-fixed_allocation_overlap",
+        "summary": {
+          "selected": 2,
+          "completed": 2,
+          "passed": 0,
+          "failed": 2
+        },
+        "receipt_sha256": "7c6062b5cf5707914b4ab59a12282681c706b2ff92d5e311d6cbcb3672e0aaeb",
+        "failed_tests": [
+          "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+          "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates"
+        ]
+      },
+      {
+        "group": "fixed-restored-retained_native",
+        "summary": {
+          "selected": 3,
+          "completed": 3,
+          "passed": 3,
+          "failed": 0
+        },
+        "receipt_sha256": "4708b276e99a58b96ce1072d255002c09e576ee5f085cefab37022c932ff4012",
+        "failed_tests": []
+      },
+      {
+        "group": "fixed-restored-retained_rtc",
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        "receipt_sha256": "5e7b1037f7e80d94cb062cca1131070fdb29493bbed4f5b997e747cde98d688e",
+        "failed_tests": []
+      },
+      {
+        "group": "fixed-uctp-upstream_resource_controls",
+        "summary": {
+          "selected": 11,
+          "completed": 11,
+          "passed": 11,
+          "failed": 0
+        },
+        "receipt_sha256": "3730a927429b7e265c991e0d4a0b5d4c6c897c9ae94d871c68590e6a82e439b1",
+        "failed_tests": []
+      },
+      {
+        "group": "fixed-peer-independent_peer_controls",
+        "summary": {
+          "selected": 10,
+          "completed": 10,
+          "passed": 9,
+          "failed": 1
+        },
+        "receipt_sha256": "46d15f961c3ce519db66d4586638786a17ea935598e9a87c018f9f7cedb9c8c3",
+        "failed_tests": [
+          "replacement_peer::controls::tests::original_signed_journal_fields_are_required_and_pending_states_never_open_video"
+        ]
+      }
+    ],
+    "public_evidence": "docs/evidence/gate-6/post-v214-reviewed-batch.json",
+    "counterfactuals_not_counted_as_functional_passes": true,
+    "followthrough_groups": [
+      {
+        "group": "followthrough-allocation_entry_store",
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        "receipt_sha256": "488c8fb77c55cd4909aa12363a6527e26dd62cdf5827cc26f7de0c967af1fcac",
+        "failed_tests": []
+      },
+      {
+        "group": "followthrough-fixed_prep",
+        "summary": {
+          "selected": 4,
+          "completed": 4,
+          "passed": 3,
+          "failed": 1
+        },
+        "receipt_sha256": "3eaf0d25627922e696baa50100806831b25a7df8a7eb26f8c7b4716680f005c1",
+        "failed_tests": [
+          "sdk_handles::replacement_video_recovery::signed_signal_read_custody_preserves_original_route_during_actual_core_boundary"
+        ]
+      },
+      {
+        "group": "followthrough-fixed_initial_offers",
+        "summary": {
+          "selected": 2,
+          "completed": 2,
+          "passed": 2,
+          "failed": 0
+        },
+        "receipt_sha256": "dc0317c4b56e0adced8b7c9541b449251e09e751be5f3f36a32bfc8c48df727f",
+        "failed_tests": []
+      },
+      {
+        "group": "followthrough-fixed_allocation_overlap",
+        "summary": {
+          "selected": 2,
+          "completed": 2,
+          "passed": 0,
+          "failed": 2
+        },
+        "receipt_sha256": "05e9e248e37a685749dac8fde6b010f0bc27cfd3a1afa8ec00c8b530d4b8ea33",
+        "failed_tests": [
+          "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+          "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates"
+        ]
+      },
+      {
+        "group": "followthrough-peer-peer_journal_correction",
+        "summary": {
+          "selected": 1,
+          "completed": 1,
+          "passed": 1,
+          "failed": 0
+        },
+        "receipt_sha256": "3ef0e1b210a2b2ef2cb0428f11e6510deaa8244effa1445b5822d185d54d05de",
+        "failed_tests": []
+      },
+      {
+        "group": "followthrough-signal-public-uplink-diagnostic",
+        "summary": {
+          "selected": 1,
+          "completed": 1,
+          "passed": 0,
+          "failed": 1
+        },
+        "receipt_sha256": "f2a0501957b233325305c2b723e9ab75869cef5fe42e6319d5fcb26647261a3f",
+        "failed_tests": [
+          "sdk_handles::replacement_video_recovery::signed_signal_read_custody_preserves_original_route_during_actual_core_boundary"
+        ]
+      }
+    ],
+    "distinct_latest_results": {
+      "rust_passed": 110,
+      "rust_failed": 3,
+      "python_passed": 29,
+      "qualification": "Latest applicable result per distinct focused test across preserved source-specific receipts: 110/113 Rust pass, 3 fail; Python29/29 pass separately. Composite evidence is not a single coherent final build or a matrix-cell pass.",
+      "failed_tests": [
+        "sdk_handles::replacement_video_recovery::signed_signal_read_custody_preserves_original_route_during_actual_core_boundary",
+        "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+        "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates"
+      ]
+    }
+  }
 }

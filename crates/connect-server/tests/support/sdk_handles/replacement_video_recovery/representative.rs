@@ -15,6 +15,40 @@ const FRAMES: u32 = 780;
 const AGE: Duration = Duration::from_millis(200);
 type Work = tokio::task::JoinHandle<std::result::Result<(), String>>;
 
+// Finite control markers only; never called from a frame/packet loop. UTC is
+// sampled between the two monotonic readings, so the printed pair bounds its
+// alignment uncertainty instead of inventing an atomic cross-clock instant.
+fn phase_timing(
+    event: &'static str,
+    began: Instant,
+    round: Option<usize>,
+    bins: Option<(usize, usize)>,
+) {
+    let mono_before = Instant::now();
+    let utc = chrono::Utc::now();
+    let mono_after = Instant::now();
+    let elapsed = |at: Instant| {
+        if let Some(duration) = at.checked_duration_since(began) {
+            duration.as_micros() as i64
+        } else {
+            -(began.duration_since(at).as_micros() as i64)
+        }
+    };
+    let before_us = elapsed(mono_before);
+    let after_us = elapsed(mono_after);
+    let midpoint_us = before_us + (after_us - before_us) / 2;
+    let began_utc = utc
+        .checked_sub_signed(chrono::Duration::microseconds(midpoint_us))
+        .map(|time| time.to_rfc3339_opts(chrono::SecondsFormat::Micros, true));
+    eprintln!(
+        "representative timing {}",
+        json!({"event":event,"round":round,"utc":utc.to_rfc3339_opts(chrono::SecondsFormat::Micros,true),
+            "elapsed_us_before":before_us,"elapsed_us_after":after_us,
+            "clock_pair_window_us":after_us-before_us,"programme_began_utc_estimate":began_utc,
+            "complete_bin_range":bins})
+    );
+}
+
 fn panic_text(value: Box<dyn std::any::Any + Send>) -> String {
     value
         .downcast_ref::<String>()
@@ -1385,6 +1419,14 @@ async fn wait_original_playout(
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates(
 ) {
+    representative(false).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+async fn signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held() {
+    representative(true).await;
+}
+async fn representative(force_allocation_overlap: bool) {
     assert_eq!(std::env::consts::ARCH, "aarch64");
     assert!(
         matches!(std::env::consts::OS, "linux" | "macos"),
@@ -1641,6 +1683,7 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
         .collect::<Vec<_>>();
     let began = Instant::now() + Duration::from_millis(100);
     let programme_cutoff = began + Duration::from_secs(26);
+    phase_timing("programme-anchor", began, None, None);
     let mut works = Vec::new();
     for index in 0..6 {
         works.extend(spawn_publisher(
@@ -1688,6 +1731,7 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
             let before=clone_progress(&active_progress);
             let move_started=Instant::now();let move_cutoff=move_started+Duration::from_secs(8);
             assert!(move_cutoff<=programme_cutoff,"both rounds retain original movement budgets");
+            phase_timing("round-start",began,Some(round),None);
             let mut commands=Vec::new();
             for (sid,&index) in [0usize,4].iter().enumerate() {
                 let revision=sessions[sid].refresh(short()).await.unwrap().topology_revision.get();
@@ -1732,8 +1776,72 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
                 target_progress.push(Arc::new(Mutex::new(Progress::default())));
             }
             let (_,fresh_targets)=targets.split_at_mut(first);let (left,right)=fresh_targets.split_at_mut(1);
+            if force_allocation_overlap {
+                #[cfg(not(feature = "test-support"))]
+                panic!("forced actual coordinator overlap requires test-support");
+                #[cfg(feature = "test-support")]
+                {
+                    // Both SAME signed requests must reach metadata-only wait
+                    // while the actual coordinator is genuinely held. Initial
+                    // application Writer aliases must drop or the second peer
+                    // admission cannot reach this boundary at all.
+                    let records=roots.iter().map(|r|r.record_id.as_ref().unwrap().as_str().to_owned()).collect::<Vec<_>>();
+                    let original_rows=records.iter().map(|record| {
+                        rusqlite::Connection::open(&f.config.database).unwrap().query_row(
+                            "SELECT reservation_id,expires_at,candidate_connection_id,candidate_runtime_id,generation FROM native_replacements WHERE operation_record_id=?1",
+                            [record],|r|Ok((r.get::<_,String>(0)?,r.get::<_,i64>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,u64>(4)?))).unwrap()
+                    }).collect::<Vec<_>>();
+                    let probes=records.iter().map(|record|f.server.service.arm_canonical_preparation_registry_probe_for_test(
+                        &format!("allocation-wait:{record}")).unwrap()).collect::<Vec<_>>();
+                    let entered=CancellationToken::new();
+                    let held=timeout_at(move_cutoff,f.server.service.with_canonical_replacement_coordinator_for_test(|| async {
+                        phase_timing("coordinator-held",began,Some(round),None);
+                        entered.cancel();
+                        timeout_at(move_cutoff,async {
+                            while !probes.iter().all(|probe|probe.load(Ordering::Acquire)==1) {
+                                tokio::task::yield_now().await;
+                            }
+                        }).await.expect("both original signed requests must release application custody before coordinator wait");
+                        phase_timing("coordinator-probe1-observed",began,Some(round),None);
+                        let db=rusqlite::Connection::open(&f.config.database).unwrap();
+                        for record in &records {
+                            let begun:u64=db.query_row("SELECT count(*) FROM native_replacement_steps WHERE operation_record_id=?1 AND phase IN ('allocate','start') AND started=1",
+                                [record],|r|r.get(0)).unwrap();
+                            assert_eq!(begun,0,"metadata-only wait must begin no allocation/start effect");
+                        }
+                        phase_timing("coordinator-release-requested",began,Some(round),None);
+                    }));
+                    // Await the same original timeout/holder future. The helper
+                    // drops its real role guard before this return is observed;
+                    // no additional waiter, task, timeout or permission exists.
+                    let held=async move {
+                        let result=held.await;
+                        if matches!(&result,Ok(Ok(_))) {
+                            phase_timing("coordinator-holder-returned",began,Some(round),None);
+                        }
+                        result
+                    };
+                    let callers=async {
+                        entered.cancelled().await;
+                        tokio::join!(attach_candidate(&mut left[0],&commands[0],&roots[0],0,stream_phase,source_generation,&f.config.database,move_cutoff),
+                            attach_candidate(&mut right[0],&commands[1],&roots[1],4,stream_phase,source_generation,&f.config.database,move_cutoff));
+                    };
+                    let (held,())=tokio::join!(held,callers);held.expect("original coordinator hold cutoff").unwrap();
+                    assert!(probes.iter().all(|probe|probe.load(Ordering::Acquire)==2));
+                    // This is an observation after the original callers join,
+                    // not the unobserved instant of the production atomic store.
+                    phase_timing("coordinator-probe2-observed-after-callers",began,Some(round),None);
+                    for (record,original) in records.iter().zip(&original_rows) {
+                        let current=rusqlite::Connection::open(&f.config.database).unwrap().query_row(
+                            "SELECT reservation_id,expires_at,candidate_connection_id,candidate_runtime_id,generation FROM native_replacements WHERE operation_record_id=?1",
+                            [record],|r|Ok((r.get::<_,String>(0)?,r.get::<_,i64>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,u64>(4)?))).unwrap();
+                        assert_eq!(&current,original,"coordinator contention cannot renew root, reservation, generation or expiry");
+                    }
+                }
+            } else {
             tokio::join!(attach_candidate(&mut left[0],&commands[0],&roots[0],0,stream_phase,source_generation,&f.config.database,move_cutoff),
                 attach_candidate(&mut right[0],&commands[1],&roots[1],4,stream_phase,source_generation,&f.config.database,move_cutoff));
+            }
             for (sid,&index) in [0usize,4].iter().enumerate() {
                 works.push(spawn_candidate(&mut targets[first+sid],index,SOURCE_FOR_RECEIVER[index],&binary,&raw[index],
                     target_progress[first+sid].clone(),stop.clone(),began,programme_cutoff));
@@ -1759,6 +1867,7 @@ async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_play
             // preconditions remain immediate before each original Ready.
             let first_bin=move_started.saturating_duration_since(began).as_secs() as usize+1;
             let last_bin=Instant::now().saturating_duration_since(began).as_secs() as usize;
+            phase_timing("quality-snapshot",began,Some(round),Some((first_bin,last_bin)));
             quality_failures.extend(old_playout_quality_failures(
                 &before, &during, round, move_started, first_bin, last_bin,
             ));

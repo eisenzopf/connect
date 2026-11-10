@@ -1,0 +1,459 @@
+{
+  "format": "connect/post-full-matrix-reviewed-batch/1",
+  "updated": "2026-11-10T21:39:29.278086+00:00",
+  "predecessor_full_run": "v214",
+  "tested_source_revision": "2cbcf155884576d1dcadc0435e02f7e6b9744d5b",
+  "tested_normal_generation": 389,
+  "next_normal_generation": 390,
+  "status": "Focused followthrough built and tested; setup/allocation fixes verified, cadence and first-public-frame failures remain",
+  "builds_run_for_this_batch": true,
+  "tests_run_for_this_batch": true,
+  "items": [
+    {
+      "task_id": "S86",
+      "blocker_ids": [
+        "B172"
+      ],
+      "title": "Native same-original control settlement",
+      "candidate_manifest_sha256": "3f35fa23f0fa2d225215423de1e0886b0f3c36894d8fafa1b73a16e7d71913d7",
+      "patch_sha256": "3fcd6a559e3d4205414bc07aaeccfda8ccdec6af0de95d918e50a762f23b772c",
+      "status": "All10 distinct independent-peer controls pass after correcting a stale result-schema assertion; fresh matrix workload pending.",
+      "change": "One mutation, original pending receipt ACK, same-ID Get until terminal and final ACK; preserve immutable binding and original cutoff.",
+      "required_verification": "Four exchange controls plus retained public-audio neighbors and the failed native matrix workload.",
+      "review_receipts": [
+        {
+          "sha256": "e4b611b843164e40854df400d7ed589a326ca355da225555122462c12856837e",
+          "kind": "independent source review"
+        }
+      ]
+    },
+    {
+      "task_id": "S87",
+      "blocker_ids": [
+        "B173"
+      ],
+      "title": "Approved browser runtime expectation",
+      "candidate_manifest_sha256": "dcda27f80a1673a1f60d282605f286c52e641998c01ea61816464f7d2294ffc7",
+      "patch_sha256": "94c3fa28e9aaf75843d03aca7d0929fd41d5e4cb117678edd1021e1818cf9e2a",
+      "status": "Python component controls passed within the combined 29/29 suite; fresh affected matrix verification pending.",
+      "change": "Use the approved client-platform contract pin and preserve the original browser error when observation is missing.",
+      "required_verification": "Five browser-runtime controls, then the four affected Mac Chrome cells.",
+      "review_receipts": []
+    },
+    {
+      "task_id": "S88",
+      "blocker_ids": [
+        "B174"
+      ],
+      "title": "Reviewed runtime capacity source binding",
+      "candidate_manifest_sha256": "9d68aeb83a9a2c3e9852f8d65f7b7363d33dd36cba8b9013cab710b52352c2f9",
+      "patch_sha256": "b399c7d381bab0bf10e6b6020bf1751e894b289aa69b7d1f59a3746199a11c62",
+      "status": "Python component controls passed within the combined 29/29 suite; fresh affected matrix verification pending.",
+      "change": "Refresh only the reviewed dependency-lock source pin after verifying unchanged main, Tokio runtime builder and capacity.",
+      "required_verification": "Actual repository producer binding and stale/missing-source negatives; native/browser resource fixtures retain all budgets.",
+      "review_receipts": [
+        {
+          "sha256": "29f26fc08f5757ec884afbfcc4a84d6fb209353505c82badb27857079e802d0c",
+          "kind": "independent source review"
+        }
+      ]
+    },
+    {
+      "task_id": "S89",
+      "blocker_ids": [
+        "B178"
+      ],
+      "title": "Publication worker work conservation",
+      "candidate_manifest_sha256": "fd85d2a4e97a7e674231b20f2911fd1318d5ec91d6e4460dffc2fad76a72ee48",
+      "patch_sha256": "c6740f2f20fb4d1b75b03d14a2d3fca2afc5904e656775b3e910a67b1bb44a33",
+      "status": "Store publication controls pass; representative decoded cadence still fails after both handoff rounds complete.",
+      "change": "Drain eligible missing-publication backlog without an idle sleep between eight-item batches; retain writer, scope, expiry and refusal backoff checks.",
+      "required_verification": "Five actual worker/fence/backoff/registration controls; original movement-window decoded-media checks remain required.",
+      "review_receipts": [
+        {
+          "sha256": "f8d6afd60915344d39b4dbd5c881cfcba8c9a7f52707ad558a56e78725c7ccb2",
+          "kind": "independent source review"
+        }
+      ]
+    },
+    {
+      "task_id": "S90",
+      "blocker_ids": [
+        "B176"
+      ],
+      "title": "Exact unavailable-control origin diagnostics",
+      "candidate_manifest_sha256": "28ca8b30949a853e3c863bfeade4baa39a3d07ee95825712f2de7439cd306f9b",
+      "patch_sha256": "490ed4c62b7ee0ce5552613b589d5a11f519ece7e65fcb491c9ad90487a9989e",
+      "status": "Actual signed traces identify primary-SQL entry contention; typed pre-effect deferral integrated and five Store regressions pass.",
+      "change": "Static labels distinguish initial authority admission from handler replay/source/accept/begin stages; preserve the same response, request and cutoff, with no added SQL or retry.",
+      "required_verification": "Actual concurrent signed originals must retain admission-vs-handler origin evidence.",
+      "review_receipts": [
+        {
+          "sha256": "4f4ad52e3d6b88ee1bce4eafdb6d3a88813d1d9d545594a1263b40cbed7422c4",
+          "kind": "independent source review"
+        }
+      ]
+    },
+    {
+      "task_id": "S91",
+      "blocker_ids": [
+        "B175"
+      ],
+      "title": "Attach and Signal read custody",
+      "candidate_manifest_sha256": "5c712b36b013eb173e136d575a33999c4d833882718fe59c1528bfc8c73effcd",
+      "patch_sha256": "842fe448e1de1b1c4b3b4e087e8430ac3f2f4571fb3c5863887d087a94e6f029",
+      "status": "Old-Write causal counterexamples reproduced. Fixed Attach continuity and both current-revocation controls pass; Signal continuity still loses a postcommit frame.",
+      "change": "Release durable journal Writers and coordinator aliases before fresh current Read-only Core work, then reacquire exact Write custody for recording; Activate and Commit remain coordinated Writers.",
+      "required_verification": "Three real Store custody/revocation/cancel controls and two Service cutoff/stop controls; current authorization and original attempt identity remain mandatory.",
+      "review_receipts": [
+        {
+          "sha256": "c10adf9365fa474fd2205271b75dae32df514b5790c0feef387470cac398427c",
+          "kind": "independent source review"
+        }
+      ]
+    },
+    {
+      "task_id": "S92",
+      "blocker_ids": [
+        "B175"
+      ],
+      "title": "Actual preparation custody counterfactual",
+      "candidate_manifest_sha256": "66d4a863efb931aaf4382936631635b3be84124ac7a62fdbe6a6c8ec2d6f40e0",
+      "patch_sha256": "92ec5fee9ead068549955b9181f817612e74be960eb6b8e0f18da57c57c19d4b",
+      "status": "Both expected old-Write failures verified; latest fixed signed suite3/4 passes. Exact missing postcommit frame remains under diagnosis.",
+      "change": "Pause original Attach/Signal at the actual Service-to-Core boundary using test-only bounded hooks, preserving the original worker and all cleanup ownership.",
+      "required_verification": "Run old-Write counterfactual before four fixed signed continuity/revocation controls; do not call source review a pass.",
+      "review_receipts": []
+    },
+    {
+      "task_id": "S93",
+      "blocker_ids": [
+        "B177"
+      ],
+      "title": "Original allocation coordinator continuation",
+      "candidate_manifest_sha256": "120719e211aba317c37ac2d8c9301482cda94043e133554caca6db4c9599d4a9",
+      "patch_sha256": "162ec4f41707baf31f54de44ee94eb3fefea1d8fbd48ba0cc5ea20e072ff02ae",
+      "status": "All11 upstream resource controls and five Store allocation controls pass. Both signed representatives now complete both handoff rounds; final cadence still fails.",
+      "change": "Remove the redundant effect-free start gate. Release original domain proof while waiting for allocation coordination, freshly authorize the exact same signed command under its unchanged cutoff, then begin once.",
+      "required_verification": "Three upstream custody/currentness controls plus actual signed parallel original allocation; recorded upstream patch and source-lock successor 390.",
+      "review_receipts": [
+        {
+          "sha256": "d8cfb2fc7b8d55936f1948648c798e796af115ff787528ce15c3965fc51f7e68",
+          "kind": "independent source review"
+        }
+      ],
+      "upstream_patch_sha256": "fcb31f61f13242f088de3f5b0c5d0edb1981becb261b0dc04f608a07d27665ea"
+    },
+    {
+      "task_id": "S94",
+      "blocker_ids": [
+        "B176"
+      ],
+      "title": "Signed concurrent setup and subscription overlap v3",
+      "candidate_manifest_sha256": "f34a4cde923bd21fd118b2286cff1bef0faae32cf0b97c1b8985c0904438e53e",
+      "patch_sha256": "292cdbfb7aa4bcb1cbca749c57c1e62587c750c0129c92eb7ae74258cbcac506",
+      "status": "All8 distinct signed overlap/withdrawal/initial-offer controls pass across retained receipts, including both six-peer initial-offer cases.",
+      "change": "Six original handshakes, real request-scoped Read-WouldBlock rendezvous, current Video withdrawal, both original Audio routes and same-ID settlement; no client mutation retries.",
+      "required_verification": "Six signed cases: two subscription-overlap, two withdrawal, two six-concurrent-initial-offer cases; strict semantic negatives exclude 503, unrelated errors and timeouts.",
+      "review_receipts": [
+        {
+          "sha256": "4177c2812b2781b395775ac9017766818241d89224b441f00d90c680db1e89c0",
+          "kind": "independent source review"
+        }
+      ],
+      "version": 3,
+      "additive_over_v2_sha256": "c2129f3c5d8260131d2d992fb61c8300f7abf1c52102d75edda03e82087240d0",
+      "new_signed_cases": 6,
+      "negative_result_contract": "Video absent / Audio present in both accepted views, both Audio routes progress, original journal and resource scopes checked; arbitrary 503 and timeout never count as refusal success."
+    }
+  ],
+  "qualification": "Latest applicable result per distinct focused test across preserved source-specific receipts: 110/113 Rust pass, 3 fail; Python29/29 pass separately. Composite evidence is not a single coherent final build or a matrix-cell pass. Old-Write counterexamples are expected failures, excluded from functional totals. No full32 rerun or acceptance relaxation.",
+  "next_verification_run": "v215",
+  "required_order": [
+    "Prepare dependencies and format the new coherent source.",
+    "Verify exact unit controls and retained neighbors.",
+    "Run the actual old-Write preparation counterfactual and fixed signed continuity/refusal tests.",
+    "Run six signed overlap/concurrent-offer cases with original owners joined and strict semantic negatives.",
+    "Retain actual diagnostic origin for any 503 and all original quality/cleanup evidence.",
+    "Only after targeted verification, run the complete 32-cell matrix again."
+  ],
+  "verification": {
+    "python": {
+      "passed": 29,
+      "failed": 0,
+      "scope": "scripts.tests.test_browser_matrix_runtime and scripts.tests.test_matrix_plateau only",
+      "original_naturally_joined": true,
+      "receipt_sha256": "c5fc6b01afdf2372fba451c960a4a220ec0b49696aee2d2781fa4a21aa9df756",
+      "log_sha256": "67c81340ef6a7c8300c1fb789a83f597efbcdf7e17a572d290e9c814be9e37ee"
+    },
+    "rust_build": {
+      "counterfactual_fixture_corrected": "passed after two test-only compile corrections; original failed build preserved",
+      "receipt_sha256": "1ebf8f18de477e7714e2f1030ae13778e06ea9274e9f1ec9f57906d0185cbef3",
+      "fixed_build": "passed; fresh fixed-restored and followthrough builds preserved"
+    },
+    "counterfactual": {
+      "expected_old_condition_failures": 2,
+      "actual_expected_failures": 2,
+      "functional_passes_claimed": 0,
+      "scope": "Actual signed Attach and Signal tests both rejected exclusive Conversation Write across the Core boundary; originals joined and groups absent. Fixed variant restored; positive and revocation controls pending.",
+      "receipt_sha256": "0d620653db4052c19ca413708968fd3dcc18f07bfe95c73cf42e9391395e3285",
+      "restoration_receipt_sha256": "1a9cb13dbab324786fa4c7003f5d54524a36b637fdf9391764a0b627ec24ec8f"
+    },
+    "signed_runtime": "Subscription and initial-offer cases pass; both representative handoffs complete both rounds but fail decoded cadence; Signal positive intermittently loses first postcommit frame.",
+    "full_matrix": "pending",
+    "produced_artifact_controls": {
+      "scope": "Produced linked Store54, Client5 and Service projection6 controls. The original first build later failed in two new fixture files; corrected full counterfactual build passed. Actual fixed preparation is still pending.",
+      "store": {
+        "passed": 54,
+        "failed": 0,
+        "target": "connect_store",
+        "features": [
+          "test-support"
+        ],
+        "profile": {
+          "opt_level": "0",
+          "debuginfo": 2,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": true
+        },
+        "result_receipt_sha256": "4d0dc5361ef6ac7fb655a3bdbc00d0986bf8aea1b89fade631d5dd16ede711ac",
+        "binary_sha256": "99d900003fe5d8e6b42b0c45f7e9e8d9d0c802e91b1fd0a6db86492c0915a9d5",
+        "emitted_artifact_sha256": "9c839bd0b5a1d81d47a11af0d2c4f6544191cf83d8c09defbd8510e1ae68dd90"
+      },
+      "client": {
+        "passed": 5,
+        "failed": 0,
+        "target": "connect_client",
+        "features": [
+          "test-support"
+        ],
+        "profile": {
+          "opt_level": "0",
+          "debuginfo": 2,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": true
+        },
+        "result_receipt_sha256": "a59213acef396ec3c34304a977e047b1c965845d6fd212454d50d4a7a6d08384",
+        "binary_sha256": "b49418c522d747ef7dad8b896116f7561986b7ce67946895a2df2f575f845273",
+        "emitted_artifact_sha256": "52e59dccb61007cd6f25b2cf37f32edfb9c4aa788afdfb0380108d915b01b91a"
+      },
+      "source_seal_sha256": "e1cd8f03f3c6d8f2a7bae915fd38e41026c19f41742ccebf50c8dcd2cc0f79f6",
+      "summary_receipt_sha256": "0021121bd78a39df157da10582e52e7875c58fd1d4cd42e9ccb0c05f408daec5",
+      "original_owner_closure_sha256": "02fbfa49d784aa6afa57eebb8d647d398f0c45e2702b6b8945d04d1ee98b7451",
+      "all_original_groups_naturally_joined_and_absent": true,
+      "source_and_binaries_unchanged": true,
+      "umbrella_build_success_claimed": false,
+      "service_preparation_variant_exercised": false,
+      "service_qualification": false,
+      "signed_qualification": false,
+      "service_projection": {
+        "passed": 6,
+        "failed": 0,
+        "scope": "Projection/cutoff helper behavior unchanged by preparation variant; does not qualify actual Service phase custody",
+        "receipt_sha256": "d65a50b04856329aac2fb99b36bb4452cb4dbffd82ffb6dacf37b97acb7b16e2"
+      }
+    },
+    "fixed_restored_build": {
+      "status": "passed",
+      "receipt_sha256": "241164fdaeafd87dfd8e6976e0b9ab6108ea2f78394037a5969b8ceea7f3aa05",
+      "fresh_service_artifacts": true
+    },
+    "invalidated_cached_restore": {
+      "qualification": false,
+      "receipt_sha256": "5a2e0df633e2dc1d5e36cfe4c2e7b00e67d6523adddd1ab45d024bbd69bb44fa"
+    },
+    "focused_groups": [
+      {
+        "group": "fixed-restored-fixed_prep",
+        "summary": {
+          "selected": 4,
+          "completed": 4,
+          "passed": 3,
+          "failed": 1
+        },
+        "receipt_sha256": "15e87ca54f91dbd72db0a82d94014e8dc778f81f0fa39ae94eb22eae2ffcbe76",
+        "failed_tests": [
+          "sdk_handles::replacement_video_recovery::signed_signal_read_custody_revocation_cuts_original_epoch_and_drains_real_io"
+        ]
+      },
+      {
+        "group": "fixed-restored-fixed_overlap",
+        "summary": {
+          "selected": 8,
+          "completed": 8,
+          "passed": 6,
+          "failed": 2
+        },
+        "receipt_sha256": "38e3fb4c4db63201b2d359a88c07d00d921cf64dff07aa9c8fdc4a033994faf6",
+        "failed_tests": [
+          "canonical_native_connections::subscription_quarantine::overlap::initial_offers::signed_six_concurrent_eddsa_initial_offers_keep_original_preparation_and_activation",
+          "canonical_native_connections::subscription_quarantine::overlap::initial_offers::signed_six_concurrent_es256_initial_offers_keep_original_preparation_and_activation"
+        ]
+      },
+      {
+        "group": "fixed-restored-fixed_allocation_overlap",
+        "summary": {
+          "selected": 2,
+          "completed": 2,
+          "passed": 0,
+          "failed": 2
+        },
+        "receipt_sha256": "7c6062b5cf5707914b4ab59a12282681c706b2ff92d5e311d6cbcb3672e0aaeb",
+        "failed_tests": [
+          "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+          "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates"
+        ]
+      },
+      {
+        "group": "fixed-restored-retained_native",
+        "summary": {
+          "selected": 3,
+          "completed": 3,
+          "passed": 3,
+          "failed": 0
+        },
+        "receipt_sha256": "4708b276e99a58b96ce1072d255002c09e576ee5f085cefab37022c932ff4012",
+        "failed_tests": []
+      },
+      {
+        "group": "fixed-restored-retained_rtc",
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        "receipt_sha256": "5e7b1037f7e80d94cb062cca1131070fdb29493bbed4f5b997e747cde98d688e",
+        "failed_tests": []
+      },
+      {
+        "group": "fixed-uctp-upstream_resource_controls",
+        "summary": {
+          "selected": 11,
+          "completed": 11,
+          "passed": 11,
+          "failed": 0
+        },
+        "receipt_sha256": "3730a927429b7e265c991e0d4a0b5d4c6c897c9ae94d871c68590e6a82e439b1",
+        "failed_tests": []
+      },
+      {
+        "group": "fixed-peer-independent_peer_controls",
+        "summary": {
+          "selected": 10,
+          "completed": 10,
+          "passed": 9,
+          "failed": 1
+        },
+        "receipt_sha256": "46d15f961c3ce519db66d4586638786a17ea935598e9a87c018f9f7cedb9c8c3",
+        "failed_tests": [
+          "replacement_peer::controls::tests::original_signed_journal_fields_are_required_and_pending_states_never_open_video"
+        ]
+      }
+    ],
+    "followthrough": {
+      "status": "integrated-unverified",
+      "changes": [
+        "Typed deferral only before allocation primary SQL entry; original guards released and same command freshly authorized before retry",
+        "Reuse existing same-Ready bounded helper before Signal revocation; no refusal accepted as success",
+        "Check actual completed initial-offer streams/revisions schema",
+        "Correct old typed journal omission assumption; explicit missing-field refusal retained",
+        "Finite representative phase/cadence timing markers; no threshold or deadline change"
+      ],
+      "cadence": "Actual source30 versus receiver15-21 frame bin remains unexplained and unqualified; next two representative tests enable existing bounded authority summary and phase diagnostics."
+    },
+    "followthrough_groups": [
+      {
+        "group": "followthrough-allocation_entry_store",
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        "receipt_sha256": "488c8fb77c55cd4909aa12363a6527e26dd62cdf5827cc26f7de0c967af1fcac",
+        "failed_tests": []
+      },
+      {
+        "group": "followthrough-fixed_prep",
+        "summary": {
+          "selected": 4,
+          "completed": 4,
+          "passed": 3,
+          "failed": 1
+        },
+        "receipt_sha256": "3eaf0d25627922e696baa50100806831b25a7df8a7eb26f8c7b4716680f005c1",
+        "failed_tests": [
+          "sdk_handles::replacement_video_recovery::signed_signal_read_custody_preserves_original_route_during_actual_core_boundary"
+        ]
+      },
+      {
+        "group": "followthrough-fixed_initial_offers",
+        "summary": {
+          "selected": 2,
+          "completed": 2,
+          "passed": 2,
+          "failed": 0
+        },
+        "receipt_sha256": "dc0317c4b56e0adced8b7c9541b449251e09e751be5f3f36a32bfc8c48df727f",
+        "failed_tests": []
+      },
+      {
+        "group": "followthrough-fixed_allocation_overlap",
+        "summary": {
+          "selected": 2,
+          "completed": 2,
+          "passed": 0,
+          "failed": 2
+        },
+        "receipt_sha256": "05e9e248e37a685749dac8fde6b010f0bc27cfd3a1afa8ec00c8b530d4b8ea33",
+        "failed_tests": [
+          "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+          "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates"
+        ]
+      },
+      {
+        "group": "followthrough-peer-peer_journal_correction",
+        "summary": {
+          "selected": 1,
+          "completed": 1,
+          "passed": 1,
+          "failed": 0
+        },
+        "receipt_sha256": "3ef0e1b210a2b2ef2cb0428f11e6510deaa8244effa1445b5822d185d54d05de",
+        "failed_tests": []
+      },
+      {
+        "group": "followthrough-signal-public-uplink-diagnostic",
+        "summary": {
+          "selected": 1,
+          "completed": 1,
+          "passed": 0,
+          "failed": 1
+        },
+        "receipt_sha256": "f2a0501957b233325305c2b723e9ab75869cef5fe42e6319d5fcb26647261a3f",
+        "failed_tests": [
+          "sdk_handles::replacement_video_recovery::signed_signal_read_custody_preserves_original_route_during_actual_core_boundary"
+        ]
+      }
+    ],
+    "followthrough_build": {
+      "status": "passed",
+      "receipt_sha256": "8895bc8f99fae553cb01dd19b9cc2ca3b8f0ecfc96100b022e1582369122f5ab"
+    },
+    "distinct_latest_results": {
+      "rust_passed": 110,
+      "rust_failed": 3,
+      "python_passed": 29,
+      "qualification": "Latest applicable result per distinct focused test across preserved source-specific receipts: 110/113 Rust pass, 3 fail; Python29/29 pass separately. Composite evidence is not a single coherent final build or a matrix-cell pass.",
+      "failed_tests": [
+        "sdk_handles::replacement_video_recovery::signed_signal_read_custody_preserves_original_route_during_actual_core_boundary",
+        "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+        "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates"
+      ]
+    }
+  },
+  "umbrella_build_success_claimed": false
+}

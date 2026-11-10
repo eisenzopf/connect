@@ -278,4 +278,70 @@ mod tests {
             assert_eq!(calls.load(Ordering::SeqCst), 1);
         }
     }
+
+    #[tokio::test]
+    async fn recorded_begin_release_then_expired_original_cutoff_never_enters_fresh_effect_admission(
+    ) {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(
+            Store::initialize(&dir.path().join("state.sqlite3"), Default::default()).unwrap(),
+        );
+        let roles = Mutex::new(());
+        let stop = CancellationToken::new();
+        let scope =
+            AuthorityScope::identity("original-preparation-owner", AuthorityMode::Write).unwrap();
+        let writer = store
+            .acquire_authority(&[scope], &AuthorityWait::new(Duration::from_secs(1)))
+            .unwrap();
+        let original_until = tokio::time::Instant::now() + Duration::from_millis(5);
+        tokio::time::sleep_until(original_until).await;
+        drop(writer);
+        let entered = std::sync::atomic::AtomicUsize::new(0);
+        let result = read(&roles, &stop, original_until, || async {
+            entered.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            store.acquire_authority(
+                &[
+                    AuthorityScope::identity("original-preparation-owner", AuthorityMode::Read)
+                        .unwrap(),
+                ],
+                &AuthorityWait::new(Duration::from_secs(1)),
+            )
+        })
+        .await;
+        assert!(result.is_err());
+        assert_eq!(entered.load(std::sync::atomic::Ordering::Relaxed), 0);
+        // The journal writer really ended; deadline refusal is not an old
+        // guard accidentally held through the intended side-effect boundary.
+        assert!(store
+            .try_acquire_authority(&[AuthorityScope::identity(
+                "original-preparation-owner",
+                AuthorityMode::Write
+            )
+            .unwrap()])
+            .is_ok());
+    }
+
+    #[tokio::test]
+    async fn stop_between_recorded_begin_and_fresh_read_enters_no_effect_and_releases_coordinator()
+    {
+        let roles = Mutex::new(());
+        let stop = CancellationToken::new();
+        let recorded_begin = roles.lock().await;
+        drop(recorded_begin);
+        stop.cancel();
+        let entered = std::sync::atomic::AtomicUsize::new(0);
+        let result = read(
+            &roles,
+            &stop,
+            tokio::time::Instant::now() + Duration::from_secs(1),
+            || async {
+                entered.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                Ok(())
+            },
+        )
+        .await;
+        assert!(result.is_err());
+        assert_eq!(entered.load(std::sync::atomic::Ordering::Relaxed), 0);
+        assert!(roles.try_lock().is_ok());
+    }
 }

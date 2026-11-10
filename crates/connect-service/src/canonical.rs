@@ -506,9 +506,12 @@ impl AuthenticatedHandler for CanonicalHandler {
             && (authorized.envelope().original()["payload"]
                 .get("replacement_preparation")
                 .is_none()
-                || authorized.envelope().original()["payload"]["replacement_preparation"]
-                    ["profile"]
-                    == "connect-replacement-media-v1")
+                || matches!(
+                    authorized.envelope().original()["payload"]["replacement_preparation"]
+                        ["profile"]
+                        .as_str(),
+                    Some("connect-replacement-media-v1" | "connect-replacement-preparation-v1")
+                ))
         {
             let original = authorized.envelope().clone();
             let completion = authorized.offer_completion();
@@ -861,6 +864,12 @@ fn reply_scoped(
     Envelope::from_value(value).map_err(|_| Error::storage())
 }
 pub(crate) fn problem(request: &Envelope, error: Error) -> Result<Envelope, DispatchError> {
+    crate::peer_authority::observe_unavailable(
+        "handler-response",
+        request.payload().kind(),
+        "public-problem",
+        &error,
+    );
     let problem = connect_protocol::canonical_http::Problem::from_error(&error);
     reply(
         request,

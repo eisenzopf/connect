@@ -53,6 +53,22 @@ def group(cycle, role='server'):
 
 class MatrixPlateauTests(unittest.TestCase):
 
+    def test_actual_repository_runtime_capacity_binding_is_available(self):
+        # Use the producer path and actual repository bytes, never injected
+        # SERVER_SOURCE_INPUTS that could conceal a stale reviewed lock pin.
+        root = Path(__file__).resolve().parents[2]
+        observed = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
+                    for name in SERVER_SOURCE_INPUTS}
+        owner = dict(pid=11, start_identity=101)
+        actual = runtime_capacity_configuration(owner)
+        self.assertNotEqual(actual.get('available'), False, actual)
+        self.assertEqual(observed, SERVER_SOURCE_INPUTS)
+        self.assertEqual(actual['source_inputs'], observed)
+        self.assertEqual(actual['original_owner'], owner)
+        self.assertEqual(actual['max_blocking_threads'], 512)
+        self.assertEqual(actual['connect_main_sha256'], observed['crates/connect-server/src/main.rs'])
+
+
     def test_actual_cold_warmup_then_bounded_jitter_uses_fixed_cycle_one_reference(self):
         value = fixture()
         result = evaluate(value)

@@ -16,6 +16,38 @@ use rvoip_core::{
     peer_admission::PeerAdmission,
     staged_streams::local_audio::LocalAudioPurpose,
 };
+#[cfg(feature = "test-support")]
+fn preparation_custody_observation(
+    invocation: &Invocation,
+    phase: crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase,
+) -> Option<crate::canonical_media::preparation_custody_fixture::PreparationCustodyObservation> {
+    use crate::canonical_media::preparation_custody_fixture::{
+        PreparationCustodyObservation, PreparationCustodyPhase,
+    };
+    if !matches!(
+        (phase, &invocation.phase),
+        (PreparationCustodyPhase::Attach, Phase::Attach)
+            | (PreparationCustodyPhase::Signal, Phase::Signal(_))
+    ) {
+        return None;
+    }
+    let context = invocation.read.media().source().context();
+    let source = invocation.entries.get(&ConnectionId::from_string(
+        context.source_runtime_connection_id.clone(),
+    ))?;
+    let target = invocation.entries.get(&ConnectionId::from_string(
+        context.retained_runtime_connection_id.clone(),
+    ))?;
+    Some(PreparationCustodyObservation {
+        phase,
+        operation_id: invocation.root.origin.request().operation_id.clone(),
+        record_id: invocation.root.origin.record_id().into(),
+        target: target.origin.clone(),
+        source: source.origin.clone(),
+        expires_at: invocation.read.expires_at(),
+        cutoff: invocation.root.deadline.min(invocation.deadline),
+    })
+}
 // Registry custody follows the original tracked native media future.
 struct NativeReplayCustody {
     runtime: std::sync::Weak<Runtime>,
@@ -188,6 +220,29 @@ impl Runtime {
         started: &Arc<StartedReplacement>,
         phase: Phase,
     ) -> Result<Invocation> {
+        let mutation = matches!(&phase, Phase::Activate(_) | Phase::Commit(_));
+        self.continuation_read_with_custody(root, started, phase, mutation)
+            .await
+    }
+    // Journal/effect reservation still takes its original complete writer.
+    // The caller must release this invocation before acquiring a fresh Read
+    // for private attachment or observation; this is never a guard downgrade.
+    async fn continuation_write_once(
+        &self,
+        root: &Arc<PreparedReplacement>,
+        started: &Arc<StartedReplacement>,
+        phase: Phase,
+    ) -> Result<Invocation> {
+        self.continuation_read_with_custody(root, started, phase, true)
+            .await
+    }
+    async fn continuation_read_with_custody(
+        &self,
+        root: &Arc<PreparedReplacement>,
+        started: &Arc<StartedReplacement>,
+        phase: Phase,
+        mutation: bool,
+    ) -> Result<Invocation> {
         let entries = self
             .media
             .scene_entries(&root.origin.request().session_id)
@@ -203,10 +258,6 @@ impl Runtime {
             .get()
             .cloned()
             .ok_or_else(Error::forbidden)?;
-        let mutation = matches!(
-            &phase,
-            Phase::Attach | Phase::Activate(_) | Phase::Signal(_) | Phase::Commit(_)
-        );
         let read = store_call(move || {
             if mutation {
                 store.try_native_replacement_scene_write(&origin, &sources)
@@ -291,17 +342,54 @@ impl Runtime {
     ) -> Result<()> {
         {
             tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="attach-fence","Replacement continuation");
-            let (roles, i) = super::projection::read(
-                &self.role_projection,
-                &self.stop,
-                root.deadline
-                    .min(tokio::time::Instant::now() + Duration::from_secs(5)),
-                || self.continuation_read_once(root, started, Phase::Attach),
-            )
-            .await?;
+            // One cutoff covers both admissions and the actual Core attach.
+            // Neither fresh authority nor a metadata retry renews this phase.
+            let until = root
+                .deadline
+                .min(tokio::time::Instant::now() + Duration::from_secs(5));
+            let (roles, i) =
+                super::projection::read(&self.role_projection, &self.stop, until, || {
+                    self.continuation_write_once(root, started, Phase::Attach)
+                })
+                .await?;
             tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="attach-begin","Replacement continuation");
             let attempt = self.begin_continuation(started, &i, Step::Attach).await?;
             let expected = attempt.expected()?;
+            let until = until.min(i.deadline);
+            // The original SQL/effect reservation is durable. Release every
+            // writer alias and the coordinator before fresh Read acquisition.
+            drop(i);
+            drop(roles);
+            let admission =
+                super::projection::read(&self.role_projection, &self.stop, until, || {
+                    self.continuation_read_once(root, started, Phase::Attach)
+                })
+                .await;
+            let (roles, mut i) = match admission {
+                Ok(admitted) => admitted,
+                Err(error) => {
+                    // No Core attach was entered. Retain only this original
+                    // attempt's conservative capture; never issue another ID.
+                    if let Err(record_error) = self
+                        .save_continuation(root, started, Step::Attach, attempt.uncertain())
+                        .await
+                    {
+                        tracing::debug!(target:"connect_service::canonical_replacement",
+                            operation=%root.origin.request().operation_id,code=%record_error.code,
+                            "Original unentered attach capture remains owned after recording refusal");
+                    }
+                    return Err(error);
+                }
+            };
+            i.deadline = i.deadline.min(until);
+            #[cfg(feature = "test-support")]
+            if let Some(probe) = self.media.take_preparation_custody_probe_for_test(
+                &root.origin.request().operation_id,
+                crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase::Attach,
+            ) {
+                probe.pause(&self.stop, &root.handle.cancellation(), root.deadline.min(i.deadline),
+                    preparation_custody_observation(&i, crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase::Attach)).await;
+            }
             let result = self
                 .core
                 .attach_staged_device_replacement_with_held(&root.handle, Some(peer.clone()), &i)
@@ -527,6 +615,14 @@ impl Runtime {
                     Phase::Signal(DeviceReplacementEndpointEvent::MediaObserved),
                 )
                 .await?;
+            #[cfg(feature = "test-support")]
+            if let Some(probe) = self.media.take_preparation_custody_probe_for_test(
+                &root.origin.request().operation_id,
+                crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase::Signal,
+            ) {
+                probe.pause(&self.stop, &cancellation, root.deadline.min(i.deadline),
+                    preparation_custody_observation(&i, crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase::Signal)).await;
+            }
             let observed = self
                 .core
                 .capture_device_replacement_event(
@@ -559,14 +655,32 @@ impl Runtime {
                 drop(i);
                 continue;
             }
+            // `observed` is the original Core observation, not an IO grant.
+            // Journal reservation is a distinct mutation: drop its complete
+            // Read before obtaining the existing full writer and fresh facts.
+            let until = root.deadline.min(i.deadline);
+            drop(i);
+            let (roles, mut recording) =
+                super::projection::read(&self.role_projection, &self.stop, until, || {
+                    self.continuation_write_once(
+                        root,
+                        started,
+                        Phase::Signal(DeviceReplacementEndpointEvent::MediaObserved),
+                    )
+                })
+                .await?;
+            recording.deadline = recording.deadline.min(until);
             let attempt = self
-                .begin_continuation(started, &i, Step::Readiness)
+                .begin_continuation(started, &recording, Step::Readiness)
                 .await?;
             let expected = attempt.expected()?;
             let capture = attempt.applied(expected)?;
-            drop(i);
-            self.save_continuation(root, started, Step::Readiness, capture)
-                .await?;
+            drop(recording);
+            super::projection::record(
+                roles,
+                self.save_continuation(root, started, Step::Readiness, capture),
+            )
+            .await?;
             tracing::debug!(target:"connect_service::canonical_replacement",?observed,"Replacement actual private duplex readiness captured");
             return self.move_native_replacement(root, started).await;
         }

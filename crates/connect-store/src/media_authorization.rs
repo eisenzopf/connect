@@ -316,6 +316,9 @@ trait ErasedSlot: Send + Sync {
     fn revoke_for(&self, scopes: &[AuthorityScope]);
     fn published_scopes(&self) -> Option<Arc<Vec<AuthorityScope>>>;
     fn refresh_if_missing(&self, registry: &Registry);
+    // Off-media scheduling metadata only. The caller owns registry.control;
+    // this never admits media, acquires SQL/files or retains a positive grant.
+    fn refresh_ready(&self, state: &Control) -> bool;
 }
 impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
     fn revoke(&self) {
@@ -367,6 +370,29 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
         // scope after withdrawal so a cross-process writer's release can wake
         // exactly one fresh projection of an otherwise unchanged route.
         self.scope_hint.load_full()
+    }
+    fn refresh_ready(&self, state: &Control) -> bool {
+        if self.handles.load(Ordering::Acquire) == 0
+            || self.publication.load().is_some()
+            || !self.availability.current()
+            || state.external_failed
+            || self
+                .scope_hint
+                .load_full()
+                .is_some_and(|hint| state.blocks(&hint))
+        {
+            return false;
+        }
+        // Same control -> attempt ordering and eligibility as the factory
+        // path below. No eligible work means the original idle wait is kept.
+        let Ok(attempt) = self.attempt.lock() else {
+            return false;
+        };
+        if attempt.definitive && (!state.writers.is_empty() || state.external_busy()) {
+            return false;
+        }
+        attempt.sequence != Some(state.sequence)
+            || attempt.transient && Instant::now() >= attempt.retry_at
     }
     fn refresh_if_missing(&self, registry: &Registry) {
         if self.handles.load(Ordering::Acquire) == 0 || self.publication.load().is_some() {
@@ -524,6 +550,8 @@ pub(crate) struct Registry {
     probe: Box<Probe>,
     availability: Arc<Availability>,
     watcher_started: AtomicBool,
+    #[cfg(test)]
+    original_idle_waits: AtomicUsize,
 }
 impl Registry {
     pub(crate) fn new(
@@ -543,6 +571,8 @@ impl Registry {
             probe: Box::new(probe),
             availability: Arc::new(Availability(AtomicU8::new(DISABLED))),
             watcher_started: AtomicBool::new(false),
+            #[cfg(test)]
+            original_idle_waits: AtomicUsize::new(0),
         })
     }
     /// Call only after the persistent coordinated-writer boundary is verified.
@@ -807,6 +837,23 @@ impl Registry {
                     if registry.stopped() {
                         break;
                     }
+                    // A registration/withdrawal can happen while the bounded
+                    // factories run, before this worker begins waiting. Test
+                    // the actual work predicate while holding the same mutex
+                    // used by producers, including registrations that do not
+                    // advance the writer sequence. Keep the original eight-
+                    // factory limit and probe before every following turn.
+                    if state
+                        .slots
+                        .iter()
+                        .filter_map(Weak::upgrade)
+                        .any(|slot| slot.refresh_ready(&state))
+                    {
+                        drop(state);
+                        continue;
+                    }
+                    #[cfg(test)]
+                    registry.original_idle_waits.fetch_add(1, Ordering::Relaxed);
                     if registry.changed.wait_timeout(state, interval).is_err() {
                         registry.availability.stop();
                         registry.invalidate_all();

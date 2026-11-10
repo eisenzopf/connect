@@ -13,6 +13,8 @@ pub(crate) mod connection_projection;
 pub(crate) mod native_data;
 mod native_endpoint;
 mod native_streams;
+#[cfg(feature = "test-support")]
+pub(crate) mod read_wait;
 pub use connection_media::{
     AssistantContextFailure, AssistantProviderApplied, AssistantProviderAttempt,
     AssistantProviderClosed, AssistantProviderContext, AssistantProviderCreated,
@@ -805,6 +807,10 @@ impl Store {
         mutation: bool,
         replacement_start: bool,
     ) -> Result<PeerAuthorityGuard> {
+        #[cfg(feature = "test-support")]
+        let observed_wait = self.peer_read_waits.wait(request, wait)?;
+        #[cfg(feature = "test-support")]
+        let wait = &observed_wait;
         let current = |c: &Connection| -> Result<_> {
             let (metadata, key, mut scopes, expires_at) = checked(self, c, request)?;
             if replacement_start {

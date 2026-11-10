@@ -336,7 +336,7 @@ fn scope(command: &TransitionCommand) -> CommandScope {
         ..Default::default()
     }
 }
-async fn submit(
+pub(super) async fn submit(
     client: &mut CanonicalClient,
     ready: &NativeReplacementReady,
     controller: &mut CanonicalHttpClient,

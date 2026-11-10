@@ -1,6 +1,7 @@
 //! Original video transfer observation and separately authorized Data controls.
 use super::*;
 use connect_client::{canonical::ReplyBatch, ClientError};
+mod exchange;
 #[derive(Clone)]
 pub(super) struct Admission {
     pub revision: u64,
@@ -191,80 +192,32 @@ async fn control(
         "kind":kind,"scope":scope,"payload":input}),
     )
     .await?;
-    let request = client.send_value(kind, input, scope.clone()).await?;
     let until = tokio::time::Instant::now() + Duration::from_secs(8);
-    let mut result = None;
-    let mut received = None;
-    tokio::time::timeout_at(until, async {
-        for _ in 0..128 {
-            let frame = client.receive().await?;
-            if frame.scope(Scope::Reply).is_none()
-                && matches!(
-                    frame.kind(),
-                    "operation.updated"
-                        | "connection.ready"
-                        | "stream.opened"
-                        | "stream.closed"
-                        | "connection.quality"
-                        | "session.started"
-                        | "session.ended"
-                        | "session.participant.joined"
-                        | "session.participant.left"
-                        | "recording.vcon-ready"
-                )
-            {
-                continue;
-            }
-            if !scope_matches(&frame, scope) {
-                return Err("video control changed its original scope".into());
-            }
-            match frame.kind() {
-                "connection.offer" if incoming.is_some() && received.is_none() => {
-                    let payload = &frame.original()["payload"];
-                    let expected = incoming.unwrap();
-                    let bindings = selected::subscription(
-                        payload,
-                        own,
-                        &expected.receive_video_stream_id,
-                        expected.receive_data_stream_id.as_deref(),
-                    )?;
-                    client
-                        .answer_connection_offer(
-                            &frame,
-                            selected::answer(payload, capabilities)?,
-                            scope,
-                        )
-                        .await?;
-                    received = Some(bindings);
-                }
-                "operation.updated"
-                    if frame.scope(Scope::Reply) == Some(request.as_str()) && result.is_none() =>
-                {
-                    let payload = &frame.original()["payload"];
-                    if payload["state"] != "completed"
-                        || payload["operation_id"].as_str() != scope.operation_id.as_deref()
-                    {
-                        return Err("original video control did not complete".into());
-                    }
-                    result = Some(payload.clone());
-                }
-                "ack"
-                    if frame.scope(Scope::Reply) == Some(request.as_str()) && result.is_some() =>
-                {
-                    if incoming.is_some() && received.is_none() {
-                        return Err("video subscription omitted actual negotiation".into());
-                    }
-                    return Ok((result.take().unwrap(), received.take()));
-                }
-                _ => {
-                    return Err("unexpected video control response; original is not retried".into())
-                }
-            }
+    let (result, observed) = exchange::run(
+        client,
+        scope,
+        kind,
+        input,
+        capabilities,
+        own,
+        incoming,
+        until,
+    )
+    .await;
+    if result.is_err() {
+        // Preserve the actual original receipt on failure, without turning a
+        // diagnostic write failure into another operation or masking the error.
+        if let Some(receipt) = observed {
+            let _ = save(
+                &output.with_extension(format!("{label}-observed.json")),
+                &receipt,
+            )
+            .await;
         }
-        Err("video control hint bound exceeded".into())
-    })
-    .await?
+    }
+    result
 }
+
 pub(super) async fn open(
     client: &mut CanonicalClient,
     scope: &CommandScope,
@@ -589,11 +542,25 @@ mod tests {
     #[test]
     fn original_signed_journal_fields_are_required_and_pending_states_never_open_video() {
         let (command, root, own, value) = fixture();
-        // The real public typed projection omits these journal extensions.
+        // The current typed projection preserves journal identity. Missing
+        // original fields must still be refused, never inferred from the root.
         let projected = serde_json::to_value(&root).unwrap();
-        assert!(projected.get("command_type").is_none());
+        assert_eq!(projected["command_type"], "connection.replace");
         assert!(observed(
             &projected,
+            &command,
+            &root,
+            "candidate",
+            "target-device",
+            &own,
+            &mut 3
+        )
+        .unwrap()
+        .is_none());
+        let mut missing = projected;
+        missing.as_object_mut().unwrap().remove("command_type");
+        assert!(observed(
+            &missing,
             &command,
             &root,
             "candidate",
