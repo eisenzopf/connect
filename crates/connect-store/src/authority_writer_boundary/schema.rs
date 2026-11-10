@@ -240,6 +240,59 @@ fn rejected_native_member_birth() -> &'static str {
     "EXISTS(SELECT 1 FROM native_offer_rejections rejected JOIN operations wire ON wire.record_id=rejected.operation_record_id JOIN operations preparation ON preparation.record_id=rejected.preparation_record_id JOIN operation_control_receipts receipt ON receipt.operation_record_id=preparation.record_id WHERE wire.record_id=NEW.operation_record_id AND wire.ledger_version=0 AND wire.command_type='connection.offer' AND wire.state='failed' AND wire.connection_id IS NULL AND wire.result_json IS NULL AND wire.problem_json IS NOT NULL AND preparation.command_type='connection.prepare' AND preparation.state='failed' AND preparation.result_json IS NULL AND preparation.problem_json=wire.problem_json AND wire.owner_id=preparation.owner_id AND wire.tenant_id=preparation.tenant_id AND wire.conversation_id=preparation.conversation_id AND wire.session_id=preparation.session_id AND receipt.actor_authority='member' AND NEW.participant_id=receipt.actor_participant_id AND NEW.membership_epoch=receipt.actor_membership_epoch AND NEW.identity_id=wire.owner_id AND NOT EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=wire.record_id) AND NOT EXISTS(SELECT 1 FROM operation_effects effect WHERE effect.operation_record_id=wire.record_id))"
 }
 
+// The private Unit key authorizes only these fixed positive ledger transitions.
+// Arbitrary row states or a registered Read alone never bypass row Write guards.
+fn phase_ledger_effect_insert() -> String {
+    let function = phase_ledger::FUNCTION;
+    format!("NEW.provider IN ('native-replacement-attach','native-replacement-readiness') AND NEW.correlation_key=NEW.id AND NEW.idempotency_mode='none' AND NEW.state='prepared' AND NEW.attempt=0 AND NEW.submission_generation=0 AND NEW.provider_ref IS NULL AND NEW.compensates_effect_id IS NULL AND {function}('effect-birth',NEW.operation_record_id,NEW.id,substr(NEW.provider,20),NEW.observation_json,NULL,NULL)")
+}
+fn phase_ledger_effect_update() -> String {
+    let function = phase_ledger::FUNCTION;
+    let immutable = same_columns(&[
+        "id",
+        "operation_record_id",
+        "provider",
+        "correlation_key",
+        "idempotency_mode",
+        "provider_ref",
+        "observation_json",
+        "compensates_effect_id",
+    ]);
+    let submit=format!("OLD.state='prepared' AND NEW.state='submitting' AND OLD.attempt=0 AND NEW.attempt=1 AND OLD.submission_generation=0 AND NEW.submission_generation=1 AND s.observation_json IS NULL AND {function}('effect-submit',NEW.operation_record_id,NEW.id,s.phase,NEW.observation_json,s.attempt_id,NULL)");
+    let confirm=format!("OLD.state='submitting' AND NEW.state='confirmed' AND OLD.attempt=1 AND NEW.attempt=1 AND OLD.submission_generation=1 AND NEW.submission_generation=1 AND s.observation_json=NEW.observation_json AND {function}('effect-confirm',NEW.operation_record_id,NEW.id,s.phase,NEW.observation_json,s.attempt_id,NULL)");
+    format!("({immutable}) AND NEW.provider IN ('native-replacement-attach','native-replacement-readiness') AND NEW.correlation_key=NEW.id AND NEW.idempotency_mode='none' AND NEW.provider_ref IS NULL AND NEW.compensates_effect_id IS NULL AND EXISTS(SELECT 1 FROM native_replacement_media_steps s WHERE s.operation_record_id=NEW.operation_record_id AND s.effect_id=NEW.id AND s.phase IN ('attach','readiness') AND NEW.provider='native-replacement-'||s.phase AND s.started=1 AND (({submit}) OR ({confirm})))")
+}
+fn phase_ledger_touch() -> String {
+    let function = phase_ledger::FUNCTION;
+    let immutable = same_columns(&[
+        "record_id",
+        "tenant_id",
+        "owner_id",
+        "operation_id",
+        "digest",
+        "command_type",
+        "conversation_id",
+        "session_id",
+        "connection_id",
+        "expected_revision",
+        "intent_json",
+        "state",
+        "result_json",
+        "problem_json",
+        "tombstoned",
+        "worker_generation",
+        "lease_owner",
+        "lease_expires_at",
+        "created_at",
+        "expires_at",
+        "ledger_version",
+        "worker_runtime",
+        "worker_cleanup",
+        "cancel_requested",
+    ]);
+    format!("({immutable}) AND OLD.state='preparing' AND NEW.cancel_requested=0 AND NEW.tombstoned=0 AND OLD.revision<9007199254740990 AND NEW.revision=OLD.revision+1 AND EXISTS(SELECT 1 FROM native_replacement_media_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=NEW.record_id AND s.phase IN ('attach','readiness') AND s.started=1 AND e.provider='native-replacement-'||s.phase AND e.state IN ('submitting','confirmed') AND e.attempt=1 AND e.submission_generation=1 AND ((e.state='submitting' AND s.observation_json IS NULL) OR (e.state='confirmed' AND s.observation_json=e.observation_json)) AND {function}(CASE e.state WHEN 'submitting' THEN 'root-touch-begin' ELSE 'root-touch-confirm' END,NEW.record_id,s.effect_id,s.phase,e.observation_json,s.attempt_id,NEW.revision))")
+}
+
 fn dormant(table: &str, action: &str, collisions: &str) -> String {
     if action == "insert" {
         let no_collision =
@@ -264,7 +317,7 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
             "connection_offers" => "EXISTS(SELECT 1 FROM connections c WHERE c.id=NEW.connection_id AND c.state='preparing' AND c.generation=1 AND c.revision=0 AND c.observed_runtime_id IS NULL AND c.readiness_json IS NULL)".into(),
             "native_offer_operations" => format!("NEW.effect_started=0 AND {}", initial_slot("NEW.operation_record_id")),
             "operation_members" => format!("({} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)) OR ({}) OR ({} AND EXISTS(SELECT 1 FROM native_stream_operations ns JOIN operations sub ON sub.record_id=ns.operation_record_id WHERE sub.record_id=NEW.operation_record_id AND NEW.participant_id=ns.participant_id AND NEW.identity_id=sub.owner_id AND NEW.membership_epoch=ns.membership_epoch))", initial_slot("NEW.operation_record_id"), rejected_native_member_birth(), native_stream_birth("NEW.operation_record_id")),
-            "operation_effects" => format!("({} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)) OR ({} AND NEW.provider='native-stream' AND NEW.correlation_key=NEW.operation_record_id AND NEW.idempotency_mode='none' AND NEW.state='submitting' AND NEW.attempt=1 AND NEW.submission_generation=1 AND NEW.provider_ref IS NULL AND NEW.observation_json IS NULL AND NEW.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM operation_effects prior WHERE prior.operation_record_id=NEW.operation_record_id))", initial_slot("NEW.operation_record_id"), native_stream_birth("NEW.operation_record_id")),
+            "operation_effects" => format!("({} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)) OR ({} AND NEW.provider='native-stream' AND NEW.correlation_key=NEW.operation_record_id AND NEW.idempotency_mode='none' AND NEW.state='submitting' AND NEW.attempt=1 AND NEW.submission_generation=1 AND NEW.provider_ref IS NULL AND NEW.observation_json IS NULL AND NEW.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM operation_effects prior WHERE prior.operation_record_id=NEW.operation_record_id)) OR ({})", initial_slot("NEW.operation_record_id"), native_stream_birth("NEW.operation_record_id"), phase_ledger_effect_insert()),
             "operation_endpoints" => format!("{} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)", initial_slot("NEW.operation_record_id")),
             // The receipt and its unique original operation are created in one
             // SQL transaction before any native invocation can be constructed.
@@ -272,6 +325,9 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
             _ => "0".into(),
         };
         return format!("({no_collision}) AND ({condition})");
+    }
+    if action == "update" && table == "operation_effects" {
+        return phase_ledger_effect_update();
     }
     if action == "update" && table == "messages" {
         // explicit_message_metadata performs a same-value UPDATE after INSERT.
@@ -352,7 +408,11 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
         // requires Preparing plus the exact submitting effect/worker lease.
         // Permit only that one birth, never a later Preparing mutation.
         let initial_offer = format!("({immutable}) AND OLD.command_type='connection.offer' AND OLD.state='accepted' AND NEW.cancel_requested=0 AND NEW.worker_generation=1 AND OLD.worker_generation IN (0,1) AND ((NEW.state='accepted' AND NEW.revision=OLD.revision) OR (NEW.state='preparing' AND NEW.revision=OLD.revision+1)) AND NEW.lease_expires_at IS NEW.expires_at AND {} AND EXISTS(SELECT 1 FROM native_offer_operations n JOIN operation_effects e ON e.id=n.effect_id AND e.operation_record_id=n.operation_record_id WHERE n.operation_record_id=NEW.record_id AND n.effect_started=1 AND e.state='submitting' AND NEW.lease_owner IS n.attempt_id AND NEW.worker_runtime IS n.attempt_runtime)", initial_slot("NEW.record_id"));
-        return format!("({initial_offer}) OR ({})", native_stream_begin_update());
+        return format!(
+            "({initial_offer}) OR ({}) OR ({})",
+            native_stream_begin_update(),
+            phase_ledger_touch()
+        );
     }
     if action == "update" && table == "native_offer_operations" {
         // Exactly the initial one-way effect birth. Every OLD=1 mutation, even
@@ -425,6 +485,13 @@ fn definitions(connection: &Connection) -> Result<Vec<(String, String, String)>>
                         ));
                     }
                 }
+            }
+            if table == "native_replacement_media_steps" && action == "insert" {
+                // Retained phase rows cannot be implicitly deleted by REPLACE,
+                // including SQL connections with recursive triggers disabled.
+                // This table is otherwise registered-Unit bookkeeping.
+                let collisions = collision_predicate(connection, &table)?;
+                body.push_str(&format!("SELECT RAISE(ABORT,'native replacement media phase binding conflicts') FROM {quoted} existing WHERE {collisions};"));
             }
             let sql = format!(
                 "CREATE TRIGGER {} BEFORE {} ON {quoted} BEGIN {body} END",

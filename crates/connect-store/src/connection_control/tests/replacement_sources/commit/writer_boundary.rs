@@ -3,6 +3,95 @@
 use super::*;
 
 #[test]
+fn recorded_commit_replay_preserves_actual_media_read_and_original_queued_epoch() {
+    let m = fixture(true);
+    let captured = activation_barrier::captured(&m);
+    m.f.store
+        .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
+        .unwrap();
+    let source = m.sources[1].clone();
+    let store = Arc::new(m.f.store);
+    let weak_store = Arc::downgrade(&store);
+    let original_source = source.clone();
+    let snapshot = store
+        .register_native_media_snapshot_for(&source, None, move || {
+            weak_store
+                .upgrade()
+                .ok_or_else(Error::forbidden)?
+                .try_native_media_read(&original_source, None)
+        })
+        .unwrap();
+    let registry = store.media_authorization_registry();
+    let mut worker = registry
+        .start_watcher(std::time::Duration::from_millis(1))
+        .unwrap();
+    registry.enable_after_writer_boundary().unwrap();
+    let until = std::time::Instant::now() + std::time::Duration::from_secs(1);
+    let held = loop {
+        if let Ok(read) = snapshot.admit() {
+            break read;
+        }
+        assert!(std::time::Instant::now() < until);
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    };
+    let epoch = held.packet_epoch().unwrap();
+    let before = Store::inspect_snapshot(store.path()).unwrap();
+    // Same immutable captured result as the watcher re-observes after public
+    // activation. This must not request a Writer or revoke queued source work.
+    let repeated = store.record_native_replacement_committed(&captured);
+    let original_stayed_current = held.current() && epoch.current();
+    drop(held);
+    let queued_stayed_current = epoch.current();
+    let after = Store::inspect_snapshot(store.path()).unwrap();
+    worker.shutdown().unwrap();
+    assert!(
+        original_stayed_current && queued_stayed_current,
+        "read-only captured outcome replay revoked original media epoch"
+    );
+    assert_eq!(repeated.unwrap().state, OperationState::Completed);
+    assert_eq!(before, after, "captured replay changed durable state");
+}
+
+#[test]
+fn first_known_commit_capture_still_requires_writer_and_records_once_after_io_drains() {
+    let m = fixture(true);
+    let write =
+        m.f.store
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
+            .unwrap();
+    let attempt =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &write)
+            .unwrap();
+    let expected = attempt.expected().unwrap();
+    let captured = attempt
+        .committed(expected.clone(), &ready(&write, &expected))
+        .unwrap();
+    drop(write);
+    let held =
+        m.f.store
+            .try_native_media_read(&m.sources[1], None)
+            .unwrap();
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let refused = m.f.store.record_native_replacement_committed(&captured);
+    assert_eq!(refused.unwrap_err().code, "authority-busy");
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    drop(held);
+    let recorded =
+        m.f.store
+            .record_native_replacement_committed(&captured)
+            .unwrap();
+    let once = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    assert_eq!(
+        m.f.store
+            .record_native_replacement_committed(&captured)
+            .unwrap(),
+        recorded
+    );
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), once);
+}
+
+#[test]
 fn public_replacement_commit_refuses_read_only_scene_without_starting_an_effect() {
     let m = fixture(true);
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();

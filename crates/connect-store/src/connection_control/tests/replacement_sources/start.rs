@@ -1,6 +1,6 @@
 //! Controlled resource captures only; actual signed negotiation is a server test.
 use super::*;
-use super::{allocation::prepared_target_scene, custody::cancel};
+use super::{allocation::prepared_target_scene_scoped, custody::cancel};
 use connect_protocol::transitions::{EffectState, OperationState};
 use std::sync::Arc;
 mod initial_read;
@@ -15,10 +15,12 @@ fn fixture() -> (
     Arc<crate::NativeReplacementAllocated>,
     crate::PeerAuthorityRequest,
 ) {
-    let (f, key, command, captured, request, _) = fixture_scene();
+    let (f, key, command, captured, request, _) = fixture_scene(&[]);
     (f, key, command, captured, request)
 }
-fn fixture_scene() -> (
+fn fixture_scene(
+    extra_operations: &[&str],
+) -> (
     Fixture,
     String,
     TransitionCommand,
@@ -26,7 +28,8 @@ fn fixture_scene() -> (
     crate::PeerAuthorityRequest,
     Vec<Arc<crate::NativeMediaOrigin>>,
 ) {
-    let (f, key, command, prepared, mut request, sources) = prepared_target_scene();
+    let (f, key, command, prepared, mut request, sources) =
+        prepared_target_scene_scoped(extra_operations);
     let proof = f.admit(&request);
     let (attempt, read) = f
         .store
@@ -475,7 +478,19 @@ fn resource_fixture_scene() -> (
     Arc<crate::NativeReplacementMediaOrigin>,
     Vec<Arc<crate::NativeMediaOrigin>>,
 ) {
-    let (f, key, command, allocated, request, sources) = fixture_scene();
+    resource_fixture_scene_scoped(&[])
+}
+fn resource_fixture_scene_scoped(
+    extra_operations: &[&str],
+) -> (
+    Fixture,
+    String,
+    TransitionCommand,
+    Arc<crate::NativeReplacementStarted>,
+    Arc<crate::NativeReplacementMediaOrigin>,
+    Vec<Arc<crate::NativeMediaOrigin>>,
+) {
+    let (f, key, command, allocated, request, sources) = fixture_scene(extra_operations);
     let proof = f.admit(&request);
     let read = f
         .store

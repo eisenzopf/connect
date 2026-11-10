@@ -441,12 +441,60 @@ impl Store {
         &self,
         captured: &NativeReplacementCommitted,
     ) -> Result<OperationRecord> {
+        // Re-observing an already recorded immutable outcome is a fresh read,
+        // not a current-state mutation. In particular, the preparation watcher
+        // may arrive after public activation; reserving a Writer here would
+        // revoke unrelated queued media even though no SQL row changes.
+        if let Some(record) = self.read_recorded_replacement_commit(captured)? {
+            return Ok(record);
+        }
         self.record_replacement_commit(
             &captured.attempt,
             Some(&captured.observation),
             captured.audience.as_ref(),
             Some(&captured.capture_diagnostics),
         )
+    }
+    fn read_recorded_replacement_commit(
+        &self,
+        captured: &NativeReplacementCommitted,
+    ) -> Result<Option<OperationRecord>> {
+        let a = &captured.attempt;
+        let p = &a.origin.started.attempt.allocated.attempt.prepared;
+        local_owner(self, &p.owner, &p.runtime)?;
+        let (held, c) = self.try_replacement_capture_projection(None, |c| {
+            let row = rows::by_record(c, &p.record)?;
+            let mut scopes = admission::row_scopes(&row)?;
+            if captured.audience.is_some() {
+                scopes.extend(crate::authority_admission::conversation_scopes(
+                    c,
+                    &row.record.conversation_id.clone().ok_or_else(invalid)?,
+                    crate::AuthorityMode::Read,
+                )?);
+            }
+            AuthorityScope::merged(&scopes)
+        })?;
+        let row = rows::by_record(&c, &p.record)?;
+        admission::require_row(self, &held, &row)?;
+        // Exact original runtime, reservation, plan, attempt, effect and expected
+        // result remain required. Equal operation IDs alone cannot use this path.
+        let old: Option<Option<String>> = c.query_row(
+            "SELECT s.observation_json FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND e.observation_json=?7",
+            params![p.record,p.runtime,p.reservation,p.hash,a.attempt,a.effect,a.expected],
+            |r| r.get(0),
+        ).optional().map_err(|_| Error::storage())?;
+        let Some(old) = old.ok_or_else(Error::forbidden)? else {
+            // No outcome yet: this scope releases SQL and every Read before
+            // the existing Writer path rechecks everything and records once.
+            return Ok(None);
+        };
+        if old != captured.observation {
+            return Err(conflict());
+        }
+        if let Some(audience) = &captured.audience {
+            audience.require_recorded(&c, &a.effect)?;
+        }
+        Ok(Some(row.record))
     }
     pub fn native_replacement_commit_uncertain(
         &self,

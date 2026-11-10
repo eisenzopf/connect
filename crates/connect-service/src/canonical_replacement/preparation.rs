@@ -224,18 +224,6 @@ impl Runtime {
         self.continuation_read_with_custody(root, started, phase, mutation)
             .await
     }
-    // Journal/effect reservation still takes its original complete writer.
-    // The caller must release this invocation before acquiring a fresh Read
-    // for private attachment or observation; this is never a guard downgrade.
-    async fn continuation_write_once(
-        &self,
-        root: &Arc<PreparedReplacement>,
-        started: &Arc<StartedReplacement>,
-        phase: Phase,
-    ) -> Result<Invocation> {
-        self.continuation_read_with_custody(root, started, phase, true)
-            .await
-    }
     async fn continuation_read_with_custody(
         &self,
         root: &Arc<PreparedReplacement>,
@@ -298,10 +286,11 @@ impl Runtime {
             .get()
             .cloned()
             .ok_or_else(Error::forbidden)?;
-        let read = i.read.media().clone();
-        let result =
-            store_call(move || store.begin_native_replacement_media_phase(origin, phase, &read))
-                .await;
+        let read = i.read.clone();
+        let result = store_call(move || {
+            store.begin_native_replacement_scene_media_phase(origin, phase, &read)
+        })
+        .await;
         tracing::debug!(target: "connect_service::replacement_phase_trace",
             operation = %i.root.origin.request().operation_id, ?phase,
             code = ?result.as_ref().err().map(|error| error.code.as_str()), "Replacement phase begin returned");
@@ -349,7 +338,7 @@ impl Runtime {
                 .min(tokio::time::Instant::now() + Duration::from_secs(5));
             let (roles, i) =
                 super::projection::read(&self.role_projection, &self.stop, until, || {
-                    self.continuation_write_once(root, started, Phase::Attach)
+                    self.continuation_read_once(root, started, Phase::Attach)
                 })
                 .await?;
             tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="attach-begin","Replacement continuation");
@@ -357,7 +346,7 @@ impl Runtime {
             let expected = attempt.expected()?;
             let until = until.min(i.deadline);
             // The original SQL/effect reservation is durable. Release every
-            // writer alias and the coordinator before fresh Read acquisition.
+            // read alias and the coordinator before fresh current acquisition.
             drop(i);
             drop(roles);
             let admission =
@@ -656,13 +645,13 @@ impl Runtime {
                 continue;
             }
             // `observed` is the original Core observation, not an IO grant.
-            // Journal reservation is a distinct mutation: drop its complete
-            // Read before obtaining the existing full writer and fresh facts.
+            // Positive journal reservation still needs fresh complete scene
+            // custody; the observation itself is not an authorization grant.
             let until = root.deadline.min(i.deadline);
             drop(i);
             let (roles, mut recording) =
                 super::projection::read(&self.role_projection, &self.stop, until, || {
-                    self.continuation_write_once(
+                    self.continuation_read_once(
                         root,
                         started,
                         Phase::Signal(DeviceReplacementEndpointEvent::MediaObserved),

@@ -1,0 +1,140 @@
+{
+  "format": "connect/media-epoch-fix-batch/1",
+  "updated": "2026-11-10T23:09:16.269959+00:00",
+  "status": "Both epoch fixes component-verified:27 Store controls and4 signed preparation cases pass;2 additional receiver guards pass. Both representative cadence cases still fail.",
+  "base_commit": "5736836a",
+  "normal_generation": 391,
+  "changes": [
+    {
+      "id": "known-commit-replay",
+      "description": "Fresh exact recorded-capture Read before Writer acquisition. First recording and uncertain outcomes retain Writer; no cached successful permission or effect replay.",
+      "source_review_sha256": "81d099c9688c14d05b7f47e7221176f75c0243ae52858e74bc3f687dbb741dae"
+    },
+    {
+      "id": "positive-phase-ledger",
+      "description": "Exact same-Unit/transaction permit for positive Attach/Readiness journal updates under complete scene Read. Remove four unnecessary Writer invalidations. Preserve actual Activate, audience, commit, cancellation and unknown Writers; strict immutable columns and unique collision guards.",
+      "schema_version": 122,
+      "source_review_sha256": "be7297d4c70f7eb6199c05fc89af2149160a984c781d50c0bf4c23e2e00f7713"
+    }
+  ],
+  "actual_before_evidence": {
+    "store_original_epoch_regression": {
+      "functional_passed": 0,
+      "failed": 1,
+      "expected_bug_reproduced": true,
+      "receipt_sha256": "236444975d897dc6c09713768a1559a7099f9c578066a3091eabe4050c397e2f"
+    },
+    "signed_diagnostic": {
+      "passed": 1,
+      "failed": 0,
+      "scope": "Old replay production with bounded tracing. Same public frame survived two temporary refusals and arrived near70ms with epochcurrent; earlier signed failures retained. The exact historical signed loss leaf is not proved by this passing attempt.",
+      "receipt_sha256": "2c00ae890d06a9c47dacb5bae6b81386e3dae09ffd7032d413150c9b8c5e9f75"
+    },
+    "core_retention_controls": {
+      "passed": 4,
+      "failed": 0,
+      "scope": "Actual pending queue distinguishes readiness recovery from original-epoch revocation and preserves route/age/expiry refusal. No semantic relaxation.",
+      "receipt_sha256": "e640664873085dad1f53406ae5030ced9af009f890019c1a712738308b316f78"
+    }
+  },
+  "next_verification": {
+    "media": "Test demonstrated-source stale incomplete-frame recovery amplifier and identify original pre-Activate packet-loss leaf. Preserve24fps and200ms age requirements.",
+    "full32": "Await focused media readiness; latest full v214 remains0/32."
+  },
+  "capacity": {
+    "obsolete_task_owned_cache_paths_removed": 10328,
+    "reclaimed_bytes": 44950306816,
+    "available_bytes_after": 55835484160,
+    "receipt_sha256": "405b8fd74a3f12f16ca9a9677f160a7214b5b8c8d8e5af4f8d2318663515e0ad",
+    "preserved": [
+      "source",
+      "logs",
+      "databases",
+      "executables",
+      "current and final-L artifacts",
+      "shipping release targets"
+    ]
+  },
+  "source_guards": {
+    "crates/connect-service/src/canonical_replacement/preparation.rs": "49bfb240016b40dc3e34747e098f8371bebc89e66db06e7dbe6542ca11d84fe8",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start/commit.rs": "4626d8b31470066cb2a297694879b72a2767751f591e9dea6f2376425ad781eb"
+  },
+  "actual_fixed_evidence": {
+    "phase_store": {
+      "summary": {
+        "selected": 22,
+        "completed": 22,
+        "passed": 21,
+        "failed": 1
+      },
+      "receipt_sha256": "3ed0cf60dc8e5b64908efbe12d1b2c958655f526b678bdb78c45e81fb3859bac",
+      "source_unchanged": true,
+      "all_original_groups_absent": true
+    },
+    "commit_replay": {
+      "summary": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "receipt_sha256": "1dc94f3df23a1601f6923cb6b649351bbcd6baceb02922bdc93556526491e93e",
+      "source_unchanged": true,
+      "all_original_groups_absent": true
+    },
+    "signed_preparation": {
+      "summary": {
+        "selected": 4,
+        "completed": 4,
+        "passed": 4,
+        "failed": 0
+      },
+      "receipt_sha256": "2fdc39998fa5b0343271335b693847faacf8b8be912b5bffdf2641b6501052d5",
+      "source_unchanged": true,
+      "all_original_groups_absent": true
+    },
+    "representative_cadence": {
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "receipt_sha256": "a378a8fd194d573632534070fd1a7a586e5e372d930e201ffb9791f79ba7761f",
+      "source_unchanged": true,
+      "all_original_groups_absent": true
+    },
+    "build": {
+      "passed": true,
+      "source_sha256": "57c3cc0c09839b8bacd55169ac7fc09b00b64dfbfc34ce53d5e882a80ae677d1",
+      "receipt_sha256": "461eb4bc7d35f15d2dc0edade49d9eb2d310b780518ede72dfa5ba2edfbfedd1"
+    },
+    "phase_store_corrected": {
+      "summary": {
+        "selected": 22,
+        "completed": 22,
+        "passed": 22,
+        "failed": 0
+      },
+      "receipt_sha256": "2106bace4910fb64df66f01d4954162e030cfac1faada99e2eac33deb5aed592",
+      "source_unchanged": true,
+      "all_original_groups_absent": true
+    },
+    "receiver_guards": {
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "receipt_sha256": "94933aea311ed82ad24068f49c62fb4691a8e86dce4ea86d3c77898a1a464351",
+      "source_unchanged": true,
+      "all_original_groups_absent": true
+    }
+  },
+  "remaining_failures": {
+    "fixture": "Resolved by issuing stream.subscribe during original target setup. All22 phase controls plus2 retained receiver-permission/activation controls pass; prior fixture failure preserved.",
+    "cadence": "Both representatives complete both movement rounds but lose decoded cadence in seconds3 and7 despite each publisher encoding/publishing30fps. Forced-coordinator loss starts before private Activate, whose Core calls remain short. Exact packet-loss leaf not yet proved.",
+    "full_matrix": "Last full v214 remains0/32 cells,288/432 requirements; no new full run."
+  }
+}

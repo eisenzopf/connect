@@ -3,13 +3,16 @@
 //! The registered function does not authorize an operation. Existing Store
 //! methods still check the principal, intent and fresh rows. It requires an
 //! actual same-Store Write proof, pinned by this exact SQL unit, for the row
-//! footprint supplied by persistent schema triggers. It never acquires a fence
+//! footprint supplied by persistent schema triggers. The private phase ledger
+//! permit is a narrower exact-transaction exception for gain-only phase metadata;
+//! it never permits a state, authorization, lease or audience change. It never acquires a fence
 //! or reads SQL from inside SQLite.
 use crate::{AuthorityGuardSet, AuthorityMode, AuthorityScope, Store};
 use connect_protocol::{Error, Result};
 use rusqlite::{functions::FunctionFlags, Connection};
 use std::sync::{Arc, Mutex, Weak};
 
+pub(crate) mod phase_ledger;
 pub(crate) mod schema;
 
 pub(crate) const FUNCTION: &str = "connect_store_writer_guard_v1";
@@ -40,6 +43,7 @@ struct Slot {
     connection: usize,
     next_birth_nonce: u64,
     birth: Option<BirthKey>,
+    phase_ledger: Option<phase_ledger::Active>,
 }
 
 /// One state for the sole primary SQL connection, never packet observers.
@@ -118,19 +122,27 @@ impl State {
                 },
             )
             .map_err(|_| Error::storage())?;
+        self.register_phase_ledger(connection)?;
         // Even crate-private SQL can issue COMMIT/ROLLBACK explicitly. Never
         // allow a namespace permit to survive a successful transaction boundary.
         let state = self.clone();
         connection.commit_hook(Some(move || {
-            state.slot.lock().map_or(true, |slot| slot.birth.is_some())
+            state.slot.lock().map_or(true, |slot| {
+                slot.birth.is_some() || slot.phase_ledger.is_some()
+            })
         }));
         let state = self.clone();
         connection.rollback_hook(Some(move || {
-            if let Ok(mut slot) = state.slot.lock() {
+            let previous = if let Ok(mut slot) = state.slot.lock() {
                 slot.birth = None;
-            } else if let Some(registry) = state.registry.upgrade() {
-                registry.invalidate_all();
-            }
+                slot.phase_ledger.take()
+            } else {
+                if let Some(registry) = state.registry.upgrade() {
+                    registry.invalidate_all();
+                }
+                None
+            };
+            drop(previous);
         }));
         Ok(())
     }
@@ -197,6 +209,7 @@ impl State {
                 || slot.failed
                 || slot.connection != connection_tag
                 || slot.birth.is_some()
+                || slot.phase_ledger.is_some()
                 || connection.is_autocommit()
             {
                 return Err(Error::storage());
@@ -230,6 +243,7 @@ impl State {
             || slot.failed
             || slot.connection != connection_tag
             || slot.birth.is_some()
+            || slot.phase_ledger.is_some()
             || connection.is_autocommit()
         {
             return Err(Error::storage());
@@ -289,6 +303,7 @@ impl State {
             || !connection.is_autocommit()
             || !slot.proofs.is_empty()
             || slot.birth.is_some()
+            || slot.phase_ledger.is_some()
         {
             slot.failed = true;
             return Err(Error::storage());
@@ -370,16 +385,18 @@ impl Unit {
                 registry.invalidate_all();
             }
         }
-        let proofs = if let Ok(mut slot) = self.state.slot.lock() {
-            slot.failed |= !clean || slot.birth.is_some();
+        let (proofs, phase) = if let Ok(mut slot) = self.state.slot.lock() {
+            slot.failed |= !clean || slot.birth.is_some() || slot.phase_ledger.is_some();
             slot.birth = None;
+            let phase = slot.phase_ledger.take();
             slot.connection = 0;
             slot.active = false;
-            std::mem::take(&mut slot.proofs)
+            (std::mem::take(&mut slot.proofs), phase)
         } else {
-            Vec::new()
+            (Vec::new(), None)
         };
         // A WriterNotice may lock its registry on Drop. Do not hold slot here.
+        drop(phase);
         drop(proofs);
     }
 }

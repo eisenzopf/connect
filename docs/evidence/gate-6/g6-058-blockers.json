@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T21:39:29.278086+00:00",
-  "run_status": "Full v214 closed:0/32 cells,288/432 checks pass,100 fail,44 blocked,0 not-run. Followthrough fixes now pass setup/allocation controls; remaining actual failures are decoded cadence and first postcommit frame. No new full run active.",
+  "updated": "2026-11-10T23:09:16.269959+00:00",
+  "run_status": "Full v214 remains0/32 cells,288/432 checks pass. Epoch-fix batch:27/27 Store controls,2/2 receiver guards and4/4 signed preparation pass across source-bound receipts. Both representative cadence cases fail after completed handoffs. Investigating packet loss and stale-partial decoder recovery.",
   "blockers": [
     {
       "id": "B01",
@@ -1433,7 +1433,7 @@
     {
       "id": "B175",
       "title": "Attach and Signal retain journal Writer through read-only Core work",
-      "status": "Old-Write causal counterexamples reproduced. Fixed Attach continuity and both current-revocation controls pass; Signal continuity still loses a postcommit frame.",
+      "status": "Current combined signed Attach/Signal continuity and both revocation controls4/4 pass; representative cadence remains failed.",
       "change": "Release Write and coordinator aliases, freshly authorize complete Read custody for the original Core phase, then acquire Write for exact original recording. Activate/Commit retain coordinated Write.",
       "evidence": "Source-level exclusion mechanism identified; movement-window quality causation requires old-behavior counterfactual and real signed continuity/revocation evidence. Public evidence: docs/evidence/gate-6/transport-matrix-v214.json; docs/evidence/gate-6/post-v214-reviewed-batch.json. Produced Store custody controls pass within54/54; this does not exercise the actual Service preparation variant or its old-Write counterfactual.",
       "next": "Resolve remaining media failures before fresh full32 qualification; see post-v214-reviewed-batch.json."
@@ -1465,18 +1465,26 @@
     {
       "id": "B179",
       "title": "Decoded cadence still falls during completed replacement preparation",
-      "status": "Both representative tests complete two rounds, then fail24fps bins. Baseline bins3/7 retain20\u201321/14\u201316 frames while each source publishes30.",
-      "change": "Investigating journal-only authority invalidation; not yet established as the causal loss. Actual Core Activate spans are1.142\u20131.844ms, excluding a long Core activation wait as the demonstrated cause.",
+      "status": "All22 positive-phase and2 receiver-eligibility controls pass after fixture correction. Both representative cadence cases remain failed; publishers sustain30fps.",
+      "change": "Investigating journal-only authority invalidation; not yet established as the causal loss. Actual Core Activate spans are1.142\u20131.844ms, excluding a long Core activation wait as the demonstrated cause. Exact same-Unit positive journal permit now removes four preparation Writer invalidations; all real state-change Writers remain.",
       "evidence": "Actual local signed focused receipts in docs/evidence/gate-6/post-v214-reviewed-batch.json; full v214 remains0/32.",
       "next": "Audit exact journal DML/authorization dependencies and preserve current revocation, uncertainty and routing-change barriers."
     },
     {
       "id": "B180",
       "title": "First public target frame can disappear before Core fan-out",
-      "status": "Latest Signal positive and same-binary diagnostic fail receiving timestamp3000 after original handoff completion.",
+      "status": "Current fixed signed Signal continuity passes alongside Attach and both revocation controls. Earlier intermittent failures retained; full matrix still pending.",
       "change": "Source admission and Core ingress succeed; no fanout/egress increment. Narrowed to scene routing or current forwarding authorization, before SDK receive.",
       "evidence": "Actual local signed focused receipts in docs/evidence/gate-6/post-v214-reviewed-batch.json; full v214 remains0/32.",
       "next": "Use retained policy trace to identify the first refusal/drop; add only the missing bounded diagnostic if necessary, then fix and test the exact path."
+    },
+    {
+      "id": "B181",
+      "title": "Already-recorded commit replay unnecessarily revokes queued media",
+      "status": "All5 fixed Store replay/first-capture/refusal controls pass, including original queued epoch regression. Signed preparation4/4 pass; cadence unresolved.",
+      "change": "Fresh exact recorded-capture Read before Writer acquisition. First recording and uncertain outcomes retain Writer; no cached successful permission or effect replay.",
+      "evidence": "docs/evidence/gate-6/media-epoch-fix-batch-v215.json",
+      "next": "Five focused Store controls and actual signed postcommit delivery, then representative cadence and full32."
     }
   ],
   "workplan_tasks": [
@@ -2936,7 +2944,7 @@
       ],
       "code_paths": [],
       "solution": "Audit exact journal DML/authorization dependencies and preserve current revocation, uncertainty and routing-change barriers.",
-      "status": "Root cause investigation; no speculative fix claimed.",
+      "status": "All22 phase controls and2 receiver guards pass; both cadence cases fail. Investigating exact pre-Activate loss and stale-partial decoder recovery.",
       "completion": "Focused regression preserves current authority/cleanup and passes actual media delivery, then all32 cells.",
       "completion_status": "in-progress"
     },
@@ -2950,9 +2958,24 @@
       ],
       "code_paths": [],
       "solution": "Use retained policy trace to identify the first refusal/drop; add only the missing bounded diagnostic if necessary, then fix and test the exact path.",
-      "status": "Root cause investigation; no speculative fix claimed.",
+      "status": "Current fixed signed Signal continuity passes alongside Attach and both revocation controls. Earlier intermittent failures retained; full matrix still pending.",
       "completion": "Focused regression preserves current authority/cleanup and passes actual media delivery, then all32 cells.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S97",
+      "title": "Preserve media epochs on already-recorded commit replay",
+      "owner": "Root",
+      "dependencies": [
+        "S93"
+      ],
+      "code_paths": [
+        "crates/connect-store/src/transitions/native_replacements/allocation/start/commit.rs"
+      ],
+      "solution": "Fresh exact recorded-capture Read before Writer acquisition. First recording and uncertain outcomes retain Writer; no cached successful permission or effect replay.",
+      "status": "All5 fixed Store replay/first-capture/refusal controls pass, including original queued epoch regression. Signed preparation4/4 pass; cadence unresolved.",
+      "completion": "Fixed actual epoch regression, first-capture Writer, historical cancellation/revocation and public commitment guards; signed delivery and representative cadence.",
+      "completion_status": "focused-verified-with-runtime-limitations"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -5339,10 +5362,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v214.json"
   },
   "current_focused_verification": {
-    "passed": 139,
-    "planned": 142,
-    "scope": "Latest applicable result per distinct focused test across preserved source-specific receipts: 110/113 Rust pass, 3 fail; Python29/29 pass separately. Composite evidence is not a single coherent final build or a matrix-cell pass.",
-    "next": "Resolve three remaining focused media failures before full32. Setup/allocation completion is not media-quality acceptance."
+    "passed": 33,
+    "planned": 35,
+    "scope": "Epoch-fix batch across preserved source-specific receipts:27 Store controls,2 receiver guards,4 signed preparation pass;2 representative cadence fail. Corrected fixture verified. No matrix-cell qualification.",
+    "next": "Reproduce and fix stale-partial recovery; identify original packet-loss cause, then fresh full32."
   },
   "current_workplan_tasks": [
     "S86",
@@ -5402,7 +5425,8 @@
     "S84",
     "S85",
     "S95",
-    "S96"
+    "S96",
+    "S97"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -16840,5 +16864,18 @@
         "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates"
       ]
     }
+  },
+  "v215_media_epoch_fix_batch": {
+    "public_evidence": "docs/evidence/gate-6/media-epoch-fix-batch-v215.json",
+    "status": "Both epoch fixes component-verified:27 Store controls and4 signed preparation cases pass;2 additional receiver guards pass. Both representative cadence cases still fail.",
+    "old_condition_store_bug_verified": true,
+    "old_signed_diagnostic_passed": true,
+    "core_controls_passed": 4,
+    "fixed_store_passed": 27,
+    "fixed_store_failed": 0,
+    "signed_preparation_passed": 4,
+    "representative_passed": 0,
+    "representative_failed": 2,
+    "receiver_guards_passed": 2
   }
 }

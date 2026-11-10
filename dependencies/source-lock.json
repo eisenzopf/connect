@@ -2083,6 +2083,12 @@
       "path": "patches/rvoip/connect-replacement-allocation-coordination.patch",
       "sha256": "fcb31f61f13242f088de3f5b0c5d0edb1981becb261b0dc04f608a07d27665ea",
       "source": "Release the exact original allocation command domain custody before coordinator wait; reauthorize same signed command before once-only allocation"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-original-video-pending-diagnostics.patch",
+      "sha256": "0cb0e0ac300d6f4c1c8fbe461ee0cc4637839ae9f5f0ac53fcd6d815a34c15a2",
+      "source": "Bounded original video pending diagnostics and actual scene regression distinguish transient receiver cache readiness from original epoch revocation. Preserve same packet, route/scene, current authorization and original200ms age; no grant or timeout changes."
     }
   ]
 }

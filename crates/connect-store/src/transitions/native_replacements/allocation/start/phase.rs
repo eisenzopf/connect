@@ -68,11 +68,49 @@ impl Store {
         phase: NativeReplacementMediaPhase,
         read: &NativeReplacementMediaRead,
     ) -> Result<NativeReplacementMediaAttempt> {
-        let p = &origin.started.attempt.allocated.attempt.prepared;
-        if !read.current() || read.source.selection().origin.record != p.record {
+        self.begin_native_replacement_media_phase_inner(origin, phase, read, None)
+    }
+    /// Complete scene custody may reserve only gain-only Attach/Readiness
+    /// metadata. A naked packet read remains insufficient for a durable phase;
+    /// actual Activate and every uncertain/audience projection retain Write.
+    pub fn begin_native_replacement_scene_media_phase(
+        &self,
+        origin: Arc<NativeReplacementMediaOrigin>,
+        phase: NativeReplacementMediaPhase,
+        scene: &NativeReplacementSceneRead,
+    ) -> Result<NativeReplacementMediaAttempt> {
+        if !scene.current() {
             return Err(Error::forbidden());
         }
-        if !self.authority_covers(&read.interval, &read.interval.mutation_scopes()) {
+        for source in scene.reads.values() {
+            if !scene
+                .media
+                .interval
+                .covers_original_interval(source.interval())
+            {
+                return Err(Error::forbidden());
+            }
+        }
+        self.begin_native_replacement_media_phase_inner(origin, phase, scene.media(), Some(scene))
+    }
+    fn begin_native_replacement_media_phase_inner(
+        &self,
+        origin: Arc<NativeReplacementMediaOrigin>,
+        phase: NativeReplacementMediaPhase,
+        read: &NativeReplacementMediaRead,
+        scene: Option<&NativeReplacementSceneRead>,
+    ) -> Result<NativeReplacementMediaAttempt> {
+        let positive = scene.is_some()
+            && matches!(
+                phase,
+                NativeReplacementMediaPhase::Attach | NativeReplacementMediaPhase::Readiness
+            );
+        let current = || scene.map_or_else(|| read.current(), NativeReplacementSceneRead::current);
+        let p = &origin.started.attempt.allocated.attempt.prepared;
+        if !current() || read.source.selection().origin.record != p.record {
+            return Err(Error::forbidden());
+        }
+        if !positive && !self.authority_covers(&read.interval, &read.interval.mutation_scopes()) {
             return Err(Error::forbidden());
         }
         let mut c = self.connection_with_authority(&read.interval)?;
@@ -114,14 +152,35 @@ impl Store {
         )?;
         let attempt = format!("nrm_{}", uuid::Uuid::new_v4());
         let effect = format!("nre_{}", uuid::Uuid::new_v4());
+        if !current() {
+            return Err(Error::forbidden());
+        }
+        let permit = if positive {
+            Some(self.authority_writer_boundary.native_phase_ledger(
+                self,
+                &tx,
+                &read.interval,
+                ledger_key(
+                    p,
+                    phase,
+                    &attempt,
+                    &effect,
+                    &expected,
+                    crate::authority_writer_boundary::phase_ledger::Stage::Begin,
+                ),
+            )?)
+        } else {
+            None
+        };
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,?3,?1,'none','prepared',?4)",params![effect,p.record,format!("native-replacement-{}",phase.name()),expected]).map_err(|_|Error::storage())?;
         tx.execute("INSERT INTO native_replacement_media_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,?2,?3,?4)",params![p.record,phase.name(),attempt,effect]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE native_replacement_media_steps SET started=1 WHERE operation_record_id=?1 AND phase=?2",params![p.record,phase.name()]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1",[&effect]).map_err(|_|Error::storage())?;
         native_handoffs::touch(&tx, &p.record, self)?;
-        if !read.current() {
+        if !current() {
             return Err(Error::forbidden());
         }
+        drop(permit);
         tx.commit().map_err(|_| Error::storage())?;
         Ok(NativeReplacementMediaAttempt {
             origin,
@@ -140,7 +199,11 @@ impl Store {
         local_owner(self, &p.owner, &p.runtime)?;
         let (held, mut c) = self.try_replacement_capture_projection(None, |c| {
             let row = rows::by_record(c, &p.record)?;
-            let mut scopes = admission::mutation_row_scopes(&row)?;
+            let mut scopes = if positive_capture(c, captured)? {
+                admission::row_scopes(&row)?
+            } else {
+                admission::mutation_row_scopes(&row)?
+            };
             if captured.audience.is_some() {
                 scopes.extend(crate::authority_admission::conversation_scopes(
                     c,
@@ -169,6 +232,37 @@ impl Store {
         if captured.observation.is_none() && state == "unknown" {
             return Ok(row.record);
         }
+        // Revalidate eligibility under the same original SQL transaction. A
+        // state change to Unknown/cancel/audience cannot upgrade this reader.
+        let positive = positive_capture(&tx, captured)?;
+        let required = if positive {
+            admission::row_scopes(&row)?
+        } else {
+            admission::mutation_row_scopes(&row)?
+        };
+        if !self.authority_covers(&held, &required) {
+            return Err(Error::new(
+                "authority-busy",
+                "Original phase capture now requires a writer",
+            ));
+        }
+        let permit = if positive {
+            Some(self.authority_writer_boundary.native_phase_ledger(
+                self,
+                &tx,
+                &held,
+                ledger_key(
+                    p,
+                    a.phase,
+                    &a.attempt,
+                    &a.effect,
+                    &a.expected,
+                    crate::authority_writer_boundary::phase_ledger::Stage::Confirm,
+                ),
+            )?)
+        } else {
+            None
+        };
         if let Some(observation) = &captured.observation {
             tx.execute("UPDATE native_replacement_media_steps SET observation_json=?3 WHERE operation_record_id=?1 AND phase=?2",params![p.record,a.phase.name(),observation]).map_err(|_|Error::storage())?;
             tx.execute("UPDATE operation_effects SET state='confirmed' WHERE id=?1 AND state IN ('submitting','unknown')",[&a.effect]).map_err(|_|Error::storage())?;
@@ -190,6 +284,7 @@ impl Store {
         }
         native_handoffs::touch(&tx, &p.record, self)?;
         let result = rows::by_record(&tx, &p.record)?.record;
+        drop(permit);
         tx.commit().map_err(|_| Error::storage())?;
         Ok(result)
     }
@@ -216,4 +311,44 @@ impl NativeReplacementMediaCapture {
         self.audience = Some(audience);
         Ok(self)
     }
+}
+
+fn ledger_key(
+    p: &NativeReplacementPrepared,
+    phase: NativeReplacementMediaPhase,
+    attempt: &str,
+    effect: &str,
+    expected: &str,
+    stage: crate::authority_writer_boundary::phase_ledger::Stage,
+) -> crate::authority_writer_boundary::phase_ledger::Key {
+    crate::authority_writer_boundary::phase_ledger::Key {
+        record: p.record.clone(),
+        phase: phase.name(),
+        attempt: attempt.into(),
+        effect: effect.into(),
+        expected: expected.into(),
+        runtime: p.runtime.clone(),
+        reservation: p.reservation.clone(),
+        digest: p.hash.clone(),
+        stage,
+    }
+}
+fn positive_capture(c: &Connection, captured: &NativeReplacementMediaCapture) -> Result<bool> {
+    let a = &captured.attempt;
+    if !matches!(
+        a.phase,
+        NativeReplacementMediaPhase::Attach | NativeReplacementMediaPhase::Readiness
+    ) || captured.observation.as_deref() != Some(a.expected.as_str())
+        || captured.audience.is_some()
+    {
+        return Ok(false);
+    }
+    let p = &a.origin.started.attempt.allocated.attempt.prepared;
+    let current:Option<(Option<String>,String,bool)>=c.query_row(
+        "SELECT s.observation_json,e.state,(o.state='preparing' AND o.cancel_requested=0 AND o.tombstoned=0 AND NOT EXISTS(SELECT 1 FROM native_replacement_steps commit_step WHERE commit_step.operation_record_id=o.record_id AND commit_step.phase='commit' AND commit_step.started=1)) FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id JOIN native_replacement_media_steps s ON s.operation_record_id=n.operation_record_id JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.phase=?5 AND s.attempt_id=?6 AND s.effect_id=?7 AND s.started=1 AND e.provider='native-replacement-'||s.phase AND e.correlation_key=e.id AND e.idempotency_mode='none' AND e.observation_json=?8 AND e.attempt=1 AND e.submission_generation=1 AND e.provider_ref IS NULL AND e.compensates_effect_id IS NULL",
+        params![p.record,p.runtime,p.reservation,p.hash,a.phase.name(),a.attempt,a.effect,a.expected],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|_|Error::storage())?;
+    Ok(current.is_some_and(|(old, state, preparing)| {
+        (old.as_deref() == Some(a.expected.as_str()) && state == "confirmed")
+            || (old.is_none() && state == "submitting" && preparing)
+    }))
 }

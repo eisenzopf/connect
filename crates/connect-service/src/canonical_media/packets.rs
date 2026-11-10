@@ -188,6 +188,8 @@ impl Policy {
             elapsed_us = started.as_ref().map_or(0, |started| started.elapsed().as_micros() as u64),
             publishing = matches!(scope.purpose, MediaPurpose::Publish),
             owned_file_custody = held.is_some(),
+            target_continuation=target_continuation.is_some(), source_continuation=source_continuation.is_some(),
+            held_source_epoch_current=held.as_ref().and_then(|r|r.packet_epoch()).map(|e|e.current()),
             role = result.as_ref().ok().map(|r|r.target().presence_role.as_str()),
             detail = result.as_ref().err().map(|e|e.message.as_str()),
             receiving = source.is_some(),

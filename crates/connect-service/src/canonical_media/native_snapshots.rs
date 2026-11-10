@@ -364,7 +364,19 @@ impl Connection {
         )?;
         // No fallible operation follows publication. Only after successful
         // enrollment may old dead/ordinary phase handles be withdrawn.
-        routes.retain(|_, route| route.live());
+        routes.retain(|_, registered| {
+            let live = registered.live();
+            if !live {
+                tracing::debug!(target: "connect_service::packet_refusal",
+                    connection=self.origin.connection_id(),
+                    old_target_phase=registered.target_phase.is_some(),
+                    old_source_phase=registered.source_phase.is_some(),
+                    new_target_phase=target_phase.is_some(), new_source_phase=source_phase.is_some(),
+                    unary=registered.source.is_none(),
+                    "Retired phase snapshot handle withdrawn at route registration");
+            }
+            live
+        });
         routes.insert(
             route,
             RouteSnapshot {
