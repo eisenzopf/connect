@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T13:32:31.503728+00:00",
-  "run_status": "J cleanup:113/113 affected unit controls pass, including real SQL/file contention, cancellation, original expiry and once-only effects. Signed-target build finishing; signed27 retest pending. Previous I5 focused run22/27 passed; full matrix remains v209:0/32 cells,390/432 checks passed.",
+  "updated": "2026-11-10T13:41:03.217395+00:00",
+  "run_status": "J completed:113/113 affected controls pass, signed22/27 pass (native2/3,WebRTC5/5,runtime15/19). Telephone allocation now confirms but three submission scenarios fail; provider-close return passes, AI-caller initial return planning and one native allocation still fail. Entire related control sequences audited for next batch. Full matrix remains v209:0/32 cells,390/432 checks passed.",
   "blockers": [
     {
       "id": "B01",
@@ -2663,7 +2663,7 @@
         "crates/connect-store/src/transitions/native_replacements/telephone/runtime.rs"
       ],
       "solution": "Consolidate original allocation source and route validation, wait boundedly for control SQL, retain original cutoff and once-only SIP submission.",
-      "status": "Implemented and independently reviewed; J113/113 affected unit controls pass. Signed runtime retest pending; no matrix promotion.",
+      "status": "J unit controls pass; signed telephone allocation confirms in allthree scenarios. Subsequent submission failures tracked S83; full-cell qualification open.",
       "completion": "Real primary-SQL contention, original expiry/revocation and once-only allocation controls; then three signed telephone scenarios.",
       "completion_status": "in-progress"
     },
@@ -2676,8 +2676,47 @@
         "crates/connect-store/src/transitions/native_returns/custody.rs"
       ],
       "solution": "Consolidate original return validation; release planning readers before bounded SQL admission, acquire mutation authority immediately under that SQL interval, and preserve once-only effects.",
-      "status": "Implemented and independently reviewed; J113/113 affected unit controls pass. Signed runtime retest pending; no matrix promotion.",
+      "status": "J unit controls pass; signed provider-close return now passes. Other provider scenario fails earlier initial planning, tracked S84; full-cell qualification open.",
       "completion": "Real SQL contention and reader-drain controls, original expiry/revocation and no repeated mutation; then two signed provider-return scenarios.",
+      "completion_status": "in-progress"
+    },
+    {
+      "id": "S82",
+      "title": "Native allocation single SQL admission and retained uncertainty",
+      "owner": "Root and assigned agent",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-service/src/canonical_replacement/allocation.rs"
+      ],
+      "solution": "Combine planning, pure transport validation and once-only begin in one immediate SQL interval under supplied signed proof; retain same captured/uncertain attempt through recording contention.",
+      "status": "Full-sequence audit complete; implementation and causal regressions in progress.",
+      "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
+      "completion_status": "in-progress"
+    },
+    {
+      "id": "S83",
+      "title": "Telephone control sequence admission",
+      "owner": "Root and assigned agent",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-service/src/telephone_replacement/allocation.rs"
+      ],
+      "solution": "Audit and repair submission, resources, preparation and commit control boundaries with original bounded waits and typed pre-effect deferral; no arbitrary post-mutation storage retry or packet waits.",
+      "status": "Full-sequence audit complete; implementation and causal regressions in progress.",
+      "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
+      "completion_status": "in-progress"
+    },
+    {
+      "id": "S84",
+      "title": "Initial native return planning and preparation",
+      "owner": "Root and assigned agent",
+      "dependencies": [],
+      "code_paths": [
+        "crates/connect-service/src/canonical_consultation_return.rs"
+      ],
+      "solution": "Reuse bounded complete initial return resolution and prepare without holding authority while waiting for SQL; preserve same initial phase budget, cancellation and fresh plan checks.",
+      "status": "Full-sequence audit complete; implementation and causal regressions in progress.",
+      "completion": "Affected actual contention/custody regressions and all27 focused signed scenarios, then matrix qualification separately.",
       "completion_status": "in-progress"
     }
   ],
@@ -5067,8 +5106,8 @@
   "current_focused_verification": {
     "passed": 22,
     "planned": 27,
-    "scope": "I5 local macOS ARM focused signed scenarios; separate290 affected unit controls pass.",
-    "next": "Investigating three telephone allocation and two native-return admission failures; full32 qualification unchanged."
+    "scope": "J local macOS ARM signed scenarios; separate113/113 affected control and Service regressions pass.",
+    "next": "Batch remaining native allocation/capture, telephone control sequence and initial provider return planning/prepare gaps; no full32 promotion."
   },
   "current_workplan_tasks": [
     "S71",
@@ -5113,7 +5152,10 @@
     "S78",
     "S79",
     "S80",
-    "S81"
+    "S81",
+    "S82",
+    "S83",
+    "S84"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",

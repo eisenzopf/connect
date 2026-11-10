@@ -1,9 +1,9 @@
 {
   "format": "connect/gate6-cleanup-batch/1",
   "batch": "v212-J",
-  "updated": "2026-11-10T13:32:31.129961+00:00",
+  "updated": "2026-11-10T13:41:03.214107+00:00",
   "source_base": "7388ac89",
-  "status": "113/113 affected controls pass; coherent signed-target build in progress, focused signed27 retest pending.",
+  "status": "113/113 affected controls pass; completed focused signed22/27 pass. Telephone allocation now confirms, but submission remains blocked by control-read refusals. Provider-close return now passes; AI-caller return stalls at earlier planning. One native allocation scenario hit an immediate SQL admission failure.",
   "acceptance_changes": false,
   "changes": [
     "Consolidate telephone allocation source/route validation into the same final SQL interval; retain original deadlines and joined cancellation custody.",
@@ -64,5 +64,104 @@
     "Unit controls do not qualify matrix cells or establish media-quality recovery.",
     "Precise I5 runtime admission failure attribution remains provisional until the signed retest; slow-SQL trace omits intervals below500 microseconds.",
     "No packet-path blocking or acceptance-threshold changes introduced."
-  ]
+  ],
+  "source_commit": "94eb9163",
+  "build_result": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "-p",
+      "connect-client",
+      "-p",
+      "connect-store",
+      "-p",
+      "connect-service",
+      "-p",
+      "connect-server",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--test",
+      "gate6_replacement_video",
+      "--test",
+      "gate6_canonical_runtime",
+      "--features",
+      "connect-server/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 242.2039589881897,
+    "log_sha256": "be31e411299069b0abf46d7497f03057dc4b558a4caccb79188532203553ed0a",
+    "naturally_joined": true
+  },
+  "focused_signed": {
+    "passed": 22,
+    "failed": 5,
+    "selected": 27,
+    "rows": [
+      {
+        "target": "gate6_replacement_video",
+        "exit_code": 1,
+        "elapsed_seconds": 20.775801181793213,
+        "naturally_joined": true,
+        "receipt_sha256": "eb5ae4e9bceb4fdc3a65ac9abe68d0c0080beeb7288c32f66befe606c8bef750",
+        "summary": {
+          "selected": 3,
+          "completed": 3,
+          "passed": 2,
+          "failed": 1
+        }
+      },
+      {
+        "target": "gate6_canonical_webtransport",
+        "exit_code": 0,
+        "elapsed_seconds": 30.057681798934937,
+        "naturally_joined": true,
+        "receipt_sha256": "18e81f5b05ce3ca49bfd7d6cb53f5ebe7e479952b7ba400c6a5b98fe4af9c968",
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        }
+      },
+      {
+        "target": "gate6_canonical_runtime",
+        "exit_code": 1,
+        "elapsed_seconds": 253.75436282157898,
+        "naturally_joined": true,
+        "receipt_sha256": "c61c97502bc14599d7dff70375e205f5b619f49907e16bae011f1a32a0b2e074",
+        "summary": {
+          "selected": 19,
+          "completed": 19,
+          "passed": 15,
+          "failed": 4
+        }
+      }
+    ],
+    "receipt_sha256": "a45805c449227d23ebb6adfe8c83b6b00bf6a6f317354bcd98c5e34640556701"
+  },
+  "remaining": [
+    {
+      "scope": "native signed allocation",
+      "failed": 1,
+      "evidence": "Planning read succeeded; separate begin returned authority-busy before allocate effect. SDK exposed storage-unavailable."
+    },
+    {
+      "scope": "telephone submission",
+      "failed": 3,
+      "evidence": "Prepare and allocation confirmed. Remaining immediate submission read repeats primary SQL acquisition before SIP submission."
+    },
+    {
+      "scope": "AI-caller return initial planning",
+      "failed": 1,
+      "evidence": "Repeated initial return-read and return-prepare authority-busy; never reaches new reserved-begin control helper."
+    }
+  ],
+  "cleared_focused_case": "production_private_ai_automatic_provider_close_record_outage_retries_observation_without_another_end"
 }
